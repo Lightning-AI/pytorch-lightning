@@ -111,7 +111,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
-        self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -272,7 +271,6 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -309,9 +307,7 @@ class LightningModule(
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
-                but some some data structures might need to explicitly provide it.
-            metric_attribute: The attribute name for the metric in the LightningModule.
-                Necessary to save/restore its state.
+                but some data structures might need to explicitly provide it.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -345,7 +341,7 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-        results = self.trainer.results
+        results = self.trainer._results
         assert results is not None
         assert self._current_fx_name is not None
         results.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
@@ -357,31 +353,11 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        if metric_attribute is None and isinstance(value, Metric):
-            if self._metric_attributes is None:
-                # compute once
-                self._metric_attributes = {
-                    id(module): name
-                    for name, module in self.named_children() if isinstance(module, Metric)
-                }
-                if not self._metric_attributes:
-                    raise MisconfigurationException(
-                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
-                        " You can fix this by setting an attribute for the metric in your `LightningModule`."
-                    )
-            # try to find the passed metric in the LightningModule
-            metric_attribute = self._metric_attributes.get(id(value))
-            if metric_attribute is None:
-                raise MisconfigurationException(
-                    "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
-                    f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
-                    f" of {list(self._metric_attributes.values())}"
-                )
-
-        value = apply_to_collection(value, numbers.Number, self.__to_float)
+        value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
-            # when restarting an new epoch, reset the tensors
+            # if we started a new epoch (running it's first batch) the hook name has changed
+            # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
         results.log(
@@ -396,7 +372,6 @@ class LightningModule(
             enable_graph=enable_graph,
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
-            metric_attribute=metric_attribute,
             sync_dist=sync_dist,
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
             sync_dist_group=sync_dist_group,
@@ -472,8 +447,8 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
-    def __to_float(self, value: numbers.Number) -> torch.Tensor:
-        return torch.tensor(value, device=self.device, dtype=torch.float)
+    def __to_tensor(self, value: numbers.Number) -> torch.Tensor:
+        return torch.tensor(value, device=self.device)
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.

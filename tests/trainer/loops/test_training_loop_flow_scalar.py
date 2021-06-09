@@ -11,10 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Tests to ensure that the training loop works with a dict (1.0)
-"""
-
 import pytest
 import torch
 from torch.utils.data import DataLoader
