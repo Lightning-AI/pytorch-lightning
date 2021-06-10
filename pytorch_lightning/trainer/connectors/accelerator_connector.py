@@ -188,7 +188,7 @@ class AcceleratorConnector(object):
             self._accelerator_type = DeviceType.CPU
 
         accelerator_types = DeviceType.__members__.values()
-        if self.distributed_backend in accelerator_types:
+        if self.distributed_backend in ["auto", *accelerator_types]:
             self.distributed_backend = None
 
     def validate_accelerate_type(self) -> None:
