@@ -20,8 +20,8 @@ import logging
 from argparse import Namespace
 from typing import Any, Dict, Iterable, Optional, Union
 
-import PIL.Image
 import numpy as np
+import PIL.Image
 import torch
 from torch import is_tensor
 
@@ -267,7 +267,12 @@ class NeptuneLogger(LightningLoggerBase):
             self.log_metric(key, val)
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
+    def log_images(
+        self,
+        images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]],
+        step: Optional[int] = None,
+        image_channels='last'
+    ) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         images = self._add_prefix(images)
@@ -337,7 +342,9 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.log_text(log_name, x=step, y=text)
 
     @rank_zero_only
-    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None, image_channels='last') -> None:
+    def log_image(
+        self, log_name: str, image: Union[str, Any], step: Optional[int] = None, image_channels='last'
+    ) -> None:
         """
         Log image data in Neptune experiment
 

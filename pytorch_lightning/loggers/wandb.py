@@ -22,8 +22,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from weakref import ReferenceType
 
-import PIL.Image
 import numpy as np
+import PIL.Image
 import torch
 import torch.nn as nn
 
@@ -223,7 +223,12 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log(metrics)
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
+    def log_images(
+        self,
+        images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]],
+        step: Optional[int] = None,
+        image_channels='last'
+    ) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         images = self._add_prefix(images)

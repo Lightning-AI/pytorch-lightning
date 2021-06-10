@@ -21,8 +21,8 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import PIL.Image
 import numpy as np
+import PIL.Image
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
@@ -225,7 +225,12 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
+    def log_images(
+        self,
+        images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]],
+        step: Optional[int] = None,
+        image_channels='last'
+    ) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         images = self._add_prefix(images)

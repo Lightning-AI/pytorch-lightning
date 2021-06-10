@@ -21,8 +21,8 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import PIL.Image
 import numpy as np
+import PIL.Image
 import torch
 from torch import is_tensor
 
@@ -255,14 +255,21 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
+    def log_images(
+        self,
+        images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]],
+        step: Optional[int] = None,
+        image_channels='last'
+    ) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         images = self._add_prefix(images)
         images = {k: self._preprocess_image(v, image_channels) for k, v in images.items()}
 
         for k, v in images.items():
-            if (isinstance(v, np.ndarray) and v.dtype == np.uint8) or (isinstance(v, torch.Tensor) and v.dtype == torch.uint8) or isinstance(v, PIL.Image.Image):
+            if (isinstance(v, np.ndarray)
+                and v.dtype == np.uint8) or (isinstance(v, torch.Tensor)
+                                             and v.dtype == torch.uint8) or isinstance(v, PIL.Image.Image):
                 image_minmax = (0, 255)
             else:
                 image_minmax = (0, 1)
