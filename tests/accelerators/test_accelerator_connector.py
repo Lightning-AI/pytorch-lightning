@@ -592,4 +592,5 @@ def test_accelerator_cpu_with_gpus_flag():
     trainer = Trainer(accelerator="cpu", gpus=1)
 
     assert trainer._device_type == "cpu"
+
     assert isinstance(trainer.accelerator, CPUAccelerator)
