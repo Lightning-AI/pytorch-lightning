@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
 
 import torch
 
