@@ -38,8 +38,6 @@ class FitLoop(Loop):
         max_steps: Optional[int] = None
     ):
         super().__init__()
-        self._teardown_already_run = False
-
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
@@ -202,10 +200,6 @@ class FitLoop(Loop):
             self.global_step += 1
 
     def on_run_end(self):
-        if self._teardown_already_run:
-            return
-        self._teardown_already_run = True
-
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
