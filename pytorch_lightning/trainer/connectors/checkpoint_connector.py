@@ -38,10 +38,7 @@ class CheckpointConnector:
         self.resume_checkpoint_path = resume_from_checkpoint
         # used to validate checkpointing logic
         self.has_trained = False
-
         self._loaded_checkpoint = dict()
-        # FIXME: remove in https://github.com/PyTorchLightning/pytorch-lightning/pull/7652
-        self._load_optimizer_states = True
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -76,11 +73,7 @@ class CheckpointConnector:
             raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
 
         rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
-        checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
-            checkpoint_path, map_location=lambda storage, loc: storage
-        )
-        self._loaded_checkpoint = checkpoint
-        self._load_optimizer_states = load_optimizer_states
+        self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
 
     def resume_end(self) -> None:
         """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
@@ -133,7 +126,7 @@ class CheckpointConnector:
         model.on_load_checkpoint(checkpoint)
 
         # restore model state_dict
-        model.load_state_dict(checkpoint['state_dict'])
+        self.trainer.training_type_plugin.load_model_state_dict(checkpoint['state_dict'])
 
     def restore_training_state(self, checkpoint, load_optimizer_states: bool = True):
         """
@@ -253,7 +246,7 @@ class CheckpointConnector:
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
-        if not self._load_optimizer_states or not self._loaded_checkpoint:
+        if not self._loaded_checkpoint:
             return
 
         # validation
@@ -267,7 +260,7 @@ class CheckpointConnector:
 
     def restore_optimizers(self) -> None:
         """ Restores the optimizer states from the pre-loaded checkpoint. """
-        if not self._load_optimizer_states or not self._loaded_checkpoint:
+        if not self._loaded_checkpoint:
             return
 
         # restore the optimizers
@@ -285,7 +278,7 @@ class CheckpointConnector:
 
     def restore_lr_schedulers(self) -> None:
         """ Restores the learning rate scheduler states from the pre-loaded checkpoint. """
-        if not self._load_optimizer_states or not self._loaded_checkpoint:
+        if not self._loaded_checkpoint:
             return
 
         # restore the lr schedulers

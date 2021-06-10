@@ -18,7 +18,7 @@ import os
 from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, Mapping
 
 import torch
 
@@ -555,6 +555,35 @@ class DeepSpeedPlugin(DDPPlugin):
         # This doesn't have to be the case when using deepspeed sharded checkpointing
         ckpt_path = self.broadcast(ckpt_path)
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
+
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        if self.save_full_weights or self.world_size == 1:
+            # Broadcast to ensure we load from the rank 0 checkpoint
+            # This doesn't have to be the case when using deepspeed sharded checkpointing
+            checkpoint_path = self.broadcast(checkpoint_path)
+            return super().load_checkpoint_file(checkpoint_path)
+
+        # Rely on deepspeed to load the checkpoint and necessary information
+        from pytorch_lightning.trainer.states import TrainerFn
+        is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+        save_dir = self._filepath_to_dir(checkpoint_path)
+
+        if self.zero_stage_3:
+            # TODO: Currently required as this call is missing within the deepspeed engine.
+            self.deepspeed_engine.optimizer._partition_all_parameters()
+
+        _, client_state = self.deepspeed_engine.load_checkpoint(
+            save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
+        )
+        return client_state
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
+        pass
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
+        pass
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
