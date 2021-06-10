@@ -177,7 +177,7 @@ def test_v1_6_0_datamodule_hooks_calls(tmpdir):
 
 def test_v1_6_0_early_stopping_monitor(tmpdir):
     with pytest.deprecated_call(
-        match="The `EarlyStopping(monitor)` argument will be required starting in v1.6."
+        match=r"The `EarlyStopping\(monitor\)` argument will be required starting in v1.6."
         " For backward compatibility, setting this to `early_stop_on`."
     ):
         EarlyStopping()
