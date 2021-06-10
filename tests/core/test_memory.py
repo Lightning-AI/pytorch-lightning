@@ -101,6 +101,18 @@ class PartialScriptModel(LightningModule):
         return self.layer2(self.layer1(x))
 
 
+class LazyModel(LightningModule):
+    """ A model which contains lazy layers with unintialized parameters. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.LazyLinear(5)
+        self.layer2 = nn.LazyLinear(2)
+
+    def forward(self, inp):
+        return self.layer2(self.layer1(inp))
+
+
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
