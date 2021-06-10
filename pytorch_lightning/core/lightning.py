@@ -17,15 +17,15 @@ import collections
 import copy
 import inspect
 import logging
+import numbers
 import os
 import tempfile
 import types
 import uuid
 from abc import ABC
 from argparse import Namespace
-from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import onnx
@@ -34,20 +34,25 @@ import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torchmetrics import Metric
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import WarningCache
 
+warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
@@ -103,10 +108,8 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Optional[Result] = None
-        self._current_fx_name: str = ''
+        self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
-        self._current_hook_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
@@ -214,9 +217,22 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
+        device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device)
+
+        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
+        else:
+            warning_cache.warn(
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
+                " `dataloader_idx` parameter has been added to it. Support for"
+                " the old signature will be removed in v1.6", DeprecationWarning
+            )
+            batch = self.transfer_batch_to_device(batch, device)
+
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -244,20 +260,21 @@ class LightningModule(
     def log(
         self,
         name: str,
-        value: Any,
+        value: _METRIC_COLLECTION,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+        batch_size: Optional[int] = None,
+    ) -> None:
         """
         Log a key, value
 
@@ -279,93 +296,110 @@ class LightningModule(
            "validation_epoch_end*", "F", "T", "F", "T"
 
         Args:
-            name: key name
-            value: value name
+            name: key to log
+            value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group to sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
+            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+                but some data structures might need to explicitly provide it.
         """
-        if self._results is not None:
-            # in any epoch end can't log step metrics (only epoch metric)
-            if 'epoch_end' in self._current_fx_name and on_step:
-                m = f'on_step=True cannot be used on {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            if 'epoch_end' in self._current_fx_name and on_epoch is False:
-                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            # add log_dict
-            # TODO: if logged twice fail with crash
-
-            # set the default depending on the fx_name
-            on_step = self.__auto_choose_log_on_step(on_step)
-            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
-
-            if self._current_hook_fx_name is not None:
-                self.trainer.logger_connector.check_logging_in_callbacks(
-                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
-                )
-
-            # make sure user doesn't introduce logic for multi-dataloaders
-            if "/dataloader_idx_" in name:
-                raise MisconfigurationException(
-                    f"Logged key: {name} should not contain information about dataloader_idx."
-                )
-
-            training_type_plugin = self.trainer.training_type_plugin
-
-            # Determine if dataloader index should be added
-            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
-
-            self._results.log(
-                name,
-                value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx,
-                tbptt_pad_token,
-                enable_graph,
-                sync_dist,
-                sync_dist_op,
-                sync_dist_group,
-                training_type_plugin.reduce,
-                dataloader_idx,
-                self.device,
+        if tbptt_reduce_fx is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_reduce_fx=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
+        if tbptt_pad_token is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_pad_token=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
+            )
+        if sync_dist_op is not None:
+            rank_zero_deprecation(
+                f"`self.log(sync_dist_op='{sync_dist_op}')` is deprecated and will be removed in v.1.6."
+                f" Use `self.log(reduce_fx={sync_dist_op})` instead."
+            )
+            if reduce_fx == 'default':
+                reduce_fx = sync_dist_op
+        elif reduce_fx == 'default':
+            reduce_fx = 'mean'
+
+        # check for invalid values
+        apply_to_collection(value, dict, self.__check_not_nested, name)
+        apply_to_collection(
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+        )
+
+        # set the default depending on the fx_name
+        on_step = self.__auto_choose_log_on_step(on_step)
+        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+        results = self.trainer._results
+        assert results is not None
+        assert self._current_fx_name is not None
+        results.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+
+        # make sure user doesn't introduce logic for multi-dataloaders
+        if "/dataloader_idx_" in name:
+            raise MisconfigurationException(
+                f"You called `self.log` with the key `{name}`"
+                " but it should not contain information about `dataloader_idx`"
+            )
+
+        value = apply_to_collection(value, numbers.Number, self.__to_tensor)
+
+        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+            # if we started a new epoch (running it's first batch) the hook name has changed
+            # reset any tensors for the new hook name
+            results.reset(metrics=False, fx=self._current_fx_name)
+
+        results.log(
+            self._current_fx_name,
+            name,
+            value,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+            batch_size=batch_size,
+            sync_dist=sync_dist,
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
+            sync_dist_group=sync_dist_group,
+        )
+
+        self.trainer.logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
-        dictionary: dict,
+        dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
-        Log a dictonary of values at once
+        Log a dictionary of values at once
 
         Example::
 
@@ -373,17 +407,15 @@ class LightningModule(
             self.log_dict(values)
 
         Args:
-            dictionary: key value pairs (str, tensors)
+            dictionary: key value pairs.
+                The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -406,6 +438,34 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx
             )
+
+    @staticmethod
+    def __check_not_nested(value: dict, name: str) -> dict:
+        # self-imposed restriction. for simplicity
+        if any(isinstance(v, dict) for v in value.values()):
+            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
+        return value
+
+    @staticmethod
+    def __check_allowed(v: Any, name: str, value: Any) -> None:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
+
+    def __to_tensor(self, value: numbers.Number) -> torch.Tensor:
+        return torch.tensor(value, device=self.device)
+
+    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+        """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        Args:
+            grad_norm_dict: Dictionary containing current grad norm metrics
+
+        Example::
+
+            # DEFAULT
+            def log_grad_norm(self, grad_norm_dict):
+                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        """
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
@@ -464,30 +524,16 @@ class LightningModule(
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
-    def __auto_choose_log_on_step(self, on_step):
+    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
         if on_step is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_step = True
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_step = False
-            else:
-                on_step = False
-
+            on_step = False
+            on_step |= self._current_fx_name in ('training_step', 'training_step_end')
         return on_step
 
-    def __auto_choose_log_on_epoch(self, on_epoch):
+    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
         if on_epoch is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_epoch = False
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_epoch = True
-            else:
-                on_epoch = True
-
+            on_epoch = True
+            on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
         return on_epoch
 
     def all_gather(
@@ -515,8 +561,7 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.accelerator.all_gather
         data = convert_to_tensors(data, device=self.device)
-        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
-        return apply_to_collection(data, torch.Tensor, all_gather)
+        return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs) -> Any:
         r"""
@@ -1622,7 +1667,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.split_idx
+            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
@@ -1909,7 +1954,9 @@ class LightningModule(
         self.train(mode)
 
         if file_path is not None:
-            torch.jit.save(torchscript_module, file_path)
+            fs = get_filesystem(file_path)
+            with fs.open(file_path, "wb") as f:
+                torch.jit.save(torchscript_module, f)
 
         return torchscript_module
 

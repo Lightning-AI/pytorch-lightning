@@ -31,7 +31,13 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    rank_zero_deprecation,
+    rank_zero_only,
+    rank_zero_warn,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -51,17 +57,27 @@ class DDPSpawnPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm: bool = False,
+        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Any,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
-        self.num_nodes = num_nodes
-        self.sync_batchnorm = sync_batchnorm
+        if num_nodes is not None:
+            rank_zero_deprecation(
+                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6. "
+                "Notice that it will be overriden by the trainer setting."
+            )
+        self._num_nodes = num_nodes or 1
+        if sync_batchnorm is not None:
+            rank_zero_deprecation(
+                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6. "
+                "Notice that it will be overriden by the trainer setting."
+            )
+        self._sync_batchnorm = sync_batchnorm or False
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
@@ -71,6 +87,24 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
         self.set_world_ranks()
+
+    @property
+    def num_nodes(self) -> int:
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
+        self._num_nodes = num_nodes
+        self.set_world_ranks()
+
+    @property
+    def sync_batchnorm(self) -> bool:
+        return self._sync_batchnorm
+
+    @sync_batchnorm.setter
+    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
+        self._sync_batchnorm = sync_batchnorm
 
     @property
     def local_rank(self) -> int:
@@ -106,10 +140,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
         self._local_rank = process_idx
-        if self.cluster_environment is not None:
-            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-            rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @property
     def mp_spawn_kwargs(self):
@@ -284,7 +319,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
             prepare_for_backward(self.model, closure_loss)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
         """
         Reduces a tensor from several distributed processes to one aggregated tensor.
 
@@ -298,7 +333,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, torch.Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args, **kwargs):

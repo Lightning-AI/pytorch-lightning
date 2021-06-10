@@ -95,7 +95,7 @@ def test_timer_time_remaining(time_mock):
     assert round(timer.time_elapsed()) == 3
 
 
-def test_timer_stops_training(tmpdir):
+def test_timer_stops_training(tmpdir, caplog):
     """ Test that the timer stops training before reaching max_epochs """
     model = BoringModel()
     duration = timedelta(milliseconds=100)
@@ -106,9 +106,12 @@ def test_timer_stops_training(tmpdir):
         max_epochs=1000,
         callbacks=[timer],
     )
-    trainer.fit(model)
+    with caplog.at_level(logging.INFO):
+        trainer.fit(model)
     assert trainer.global_step > 1
     assert trainer.current_epoch < 999
+    assert "Time limit reached." in caplog.text
+    assert "Signaling Trainer to stop." in caplog.text
 
 
 @pytest.mark.parametrize("interval", ["step", "epoch"])

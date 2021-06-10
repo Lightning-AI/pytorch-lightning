@@ -25,7 +25,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
@@ -230,7 +230,7 @@ def lr_find(
     trainer.logger = DummyLogger()
 
     # Max step set to number of iterations
-    trainer.max_steps = num_training
+    trainer.train_loop.max_steps = num_training
 
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
@@ -255,11 +255,11 @@ def lr_find(
 
     # Transfer results from callback to lr finder object
     lr_finder.results.update({'lr': trainer.callbacks[0].lrs, 'loss': trainer.callbacks[0].losses})
-    lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
+    lr_finder._total_batch_idx = trainer.train_loop.total_batch_idx  # for debug purpose
 
     # Reset model state
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
+        trainer.checkpoint_connector.restore(str(save_path))
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
@@ -297,8 +297,8 @@ def __lr_finder_restore_params(trainer, model):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
-    trainer.max_steps = trainer.__dumped_params['max_steps']
-    trainer.current_epoch = trainer.__dumped_params['current_epoch']
+    trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
+    trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
@@ -340,7 +340,7 @@ class _LRCallback(Callback):
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if (trainer.train_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
         if self.progress_bar_refresh_rate and self.progress_bar is None:
@@ -350,7 +350,7 @@ class _LRCallback(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
-        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if (trainer.train_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
         if self.progress_bar:
@@ -366,7 +366,7 @@ class _LRCallback(Callback):
         # Check if we diverging
         if self.early_stop_threshold is not None:
             if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.max_steps = current_step  # stop signal
+                trainer.train_loop.max_steps = current_step  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
 

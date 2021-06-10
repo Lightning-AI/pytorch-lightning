@@ -392,11 +392,12 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)],
         precision=16,
         gpus=1,
-        default_root_dir=tmpdir,
         callbacks=[TestCallback()]
     )
     with pytest.raises(SystemExit):
@@ -410,8 +411,8 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
     model = BoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(zero_optimization=False, stage=2)],
         default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(zero_optimization=False, stage=2)],
         gpus=2,
         fast_dev_run=True,
         precision=16,
@@ -489,8 +490,8 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
     model = ModelParallelBoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
         gpus=2,
         fast_dev_run=True,
         precision=16,
@@ -507,9 +508,10 @@ def run_checkpoint_test(tmpdir, save_full_weights):
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=10,
         plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
-        default_root_dir=tmpdir,
         gpus=2,
         precision=16,
         accumulate_grad_batches=2,
@@ -525,9 +527,9 @@ def run_checkpoint_test(tmpdir, save_full_weights):
     assert saved_results == results
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=10,
         plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
-        default_root_dir=tmpdir,
         gpus=2,
         precision=16,
         accumulate_grad_batches=2,
@@ -566,6 +568,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
+    os.environ['MASTER_PORT'] = "29500"
     seed_everything(42)
 
     class VerificationCallback(Callback):
@@ -579,6 +582,8 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=5,
         plugins=[DeepSpeedPlugin(stage=2, cpu_offload=cpu_offload)],
         gpus=2,
@@ -597,8 +602,8 @@ def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
     """
     model = ModelParallelBoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
         gpus=2,
         fast_dev_run=True,
         precision=16,

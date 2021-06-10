@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from functools import wraps
 from typing import Any, Generator, List, Tuple
 
 import torch
@@ -20,20 +19,22 @@ import torch.nn as nn
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-class _DoublePrecisionPatch:
-    """Class to handle patching of methods in the ``LightningModule`` and subsequent teardown."""
+class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
+    """
+    LightningModule wrapper which converts incoming floating point data in ``*_step`` and ``forward`` to double
+    (``torch.float64``) precision.
 
-    def __init__(self, model: nn.Module, method_name: str, old_method: Any) -> None:
-        self.model = model
-        self.method_name = method_name
-        self.old_method = old_method
+    Args:
+        pl_module: the model to wrap
+    """
 
-    def teardown(self) -> None:
-        setattr(self.model, self.method_name, self.old_method)
+    def __init__(self, pl_module: LightningModule):
+        super().__init__(pl_module)
 
     @staticmethod
     def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
@@ -43,54 +44,62 @@ class _DoublePrecisionPatch:
 
     @staticmethod
     def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision)
+        return apply_to_collection(
+            collection,
+            torch.Tensor,
+            LightningDoublePrecisionModule._to_double_precision,
+        )
 
-    @classmethod
-    def patch(cls, model: nn.Module, method_name: str) -> '_DoublePrecisionPatch':
-        old_method = getattr(model, method_name)
+    def training_step(self, *args: Any, **kwargs: Any) -> Any:
+        return self.module.training_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
+        )
 
-        @wraps(old_method)
-        def new_method(*args: Any, **kwargs: Any) -> Any:
-            return old_method(
-                *_DoublePrecisionPatch._move_float_tensors_to_double(args),
-                **_DoublePrecisionPatch._move_float_tensors_to_double(kwargs)
-            )
+    def validation_step(self, *args: Any, **kwargs: Any) -> Any:
+        return self.module.validation_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
+        )
 
-        setattr(model, method_name, new_method if callable(old_method) else old_method)
-        return cls(model, method_name, old_method)
+    def test_step(self, *args: Any, **kwargs: Any) -> Any:
+        return self.module.test_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
+        )
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
+        return self.module.predict_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
+        )
+
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
+        return self.module(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
+        )
 
 
 class DoublePrecisionPlugin(PrecisionPlugin):
-    """Plugin for training with double (``torch.float64``) precision."""
+    """ Plugin for training with double (``torch.float64``) precision. """
 
     precision: int = 64
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.patches: List[_DoublePrecisionPatch] = []
 
     def connect(
         self,
         model: nn.Module,
         optimizers: List[Optimizer],
         lr_schedulers: List[Any],
-    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
-        """Converts the model to double precision and wraps the `training_step`, `validation_step`, `test_step`,
-        `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
-        `optimizers` or `lr_schedulers`."""
+    ) -> Tuple[nn.Module, List['Optimizer'], List[Any]]:
+        """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert
+        incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
+        `lr_schedulers`.
+        """
         model = model.to(dtype=torch.float64)
-        if isinstance(model, LightningModule):
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'training_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'validation_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'test_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'predict_step'))
-        self.patches.append(_DoublePrecisionPatch.patch(model, 'forward'))
+        model = LightningDoublePrecisionModule(model)
 
         return super().connect(model, optimizers, lr_schedulers)
-
-    def post_dispatch(self) -> None:
-        while len(self.patches) > 0:
-            self.patches.pop().teardown()
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:

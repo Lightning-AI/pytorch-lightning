@@ -20,8 +20,8 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_only
 
 
 class LightningDataModule(CheckpointHooks, DataHooks):
@@ -37,7 +37,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             def prepare_data(self):
                 # download, split, etc...
                 # only called on 1 GPU/TPU in distributed
-            def setup(self):
+            def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
             def train_dataloader(self):
@@ -160,7 +160,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.prepare_data()`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_prepared_data` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_prepared_data
 
     @property
@@ -169,7 +175,11 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True ``if datamodule.setup(stage='fit')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation('DataModule property `has_setup_fit` was deprecated in v1.4 and will be removed in v1.6.')
         return self._has_setup_fit
 
     @property
@@ -178,7 +188,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.setup(stage='validate')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_validate` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_setup_validate
 
     @property
@@ -187,7 +203,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.setup(stage='test')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_test` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_setup_test
 
     @property
@@ -196,7 +218,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.setup(stage='predict')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_predict` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_setup_predict
 
     @property
@@ -205,7 +233,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True ``if datamodule.teardown(stage='fit')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_fit` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_teardown_fit
 
     @property
@@ -214,7 +248,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.teardown(stage='validate')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_validate` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_teardown_validate
 
     @property
@@ -223,7 +263,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.teardown(stage='test')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_test` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_teardown_test
 
     @property
@@ -232,7 +278,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.teardown(stage='predict')`` has been called. False by default.
+
+        .. deprecated:: v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_predict` was deprecated in v1.4 and will be removed in v1.6.'
+        )
         return self._has_teardown_predict
 
     @classmethod
@@ -355,6 +407,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         @functools.wraps(fn)
         def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
             name = fn.__name__
+            has_run = False
 
             # If calling setup, we check the stage and assign stage-specific bool args
             if name in ("setup", "teardown"):
@@ -366,15 +419,27 @@ class LightningDataModule(CheckpointHooks, DataHooks):
                 stage = args[0] if len(args) else kwargs.get("stage", None)
 
                 if stage is None:
+                    has_run = True
                     for s in ("fit", "validate", "test"):
-                        setattr(obj, f"_has_{name}_{s}", True)
+                        attr = f"_has_{name}_{s}"
+                        has_run &= getattr(obj, attr)
+                        setattr(obj, attr, True)
                 else:
-                    setattr(obj, f"_has_{name}_{stage}", True)
+                    attr = f"_has_{name}_{stage}"
+                    has_run = getattr(obj, attr)
+                    setattr(obj, attr, True)
 
             elif name == "prepare_data":
+                has_run = obj._has_prepared_data
                 obj._has_prepared_data = True
 
-            return fn(*args, **kwargs)
+            if has_run:
+                rank_zero_deprecation(
+                    f"DataModule.{name} has already been called, so it will not be called again. "
+                    f"In v1.6 this behavior will change to always call DataModule.{name}."
+                )
+            else:
+                fn(*args, **kwargs)
 
         return wrapped_fn
 
