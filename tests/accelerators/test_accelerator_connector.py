@@ -551,7 +551,7 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
-@pytest.mark.skipif(torch.cuda.is_available())
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't require GPU")
 def test_accelerator_cpu():
 
     trainer = Trainer(accelerator="cpu")
