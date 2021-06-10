@@ -1799,7 +1799,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if not isinstance(input_sample, (Tuple, list)):
+        if not isinstance(input_sample, (tuple, list)):
             input_sample = (input_sample, )
 
         if "example_outputs" not in kwargs:
