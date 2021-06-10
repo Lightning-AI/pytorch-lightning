@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 import re
 from typing import Any, List, Optional, Union
 
@@ -270,7 +269,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def determine_ddp_device_ids(self):
-        if self.root_device.type == "cpu":self.mp_queue.get())
+        if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
 

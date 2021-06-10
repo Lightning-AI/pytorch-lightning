@@ -137,7 +137,7 @@ class LightningModule(
 
         # multiple schedulers
         return lr_schedulers
-    
+
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array

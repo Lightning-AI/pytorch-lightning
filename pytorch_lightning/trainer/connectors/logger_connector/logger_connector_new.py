@@ -278,7 +278,7 @@ class LoggerConnectorNew:
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
-    
+
     @property
     def spawn_extra_parameters(self) -> Dict[str, Dict[str, float]]:
         return self._spawn_extra_parameters
