@@ -180,4 +180,4 @@ def test_v1_6_0_is_overridden_model():
     with pytest.deprecated_call(match="and will be removed in v1.6"):
         assert is_overridden("validation_step", model=model)
     with pytest.deprecated_call(match="and will be removed in v1.6"):
-        assert not is_overridden("transfer_batch_to_devic", model=model)
+        assert not is_overridden("foo", model=model)
