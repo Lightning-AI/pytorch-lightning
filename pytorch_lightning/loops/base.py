@@ -47,7 +47,7 @@ class Loop(ABC):
                 self.on_advance_start(*args, **kwargs)
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
-                self.iteration_count = self.increment_iteration(self.iteration_count)
+                self.iteration_count += 1
             except StopIteration:
                 break
 
@@ -68,6 +68,3 @@ class Loop(ABC):
 
     def on_run_end(self) -> Any:
         pass
-
-    def increment_iteration(self, iteration: int) -> int:
-        return iteration + 1

@@ -76,7 +76,7 @@ class TrainingEpochLoop(Loop):
                 self.on_advance_start(*args, **kwargs)
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
-                self.iteration_count = self.increment_iteration(self.iteration_count)
+                self.iteration_count += 1
             except StopIteration:
                 break
 
