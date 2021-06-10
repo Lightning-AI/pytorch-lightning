@@ -97,6 +97,7 @@ PyTorch Lightning Documentation
    common/child_modules
    common/debugging
    common/loggers
+   common/early_stopping
    common/hyperparameters
    common/lightning_cli
    advanced/lr_finder
