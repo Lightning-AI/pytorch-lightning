@@ -118,13 +118,13 @@ class EarlyStopping(Callback):
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
-        
+
         if monitor is None:
             rank_zero_deprecation(
                 "The `monitor` argument will be required to be set starting in v1.6. For backward compatibility, setting this to `early_stop_on`."
             )
         self.monitor = monitor or 'early_stop_on'
-        
+
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 
