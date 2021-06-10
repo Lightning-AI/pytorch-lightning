@@ -342,3 +342,59 @@ def test_deep_nested_model():
     # conv0.weight, conv0.bias, bn0.weight, bn0.bias
     # conv1.weight, conv1.bias, bn1.weight, bn1.bias
     assert len(encoder_params) == 8
+
+
+def test_parent_module_w_param_model():
+    """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
+    directly themselves rather than exclusively their submodules containing parameters.
+    """
+
+    class ConvBlock(nn.Module):
+
+        def __init__(self, in_channels, out_channels):
+            super().__init__()
+            self.conv = nn.Conv2d(in_channels, out_channels, 3)
+            self.act = nn.ReLU()
+            self.bn = nn.BatchNorm2d(out_channels)
+
+        def forward(self, x):
+            x = self.conv(x)
+            x = self.act(x)
+            return self.bn(x)
+
+    class ConvBlockParam(nn.Module):
+
+        def __init__(self, in_channels, out_channels):
+            super().__init__()
+            self.conv = nn.Conv2d(in_channels, out_channels, 3)
+            self.act = nn.ReLU()
+            # add trivial test parameter to conv block to validate parent (non-leaf) module parameter handling
+            self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
+            self.bn = nn.BatchNorm2d(out_channels)
+
+        def forward(self, x):
+            x = self.conv(x)
+            x = self.act(x)
+            return self.bn(x)
+
+    model = nn.Sequential(
+        OrderedDict([
+            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+            ("decoder", ConvBlock(128, 10)),
+        ])
+    )
+
+    # There are 10 leaf modules or parent modules w/ parameters in the test model
+    assert len(BaseFinetuning.flatten_modules(model)) == 10
+
+    BaseFinetuning.freeze(model.encoder, train_bn=True)
+    assert not model.encoder[0].conv.weight.requires_grad  # Validate a leaf module parameter is frozen
+    assert not model.encoder[0].parent_param.requires_grad  # Validate the parent module parameter is frozen
+    assert model.encoder[0].bn.weight.requires_grad
+
+    BaseFinetuning.make_trainable(model)
+    encoder_params = list(BaseFinetuning.filter_params(model.encoder, train_bn=True))
+    # The 9 parameters of the encoder are:
+    # conv0.weight, conv0.bias, bn0.weight, bn0.bias, parent_param
+    # conv1.weight, conv1.bias, bn1.weight, bn1.bias
+    assert len(encoder_params) == 9
