@@ -239,33 +239,6 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return False
 
-    def restore_model_state_from_ckpt_path(
-        self,
-        ckpt_path: str,
-        map_location: Callable = lambda storage, loc: storage,
-    ) -> Tuple[Dict, bool]:
-        """
-        This function is used to load and restore the model state.
-
-        Args:
-            ckpt_path: Path to a checkpoint
-            map_location: lambda function to map checkpoint location
-
-        Return
-            checkpoint: Return loaded checkpoint
-            bool: Wether to load optimizer / lr_schedulers states from checkpoint
-
-        """
-        ckpt = pl_load(ckpt_path, map_location=map_location)
-        # restore datamodule states
-        if self.lightning_module.trainer.datamodule is not None:
-            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
-
-        # hook: give user access to checkpoint if needed.
-        self.lightning_module.on_load_checkpoint(ckpt)
-        self.lightning_module.load_state_dict(ckpt['state_dict'])
-        return ckpt, True
-
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
         Provide a hook to count optimizer step calls.

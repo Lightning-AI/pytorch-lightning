@@ -128,6 +128,16 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint['state_dict'])
 
+    def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
+        """ Restore only the model weights. """
+        checkpoint = self._loaded_checkpoint
+        if checkpoint_path is not None:
+            checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+
+        model = self.trainer.lightning_module
+        model.on_load_checkpoint(checkpoint)
+        self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
+
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
         """
         Restore the trainer state from the pre-loaded checkpoint. This includes the precision settings, loop progress,
