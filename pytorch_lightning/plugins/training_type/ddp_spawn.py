@@ -214,6 +214,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+        self.lightning_module.trainer.spawn_callback_metrics = self.mp_queue.get()
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -270,6 +271,10 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
+    from typing import Dict
+    def _dict_to_float(self, dict_tensor: Dict[str, torch.Tensor]) -> Dict[str, float]:
+        return dict((k, v.item()) for k, v in dict_tensor.items())
+
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -290,6 +295,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
+            self.mp_queue.put(self._dict_to_float(self.lightning_module.trainer.logger_connector.callback_metrics))
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer

@@ -137,6 +137,10 @@ class LightningModule(
 
         # multiple schedulers
         return lr_schedulers
+    
+    @property
+    def spawn_callback_metrics(self) -> Dict:
+        return self.trainer.spawn_callback_metrics
 
     @property
     def example_input_array(self) -> Any:
