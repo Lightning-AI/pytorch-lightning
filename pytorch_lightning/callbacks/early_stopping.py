@@ -121,10 +121,10 @@ class EarlyStopping(Callback):
 
         if monitor is None:
             rank_zero_deprecation(
-                "The `monitor` argument will be required to be set starting in v1.6."
+                "The `EarlyStopping(monitor)` argument will be required starting in v1.6."
                 " For backward compatibility, setting this to `early_stop_on`."
             )
-        self.monitor = monitor or 'early_stop_on'
+        self.monitor = monitor or "early_stop_on"
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
