@@ -264,8 +264,6 @@ class ResultCollection(dict):
         if loss is not None:
             if not isinstance(loss, torch.Tensor):
                 raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
-            if loss.grad_fn is None:
-                raise RuntimeError("`Result.minimize` must have a `grad_fn`")
         self._minimize = loss
 
     @property
