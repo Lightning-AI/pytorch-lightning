@@ -1804,7 +1804,7 @@ class LightningModule(
         self,
         file_path: Union[str, Path],
         input_sample: Optional[Any] = None,
-        model_check: Callable = None,
+        model_check_fn: Callable = None,
         **kwargs,
     ) -> None:
         """
@@ -1813,7 +1813,7 @@ class LightningModule(
         Args:
             file_path: The path of the file the onnx model should be saved to.
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
-            model_check: custom function that conducts onnx model checks.
+            model_check_fn: custom function that conducts onnx model checks.
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
@@ -1869,8 +1869,8 @@ class LightningModule(
             for ort_out, torch_out in zip(ort_outs, torch_outs):
                 np.testing.assert_allclose(torch_out.detach().cpu().numpy(), ort_out, rtol=1e-03, atol=1e-05)
 
-        model_check = model_check or default_model_check_fn
-        model_check(file_path, input_sample, kwargs['example_outputs'])
+        model_check_fn = model_check_fn or default_model_check_fn
+        model_check_fn(file_path, input_sample, kwargs['example_outputs'])
 
         self.train(mode)
 
