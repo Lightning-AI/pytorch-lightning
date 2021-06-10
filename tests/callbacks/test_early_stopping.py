@@ -86,7 +86,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         callbacks=[early_stop_callback],
     )
 
-    with pytest.raises(MisconfigurationException, match=r'.*you restored a checkpoint with current_epoch*'):
+    with pytest.raises(MisconfigurationException, match=r'You restored a checkpoint with current_epoch'):
         new_trainer.fit(model)
 
 
