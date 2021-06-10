@@ -23,7 +23,6 @@ PyTorch Lightning Documentation
 
    guides/speed
    starter/style_guide
-   benchmarking/performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
    benchmarking/benchmarks
 

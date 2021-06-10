@@ -24,6 +24,14 @@ There are multiple ways you can speed up your model's time to convergence:
 
 * `<Limit Dataset Size_>`_
 
+* `<Preload Data Into RAM_>`_
+
+* `<Model Toggling_>`_
+
+* `<Set Grads to None_>`_
+
+* `<Things to avoid_>`_
+
 .. _early_stopping:
 
 **************
@@ -126,6 +134,91 @@ Lightning supports a variety of plugins to further speed up distributed GPU trai
 
     # train on multiple GPUs across nodes (uses 8 gpus in total)
     trainer = Trainer(gpus=2, num_nodes=4)
+
+
+GPU Training Speedup Tips
+-------------------------
+
+When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
+Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.
+
+Prefer DDP over DP
+^^^^^^^^^^^^^^^^^^
+:class:`~pytorch_lightning.plugins.training_type.DataParallelPlugin` performs three GPU transfers for EVERY batch:
+
+1. Copy model to device.
+2. Copy data to device.
+3. Copy outputs of each device back to master.
+
+|
+
+Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
+
+
+When using DDP set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default we have set ``find_unused_parameters`` to True for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+This by default comes with a performance hit, and can be disabled in most cases.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        plugins=DDPPlugin(find_unused_parameters=False),
+    )
+
+----------
+
+Zero Grad ``set_to_none=True``
+------------------------------
+
+In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+
+For a more detailed explanation of pros / cons of this technique,
+read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+
+.. testcode::
+
+    class Model(LightningModule):
+
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            optimizer.zero_grad(set_to_none=True)
+
+
+Dataloaders
+^^^^^^^^^^^
+When building your DataLoader set ``num_workers > 0`` and ``pin_memory=True`` (only for GPUs).
+
+.. code-block:: python
+
+    Dataloader(dataset, num_workers=8, pin_memory=True)
+
+num_workers
+"""""""""""
+
+The question of how many workers to specify in ``num_workers`` is tricky. Here's a summary of
+some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813>`_], and our suggestions:
+
+1. ``num_workers=0`` means ONLY the main process will load batches (that can be a bottleneck).
+2. ``num_workers=1`` means ONLY one worker (just not the main process) will load data but it will still be slow.
+3. The ``num_workers`` depends on the batch size and your machine.
+4. A general place to start is to set ``num_workers`` equal to the number of CPUs on that machine.
+
+.. warning:: Increasing ``num_workers`` will ALSO increase your CPU memory consumption.
+
+The best thing to do is to increase the ``num_workers`` slowly and stop once you see no more improvement in your training speed.
+
+Spawn
+"""""
+When using ``accelerator=ddp_spawn`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
+The problem is that PyTorch has issues with ``num_workers > 0`` when using ``.spawn()``. For this reason we recommend you
+use ``accelerator=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
+
+.. code-block:: bash
+
+    python my_program.py --gpus X
 
 
 TPU training
@@ -306,4 +399,178 @@ If you also pass ``shuffle=True`` to the dataloader, a different random subset o
 
 Learn more in our :ref:`trainer_flags` guide.
 
+-----
 
+*********************
+Preload Data Into RAM
+*********************
+
+When your training or preprocessing requires many operations to be performed on entire dataset(s), it can
+sometimes be beneficial to store all data in RAM given there is enough space.
+However, loading all data at the beginning of the training script has the disadvantage that it can take a long
+time and hence it slows down the development process. Another downside is that in multiprocessing (e.g. DDP)
+the data would get copied in each process.
+One can overcome these problems by copying the data into RAM in advance.
+Most UNIX-based operating systems provide direct access to tmpfs through a mount point typically named ``/dev/shm``.
+
+0.  Increase shared memory if necessary. Refer to the documentation of your OS how to do this.
+
+1.  Copy training data to shared memory:
+
+    .. code-block:: bash
+
+        cp -r /path/to/data/on/disk /dev/shm/
+
+2.  Refer to the new data root in your script or command line arguments:
+
+    .. code-block:: python
+
+        datamodule = MyDataModule(data_root="/dev/shm/my_data")
+
+---------
+
+**************
+Model Toggling
+**************
+
+**Use when:** performing gradient accumulation with multiple optimizers in a
+distributed setting.
+
+Here is an explanation of what it does:
+
+* Considering the current optimizer as A and all other optimizers as B.
+* Toggling means that all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``.
+* Their original state will be restored when exiting the context manager.
+
+When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
+Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
+
+:class:`~pytorch_lightning.core.optimizer.LightningOptimizer` provides a
+:meth:`~pytorch_lightning.core.optimizer.LightningOptimizer.toggle_model` function as a
+:func:`contextlib.contextmanager` for advanced users.
+
+Here is an example for advanced use-case:
+
+.. testcode:: python
+
+    # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
+    class SimpleGAN(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            # Implementation follows the PyTorch tutorial:
+            # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            g_opt, d_opt = self.optimizers()
+
+            X, _ = batch
+            X.requires_grad = True
+            batch_size = X.shape[0]
+
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
+
+            # Sync and clear gradients
+            # at the end of accumulation or
+            # at the end of an epoch.
+            is_last_batch_to_accumulate = \
+                (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
+
+            g_X = self.sample_G(batch_size)
+
+            ##########################
+            # Optimize Discriminator #
+            ##########################
+            with d_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
+                d_x = self.D(X)
+                errD_real = self.criterion(d_x, real_label)
+
+                d_z = self.D(g_X.detach())
+                errD_fake = self.criterion(d_z, fake_label)
+
+                errD = (errD_real + errD_fake)
+
+                self.manual_backward(errD)
+                if is_last_batch_to_accumulate:
+                    d_opt.step()
+                    d_opt.zero_grad()
+
+            ######################
+            # Optimize Generator #
+            ######################
+            with g_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
+                d_z = self.D(g_X)
+                errG = self.criterion(d_z, real_label)
+
+                self.manual_backward(errG)
+                if is_last_batch_to_accumulate:
+                    g_opt.step()
+                    g_opt.zero_grad()
+
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
+
+-----
+
+*****************
+Set Grads to None
+*****************
+
+In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+
+For a more detailed explanation of pros / cons of this technique,
+read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+
+.. testcode::
+
+    class Model(LightningModule):
+
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            optimizer.zero_grad(set_to_none=True)
+
+
+-----
+
+***************
+Things to avoid
+***************
+
+.item(), .numpy(), .cpu()
+=========================
+Don't call ``.item()`` anywhere in your code. Use ``.detach()`` instead to remove the connected graph calls. Lightning
+takes a great deal of care to be optimized for this.
+
+----------
+
+empty_cache()
+=============
+Don't call this unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
+
+----------
+
+Tranfering tensors to device
+============================
+LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
+
+.. code-block:: python
+
+    # bad
+    t = torch.rand(2, 2).cuda()
+
+    # good (self is LightningModule)
+    t = torch.rand(2, 2, device=self.device)
+
+
+For tensors that need to be model attributes, it is best practice to register them as buffers in the modules's
+``__init__`` method:
+
+.. code-block:: python
+
+    # bad
+    self.t = torch.rand(2, 2, device=self.device)
+
+    # good
+    self.register_buffer("t", torch.rand(2, 2))
+
+----------
