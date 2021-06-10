@@ -231,7 +231,9 @@ class ModelSummary(object):
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad)
+        return sum(
+            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
+        )
 
     @property
     def model_size(self) -> float:
