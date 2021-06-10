@@ -169,24 +169,6 @@ This by default comes with a performance hit, and can be disabled in most cases.
         plugins=DDPPlugin(find_unused_parameters=False),
     )
 
-----------
-
-Zero Grad ``set_to_none=True``
-------------------------------
-
-In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
-
-For a more detailed explanation of pros / cons of this technique,
-read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
-
-.. testcode::
-
-    class Model(LightningModule):
-
-        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
-            optimizer.zero_grad(set_to_none=True)
-
-
 Dataloaders
 ^^^^^^^^^^^
 When building your DataLoader set ``num_workers > 0`` and ``pin_memory=True`` (only for GPUs).
@@ -256,6 +238,7 @@ Mixed precision (16-bit) training
 *********************************
 
 **Use when:**
+
 * You want to optimize for memory usage on a GPU.
 * You have a GPU that supports 16 bit precision.
 * Your optimization algorithm (training_step) is numerically stable.
@@ -572,5 +555,3 @@ For tensors that need to be model attributes, it is best practice to register th
 
     # good
     self.register_buffer("t", torch.rand(2, 2))
-
-----------
