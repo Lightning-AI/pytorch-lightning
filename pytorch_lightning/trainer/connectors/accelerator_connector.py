@@ -184,7 +184,7 @@ class AcceleratorConnector(object):
                 msg = "GPUs are not available" if not _GPU_AVAILABLE else "you didn't pass `gpus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}")
             self._accelerator_type = DeviceType.GPU
-        else:
+        elif self.distributed_backend == DeviceType.CPU:
             self._accelerator_type = DeviceType.CPU
 
         accelerator_types = DeviceType.__members__.values()
