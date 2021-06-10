@@ -46,7 +46,7 @@ def is_overridden(
             raise ValueError("Expected a parent")
 
     instance_attr = getattr(instance, method_name, None)
-    # hack so Mock(wraps=...) works
+    # hack so `Mock(wraps=...)` works
     if isinstance(instance_attr, Mock):
         # access the wrapped function
         instance_attr = instance_attr._mock_wraps
@@ -57,7 +57,7 @@ def is_overridden(
     if parent_attr is None:
         raise ValueError("The parent should define the method")
 
-    # cannot pickle __code__ so cannot verify if PatchDataloader
+    # cannot pickle `__code__` so cannot verify if `PatchDataloader`
     # exists which shows dataloader methods have been overwritten.
     # so, we hack it by using the string representation
     instance_code = getattr(instance_attr, 'patch_loader_code', None) or instance_attr.__code__
