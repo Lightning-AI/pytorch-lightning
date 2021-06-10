@@ -586,33 +586,37 @@ For cases like production, you might want to iterate different models inside a L
 
     class ClassificationTask(pl.LightningModule):
 
-         def __init__(self, model):
-             super().__init__()
-             self.model = model
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
 
-         def training_step(self, batch, batch_idx):
-             x, y = batch
-             y_hat = self.model(x)
-             loss = F.cross_entropy(y_hat, y)
-             return loss
-
-         def validation_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
-            acc = FM.accuracy(y_hat, y)
+            return loss
 
+        def validation_step(self, batch, batch_idx):
+            loss, acc = self._shared_eval_step(batch, batch_idx)
             metrics = {'val_acc': acc, 'val_loss': loss}
             self.log_dict(metrics)
             return metrics
 
-         def test_step(self, batch, batch_idx):
-            metrics = self.validation_step(batch, batch_idx)
-            metrics = {'test_acc': metrics['val_acc'], 'test_loss': metrics['val_loss']}
+        def test_step(self, batch, batch_idx):
+            loss, acc = self._shared_eval_step(batch, batch_idx)
+            metrics = {'test_acc': acc, 'test_loss': loss}
             self.log_dict(metrics)
+            return metrics
 
-         def configure_optimizers(self):
-             return torch.optim.Adam(self.model.parameters(), lr=0.02)
+        def _shared_eval_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.model(x)
+            loss = F.cross_entropy(y_hat, y)
+            acc = FM.accuracy(y_hat, y)
+            return loss, acc
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.model.parameters(), lr=0.02)
 
 Then pass in any arbitrary model to be fit with this task
 
@@ -1036,7 +1040,7 @@ recurrent network trajectories."
         def training_step(self, batch, batch_idx, hiddens):
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(data, hiddens)
+            out, (hiddens, _) = self.lstm(data, hiddens)
             return {
                 "loss": ...,
                 "hiddens": hiddens

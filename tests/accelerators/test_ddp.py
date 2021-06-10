@@ -123,7 +123,8 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
 
 
 @RunIf(min_gpus=2, min_torch="1.8.1", special=True)
-def test_ddp_wrapper(tmpdir):
+@pytest.mark.parametrize("precision", [16, 32])
+def test_ddp_wrapper(tmpdir, precision):
     """
     Test parameters to ignore are carried over for DDP.
     """
@@ -150,5 +151,12 @@ def test_ddp_wrapper(tmpdir):
             assert trainer.training_type_plugin.model.module._ddp_params_and_buffers_to_ignore == ('something')
 
     model = CustomModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=CustomCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        precision=precision,
+        accelerator="ddp",
+        gpus=2,
+        callbacks=CustomCallback(),
+    )
     trainer.fit(model)
