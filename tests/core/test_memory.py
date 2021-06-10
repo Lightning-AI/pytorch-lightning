@@ -101,29 +101,6 @@ class PartialScriptModel(LightningModule):
         return self.layer2(self.layer1(x))
 
 
-class LazyModel(LightningModule):
-    """ A model which contains lazy layers with unintialized parameters. """
-
-    def __init__(self):
-        super().__init__()
-        self.layer1 = nn.LazyLinear(5)
-        self.layer2 = nn.LazyLinear(2)
-
-    def forward(self, inp):
-        return self.layer2(self.layer1(inp))
-
-
-@RunIf(min_torch="1.8")
-def test_lazy_model_summary():
-    """ Test that the model summary can work with lazy layers. """
-
-    lazy_model = LazyModel()
-    summary = ModelSummary(lazy_model)
-
-    assert summary.total_parameters == 7
-    assert summary.trainable_parameters == 7
-
-
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
@@ -325,3 +302,16 @@ def test_model_size_precision(tmpdir):
     trainer.fit(model)
     summary = model.summarize()
     assert model.pre_calculated_model_size == summary.model_size
+
+
+@RunIf(min_torch="1.8")
+def test_lazy_model_summary():
+    """ Test that the model summary can work with lazy layers. """
+
+    lazy_model = LazyModel()
+    summary = ModelSummary(lazy_model)
+
+    # bug in 1.8: the bias of a LazyLinear layer is initialized!
+    # https://github.com/pytorch/pytorch/issues/58350
+    assert summary.total_parameters == 7
+    assert summary.trainable_parameters == 7
