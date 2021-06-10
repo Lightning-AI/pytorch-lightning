@@ -12,14 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Type
+from typing import Optional, Type, Union
 from unittest.mock import Mock
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
-def is_overridden(method_name: str, instance: Optional[object], parent: Optional[Type[object]] = None) -> bool:
+def is_overridden(
+    method_name: str,
+    instance: Optional[object] = None,
+    parent: Optional[Type[object]] = None,
+    model: Optional[Union[LightningModule, LightningDataModule]] = None,
+) -> bool:
+    if model is not None and instance is None:
+        rank_zero_deprecation(
+            '`is_overriden(model=...)` has been deprecated and will be removed in v1.6.'
+            'Please use `is_overriden(instance=...)`'
+        )
+        instance = model
+
     if instance is None:
         # if `self.lightning_module` was passed as instance, it can be `None`
         return False
