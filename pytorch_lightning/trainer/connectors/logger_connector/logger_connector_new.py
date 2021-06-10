@@ -280,11 +280,11 @@ class LoggerConnectorNew:
         self._current_fx = None
 
     @property
-    def spawn_extra_parameters(self) -> Dict[str, Dict[str, float]]:
+    def spawn_extra_parameters(self) -> Dict[str, Dict[str, _METRIC]]:
         return self._spawn_extra_parameters
 
     @spawn_extra_parameters.setter
-    def spawn_extra_parameters(self, val: dict) -> None:
+    def spawn_extra_parameters(self, val: Dict[str, Dict[str, _METRIC]]) -> None:
         self._spawn_extra_parameters = val
 
     @property
