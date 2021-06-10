@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 import re
 from typing import Any, List, Optional, Union
 
@@ -29,6 +30,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
@@ -271,10 +273,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    from typing import Dict
-    def _dict_to_float(self, dict_tensor: Dict[str, torch.Tensor]) -> Dict[str, float]:
-        return dict((k, v.item()) for k, v in dict_tensor.items())
-
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -295,7 +293,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.mp_queue.put(self._dict_to_float(self.lightning_module.trainer.logger_connector.callback_metrics))
+            self.mp_queue.put(apply_to_collection(self.lightning_module.trainer.logger_connector.callback_metrics,
+                                                  torch.Tensor, lambda x: x.item()))
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
