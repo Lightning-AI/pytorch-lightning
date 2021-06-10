@@ -893,26 +893,13 @@ class Trainer(
         self.on_pretrain_routine_end()
         ref_model.on_pretrain_routine_end()
 
-    def reset_train_val_dataloaders(self, model) -> None:
-        """
-        Resets train and val dataloaders if none are attached to the trainer.
-
-        The val dataloader must be initialized before training loop starts, as the training loop
-        inspects the val dataloader to determine whether to run the evaluation loop.
-        """
-        if self.train_dataloader is None:
-            self.reset_train_dataloader(model)
-
-        if self.val_dataloaders is None:
-            self.reset_val_dataloader(model)
-
     def _run_train(self) -> None:
         if _NEW_LOOP:
             self._run_train_new_loop()
         else:
             self._run_train_old_loop()
 
-    # TODO: remove together with old loop
+    # TODO(@awaelchli): remove together with old loop
     def _should_skip_training(self) -> bool:
         should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
         should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
@@ -935,7 +922,6 @@ class Trainer(
         # reload data when needed
         model = self.lightning_module
 
-        # TODO: This might move somewhere else
         self.reset_train_val_dataloaders(model)
 
         try:
