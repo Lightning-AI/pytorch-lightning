@@ -21,21 +21,11 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    AMPType,
-    DeviceType,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, DeviceType, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-
-if _APEX_AVAILABLE:
-    from apex import amp
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -43,65 +33,91 @@ if _OMEGACONF_AVAILABLE:
 
 class CheckpointConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
-
+        self.resume_checkpoint_path = resume_from_checkpoint
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self) -> None:
+        self._loaded_checkpoint = dict()
+        # FIXME: remove in https://github.com/PyTorchLightning/pytorch-lightning/pull/7652
+        self._load_optimizer_states = True
+
+    @property
+    def hpc_resume_path(self) -> Optional[str]:
+        dir_path_hpc = str(self.trainer.weights_save_path)
+        max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
+        if max_version is not None:
+            return f"{dir_path_hpc}/hpc_ckpt_{max_version}.ckpt"
+
+    def resume_start(self) -> None:
         """
-        Attempt to restore a checkpoint (e.g. weights) in this priority:
-        1. from HPC weights
-        2. from `resume_from_checkpoint` file
+        Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
+
+        1. from HPC weights if found
+        2. from `resume_from_checkpoint` file if provided
         3. don't restore
+
+        Raises:
+            FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
+        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
+        checkpoint_path = self.resume_checkpoint_path
+        if not checkpoint_path:
+            return
+
         # clear cache before restore
         if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
-        # 1. Attempt to restore states from HPC checkpoint
-        dir_path_hpc = str(self.trainer.weights_save_path)
-        max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
-        if max_suffix is not None:
-            checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
-            self.hpc_load(checkpoint_path, self.trainer._device_type == DeviceType.GPU)
-            rank_zero_info(f'restored hpc model from: {checkpoint_path}')
-
-        # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None:
-            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
-
-        # wait for all to catch up
-        self.trainer.training_type_plugin.barrier('TrainerIOMixin.restore_weights')
-
-        # clear cache after restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
-
-    def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
-        """
-        Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
-        All restored states are listed in return value description of `dump_checkpoint`.
-        """
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
         if not fs.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
 
+        rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
         checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
             checkpoint_path, map_location=lambda storage, loc: storage
         )
+        self._loaded_checkpoint = checkpoint
+        self._load_optimizer_states = load_optimizer_states
 
+    def resume_end(self) -> None:
+        """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
+        rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
+        self.resume_checkpoint_path = None
+        self._loaded_checkpoint = dict()
+
+        # clear cache after restore
+        if self.trainer._device_type == DeviceType.GPU:
+            torch.cuda.empty_cache()
+
+        # wait for all to catch up
+        self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
+
+    def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> bool:
+        """
+        Attempt to restore model/training states from a 'PyTorch-Lightning checkpoint' file
+        through file-read and state-restore, in this priority:
+
+        1. from HPC weights if found
+        2. from `resume_from_checkpoint` file if provided
+        3. don't restore
+
+        All restored states are listed in return value description of `dump_checkpoint`.
+        """
+        self.resume_checkpoint_path = checkpoint_path or self.resume_checkpoint_path
+        self.resume_start()
         model = self.trainer.lightning_module
 
-        if on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self.restore_training_state(checkpoint, load_optimizer_states)
+        if self._loaded_checkpoint:
+            self.restore_training_state(self._loaded_checkpoint, self._load_optimizer_states)
 
-        rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
+        self.resume_end()
         return True
 
     def restore_model_state(self, model: LightningModule, checkpoint) -> None:
@@ -126,6 +142,7 @@ class CheckpointConnector:
         :param checkpoint:
         :return:
         """
+
         # validation
         if load_optimizer_states and ('optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint):
             raise KeyError(
@@ -141,11 +158,7 @@ class CheckpointConnector:
                 " where `model.ckpt` is your checkpoint file."
             )
 
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
+        self.trainer.precision_plugin.on_load_checkpoint(checkpoint)
 
         # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
@@ -194,6 +207,92 @@ class CheckpointConnector:
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
+    def restore_callbacks(self) -> None:
+        """ Restores all callbacks from the pre-loaded checkpoint. """
+        if not self._loaded_checkpoint:
+            return
+
+        if any(key in self._loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
+            raise ValueError(
+                "The checkpoint you're attempting to load follows an"
+                " outdated schema. You can upgrade to the current schema by running"
+                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
+                " where `model.ckpt` is your checkpoint file."
+            )
+        self.trainer.on_load_checkpoint(self._loaded_checkpoint)
+
+    def restore_progress(self) -> None:
+        """
+        Restores the training progress from the pre-loaded checkpoint. This currently includes only the global step
+        and current epoch.
+        """
+        if not self._loaded_checkpoint:
+            return
+
+        self.trainer.train_loop.global_step = self._loaded_checkpoint['global_step']
+        self.trainer.train_loop.current_epoch = self._loaded_checkpoint['epoch']
+
+        # crash if max_epochs is lower then the current epoch from the checkpoint
+        if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
+            raise MisconfigurationException(
+                f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
+                f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
+            )
+
+        # Division deals with global step stepping once per accumulated batch
+        # Inequality deals with different global step for odd vs even num_training_batches
+        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
+        expected_steps = self.trainer.num_training_batches / n_accum
+        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
+            rank_zero_warn(
+                "You're resuming from a checkpoint that ended mid-epoch."
+                " Training will start from the beginning of the next epoch."
+                " This can cause unreliable results if further training is done,"
+                " consider using an end of epoch checkpoint."
+            )
+
+    def restore_optimizers_and_schedulers(self) -> None:
+        """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
+        if not self._load_optimizer_states or not self._loaded_checkpoint:
+            return
+
+        # validation
+        if "optimizer_states" not in self._loaded_checkpoint or "lr_schedulers" not in self._loaded_checkpoint:
+            raise KeyError(
+                "Trying to restore training state but checkpoint contains only the model."
+                " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
+            )
+        self.restore_optimizers()
+        self.restore_lr_schedulers()
+
+    def restore_optimizers(self) -> None:
+        """ Restores the optimizer states from the pre-loaded checkpoint. """
+        if not self._load_optimizer_states or not self._loaded_checkpoint:
+            return
+
+        # restore the optimizers
+        optimizer_states = self._loaded_checkpoint['optimizer_states']
+        for optimizer, opt_state in zip(self.trainer.optimizers, optimizer_states):
+            optimizer.load_state_dict(opt_state)
+
+            # move optimizer to GPU 1 weight at a time
+            # avoids OOM
+            if self.trainer.root_gpu is not None:
+                for state in optimizer.state.values():
+                    for k, v in state.items():
+                        if isinstance(v, torch.Tensor):
+                            state[k] = v.cuda(self.trainer.root_gpu)
+
+    def restore_lr_schedulers(self) -> None:
+        """ Restores the learning rate scheduler states from the pre-loaded checkpoint. """
+        if not self._load_optimizer_states or not self._loaded_checkpoint:
+            return
+
+        # restore the lr schedulers
+        lr_schedulers = self._loaded_checkpoint['lr_schedulers']
+        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
+            scheduler['scheduler'].load_state_dict(lrs_state)
+
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
@@ -206,7 +305,7 @@ class CheckpointConnector:
         # save logger to make sure we get all the metrics
         logger.save()
 
-        max_suffix = self.max_ckpt_in_folder(folderpath)
+        max_suffix = self.max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
 
         fs.makedirs(folderpath, exist_ok=True)
@@ -294,14 +393,7 @@ class CheckpointConnector:
                 lr_schedulers.append(scheduler['scheduler'].state_dict())
             checkpoint['lr_schedulers'] = lr_schedulers
 
-            # dump amp scaling
-            if (
-                self.trainer.amp_backend == AMPType.NATIVE and self.trainer._device_type != DeviceType.TPU
-                and self.trainer.scaler is not None
-            ):
-                checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
-            elif self.trainer.amp_backend == AMPType.APEX:
-                checkpoint['amp_scaling_state'] = amp.state_dict()
+            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
         if model.hparams:
@@ -345,7 +437,7 @@ class CheckpointConnector:
         # call hpc specific hook
         model.on_hpc_load(checkpoint)
 
-    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
+    def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
@@ -377,7 +469,7 @@ class CheckpointConnector:
     def get_max_ckpt_path_from_folder(self, folder_path: Union[str, Path]) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
 
-        max_suffix = self.max_ckpt_in_folder(folder_path)
+        max_suffix = self.max_ckpt_version_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
 
