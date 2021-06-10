@@ -14,7 +14,7 @@
 import contextlib
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union, Mapping
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
