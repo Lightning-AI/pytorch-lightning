@@ -313,7 +313,8 @@ class TrainingBatchLoop(Loop):
     def track_and_norm_grad(self, optimizer) -> dict:
         # track gradient norms
         grad_norm_dict = {}
-        if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 and float(self.trainer.track_grad_norm) > 0:
+        if (self.trainer.global_step
+            + 1) % self.trainer.log_every_n_steps == 0 and float(self.trainer.track_grad_norm) > 0:
             grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
