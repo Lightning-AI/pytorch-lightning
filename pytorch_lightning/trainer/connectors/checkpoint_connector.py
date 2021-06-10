@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 
 import torch
 
@@ -115,7 +115,7 @@ class CheckpointConnector:
 
         # restore training state
         if self._loaded_checkpoint:
-            self.restore_training_state()
+            self.restore_training_state(self._loaded_checkpoint)
 
         self.resume_end()
         return True
@@ -135,16 +135,16 @@ class CheckpointConnector:
         # restore model state_dict
         model.load_state_dict(checkpoint['state_dict'])
 
-    def restore_training_state(self) -> None:
+    def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
         """
         Restore the trainer state from the pre-loaded checkpoint. This includes the precision settings, loop progress,
         optimizer states and learning rate scheduler states.
         """
-        if not self._loaded_checkpoint:
+        if not checkpoint:
             return
 
         # restore precision plugin (scaler etc.)
-        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer.precision_plugin.on_load_checkpoint(checkpoint)
 
         self.restore_callbacks()
 
@@ -378,9 +378,7 @@ class CheckpointConnector:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self._loaded_checkpoint = checkpoint
-        self.restore_training_state()
-        self._loaded_checkpoint = dict()
+        self.restore_training_state(checkpoint)
 
         # call hpc specific hook
         model.on_hpc_load(checkpoint)
