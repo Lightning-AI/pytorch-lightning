@@ -83,7 +83,7 @@ class AcceleratorConnector(object):
         self,
         num_processes,
         tpu_cores,
-        ipu_cores,
+        ipus,
         distributed_backend,
         auto_select_gpus,
         gpus,
@@ -103,7 +103,7 @@ class AcceleratorConnector(object):
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        self.ipu_cores = ipu_cores
+        self.ipus = ipus
         self.distributed_backend = distributed_backend
         self.auto_select_gpus = auto_select_gpus
         self.gpus = gpus
@@ -256,7 +256,7 @@ class AcceleratorConnector(object):
 
     @property
     def on_ipu(self) -> bool:
-        return self.ipu_cores is not None
+        return self.ipus is not None
 
     @property
     def tpu_id(self) -> Optional[int]:
@@ -334,8 +334,8 @@ class AcceleratorConnector(object):
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
         elif self.on_ipu:
-            if isinstance(self.ipu_cores, int):
-                devices = list(range(self.ipu_cores))
+            if isinstance(self.ipus, int):
+                devices = list(range(self.ipus))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
@@ -636,8 +636,8 @@ class AcceleratorConnector(object):
         num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
 
-        num_ipu_cores = self.ipu_cores if self.ipu_cores is not None else 0
-        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipu_cores} IPU cores')
+        num_ipus = self.ipus if self.ipus is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
