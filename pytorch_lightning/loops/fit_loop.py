@@ -209,6 +209,7 @@ class FitLoop(Loop):
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
+        # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
         self.current_epoch -= 1
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
