@@ -179,10 +179,6 @@ class Accelerator:
 
         return move_data_to_device(batch, device)
 
-    def on_train_start(self) -> None:
-        """Hook to do something upon the training start"""
-        pass
-
     def training_step(
         self,
         step_kwargs: Dict[str, Union[Any, int]],
@@ -348,14 +344,6 @@ class Accelerator:
             model=self.model,
         )
 
-    def on_train_epoch_end(self) -> None:
-        """Hook to do something on the end of an training epoch."""
-        pass
-
-    def on_train_end(self) -> None:
-        """Hook to do something at the end of the training"""
-        pass
-
     def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
         """
         Creates optimizers and schedulers
@@ -460,6 +448,22 @@ class Accelerator:
         """
         return self.training_type_plugin.process_dataloader(dataloader)
 
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the train dataloader."""
+        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
+
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the val dataloader."""
+        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
+
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the test dataloader."""
+        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
+
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the predict dataloader."""
+        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
+
     @property
     def results(self) -> Any:
         """
@@ -547,3 +551,45 @@ class Accelerator:
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
+
+    def on_train_epoch_end(self) -> None:
+        """Hook to do something on the end of an training epoch."""
+        pass
+
+    def on_train_start(self) -> None:
+        """Called when train begins."""
+        return self.training_type_plugin.on_train_start()
+
+    def on_validation_start(self) -> None:
+        """Called when validation begins."""
+        return self.training_type_plugin.on_validation_start()
+
+    def on_test_start(self) -> None:
+        """Called when test begins."""
+        return self.training_type_plugin.on_test_start()
+
+    def on_predict_start(self) -> None:
+        """Called when predict begins."""
+        return self.training_type_plugin.on_predict_start()
+
+    def on_validation_end(self) -> None:
+        """Called when validation ends."""
+        return self.training_type_plugin.on_validation_end()
+
+    def on_test_end(self) -> None:
+        """Called when test end."""
+        return self.training_type_plugin.on_test_end()
+
+    def on_predict_end(self) -> None:
+        """Called when predict ends."""
+        return self.training_type_plugin.on_predict_end()
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        return self.training_type_plugin.on_train_end()
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+        """
+        return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)

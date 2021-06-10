@@ -47,12 +47,12 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
 
 
 @mock.patch(
-    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.get_evaluate_epoch_results"
+    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.update_eval_epoch_metrics"
 )
-def test_log_epoch_metrics_before_on_evaluation_end(get_evaluate_epoch_results_mock, tmpdir):
+def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
     """Test that the epoch metrics are logged before the `on_evalutaion_end` hook is fired"""
     order = []
-    get_evaluate_epoch_results_mock.side_effect = lambda: order.append("log_epoch_metrics")
+    update_eval_epoch_metrics_mock.side_effect = lambda: order.append("log_epoch_metrics")
 
     class LessBoringModel(BoringModel):
 
