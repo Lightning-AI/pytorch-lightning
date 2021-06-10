@@ -1159,7 +1159,7 @@ precision
 
 |
 
-Lightning supports double precision (64), full precision (32) or half precision (16) training.
+Lightning supports either double precision (64), full precision (32) or half precision (16) training.
 
 Half precision, or mixed precision, is the combined use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
@@ -1184,7 +1184,7 @@ Half precision, or mixed precision, is the combined use of both 32 and 16 bit fl
 .. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. Using 16-bit precision with PyTorch < 1.6 is not recommended, but supported using apex.
    :class: dropdown, warning
 
-    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ to use the native AMP 16-bit precision.
+    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ inorder to use the native AMP 16-bit precision.
 
     If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
 

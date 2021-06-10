@@ -177,7 +177,7 @@ Mixed precision (16-bit) training
 |
 
 
-Mixed precision is the combined use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
+Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
 Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs. 
 
