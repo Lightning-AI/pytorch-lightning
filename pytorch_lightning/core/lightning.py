@@ -1854,17 +1854,16 @@ class LightningModule(
         torch.onnx.export(self, input_sample, file_path, **kwargs)
 
         def default_model_check_fn(p, inp, torch_outs):
-
-            # Generic graph integrity checks
+            # generic graph integrity checks
             onnx_model = onnx.load(p)
             onnx.checker.check_model(onnx_model)
 
-            # Get ONNX outputs
+            # get ONNX outputs
             ort_session = onnxruntime.InferenceSession(p)
             ort_inputs = {inp.name: sample.detach().cpu().numpy() for inp, sample in zip(ort_session.get_inputs(), inp)}
             ort_outs = ort_session.run(None, ort_inputs)
 
-            # Compare against PyTorch outputs
+            # compare against PyTorch outputs
             if not isinstance(torch_outs, (tuple, list)):
                 torch_outs = (torch_outs, )
             for ort_out, torch_out in zip(ort_outs, torch_outs):
