@@ -352,11 +352,11 @@ class LightningLoggerBase(ABC):
         return metrics
 
     @staticmethod
-    def _preprocess_image(img, dataformats):
+    def _preprocess_image(img, image_channels):
         if isinstance(img, torch.Tensor):
             img = img.cpu().detach().numpy()
         if isinstance(img, np.ndarray):
-            if len(img.shape) == 3 and dataformats == 'CHW':
+            if len(img.shape) == 3 and image_channels == 'first':
                 img = img.transpose(1, 2, 0)
             if img.dtype == np.uint8:
                 img = img.astype(float) / 255

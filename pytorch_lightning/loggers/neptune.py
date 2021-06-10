@@ -267,14 +267,14 @@ class NeptuneLogger(LightningLoggerBase):
             self.log_metric(key, val)
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, dataformats='CHW') -> None:
+    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         images = self._add_prefix(images)
         for key, val in images.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
             # Lighting does not always guarantee.
-            self.log_image(key, val, dataformats=dataformats)
+            self.log_image(key, val, image_channels=image_channels)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
@@ -337,7 +337,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.log_text(log_name, x=step, y=text)
 
     @rank_zero_only
-    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None, dataformats='CHW') -> None:
+    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None, image_channels='last') -> None:
         """
         Log image data in Neptune experiment
 
@@ -348,7 +348,7 @@ class NeptuneLogger(LightningLoggerBase):
                 path to image file (str)
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        image = self._preprocess_image(image, dataformats)
+        image = self._preprocess_image(image, image_channels)
         image = copy.deepcopy(image)  # Neptune modifies images somehow
 
         if step is None:

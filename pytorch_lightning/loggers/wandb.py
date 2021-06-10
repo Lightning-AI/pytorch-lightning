@@ -223,11 +223,11 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log(metrics)
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, dataformats='CHW') -> None:
+    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         images = self._add_prefix(images)
-        images = {k: self._preprocess_image(v, dataformats) for k, v in images.items()}
+        images = {k: self._preprocess_image(v, image_channels) for k, v in images.items()}
         images = {k: wandb.Image(v) for k, v in images.items()}
         if step is not None:
             self.experiment.log({**images, 'trainer/global_step': step})

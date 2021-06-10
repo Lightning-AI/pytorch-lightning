@@ -225,7 +225,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, dataformats='CHW') -> None:
+    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, image_channels='last') -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         images = self._add_prefix(images)
@@ -234,7 +234,7 @@ class TensorBoardLogger(LightningLoggerBase):
         def preprocess(img):
             if isinstance(img, PIL.Image.Image):
                 img = np.asarray(img)
-                if dataformats == 'CHW':
+                if image_channels == 'first':
                     img = img.transpose(2, 0, 1)
             return img
 
@@ -244,7 +244,10 @@ class TensorBoardLogger(LightningLoggerBase):
             if len(v.shape) == 2:
                 dataformat = 'HW'
             else:
-                dataformat = dataformats
+                if image_channels == 'last':
+                    dataformat = 'HWC'
+                else:
+                    dataformat = 'CHW'
             self.experiment.add_image(k, v, step, dataformats=dataformat)
 
     @rank_zero_only
