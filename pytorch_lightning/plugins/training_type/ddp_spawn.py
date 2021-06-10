@@ -216,7 +216,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
-        self.lightning_module.trainer.spawn_callback_metrics = self.mp_queue.get()
+        # TODO: make this interfacemore generic for other logged properties
+        self.lightning_module.trainer.logger_connector.spawn_extra_parameters = {
+            "callback_metrics": self.mp_queue.get() or {},
+        }
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)

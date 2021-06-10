@@ -519,12 +519,8 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def spawn_callback_metrics(self) -> dict:
-        return self.logger_connector.spawn_callback_metrics
-    
-    @spawn_callback_metrics.setter
-    def spawn_callback_metrics(self, val: dict) -> None:
-        self.logger_connector.spawn_callback_metrics = val
+    def spawn_extra_parameters(self) -> dict:
+        return self.logger_connector.spawn_extra_parameters
 
     @property
     def callback_metrics(self) -> dict:

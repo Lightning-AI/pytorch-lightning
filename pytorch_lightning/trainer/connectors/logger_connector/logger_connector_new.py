@@ -39,7 +39,7 @@ class LoggerConnectorNew:
         self._progress_bar_metrics: Dict[str, float] = {}
         self._logged_metrics: Dict[str, _METRIC] = {}
         self._callback_metrics: Dict[str, _METRIC] = {}
-        self._spawn_callback_metrics: Dict[str, _METRIC] = {}
+        self._spawn_extra_parameters: Dict[str, _METRIC] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
@@ -280,12 +280,12 @@ class LoggerConnectorNew:
         self._current_fx = None
     
     @property
-    def spawn_callback_metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
-        return self._spawn_callback_metrics
+    def spawn_extra_parameters(self) -> Dict[str, Dict[str, float]]:
+        return self._spawn_extra_parameters
 
-    @spawn_callback_metrics.setter
-    def spawn_callback_metrics(self, val: dict) -> None:
-        self._spawn_callback_metrics = val
+    @spawn_extra_parameters.setter
+    def spawn_extra_parameters(self, val: dict) -> None:
+        self._spawn_extra_parameters = val
 
     @property
     def metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
