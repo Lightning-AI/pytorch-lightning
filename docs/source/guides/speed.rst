@@ -12,8 +12,6 @@ Speed up model training
 
 There are multiple ways you can speed up your model's time to convergence:
 
-* `<Early stopping_>`_
-
 * `<GPU/TPU training_>`_
 
 * `<Mixed precision (16-bit) training_>`_
@@ -31,81 +29,6 @@ There are multiple ways you can speed up your model's time to convergence:
 * `<Set Grads to None_>`_
 
 * `<Things to avoid_>`_
-
-.. _early_stopping:
-
-**************
-Early stopping
-**************
-
-**Use when:**  it's hard to predict when your model starts overfitting, or when you are confident that low validation error implies low test error; then you want to stop after you found the a local minimum in the validation error.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_earlystop.png"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+19-+early+stopping_1.mp4"></video>
-
-|
-
-Early stopping is an optimization technique used to avoid overfitting without compromising the model's accuracy. When training a large network, there will be a point during training when the model will stop generalizing and start learning the statistical noise in the training dataset. To avoid overfitting and reduce training time, enable early stopping to stop training at the point when performance on a validation dataset starts to degrade (you can pick the metric to monitor).
-
-
-Stop training when metric is degrading
-======================================
-The
-:class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
-callback can be used to monitor a metric (validation by default) and stop the training when no improvement is observed.
-
-.. testcode::
-
-    # 1. Import EarlyStopping callback
-    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
-    # 2. Log the metric you want to monitor using `self.log` method.
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
-        loss = F.mse_loss(x_hat, x)
-
-        self.log('val_loss', loss)
-
-    # 3. Init the callback, and set `monitor` to the logged metric of your choice.
-    early_stop_callback = EarlyStopping(monitor='val_loss');
-
-    # 4. Pass the callback to the Trainer `callbacks` flag.
-    trainer = Trainer(callbacks=[early_stop_callback])
-
-
-Stop training based on metric value
-===================================
-You can set a `stopping_threshold` to stop training immediately once the monitored quantity reaches this threshold. It is useful when we know that going beyond a certain optimal value does not further benefit us.
-
-.. testcode::
-
-    early_stop_callback = EarlyStopping(
-       monitor='val_accuracy',
-       stopping_threshold=0.98
-
-    )
-    trainer = Trainer(callbacks=[early_stop_callback])
-
-You can set a `divergence_threshold` to stop training as soon as the monitored quantity is lower than this threshold. When reaching a value this bad, we believe the model cannot recover anymore and it is better to stop early and run with different initial conditions.
-
-You can also set `check_finite` to stop training when the monitored metric becomes NaN or infinite.
-
-Learn more in the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` doc.
-
-
-Stopping an epoch early
-=======================
-
-You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start` to return ``-1`` when some condition is met.
-
-If you do this repeatedly, for every epoch you had originally requested, then this will stop your entire run.
-
-----------
 
 ****************
 GPU/TPU training
