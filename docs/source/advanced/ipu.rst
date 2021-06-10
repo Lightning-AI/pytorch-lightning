@@ -4,7 +4,7 @@ IPU support
 ===========
 
 .. note::
-    IPU Support is experimental and a work in progress (see :ref:`Known Limitations`). If you run into an problems, please leave an issue.
+    IPU Support is experimental and a work in progress (see :ref:`known-limitations`). If you run into an problems, please leave an issue.
 
 Lightning supports `GraphCores' Information Processing Units (IPUs) <https://www.graphcore.ai/products/ipu>`_, processors built for Artificial Intelligence and Machine Learning.
 
@@ -101,6 +101,8 @@ Model Pipe Parallelism
 ----------------------
 
 TODO
+
+.. _known-limitations:
 
 Known Limitations
 -----------------
