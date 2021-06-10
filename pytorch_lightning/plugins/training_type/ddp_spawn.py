@@ -293,9 +293,11 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.mp_queue.put({"callback_metrics":
-                apply_to_collection(self.lightning_module.trainer.logger_connector.callback_metrics,
-                                    torch.Tensor, lambda x: x.item()) or {}})
+            self.mp_queue.put({
+                "callback_metrics": apply_to_collection(
+                    self.lightning_module.trainer.logger_connector.callback_metrics, torch.Tensor, lambda x: x.item()
+                ) or {}
+            })
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer

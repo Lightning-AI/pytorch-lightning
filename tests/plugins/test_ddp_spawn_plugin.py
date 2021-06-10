@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators import accelerator
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -28,6 +28,7 @@ class BoringModelDDPCPU(BoringModel):
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
+
     def __init__(self, name: str, val: float):
         super().__init__()
         self.name = name
