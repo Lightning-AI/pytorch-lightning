@@ -14,7 +14,6 @@
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
