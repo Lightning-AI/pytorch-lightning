@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
 from tests.helpers.runif import RunIf
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
 
 
 class EmptyModule(LightningModule):
@@ -319,11 +320,14 @@ def test_model_size_precision(tmpdir):
 @RunIf(min_torch="1.8")
 def test_lazy_model_summary():
     """ Test that the model summary can work with lazy layers. """
-
     lazy_model = LazyModel()
     summary = ModelSummary(lazy_model)
 
-    # bug in 1.8: the bias of a LazyLinear layer is initialized!
-    # https://github.com/pytorch/pytorch/issues/58350
-    assert summary.total_parameters == 7
-    assert summary.trainable_parameters == 7
+    if _TORCH_GREATER_EQUAL_1_9:
+        assert summary.total_parameters == 0
+        assert summary.trainable_parameters == 0
+    else:
+        # bug in 1.8: the bias of a LazyLinear layer is initialized!
+        # https://github.com/pytorch/pytorch/issues/58350
+        assert summary.total_parameters == 7
+        assert summary.trainable_parameters == 7
