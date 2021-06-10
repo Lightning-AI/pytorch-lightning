@@ -15,7 +15,6 @@
 import logging
 import warnings
 from datetime import timedelta
-from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
