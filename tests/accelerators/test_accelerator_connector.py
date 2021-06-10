@@ -42,6 +42,7 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import _GPU_AVAILABLE
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -549,3 +550,43 @@ def test_accelerator_choice_multi_node_gpu(
         gpus=gpus,
     )
     assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@pytest.mark.skipif(_GPU_AVAILABLE, reason="GPU is available")
+def test_accelerator_cpu():
+
+    trainer = Trainer(accelerator="cpu")
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
+        trainer = Trainer(accelerator="gpu")
+        
+    # with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
+    #     trainer = Trainer(accelerator="cpu", gpus=1)
+
+
+@RunIf(min_gpus=1)
+def test_accelerator_gpu():
+
+    trainer = Trainer(accelerator="gpu", gpus=1)
+
+    assert trainer._device_type == "gpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+
+    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but you didn't pass `gpus` to `Trainer`"):
+        trainer = Trainer(accelerator="gpu")
+
+    trainer = Trainer(accelerator="auto", gpus=1)
+
+    assert trainer._device_type == "gpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+
+
+def test_accelerator_cpu_with_gpus_flag():
+    
+    trainer = Trainer(accelerator="cpu", gpus=1)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
