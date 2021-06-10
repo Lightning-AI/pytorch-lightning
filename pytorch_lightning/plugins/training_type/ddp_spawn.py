@@ -216,10 +216,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
-        # TODO: make this interfacemore generic for other logged properties
-        self.lightning_module.trainer.logger_connector.spawn_extra_parameters = {
-            "callback_metrics": self.mp_queue.get() or {},
-        }
+        # TODO: verify to find corner cases or concurrency issues
+        self.lightning_module.trainer.logger_connector.spawn_extra_parameters.update(self.mp_queue.get())
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -272,7 +270,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def determine_ddp_device_ids(self):
-        if self.root_device.type == "cpu":
+        if self.root_device.type == "cpu":self.mp_queue.get())
             return None
         return [self.root_device.index]
 
@@ -296,8 +294,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.mp_queue.put(apply_to_collection(self.lightning_module.trainer.logger_connector.callback_metrics,
-                                                  torch.Tensor, lambda x: x.item()))
+            self.mp_queue.put({"callback_metrics":
+                apply_to_collection(self.lightning_module.trainer.logger_connector.callback_metrics,
+                                    torch.Tensor, lambda x: x.item()) or {}})
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
