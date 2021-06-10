@@ -88,7 +88,7 @@ class EarlyStopping(Callback):
 
     def __init__(
         self,
-        monitor: str = Optional[None],
+        monitor: Optional[str] = None,
         min_delta: float = 0.0,
         patience: int = 3,
         verbose: bool = False,
