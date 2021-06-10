@@ -158,7 +158,7 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        if any([key in self._loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS]):
+        if any(key in self._loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
             raise ValueError(
                 "The checkpoint you're attempting to load follows an"
                 " outdated schema. You can upgrade to the current schema by running"
@@ -180,11 +180,10 @@ class CheckpointConnector:
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
-            m = f"""
-            you restored a checkpoint with current_epoch={self.trainer.current_epoch}
-            but the Trainer(max_epochs={self.trainer.max_epochs})
-            """
-            raise MisconfigurationException(m)
+            raise MisconfigurationException(
+                f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
+                f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
+            )
 
         # Division deals with global step stepping once per accumulated batch
         # Inequality deals with different global step for odd vs even num_training_batches
