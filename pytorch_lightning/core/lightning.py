@@ -1853,28 +1853,24 @@ class LightningModule(
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
 
-        if model_check is None:
+        def default_model_check_fn(p, inp, torch_outs):
 
-            def to_numpy(tensor):
-                return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+            # Generic graph integrity checks
+            onnx_model = onnx.load(p)
+            onnx.checker.check_model(onnx_model)
 
-            def model_check(file_path, input_sample, torch_outs):
+            # Get ONNX outputs
+            ort_session = onnxruntime.InferenceSession(p)
+            ort_inputs = {inp.name: sample.detach().cpu().numpy() for inp, sample in zip(ort_session.get_inputs(), inp)}
+            ort_outs = ort_session.run(None, ort_inputs)
 
-                # Generic graph integrity checks
-                onnx_model = onnx.load(file_path)
-                onnx.checker.check_model(onnx_model)
+            # Compare against PyTorch outputs
+            if not isinstance(torch_outs, (tuple, list)):
+                torch_outs = (torch_outs, )
+            for ort_out, torch_out in zip(ort_outs, torch_outs):
+                np.testing.assert_allclose(torch_out.detach().cpu().numpy(), ort_out, rtol=1e-03, atol=1e-05)
 
-                # Get ONNX outputs
-                ort_session = onnxruntime.InferenceSession(file_path)
-                ort_inputs = {inp.name: to_numpy(sample) for inp, sample in zip(ort_session.get_inputs(), input_sample)}
-                ort_outs = ort_session.run(None, ort_inputs)
-
-                # Compare against PyTorch outputs
-                if not isinstance(torch_outs, (Tuple, list)):
-                    torch_outs = (torch_outs, )
-                for ort_out, torch_out in zip(ort_outs, torch_outs):
-                    np.testing.assert_allclose(to_numpy(torch_out), ort_out, rtol=1e-03, atol=1e-05)
-
+        model_check = model_check or default_model_check_fn
         model_check(file_path, input_sample, kwargs['example_outputs'])
 
         self.train(mode)
