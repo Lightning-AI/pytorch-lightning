@@ -39,7 +39,6 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -65,7 +64,7 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
-    train_loop: TrainLoop
+    train_loop: FitLoop
     evaluation_loop: EvaluationLoop
     """
     Accelerator properties
@@ -524,7 +523,7 @@ class TrainerProperties(ABC):
         return self.train_loop.min_steps
 
     @property
-    def _active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop]]:
         if self.training:
             return self.train_loop
         elif self.sanity_checking or self.evaluating:

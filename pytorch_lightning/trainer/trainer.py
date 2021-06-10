@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -80,8 +79,6 @@ warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, '
     'please use torch.distributed.ReduceOp instead'
 )
-
-_NEW_LOOP = True
 
 
 class Trainer(
@@ -338,13 +335,8 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        if _NEW_LOOP:
-            self.train_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-            self.train_loop.connect(self)
-        else:
-            # old loops:
-            self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
-
+        self.train_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.train_loop.connect(self)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -894,18 +886,6 @@ class Trainer(
         ref_model.on_pretrain_routine_end()
 
     def _run_train(self) -> None:
-        if _NEW_LOOP:
-            self._run_train_new_loop()
-        else:
-            self._run_train_old_loop()
-
-    # TODO(@awaelchli): remove together with old loop
-    def _should_skip_training(self) -> bool:
-        should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
-        should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
-        return should_by_max_steps or should_by_epoch or self.num_training_batches == 0
-
-    def _run_train_new_loop(self) -> None:
         self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -926,82 +906,6 @@ class Trainer(
 
         try:
             self.train_loop.run()
-        except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.on_train_end()
-                self.state.stage = None
-        except BaseException:
-            self.state.status = TrainerStatus.INTERRUPTED
-            # give accelerators a chance to finish
-            self.accelerator.on_train_end()
-            # reset bookkeeping
-            self.state.stage = None
-            raise
-
-    def _run_train_old_loop(self) -> None:
-
-        self._pre_training_routine()
-
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
-        self._run_sanity_check(self.lightning_module)
-
-        self.checkpoint_connector.has_trained = False
-
-        # enable train mode
-        self.model.train()
-        torch.set_grad_enabled(True)
-
-        # reload data when needed
-        model = self.lightning_module
-        self.train_loop.reset_train_val_dataloaders(model)
-
-        # hook
-        self.call_hook("on_train_start")
-
-        try:
-            if self._should_skip_training():
-                return
-            # run all epochs
-            epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
-            for epoch in epochs:
-
-                # hook
-                self.train_loop.on_train_epoch_start(epoch)
-
-                with self.profiler.profile("run_training_epoch"):
-                    # run train epoch
-                    self.train_loop.run_training_epoch()
-
-                if self.max_steps and self.max_steps <= self.global_step:
-                    self.train_loop.on_train_end()
-                    return
-
-                # early stopping
-                met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                if self.should_stop:
-                    if met_min_epochs and met_min_steps:
-                        self.train_loop.on_train_end()
-                        return
-                    else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
-                        self.should_stop = False
-
-            # hook
-            self.train_loop.on_train_end()
-
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             # user could press Ctrl+c many times... only shutdown once
