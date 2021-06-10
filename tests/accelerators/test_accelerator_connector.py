@@ -41,7 +41,6 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import _GPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -552,7 +551,7 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
-@pytest.mark.skipif(_GPU_AVAILABLE, reason="GPU is available")
+@pytest.mark.skipif(torch.cuda.is_available())
 def test_accelerator_cpu():
 
     trainer = Trainer(accelerator="cpu")

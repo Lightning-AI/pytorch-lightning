@@ -56,7 +56,6 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
-    _GPU_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
     _TPU_AVAILABLE,
@@ -181,7 +180,8 @@ class AcceleratorConnector(object):
             self._accelerator_type = DeviceType.TPU
         elif self.distributed_backend == DeviceType.GPU:
             if not self.on_gpu:
-                msg = "GPUs are not available" if not _GPU_AVAILABLE else "you didn't pass `gpus` to `Trainer`"
+                msg = "GPUs are not available" if not torch.cuda.is_available(
+                ) else "you didn't pass `gpus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}")
             self._accelerator_type = DeviceType.GPU
         elif self.distributed_backend == DeviceType.CPU:
@@ -303,7 +303,7 @@ class AcceleratorConnector(object):
     @property
     def on_gpu(self) -> bool:
         gpus = self.parallel_device_ids
-        return gpus is not None and len(gpus) > 0 and _GPU_AVAILABLE
+        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
 
     @property
     def use_gpu(self) -> bool:
@@ -658,11 +658,11 @@ class AcceleratorConnector(object):
                 'Please set accelerator=ddp or accelerator=ddp2.'
             )
 
-        rank_zero_info(f'GPU available: {_GPU_AVAILABLE}, used: {self._device_type == DeviceType.GPU}')
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.use_tpu else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
-        if _GPU_AVAILABLE and self._device_type != DeviceType.GPU:
+        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
                 "GPU available but not used. Set the `gpus` flag in your trainer"
                 " `Trainer(gpus=1)` or script `--gpus=1`."
