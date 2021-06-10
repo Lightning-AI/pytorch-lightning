@@ -23,7 +23,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_info
