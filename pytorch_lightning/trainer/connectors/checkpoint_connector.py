@@ -126,7 +126,7 @@ class CheckpointConnector:
         model.on_load_checkpoint(checkpoint)
 
         # restore model state_dict
-        self.trainer.training_type_plugin.load_model_state_dict(checkpoint['state_dict'])
+        self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
