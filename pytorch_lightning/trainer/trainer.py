@@ -15,7 +15,6 @@
 import logging
 import warnings
 from datetime import timedelta
-from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
@@ -58,10 +57,8 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -72,6 +69,9 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
+
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -79,14 +79,6 @@ warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, '
     'please use torch.distributed.ReduceOp instead'
 )
-
-_NEW_LOOP = True
-
-if _NEW_LOOP:
-    from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
-    from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
-else:
-    from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 
 
 class Trainer(
@@ -343,18 +335,12 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        if _NEW_LOOP:
-            self.train_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-            self.evaluation_loop = EvaluationDataLoaderLoop()
-            self.predict_loop = PredictionDataLoaderLoop()
-            self.train_loop.connect(self)
-            self.evaluation_loop.connect(self)
-            self.predict_loop.connect(self)
-        else:
-            # old loops:
-            self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
-            self.evaluation_loop = EvaluationLoop(self)
-            self.predict_loop = PredictLoop(self)
+        self.train_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.evaluation_loop = EvaluationDataLoaderLoop()
+        self.predict_loop = PredictionDataLoaderLoop()
+        self.train_loop.connect(self)
+        self.evaluation_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -915,18 +901,6 @@ class Trainer(
         ref_model.on_pretrain_routine_end()
 
     def _run_train(self) -> None:
-        if _NEW_LOOP:
-            self._run_train_new_loop()
-        else:
-            self._run_train_old_loop()
-
-    # TODO(@awaelchli): remove together with old loop
-    def _should_skip_training(self) -> bool:
-        should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
-        should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
-        return should_by_max_steps or should_by_epoch or self.num_training_batches == 0
-
-    def _run_train_new_loop(self) -> None:
         self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -964,86 +938,17 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_train_old_loop(self) -> None:
+    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
+        if not (self.evaluating or self.sanity_checking):
+            rank_zero_warn(
+                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
+                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
+            )
+            self.validating = True
 
-        self._pre_training_routine()
-
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
-        self._run_sanity_check(self.lightning_module)
-
-        self.checkpoint_connector.has_trained = False
-
-        # enable train mode
-        self.model.train()
-        torch.set_grad_enabled(True)
-
-        # reload data when needed
-        model = self.lightning_module
-        self.train_loop.reset_train_val_dataloaders(model)
-
-        # hook
-        self.call_hook("on_train_start")
-
-        try:
-            if self._should_skip_training():
-                return
-            # run all epochs
-            epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
-            for epoch in epochs:
-
-                # hook
-                self.train_loop.on_train_epoch_start(epoch)
-
-                with self.profiler.profile("run_training_epoch"):
-                    # run train epoch
-                    self.train_loop.run_training_epoch()
-
-                if self.max_steps and self.max_steps <= self.global_step:
-                    self.train_loop.on_train_end()
-                    return
-
-                # early stopping
-                met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                if self.should_stop:
-                    if met_min_epochs and met_min_steps:
-                        self.train_loop.on_train_end()
-                        return
-                    else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
-                        self.should_stop = False
-
-            # hook
-            self.train_loop.on_train_end()
-
-        except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.on_train_end()
-                self.state.stage = None
-        except BaseException:
-            self.state.status = TrainerStatus.INTERRUPTED
-            # give accelerators a chance to finish
-            self.accelerator.on_train_end()
-            # reset bookkeeping
-            self.state.stage = None
-            raise
-
-    def _run_evaluatin_old_loop(self) -> _EVALUATE_OUTPUT:
-        # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
+        # TODO: move this check inside new loop
         # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
@@ -1055,105 +960,7 @@ class Trainer(
         model.zero_grad()
         torch.set_grad_enabled(False)
 
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
-        # set up the eval loop
-        self.evaluation_loop.setup(max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
-                    output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook + store predictions
-                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-                # log batch metrics
-                self.logger_connector.update_eval_step_metrics()
-
-                # track epoch level outputs
-                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
-
-            # store batch level output per dataloader
-            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
-                self.evaluation_loop.outputs.append(dl_outputs)
-
-        outputs = self.evaluation_loop.outputs
-
-        # reset outputs
-        self.evaluation_loop.outputs = []
-
-        # with a single dataloader don't pass a 2D list
-        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
-            outputs = outputs[0]
-
-        # lightning module method
-        self.evaluation_loop.evaluation_epoch_end(outputs)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        # log epoch metrics
-        eval_loop_results = self.logger_connector.update_eval_epoch_metrics()
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
-        return eval_loop_results
-
-    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
-        if not (self.evaluating or self.sanity_checking):
-            rank_zero_warn(
-                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
-                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
-            )
-            self.validating = True
-
-        if _NEW_LOOP:
-            # # TODO: move this check inside new loop
-            # # prepare dataloaders
-
-            dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
-
-            # max_batches = self.evaluation_loop.get_max_batches()
-            #
-            # # TODO: move this check inside new loop
-            # # check if we want to skip this evaluation
-            if self.evaluation_loop.should_skip_evaluation(max_batches):
-                return [], []
-
-            # enable eval mode + no grads
-            self.evaluation_loop.on_evaluation_model_eval()
-            # ref model
-            model = self.lightning_module
-            model.zero_grad()
-            torch.set_grad_enabled(False)
-
-            eval_loop_results = self.evaluation_loop.run()
-        else:
-            eval_loop_results = self._run_evaluatin_old_loop()
+        eval_loop_results = self.evaluation_loop.run()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1197,49 +1004,8 @@ class Trainer(
 
         return eval_loop_results
 
-    def _run_predict_old_loop(self) -> Optional[_PREDICT_OUTPUT]:
-        # prepare dataloaders
-        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
-
-        # check if we want to skip this evaluation
-        if self.predict_loop.should_skip_predict(max_batches):
-            return []
-
-        # set up the eval loop
-        self.predict_loop.setup(max_batches, dataloaders)
-
-        # call hook
-        self.predict_loop.on_predict_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # lightning module methods
-                with self.profiler.profile("predict_step"):
-                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
-
-        # call hook
-        results = self.predict_loop.on_predict_epoch_end()
-
-        # call hook
-        self.predict_loop.on_predict_end()
-
-        return results
-
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        if _NEW_LOOP:
-            return self.predict_loop.run()
-        else:
-            return self._run_predict_old_loop()
+        return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
