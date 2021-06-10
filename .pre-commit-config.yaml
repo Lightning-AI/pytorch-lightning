@@ -28,6 +28,15 @@ repos:
       - id: check-case-conflict
       - id: check-added-large-files
         args: ['--maxkb=350', '--enforce-all']
+        exclude: |
+            (?x)^(
+                docs/source/_static/images/general/fast_2.gif|
+                docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source/_static/images/lightning_module/pt_to_pl.png|
+                docs/source/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source/_static/images/general/pl_overview_flat.jpg|
+                docs/source/_static/images/general/pl_overview.gif
+            )$
       - id: detect-private-key
 
   - repo: https://github.com/PyCQA/isort
