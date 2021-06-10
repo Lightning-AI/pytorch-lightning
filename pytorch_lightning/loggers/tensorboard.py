@@ -21,6 +21,8 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
+import PIL.Image
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
@@ -221,6 +223,29 @@ class TensorBoardLogger(LightningLoggerBase):
                 except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
                     raise ValueError(m) from ex
+
+    @rank_zero_only
+    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, dataformats='CHW') -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        images = self._add_prefix(images)
+
+        # can't handle PIL images in Tensorboard
+        def preprocess(img):
+            if isinstance(img, PIL.Image.Image):
+                img = np.asarray(img)
+                if dataformats == 'CHW':
+                    img = img.transpose(2, 0, 1)
+            return img
+
+        images = {k: preprocess(v) for k, v in images.items()}
+
+        for k, v in images.items():
+            if len(v.shape) == 2:
+                dataformat = 'HW'
+            else:
+                dataformat = dataformats
+            self.experiment.add_image(k, v, step, dataformats=dataformat)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):

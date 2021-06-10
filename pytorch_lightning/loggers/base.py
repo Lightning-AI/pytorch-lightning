@@ -351,6 +351,17 @@ class LightningLoggerBase(ABC):
 
         return metrics
 
+    @staticmethod
+    def _preprocess_image(img, dataformats):
+        if isinstance(img, torch.Tensor):
+            img = img.cpu().detach().numpy()
+        if isinstance(img, np.ndarray):
+            if len(img.shape) == 3 and dataformats == 'CHW':
+                img = img.transpose(1, 2, 0)
+            if img.dtype == np.uint8:
+                img = img.astype(float) / 255
+        return img
+
 
 class LoggerCollection(LightningLoggerBase):
     """

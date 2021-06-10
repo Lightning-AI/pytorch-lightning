@@ -22,6 +22,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from weakref import ReferenceType
 
+import PIL.Image
+import numpy as np
+import torch
 import torch.nn as nn
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -218,6 +221,18 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log({**metrics, 'trainer/global_step': step})
         else:
             self.experiment.log(metrics)
+
+    @rank_zero_only
+    def log_images(self, images: Dict[str, Union[torch.tensor, np.ndarray, PIL.Image.Image]], step: Optional[int] = None, dataformats='CHW') -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        images = self._add_prefix(images)
+        images = {k: self._preprocess_image(v, dataformats) for k, v in images.items()}
+        images = {k: wandb.Image(v) for k, v in images.items()}
+        if step is not None:
+            self.experiment.log({**images, 'trainer/global_step': step})
+        else:
+            self.experiment.log(images)
 
     @property
     def save_dir(self) -> Optional[str]:
