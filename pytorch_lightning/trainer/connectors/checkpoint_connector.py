@@ -236,7 +236,7 @@ class CheckpointConnector:
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
             raise MisconfigurationException(
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
-                f" but the Trainer(max_epochs={self.trainer.max_epochs})"
+                f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
             )
 
         # Division deals with global step stepping once per accumulated batch
