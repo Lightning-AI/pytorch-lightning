@@ -27,6 +27,7 @@ repos:
       - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files
+        args: ['--maxkb=350', '--enforce-all']
       - id: detect-private-key
 
   - repo: https://github.com/PyCQA/isort
