@@ -129,7 +129,7 @@ def sync_ddp_if_available(
     Return:
         reduced value
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed():
         return sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 

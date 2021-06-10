@@ -34,9 +34,9 @@ jobs:
         pip list
 
     - name: Pull checkpoints from S3
+      working-directory: ./legacy
       run: |
         # enter legacy and update checkpoints from S3
-        cd legacy
         curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
         unzip -o checkpoints.zip
         ls -l checkpoints/
