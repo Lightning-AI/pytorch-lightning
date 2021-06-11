@@ -130,6 +130,12 @@ Due to the IPU architecture, larger models should be parallelized across IPUs by
 
 Below is an example using the block annotation in a LightningModule.
 
+.. note::
+
+    Currently when using model parallelism, we do not infer the number of IPUs required for you. This is done via the annotations themselves. If you specify 4 different IDs when defining Blocks, this means your model will be split onto 4 different IPUs.
+
+    This is also mutually exclusive with the Trainer flag, i.e if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total; replicating the model 4 times in data parallel.
+
 .. code-block:: python
 
     import pytorch_lightning as pl
