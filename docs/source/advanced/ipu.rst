@@ -66,7 +66,11 @@ You can also use pure 16-bit training, where the weights are also in 16 bit prec
 Advanced IPU Options
 --------------------
 
-IPUs provide further optimizations to speed up training. By using the ``IPUPlugin`` we can set the ``device_iterations``, which controls the number of iterations run directly on the IPU devices before returning to host.
+IPUs provide further optimizations to speed up training. By using the ``IPUPlugin`` we can set the ``device_iterations``, which controls the number of iterations run directly on the IPU devices before returning to host. Increasing the number of on device iterations will improve throughput as there is less device to host communication required.
+
+.. note::
+
+    When using model parallel, it is a hard requirement to increase the number of device iterations to ensure we fully saturate the devices via micro-batching. see :ref:`ipu-model-parallelism` for more information.
 
 .. code-block:: python
 
@@ -123,6 +127,8 @@ Lightning supports dumping all reports to a directory to open using the tool.
 
 This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html#opening-reports>`__.
 
+.. _ipu-model-parallelism:
+
 Model Parallelism
 -----------------
 
@@ -135,6 +141,9 @@ Below is an example using the block annotation in a LightningModule.
     Currently when using model parallelism, we do not infer the number of IPUs required for you. This is done via the annotations themselves. If you specify 4 different IDs when defining Blocks, this means your model will be split onto 4 different IPUs.
 
     This is also mutually exclusive with the Trainer flag, i.e if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total; replicating the model 4 times in data parallel.
+
+    When pipelining the model you must also increase the `device_iterations` to ensure full data saturation of the devices data, i.e whilst one device in the model pipeline processes a batch of data, the other device can start on the next batch. For example if the model is split onto 4 IPUs, we require `device_iterations` to be at-least 4.
+
 
 .. code-block:: python
 
