@@ -30,8 +30,6 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
-from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -64,7 +62,7 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
-    train_loop: FitLoop
+    fit_loop: FitLoop
     evaluation_loop: EvaluationLoop
     """
     Accelerator properties
@@ -486,17 +484,9 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def fit_loop(self) -> FitLoop:
+    def train_loop(self) -> FitLoop:
         # TODO(@awaelchli): the current train_loop should be renamed to fit_loop
-        return self.train_loop
-
-    @property
-    def training_epoch_loop(self) -> TrainingEpochLoop:
-        return self.fit_loop.training_loop
-
-    @property
-    def training_batch_loop(self) -> TrainingBatchLoop:
-        return self.fit_loop.training_loop.batch_loop
+        return self.fit_loop
 
     @property
     def global_step(self) -> int:

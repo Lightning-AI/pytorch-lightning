@@ -334,8 +334,8 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        self.train_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.train_loop.connect(self)
+        self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.fit_loop.connect(self)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -904,7 +904,7 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         try:
-            self.train_loop.run()
+            self.fit_loop.run()
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             # user could press Ctrl+c many times... only shutdown once
