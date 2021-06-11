@@ -84,8 +84,9 @@ def reset_seed() -> None:
     If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
+    workers = os.environ.get("PL_SEED_WORKERS", False)
     if seed is not None:
-        seed_everything(int(seed))
+        seed_everything(int(seed), bool(workers))
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
@@ -100,6 +101,10 @@ def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # p
     process_seed = torch.initial_seed()
     # back out the base seed so we can use all the bits
     base_seed = process_seed - worker_id
+    log.debug(
+        'Initializing random number generators of process %d worker %d with base seed %d',
+        global_rank, worker_id, base_seed
+    )
     ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
     # use 128 bits (4 x 32-bit words)
     np.random.seed(ss.generate_state(4))
