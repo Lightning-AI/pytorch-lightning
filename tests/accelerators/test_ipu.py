@@ -182,13 +182,13 @@ def test_mixed_precision(tmpdir):
     class TestCallback(Callback):
 
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-            assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
-            assert trainer.accelerator.precision_plugin.precision == 16
             assert trainer.accelerator.model.precision == 16
             raise SystemExit
 
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
+    assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
+    assert trainer.accelerator.precision_plugin.precision == 16
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -199,9 +199,6 @@ def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
 
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-            assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
-            assert trainer.accelerator.precision_plugin.precision == 16
             assert trainer.accelerator.model.precision == 16
             assert trainer.accelerator.training_type_plugin.convert_model_to_half
             for param in trainer.accelerator.model.parameters():
@@ -217,6 +214,11 @@ def test_pure_half_precision(tmpdir):
         plugins=IPUPlugin(convert_model_to_half=True),
         callbacks=TestCallback()
     )
+
+    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
+    assert trainer.accelerator.precision_plugin.precision == 16
+
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -227,7 +229,6 @@ def test_device_iterations_ipu_plugin(tmpdir):
     class TestCallback(Callback):
 
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
             assert trainer.accelerator.training_type_plugin.device_iterations == 2
             # assert device iterations has been set correctly within the poptorch options
             poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
@@ -242,6 +243,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
         plugins=IPUPlugin(device_iterations=2),
         callbacks=TestCallback()
     )
+    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
