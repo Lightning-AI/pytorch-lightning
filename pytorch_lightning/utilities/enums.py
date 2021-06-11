@@ -97,6 +97,7 @@ class DeviceType(LightningEnum):
     """
     CPU = 'CPU'
     GPU = 'GPU'
+    IPU = 'IPU'
     TPU = 'TPU'
 
 
