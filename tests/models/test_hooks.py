@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import __version__, Callback, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -243,7 +243,7 @@ class HookedCallback(Callback):
                 d['kwargs'] = kwargs
             called.append(d)
 
-        hooks = [h for h, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
+        hooks = {h for h, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)}
         for h in hooks:
             setattr(self, h, partial(call, h))
 
@@ -647,7 +647,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
     assert called == expected
 
 
-# TODO: add test with accumulate_grad_batches
+# FIXME: add test with accumulate_grad_batches
 # TODO: add test for tune
 
 
@@ -709,107 +709,107 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     class HookedDataModule(BoringDataModule):
 
-        def __init__(self):
+        def __init__(self, called):
             super().__init__()
-            self.called = []
 
-        def prepare_data(self):
-            self.called.append("prepare_data")
-            super().prepare_data()
+            def call(hook, fn):
 
-        def setup(self, stage=None):
-            self.called.append(f"setup_{stage}")
-            super().setup(stage=stage)
+                def add(*args, **kwargs):
+                    out = fn(*args, **kwargs)
+                    d = {'name': hook}
+                    if args:
+                        d['args'] = args
+                    if kwargs:
+                        d['kwargs'] = kwargs
+                    called.append(d)
+                    return out
 
-        def teardown(self, stage=None):
-            self.called.append(f"teardown_{stage}")
-            super().teardown(stage=stage)
+                return add
 
-        def train_dataloader(self):
-            self.called.append("train_dataloader")
-            return super().train_dataloader()
-
-        def test_dataloader(self):
-            self.called.append("test_dataloader")
-            return super().test_dataloader()
-
-        def val_dataloader(self):
-            self.called.append("val_dataloader")
-            return super().val_dataloader()
-
-        def predict_dataloader(self):
-            self.called.append("predict_dataloader")
-
-        def transfer_batch_to_device(self, *args, **kwargs):
-            self.called.append("transfer_batch_to_device")
-            return super().transfer_batch_to_device(*args, **kwargs)
-
-        def on_before_batch_transfer(self, *args, **kwargs):
-            self.called.append("on_before_batch_transfer")
-            return super().on_before_batch_transfer(*args, **kwargs)
-
-        def on_after_batch_transfer(self, *args, **kwargs):
-            self.called.append("on_after_batch_transfer")
-            return super().on_after_batch_transfer(*args, **kwargs)
+            hooks = {h for h, _ in inspect.getmembers(LightningDataModule, predicate=inspect.isfunction)}
+            for h in hooks:
+                attr = getattr(self, h)
+                setattr(self, h, call(h, attr))
 
     model = BoringModel()
-    dm = HookedDataModule()
-
+    batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=1,
-        limit_train_batches=2,
-        limit_test_batches=1,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        limit_test_batches=batches,
+        limit_predict_batches=batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
         reload_dataloaders_every_epoch=True,
     )
-    trainer.fit(model, datamodule=dm)
-    expected = [
-        'prepare_data',
-        'setup_fit',
-        'val_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'train_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'val_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'teardown_fit',
-    ]
-    assert dm.called == expected
 
-    dm = HookedDataModule()
+    called = []
+    dm = HookedDataModule(called)
+    trainer.fit(model, datamodule=dm)
+    batch_transfer = [
+        dict(name='on_before_batch_transfer', args=(ANY, None)),
+        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
+        dict(name='on_after_batch_transfer', args=(ANY, None)),
+    ]
+    expected = [
+        dict(name='prepare_data'),
+        dict(name='setup', kwargs=dict(stage='fit')),
+        dict(name='val_dataloader'),
+        *batch_transfer * batches,
+        dict(name='train_dataloader'),
+        *batch_transfer * batches,
+        dict(name='val_dataloader'),
+        *batch_transfer * batches,
+        dict(
+            name='on_save_checkpoint',
+            args=({
+                'callbacks': ANY,
+                'epoch': 1,
+                'global_step': 2,
+                'lr_schedulers': ANY,
+                'optimizer_states': ANY,
+                'pytorch-lightning_version': __version__,
+                'state_dict': ANY
+            }, )
+        ),
+        dict(name='teardown', kwargs=dict(stage='fit')),
+    ]
+    assert called == expected
+
+    called = []
+    dm = HookedDataModule(called)
     trainer.validate(model, datamodule=dm, verbose=False)
     expected = [
-        'prepare_data',
-        'setup_validate',
-        'val_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'teardown_validate',
+        dict(name='prepare_data'),
+        dict(name='setup', kwargs=dict(stage='validate')),
+        dict(name='val_dataloader'),
+        *batch_transfer * batches,
+        dict(name='teardown', kwargs=dict(stage='validate')),
     ]
-    assert dm.called == expected
+    assert called == expected
 
-    dm = HookedDataModule()
+    called = []
+    dm = HookedDataModule(called)
     trainer.test(model, datamodule=dm, verbose=False)
     expected = [
-        'prepare_data',
-        'setup_test',
-        'test_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'teardown_test',
+        dict(name='prepare_data'),
+        dict(name='setup', kwargs=dict(stage='test')),
+        dict(name='test_dataloader'),
+        *batch_transfer * batches,
+        dict(name='teardown', kwargs=dict(stage='test')),
     ]
-    assert dm.called == expected
+    assert called == expected
+
+    called = []
+    dm = HookedDataModule(called)
+    trainer.predict(model, datamodule=dm)
+    expected = [
+        dict(name='prepare_data'),
+        dict(name='setup', kwargs=dict(stage='predict')),
+        dict(name='predict_dataloader'),
+        # TODO: the batch transfer hooks don't get called
+        dict(name='teardown', kwargs=dict(stage='predict')),
+    ]
+    assert called == expected

@@ -1623,6 +1623,7 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
     trainer.fit(model, train_data)
 
 
+# FIXME
 def test_train_loop_system(tmpdir):
     """
     Test the following methods are called in the order in automatic optimization.
