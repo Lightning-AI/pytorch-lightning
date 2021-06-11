@@ -47,8 +47,8 @@ def test_recursive_application_to_collection():
         'g': 12.,  # number
         'h': Feature(
             input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),  # dataclass
-        "i": ModelExample(
-            example_ids=["i-1", "i-2", "i-3"],
+        'i': ModelExample(
+            example_ids=['i-1', 'i-2', 'i-3'],
             feature=Feature(input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),
             label=torch.tensor([7., 8., 9.])
         )  # nested dataclass
@@ -64,8 +64,8 @@ def test_recursive_application_to_collection():
         'g': 24.,
         'h': Feature(
             input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
-        "i": ModelExample(
-            example_ids=["i-1", "i-2", "i-3"],
+        'i': ModelExample(
+            example_ids=['i-1', 'i-2', 'i-3'],
             feature=Feature(input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
             label=torch.tensor([14., 16., 18.])
         )
@@ -121,9 +121,9 @@ def test_recursive_application_to_collection():
     assert torch.allclose(reduced['i'].label, expected_result['i'].label), \
         'Reduction of a nested dataclass did not yield the desired result'
     assert torch.allclose(reduced['i'].feature.input_ids, expected_result['i'].feature.input_ids), \
-        'Reduction of a dataclass did not yield the desired result'
+        'Reduction of a nested dataclass did not yield the desired result'
     assert np.allclose(reduced['i'].feature.segment_ids, expected_result['i'].feature.segment_ids), \
-        'Reduction of a dataclass did not yield the desired result'
+        'Reduction of a nested dataclass did not yield the desired result'
 
     # mapping support
     reduced = apply_to_collection({'a': 1, 'b': 2}, int, lambda x: str(x))
