@@ -104,7 +104,11 @@ You can also override all options by passing the ``poptorch.Options`` to the plu
 IPU Profiler
 ------------
 
-We support integration with the `PopVision Graph Analyser Tool <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/popvision.html>`. This helps to look at utilization of IPU devices and provides helpful metrics during the lifecycle of your trainer. Once you have gained access, The PopVision Graph Analyser Tool can be downloaded via the `GraphCore download website <https://downloads.graphcore.ai/>`__.
+.. figure:: ../_static/images/accelerator/ipus/profiler.png
+   :alt: PopVision Graph Analyser
+   :width: 500
+
+Lightning supports integration with the `PopVision Graph Analyser Tool <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/popvision.html>`__. This helps to look at utilization of IPU devices and provides helpful metrics during the lifecycle of your trainer. Once you have gained access, The PopVision Graph Analyser Tool can be downloaded via the `GraphCore download website <https://downloads.graphcore.ai/>`__.
 
 Lightning supports dumping all reports to a directory to open using the tool.
 
@@ -202,6 +206,5 @@ Currently there are some known limitations that are being addressed in the near 
 Please see the `MNIST example <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/ipu_examples/mnist.py>`__ which displays most of the limitations and how to overcome them till they are resolved.
 
 * ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices. We're actively working on fixing this
-* ``training_step`` only supports returning one loss from the ``training_step`` function
+* Multiple optimizers are not supported. ``training_step`` only supports returning one loss from the ``training_step`` function as a result
 * Since the step functions are traced, branching logic or any form of primitive values are traced into constants. Be mindful as this could lead to errors in your custom code
-* Multiple optimizers are not supported
