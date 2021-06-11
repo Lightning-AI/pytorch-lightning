@@ -197,6 +197,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed setting `worker_init_fn` to seed dataloaders correctly when using DDP ([#7937](https://github.com/PyTorchLightning/pytorch-lightning/issues/7937))
+
 - Fixed `_check_training_step_output` to be called after `train_step_end` to support more flexible accomodations ([#7868](https://github.com/PyTorchLightning/pytorch-lightning/pull/7868))
 
 - Fixed `apply_to_collection` works on Custom Collections now ([#7851](https://github.com/PyTorchLightning/pytorch-lightning/pull/7851))
