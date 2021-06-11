@@ -6,7 +6,7 @@ IPU support
 .. note::
     IPU Support is experimental and a work in progress (see :ref:`known-limitations`). If you run into an problems, please leave an issue.
 
-Lightning supports `GraphCores' Information Processing Units (IPUs) <https://www.graphcore.ai/products/ipu>`_, processors built for Artificial Intelligence and Machine Learning.
+Lightning supports `Graphcore Information Processing Units (IPUs) <https://www.graphcore.ai/products/ipu>`_, processors built for Artificial Intelligence and Machine Learning.
 
 IPU Terminology
 ---------------
@@ -43,9 +43,9 @@ set the precision flag.
 
     import pytorch_lightning as pl
 
-    my_model = MyLightningModule()
+    model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, precision=16)
-    trainer.fit(my_model)
+    trainer.fit(model)
 
 You can also use pure 16-bit training, where the weights are also in 16 bit precision.
 
@@ -54,53 +54,138 @@ You can also use pure 16-bit training, where the weights are also in 16 bit prec
     import pytorch_lightning as pl
     from pytorch_lightning.plugins import IPUPlugin
 
-    my_model = MyLightningModule()
+    model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, precision=16, plugins=IPUPlugin(convert_model_to_half=True))
-    trainer.fit(my_model)
+    trainer.fit(model)
 
 Advanced IPU Options
 --------------------
 
-IPUs provide further optimizations to speed up training. By using the ``IPUPlugin`` we can set the ``device_iterations``, which controls the number of iterations run direcly on the IPU devices before returning to host.
+IPUs provide further optimizations to speed up training. By using the ``IPUPlugin`` we can set the ``device_iterations``, which controls the number of iterations run directly on the IPU devices before returning to host.
 
 .. code-block:: python
 
     import pytorch_lightning as pl
     from pytorch_lightning.plugins import IPUPlugin
 
-    my_model = MyLightningModule()
+    model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=32))
-    trainer.fit(my_model)
+    trainer.fit(model)
 
-
-You can also override all options by passing the ``poptorch.Options`` to the plugin. See `poptorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`_ for more information.
+Note that by default we return the last device iteration loss. You can override this by passing in your own ``poptorch.Options`` and setting the AnchorMode as described in the `poptorch documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/reference.html#poptorch.Options.anchorMode>`__.
 
 .. code-block:: python
 
+    import poptorch
     import pytorch_lightning as pl
     from pytorch_lightning.plugins import IPUPlugin
 
-    my_model = MyLightningModule()
+    model = MyLightningModule()
     inference_opts = poptorch.Options()
     inference_opts.deviceIterations(32)
 
     training_opts = poptorch.Options()
+    training_opts.anchorMode(poptorch.AnchorMode.All)
     training_opts.deviceIterations(32)
 
     trainer = Trainer(
         ipus=8,
         plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
     )
-    trainer.fit(my_model)
+    trainer.fit(model)
 
+You can also override all options by passing the ``poptorch.Options`` to the plugin. See `poptorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`_ for more information.
 
 IPU Profiler
 ------------
 
-Model Pipe Parallelism
-----------------------
+We support integration with the `PopVision Graph Analyser Tool <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/popvision.html>`. This helps to look at utilization of IPU devices and provides helpful metrics during the lifecycle of your trainer. Once you have gained access, The PopVision Graph Analyser Tool can be downloaded via the `GraphCore download website <https://downloads.graphcore.ai/>`__.
 
-TODO
+Lightning supports dumping all reports to a directory to open using the tool.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+    from pytorch_lightning.plugins import IPUPlugin
+
+    model = MyLightningModule()
+    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(autoreport_dir='report_dir/'))
+    trainer.fit(model)
+
+This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html#opening-reports>`__.
+
+Model Parallelism
+-----------------
+
+Due to the IPU architecture, larger models should be parallelized across IPUs by design. Currently poptorch provides the capabilities via annotations as described in `Parallel Execution <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/overview.html#id1>`__
+
+Below is an example using the block annotation in a LightningModule.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+    import poptorch
+
+    class MyLightningModule(pl.LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # This will place layer1, layer2+layer3, layer4, softmax on different IPUs.
+            # BeginBlock will start a new id for all layers within this block
+            self.layer1 = poptorch.BeginBlock(torch.nn.Linear(5, 10), ipu_id=0)
+            self.layer2 = poptorch.BeginBlock(torch.nn.Linear(10, 5), ipu_id=1)
+            # this layer will be grouped into the same IPU as layer2.
+            self.layer3 = torch.nn.Linear(5, 5)
+            self.layer4 = poptorch.BeginBlock(torch.nn.Linear(5, 5), ipu_id=2)
+            self.softmax = poptorch.BeginBlock(torch.nn.Softmax(dim=1), ipu_id=3)
+
+        ...
+
+    model = MyLightningModule()
+    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=20))
+    trainer.fit(model)
+
+
+You can also use the block context manager within the forward function, or any of the step functions.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+    import poptorch
+
+    class MyLightningModule(pl.LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            self.layer1 = torch.nn.Linear(5, 10)
+            self.layer2 = torch.nn.Linear(10, 5)
+            self.layer3 = torch.nn.Linear(5, 5)
+            self.layer4 = torch.nn.Linear(5, 5)
+
+            self.act = torch.nn.ReLU()
+            self.softmax = torch.nn.Softmax(dim=1)
+
+        def forward(self, x):
+
+            with poptorch.Block(ipu_id=0):
+                x = self.act(self.layer1(x))
+
+            with poptorch.Block(ipu_id=1):
+                x = self.act(self.layer2(x))
+
+            with poptorch.Block(ipu_id=2):
+                x = self.act(self.layer3(x))
+                x = self.act(self.layer4(x))
+
+            with poptorch.Block(ipu_id=3):
+                x = self.softmax(x)
+            return x
+        ...
+
+    model = MyLightningModule()
+    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=20))
+    trainer.fit(model)
+
 
 .. _known-limitations:
 
