@@ -78,6 +78,7 @@ def test_metric_lightning_log(tmpdir):
             self.metric_step = SumMetric()
             self.metric_epoch = SumMetric()
             self.sum = 0.0
+            self.total_sum = 0.0
 
         def on_epoch_start(self):
             self.sum = 0.0
@@ -90,7 +91,10 @@ def test_metric_lightning_log(tmpdir):
             return {'loss': self.step(x), 'data': x}
 
         def training_epoch_end(self, outs):
-            self.log("sum_epoch", self.metric_epoch(torch.stack([o['data'] for o in outs]).sum()))
+            total = torch.stack([o['data'] for o in outs]).sum()
+            self.metric_epoch(total)
+            self.log("sum_epoch", self.metric_epoch)
+            self.total_sum = total
 
     model = TestModel()
     model.val_dataloader = None
@@ -107,7 +111,7 @@ def test_metric_lightning_log(tmpdir):
 
     logged = trainer.logged_metrics
     assert torch.allclose(torch.tensor(logged["sum_step"]), model.sum)
-    assert torch.allclose(torch.tensor(logged["sum_epoch"]), model.sum)
+    assert torch.allclose(torch.tensor(logged["sum_epoch"]), model.total_sum)
 
 
 def test_scriptable(tmpdir):

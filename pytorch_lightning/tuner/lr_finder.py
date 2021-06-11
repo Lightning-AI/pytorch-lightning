@@ -25,7 +25,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
@@ -259,7 +259,7 @@ def lr_find(
 
     # Reset model state
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
+        trainer.checkpoint_connector.restore(str(save_path))
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)

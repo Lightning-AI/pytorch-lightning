@@ -17,7 +17,7 @@ from typing import Optional, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -83,7 +83,7 @@ def scale_batch_size(
 
     # Restore initial state of model
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
+        trainer.checkpoint_connector.restore(str(save_path))
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)

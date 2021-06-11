@@ -27,7 +27,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -47,6 +46,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
@@ -330,7 +330,7 @@ class Trainer(
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
-        self.checkpoint_connector = CheckpointConnector(self)
+        self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
@@ -354,7 +354,6 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
-            resume_from_checkpoint,
             stochastic_weight_avg,
             max_time,
         )
@@ -844,6 +843,7 @@ class Trainer(
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
+        self.logger_connector.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -884,7 +884,7 @@ class Trainer(
             ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
-        self.checkpoint_connector.restore_weights()
+        self.checkpoint_connector.restore()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -965,7 +965,7 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
                 f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
@@ -1023,7 +1023,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.logger_connector.log_evaluation_step_metrics()
+                self.logger_connector.update_eval_step_metrics()
 
                 # track epoch level outputs
                 dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
@@ -1047,19 +1047,8 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        # update epoch-level lr_schedulers
-        if on_epoch:
-            self.optimizer_connector.update_learning_rates(
-                interval='epoch',
-                opt_indices=[
-                    opt_idx for opt_idx, _ in self.train_loop.get_active_optimizers(
-                        batch_idx=(self.train_loop.total_batch_idx - 1)
-                    )  # Select the optimizers which were used in the last batch of the epoch
-                ],
-            )
-
         # log epoch metrics
-        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
+        eval_loop_results = self.logger_connector.update_eval_epoch_metrics()
 
         # hook
         self.evaluation_loop.on_evaluation_end()
@@ -1070,16 +1059,13 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
 
-        # reset cached results
-        self.logger_connector.reset()
-
         torch.set_grad_enabled(True)
 
         return eval_loop_results
 
     def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
-            if isinstance(output, Result):
+            if isinstance(output, ResultCollection):
                 output = output.detach()
                 if self.move_metrics_to_cpu:
                     output = output.cpu()
@@ -1164,11 +1150,15 @@ class Trainer(
 
             self.on_sanity_check_end()
 
-            self.state.stage = stage
+            # reset validation metrics
+            self.logger_connector.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
             reset_seed()
+
+            # restore the previous stage when the sanity check if finished
+            self.state.stage = stage
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
         if ckpt_path is None:
@@ -1243,32 +1233,14 @@ class Trainer(
         model._current_fx_name = None
         model._current_dataloader_idx = None
 
-    def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
-        # on_before_zero_grad is called within training_step
-        # TODO(@carmocca): Result should handle this logic
-        if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
-            return True
-        model_ref = self.lightning_module
-        if model_ref is not None:
-            # used to track current hook name called
-            model_ref._results = Result()
-            model_ref._current_fx_name = hook_name
-        return False
-
-    def _cache_logged_metrics(self):
-        model_ref = self.lightning_module
-        if model_ref is not None:
-            # capture logging for this hook
-            self.logger_connector.cache_logged_metrics()
-
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
-
-        # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_fx_name(hook_name)
+        if self.lightning_module:
+            prev_fx_name = self.lightning_module._current_fx_name
+            self.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -1285,14 +1257,19 @@ class Trainer(
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
-            # if the PL module doesn't have the hook then call the accelerator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.accelerator, hook_name):
+            # call the accelerator hook
+            if hasattr(self.accelerator, hook_name):
                 accelerator_hook = getattr(self.accelerator, hook_name)
-                output = accelerator_hook(*args, **kwargs)
+                accelerator_output = accelerator_hook(*args, **kwargs)
+                # Rely on the accelerator output if lightningModule hook returns nothing
+                # Required for cases such as DataParallel where we reduce the output for the user
+                # todo: move this data parallel logic into the data parallel plugin
+                output = accelerator_output if output is None else output
 
-        if not skip:
-            self._cache_logged_metrics()
+        if self.lightning_module:
+            # restore current_fx when nested context
+            self.lightning_module._current_fx_name = prev_fx_name
+
         return output
 
     @staticmethod

@@ -1527,6 +1527,24 @@ Can specify as float or int.
     trainer = Trainer(val_check_interval=1000)
 
 
+.. code-block::
+
+    # Here is the computation to estimate the total number of batches seen within an epoch.
+
+    # Find the total number of train batches
+    total_train_batches = total_train_samples // (train_batch_size * world_size)
+
+    # Compute how many times we will call validation during the training loop
+    val_check_batch = max(1, int(total_train_batches * val_check_interval))
+    val_checks_per_epoch = total_train_batches / val_check_batch
+
+    # Find the total number of validation batches
+    total_val_batches = total_val_samples // (val_batch_size * world_size)
+
+    # Total number of batches run
+    total_fit_batches = total_train_batches + total_val_batches
+
+
 weights_save_path
 ^^^^^^^^^^^^^^^^^
 
