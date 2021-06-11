@@ -47,8 +47,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
 
 
 @mock.patch(
-    "pytorch_lightning.trainer.connectors.logger_connector."
-    "logger_connector_new.LoggerConnectorNew.update_eval_epoch_metrics"
+    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.update_eval_epoch_metrics"
 )
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
     """Test that the epoch metrics are logged before the `on_evalutaion_end` hook is fired"""
