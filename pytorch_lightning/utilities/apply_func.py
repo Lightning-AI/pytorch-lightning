@@ -112,12 +112,12 @@ def apply_to_collection(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if dataclasses.is_dataclass(data) and not isinstance(data, type):
-        out = []
+        out = dict()
         for field in data.__dataclass_fields__:
             v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
-                out.append((field, v))
-        return elem_type(**OrderedDict(out))
+                out[field] = v
+        return elem_type(**out)
 
     # data is neither of dtype, nor a collection
     return data
