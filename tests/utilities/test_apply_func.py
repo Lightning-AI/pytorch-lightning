@@ -45,8 +45,7 @@ def test_recursive_application_to_collection():
         'e': np.array([10.]),  # numpy array
         'f': 'this_is_a_dummy_str',  # string
         'g': 12.,  # number
-        'h': Feature(
-            input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),  # dataclass
+        'h': Feature(input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),  # dataclass
         'i': ModelExample(
             example_ids=['i-1', 'i-2', 'i-3'],
             feature=Feature(input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),
@@ -62,8 +61,7 @@ def test_recursive_application_to_collection():
         'e': np.array([20.]),
         'f': 'this_is_a_dummy_str',
         'g': 24.,
-        'h': Feature(
-            input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
+        'h': Feature(input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
         'i': ModelExample(
             example_ids=['i-1', 'i-2', 'i-3'],
             feature=Feature(input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
