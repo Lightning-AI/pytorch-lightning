@@ -323,9 +323,22 @@ class TrainingBatchLoop(Loop):
         )
         return grad_norm_dict
 
-    def _accumulated_batches_reached(self):
+    def _accumulated_batches_reached_before_iter_count_update(self):
+        """
+        Determine if accumulation will be finished by the end of the current batch.
+        This returns the correct answer only if the loop iteration count has not yet been updated for the current batch
+        in progress. Use `_accumulated_batches_reached_after_iter_count_update` otherwise.
+        """
         # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration count may
         #  reset iteration count is required to be global here, not reset
+        return (self.iteration_count + 1) % self.trainer.accumulate_grad_batches == 0
+
+    def _accumulated_batches_reached_after_iter_count_update(self):
+        """
+        Determine if accumulation has finished.
+        This returns the correct answer only right after a batch has ended, i.e., the iteration count was just updated.
+        Use `_accumulated_batches_reached_after_iter_count_update` otherwise.
+        """
         return self.iteration_count % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch=False):
@@ -335,7 +348,7 @@ class TrainingBatchLoop(Loop):
 
     def should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
+        accumulation_done = self._accumulated_batches_reached_before_iter_count_update()
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
