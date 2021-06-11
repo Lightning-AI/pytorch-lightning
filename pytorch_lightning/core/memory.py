@@ -454,7 +454,7 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
             warning_cache.warn(
                 "A layer with UninitializedParameter was found. "
                 "Thus, the total number of parameters detected may be inaccurate."
-                )
+            )
             return True
         else:
             return False
