@@ -322,8 +322,8 @@ def test_metrics_reset(tmpdir):
             acc.reset.reset_mock()
             ap.reset.reset_mock()
 
-            self.log(f"{stage}/accuracy", acc)
-            self.log(f"{stage}/ap", ap)
+            self.log(f"{stage}/accuracy", acc, metric_attribute="dummy")
+            self.log(f"{stage}/ap", ap, metric_attribute="dummy")
 
             return loss
 
