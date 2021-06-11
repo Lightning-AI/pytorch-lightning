@@ -419,7 +419,6 @@ class ResultCollection(dict):
         metrics = {k: {} for k in MetricSource}
 
         for key, result_metric in self.valid_items():
-            print(key, metrics)
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(
