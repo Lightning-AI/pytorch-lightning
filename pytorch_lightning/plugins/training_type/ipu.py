@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import inspect
 import json
 import os
@@ -94,9 +107,7 @@ class IPUPlugin(ParallelPlugin):
             options = {"autoReport.all": self.autoreport}
             if self.autoreport_dir:
                 self._fs = get_filesystem(str(self.autoreport_dir))
-
-                if not self._fs.exists(self.autoreport_dir):
-                    self._fs.makedirs(self.autoreport_dir)
+                self._fs.makedirs(self.autoreport_dir, exist_ok=True)
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
@@ -161,7 +172,7 @@ class IPUPlugin(ParallelPlugin):
                 rank_zero_warn(
                     f"Manual poptorch.Options set replicationFactor to {opts.replication_factor} "
                     f"which differs to the ipus={self.replication_factor} flag passed to the Trainer. "
-                    f"Setting to {self.replication_factor} in the poptorch.Options.", UserWarning
+                    f"Setting to {self.replication_factor} in the poptorch.Options."
                 )
                 opts.set(replication_factor=self.replication_factor)
             if training:
@@ -171,13 +182,13 @@ class IPUPlugin(ParallelPlugin):
                         f"Training poptorch.Options set gradientAccumulation to {opts.Training.gradient_accumulation}. "
                         f"This is different to accumulate_grad_batches which was set to {accumulate_grad_batches}. "
                         f"To change gradientAccumulation, please set accumulate_grad_batches in the Trainer. "
-                        f"Setting poptorch.Options gradientAccumulation to {accumulate_grad_batches}", UserWarning
+                        f"Setting poptorch.Options gradientAccumulation to {accumulate_grad_batches}"
                     )
                     opts.Training.set(gradient_accumulation=accumulate_grad_batches)
             elif opts.Training.gradient_accumulation != 1:
                 rank_zero_warn(
                     "Inference poptorch.Options should set gradientAccumulation to 1. "
-                    "Setting gradientAccumulation to 1 for inference options.", UserWarning
+                    "Setting gradientAccumulation to 1 for inference options."
                 )
                 opts.Training.set(gradient_accumulation=1)
 

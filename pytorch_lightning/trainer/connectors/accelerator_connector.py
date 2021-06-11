@@ -637,7 +637,7 @@ class AcceleratorConnector(object):
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
 
         num_ipus = self.ipus if self.ipus is not None else 0
-        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPU cores')
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(

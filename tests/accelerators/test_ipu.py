@@ -98,17 +98,17 @@ class IPUClassificationModel(ClassificationModel):
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 def test_fail_if_no_ipus(tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(ipus=1)
+        Trainer(default_root_dir=tmpdir, ipus=1)
 
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(ipus=1, accelerator='ipu')
+        Trainer(default_root_dir=tmpdir, ipus=1, accelerator='ipu')
 
 
 @RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
-    trainer = Trainer(ipus=1)
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    trainer = Trainer(ipus=1, accelerator='ipu')
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accelerator='ipu')
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
@@ -116,7 +116,7 @@ def test_accelerator_selected(tmpdir):
 @pytest.mark.parametrize('ipus', [1, 4])
 def test_all_stages(tmpdir, ipus):
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipus=ipus)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -128,7 +128,7 @@ def test_all_stages(tmpdir, ipus):
 def test_inference_only(tmpdir, ipus):
     model = IPUModel()
 
-    trainer = Trainer(fast_dev_run=True, ipus=ipus)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model, model.val_dataloader())
@@ -188,7 +188,7 @@ def test_mixed_precision(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -210,6 +210,7 @@ def test_pure_half_precision(tmpdir):
 
     model = IPUModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
         ipus=1,
         precision=16,
@@ -234,7 +235,13 @@ def test_device_iterations_ipu_plugin(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipus=1, plugins=IPUPlugin(device_iterations=2), callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        ipus=1,
+        plugins=IPUPlugin(device_iterations=2),
+        callbacks=TestCallback()
+    )
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -254,7 +261,9 @@ def test_accumulated_batches(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipus=1, accumulate_grad_batches=2, callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, ipus=1, accumulate_grad_batches=2, callbacks=TestCallback()
+    )
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -298,7 +307,7 @@ def test_stages_correct(tmpdir):
             assert torch.all(outputs == 4).item()
 
     model = StageModel()
-    trainer = Trainer(fast_dev_run=True, ipus=1, callbacks=TestCallback())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, callbacks=TestCallback())
     trainer.fit(model)
     trainer.test(model)
     trainer.validate(model)
@@ -308,7 +317,7 @@ def test_stages_correct(tmpdir):
 @RunIf(ipu=True)
 def test_accumulate_grad_batches_dict_fails(tmpdir):
     model = IPUModel()
-    trainer = Trainer(ipus=1, accumulate_grad_batches={0: 1})
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, accumulate_grad_batches={0: 1})
     with pytest.raises(
         MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
     ):
@@ -318,7 +327,7 @@ def test_accumulate_grad_batches_dict_fails(tmpdir):
 @RunIf(ipu=True)
 def test_clip_gradients_fails(tmpdir):
     model = IPUModel()
-    trainer = Trainer(ipus=1, gradient_clip_val=10)
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, gradient_clip_val=10)
     with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
         trainer.fit(model)
 
@@ -328,7 +337,12 @@ def test_autoreport(tmpdir):
     """Ensure autoreport dumps to a file."""
     model = IPUModel()
     autoreport_path = os.path.join(tmpdir, 'report/')
-    trainer = Trainer(ipus=1, fast_dev_run=True, plugins=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        ipus=1,
+        fast_dev_run=True,
+        plugins=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path)
+    )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
     assert os.path.isfile(autoreport_path + 'profile.pop')
@@ -342,7 +356,10 @@ def test_manual_poptorch_opts(tmpdir):
     training_opts = poptorch.Options()
 
     trainer = Trainer(
-        ipus=1, fast_dev_run=True, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+        default_root_dir=tmpdir,
+        ipus=1,
+        fast_dev_run=True,
+        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
     )
     trainer.fit(model)
 
@@ -368,6 +385,7 @@ def test_manual_poptorch_opts_ipu_count(tmpdir):
     training_opts.replicationFactor(manual_ipus)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         ipus=expected_ipus,
         fast_dev_run=True,
         plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
@@ -399,7 +417,10 @@ def test_manual_poptorch_opts_inference_grad_accum(tmpdir):
     training_opts.Training.gradientAccumulation(1)
 
     trainer = Trainer(
-        ipus=1, fast_dev_run=True, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+        default_root_dir=tmpdir,
+        ipus=1,
+        fast_dev_run=True,
+        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
     )
     with pytest.warns(
         UserWarning,
@@ -426,6 +447,7 @@ def test_manual_poptorch_opts_train_grad_accum(tmpdir):
     training_opts.Training.gradientAccumulation(2)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         ipus=1,
         fast_dev_run=True,
         accumulate_grad_batches=1,
@@ -451,7 +473,7 @@ def test_default_opts(tmpdir):
 
     model = IPUModel()
 
-    trainer = Trainer(ipus=1, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1, fast_dev_run=True)
     trainer.fit(model)
     assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
     inference_opts = trainer.accelerator.training_type_plugin.inference_opts
@@ -464,20 +486,7 @@ def test_default_opts(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_clip_val_fail(tmpdir):
-    """
-    Ensure if clipping value is greater than 0 or not None, we throw an exception.
-    """
-
-    model = IPUModel()
-
-    trainer = Trainer(ipus=1, gradient_clip_val=10)
-    with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
-        trainer.fit(model)
-
-
-@RunIf(ipu=True)
-def test_multi_optimizers_fail(tmpdir):
+def test_multi_optimizers_fails(tmpdir):
     """
     Ensure if there are multiple optimizers, we throw an exception
     """
@@ -489,7 +498,7 @@ def test_multi_optimizers_fail(tmpdir):
 
     model = TestModel()
 
-    trainer = Trainer(ipus=1)
+    trainer = Trainer(default_root_dir=tmpdir, ipus=1)
     with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):
         trainer.fit(model)
 
