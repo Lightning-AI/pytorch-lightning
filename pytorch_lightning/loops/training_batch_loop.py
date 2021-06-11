@@ -15,42 +15,47 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial, update_wrapper
-from typing import Any, Callable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
 import torch
+from deprecate import void
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingBatchLoop(Loop):
     """ Runs over a single batch of data. """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.accumulated_loss = None
-        self.batch_outputs = None
-        self.running_loss = TensorRunningAccum(window_length=20)
-        self.split_idx = None
-        self.warning_cache = WarningCache()
+        self.accumulated_loss: torch.Tensor = None
+        self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
+        self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
+        self.split_idx: Optional[int] = None
+        self.warning_cache: WarningCache = WarningCache()
 
-        self._hiddens = None
-        self._optimizer_freq_cumsum = None
-        self._remaining_splits = None
-        self._skip_backward = False
+        self._hiddens: Optional[torch.Tensor] = None
+        self._optimizer_freq_cumsum: Optional[int] = None
+        self._remaining_splits: Optional[List[Any]] = None
+        self._skip_backward: bool = False
 
     @property
-    def done(self):
+    def done(self) -> bool:
+        """Returns if all batch splits have been processed already"""
         return len(self._remaining_splits) == 0
 
     @property
@@ -59,20 +64,31 @@ class TrainingBatchLoop(Loop):
         return self._skip_backward
 
     @skip_backward.setter
-    def skip_backward(self, value: bool):
+    def skip_backward(self, value: bool) -> None:
         """ Determines whether the loop will skip backward during automatic optimization. """
         self._skip_backward = value
 
     @property
-    def optimizer_freq_cumsum(self):
+    def optimizer_freq_cumsum(self) -> int:
+        """Returns the cumulated sum of optimizer frequencies"""
         if self._optimizer_freq_cumsum is None:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def connect(self, trainer, *args, **kwargs):
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+        # TODO(@justusschock): can we make this a weakref/proxy?
+        void(*args, **kwargs)
         self.trainer = trainer
 
-    def run(self, batch, batch_idx, dataloader_idx):
+    def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
+        """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
+
+        Args:
+            batch: the current batch to run the train step on
+            batch_idx: the index of the current batch
+            dataloader_idx: the index of the dataloader producing the current batch
+
+        """
         if batch is None:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
@@ -93,14 +109,32 @@ class TrainingBatchLoop(Loop):
         return AttributeDict(signal=0, training_step_output=self.batch_outputs)
 
     def reset(self) -> None:
+        """Resets the loop state"""
         self._hiddens = None
         # TODO(@awaelchli): let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def on_run_start(self, batch, batch_idx, dataloader_idx):
+    def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
+        """Splits the data into tbptt splits
+
+        Args:
+            batch: the current batch to run the trainstep on
+            batch_idx: the index of the current batch
+            dataloader_idx: the index of the dataloader producing the current batch
+
+        """
+        void(batch_idx, dataloader_idx)
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
 
     def advance(self, batch, batch_idx, dataloader_idx):
+        """Runs the train step together with optimization (if necessary) on the current batch split
+
+        Args:
+            batch: the current batch to run the training on (this is not the split!)
+            batch_idx: the index of the current batch
+            dataloader_idx: the index of the dataloader producing the current batch
+        """
+        void(batch, dataloader_idx)
         split_idx, split_batch = self._remaining_splits.pop(0)
         self.split_idx = split_idx
 
@@ -119,9 +153,21 @@ class TrainingBatchLoop(Loop):
                 self.batch_outputs[0].append(result.training_step_output)
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
+        """Gets the number of active optimizers based on their frequency"""
         return len(self.get_active_optimizers(batch_idx))
 
-    def _run_optimization(self, batch_idx, split_batch, opt_idx=0, optimizer=None):
+    def _run_optimization(
+        self, batch_idx: int, split_batch: Any, opt_idx: int = 0, optimizer: Optional[torch.optim.Optimizer] = None
+    ):
+        """Runs closure (train step + backward) together with optimization if necessary.
+
+        Args:
+            batch_idx: the index of the current batch
+            split_batch: the current tbptt split of the whole batch
+            opt_idx: the index of the current optimizer
+            optimizer: the current optimizer
+
+        """
         # TODO(@awaelchli): In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
         #   opt_idx=0 to opt_idx=None in the signature here
 
@@ -171,21 +217,37 @@ class TrainingBatchLoop(Loop):
         batch_idx: int,
         opt_idx: int,
         optimizer: Optimizer,
-        hiddens,
+        hiddens: torch.Tensor,
         return_result: AttributeDict,
     ) -> Optional[torch.Tensor]:
+        """Closure for training step and backward
+
+        Args:
+            split_batch: the current tbptt split of the batch
+            batch_idx: the index of the current batch
+            opt_idx: the index of the current optimizer
+            optimizer: the current optimizer
+            hiddens: the hidden state of the recurrent net
+            return_result: the storage of the trainstep results
+
+        """
 
         result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         if result is not None:
             return_result.update(result)
             return return_result.loss
 
-    def make_closure(self, *closure_args, **closure_kwargs: Any) -> Callable:
+    def make_closure(self, *closure_args: Any, **closure_kwargs: Any) -> Callable:
         """ Wraps the training step closure into a partial object which will be called within ``optimizer.step``. """
         partial_func = partial(self.training_step_and_backward_closure, *closure_args, **closure_kwargs)
         return update_wrapper(partial_func, self.training_step_and_backward_closure)
 
     def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
+        """Checks if the closure results is finite and optionally breaks if it is not
+
+        Args:
+            opt_closure_result: the result of the train step wrapped in an attribute dict
+        """
         if not opt_closure_result:
             return
 
@@ -193,14 +255,32 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
-    def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
+    def on_after_backward(
+        self, training_step_output: STEP_OUTPUT, batch_idx: int, untouched_loss: torch.Tensor
+    ) -> None:
+        """Calls ``on_after_backward`` hook and tracks loss history
+
+        Args:
+            training_step_output: the result from the training step (either a dict with key 'loss' or the loss tensor)
+            batch_idx: the index of the current batch
+            untouched_loss: the original loss value
+        """
+
+        void(training_step_output)
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
-    def _check_training_step_output(self, training_step_output):
+    def _check_training_step_output(self, training_step_output: STEP_OUTPUT) -> None:
+        """Sanity checks that training produced a valid output and optimizer step has already been called in manual
+        optimization.
+
+        Args:
+            training_step_output: the output of the training step (before wrapping in an AttributeDict)
+
+        """
         if isinstance(training_step_output, torch.Tensor) and not self.trainer.lightning_module.automatic_optimization:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
@@ -216,7 +296,19 @@ class TrainingBatchLoop(Loop):
                     "a dict with key 'loss' or None (where the step will be skipped)."
                 )
 
-    def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
+    def training_step(self, split_batch: Any, batch_idx: int, opt_idx: int,
+                      hiddens: torch.Tensor) -> Optional[AttributeDict]:
+        """Performs the actual train step with the tied hooks.
+
+        Args:
+            split_batch: the current tbptt split of the current batch
+            batch_idx: the index of the current batch
+            opt_idx: the index of the current optimizer
+            hiddens: the model's hidden state of the previous iteration
+
+        Returns:
+            an AttributeDict containing the loss value and the training step output.
+        """
         # give the PL module a result for logging
         model_ref = self.trainer.lightning_module
 
@@ -246,7 +338,15 @@ class TrainingBatchLoop(Loop):
             loss = closure_loss.detach().clone()
         return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
 
-    def _process_training_step_output(self, training_step_output):
+    def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
+        """Adds the :param:`training_step_output` to the trainer's results
+
+        Args:
+            training_step_output: the output of the training step (before wrapping into an AttributeDict)
+
+        Returns:
+            the updated results if the training_step's output was not None else None
+        """
         if training_step_output is None:
             return None
 
@@ -276,7 +376,19 @@ class TrainingBatchLoop(Loop):
             results.cpu()
         return results
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
+    def optimizer_step(
+        self, optimizer: torch.optim.Optimizer, opt_idx: int, batch_idx: int, train_step_and_backward_closure: Callable
+    ) -> None:
+        """Performs the optimizer step and some sanity checking.
+
+        Args:
+            optimizer: the optimizer to perform the step with
+            opt_idx: the index of the current :param:`optimizer`
+            batch_idx: the index of the current batch
+            train_step_and_backward_closure: the closure function performing the train step and computing the
+                gradients. By default called by the optimizer (if possible)
+
+        """
         model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -304,17 +416,36 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-    def on_before_zero_grad(self, optimizer):
+    def on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
+        """Calls the ``on_before_zero_grad`` hook.
+
+        Args:
+            optimizer: the current optimizer
+
+        """
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
+    def optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
+        """Zeroes out all gradients of parameters optimized by the current optimizer.
+
+        Args:
+            batch_idx: the index of the current batch
+            optimizer: the current optimizer
+            opt_idx: the index of the current optimizer
+
+        """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def track_and_norm_grad(self, optimizer) -> dict:
+    def track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, torch.Tensor]:
+        """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
+
+        Args:
+            optimizer: the current optimizer
+        """
         # track gradient norms
         grad_norm_dict = {}
-        if (self.trainer.global_step
-            + 1) % self.trainer.log_every_n_steps == 0 and float(self.trainer.track_grad_norm) > 0:
+        if ((self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
+            and float(self.trainer.track_grad_norm) > 0):
             grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
@@ -323,23 +454,37 @@ class TrainingBatchLoop(Loop):
         )
         return grad_norm_dict
 
-    def _accumulated_batches_reached(self):
+    def _accumulated_batches_reached(self) -> bool:
+        """Checks if the requested number of accumulation steps was already performed"""
         # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration count may
         #  reset iteration count is required to be global here, not reset
         return self.iteration_count % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self, is_last_batch=False):
+    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
+        """Checks whether sufficient training batches have been processed.
+
+        Args:
+            is_last_batch: Whether the current batch is the last one
+
+        """
         # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration
         #  count may reset
         return (self.iteration_count + 1) == self.trainer.num_training_batches or is_last_batch
 
-    def should_accumulate(self):
+    def should_accumulate(self) -> bool:
+        """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
         # checks if backward or backward + optimizer step (via closure)
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def tbptt_split_batch(self, batch):
+    def tbptt_split_batch(self, batch: Any) -> List[Any]:
+        """Splits a single batch into a list of sequence steps for tbptt.
+
+        Args:
+            batch: the current batch to split
+
+        """
         splits = [batch]
         if self.trainer.truncated_bptt_steps is not None:
             model_ref = self.trainer.lightning_module
@@ -347,7 +492,18 @@ class TrainingBatchLoop(Loop):
                 splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
         return splits
 
-    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
+    def build_train_args(self, batch: Any, batch_idx: int, opt_idx: int, hiddens: torch.Tensor) -> List[Any]:
+        """Builds arguments for train step
+
+        Args:
+            batch: the current batch to train on
+            batch_idx: the index of the current batch
+            opt_idx: the index of the current optimizer
+            hiddens: the hidden state of the previous RNN iteration
+
+        Returns:
+            the positional arguments for training
+        """
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
@@ -374,7 +530,14 @@ class TrainingBatchLoop(Loop):
 
         return args
 
-    def run_optimization_start(self, opt_idx, optimizer):
+    def run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
+        """Toggles the optimizer to ensure the correct one is used and prevend dangling grads.
+
+        Args:
+            opt_idx: the index of the optimizer to use
+            optimizer: the optimizer to use
+
+        """
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
@@ -382,7 +545,7 @@ class TrainingBatchLoop(Loop):
             model.toggle_optimizer(optimizer, opt_idx)
 
     @contextmanager
-    def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
+    def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
         """
         automatic_optimization = True
         Blocks ddp sync gradients behaviour on backwards pass.
@@ -405,7 +568,10 @@ class TrainingBatchLoop(Loop):
         else:
             yield None
 
-    def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+    def training_step_and_backward(
+        self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: torch.optim.Optimizer,
+        hiddens: Optional[torch.Tensor]
+    ) -> STEP_OUTPUT:
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
@@ -440,12 +606,27 @@ class TrainingBatchLoop(Loop):
         return result
 
     def _check_finite(self, loss: torch.Tensor) -> None:
+        """Checks fotr finite parameters and loss values.
+
+        Args:
+            loss: the loss value to check to be finite
+        """
         if not torch.isfinite(loss).all():
             raise ValueError(f'The loss returned in `training_step` is {loss}.')
         model = self.trainer.lightning_module
         detect_nan_parameters(model)
 
-    def backward(self, result, optimizer, opt_idx, *args, **kwargs):
+    def backward(
+        self, result: STEP_OUTPUT, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
+    ) -> None:
+        """Performs the backward step.
+
+        Args:
+            result: The output of the trainstep (including the loss value)
+            optimizer: The optimizer optimizing the gradients to call backward for
+            opt_idx: the index of the current optimizer
+
+        """
         self.trainer.dev_debugger.track_event("backward_call")
 
         should_accumulate = self.should_accumulate()
@@ -466,6 +647,7 @@ class TrainingBatchLoop(Loop):
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
     def update_running_loss(self, current_loss: torch.Tensor) -> None:
+        """Updates the running loss value with the current value"""
         if self.trainer.lightning_module.automatic_optimization:
             # track total loss for logging (avoid mem leaks)
             self.accumulated_loss.append(current_loss)
@@ -498,7 +680,19 @@ class TrainingBatchLoop(Loop):
         opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
-    def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
+    def _build_kwargs(self, batch: Any, batch_idx: int, opt_idx: int,
+                      hiddens: Optional[torch.Tensor]) -> Dict[str, Any]:
+        """Builds the keyword arguments for training_step
+
+        Args:
+            batch: the batch to train on
+            batch_idx: the index of the current batch
+            opt_idx: the index of the current optimizer
+            hiddens: the hidden state of the previous RNN iteration
+
+        Returns:
+            the keyword arguments for the training step
+        """
         # enable not needing to add opt_idx to training_step
         step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
@@ -532,6 +726,7 @@ class TrainingBatchLoop(Loop):
         return self._truncated_bptt_steps() > 0
 
     def _truncated_bptt_steps(self) -> int:
+        """Returns the number of tbptt steps"""
         lightning_module = self.trainer.lightning_module
         # Give precedence to the LightningModule as the Trainer flag will be removed in v1.5
         if lightning_module.truncated_bptt_steps > 0:
