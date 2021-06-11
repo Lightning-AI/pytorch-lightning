@@ -246,17 +246,15 @@ class TrainingBatchLoop(Loop):
             self._check_finite(opt_closure_result.loss)
 
     def on_after_backward(
-        self, training_step_output: STEP_OUTPUT, batch_idx: int, untouched_loss: torch.Tensor
+        self, batch_idx: int, untouched_loss: torch.Tensor
     ) -> None:
         """Calls ``on_after_backward`` hook and tracks loss history
 
         Args:
-            training_step_output: the result from the training step (either a dict with key 'loss' or the loss tensor)
             batch_idx: the index of the current batch
             untouched_loss: the original loss value
         """
 
-        void(training_step_output)
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
@@ -594,7 +592,7 @@ class TrainingBatchLoop(Loop):
                     # hook - call this hook only
                     # when gradients have finished to accumulate
                     if not self.should_accumulate():
-                        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                        self.on_after_backward(batch_idx, result.loss)
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
