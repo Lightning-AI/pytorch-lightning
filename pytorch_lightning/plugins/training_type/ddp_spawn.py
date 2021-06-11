@@ -215,8 +215,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+        extra_parameters = self.mp_queue.get()
         # TODO: verify to find corner cases or concurrency issues
-        self.lightning_module.trainer.logger_connector.spawn_extra_parameters.update(self.mp_queue.get())
+        self.lightning_module.trainer.logger_connector.spawn_extra_parameters.update(extra_parameters)
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
