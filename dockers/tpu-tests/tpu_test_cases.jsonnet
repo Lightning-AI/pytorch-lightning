@@ -20,9 +20,11 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
+      export GCS_BUCKET_PATH=gs://lightning-test/test_dir
       cd pytorch-lightning
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           pytorch_lightning/utilities/xla_device.py \
+          tests/utilities/test_remote_filesystem.py \
           tests/accelerators/test_tpu_backend.py \
           tests/models/test_tpu.py
       test_exit_code=$?
