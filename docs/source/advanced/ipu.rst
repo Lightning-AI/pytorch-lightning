@@ -139,12 +139,15 @@ Below is an example using the block annotation in a LightningModule.
 
         def __init__(self):
             super().__init__()
-            # This will place layer1, layer2+layer3, layer4, softmax on different IPUs.
+            # This will place layer1, layer2+layer3, layer4, softmax on different IPUs at runtime.
             # BeginBlock will start a new id for all layers within this block
             self.layer1 = poptorch.BeginBlock(torch.nn.Linear(5, 10), ipu_id=0)
+
+            # This layer starts a new block, and will add all other layers to this block at runtime till the next block has been declared.
             self.layer2 = poptorch.BeginBlock(torch.nn.Linear(10, 5), ipu_id=1)
-            # this layer will be grouped into the same IPU as layer2.
             self.layer3 = torch.nn.Linear(5, 5)
+
+            # Create new blocks.
             self.layer4 = poptorch.BeginBlock(torch.nn.Linear(5, 5), ipu_id=2)
             self.softmax = poptorch.BeginBlock(torch.nn.Softmax(dim=1), ipu_id=3)
 
