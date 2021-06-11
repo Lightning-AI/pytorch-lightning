@@ -501,11 +501,10 @@ def test_tpu_spawn_debug_plugin(tmpdir):
         def teardown(self, stage):
             assert "PT_XLA_DEBUG" not in os.environ
 
-    tutils.reset_seed()
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=4,
+        max_epochs=1,
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -513,4 +512,5 @@ def test_tpu_spawn_debug_plugin(tmpdir):
     )
 
     model = DebugModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
