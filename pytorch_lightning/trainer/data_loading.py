@@ -420,7 +420,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         has_loader = is_overridden('val_dataloader', model)
         has_step = is_overridden('validation_step', model)
-        if has_loader and has_step and self.limit_val_batches != 0:
+        if has_loader and has_step:
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
@@ -431,7 +431,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         has_loader = is_overridden('test_dataloader', model)
         has_step = is_overridden('test_step', model)
-        if has_loader and has_step and self.limit_test_batches != 0:
+        if has_loader and has_step:
             self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, 'test')
 
     def reset_predict_dataloader(self, model) -> None:
@@ -441,7 +441,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         has_loader = is_overridden('predict_dataloader', model)
-        if has_loader and self.limit_predict_batches != 0:
+        if has_loader:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
     def request_dataloader(self, model: LightningModule, stage: str) -> DataLoader:

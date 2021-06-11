@@ -403,6 +403,9 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'train',
         'on_train_dataloader',
         'train_dataloader',
+        # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
+        'on_val_dataloader',
+        'val_dataloader',
         'on_train_start',
         'on_epoch_start',
         'on_train_epoch_start',
@@ -432,8 +435,6 @@ def test_trainer_model_hook_system_validate(tmpdir, batches):
     assert called == []
     trainer.validate(model, verbose=False)
     hooks = [
-        'on_val_dataloader',
-        'val_dataloader',
         'train',  # eval() == train(False)
         'on_validation_model_eval',
         'zero_grad',
@@ -453,6 +454,8 @@ def test_trainer_model_hook_system_validate(tmpdir, batches):
         'configure_callbacks',
         'setup',
         'configure_sharded_model',
+        'on_val_dataloader',
+        'val_dataloader',
         *(hooks if batches else []),
         'teardown',
     ]
