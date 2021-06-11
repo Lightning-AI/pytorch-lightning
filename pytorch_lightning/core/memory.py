@@ -26,6 +26,9 @@ from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -447,5 +450,12 @@ def get_human_readable_count(number: int) -> str:
 def _is_lazy_weight_tensor(p: Tensor) -> bool:
     if _TORCH_GREATER_EQUAL_1_8:
         from torch.nn.parameter import UninitializedParameter
-        return isinstance(p, UninitializedParameter)
+        if isinstance(p, UninitializedParameter):
+            warning_cache.warn(
+                "A layer with UninitializedParameter was found. "
+                "Thus, the total number of parameters detected may be inaccurate."
+                )
+            return True
+        else:
+            return False
     return False
