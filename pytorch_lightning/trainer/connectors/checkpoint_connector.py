@@ -138,8 +138,7 @@ class CheckpointConnector:
         if checkpoint_path is not None:
             checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
 
-        model = self.trainer.lightning_module
-        model.on_load_checkpoint(checkpoint)
+        self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
     def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
