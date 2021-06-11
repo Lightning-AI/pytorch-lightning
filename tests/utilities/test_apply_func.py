@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union, List, Dict, Tuple, Optional
 import numbers
 from collections import namedtuple, OrderedDict
+import dataclasses
 
 import numpy as np
 import pytest
@@ -24,6 +26,17 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 def test_recursive_application_to_collection():
     ntc = namedtuple('Foo', ['bar'])
 
+    @dataclasses.dataclass
+    class Feature:
+        input_ids: torch.Tensor
+        segment_ids: np.ndarray
+
+    @dataclasses.dataclass
+    class ModelExample:
+        example_ids: List[str]
+        feature: Feature
+        label: torch.Tensor
+
     to_reduce = {
         'a': torch.tensor([1.]),  # Tensor
         'b': [torch.tensor([2.])],  # list
@@ -32,6 +45,13 @@ def test_recursive_application_to_collection():
         'e': np.array([10.]),  # numpy array
         'f': 'this_is_a_dummy_str',  # string
         'g': 12.,  # number
+        'h': Feature(
+            input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),  # dataclass
+        "i": ModelExample(
+            example_ids=["i-1", "i-2", "i-3"],
+            feature=Feature(input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),
+            label=torch.tensor([7., 8., 9.])
+        )  # nested dataclass
     }
 
     expected_result = {
@@ -42,6 +62,13 @@ def test_recursive_application_to_collection():
         'e': np.array([20.]),
         'f': 'this_is_a_dummy_str',
         'g': 24.,
+        'h': Feature(
+            input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
+        "i": ModelExample(
+            example_ids=["i-1", "i-2", "i-3"],
+            feature=Feature(input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
+            label=torch.tensor([14., 16., 18.])
+        )
     }
 
     reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray), lambda x: x * 2)
@@ -77,6 +104,26 @@ def test_recursive_application_to_collection():
 
     assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a number'
     assert reduced['g'] == expected_result['g'], 'Reduction of a number did not yield the desired result'
+
+    assert dataclasses.is_dataclass(reduced['h']) and not isinstance(reduced['h'], type), \
+        'Reduction of a dataclass should result in a dataclass'
+    assert torch.allclose(reduced['h'].input_ids, expected_result['h'].input_ids), \
+        'Reduction of a dataclass did not yield the desired result'
+    assert np.allclose(reduced['h'].segment_ids, expected_result['h'].segment_ids), \
+        'Reduction of a dataclass did not yield the desired result'
+
+    assert dataclasses.is_dataclass(reduced['i']) and not isinstance(reduced['i'], type), \
+        'Reduction of a dataclass should result in a dataclass'
+    assert dataclasses.is_dataclass(reduced['i'].feature) and not isinstance(reduced['i'].feature, type), \
+        'Reduction of a nested dataclass should result in a nested dataclass'
+    assert reduced['i'].example_ids == expected_result['i'].example_ids, \
+        'Reduction of a nested dataclass did not yield the desired result'
+    assert torch.allclose(reduced['i'].label, expected_result['i'].label), \
+        'Reduction of a nested dataclass did not yield the desired result'
+    assert torch.allclose(reduced['i'].feature.input_ids, expected_result['i'].feature.input_ids), \
+        'Reduction of a dataclass did not yield the desired result'
+    assert np.allclose(reduced['i'].feature.segment_ids, expected_result['i'].feature.segment_ids), \
+        'Reduction of a dataclass did not yield the desired result'
 
     # mapping support
     reduced = apply_to_collection({'a': 1, 'b': 2}, int, lambda x: str(x))

@@ -18,6 +18,8 @@ from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
 from typing import Any, Callable, Optional, Union
+import dataclasses
+
 
 import numpy as np
 import torch
@@ -109,6 +111,14 @@ def apply_to_collection(
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
+
+    if dataclasses.is_dataclass(data) and not isinstance(data, type):
+        out = []
+        for field in data.__dataclass_fields__:
+            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if include_none or v is not None:
+                out.append((field, v))
+        return elem_type(**OrderedDict(out))
 
     # data is neither of dtype, nor a collection
     return data
