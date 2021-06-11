@@ -74,7 +74,7 @@ if _TORCH_GREATER_EQUAL_1_6:
 
         def on_train_epoch_start(self, trainer, *args):
             super().on_train_epoch_start(trainer, *args)
-            assert trainer.train_loop.skip_backward == (trainer.current_epoch > self.swa_end)
+            assert trainer.train_loop._skip_backward == (trainer.current_epoch > self.swa_end)
             if self.swa_start <= trainer.current_epoch:
                 assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
                 assert trainer.lr_schedulers[0]["interval"] == "epoch"
@@ -92,7 +92,7 @@ if _TORCH_GREATER_EQUAL_1_6:
             super().on_train_end(trainer, pl_module)
 
             # make sure these are correctly set again
-            assert not trainer.train_loop.skip_backward
+            assert not trainer.train_loop._skip_backward
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 

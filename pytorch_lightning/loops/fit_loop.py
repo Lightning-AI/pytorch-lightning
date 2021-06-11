@@ -92,14 +92,14 @@ class FitLoop(Loop):
         return self.training_loop.batch_loop.running_loss
 
     @property
-    def skip_backward(self) -> bool:
+    def _skip_backward(self) -> bool:
         """ Determines whether the loop will skip backward during automatic optimization. """
-        return self.training_loop.batch_loop.skip_backward
+        return self.training_loop.batch_loop._skip_backward
 
-    @skip_backward.setter
-    def skip_backward(self, value: bool):
+    @_skip_backward.setter
+    def _skip_backward(self, value: bool):
         """ Determines whether the loop will skip backward during automatic optimization. """
-        self.training_loop.batch_loop.skip_backward = value
+        self.training_loop.batch_loop._skip_backward = value
 
     @property
     def done(self) -> bool:

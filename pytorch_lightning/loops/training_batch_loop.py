@@ -54,16 +54,6 @@ class TrainingBatchLoop(Loop):
         return len(self._remaining_splits) == 0
 
     @property
-    def skip_backward(self) -> bool:
-        """ Determines whether the loop will skip backward during automatic optimization. """
-        return self._skip_backward
-
-    @skip_backward.setter
-    def skip_backward(self, value: bool):
-        """ Determines whether the loop will skip backward during automatic optimization. """
-        self._skip_backward = value
-
-    @property
     def optimizer_freq_cumsum(self):
         if self._optimizer_freq_cumsum is None:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
@@ -424,7 +414,7 @@ class TrainingBatchLoop(Loop):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
 
-            if not self.skip_backward and self.trainer.lightning_module.automatic_optimization:
+            if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
                 is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
 
                 if is_first_batch_to_accumulate:
