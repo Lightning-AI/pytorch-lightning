@@ -469,6 +469,24 @@ def test_clip_val_fail(tmpdir):
 
     model = IPUModel()
 
-    trainer = Trainer(ipus=1, fast_dev_run=True, gradient_clip_val=10)
+    trainer = Trainer(ipus=1, gradient_clip_val=10)
     with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
+        trainer.fit(model)
+
+
+@RunIf(ipu=True)
+def test_multi_optimizers_fail(tmpdir):
+    """
+    Ensure if there are multiple optimizers, we throw an exception
+    """
+
+    class TestModel(IPUModel):
+
+        def configure_optimizers(self):
+            return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
+
+    model = TestModel()
+
+    trainer = Trainer(ipus=1)
+    with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):
         trainer.fit(model)
