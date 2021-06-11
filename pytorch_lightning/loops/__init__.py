@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
-from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops.base import Loop  # noqa: F401
+from pytorch_lightning.loops.fit_loop import FitLoop  # noqa: F401
+from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop  # noqa: F401
+from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop  # noqa: F401

@@ -444,6 +444,19 @@ class TrainerDataLoadingMixin(ABC):
         if has_loader:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
+    def reset_train_val_dataloaders(self, model) -> None:
+        """
+        Resets train and val dataloaders if none are attached to the trainer.
+
+        The val dataloader must be initialized before training loop starts, as the training loop
+        inspects the val dataloader to determine whether to run the evaluation loop.
+        """
+        if self.train_dataloader is None:
+            self.reset_train_dataloader(model)
+
+        if self.val_dataloaders is None:
+            self.reset_val_dataloader(model)
+
     def request_dataloader(self, model: LightningModule, stage: str) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
 

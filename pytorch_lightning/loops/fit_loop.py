@@ -51,8 +51,6 @@ class FitLoop(Loop):
         max_steps: Optional[int] = None
     ):
         super().__init__()
-        self._teardown_already_run = False
-
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
@@ -121,14 +119,14 @@ class FitLoop(Loop):
         return self.training_loop.batch_loop.running_loss
 
     @property
-    def skip_backward(self) -> bool:
+    def _skip_backward(self) -> bool:
         """ Determines whether the loop will skip backward during automatic optimization. """
-        return self.training_loop.batch_loop.skip_backward
+        return self.training_loop.batch_loop._skip_backward
 
-    @skip_backward.setter
-    def skip_backward(self, value: bool) -> None:
+    @_skip_backward.setter
+    def _skip_backward(self, value: bool) -> None:
         """ Determines whether the loop will skip backward during automatic optimization. """
-        self.training_loop.batch_loop.skip_backward = value
+        self.training_loop.batch_loop._skip_backward = value
 
     @property
     def done(self) -> bool:
@@ -245,9 +243,6 @@ class FitLoop(Loop):
 
     def on_run_end(self) -> None:
         """Runs teardown logic and calls the ``on_train_end`` hook"""
-        if self._teardown_already_run:
-            return
-        self._teardown_already_run = True
 
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit

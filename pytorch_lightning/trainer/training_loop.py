@@ -50,7 +50,6 @@ class TrainLoop:
         self.trainer = trainer
         self.accumulated_loss = None
         self.warning_cache = WarningCache()
-        self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self._skip_backward = False
         self._optimizer_freq_cumsum = None
@@ -105,10 +104,6 @@ class TrainLoop:
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):
-        if self._teardown_already_run:
-            return
-        self._teardown_already_run = True
-
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
         self.global_step -= 1

@@ -29,17 +29,14 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
-from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -65,8 +62,8 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
-    train_loop: TrainLoop
-    evaluation_loop: EvaluationLoop
+    fit_loop: FitLoop
+    evaluation_loop: EvaluationDataLoaderLoop
     """
     Accelerator properties
     """
@@ -487,17 +484,9 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def fit_loop(self) -> FitLoop:
-        # TODO: the current train_loop should be renamed to fit_loop
-        return self.train_loop
-
-    @property
-    def training_epoch_loop(self) -> TrainingEpochLoop:
-        return self.fit_loop.training_loop
-
-    @property
-    def training_batch_loop(self) -> TrainingBatchLoop:
-        return self.fit_loop.training_loop.batch_loop
+    def train_loop(self) -> FitLoop:
+        # TODO(@awaelchli): the current train_loop should be renamed to fit_loop
+        return self.fit_loop
 
     @property
     def global_step(self) -> int:
@@ -524,7 +513,7 @@ class TrainerProperties(ABC):
         return self.train_loop.min_steps
 
     @property
-    def _active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
         if self.training:
             return self.train_loop
         elif self.sanity_checking or self.evaluating:

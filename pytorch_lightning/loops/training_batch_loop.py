@@ -59,16 +59,6 @@ class TrainingBatchLoop(Loop):
         return len(self._remaining_splits) == 0
 
     @property
-    def skip_backward(self) -> bool:
-        """ Determines whether the loop will skip backward during automatic optimization. """
-        return self._skip_backward
-
-    @skip_backward.setter
-    def skip_backward(self, value: bool) -> None:
-        """ Determines whether the loop will skip backward during automatic optimization. """
-        self._skip_backward = value
-
-    @property
     def optimizer_freq_cumsum(self) -> int:
         """Returns the cumulated sum of optimizer frequencies"""
         if self._optimizer_freq_cumsum is None:
@@ -454,10 +444,22 @@ class TrainingBatchLoop(Loop):
         )
         return grad_norm_dict
 
-    def _accumulated_batches_reached(self) -> bool:
-        """Checks if the requested number of accumulation steps was already performed"""
+    def _accumulated_batches_reached_before_iter_count_update(self) -> bool:
+        """
+        Determine if accumulation will be finished by the end of the current batch.
+        This returns the correct answer only if the loop iteration count has not yet been updated for the current batch
+        in progress. Use `_accumulated_batches_reached_after_iter_count_update` otherwise.
+        """
         # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration count may
         #  reset iteration count is required to be global here, not reset
+        return (self.iteration_count + 1) % self.trainer.accumulate_grad_batches == 0
+
+    def _accumulated_batches_reached_after_iter_count_update(self):
+        """
+        Determine if accumulation has finished.
+        This returns the correct answer only right after a batch has ended, i.e., the iteration count was just updated.
+        Use `_accumulated_batches_reached_after_iter_count_update` otherwise.
+        """
         return self.iteration_count % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
@@ -474,7 +476,7 @@ class TrainingBatchLoop(Loop):
     def should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
         # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
+        accumulation_done = self._accumulated_batches_reached_before_iter_count_update()
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
@@ -577,7 +579,7 @@ class TrainingBatchLoop(Loop):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
 
-            if not self.skip_backward and self.trainer.lightning_module.automatic_optimization:
+            if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
                 is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
 
                 if is_first_batch_to_accumulate:
