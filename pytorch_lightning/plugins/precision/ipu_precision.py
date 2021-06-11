@@ -25,6 +25,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class IPUPrecisionPlugin(PrecisionPlugin):
 
+    def __init__(self, precision: int) -> None:
+        super().__init__()
+        self.precision = precision
+
     def backward(
         self,
         model: 'pl.LightningModule',

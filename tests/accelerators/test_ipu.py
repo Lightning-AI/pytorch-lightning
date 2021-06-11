@@ -183,6 +183,7 @@ def test_mixed_precision(tmpdir):
 
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
+            assert trainer.accelerator.precision_plugin.precision == 16
             assert trainer.accelerator.model.precision == 16
             raise SystemExit
 
@@ -200,6 +201,7 @@ def test_pure_half_precision(tmpdir):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
             assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
+            assert trainer.accelerator.precision_plugin.precision == 16
             assert trainer.accelerator.model.precision == 16
             assert trainer.accelerator.training_type_plugin.convert_model_to_half
             for param in trainer.accelerator.model.parameters():
@@ -490,3 +492,13 @@ def test_multi_optimizers_fail(tmpdir):
     trainer = Trainer(ipus=1)
     with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):
         trainer.fit(model)
+
+
+@RunIf(ipu=True)
+def test_precision_plugin(tmpdir):
+    """
+    Ensure precision plugin value is set correctly.
+    """
+
+    plugin = IPUPrecisionPlugin(precision=16)
+    assert plugin.precision == 16

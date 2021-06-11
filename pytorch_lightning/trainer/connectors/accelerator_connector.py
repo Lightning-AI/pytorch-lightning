@@ -369,7 +369,7 @@ class AcceleratorConnector(object):
         self.amp_type = AMPType.from_str(self.amp_type)
 
         if self.on_ipu:
-            return IPUPrecisionPlugin()
+            return IPUPrecisionPlugin(self.precision)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
