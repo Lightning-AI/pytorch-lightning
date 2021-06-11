@@ -202,7 +202,7 @@ class TrainingEpochLoop(Loop):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
 
-        if is_overridden('training_epoch_end', model=model):
+        if is_overridden('training_epoch_end', model):
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
             model._current_fx_name = 'training_epoch_end'
@@ -322,10 +322,10 @@ class TrainingEpochLoop(Loop):
         """
         # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
         lightning_module = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model=lightning_module):
+        if is_overridden("training_epoch_end", lightning_module):
             return True
 
-        if is_overridden("on_train_epoch_end", model=lightning_module):
+        if is_overridden("on_train_epoch_end", lightning_module):
             model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
             if is_param_in_hook_signature(model_hook_fx, "outputs"):
                 return True
