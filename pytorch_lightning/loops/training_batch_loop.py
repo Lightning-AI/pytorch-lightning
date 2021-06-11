@@ -245,9 +245,7 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
-    def on_after_backward(
-        self, batch_idx: int, untouched_loss: torch.Tensor
-    ) -> None:
+    def on_after_backward(self, batch_idx: int, untouched_loss: torch.Tensor) -> None:
         """Calls ``on_after_backward`` hook and tracks loss history
 
         Args:
