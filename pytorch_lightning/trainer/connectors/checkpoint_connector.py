@@ -103,6 +103,8 @@ class CheckpointConnector:
         self.resume_start()
         model = self.trainer.lightning_module
 
+        self.restore_model_state(model, self._loaded_checkpoint)
+
         if self.trainer._device_type == DeviceType.GPU:
             model.cuda(self.trainer.root_gpu)
 
@@ -117,6 +119,8 @@ class CheckpointConnector:
         """
         Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
         """
+        if not checkpoint:
+            return
 
         # restore datamodule states
         if self.trainer.datamodule is not None:
