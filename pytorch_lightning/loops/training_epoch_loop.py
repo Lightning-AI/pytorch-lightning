@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Iterator, List, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
@@ -21,51 +21,67 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingEpochLoop(Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
-    def __init__(self, min_steps, max_steps):
+    def __init__(self, min_steps: int, max_steps: int):
         super().__init__()
-        self.min_steps = min_steps
-        self.max_steps = max_steps
+        self.min_steps: int = min_steps
+        self.max_steps: int = max_steps
 
-        self.global_step = 0
+        self.global_step: int = 0
 
         # the total batch index across all epochs
-        self.total_batch_idx = 0
+        self.total_batch_idx: int = 0
         # the current batch index in the loop that runs over the dataloader(s)
-        self.iteration_count = 0
+        self.iteration_count: int = 0
         # the current split index when the batch gets split into chunks in truncated backprop through time
-        self.split_idx = None
+        self.split_idx: Optional[int] = None
 
-        self._dataloader_idx = None
-        self._should_stop = False
+        self._dataloader_idx: Optional[int] = None
+        self._should_stop: bool = False
 
-        self.is_last_batch = None
-        self.batches_seen = 0
-        self.warning_cache = WarningCache()
-        self.epoch_output = None
+        self.is_last_batch: Optional[bool] = None
+        self.batches_seen: int = 0
+        self.warning_cache: WarningCache = WarningCache()
+        self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
-        self.batch_loop = None
+        self.batch_loop: Optional[TrainingBatchLoop] = None
 
     @property
     def batch_idx(self) -> int:
+        """Returns the current batch index (within this epoch)"""
         return self.iteration_count
 
     @property
-    def done(self):
+    def done(self) -> bool:
+        """Returns whether the training should be stopped.
+        The criteria are that the number of steps reached the max steps,
+        the last batch is reached or the trainer signals to stop (e.g. by early stopping).
+
+        """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+        """Connects the loop with all necessary parts like trainer and accelerators"""
+
+        # TODO(@justusschock): should we forward *args and **kwargs to lower loops?
+        # TODO(@justusschock): can we make the trainer a proxy here?
         self.trainer = trainer
         self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any) -> List[List[STEP_OUTPUT]]:
+        """Runs over the dataloader until a StopIteration occurs.
+
+        Returns:
+            the outputs of each step for each optimizer
+        """
         self.reset()
         self.on_run_start()
 
@@ -83,6 +99,7 @@ class TrainingEpochLoop(Loop):
         return self.on_run_end()
 
     def reset(self) -> None:
+        """Resets the internal state of the loop for a new run"""
         self.iteration_count = 0
         self.batches_seen = 0
         self.is_last_batch = False
@@ -92,7 +109,16 @@ class TrainingEpochLoop(Loop):
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-    def advance(self, dataloader_iter: Iterator, **kwargs):
+    def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
+        """Runs a single training batch.
+
+        Args:
+            dataloader_iter: the iterator over the dataloader producing the new batch
+
+        Raises:
+            StopIteration: When the epoch is canceled by the user returning -1
+
+        """
         _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
 
@@ -122,6 +148,12 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.update_train_step_metrics()
 
     def on_advance_end(self):
+        """Runs validation and Checkpointing if necessary.
+
+        Raises:
+            StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
+
+        """
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
@@ -148,7 +180,15 @@ class TrainingEpochLoop(Loop):
         if self.done:
             raise StopIteration
 
-    def on_run_end(self):
+    def on_run_end(self) -> List[List[STEP_OUTPUT]]:
+        """Calls the on_epoch_end hook.
+
+        Returns:
+            The output of each training step for each optimizer
+
+        Raises:
+            MisconfigurationException: ``train_epoch_end`` does not return ``None``
+        """
         if self.batches_seen == 0:
             # dataloader/iterator did not produce a batch
             return
@@ -182,7 +222,8 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.on_epoch_end()
         return self.epoch_output
 
-    def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
+    def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
+        """Runs ``on_train_epoch_end hook``."""
         # We cannot rely on Trainer.call_hook because the signatures might be different across
         # lightning module and callback
         # As a result, we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
@@ -222,11 +263,27 @@ class TrainingEpochLoop(Loop):
         # restore current_fx when nested context
         self.trainer.lightning_module._current_fx_name = prev_fx_name
 
-    def _num_training_batches_reached(self, is_last_batch=False):
+    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
+        """Checks if we are in the last batch or if there are more batches to follow."""
+
+        # TODO: Can we combine this with training_batch_loop's arg that does a similar check?
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
 
     # TODO(@awaelchli): merge with on_advance_end()
-    def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(
+        self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
+        """Runs ``on_train_batch_end`` hook.
+
+        Args:
+            epoch_output: the store to add the batch outputs to
+            batch_end_outputs: the outputs of the batch step
+            batch: the batch this outputs were produced with
+            batch_idx: the index of the current batch
+            dataloader_idx: the index of the dataloader producing the current batch
+
+        """
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
@@ -238,7 +295,10 @@ class TrainingEpochLoop(Loop):
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
 
-    def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
+    def track_epoch_end_reduce_metrics(
+        self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
+    ) -> None:
+        """Adds the batch outputs to the epoch outputs and prepares reduction"""
         hook_overridden = self._should_add_batch_output_to_epoch_output()
         if not hook_overridden:
             return
@@ -255,9 +315,11 @@ class TrainingEpochLoop(Loop):
             epoch_output[opt_idx].append(opt_outputs)
 
     def _should_add_batch_output_to_epoch_output(self) -> bool:
-        # We add to the epoch outputs if
-        # 1. The model defines training_epoch_end OR
-        # 2. The model overrides on_train_epoch_end which has `outputs` in the signature
+        """
+        We add to the epoch outputs if
+        1. The model defines training_epoch_end OR
+        2. The model overrides on_train_epoch_end which has `outputs` in the signature
+        """
         # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
         lightning_module = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model=lightning_module):
@@ -327,6 +389,7 @@ class TrainingEpochLoop(Loop):
         return processed_outputs
 
     def update_lr_schedulers(self, interval: str) -> None:
+        """updates the lr schedulers based on the given interval"""
         if interval == "step":
             finished_accumulation = self.batch_loop._accumulated_batches_reached_before_iter_count_update()
             finished_epoch = self._num_training_batches_reached()
@@ -337,7 +400,8 @@ class TrainingEpochLoop(Loop):
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 
-    def increment_accumulated_grad_global_step(self):
+    def increment_accumulated_grad_global_step(self) -> None:
+        """increments global step"""
         num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached_after_iter_count_update()
         num_training_batches_reached = self._num_training_batches_reached()
 
@@ -372,7 +436,8 @@ class TrainingEpochLoop(Loop):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         return is_val_check_batch
 
-    def save_loggers_on_train_batch_end(self):
+    def save_loggers_on_train_batch_end(self) -> None:
+        """Flushes loggers to disk"""
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
