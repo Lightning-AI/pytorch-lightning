@@ -103,6 +103,7 @@ class EvaluationLoop(Loop):
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
+
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).
 
