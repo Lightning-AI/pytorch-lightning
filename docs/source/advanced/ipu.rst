@@ -143,11 +143,13 @@ Below is an example using the block annotation in a LightningModule.
             # BeginBlock will start a new id for all layers within this block
             self.layer1 = poptorch.BeginBlock(torch.nn.Linear(5, 10), ipu_id=0)
 
-            # This layer starts a new block, and will add all other layers to this block at runtime till the next block has been declared.
+            # This layer starts a new block,
+            # adding subsequent layers to this current block at runtime
+            # till the next block has been declared
             self.layer2 = poptorch.BeginBlock(torch.nn.Linear(10, 5), ipu_id=1)
             self.layer3 = torch.nn.Linear(5, 5)
 
-            # Create new blocks.
+            # Create new blocks
             self.layer4 = poptorch.BeginBlock(torch.nn.Linear(5, 5), ipu_id=2)
             self.softmax = poptorch.BeginBlock(torch.nn.Softmax(dim=1), ipu_id=3)
 
