@@ -230,6 +230,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `ProgressBar` pickling after calling `trainer.predict` ([#7608](https://github.com/PyTorchLightning/pytorch-lightning/pull/7608))
 
 
+- Fixed `{fit,validate,test,predict}` calling `*_dataloader` when `limit_*_batches` is 0 ([#7944](https://github.com/PyTorchLightning/pytorch-lightning/pull/7944))
+
+
 - Fixed `None` loss keys getting added in `training_epoch_end` when using manual optimization and not returning a loss ([#7772](https://github.com/PyTorchLightning/pytorch-lightning/pull/7772))
 
 
