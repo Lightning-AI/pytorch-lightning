@@ -212,7 +212,7 @@ class _ResultMetricSerializationHelper(dict):
 
 class _ResultMetricCollectionSerializationHelper(dict):
     """
-    Since ``ResultCollection`` can hold ``ResultMetricCollection`` values or dictionaries of them, we need
+    Since several ``ResultCollection`` can hold inside a ``ResultMetricCollection``, we need
     a class to differentiate between the cases after converting to state dict when saving its state.
     """
 

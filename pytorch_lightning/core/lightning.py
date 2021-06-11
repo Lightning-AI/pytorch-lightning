@@ -369,7 +369,8 @@ class LightningModule(
                 # compute once
                 self._metric_attributes = {
                     id(module): name
-                    for name, module in self.named_children() if isinstance(module, Metric)
+                    for name, module in self._named_members(lambda module: module._modules.items(), recurse=True)
+                    if isinstance(module, Metric)
                 }
                 if not self._metric_attributes:
                     raise MisconfigurationException(
