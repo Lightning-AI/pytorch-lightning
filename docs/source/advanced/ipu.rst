@@ -11,7 +11,12 @@ Lightning supports `Graphcore Information Processing Units (IPUs) <https://www.g
 IPU Terminology
 ---------------
 
-TODO
+IPUs consist of many individual cores, allowing parallelization across computation. Due to the high bandwidth speed between cores,
+IPUs facilitate machine learning loads where parallelization is essential. Because computation is heavily parallelized,
+IPUs operate in a different way to conventional accelerators such as CPU/GPUs.
+IPUs do not require large batch sizes for maximum parallelization, can provide optimizations across the compiled graph and rely on model parallelism to fully utilize cores for larger models.
+
+IPUs are also found within IPU pods, a collection of IPU enabled machines for larger workloads.
 
 How to access IPUs
 ------------------
