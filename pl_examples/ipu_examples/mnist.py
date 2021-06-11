@@ -46,11 +46,11 @@ class LitClassifier(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        logits = self(x)
+        probs = self(x)
         # we currently return the accuracy as the validation_step/test_step is run on the IPU devices.
         # Outputs from the step functions are sent to the host device, where we calculate the metrics in
         # validation_epoch_end and test_epoch_end for the test_step.
-        acc = self.accuracy(logits, y)
+        acc = self.accuracy(probs, y)
         return acc
 
     def test_step(self, batch, batch_idx):
