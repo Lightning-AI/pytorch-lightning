@@ -112,4 +112,4 @@ class Loop(ABC):
         """Hook to be called each time after :attr:`advance` is called."""
 
     def on_run_end(self) -> Any:
-        """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`.
+        """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`."""
