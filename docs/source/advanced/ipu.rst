@@ -101,8 +101,8 @@ Note that by default we return the last device iteration loss. You can override 
 
 You can also override all options by passing the ``poptorch.Options`` to the plugin. See `poptorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`_ for more information.
 
-IPU Profiler
-------------
+PopVision Graph Analyser
+------------------------
 
 .. figure:: ../_static/images/accelerator/ipus/profiler.png
    :alt: PopVision Graph Analyser
