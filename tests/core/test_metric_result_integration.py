@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -66,9 +68,9 @@ def _ddp_test_fn(rank, worldsize):
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
 
             batch_log = result.metrics(True)[MetricSource.LOG]
             assert batch_log == {"a_step": i, "c": i}
@@ -175,3 +177,82 @@ def test_result_collection_simple_loop():
         for k in ('d0.a', 'd1.a'):
             assert result[k].value == torch.tensor(3.) + epoch, k
             assert result[k].cumulated_batch_size == torch.tensor(1.), k
+
+
+def test_result_collection_restoration():
+    result = ResultCollection(True, torch.device("cpu"))
+    _result = None
+    metric_a = DummyMetric()
+    metric_b = DummyMetric()
+    metric_c = DummyMetric()
+    current_fx_name = None
+    batch_idx = None
+
+    def lightning_log(fx, *args, **kwargs):
+        nonlocal current_fx_name
+        if current_fx_name != fx and batch_idx in (None, 0):
+            result.reset(metrics=False, fx=fx)
+        result.log(fx, *args, **kwargs)
+        current_fx_name = fx
+
+    for _ in range(2):
+
+        cumulative_sum = 0
+
+        for i in range(3):
+
+            a = metric_a(i)
+            b = metric_b(i)
+            c = metric_c(i)
+
+            cumulative_sum += i
+
+            lightning_log('training_step', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
+            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
+            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
+            lightning_log('training_step', 'a_1', a, on_step=True, on_epoch=True)
+            lightning_log('training_step', 'b_1', b, on_step=False, on_epoch=True)
+            lightning_log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
+
+            batch_log = result.metrics(on_step=True)[MetricSource.LOG]
+            assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
+            assert set(batch_log['c_1']) == {'1', '2'}
+
+            _result = deepcopy(result)
+            state_dict = result.state_dict()
+
+            result = ResultCollection(True, torch.device("cpu"))
+            result.load_from_state_dict(
+                state_dict, {
+                    "metric_a": metric_a,
+                    "metric_b": metric_b,
+                    "metric_c": metric_c,
+                    "metric_a_end": metric_a
+                }
+            )
+
+            assert _result.items() == result.items()
+            assert _result["training_step.c_1"].meta == result["training_step.c_1"].meta
+
+        batch_idx = None
+
+        epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
+        _epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
+        assert epoch_log == _epoch_log
+
+        assert set(epoch_log) == {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
+        for k in epoch_log:
+            if k in {'a_epoch', 'b'}:
+                assert epoch_log[k] == cumulative_sum
+            else:
+                assert epoch_log[k] == 1
+
+        lightning_log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, metric_attribute="metric_a_end")
+
+        result.reset()
+        _result.reset()
+
+        # assert metric state reset to default values
+        assert metric_a.x == metric_a._defaults['x']
+        assert metric_b.x == metric_b._defaults['x']
+        assert metric_c.x == metric_c._defaults['x']

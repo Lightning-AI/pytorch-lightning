@@ -65,6 +65,7 @@ class _Metadata:
     reduce_fx: Union[str, Callable] = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
+    metric_attribute: Optional[str] = None
     sync: _Sync = field(default_factory=_Sync)
 
     def __post_init__(self) -> None:
@@ -202,6 +203,24 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
 
+class _ResultMetricSerializationHelper(dict):
+    """
+    Since ``ResultCollection`` can hold ``ResultMetric`` values or dictionaries of them, we need
+    a class to differentiate between the cases after converting to state dict when saving its state.
+    """
+
+
+class _ResultMetricCollectionSerializationHelper(dict):
+    """
+    Since ``ResultCollection`` can hold ``ResultMetricCollection`` values or dictionaries of them, we need
+    a class to differentiate between the cases after converting to state dict when saving its state.
+    """
+
+    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
+        super().__init__(*args)
+        self.meta = metadata
+
+
 class ResultMetricCollection(dict):
     """
     Dict wrapper for easy access to metadata.
@@ -300,6 +319,7 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
+        metric_attribute: Optional[str] = None,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -327,6 +347,7 @@ class ResultCollection(dict):
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
+            metric_attribute=metric_attribute,
             sync=_Sync(
                 should=sync_dist,
                 fn=sync_dist_fn,
@@ -398,9 +419,12 @@ class ResultCollection(dict):
         metrics = {k: {} for k in MetricSource}
 
         for key, result_metric in self.valid_items():
+            print(key, metrics)
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
-            value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
+            value = apply_to_collection(
+                result_metric, ResultMetric, self._get_cache, on_step, include_none=False, wrong_dtype=ResultCollection
+            )
 
             # check if the collection is empty
             has_tensor = False
@@ -505,3 +529,60 @@ class ResultCollection(dict):
         if minimize is not None:
             d['_minimize'] = minimize.detach()
         return d
+
+    def state_dict(self):
+
+        def to_state_dict(
+            item: Union[ResultMetric, ResultMetricCollection]
+        ) -> Union[_ResultMetricSerializationHelper, _ResultMetricCollectionSerializationHelper]:
+            if isinstance(item, ResultMetricCollection):
+                return _ResultMetricCollectionSerializationHelper(
+                    apply_to_collection(item, ResultMetric, to_state_dict), metadata=item.meta
+                )
+            return _ResultMetricSerializationHelper(**item.__getstate__())
+
+        return {
+            k: apply_to_collection(v, (ResultMetric, ResultMetricCollection), to_state_dict)
+            for k, v in self.items()
+        }
+
+    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Optional[Dict[str, Metric]] = None) -> None:
+
+        def to_result_metric_collection(item: _ResultMetricCollectionSerializationHelper) -> ResultCollection:
+            result_metric_collection = ResultMetricCollection()
+            result_metric_collection.update(item)
+
+            def _to_device(item: ResultMetric) -> ResultMetric:
+                return item.to(self.device)
+
+            result_metric_collection = apply_to_collection(result_metric_collection, ResultMetric, _to_device)
+            result_metric_collection.meta = item.meta
+            return result_metric_collection
+
+        def to_result_metric(item: _ResultMetricSerializationHelper) -> ResultMetric:
+            result_metric = ResultMetric(item["meta"], item["is_tensor"])
+            result_metric.__dict__.update(item)
+            return result_metric.to(self.device)
+
+        state_dict = {
+            k: apply_to_collection(v, _ResultMetricCollectionSerializationHelper, to_result_metric_collection)
+            for k, v in state_dict.items()
+        }
+        result_metric_collection = {k: v.meta for k, v in state_dict.items() if isinstance(v, ResultMetricCollection)}
+        state_dict = {
+            k: apply_to_collection(v, _ResultMetricSerializationHelper, to_result_metric)
+            for k, v in state_dict.items()
+        }
+        self.update(state_dict)
+        for k, meta in result_metric_collection.items():
+            self[k].meta = meta
+
+        if metrics:
+
+            def re_assign_metric(item: ResultMetric) -> None:
+                # metric references are lost during serialization and need to be set back during loading
+                name = item.meta.metric_attribute
+                if isinstance(name, str) and name in metrics:
+                    item.value = metrics[name]
+
+            apply_to_collection(self, ResultMetric, re_assign_metric)

@@ -122,7 +122,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Remove `EpochResultStore` and `HookResultStore` in favor of `ResultCollection` ([#7909](https://github.com/PyTorchLightning/pytorch-lightning/pull/7909))
     * Remove `MetricsHolder` ([#7909](https://github.com/PyTorchLightning/pytorch-lightning/pull/7909))
 
-
 - Moved `ignore_scalar_return_in_dp` warning suppression to the DataParallelPlugin class ([#7421](https://github.com/PyTorchLightning/pytorch-lightning/pull/7421/))
 
 
