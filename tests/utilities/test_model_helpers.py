@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from unittest.mock import Mock
 
 import pytest
@@ -43,11 +44,15 @@ def test_is_overridden():
     assert is_overridden("training_step", model)
     assert is_overridden("train_dataloader", datamodule)
 
-    # with mock
+    # `Mock` support
     mock = Mock(spec=BoringModel, wraps=model)
     assert is_overridden("training_step", mock)
     mock = Mock(spec=BoringDataModule, wraps=datamodule)
     assert is_overridden("train_dataloader", mock)
+
+    # `partial` support
+    model.training_step = partial(model.training_step)
+    assert is_overridden("training_step", model)
 
     # `_PatchDataLoader.patch_loader_code` support
     class TestModel(BoringModel):

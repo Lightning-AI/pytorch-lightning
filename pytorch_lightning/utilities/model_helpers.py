@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from functools import partial
 from typing import Optional, Type, Union
 from unittest.mock import Mock
 
@@ -46,10 +46,13 @@ def is_overridden(
             raise ValueError("Expected a parent")
 
     instance_attr = getattr(instance, method_name, None)
-    # hack so `Mock(wraps=...)` works
+    # `Mock(wraps=...)` support
     if isinstance(instance_attr, Mock):
         # access the wrapped function
         instance_attr = instance_attr._mock_wraps
+    # `partial` support
+    elif isinstance(instance_attr, partial):
+        instance_attr = instance_attr.func
     if instance_attr is None:
         return False
 
