@@ -1154,9 +1154,7 @@ class Trainer(
         if not self._device_type == DeviceType.TPU:
             self.training_type_plugin.barrier()
 
-        self.training_type_plugin.restore_model_state_from_ckpt_path(
-            ckpt_path, map_location=lambda storage, loc: storage
-        )
+        self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
     def _call_setup_hook(self, model: LightningModule) -> None:
