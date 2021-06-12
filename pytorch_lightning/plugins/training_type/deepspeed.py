@@ -247,7 +247,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 config = json.load(f)
         return config
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self):
         self.init_deepspeed()
         self.barrier()
 
