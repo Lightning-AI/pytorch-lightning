@@ -82,7 +82,8 @@ class CheckpointConnector:
 
     def resume_end(self) -> None:
         """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
-        rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
+        if self.resume_checkpoint_path:
+            rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
         self._loaded_checkpoint = dict()
 
