@@ -275,7 +275,7 @@ def test_base_finetuning_internal_state(tmpdir):
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
     trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
-    with pytest.raises(IndexError, match="index 6 is out of range"):
+    with pytest.raises(ValueError, match="loaded state dict has a different number of parameter groups"):
         trainer.fit(model)
 
 

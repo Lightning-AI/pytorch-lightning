@@ -456,6 +456,9 @@ class Trainer(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
+        self.checkpoint_connector.resume_start()
+
+        # with self.checkpoint_connector.restore_ctx():
         self._run(model)
 
         assert self.state.stopped
@@ -732,7 +735,14 @@ class Trainer(
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
-        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator
+
+        # restore modules after setup
+        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
+
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
@@ -806,6 +816,9 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
+
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
@@ -849,8 +862,7 @@ class Trainer(
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
 
-        # restore training and model before hpc is called
-        self.checkpoint_connector.restore()
+        self.checkpoint_connector.resume_end()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
