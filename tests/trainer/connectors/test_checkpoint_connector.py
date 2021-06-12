@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from pathlib import Path
 
 import torch
@@ -59,12 +60,14 @@ def test_hpc_restore_attempt(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
+        checkpoint_callback=False,
+        logger=False,
     )
     trainer.fit(model)
 
     hpc_ckpt_path = tmpdir / "hpc_ckpt_3.ckpt"
     trainer.save_checkpoint(hpc_ckpt_path)
-    assert Path(hpc_ckpt_path).exists()
+    assert os.listdir(tmpdir) == ["hpc_ckpt_3.ckpt"]
 
     # set weights to zero
     for param in model.parameters():
@@ -74,6 +77,8 @@ def test_hpc_restore_attempt(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=2,
+        checkpoint_callback=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -82,7 +87,11 @@ def test_hpc_restore_attempt(tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 2: explicit resume path provided, restore hpc anyway
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, resume_from_checkpoint="not existing")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=3,
+        resume_from_checkpoint="not existing"
+    )
     trainer.fit(model)
 
     for param in model.parameters():
