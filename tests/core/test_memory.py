@@ -323,10 +323,11 @@ def test_lazy_model_summary():
     lazy_model = LazyModel()
     summary = ModelSummary(lazy_model)
 
-    with pytest.warns(UserWarning,
-                    match=r"A layer with UninitializedParameter was found. "
-                    r"Thus, the total number of parameters detected may be inaccurate."
-                    ):
+    with pytest.warns(
+        UserWarning,
+        match=r"A layer with UninitializedParameter was found. "
+        r"Thus, the total number of parameters detected may be inaccurate."
+    ):
         if _TORCH_GREATER_EQUAL_1_9:
             assert summary.total_parameters == 0
             assert summary.trainable_parameters == 0
