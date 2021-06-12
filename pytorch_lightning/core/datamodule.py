@@ -20,7 +20,6 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 
 
@@ -329,7 +328,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
     def __new__(cls, *args: Any, **kwargs: Any) -> 'LightningDataModule':
         obj = super().__new__(cls)
         # track `DataHooks` calls and run `prepare_data` only on rank zero
-        obj.prepare_data = cls._track_data_hook_calls(obj, rank_zero_only(obj.prepare_data))
+        obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
         return obj
