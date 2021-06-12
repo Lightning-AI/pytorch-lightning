@@ -68,6 +68,27 @@ def test_gcs_model_checkpoint_contents(tmpdir):
 
 
 @pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
+def test_gcs_logging(tmpdir):
+    dir_path = gcs_path_join(tmpdir)
+
+    name = "tb_versioning"
+    log_dir = os.path.join(dir_path, name)
+    gcs_fs.mkdir(log_dir)
+    expected_version = "101"
+
+    logger = TensorBoardLogger(save_dir=dir_path, name=name, version=expected_version)
+    logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})
+
+    assert logger.version == expected_version
+
+    gcs_paths = [os.path.basename(path) for path in gcs_fs.listdir(log_dir, detail=False) if len(path) > 0]
+    assert gcs_paths == [expected_version]
+    assert gcs_fs.listdir(os.path.join(log_dir, expected_version), detail=False)
+
+    assert gcs_rm_dir(dir_path)
+
+
+@pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
 def test_gcs_save_hparams_to_yaml_file(tmpdir):
     dir_path = gcs_path_join(tmpdir)
 
