@@ -17,6 +17,7 @@ import fsspec
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.helpers import BoringModel
 
@@ -30,7 +31,43 @@ def gcs_path_join(dir_path):
     return GCS_BUCKET_PATH + str(dir_path)
 
 
-@pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket patch")
+def gcs_rm_dir(dir_path):
+    gcs_fs.rm(dir_path, recursive=True)
+    return True
+
+
+@pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
+def test_gcs_model_checkpoint_contents(tmpdir):
+    dir_path = gcs_path_join(tmpdir)
+
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=dir_path, save_top_k=-1, save_last=True)
+    epochs = 2
+
+    trainer = Trainer(
+        default_root_dir=dir_path,
+        callbacks=[checkpoint_callback],
+        limit_train_batches=10,
+        limit_val_batches=10,
+        max_epochs=2,
+        logger=False,
+    )
+
+    trainer.fit(model)
+
+    assert checkpoint_callback.best_model_path == os.path.join(dir_path, 'epoch=1-step=19.ckpt')
+    assert checkpoint_callback.last_model_path == os.path.join(dir_path, 'last.ckpt')
+
+    expected = [f'epoch={i}-step={j}.ckpt' for i, j in zip(range(epochs), [9, 19])]
+    expected.append('last.ckpt')
+
+    gcs_ckpt_paths = [os.path.basename(path) for path in gcs_fs.listdir(dir_path, detail=False)]
+    assert gcs_ckpt_paths == expected
+
+    assert gcs_rm_dir(dir_path)
+
+
+@pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
 def test_gcs_save_hparams_to_yaml_file(tmpdir):
     dir_path = gcs_path_join(tmpdir)
 
@@ -42,3 +79,5 @@ def test_gcs_save_hparams_to_yaml_file(tmpdir):
 
     hparams_file = "hparams.yaml"
     assert gcs_fs.isfile(os.path.join(trainer.log_dir, hparams_file))
+
+    assert gcs_rm_dir(dir_path)
