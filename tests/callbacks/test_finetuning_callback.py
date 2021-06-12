@@ -308,7 +308,8 @@ def test_on_before_accelerator_backend_setup(tmpdir):
 
 
 def test_complex_nested_model():
-    """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
+    """
+    Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
     directly themselves rather than exclusively their submodules containing parameters.
     """
 
