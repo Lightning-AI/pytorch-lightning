@@ -143,7 +143,7 @@ class CheckpointConnector:
 
         # call hpc specific hook
         if self.hpc_resume_path is not None:
-            self.trainer.lightning_module.on_hpc_load(self._loaded_checkpoint)
+            model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
@@ -262,7 +262,7 @@ class CheckpointConnector:
     def hpc_load(self, checkpoint_path: str):
         """
         Attempts to restore the full training and model state from a HPC checkpoint file.
-
+        
         .. deprecated::
             `CheckpointConnector.hpc_load` was deprecated in v1.4 and will be removed in v1.6.
             Use `CheckpointConnector.restore` instead.
@@ -372,6 +372,7 @@ class CheckpointConnector:
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
+        # dump hyper-parameters
         # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
