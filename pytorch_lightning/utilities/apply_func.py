@@ -61,6 +61,11 @@ def _is_namedtuple(obj: object) -> bool:
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
 
+def _is_dataclass_instance(obj):
+    # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
+    return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
+
+
 def apply_to_collection(
     data: Any,
     dtype: Union[type, tuple],
@@ -103,6 +108,7 @@ def apply_to_collection(
 
     is_namedtuple = _is_namedtuple(data)
     is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
+    is_dataclass = _is_dataclass_instance(data)
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
@@ -111,7 +117,7 @@ def apply_to_collection(
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
-    if dataclasses.is_dataclass(data) and not isinstance(data, type):
+    if is_dataclass:
         out = dict()
         for field in data.__dataclass_fields__:
             v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
