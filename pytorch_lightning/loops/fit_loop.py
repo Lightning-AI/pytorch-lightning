@@ -165,8 +165,7 @@ class FitLoop(Loop):
         self.training_loop.connect(trainer)
 
     def reset(self) -> None:
-        """Resets the trainer's internal state"""
-        self.iteration_count = 0
+        """Resets the internal state of this loop"""
 
     def run(self) -> None:
         """Loops over epochs if the training should not be skipped"""
