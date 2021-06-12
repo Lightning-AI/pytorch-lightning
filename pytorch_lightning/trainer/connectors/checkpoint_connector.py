@@ -261,6 +261,7 @@ class CheckpointConnector:
     def hpc_load(self, checkpoint_path: str):
         """
         Attempts to restore the full training and model state from a HPC checkpoint file.
+        
         .. deprecated::
             `CheckpointConnector.hpc_load` was deprecated in v1.4 and will be removed in v1.6.
             Use `CheckpointConnector.restore` instead.
