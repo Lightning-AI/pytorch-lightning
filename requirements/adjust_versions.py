@@ -40,6 +40,8 @@ def main(path_req: str, torch_version: Optional[str] = None) -> None:
 
     with open(path_req, "r") as fp:
         req = fp.read()
+    # remove comments
+    req = re.sub(rf"\W*#.*{os.linesep}", os.linesep, req)
 
     latest = find_latest(torch_version)
     for lib, version in latest.items():
