@@ -14,9 +14,8 @@
 
 import os
 import re
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 
 import torch
 
@@ -52,13 +51,6 @@ class CheckpointConnector:
         max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return f"{dir_path_hpc}/hpc_ckpt_{max_version}.ckpt"
-
-    def resume_from_checkpoint(self, path: Union[str, Path], **kwargs) -> None:
-        """
-        Signals the Trainer to resume from the given path the next time Trainer.fit/validate/test/predict is called.
-        """
-        self.resume_checkpoint_path = path
-        # TODO: decide what to resume
 
     def resume_start(self) -> None:
         """
@@ -100,15 +92,6 @@ class CheckpointConnector:
 
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
-
-    # TODO: decice if we should use it or not (e.g., in Trainer.fit over self._run())
-    @contextmanager
-    def restore_ctx(self):
-        try:
-            self.resume_start()
-            yield
-        finally:
-            self.resume_end()
 
     def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> None:
         """
@@ -387,7 +370,6 @@ class CheckpointConnector:
                 lr_schedulers.append(scheduler['scheduler'].state_dict())
             checkpoint['lr_schedulers'] = lr_schedulers
 
-            # dump amp scaling
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
