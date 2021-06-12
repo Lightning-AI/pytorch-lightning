@@ -108,7 +108,6 @@ def apply_to_collection(
 
     is_namedtuple = _is_namedtuple(data)
     is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
-    is_dataclass = _is_dataclass_instance(data)
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
@@ -117,7 +116,7 @@ def apply_to_collection(
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
-    if is_dataclass:
+    if _is_dataclass_instance(data):
         out = dict()
         for field in data.__dataclass_fields__:
             v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
