@@ -96,6 +96,7 @@ def run_model_test(
 
 @torch.no_grad()
 def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
+    orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()
     trained_model.eval()
@@ -108,3 +109,4 @@ def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
     acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
+    trained_model.to(orig_device)
