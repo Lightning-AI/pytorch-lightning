@@ -135,6 +135,10 @@ class CheckpointConnector:
         # hook: give user access to checkpoint if needed.
         model.on_load_checkpoint(checkpoint)
 
+        # call hpc specific hook
+        if self.hpc_resume_path is not None:
+            model.on_hpc_load(self._loaded_checkpoint)
+
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
@@ -366,6 +370,7 @@ class CheckpointConnector:
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
+        # dump hyper-parameters
         # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):

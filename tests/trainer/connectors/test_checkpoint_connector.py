@@ -19,6 +19,47 @@ from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
+class HPCHookdedModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.hpc_save_called = 0
+        self.hpc_load_called = 0
+
+    def on_hpc_save(self, checkpoint):
+        assert "state_dict" in checkpoint
+        self.hpc_save_called += 1
+
+    def on_hpc_load(self, checkpoint):
+        assert "state_dict" in checkpoint
+        self.hpc_load_called += 1
+
+
+def test_hpc_hook_calls(tmpdir):
+    model = HPCHookdedModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    connector = trainer.checkpoint_connector
+    connector.hpc_save(tmpdir, logger=trainer.logger)
+    assert model.hpc_save_called == 1
+    assert model.hpc_load_called == 0
+
+    # new training run, restore from hpc checkpoint file automatically
+    assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt", "lightning_logs"}
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    assert model.hpc_save_called == 1
+    assert model.hpc_load_called == 1
+
+
 def test_preloaded_checkpoint_lifecycle(tmpdir):
     """ Tests that the preloaded checkpoint contents gets cleared from memory when it is not required anymore. """
     model = BoringModel()
