@@ -456,6 +456,4 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
                 "Thus, the total number of parameters detected may be inaccurate."
             )
             return True
-        else:
-            return False
     return False
