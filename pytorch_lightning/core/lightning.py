@@ -111,6 +111,7 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
+        self._log_hyperparams = True
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -213,6 +214,14 @@ class LightningModule(
     def logger(self):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
+
+    @property
+    def log_hyperparams(self) -> bool:
+        return self._log_hyperparams
+
+    @log_hyperparams.setter
+    def log_hyperparams(self, log: bool) -> None:
+        self._log_hyperparams = log
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
@@ -1738,7 +1747,8 @@ class LightningModule(
         self,
         *args,
         ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None
+        frame: Optional[types.FrameType] = None,
+        log: bool = True
     ) -> None:
         """Save model arguments to ``hparams`` attribute.
 
@@ -1800,6 +1810,7 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
+        self.log_hyperparams(log)
         # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back

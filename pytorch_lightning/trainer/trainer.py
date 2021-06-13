@@ -882,7 +882,8 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            if self.lightning_module.log_hyperparams:
+                self.logger.log_hyperparams(self.lightning_module.hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
