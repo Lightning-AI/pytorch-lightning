@@ -20,7 +20,7 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
-      export GCS_BUCKET_PATH=gs://lightning-test/test_dir
+      export GCS_BUCKET_PATH=gcs://lightning-test/test_dir
       cd pytorch-lightning
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           pytorch_lightning/utilities/xla_device.py \

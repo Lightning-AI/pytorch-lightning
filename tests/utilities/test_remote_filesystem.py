@@ -24,7 +24,7 @@ from tests.helpers import BoringModel
 GCS_BUCKET_PATH = os.getenv("GCS_BUCKET_PATH", None)
 _GCS_BUCKET_PATH_AVAILABLE = GCS_BUCKET_PATH is not None
 
-gcs_fs = fsspec.filesystem("gs") if _GCS_BUCKET_PATH_AVAILABLE else None
+gcs_fs = fsspec.filesystem("gcs") if _GCS_BUCKET_PATH_AVAILABLE else None
 
 
 def gcs_path_join(dir_path):
