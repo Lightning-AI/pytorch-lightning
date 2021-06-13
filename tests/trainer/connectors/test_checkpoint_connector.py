@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest.mock import Mock
 
 import torch
 
@@ -41,19 +42,21 @@ def test_hpc_hook_calls(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         checkpoint_callback=False,
+        logger=False,
     )
     trainer.fit(model)
     connector = trainer.checkpoint_connector
-    connector.hpc_save(tmpdir, logger=trainer.logger)
+    connector.hpc_save(tmpdir, logger=Mock())
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 0
 
     # new training run, restore from hpc checkpoint file automatically
-    assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt", "lightning_logs"}
+    assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         checkpoint_callback=False,
+        logger=False,
     )
     trainer.fit(model)
     assert model.hpc_save_called == 1
