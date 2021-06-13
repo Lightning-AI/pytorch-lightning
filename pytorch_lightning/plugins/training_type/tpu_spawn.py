@@ -264,6 +264,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_predicting(self, trainer) -> None:
+        self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
