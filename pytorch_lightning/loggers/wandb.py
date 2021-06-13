@@ -164,6 +164,7 @@ class WandbLogger(LightningLoggerBase):
         self._save_dir = self._wandb_init.get('dir')
         self._name = self._wandb_init.get('name')
         self._id = self._wandb_init.get('id')
+        self._reinit = False
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -190,12 +191,21 @@ class WandbLogger(LightningLoggerBase):
         if self._experiment is None:
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
-            self._experiment = wandb.init(**self._wandb_init) if wandb.run is None else wandb.run
+            if self._reinit:
+                self._experiment = wandb.init(**self._wandb_init) if wandb.run is None else wandb.run
+            else:
+                self._experiment = wandb.init(**self._wandb_init) if wandb.run is None else wandb.run
+                self._wandb_init["id"] = self._experiment.id
+                self._reinit = True
 
-        # define default x-axis (for latest wandb versions)
-        if getattr(self._experiment, "define_metric", None):
-            self._experiment.define_metric("trainer/global_step")
-            self._experiment.define_metric("*", step_metric='trainer/global_step', step_sync=True)
+            # save checkpoints in wandb dir to upload on W&B servers
+            if self._save_dir is None:
+                self._save_dir = self._experiment.dir
+
+            # define default x-axis (for latest wandb versions)
+            if getattr(self._experiment, "define_metric", None):
+                self._experiment.define_metric("trainer/global_step")
+                self._experiment.define_metric("*", step_metric='trainer/global_step', step_sync=True)
 
         return self._experiment
 
@@ -242,9 +252,12 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        # log checkpoints as artifacts
+        super().finalize(status)
+        # upload all checkpoints from saving dir
         if self._checkpoint_callback:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
+        wandb.finish()
+        self._experiment = None
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
         # get checkpoints to be saved with associated score
