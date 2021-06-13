@@ -486,31 +486,3 @@ def test_tpu_host_world_size(tmpdir):
 
     model = DebugModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
-
-
-@RunIf(tpu=True)
-@pl_multi_process_test
-def test_tpu_spawn_debug_plugin(tmpdir):
-    """Test if `tpu_spawn_debug` plugin works."""
-
-    class DebugModel(BoringModel):
-
-        def on_train_start(self):
-            assert os.environ.get("PT_XLA_DEBUG") == str(1), "PT_XLA_DEBUG was not set in environment variables"
-
-        def teardown(self, stage):
-            assert "PT_XLA_DEBUG" not in os.environ
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        tpu_cores=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        plugins="tpu_spawn_debug",
-    )
-
-    model = DebugModel()
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
