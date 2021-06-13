@@ -66,7 +66,12 @@ class LightningArgumentParser(ArgumentParser):
         assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
-        return self.add_class_arguments(lightning_class, nested_key, fail_untyped=False)
+        return self.add_class_arguments(
+            lightning_class,
+            nested_key,
+            fail_untyped=False,
+            instantiate=not issubclass(lightning_class, Trainer),
+        )
 
 
 class SaveConfigCallback(Callback):
@@ -212,26 +217,10 @@ class LightningCLI:
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
-        self.config_init = self.parser.instantiate_subclasses(self.config)
-        self.instantiate_datamodule()
-        self.instantiate_model()
+        self.config_init = self.parser.instantiate_classes(self.config)
+        self.datamodule = self.config_init.get('data')
+        self.model = self.config_init['model']
         self.instantiate_trainer()
-
-    def instantiate_datamodule(self) -> None:
-        """Instantiates the datamodule using self.config_init['data'] if given"""
-        if self.datamodule_class is None:
-            self.datamodule = None
-        elif self.subclass_mode_data:
-            self.datamodule = self.config_init['data']
-        else:
-            self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
-
-    def instantiate_model(self) -> None:
-        """Instantiates the model using self.config_init['model']"""
-        if self.subclass_mode_model:
-            self.model = self.config_init['model']
-        else:
-            self.model = self.model_class(**self.config_init.get('model', {}))
 
     def instantiate_trainer(self) -> None:
         """Instantiates the trainer using self.config_init['trainer']"""
