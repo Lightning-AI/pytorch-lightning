@@ -86,7 +86,7 @@ def reset_seed() -> None:
     seed = os.environ.get("PL_GLOBAL_SEED", None)
     workers = os.environ.get("PL_SEED_WORKERS", False)
     if seed is not None:
-        seed_everything(int(seed), bool(workers))
+        seed_everything(int(seed), workers=bool(workers))
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
