@@ -379,9 +379,8 @@ class CheckpointConnector:
         """
         Attempts to restore the full training and model state from a HPC checkpoint file.
 
-        .. deprecated::
-            `CheckpointConnector.hpc_load` was deprecated in v1.4 and will be removed in v1.6.
-            Use `CheckpointConnector.restore` instead.
+        .. deprecated::v1.4
+            Will be removed in v1.6. Use :meth:`restore` instead.
         """
         rank_zero_deprecation(
             "`CheckpointConnector.hpc_load()` was deprecated in v1.4 and will be removed in v1.6."
