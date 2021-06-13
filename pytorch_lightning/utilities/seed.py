@@ -102,8 +102,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # p
     # back out the base seed so we can use all the bits
     base_seed = process_seed - worker_id
     log.debug(
-        'Initializing random number generators of process %d worker %d with base seed %d',
-        global_rank, worker_id, base_seed
+        f'Initializing random number generators of process {global_rank} worker {worker_id} with base seed {base_seed}'
     )
     ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
     # use 128 bits (4 x 32-bit words)
