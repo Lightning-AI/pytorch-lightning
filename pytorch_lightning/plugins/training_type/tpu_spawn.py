@@ -172,6 +172,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.local_rank == 0:
             time.sleep(2)
 
+        self._close_logger(trainer)
+
     @parameter_validation
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
@@ -264,7 +266,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_predicting(self, trainer) -> None:
-        self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
