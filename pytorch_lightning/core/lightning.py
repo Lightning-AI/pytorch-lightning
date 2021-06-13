@@ -1810,7 +1810,7 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
-        self.log_hyperparams(log)
+        self.log_hyperparams = log
         # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back
