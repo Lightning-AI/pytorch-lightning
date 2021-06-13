@@ -172,8 +172,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.local_rank == 0:
             time.sleep(2)
 
-        self._close_logger(trainer)
-
     @parameter_validation
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
