@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -201,9 +201,9 @@ class EvaluationLoop(object):
     def _should_track_batch_outputs_for_epoch_end(self) -> bool:
         model = self.trainer.lightning_module
         if self.trainer.testing:
-            return is_overridden('test_epoch_end', model=model)
+            return is_overridden('test_epoch_end', model)
         else:
-            return is_overridden('validation_epoch_end', model=model)
+            return is_overridden('validation_epoch_end', model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         # inform logger the batch loop has finished
@@ -216,12 +216,12 @@ class EvaluationLoop(object):
         model._current_dataloader_idx = None
 
         if self.trainer.testing:
-            if is_overridden('test_epoch_end', model=model):
+            if is_overridden('test_epoch_end', model):
                 model._current_fx_name = 'test_epoch_end'
                 model.test_epoch_end(outputs)
 
         else:
-            if is_overridden('validation_epoch_end', model=model):
+            if is_overridden('validation_epoch_end', model):
                 model._current_fx_name = 'validation_epoch_end'
                 model.validation_epoch_end(outputs)
 

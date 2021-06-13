@@ -23,7 +23,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_info
@@ -50,7 +50,6 @@ class TrainLoop:
         self.trainer = trainer
         self.accumulated_loss = None
         self.warning_cache = WarningCache()
-        self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self._skip_backward = False
         self._optimizer_freq_cumsum = None
@@ -105,10 +104,6 @@ class TrainLoop:
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):
-        if self._teardown_already_run:
-            return
-        self._teardown_already_run = True
-
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
         self.global_step -= 1
@@ -221,10 +216,10 @@ class TrainLoop:
         # 2. The model overrides on_train_epoch_end which has `outputs` in the signature
         # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
         lightning_module = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model=lightning_module):
+        if is_overridden("training_epoch_end", lightning_module):
             return True
 
-        if is_overridden("on_train_epoch_end", model=lightning_module):
+        if is_overridden("on_train_epoch_end", lightning_module):
             model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
             if is_param_in_hook_signature(model_hook_fx, "outputs"):
                 return True
@@ -251,7 +246,7 @@ class TrainLoop:
         opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
-    def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
+    def on_after_backward(self, batch_idx, untouched_loss):
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
@@ -545,7 +540,7 @@ class TrainLoop:
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
 
-        if is_overridden('training_epoch_end', model=model):
+        if is_overridden('training_epoch_end', model):
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
             model._current_fx_name = 'training_epoch_end'
@@ -765,7 +760,7 @@ class TrainLoop:
                     # hook - call this hook only
                     # when gradients have finished to accumulate
                     if not self.should_accumulate():
-                        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                        self.on_after_backward(batch_idx, result.loss)
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:

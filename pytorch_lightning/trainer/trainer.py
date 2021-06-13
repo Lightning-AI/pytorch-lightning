@@ -46,8 +46,8 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
-from pytorch_lightning.trainer.connectors.logger_connector.logger_connector_new import LoggerConnectorNew
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
@@ -107,6 +107,7 @@ class Trainer(
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
+        ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: Optional[int] = None,
         overfit_batches: Union[int, float] = 0.0,
@@ -283,6 +284,8 @@ class Trainer(
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
+            ipus: How many IPUs to train on.
+
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
@@ -323,10 +326,10 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
-            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, tpu_cores, ipus, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
+            benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
-        self.logger_connector = LoggerConnectorNew(self, log_gpu_memory)
+        self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
@@ -1154,9 +1157,7 @@ class Trainer(
         if not self._device_type == DeviceType.TPU:
             self.training_type_plugin.barrier()
 
-        self.training_type_plugin.restore_model_state_from_ckpt_path(
-            ckpt_path, map_location=lambda storage, loc: storage
-        )
+        self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
     def _call_setup_hook(self, model: LightningModule) -> None:
