@@ -60,7 +60,7 @@ class LightningArgumentParser(ArgumentParser):
         Adds arguments from a lightning class to a nested key of the parser
 
         Args:
-            lightning_class: Any subclass of {Trainer,LightningModule,LightningDataModule}.
+            lightning_class: Any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
