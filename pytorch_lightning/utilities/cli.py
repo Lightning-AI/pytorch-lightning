@@ -90,6 +90,8 @@ class SaveConfigCallback(Callback):
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
+        if os.path.isfile(config_path):
+            raise RuntimeError(f'{self.__class__.__name__} expected {config_path} to not exist. Aborting to avoid overwriting results of a previous run.')
         self.parser.save(self.config, config_path, skip_none=False)
 
 
@@ -231,7 +233,7 @@ class LightningCLI:
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
-        if self.save_config_callback is not None:
+        if self.save_config_callback and not self.config_init['trainer']['fast_dev_run']:
             config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
             self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])
