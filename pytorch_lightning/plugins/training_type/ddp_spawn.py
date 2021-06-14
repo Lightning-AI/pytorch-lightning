@@ -15,6 +15,7 @@ import logging
 import os
 import re
 from typing import Any, List, Optional, Union
+import numpy as np
 
 import torch
 import torch.distributed as torch_distrib
@@ -216,7 +217,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
         extra_parameters = self.mp_queue.get()
-        # TODO: verify to find corner cases or concurrency issues
+        # `extra_parameters` come as numpy arrays to ensure memory can be shared
+        extra_parameters = apply_to_collection(extra_parameters, np.ndarray, lambda x: torch.tensor(x))
         self.lightning_module.trainer.logger_connector.spawn_extra_parameters.update(extra_parameters)
 
         # recover the weights of the processes trained in the children
@@ -296,8 +298,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(results)
             self.mp_queue.put({
                 "callback_metrics": apply_to_collection(
-                    self.lightning_module.trainer.logger_connector.callback_metrics, torch.Tensor, lambda x: x.item()
-                ) or {}
+                    self.lightning_module.trainer.logger_connector.callback_metrics,
+                    torch.Tensor, lambda x: x.cpu().numpy()  # send as numpy to avoid issues with memory sharing
+                )
             })
 
     def __recover_child_process_weights(self, best_path, last_path):
