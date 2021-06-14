@@ -560,6 +560,7 @@ class ResultCollection(dict):
 
             result_metric_collection = apply_to_collection(result_metric_collection, ResultMetric, _to_device)
             result_metric_collection.meta = item.meta
+            result_metric_collection.meta.sync.fn = sync_fn
             return result_metric_collection
 
         def to_result_metric(item: _ResultMetricSerializationHelper) -> ResultMetric:

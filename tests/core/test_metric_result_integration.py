@@ -235,7 +235,7 @@ def test_result_collection_restoration():
             state_dict = result.state_dict()
 
             result = ResultCollection(True, torch.device("cpu"))
-            result.load_state_dict(state_dict)
+            result.load_state_dict(state_dict, sync_fn=_result['training_step.a'].meta.sync.fn)
 
             assert _result.items() == result.items()
             assert _result["training_step.c_1"].meta == result["training_step.c_1"].meta
