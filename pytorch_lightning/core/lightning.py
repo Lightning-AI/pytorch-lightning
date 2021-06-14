@@ -1447,6 +1447,21 @@ class LightningModule(
             ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
             :meth:`~pytorch_lightning.trainer.training_loop.TrainLoop.run_training_batch`.
 
+        Warning:
+            When using the standard trainer and ``accumulate_grad_batches``, both
+            ``optimizer.step()`` and ``optimizer.zero_grad()`` are called only once per
+            *optimization cycle*, and not once per step. This means that code like
+            the following:
+
+            .. code-block:: python
+
+                Trainer(accumulate_grad_batches=2)
+                ...
+                def optimizer_step(...):
+                    batch_idx % 2 == 0: optimizer.step()
+
+            will produce a gradient accumulation of 4, and not the desired 2 as expected.
+
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch

@@ -83,10 +83,11 @@ class ConfigValidator:
 
         has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
         if has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
-            raise MisconfigurationException(
+            rank_zero_warn(
                 'When overriding `LightningModule` optimizer_step or optimizer_zero_grad,'
-                ' `accumulate_grad_batches` in `Trainer` should be 1.'
-                ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
+                ' `accumulate_grad_batches` in `Trainer` is usually 1.'
+                ' If `accumulate_grad_batches` is not 1, optimizer_step and optimizer_zero_grad'
+                ' are not called on every batch (rather, they are called on every optimization step).'
             )
 
     def __verify_eval_loop_configuration(self, model: 'pl.LightningModule', stage: str) -> None:
