@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest.mock import Mock
 
 import torch
 
@@ -41,19 +42,21 @@ def test_hpc_hook_calls(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         checkpoint_callback=False,
+        logger=False,
     )
     trainer.fit(model)
     connector = trainer.checkpoint_connector
-    connector.hpc_save(tmpdir, logger=trainer.logger)
+    connector.hpc_save(tmpdir, logger=Mock())
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 0
 
     # new training run, restore from hpc checkpoint file automatically
-    assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt", "lightning_logs"}
+    assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         checkpoint_callback=False,
+        logger=False,
     )
     trainer.fit(model)
     assert model.hpc_save_called == 1
@@ -147,6 +150,6 @@ def test_hpc_max_ckpt_version(tmpdir):
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
 
-    assert trainer.checkpoint_connector.hpc_resume_path == tmpdir / "hpc_ckpt_33.ckpt"
+    assert trainer.checkpoint_connector.hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir) == 33
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir / "not" / "existing") is None
