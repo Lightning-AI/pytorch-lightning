@@ -45,6 +45,7 @@ class TrainingBatchLoop(Loop):
         self.accumulated_loss: torch.Tensor = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
+        self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
         self.warning_cache: WarningCache = WarningCache()
 
@@ -69,6 +70,13 @@ class TrainingBatchLoop(Loop):
         # TODO(@justusschock): can we make this a weakref/proxy?
         void(*args, **kwargs)
         self.trainer = trainer
+
+    def reset(self) -> None:
+        """Resets the loop state"""
+        self._hiddens = None
+        self.batch_idx = 0
+        # TODO(@awaelchli): let loops track individual outputs
+        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
@@ -98,12 +106,6 @@ class TrainingBatchLoop(Loop):
 
         return AttributeDict(signal=0, training_step_output=self.batch_outputs)
 
-    def reset(self) -> None:
-        """Resets the loop state"""
-        self._hiddens = None
-        # TODO(@awaelchli): let loops track individual outputs
-        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
-
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits
 
@@ -126,6 +128,7 @@ class TrainingBatchLoop(Loop):
         """
         void(batch, dataloader_idx)
         split_idx, split_batch = self._remaining_splits.pop(0)
+        self.batch_idx = batch_idx
         self.split_idx = split_idx
 
         # let logger connector extract current batch size
@@ -440,39 +443,26 @@ class TrainingBatchLoop(Loop):
         )
         return grad_norm_dict
 
-    def _accumulated_batches_reached_before_iter_count_update(self) -> bool:
+    def _accumulated_batches_reached(self) -> bool:
         """
         Determine if accumulation will be finished by the end of the current batch.
-        This returns the correct answer only if the loop iteration count has not yet been updated for the current batch
-        in progress. Use `_accumulated_batches_reached_after_iter_count_update` otherwise.
         """
-        # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration count may
-        #  reset iteration count is required to be global here, not reset
-        return (self.iteration_count + 1) % self.trainer.accumulate_grad_batches == 0
-
-    def _accumulated_batches_reached_after_iter_count_update(self):
-        """
-        Determine if accumulation has finished.
-        This returns the correct answer only right after a batch has ended, i.e., the iteration count was just updated.
-        Use `_accumulated_batches_reached_after_iter_count_update` otherwise.
-        """
-        return self.iteration_count % self.trainer.accumulate_grad_batches == 0
+        # TODO(@awaelchli): use progress tracking of batches instead of manual batch_idx
+        return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
         """Checks whether sufficient training batches have been processed.
 
         Args:
             is_last_batch: Whether the current batch is the last one
-
         """
-        # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration
-        #  count may reset
-        return (self.iteration_count + 1) == self.trainer.num_training_batches or is_last_batch
+        # TODO(@awaelchli): use progress tracking of batches instead of manual batch_idx
+        return (self.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
         # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached_before_iter_count_update()
+        accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 

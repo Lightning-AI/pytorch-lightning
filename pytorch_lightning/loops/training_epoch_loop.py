@@ -391,7 +391,7 @@ class TrainingEpochLoop(Loop):
     def update_lr_schedulers(self, interval: str) -> None:
         """updates the lr schedulers based on the given interval"""
         if interval == "step":
-            finished_accumulation = self.batch_loop._accumulated_batches_reached_before_iter_count_update()
+            finished_accumulation = self.batch_loop._accumulated_batches_reached()
             finished_epoch = self._num_training_batches_reached()
             if not finished_accumulation and not finished_epoch:
                 return
@@ -402,7 +402,7 @@ class TrainingEpochLoop(Loop):
 
     def increment_accumulated_grad_global_step(self) -> None:
         """increments global step"""
-        num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached_after_iter_count_update()
+        num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
         # progress global step according to grads progress
