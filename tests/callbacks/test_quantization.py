@@ -83,10 +83,10 @@ def test_quantize_torchscript(tmpdir):
     trainer.fit(qmodel, datamodule=dm)
 
     batch = iter(dm.test_dataloader()).next()
-    qmodel(qmodel.quant(batch[0]))
+    qmodel(qmodel.quants[0](batch[0]))
 
     tsmodel = qmodel.to_torchscript()
-    tsmodel(tsmodel.quant(batch[0]))
+    tsmodel(tsmodel.quants[0](batch[0]))
 
 
 @RunIf(quantization=True)
