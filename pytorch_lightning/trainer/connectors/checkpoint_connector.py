@@ -63,9 +63,6 @@ class CheckpointConnector:
         Raises:
             FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
-        if not self.trainer.training:
-            return
-
         self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
@@ -85,9 +82,6 @@ class CheckpointConnector:
 
     def resume_end(self) -> None:
         """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
-        if not self.trainer.training:
-            return
-
         if self.resume_checkpoint_path:
             rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
