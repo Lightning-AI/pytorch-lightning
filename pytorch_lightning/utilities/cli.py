@@ -96,7 +96,8 @@ class SaveConfigCallback(Callback):
         config_path = os.path.join(log_dir, self.config_filename)
         if os.path.isfile(config_path):
             raise RuntimeError(
-                f'{type(self).__name__} expected {config_path} to not exist. Aborting to avoid overwriting results of a previous run.'
+                f'{type(self).__name__} expected {config_path} to not exist. '
+                'Aborting to avoid overwriting results of a previous run.'
             )
         self.parser.save(self.config, config_path, skip_none=False)
 
