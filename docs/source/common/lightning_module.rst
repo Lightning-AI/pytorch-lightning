@@ -1271,6 +1271,12 @@ on_test_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
+on_test_start
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_start
+    :noindex:
+
 on_test_end
 ~~~~~~~~~~~
 
