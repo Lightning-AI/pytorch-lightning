@@ -192,7 +192,6 @@ def test_result_collection_restoration():
     """
 
     result = ResultCollection(True, torch.device("cpu"))
-    _result = None
     metric_a = DummyMetric('a')
     metric_b = DummyMetric('b')
     metric_c = DummyMetric('c')
@@ -231,20 +230,20 @@ def test_result_collection_restoration():
             batch_log = result.metrics(on_step=True)[MetricSource.LOG]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
             assert set(batch_log['c_1']) == {'1', '2'}
-            _result = deepcopy(result)
+            result_copy = deepcopy(result)
             state_dict = result.state_dict()
 
             result = ResultCollection(True, torch.device("cpu"))
-            result.load_state_dict(state_dict, sync_fn=_result['training_step.a'].meta.sync.fn)
+            result.load_state_dict(state_dict, sync_fn=result_copy['training_step.a'].meta.sync.fn)
 
-            assert _result.items() == result.items()
-            assert _result["training_step.c_1"].meta == result["training_step.c_1"].meta
+            assert result_copy.items() == result.items()
+            assert result_copy["training_step.c_1"].meta == result["training_step.c_1"].meta
 
         batch_idx = None
 
         epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
-        _epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
-        assert epoch_log == _epoch_log
+        epoch_log_copy = result_copy.metrics(on_step=False)[MetricSource.LOG]
+        assert epoch_log == epoch_log_copy
 
         assert set(epoch_log) == {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
         for k in epoch_log:
@@ -256,7 +255,7 @@ def test_result_collection_restoration():
         lightning_log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
 
         result.reset()
-        _result.reset()
+        result_copy.reset()
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x']
