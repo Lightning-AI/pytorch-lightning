@@ -122,11 +122,9 @@ nbsphinx_execute = 'never'
 nbsphinx_allow_errors = True
 nbsphinx_requirejs_path = ''
 
-
 # myst-parser, forcing to parse all html pages with mathjax
 # https://github.com/executablebooks/MyST-Parser/issues/394
 myst_update_mathjax = False
-
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
