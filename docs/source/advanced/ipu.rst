@@ -23,6 +23,8 @@ How to access IPUs
 
 To use IPUs you must have access to a server with IPU devices attached. To get access see `getting started <https://www.graphcore.ai/getstarted>`_.
 
+You must ensure that the server with IPUs attached has enabled the SDK popart and poplar packages. Instructions should be given by Graphcore.
+
 Training with IPUs
 ------------------
 
