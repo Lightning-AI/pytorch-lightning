@@ -11,6 +11,18 @@
 Managing Data
 #############
 
+Continue reading to learn about:
+
+* `<Data Objects in Lightning_>`_
+
+* `Iterate over multiple datasets <Multiple DataSets_>`_
+
+* `Handle sequential data <Sequential Data_>`_
+
+*************************
+Data Objects in Lightning
+*************************
+
 There are a few different Data objects used in Lightning:
 
 .. list-table:: Data objects
@@ -26,13 +38,7 @@ There are a few different Data objects used in Lightning:
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
      - A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of a training DataLoader, validation DataLoader(s) and test DataLoader(s), along with the matching transforms and data processing/downloads steps required.
 
-See :ref:`here <datamodules>` more details on LightningDataModules.
-
-In this guide you can find out how to:
-
-* `Iterate over multiple datasets <Multiple DataSets_>`_
-
-* `Handle sequential data <Sequential Data_>`_
+Read :ref:`this <datamodules>` for more details on LightningDataModules.
 
 
 .. _multiple-training-dataloaders:
