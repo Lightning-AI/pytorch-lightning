@@ -550,7 +550,11 @@ class TrainingBatchLoop(Loop):
             yield None
 
     def training_step_and_backward(
-        self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: torch.optim.Optimizer,
+        self,
+        split_batch: Any,
+        batch_idx: int,
+        opt_idx: int,
+        optimizer: torch.optim.Optimizer,
         hiddens: Optional[Tensor],
     ) -> STEP_OUTPUT:
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
