@@ -1,5 +1,5 @@
 sphinx>=4.0
-myst-parser<=0.14  # temporary, until https://github.com/executablebooks/MyST-Parser/issues/394 resolved
+myst-parser
 nbsphinx>=0.8.5
 ipython[notebook]
 pandoc>=1.0
