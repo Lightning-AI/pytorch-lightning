@@ -124,6 +124,7 @@ def test_deepspeed_fail_manual_optimization(tmpdir):
 
     class TestModel(BoringModel):
 
+        @property
         def automatic_optimization(self) -> bool:
             return False
 
