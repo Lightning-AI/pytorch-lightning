@@ -76,28 +76,6 @@ class TrainingEpochLoop(Loop):
         self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
 
-    def run(self, *args: Any, **kwargs: Any) -> List[List[STEP_OUTPUT]]:
-        """Runs over the dataloader until a StopIteration occurs.
-
-        Returns:
-            the outputs of each step for each optimizer
-        """
-        self.reset()
-        self.on_run_start()
-
-        # TODO(@awaelchli): while condition is different from super.run(),
-        #   redesign the done conditions and use the base class run() implementation
-        while True:
-            try:
-                self.on_advance_start(*args, **kwargs)
-                self.advance(*args, **kwargs)
-                self.on_advance_end()
-                self.iteration_count += 1
-            except StopIteration:
-                break
-
-        return self.on_run_end()
-
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self.iteration_count = 0
