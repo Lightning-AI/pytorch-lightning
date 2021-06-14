@@ -15,8 +15,8 @@ import logging
 import os
 import re
 from typing import Any, List, Optional, Union
-import numpy as np
 
+import numpy as np
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
@@ -299,7 +299,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put({
                 "callback_metrics": apply_to_collection(
                     self.lightning_module.trainer.logger_connector.callback_metrics,
-                    torch.Tensor, lambda x: x.cpu().numpy()  # send as numpy to avoid issues with memory sharing
+                    torch.Tensor,
+                    lambda x: x.cpu().numpy()  # send as numpy to avoid issues with memory sharing
                 )
             })
 
