@@ -21,7 +21,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
-
+import inspect
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -312,8 +312,15 @@ class DeepSpeedPlugin(DDPPlugin):
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
-            dtype = torch.float16 if self.lightning_module.trainer.accelerator.precision == 16 else torch.float32
-            model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True, dtype=dtype)
+            kwargs = {
+                "remote_device": "cpu",
+                "pin_memory": True,
+            }
+            # from DeepSpeed 0.4.0, weights need to be properly casted before calling `deepspeed.initialize`.
+            if "dtype" in inspect.signature(deepspeed.zero.Init).parameters.keys():
+                precision: int = self.lightning_module.trainer.accelerator.precision
+                kwargs["dtype"] = torch.float16 if precision == 16 else torch.float32
+            model_parallel_context = deepspeed.zero.Init(**kwargs)
         else:
             model_parallel_context = super().model_sharded_context()
 
