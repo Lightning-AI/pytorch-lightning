@@ -193,11 +193,6 @@ class FitLoop(Loop):
             window_length=self.trainer.accumulate_grad_batches
         )
 
-        # hook
-        self.trainer.logger_connector.on_epoch_start()
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
-
     def advance(self) -> None:
         """Runs one whole epoch."""
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)

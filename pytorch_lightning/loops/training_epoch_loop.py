@@ -86,6 +86,12 @@ class TrainingEpochLoop(Loop):
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        # hook
+        self.trainer.logger_connector.on_epoch_start()
+        self.trainer.call_hook("on_epoch_start")
+        self.trainer.call_hook("on_train_epoch_start")
+
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
 
