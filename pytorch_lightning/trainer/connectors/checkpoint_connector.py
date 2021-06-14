@@ -160,6 +160,9 @@ class CheckpointConnector:
 
         self.restore_optimizers_and_schedulers()
 
+        # restore logging values
+        self.restore_result_collections()
+
     def restore_callbacks(self) -> None:
         """ Restores all callbacks from the pre-loaded checkpoint. """
         if not self._loaded_checkpoint:
@@ -217,6 +220,26 @@ class CheckpointConnector:
             )
         self.restore_optimizers()
         self.restore_lr_schedulers()
+
+    def restore_result_collections(self) -> None:
+        """ Restores the loop result collections used durint logging """
+        if not self._loaded_checkpoint:
+            return
+
+        state_dict = self._loaded_checkpoint.get('result_collections', None)
+        if state_dict:
+            # get current reduce function
+            sync_fn = self.trainer.training_type_plugin.reduce
+
+            # get current result collections
+            train_results = self.trainer.train_loop.results
+            val_results = self.trainer.evaluation_loop._val_results
+            test_results = self.trainer.evaluation_loop._test_results
+
+            # restore collection and provide sync_fn
+            train_results.load_state_dict(state_dict[RunningStage.TRAINING.value], sync_fn=sync_fn)
+            val_results.load_state_dict(state_dict[RunningStage.VALIDATING.value], sync_fn=sync_fn)
+            test_results.load_state_dict(state_dict[RunningStage.TESTING.value], sync_fn=sync_fn)
 
     def restore_optimizers(self) -> None:
         """ Restores the optimizer states from the pre-loaded checkpoint. """

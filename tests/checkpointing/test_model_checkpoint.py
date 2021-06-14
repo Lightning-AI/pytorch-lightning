@@ -18,6 +18,7 @@ import pickle
 import re
 import time
 from argparse import Namespace
+from contextlib import suppress
 from datetime import timedelta
 from logging import INFO
 from pathlib import Path
@@ -1339,3 +1340,56 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
     with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
         Trainer(checkpoint_callback=mc)
+
+
+def test_result_collection_reload(tmpdir):
+    """
+    This test validates that the checkpoint can be called when provided to callbacks list
+    """
+
+    class ExtendedBoringModel(BoringModel):
+
+        global_step = 0
+
+        def on_train_start(self) -> None:
+            assert self.trainer.global_step == self.global_step
+
+        def training_step(self, batch, batch_idx):
+            print(batch_idx)
+            if batch_idx == 2:
+                raise Exception
+            self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+            value = self.trainer.train_loop.results['training_step.tracking'].value
+            assert value == sum(range(batch_idx + 1))
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("val_loss", loss)
+
+    model = ExtendedBoringModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=2,
+    )
+    with suppress(Exception):
+        trainer.fit(model)
+
+    checkpoint_path = os.path.join(tmpdir, 'ckpt.pt')
+    trainer.save_checkpoint(checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=2,
+        resume_from_checkpoint=checkpoint_path
+    )
+    assert trainer.global_step == 0
+    model.global_step = 3
+    trainer.fit(model)

@@ -549,7 +549,7 @@ class ResultCollection(dict):
             for k, v in self.items()
         }
 
-    def load_from_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Any], sync_fn: Optional[Callable] = None) -> None:
 
         def to_result_metric_collection(item: _ResultMetricCollectionSerializationHelper) -> ResultCollection:
             result_metric_collection = ResultMetricCollection()
@@ -565,6 +565,7 @@ class ResultCollection(dict):
         def to_result_metric(item: _ResultMetricSerializationHelper) -> ResultMetric:
             result_metric = ResultMetric(item["meta"], item["is_tensor"])
             result_metric.__dict__.update(item)
+            result_metric.meta.sync.fn = sync_fn
             return result_metric.to(self.device)
 
         state_dict = {

@@ -235,7 +235,7 @@ def test_result_collection_restoration():
             state_dict = result.state_dict()
 
             result = ResultCollection(True, torch.device("cpu"))
-            result.load_from_state_dict(state_dict)
+            result.load_state_dict(state_dict)
 
             assert _result.items() == result.items()
             assert _result["training_step.c_1"].meta == result["training_step.c_1"].meta
@@ -280,7 +280,7 @@ def test_lightning_module_logging_result_collection(tmpdir):
         def on_save_checkpoint(self, checkpoint) -> None:
             state_dict = self.trainer.train_loop.results.state_dict()
             checkpoint["result_collections"] = state_dict
-            self.trainer.train_loop.results.load_from_state_dict(state_dict)
+            self.trainer.train_loop.results.load_state_dict(state_dict)
             assert self.trainer.train_loop.results['training_step.v'].meta.sync.fn is None
             return super().on_save_checkpoint(checkpoint)
 
