@@ -1344,38 +1344,44 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
 
 def test_result_collection_reload(tmpdir):
     """
-    This test validates that the checkpoint can be called when provided to callbacks list
+    This is a temporary test to assert ResultCollection is properly reloaded.
+    The test is done over 2 epochs as Lightning doesn't support restarting middle of an epoch yet.
+    todo: (tchaton) Update this test when restart in middle of an epoch is supported.
     """
 
     class ExtendedBoringModel(BoringModel):
 
-        global_step = 0
-
-        def on_train_start(self) -> None:
-            assert self.trainer.global_step == self.global_step
+        has_reloaded = False
+        breaking_batch_idx = 2
 
         def training_step(self, batch, batch_idx):
-            print(batch_idx)
-            if batch_idx == 2:
-                raise Exception
-            self.log("tracking", batch_idx, on_step=True, on_epoch=True)
-            value = self.trainer.train_loop.results['training_step.tracking'].value
-            assert value == sum(range(batch_idx + 1))
-            return super().training_step(batch, batch_idx)
+            if self.has_reloaded:
+                if batch_idx >= self.breaking_batch_idx:
+                    self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                    value = self.trainer.train_loop.results['training_step.tracking'].value
+                    assert value == sum(range(self.breaking_batch_idx, batch_idx + 1)) + 1
+                    return super().training_step(batch, batch_idx)
+            else:
+                if self.trainer.current_epoch == 1:
+                    return
+                if batch_idx == self.breaking_batch_idx:
+                    raise Exception
+                self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                value = self.trainer.train_loop.results['training_step.tracking'].value
+                assert value == sum(range(batch_idx + 1))
+                return super().training_step(batch, batch_idx)
 
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log("val_loss", loss)
+        def on_epoch_end(self) -> None:
+            if self.trainer.current_epoch:
+                assert self.trainer.train_loop.results['training_step.tracking'].value == sum(range(5))
 
     model = ExtendedBoringModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=5,
-        limit_val_batches=2,
+        limit_val_batches=0,
     )
     with suppress(Exception):
         trainer.fit(model)
@@ -1385,11 +1391,10 @@ def test_result_collection_reload(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=5,
-        limit_val_batches=2,
+        limit_val_batches=0,
         resume_from_checkpoint=checkpoint_path
     )
-    assert trainer.global_step == 0
-    model.global_step = 3
+    model.has_reloaded = True
     trainer.fit(model)
