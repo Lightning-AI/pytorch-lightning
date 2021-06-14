@@ -77,8 +77,7 @@ class FitLoop(Loop):
 
     @global_step.setter
     def global_step(self, value: int) -> None:
-        """Sets the global step (forwards to training_loop)
-        """
+        """Sets the global step (forwards to training_loop)"""
         self.training_loop.global_step = value
 
     @property
@@ -211,7 +210,6 @@ class FitLoop(Loop):
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
             epoch_output = self.training_loop.run(train_dataloader)
-            # log epoch metrics
 
             if epoch_output is None:
                 return

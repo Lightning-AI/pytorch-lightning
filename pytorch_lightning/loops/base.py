@@ -26,7 +26,7 @@ class Loop(ABC):
     Basic Loops interface. All classes derived from this must implement the following properties and methods:
 
         * :attr`done` (property): Condition to break the loop
-        * :attr`reset` (method): Resets the internal state between multiple calls of :attr`run`
+        * :attr:`reset` (method): Resets the internal state between multiple calls of :attr:`run`
         * :attr`advance` (method): Implements one step of the loop
 
     This class implements the following loop structure:
@@ -66,7 +66,7 @@ class Loop(ABC):
         The main entry point to the loop.
 
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
-        until :attr`done` evaluates to ``True``.
+        until :attr:`done` evaluates to ``True``.
 
         Returns:
             the output of :attr`on_run_end` (often outputs collected from each step of the loop)
