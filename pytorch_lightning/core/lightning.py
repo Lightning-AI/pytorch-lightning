@@ -26,8 +26,8 @@ from abc import ABC
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
-import numpy as np
 
+import numpy as np
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
@@ -1949,16 +1949,15 @@ class LightningModule(
         size_mb = os.path.getsize(tmp_name) / 1e6
         os.remove(tmp_name)
         return size_mb
-    
+
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """TODO: add docs after final api."""
         callback_metrics: dict = apply_to_collection(
-            self.trainer.callback_metrics, torch.Tensor,
-            lambda x: x.cpu().numpy())  # send as numpy to avoid issues with memory sharing
+            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+        )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """TODO: add docs after final api."""
         callback_metrics: dict = queue.get()
-        self.trainer.callback_metrics = apply_to_collection(
-            callback_metrics, np.ndarray, lambda x: torch.tensor(x))
+        self.trainer.callback_metrics = apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))

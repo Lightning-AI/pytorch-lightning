@@ -517,7 +517,6 @@ class TrainerProperties(ABC):
     """
     Logging properties
     """
-
     '''@property
     def spawn_extra_parameters(self) -> dict:
         return self.logger_connector.spawn_extra_parameters'''
