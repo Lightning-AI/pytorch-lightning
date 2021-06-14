@@ -28,7 +28,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
-_METRIC = Union[Metric, torch.Tensor]
+# todo (tchaton) Resolve this typing bug in python 3.6
+_METRIC = Any  # Union[Metric, torch.Tensor]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
