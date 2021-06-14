@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union
@@ -547,10 +548,17 @@ class ResultCollection(dict):
 
         return {
             k: apply_to_collection(v, (ResultMetric, ResultMetricCollection), to_state_dict)
-            for k, v in self.items()
+            for k, v in deepcopy(list(self.items()))
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any], sync_fn: Optional[Callable] = None) -> None:
+        """
+        This function is used to restore the ResultCollection state
+
+        Args:
+            state_dict: Dict containing the serialized ResultCollection state.
+            sync_fn: Optional function used to reduce metric across processes.
+        """
 
         def to_result_metric_collection(item: _ResultMetricCollectionSerializationHelper) -> ResultCollection:
             result_metric_collection = ResultMetricCollection()
@@ -561,13 +569,15 @@ class ResultCollection(dict):
 
             result_metric_collection = apply_to_collection(result_metric_collection, ResultMetric, _to_device)
             result_metric_collection.meta = item.meta
-            result_metric_collection.meta.sync.fn = sync_fn
+            if sync_fn:
+                result_metric_collection.meta.sync.fn = sync_fn
             return result_metric_collection
 
         def to_result_metric(item: _ResultMetricSerializationHelper) -> ResultMetric:
             result_metric = ResultMetric(item["meta"], item["is_tensor"])
             result_metric.__dict__.update(item)
-            result_metric.meta.sync.fn = sync_fn
+            if sync_fn:
+                result_metric.meta.sync.fn = sync_fn
             return result_metric.to(self.device)
 
         state_dict = {
