@@ -165,7 +165,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `on_load_checkpoint` and `on_save_checkpoint` hooks to the `PrecisionPlugin` base class ([#7831](https://github.com/PyTorchLightning/pytorch-lightning/pull/7831))
 
 
-- LightningCLI now does not aborts with a clearer message if config already exists and disables save config for fast_dev_run!=False ([#7859](https://github.com/PyTorchLightning/pytorch-lightning/discussions/7859))
+- LightningCLI now aborts with a clearer message if config already exists and disables save config for fast_dev_run!=False ([#7963](https://github.com/PyTorchLightning/pytorch-lightning/pull/7963))
 
 
 ### Deprecated
