@@ -75,7 +75,11 @@ class LightningArgumentParser(ArgumentParser):
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts"""
+    """Saves a LightningCLI config to the log_dir when training starts
+
+    Raises:
+        RuntimeError: If in the log_dir the config file already exists to avoid overriting a previous run
+    """
 
     def __init__(
         self,
@@ -92,7 +96,7 @@ class SaveConfigCallback(Callback):
         config_path = os.path.join(log_dir, self.config_filename)
         if os.path.isfile(config_path):
             raise RuntimeError(
-                f'{self.__class__.__name__} expected {config_path} to not exist. Aborting to avoid overwriting results of a previous run.'
+                f'{type(self).__name__} expected {config_path} to not exist. Aborting to avoid overwriting results of a previous run.'
             )
         self.parser.save(self.config, config_path, skip_none=False)
 

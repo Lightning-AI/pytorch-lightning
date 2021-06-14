@@ -328,6 +328,31 @@ def test_lightning_cli_args(tmpdir):
     assert config['trainer'] == cli.config['trainer']
 
 
+def test_lightning_cli_save_config_cases(tmpdir):
+
+    config_path = tmpdir / 'config.yaml'
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.logger=False',
+        '--trainer.fast_dev_run=1',
+    ]
+
+    # With fast_dev_run!=False config should not be saved
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = LightningCLI(BoringModel)
+    assert not os.path.isfile(config_path)
+
+    # With fast_dev_run==False config should be saved
+    cli_args[-1] = '--trainer.max_epochs=1'
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = LightningCLI(BoringModel)
+    assert os.path.isfile(config_path)
+
+    # Exception should be raised if config file already exists
+    with mock.patch('sys.argv', ['any.py'] + cli_args), pytest.raises(RuntimeError):
+        cli = LightningCLI(BoringModel)
+
+
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
 
     config = dict(
