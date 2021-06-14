@@ -312,7 +312,8 @@ class DeepSpeedPlugin(DDPPlugin):
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
-            model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
+            dtype = torch.float16 if self.lightning_module.trainer.accelerator.precision == 16 else torch.float32
+            model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True, dtype=dtype)
         else:
             model_parallel_context = super().model_sharded_context()
 
