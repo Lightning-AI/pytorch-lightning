@@ -403,8 +403,7 @@ class AcceleratorConnector(object):
         raise NotImplementedError("We only support precisions 64, 32 and 16!")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
-        is_plugin = self.distributed_backend.training_type_plugin is not None
-        if isinstance(self.distributed_backend, Accelerator) and is_plugin:
+        if isinstance(self.distributed_backend, Accelerator) and self.distributed_backend.training_type_plugin is not None:
             plugin = self.distributed_backend.training_type_plugin
         elif self.use_ddp2:
             plugin = DDP2Plugin(
