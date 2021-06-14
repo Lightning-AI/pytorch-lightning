@@ -331,7 +331,7 @@ class CheckpointConnector:
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
-            # "result_collections": self.get_result_collections_state_dict()
+            'result_collections': self.get_result_collections_state_dict()
         }
 
         if not weights_only:
