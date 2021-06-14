@@ -84,6 +84,7 @@ class RegressionModel(LightningModule):
         self.train_mse = MeanSquaredError()
         self.valid_mse = MeanSquaredError()
         self.test_mse = MeanSquaredError()
+        self._example_input_array = torch.randn(1, 16)
 
     def forward(self, x):
         x = self.layer_0(x)
@@ -121,4 +122,39 @@ class RegressionModel(LightningModule):
 
     @property
     def example_input_array(self):
-        return torch.randn(1, 16)
+        return self._example_input_array
+
+    @example_input_array.setter
+    def example_input_array(self, ex):
+        """Need a way to set to toggle None for test_quantization_exceptions"""
+        self._example_input_array = ex
+
+
+class MultiInputModel(LightningModule):
+    def __init__(self):
+        super(MultiInputModel, self).__init__()
+        self.conv = nn.Conv2d(3, 8, kernel_size=3)
+        self.ff = nn.quantized.FloatFunctional()
+        self.triggered = False
+
+    def forward(self, a, b, trigger=False):
+        """Use 2 positional arguments and 1 keyword argument"""
+        feat_a = self.conv(a)
+        feat_b = self.conv(b)
+        combined = self.ff.add(feat_a, feat_b)
+        if trigger:
+            self.triggered = True
+        return combined
+
+    def training_step(self, batch, batch_idx):
+        """Dummy loss as-in BoringModel"""
+        out = self.forward(*batch)
+        return torch.nn.functional.mse_loss(out, torch.ones_like(out))
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters())
+
+    @property
+    def example_input_array(self):
+        """Two MNIST-sized squares"""
+        return torch.randn(1, 3, 28, 28), torch.randn(1, 3, 28, 28)

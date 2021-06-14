@@ -114,3 +114,21 @@ class RegressDataModule(SklearnDataModule):
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)
         y = [[v] for v in y]
         super().__init__((x, y), x_type=torch.float32, y_type=torch.float32, batch_size=batch_size)
+
+
+class MultiInputDatamodule(LightningDataModule):
+
+    def __init__(self, num_channels=3, size=28):
+        super(MultiInputDatamodule, self).__init__()
+        self.num_channels = num_channels
+        self.size = size
+
+    def __getitem__(self, item):
+        shape = (self.num_channels, self.size, self.size)
+        return torch.randn(shape), torch.randn(shape)
+
+    def __len__(self):
+        return 1
+
+    def train_dataloader(self):
+        return DataLoader(self, batch_size=2)

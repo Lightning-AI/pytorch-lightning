@@ -21,9 +21,9 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datamodules import RegressDataModule
+from tests.helpers.datamodules import MultiInputDatamodule, RegressDataModule
 from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import RegressionModel
+from tests.helpers.simple_models import MultiInputModel, RegressionModel
 
 
 @pytest.mark.parametrize("observe", ['average', 'histogram'])
@@ -95,7 +95,7 @@ def test_quantize_torchscript(tmpdir):
 
 @RunIf(quantization=True)
 def test_quantization_exceptions(tmpdir):
-    """Test wrong fuse layers"""
+    """Test wrongly configured callback"""
     with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
         QuantizationAwareTraining(qconfig=['abc'])
 
@@ -113,6 +113,11 @@ def test_quantization_exceptions(tmpdir):
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match='one or more of them is not your model attributes'):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
+
+    model = RegressionModel()
+    model.example_input_array = None
+    with pytest.raises(MisconfigurationException, match='`max_num_inputs` or `model.example_input_array must be'):
+        trainer.fit(model, datamodule=RegressDataModule())
 
 
 def custom_trigger_never(trainer):
@@ -152,3 +157,19 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     trainer.fit(qmodel, datamodule=dm)
 
     assert qcb._forward_calls == expected_count
+
+
+def test_quantize_wrapper_multi_input(tmpdir):
+    """Pass multi-tensor input through QAT forward wrappers"""
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(MultiInputModel(), datamodule=MultiInputDatamodule())
+
+
+def test_quantize_wrapper_kwargs(tmpdir):
+    """Pass kwargs through QAT forward wrappers"""
+    model = MultiInputModel()
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model, datamodule=MultiInputDatamodule())
+    assert not model.triggered
+    model.forward(*model.example_input_array, trigger=True)
+    assert model.triggered
