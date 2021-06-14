@@ -131,6 +131,7 @@ class RegressionModel(LightningModule):
 
 
 class MultiInputModel(LightningModule):
+
     def __init__(self):
         super(MultiInputModel, self).__init__()
         self.conv = nn.Conv2d(3, 8, kernel_size=3)
