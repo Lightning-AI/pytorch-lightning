@@ -117,6 +117,25 @@ def test_deepspeed_plugin_string(tmpdir, input):
 
 
 @RunIf(deepspeed=True)
+def test_deepspeed_fail_manual_optimization(tmpdir):
+    """
+    Ensure DeepSpeed fails with manual optimization.
+    """
+
+    class TestModel(BoringModel):
+
+        def automatic_optimization(self) -> bool:
+            return False
+
+    model = TestModel()
+    trainer = Trainer(plugins='deepspeed')
+    with pytest.raises(
+        MisconfigurationException, match="DeepSpeed Plugin does not support manual optimization currently."
+    ):
+        trainer.fit(model)
+
+
+@RunIf(deepspeed=True)
 def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
     """
         Test to ensure that the plugin can be passed via a string with an environment variable.

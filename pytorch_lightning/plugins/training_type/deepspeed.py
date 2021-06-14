@@ -334,6 +334,11 @@ class DeepSpeedPlugin(DDPPlugin):
         return config
 
     def setup_distributed(self):
+        if not self.lightning_module.automatic_optimization:
+            raise MisconfigurationException(
+                "DeepSpeed Plugin does not support manual optimization currently."
+                "See https://github.com/PyTorchLightning/pytorch-lightning/issues/7957 for more information."
+            )
         super().setup_distributed()
         if not self._config_initialized:
             self._format_config()
