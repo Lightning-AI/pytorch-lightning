@@ -76,7 +76,6 @@ def test_property_logger(tmpdir):
     assert model.logger == logger
 
 
-
 def test_params_groups_and_state_are_accessible(tmpdir):
 
     class TestModel(BoringModel):
