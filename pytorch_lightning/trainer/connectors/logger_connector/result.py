@@ -415,7 +415,7 @@ class ResultCollection(dict):
     def metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
         metrics = {k: {} for k in MetricSource}
 
-        for key, result_metric in self.valid_items():
+        for _, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(
@@ -542,7 +542,7 @@ class ResultCollection(dict):
             for k, v in self.items()
         }
 
-    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Optional[Dict[str, Metric]] = None) -> None:
+    def load_from_state_dict(self, state_dict: Dict[str, Any]) -> None:
 
         def to_result_metric_collection(item: _ResultMetricCollectionSerializationHelper) -> ResultCollection:
             result_metric_collection = ResultMetricCollection()

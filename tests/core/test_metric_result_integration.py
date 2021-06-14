@@ -25,15 +25,19 @@ from tests.helpers.runif import RunIf
 
 class DummyMetric(Metric):
 
-    def __init__(self):
+    def __init__(self, name: str = None):
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
+        self.name = name
 
     def update(self, x):
         self.x += x
 
     def compute(self):
         return self.x
+
+    def extra_repr(self) -> str:
+        return str(self.name) if self.name else ''
 
 
 def _setup_ddp(rank, worldsize):
@@ -186,9 +190,10 @@ def test_result_collection_restoration():
 
     result = ResultCollection(True, torch.device("cpu"))
     _result = None
-    metric_a = DummyMetric()
-    metric_b = DummyMetric()
-    metric_c = DummyMetric()
+    metric_a = DummyMetric('a')
+    metric_b = DummyMetric('b')
+    metric_c = DummyMetric('c')
+    metric_d = DummyMetric('d')
     current_fx_name = None
     batch_idx = None
 
@@ -208,10 +213,12 @@ def test_result_collection_restoration():
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
+            metric_d(i)
 
             cumulative_sum += i
 
-            lightning_log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
+            metric = metric_a if i < 1 else metric_d
+            lightning_log('training_step', 'a', metric, on_step=True, on_epoch=True)
             lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
             lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
             lightning_log('training_step', 'a_1', a, on_step=True, on_epoch=True)
@@ -221,19 +228,11 @@ def test_result_collection_restoration():
             batch_log = result.metrics(on_step=True)[MetricSource.LOG]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
             assert set(batch_log['c_1']) == {'1', '2'}
-
             _result = deepcopy(result)
             state_dict = result.state_dict()
 
             result = ResultCollection(True, torch.device("cpu"))
-            result.load_from_state_dict(
-                state_dict, {
-                    "metric_a": metric_a,
-                    "metric_b": metric_b,
-                    "metric_c": metric_c,
-                    "metric_a_end": metric_a
-                }
-            )
+            result.load_from_state_dict(state_dict)
 
             assert _result.items() == result.items()
             assert _result["training_step.c_1"].meta == result["training_step.c_1"].meta
