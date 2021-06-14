@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import __version__, LightningDataModule, Trainer
+from pytorch_lightning import __version__, LightningDataModule, LightningModule, Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -571,8 +571,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 called.append(d)
                 return out
 
-            hooks = {h for h, _ in getmembers(LightningDataModule, predicate=isfunction)}
-            for h in hooks:
+            for h in get_members(LightningDataModule):
                 attr = getattr(self, h)
                 setattr(self, h, partial(call, h, attr))
 
