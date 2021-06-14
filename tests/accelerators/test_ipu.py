@@ -200,20 +200,13 @@ def test_pure_half_precision(tmpdir):
 
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.accelerator.model.precision == 16
-            assert trainer.accelerator.training_type_plugin.convert_model_to_half
             for param in trainer.accelerator.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        ipus=1,
-        precision=16,
-        plugins=IPUPlugin(convert_model_to_half=True),
-        callbacks=TestCallback()
-    )
+    model = model.half()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
 
     assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
