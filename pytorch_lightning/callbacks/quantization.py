@@ -20,6 +20,7 @@ import functools
 from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
+import torch.nn as nn
 from torch.quantization import QConfig
 
 import pytorch_lightning as pl
@@ -36,15 +37,16 @@ def wrap_qat_forward_context(
     """
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
-    def wrapper(data) -> Any:
+    def wrapper(*data, **kwargs) -> Any:
+
         _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
         _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
         _quant_run = trigger_condition is None or _is_func_true or _is_count_true
         # apply custom trigger
         if _quant_run:
             quant_cb._forward_calls += 1
-            data = model.quant(data)
-        data = func(data)
+            data = [q(d) for q, d in zip(model.quants, data)]
+        data = func(*data, **kwargs)
         # apply custom trigger
         if _quant_run:
             data = model.dequant(data)
@@ -59,9 +61,9 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
     """
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
-    def wrapper(data) -> Any:
-        data = model.quant(data)
-        data = func(data)
+    def wrapper(*data, **kwargs) -> Any:
+        data = [q(d) for q, d in zip(model.quants, data)]
+        data = func(*data, **kwargs)
         data = model.dequant(data)
         return data
 
@@ -137,6 +139,7 @@ class QuantizationAwareTraining(Callback):
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
+        max_num_inputs: Optional[int] = None,
         quantize_on_fit_end: bool = True,
     ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
@@ -158,15 +161,16 @@ class QuantizationAwareTraining(Callback):
             )
         self._collect_quantization = collect_quantization
 
-        self.modules_to_fuse = modules_to_fuse
+        self._max_num_inputs = max_num_inputs
+        self._modules_to_fuse = modules_to_fuse
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
         self._forward_calls = 0
 
     def _check_feasible_fuse(self, model):
-        if not self.modules_to_fuse:
+        if not self._modules_to_fuse:
             return False
-        for group in self.modules_to_fuse:
+        for group in self._modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
                     f"You have requested to fuse {group} but one or more of them is not your model attributes"
@@ -175,7 +179,15 @@ class QuantizationAwareTraining(Callback):
 
     def on_fit_start(self, trainer, pl_module):
         # QuantStub converts tensors from floating point to quantized
-        pl_module.quant = torch.quantization.QuantStub()
+        if self._max_num_inputs is None:
+            if pl_module.example_input_array is None:
+                raise MisconfigurationException(
+                    '`max_num_inputs` or `model.example_input_array must be provided to determine number of QuantStubs'
+                )
+            num_inps = len(pl_module.example_input_array)
+        else:
+            num_inps = self._max_num_inputs
+        pl_module.quants = nn.ModuleList([torch.quantization.QuantStub() for _ in range(num_inps)])
         # DeQuantStub converts tensors from quantized to floating point
         pl_module.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
@@ -196,7 +208,7 @@ class QuantizationAwareTraining(Callback):
             pl_module.qconfig = self._qconfig
 
         if self._check_feasible_fuse(pl_module):
-            torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
+            torch.quantization.fuse_modules(pl_module, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
