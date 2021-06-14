@@ -79,6 +79,9 @@ class TrainingBatchLoop(Loop):
         # TODO(@awaelchli): let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
+        # reset batch tracking
+        self.trainer.fit_loop.progress_tracker.train.reset_on_batch()
+
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
 
@@ -118,8 +121,8 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        # increment batch ready progress trackings
-        self.trainer.loops_tracker.fit.train.batch.increment_ready()
+        # increment batch progress tracking: batch started
+        self.trainer.fit_loop.progress_tracker.train.batch.increment_started()
 
     def advance(self, batch, batch_idx, dataloader_idx):
         """Runs the train step together with optimization (if necessary) on the current batch split
@@ -137,22 +140,24 @@ class TrainingBatchLoop(Loop):
         # let logger connector extract current batch size
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
-        # increment batch ready progress trackings
-        self.trainer.loops_tracker.fit.train.batch.increment_started()
-
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
+
+                # track optimizer_idx
+                self.trainer.fit_loop.progress_tracker.train.optimizer_idx = opt_idx
+
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
                     self.batch_outputs[opt_idx].append(result.training_step_output)
         else:
+            self.trainer.fit_loop.progress_tracker.train.optimizer_idx = None
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
-        # increment batch ready progress trackings
-        self.trainer.loops_tracker.fit.train.batch.increment_processed()
+        # increment batch progress tracking: batch started
+        self.trainer.fit_loop.progress_tracker.train.batch.increment_processed()
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency"""
@@ -255,7 +260,7 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
-    def on_after_backward(self, batch_idx: int, untouched_loss: Tensor) -> None:
+    def on_after_backward(self, batch_idx: int, untouched_loss: Tensor, opt_idx: int) -> None:
         """Calls ``on_after_backward`` hook and tracks loss history
 
         Args:
@@ -265,6 +270,9 @@ class TrainingBatchLoop(Loop):
 
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
+
+        # increment optimizer progress tracking: optimizer ready
+        self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_ready()
 
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
@@ -398,6 +406,9 @@ class TrainingBatchLoop(Loop):
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
+        # increment optimizer progress tracking: optimizer started
+        self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_started()
+
         # model hook
         model_ref.optimizer_step(
             self.trainer.current_epoch,
@@ -409,6 +420,9 @@ class TrainingBatchLoop(Loop):
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
         )
+
+        # increment optimizer progress tracking: optimizer completed
+        self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_completed()
 
     def on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
@@ -587,7 +601,7 @@ class TrainingBatchLoop(Loop):
                     # hook - call this hook only
                     # when gradients have finished to accumulate
                     if not self.should_accumulate():
-                        self.on_after_backward(batch_idx, result.loss)
+                        self.on_after_backward(batch_idx, result.loss, opt_idx)
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:

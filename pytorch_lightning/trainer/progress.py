@@ -141,22 +141,22 @@ class OptimizationProgress:
 
 
 @dataclass
-class TrainingProgress(Progress):
-    """
-    Extends ``Progress`` with training specific attributes
-
-    Args:
-        optimization: Tracks optimization progress
-    """
-    optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
-
-
-@dataclass
 class TrainingLoopProgress(LoopProgress):
-    epoch: TrainingProgress = field(default_factory=TrainingProgress)
+
+    optimizer_idx: Optional[int] = field(default_factory=int)
+    epoch: Progress = field(default_factory=Progress)
+    optimizations: Optional[tuple] = field(default_factory=tuple)
+
+    def reset_on_batch(self) -> None:
+        if self.optimizations is not None:
+            for opt in self.optimizations:
+                opt.optimizer.current.reset()
+                opt.scheduler.current.reset()
+                opt.zero_grad.current.reset()
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
+        self.epoch.current.reset()
         self.batch.current.reset()
 
 

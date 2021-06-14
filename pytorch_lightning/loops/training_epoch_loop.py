@@ -18,6 +18,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import TrainingLoopProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -51,6 +52,7 @@ class TrainingEpochLoop(Loop):
         self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
+        self.progress_tracker: Optional[TrainingLoopProgress] = None
 
     @property
     def batch_idx(self) -> int:
@@ -97,6 +99,10 @@ class TrainingEpochLoop(Loop):
 
         """
         _, (batch, is_last) = next(dataloader_iter)
+
+        # increment batch progress tracking: batch ready
+        self.progress_tracker.batch.increment_ready()
+
         self.is_last_batch = is_last
 
         # ------------------------------------
@@ -193,10 +199,17 @@ class TrainingEpochLoop(Loop):
                     'HINT: remove the return statement in training_epoch_end'
                 )
 
+        # increment epoch process tracking: processed
+        self.progress_tracker.epoch.increment_processed()
+
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
+
+        # increment epoch process tracking: processed
+        self.progress_tracker.epoch.increment_completed()
+
         return self.epoch_output
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
@@ -267,6 +280,9 @@ class TrainingEpochLoop(Loop):
         self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
         self.trainer.logger_connector.on_batch_end()
+
+        # increment batch progress tracking: batch completed
+        self.progress_tracker.batch.increment_completed()
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)

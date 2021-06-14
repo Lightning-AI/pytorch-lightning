@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import FitLoopProgress, OptimizationProgress, TrainingLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -173,6 +174,11 @@ class FitLoop(Loop):
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
+        # create progress tracker
+        optimizations = tuple(OptimizationProgress() for _ in self.trainer.optimizers)
+        self.training_loop.progress_tracker = TrainingLoopProgress(optimizations=optimizations)
+        self.progress_tracker = FitLoopProgress(train=self.training_loop.progress_tracker)
+
         self.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
@@ -197,20 +203,23 @@ class FitLoop(Loop):
             window_length=self.trainer.accumulate_grad_batches
         )
 
+        # reset tracking
+        self.progress_tracker.train.reset_on_epoch()
+
+        # increment epoch process tracking: ready
+        self.progress_tracker.train.epoch.increment_ready()
+
         # hook
         self.trainer.logger_connector.on_epoch_start()
-
-        # increment training epoch ready
-        self.trainer.loops_tracker.fit.train.epoch.increment_ready()
 
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
+        # increment epoch process tracking: started
+        self.progress_tracker.train.epoch.increment_started()
+
     def advance(self) -> None:
         """Runs one whole epoch."""
-        # increment training epoch started
-        self.trainer.loops_tracker.fit.train.epoch.increment_started()
-
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
 
@@ -230,9 +239,6 @@ class FitLoop(Loop):
             self.trainer.logger_connector.update_train_epoch_metrics()
             self.global_step += 1
 
-        # increment training epoch processed
-        self.trainer.loops_tracker.fit.train.epoch.increment_processed()
-
     def on_advance_end(self) -> None:
         """Updates the LR schedulers and does some internal bookkeeping"""
         if self.training_loop.batches_seen == 0:
@@ -247,9 +253,6 @@ class FitLoop(Loop):
             self.global_step -= 1
             self.check_checkpoint_callback(True)
             self.global_step += 1
-
-        # increment training epoch completed
-        self.trainer.loops_tracker.fit.train.epoch.increment_completed()
 
     def on_run_end(self) -> None:
         """Runs teardown logic and calls the ``on_train_end`` hook"""
