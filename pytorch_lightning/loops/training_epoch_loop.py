@@ -62,7 +62,6 @@ class TrainingEpochLoop(Loop):
         """Returns whether the training should be stopped.
         The criteria are that the number of steps reached the max steps,
         the last batch is reached or the trainer signals to stop (e.g. by early stopping).
-
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
@@ -260,7 +259,6 @@ class TrainingEpochLoop(Loop):
             batch: the batch this outputs were produced with
             batch_idx: the index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
-
         """
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
