@@ -783,6 +783,10 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
+        self.checkpoint_connector.resume_end()
+
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
 
@@ -807,9 +811,6 @@ class Trainer(
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
-
-        # restore optimizers, etc.
-        self.checkpoint_connector.restore_training_state()
 
         # log hyper-parameters
         if self.logger is not None:
@@ -860,8 +861,6 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
-
-        self.checkpoint_connector.resume_end()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
