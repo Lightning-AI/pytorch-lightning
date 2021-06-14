@@ -216,10 +216,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
-        extra_parameters = self.mp_queue.get()
+        self.lightning_module.get_from_queue(self.mp_queue)
+        '''extra_parameters = self.mp_queue.get()
         # `extra_parameters` come as numpy arrays to ensure memory can be shared
         extra_parameters = apply_to_collection(extra_parameters, np.ndarray, lambda x: torch.tensor(x))
-        self.lightning_module.trainer.logger_connector.spawn_extra_parameters.update(extra_parameters)
+        self.lightning_module.trainer.logger_connector.spawn_extra_parameters.update(extra_parameters)'''
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -296,13 +297,14 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.mp_queue.put({
+            self.lightning_module.add_to_queue(self.mp_queue)
+            '''self.mp_queue.put({
                 "callback_metrics": apply_to_collection(
                     self.lightning_module.trainer.logger_connector.callback_metrics,
                     torch.Tensor,
                     lambda x: x.cpu().numpy()  # send as numpy to avoid issues with memory sharing
                 )
-            })
+            })'''
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer

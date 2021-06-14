@@ -69,8 +69,9 @@ def test_ddp_gpu(tmpdir):
     dm = BoringDataModule()
 
     trainer.fit(model, datamodule=dm)
-    assert "callback_metrics" in trainer.spawn_extra_parameters
-    assert trainer.spawn_extra_parameters["callback_metrics"][val_name] == torch.tensor(val)
+    #assert "callback_metrics" in trainer.spawn_extra_parameters
+    #assert trainer.spawn_extra_parameters["callback_metrics"][val_name] == torch.tensor(val)
+    assert trainer.callback_metrics[val_name] == torch.tensor(val)
 
 
 @RunIf(min_gpus=2)
@@ -88,5 +89,6 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     dm = BoringDataModule()
 
     trainer.fit(model, datamodule=dm)
-    assert "callback_metrics" in trainer.spawn_extra_parameters
-    assert trainer.spawn_extra_parameters["callback_metrics"][val_name] == torch.tensor(val)
+    #assert "callback_metrics" in trainer.spawn_extra_parameters
+    #assert trainer.spawn_extra_parameters["callback_metrics"][val_name] == torch.tensor(val)
+    assert trainer.callback_metrics[val_name] == torch.tensor(val)

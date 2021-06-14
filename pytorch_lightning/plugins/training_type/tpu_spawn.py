@@ -202,13 +202,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
-                self.mp_queue.put({
+                self.lightning_module.add_to_queue(self.mp_queue)
+                '''self.mp_queue.put({
                     "callback_metrics": apply_to_collection(
                         self.lightning_module.trainer.logger_connector.callback_metrics,
                         torch.Tensor,
                         lambda x: x.cpu().numpy()  # send as numpy to avoid issues with memory sharing
                     )
-                })
+                })'''
 
     def save(self, state_dict: Dict, path: str) -> None:
         xm.save(state_dict, path)

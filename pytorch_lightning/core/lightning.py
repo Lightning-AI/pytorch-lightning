@@ -26,6 +26,7 @@ from abc import ABC
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+import numpy as np
 
 import torch
 from torch import ScriptModule, Tensor
@@ -263,11 +264,11 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
+        tbptt_reduce_fx: Optional[Any] = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional[Any] = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
+        sync_dist_op: Optional[Any] = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -387,11 +388,11 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
+        tbptt_reduce_fx: Optional[Any] = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional[Any] = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
+        sync_dist_op: Optional[Any] = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
     ) -> None:
@@ -1948,3 +1949,16 @@ class LightningModule(
         size_mb = os.path.getsize(tmp_name) / 1e6
         os.remove(tmp_name)
         return size_mb
+    
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """TODO: add docs after final api."""
+        callback_metrics: dict = apply_to_collection(
+            self.trainer.callback_metrics, torch.Tensor,
+            lambda x: x.cpu().numpy())  # send as numpy to avoid issues with memory sharing
+        queue.put(callback_metrics)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """TODO: add docs after final api."""
+        callback_metrics: dict = queue.get()
+        self.trainer.callback_metrics = apply_to_collection(
+            callback_metrics, np.ndarray, lambda x: torch.tensor(x))

@@ -518,13 +518,17 @@ class TrainerProperties(ABC):
     Logging properties
     """
 
-    @property
+    '''@property
     def spawn_extra_parameters(self) -> dict:
-        return self.logger_connector.spawn_extra_parameters
+        return self.logger_connector.spawn_extra_parameters'''
 
     @property
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
+
+    @callback_metrics.setter
+    def callback_metrics(self, val: dict) -> None:
+        self.logger_connector.callback_metrics = val
 
     @property
     def logged_metrics(self) -> dict:
