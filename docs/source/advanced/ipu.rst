@@ -16,7 +16,7 @@ IPUs facilitate machine learning loads where parallelization is essential. Becau
 IPUs operate in a different way to conventional accelerators such as CPU/GPUs.
 IPUs do not require large batch sizes for maximum parallelization, can provide optimizations across the compiled graph and rely on model parallelism to fully utilize cores for larger models.
 
-IPUs are also found within IPU pods, a collection of IPU enabled machines for larger workloads.
+IPUs are also found within IPU pods, a collection of IPU enabled machines for larger workloads. See the `IPU Architecture <https://www.graphcore.ai/products/ipu>`__ for more information.
 
 How to access IPUs
 ------------------
