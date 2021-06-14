@@ -113,7 +113,9 @@ class TrainingEpochLoop(Loop):
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
-        self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, self.iteration_count, self._dataloader_idx)
+        self.trainer.call_hook(
+            'on_train_batch_end', processed_batch_end_outputs, batch, self.iteration_count, self._dataloader_idx
+        )
         self.trainer.call_hook('on_batch_end')
         self.trainer.logger_connector.on_batch_end()
 
