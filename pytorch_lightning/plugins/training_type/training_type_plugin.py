@@ -13,7 +13,8 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -148,6 +149,17 @@ class TrainingTypePlugin(Plugin, ABC):
     def rpc_enabled(self) -> bool:
         return False
 
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        optimizer_states = checkpoint["optimizer_states"]
+        for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
+            optimizer.load_state_dict(opt_state)
+
     def start_training(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
@@ -226,33 +238,6 @@ class TrainingTypePlugin(Plugin, ABC):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
-
-    def restore_model_state_from_ckpt_path(
-        self,
-        ckpt_path: str,
-        map_location: Callable = lambda storage, loc: storage,
-    ) -> Tuple[Dict, bool]:
-        """
-        This function is used to load and restore the model state.
-
-        Args:
-            ckpt_path: Path to a checkpoint
-            map_location: lambda function to map checkpoint location
-
-        Return
-            checkpoint: Return loaded checkpoint
-            bool: Wether to load optimizer / lr_schedulers states from checkpoint
-
-        """
-        ckpt = pl_load(ckpt_path, map_location=map_location)
-        # restore datamodule states
-        if self.lightning_module.trainer.datamodule is not None:
-            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
-
-        # hook: give user access to checkpoint if needed.
-        self.lightning_module.on_load_checkpoint(ckpt)
-        self.lightning_module.load_state_dict(ckpt['state_dict'])
-        return ckpt, True
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
