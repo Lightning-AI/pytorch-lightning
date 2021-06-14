@@ -65,7 +65,6 @@ class _Metadata:
     reduce_fx: Union[str, Callable] = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
-    metric_attribute: Optional[str] = None
     sync: _Sync = field(default_factory=_Sync)
 
     def __post_init__(self) -> None:
@@ -319,7 +318,6 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -347,7 +345,6 @@ class ResultCollection(dict):
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
-            metric_attribute=metric_attribute,
             sync=_Sync(
                 should=sync_dist,
                 fn=sync_dist_fn,
@@ -575,13 +572,3 @@ class ResultCollection(dict):
         self.update(state_dict)
         for k, meta in result_metric_collection.items():
             self[k].meta = meta
-
-        if metrics:
-
-            def re_assign_metric(item: ResultMetric) -> None:
-                # metric references are lost during serialization and need to be set back during loading
-                name = item.meta.metric_attribute
-                if isinstance(name, str) and name in metrics:
-                    item.value = metrics[name]
-
-            apply_to_collection(self, ResultMetric, re_assign_metric)

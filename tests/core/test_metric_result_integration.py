@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import deepcopy
-from operator import attrgetter
 
 import torch
 import torch.distributed as dist
@@ -20,9 +19,7 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -214,9 +211,9 @@ def test_result_collection_restoration():
 
             cumulative_sum += i
 
-            lightning_log('training_step', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
-            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
-            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
+            lightning_log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
+            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
+            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
             lightning_log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             lightning_log('training_step', 'b_1', b, on_step=False, on_epoch=True)
             lightning_log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
@@ -254,7 +251,7 @@ def test_result_collection_restoration():
             else:
                 assert epoch_log[k] == 1
 
-        lightning_log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, metric_attribute="metric_a_end")
+        lightning_log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
 
         result.reset()
         _result.reset()
@@ -263,36 +260,3 @@ def test_result_collection_restoration():
         assert metric_a.x == metric_a._defaults['x']
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
-
-
-def test_result_collection_attribute_name_nested(tmpdir):
-    """
-    This test make sure metric_attribute is properly capture even when nested in children modules
-    """
-    metric = DummyMetric()
-
-    class CustomModule(torch.nn.Module):
-
-        def __init__(self, metric):
-            super().__init__()
-
-            self.dummy_metric = metric
-
-    class TestModel(BoringModel):
-
-        def __init__(self, metric):
-            super().__init__()
-
-            self.custom = CustomModule(metric)
-
-        def training_step(self, batch, batch_idx):
-            self.custom.dummy_metric(1)
-            self.log("dummy", self.custom.dummy_metric)
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel(metric)
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, max_epochs=1)
-    trainer.fit(model)
-    metric_attribute = trainer.train_loop.results['training_step.dummy'].meta.metric_attribute
-    assert metric_attribute == 'custom.dummy_metric'
-    assert id(attrgetter(metric_attribute)(model)) == id(metric)
