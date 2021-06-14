@@ -78,7 +78,7 @@ class SaveConfigCallback(Callback):
     """Saves a LightningCLI config to the log_dir when training starts
 
     Raises:
-        RuntimeError: If in the log_dir the config file already exists to avoid overriting a previous run
+        RuntimeError: If in the log_dir the config file already exists to avoid overwriting a previous run
     """
 
     def __init__(
