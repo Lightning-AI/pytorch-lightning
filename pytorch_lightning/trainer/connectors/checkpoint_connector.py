@@ -222,7 +222,7 @@ class CheckpointConnector:
         self.restore_lr_schedulers()
 
     def restore_result_collections(self) -> None:
-        """ Restores the loop result collections used durint logging """
+        """ Restores the loop result collections used for logging."""
         if not self._loaded_checkpoint:
             return
 
