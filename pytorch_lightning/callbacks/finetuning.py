@@ -105,7 +105,8 @@ class BaseFinetuning(Callback):
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
         """
-        This function is used to flatten a module or an iterable of modules into a list of its modules.
+        This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
+        with no children) and parent modules that have parameters directly themselves.
 
         Args:
             modules: A given module or an iterable of modules
@@ -121,8 +122,8 @@ class BaseFinetuning(Callback):
         else:
             _modules = modules.modules()
 
-        # Leaf nodes in the graph have no children, so we use that to filter
-        return [m for m in _modules if not list(m.children())]
+        # Capture all leaf modules as well as parent modules that have parameters directly themsleves
+        return [m for m in _modules if not list(m.children()) or m._parameters]
 
     @staticmethod
     def filter_params(
@@ -136,7 +137,6 @@ class BaseFinetuning(Callback):
             modules: A given module or an iterable of modules
             train_bn: Whether to train BatchNorm module
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
-
         Returns:
             Generator
         """
@@ -144,7 +144,8 @@ class BaseFinetuning(Callback):
         for mod in modules:
             if isinstance(mod, _BatchNorm) and not train_bn:
                 continue
-            for param in mod.parameters():
+            # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+            for param in mod.parameters(recurse=False):
                 if param.requires_grad == requires_grad:
                     yield param
 
@@ -158,7 +159,8 @@ class BaseFinetuning(Callback):
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
-            for param in module.parameters():
+            # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+            for param in module.parameters(recurse=False):
                 param.requires_grad = True
 
     @staticmethod
@@ -178,7 +180,8 @@ class BaseFinetuning(Callback):
             if isinstance(mod, _BatchNorm) and train_bn:
                 BaseFinetuning.make_trainable(mod)
             else:
-                for param in mod.parameters():
+                # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+                for param in mod.parameters(recurse=False):
                     param.requires_grad = False
 
     @staticmethod
