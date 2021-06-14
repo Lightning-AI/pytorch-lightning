@@ -21,6 +21,7 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, DeviceType, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -295,11 +296,16 @@ class CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': PyTorch Lightning's version
-                'callbacks':                 "callback specific state"[] # if not weights_only
-                'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
-                'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
-                'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
-                'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
+                'callbacks':                 "callback specific state"[]    # if not weights_only
+                'optimizer_states':          "PT optim's state_dict"[]      # if not weights_only
+                'lr_schedulers':             "PT sched's state_dict"[]      # if not weights_only
+                'native_amp_scaling_state':   PT amp's state_dict           # if not weights_only and use native amp
+                'result_collections': {
+                    "train":                  PT TrainLoop ResultCollection state_dict
+                    "validation":             PT ValidationLoop ResultCollection state_dict
+                    "test":                   PT TestLoop ResultCollection state_dict
+                }
+                'amp_scaling_state':         Apex's state_dict              # if not weights_only and use apex amp
                 'state_dict':                Model's state_dict (e.g. network weights)
                 CHECKPOINT_HYPER_PARAMS_NAME:
                 CHECKPOINT_HYPER_PARAMS_KEY:
@@ -325,6 +331,7 @@ class CheckpointConnector:
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
+            # "result_collections": self.get_result_collections_state_dict()
         }
 
         if not weights_only:
@@ -364,6 +371,13 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_result_collections_state_dict(self) -> Dict[str, Dict[str, Any]]:
+        return {
+            RunningStage.TRAINING.value: self.trainer.train_loop.results.state_dict(),
+            RunningStage.VALIDATING.value: self.trainer.evaluation_loop._val_results.state_dict(),
+            RunningStage.TESTING.value: self.trainer.evaluation_loop._test_results.state_dict(),
+        }
 
     def hpc_load(self, checkpoint_path: str, on_gpu: bool):
         """
