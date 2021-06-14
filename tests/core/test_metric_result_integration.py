@@ -19,7 +19,10 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -259,3 +262,31 @@ def test_result_collection_restoration():
         assert metric_a.x == metric_a._defaults['x']
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
+
+
+def test_lightning_module_logging_result_collection(tmpdir):
+
+    class LoggingModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.metric = DummyMetric()
+
+        def training_step(self, batch, batch_idx):
+            v = self.metric(batch_idx)
+            self.log_dict({"v": v, "m": self.metric})
+            return super().training_step(batch, batch_idx)
+
+        def on_save_checkpoint(self, checkpoint) -> None:
+            state_dict = self.trainer.train_loop.results.state_dict()
+            checkpoint["result_collections"] = state_dict
+            self.trainer.train_loop.results.load_from_state_dict(state_dict)
+            assert self.trainer.train_loop.results['training_step.v'].meta.sync.fn is None
+            return super().on_save_checkpoint(checkpoint)
+
+    model = LoggingModel()
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, limit_val_batches=2, callbacks=[ckpt]
+    )
+    trainer.fit(model)

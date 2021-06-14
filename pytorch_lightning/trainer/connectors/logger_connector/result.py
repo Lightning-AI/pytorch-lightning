@@ -351,6 +351,11 @@ class ResultCollection(dict):
                 group=sync_dist_group,
             )
         )
+
+        # the reduce function was drop while saving a checkpoint.
+        if key in self and self[key].meta.sync.fn is None:
+            self[key].meta.sync.fn = meta.sync.fn
+
         if key not in self:
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
@@ -535,6 +540,8 @@ class ResultCollection(dict):
                 return _ResultMetricCollectionSerializationHelper(
                     apply_to_collection(item, ResultMetric, to_state_dict), metadata=item.meta
                 )
+            state = item.__getstate__()
+            state["meta"].sync.fn = None
             return _ResultMetricSerializationHelper(**item.__getstate__())
 
         return {
