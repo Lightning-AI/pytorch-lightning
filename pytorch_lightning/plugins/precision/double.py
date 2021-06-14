@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, List, Tuple, cast
+from typing import Any, cast, Generator, List, Tuple
 
 import torch
 import torch.nn as nn
