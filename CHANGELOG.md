@@ -111,6 +111,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added LightningCLI support for argument links applied on instantiation ([#7895](https://github.com/PyTorchLightning/pytorch-lightning/pull/7895))
 
 
+- Added support for quantization of multi-input models and forward method `**kwargs` ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
+
+
 - Added LightningCLI support for configurable callbacks that should always be present ([#7964](https://github.com/PyTorchLightning/pytorch-lightning/pull/7964))
 
 
@@ -191,7 +194,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Changed
-
 
 - Changed the `Trainer`'s `checkpoint_callback` argument to allow only boolean values ([#7539](https://github.com/PyTorchLightning/pytorch-lightning/pull/7539))
 
@@ -342,6 +344,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Return the `default_root_dir` as the `log_dir` when the logger is a `LoggerCollection` ([#8187](https://github.com/PyTorchLightning/pytorch-lightning/pull/8187))
+
+
+- `QuantizationAwareTraining` callback requires either `max_num_inputs` parameter or `model.example_input_array` in order to determine the required number of `QuantStubs` ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
 
 
 ### Deprecated
