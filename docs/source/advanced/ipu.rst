@@ -26,7 +26,7 @@ To use IPUs you must have access to a server with IPU devices attached. To get a
 Training with IPUs
 ------------------
 
-Specify the number of IPUs to train with. Note that when training with IPUs, you must select 1 or a power of 2 number of IPUs (i.e 2/4/8..).
+Specify the number of IPUs to train with. Note that when training with IPUs, you must select 1 or a power of 2 number of IPUs (i.e. 2/4/8..).
 
 .. code-block:: python
 
@@ -140,7 +140,7 @@ Below is an example using the block annotation in a LightningModule.
 
     Currently when using model parallelism, we do not infer the number of IPUs required for you. This is done via the annotations themselves. If you specify 4 different IDs when defining Blocks, this means your model will be split onto 4 different IPUs.
 
-    This is also mutually exclusive with the Trainer flag, i.e if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total; replicating the model 4 times in data parallel.
+    This is also mutually exclusive with the Trainer flag, i.e. if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total; replicating the model 4 times in data parallel.
 
     When pipelining the model you must also increase the `device_iterations` to ensure full data saturation of the devices data, i.e whilst one device in the model pipeline processes a batch of data, the other device can start on the next batch. For example if the model is split onto 4 IPUs, we require `device_iterations` to be at-least 4.
 
