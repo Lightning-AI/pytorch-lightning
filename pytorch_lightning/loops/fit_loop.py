@@ -199,11 +199,18 @@ class FitLoop(Loop):
 
         # hook
         self.trainer.logger_connector.on_epoch_start()
+
+        # increment training epoch ready
+        self.trainer.loops_tracker.fit.train.epoch.increment_ready()
+
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
     def advance(self) -> None:
         """Runs one whole epoch."""
+        # increment training epoch started
+        self.trainer.loops_tracker.fit.train.epoch.increment_started()
+
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
 
@@ -223,6 +230,9 @@ class FitLoop(Loop):
             self.trainer.logger_connector.update_train_epoch_metrics()
             self.global_step += 1
 
+        # increment training epoch processed
+        self.trainer.loops_tracker.fit.train.epoch.increment_processed()
+
     def on_advance_end(self) -> None:
         """Updates the LR schedulers and does some internal bookkeeping"""
         if self.training_loop.batches_seen == 0:
@@ -237,6 +247,9 @@ class FitLoop(Loop):
             self.global_step -= 1
             self.check_checkpoint_callback(True)
             self.global_step += 1
+
+        # increment training epoch completed
+        self.trainer.loops_tracker.fit.train.epoch.increment_completed()
 
     def on_run_end(self) -> None:
         """Runs teardown logic and calls the ``on_train_end`` hook"""

@@ -167,7 +167,7 @@ class FitLoopProgress:
 
 
 @dataclass
-class LoopState:
+class LoopsTracker:
     """
     Basic dataclass to track loop progress across trainer functions during trainer execution.
 

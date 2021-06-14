@@ -117,6 +117,10 @@ class TrainingBatchLoop(Loop):
         void(batch_idx, dataloader_idx)
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
 
+    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        # increment batch ready progress trackings
+        self.trainer.loops_tracker.fit.train.batch.increment_ready()
+
     def advance(self, batch, batch_idx, dataloader_idx):
         """Runs the train step together with optimization (if necessary) on the current batch split
 
@@ -133,6 +137,9 @@ class TrainingBatchLoop(Loop):
         # let logger connector extract current batch size
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
+        # increment batch ready progress trackings
+        self.trainer.loops_tracker.fit.train.batch.increment_started()
+
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
@@ -143,6 +150,9 @@ class TrainingBatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
+
+        # increment batch ready progress trackings
+        self.trainer.loops_tracker.fit.train.batch.increment_processed()
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency"""

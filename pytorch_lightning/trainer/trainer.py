@@ -59,6 +59,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
+from pytorch_lightning.trainer.progress import LoopsTracker
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -412,6 +413,8 @@ class Trainer(
             overfit_batches,
             fast_dev_run,
         )
+
+        self.loops_tracker = LoopsTracker()
 
         # Callback system
         self.on_init_end()
