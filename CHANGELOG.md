@@ -168,7 +168,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - LightningCLI now does not aborts with a clearer message if config already exists and disables save config for fast_dev_run!=False ([#7859](https://github.com/PyTorchLightning/pytorch-lightning/discussions/7859))
 
 
-
 ### Deprecated
 
 

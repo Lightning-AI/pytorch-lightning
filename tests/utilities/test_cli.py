@@ -339,18 +339,18 @@ def test_lightning_cli_save_config_cases(tmpdir):
 
     # With fast_dev_run!=False config should not be saved
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        cli = LightningCLI(BoringModel)
+        LightningCLI(BoringModel)
     assert not os.path.isfile(config_path)
 
     # With fast_dev_run==False config should be saved
     cli_args[-1] = '--trainer.max_epochs=1'
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        cli = LightningCLI(BoringModel)
+        LightningCLI(BoringModel)
     assert os.path.isfile(config_path)
 
-    # Exception should be raised if config file already exists
+    # If run again on same directory exception should be raised since config file already exists
     with mock.patch('sys.argv', ['any.py'] + cli_args), pytest.raises(RuntimeError):
-        cli = LightningCLI(BoringModel)
+        LightningCLI(BoringModel)
 
 
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
