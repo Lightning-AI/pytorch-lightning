@@ -419,7 +419,7 @@ class Trainer(
     def _setup_on_init(
         self,
         num_sanity_val_steps: int,
-    ):
+    ) -> None:
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = 0
@@ -430,7 +430,7 @@ class Trainer(
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
+    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None) -> None:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
