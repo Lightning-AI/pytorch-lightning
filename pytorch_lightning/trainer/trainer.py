@@ -500,6 +500,7 @@ class Trainer(
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
+        self.validated_ckpt_path: Optional[str] = None
 
         # If you supply a datamodule you can't supply val_dataloaders
         if val_dataloaders is not None and datamodule:
@@ -566,6 +567,7 @@ class Trainer(
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
+        self.tested_ckpt_path: Optional[str] = None
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders is not None and datamodule:
