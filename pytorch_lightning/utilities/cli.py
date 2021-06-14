@@ -91,7 +91,9 @@ class SaveConfigCallback(Callback):
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
         if os.path.isfile(config_path):
-            raise RuntimeError(f'{self.__class__.__name__} expected {config_path} to not exist. Aborting to avoid overwriting results of a previous run.')
+            raise RuntimeError(
+                f'{self.__class__.__name__} expected {config_path} to not exist. Aborting to avoid overwriting results of a previous run.'
+            )
         self.parser.save(self.config, config_path, skip_none=False)
 
 
