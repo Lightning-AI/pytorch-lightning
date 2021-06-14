@@ -56,61 +56,6 @@ class LogInTwoMethods(BoringModel):
         self.log('val_acc', outs)
 
 
-class CustomBoringModelScoreAndCkpt(BoringModel):
-
-    def __init__(
-        self,
-        max_epochs: int,
-        limit_train_batches: int,
-        limit_val_batches: int,
-        reduce_lr_on_plateau: bool,
-        monitor: str,
-        lr: float = 1e-1,
-        gamma: int = 2,
-    ):
-        super().__init__()
-        self.train_log_epochs = torch.randn(max_epochs, limit_train_batches)
-        self.val_logs = torch.randn(max_epochs, limit_val_batches)
-        self.scores = []
-        self.reduce_lr_on_plateau = reduce_lr_on_plateau
-        self.monitor = monitor
-        self.lr = lr
-        self.gamma = gamma
-
-    def training_step(self, batch, batch_idx):
-        log_value = self.train_log_epochs[self.current_epoch, batch_idx]
-        self.log('train_log', log_value, on_epoch=True)
-        return super().training_step(batch, batch_idx)
-
-    def validation_step(self, batch, batch_idx):
-        log_value = self.val_logs[self.current_epoch, batch_idx]
-        self.log('val_log', log_value)
-        self.log('epoch', self.current_epoch, on_epoch=True)
-        return super().validation_step(batch, batch_idx)
-
-    def configure_optimizers(self):
-        optimizer = optim.SGD(self.parameters(), lr=self.lr)
-
-        if self.reduce_lr_on_plateau:
-            lr_scheduler = {
-                'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
-                'monitor': self.monitor,
-                'strict': True,
-            }
-        else:
-            lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=self.gamma)
-
-        return [optimizer], [lr_scheduler]
-
-    def on_train_epoch_end(self):
-        if 'train' in self.monitor:
-            self.scores.append(self.trainer.logged_metrics[self.monitor])
-
-    def on_validation_epoch_end(self):
-        if not self.trainer.sanity_checking and 'val' in self.monitor:
-            self.scores.append(self.trainer.logged_metrics[self.monitor])
-
-
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
     "validation_step_none,val_dataloaders_none,monitor",
@@ -133,18 +78,51 @@ def test_model_checkpoint_score_and_ckpt(
     limit_val_batches = 7
     lr, gamma = 1e-1, 2
 
-    model = CustomBoringModelScoreAndCkpt(
-        max_epochs=max_epochs,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
-        reduce_lr_on_plateau=reduce_lr_on_plateau,
-        monitor=monitor,
-        lr=lr,
-        gamma=gamma,
-    )
+    class CustomBoringModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.train_log_epochs = torch.randn(max_epochs, limit_train_batches)
+            self.val_logs = torch.randn(max_epochs, limit_val_batches)
+            self.scores = []
+
+        def training_step(self, batch, batch_idx):
+            log_value = self.train_log_epochs[self.current_epoch, batch_idx]
+            self.log('train_log', log_value, on_epoch=True)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            log_value = self.val_logs[self.current_epoch, batch_idx]
+            self.log('val_log', log_value)
+            self.log('epoch', self.current_epoch, on_epoch=True)
+            return super().validation_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            optimizer = optim.SGD(self.parameters(), lr=lr)
+
+            if reduce_lr_on_plateau:
+                lr_scheduler = {
+                    'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                    'monitor': monitor,
+                    'strict': True,
+                }
+            else:
+                lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
+
+            return [optimizer], [lr_scheduler]
+
+        def on_train_epoch_end(self):
+            if 'train' in monitor:
+                self.scores.append(self.trainer.logged_metrics[monitor])
+
+        def on_validation_epoch_end(self):
+            if not self.trainer.sanity_checking and 'val' in monitor:
+                self.scores.append(self.trainer.logged_metrics[monitor])
 
     filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
     checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
+
+    model = CustomBoringModel()
 
     if validation_step_none:
         model.validation_step = None
