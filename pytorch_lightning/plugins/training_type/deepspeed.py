@@ -359,6 +359,13 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
+        if self.zero_stage_3:
+            # Ensure the entire model has been moved to the appropriate device
+            dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
+            deepspeed.zero.Init(
+                module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
+            )
+
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
         else:
@@ -382,10 +389,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _initialize_deepspeed_train(self, model):
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
-
-        if self.zero_stage_3:
-            # Ensure the entire model has been moved to the appropriate device
-            deepspeed.zero.Init(module=model, remote_device=self.remote_device, pin_memory=True, config=self.config)
 
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -413,14 +416,19 @@ class DeepSpeedPlugin(DDPPlugin):
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
+            dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
             model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config=self.config
+                remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
             )
         else:
             model_parallel_context = super().model_sharded_context()
 
         with model_parallel_context:
             yield
+
+    @property
+    def precision(self) -> Union[str, int]:
+        return self.lightning_module.trainer.precision
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get('activation_checkpointing'):
