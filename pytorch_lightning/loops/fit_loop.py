@@ -66,8 +66,7 @@ class FitLoop(Loop):
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
-        """Setter for the current epoch
-        """
+        """Setter for the current epoch"""
         self.iteration_count = value
 
     @property
@@ -151,7 +150,7 @@ class FitLoop(Loop):
                     f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                     ' not been met. Training will continue...'
                 )
-                self.trainer.should_stop = False
+        self.trainer.should_stop = should_stop
 
         return stop_steps or should_stop or stop_epochs
 

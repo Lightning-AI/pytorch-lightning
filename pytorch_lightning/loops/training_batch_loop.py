@@ -691,7 +691,7 @@ class TrainingBatchLoop(Loop):
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
                 step_kwargs['optimizer_idx'] = opt_idx
-            elif not has_opt_idx_in_train_step and self.trainer.lightning_module.automatic_optimization:
+            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'
