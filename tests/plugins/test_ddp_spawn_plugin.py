@@ -76,7 +76,7 @@ def test_ddp_gpu():
 @RunIf(min_gpus=2)
 def test_ddp_multigpu():
     """Tests if device is set correctely when training for DDPSpawnPlugin."""
-    trainer = Trainer(num_processes=2, fast_dev_run=True, gpus=2, accelerator='ddp_spawn')
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert trainer.training_type_plugin.on_gpu
