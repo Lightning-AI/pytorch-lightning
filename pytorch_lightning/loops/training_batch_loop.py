@@ -86,7 +86,6 @@ class TrainingBatchLoop(Loop):
             batch: the current batch to run the train step on
             batch_idx: the index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
-
         """
         if batch is None:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
@@ -114,7 +113,6 @@ class TrainingBatchLoop(Loop):
             batch: the current batch to run the trainstep on
             batch_idx: the index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
-
         """
         void(batch_idx, dataloader_idx)
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
@@ -160,7 +158,6 @@ class TrainingBatchLoop(Loop):
             split_batch: the current tbptt split of the whole batch
             opt_idx: the index of the current optimizer
             optimizer: the current optimizer
-
         """
         # TODO(@awaelchli): In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
         #   opt_idx=0 to opt_idx=None in the signature here
@@ -223,7 +220,6 @@ class TrainingBatchLoop(Loop):
             optimizer: the current optimizer
             hiddens: the hidden state of the recurrent net
             return_result: the storage of the trainstep results
-
         """
 
         result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
@@ -376,7 +372,6 @@ class TrainingBatchLoop(Loop):
             batch_idx: the index of the current batch
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default called by the optimizer (if possible)
-
         """
         model_ref = self.trainer.lightning_module
 
@@ -410,7 +405,6 @@ class TrainingBatchLoop(Loop):
 
         Args:
             optimizer: the current optimizer
-
         """
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
@@ -421,7 +415,6 @@ class TrainingBatchLoop(Loop):
             batch_idx: the index of the current batch
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
-
         """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
@@ -472,7 +465,6 @@ class TrainingBatchLoop(Loop):
 
         Args:
             batch: the current batch to split
-
         """
         splits = [batch]
         if self.trainer.truncated_bptt_steps is not None:
@@ -559,7 +551,7 @@ class TrainingBatchLoop(Loop):
 
     def training_step_and_backward(
         self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: torch.optim.Optimizer,
-        hiddens: Optional[Tensor]
+        hiddens: Optional[Tensor],
     ) -> STEP_OUTPUT:
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
