@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Dict, Generator
 
 import torch
 from torch.optim import LBFGS, Optimizer
@@ -119,3 +119,10 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Enable autocast context"""
         with torch.cuda.amp.autocast():
             yield
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if "native_amp_scaling_state" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()

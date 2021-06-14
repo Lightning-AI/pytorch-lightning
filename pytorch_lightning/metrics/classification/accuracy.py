@@ -15,7 +15,7 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import Accuracy as _Accuracy
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class Accuracy(_Accuracy):
@@ -37,4 +37,4 @@ class Accuracy(_Accuracy):
         .. deprecated::
             Use :class:`~torchmetrics.Accuracy`. Will be removed in v1.5.0.
         """
-        _ = threshold, top_k, subset_accuracy, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        void(threshold, top_k, subset_accuracy, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

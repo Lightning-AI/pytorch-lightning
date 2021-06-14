@@ -96,7 +96,7 @@ class DDPPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def root_device(self):
+    def root_device(self) -> torch.device:
         return self.parallel_devices[self.local_rank]
 
     @property
@@ -126,7 +126,7 @@ class DDPPlugin(ParallelPlugin):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self):
+    def setup_environment(self) -> None:
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()
@@ -328,7 +328,7 @@ class DDPPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
         """
         Reduces a tensor from several distributed processes to one aggregated tensor.
 
@@ -342,7 +342,7 @@ class DDPPlugin(ParallelPlugin):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, torch.Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args, **kwargs):

@@ -66,7 +66,12 @@ class LightningArgumentParser(ArgumentParser):
         assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
-        return self.add_class_arguments(lightning_class, nested_key, fail_untyped=False)
+        return self.add_class_arguments(
+            lightning_class,
+            nested_key,
+            fail_untyped=False,
+            instantiate=not issubclass(lightning_class, Trainer),
+        )
 
 
 class SaveConfigCallback(Callback):
@@ -76,7 +81,7 @@ class SaveConfigCallback(Callback):
         self,
         parser: LightningArgumentParser,
         config: Union[Namespace, Dict[str, Any]],
-        config_filename: str = 'config.yaml'
+        config_filename: str,
     ) -> None:
         self.parser = parser
         self.config = config
@@ -96,6 +101,7 @@ class LightningCLI:
         model_class: Type[LightningModule],
         datamodule_class: Type[LightningDataModule] = None,
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
+        save_config_filename: str = 'config.yaml',
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
@@ -154,6 +160,7 @@ class LightningCLI:
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
+        self.save_config_filename = save_config_filename
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
         self.seed_everything_default = seed_everything_default
@@ -210,26 +217,10 @@ class LightningCLI:
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
-        self.config_init = self.parser.instantiate_subclasses(self.config)
-        self.instantiate_datamodule()
-        self.instantiate_model()
+        self.config_init = self.parser.instantiate_classes(self.config)
+        self.datamodule = self.config_init.get('data')
+        self.model = self.config_init['model']
         self.instantiate_trainer()
-
-    def instantiate_datamodule(self) -> None:
-        """Instantiates the datamodule using self.config_init['data'] if given"""
-        if self.datamodule_class is None:
-            self.datamodule = None
-        elif self.subclass_mode_data:
-            self.datamodule = self.config_init['data']
-        else:
-            self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
-
-    def instantiate_model(self) -> None:
-        """Instantiates the model using self.config_init['model']"""
-        if self.subclass_mode_model:
-            self.model = self.config_init['model']
-        else:
-            self.model = self.model_class(**self.config_init.get('model', {}))
 
     def instantiate_trainer(self) -> None:
         """Instantiates the trainer using self.config_init['trainer']"""
@@ -241,7 +232,8 @@ class LightningCLI:
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
         if self.save_config_callback is not None:
-            self.config_init['trainer']['callbacks'].append(self.save_config_callback(self.parser, self.config))
+            config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
+            self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
     def prepare_fit_kwargs(self) -> None:

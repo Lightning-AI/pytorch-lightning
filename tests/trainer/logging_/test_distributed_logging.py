@@ -24,7 +24,7 @@ class TestModel(BoringModel):
 
     def on_pretrain_routine_end(self) -> None:
         with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
-            self.trainer.logger_connector.log_metrics({'a': 2}, {})
+            self.trainer.logger_connector.log_metrics({'a': 2})
             logged_times = m.call_count
             expected = int(self.trainer.is_global_zero)
             msg = f'actual logger called from non-global zero, logged_times: {logged_times}, expected: {expected}'
