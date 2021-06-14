@@ -48,6 +48,7 @@ class LightningArgumentParser(ArgumentParser):
         self.add_argument(
             '--config', action=ActionConfigFile, help='Path to a configuration file in json or yaml format.'
         )
+        self.callbacks = []
 
     def add_lightning_class_args(
         self,
@@ -63,7 +64,9 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
+        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback))
+        if issubclass(lightning_class, Callback):
+            self.callbacks.append(nested_key)
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
         return self.add_class_arguments(
@@ -226,6 +229,8 @@ class LightningCLI:
         """Instantiates the trainer using self.config_init['trainer']"""
         if self.config_init['trainer'].get('callbacks') is None:
             self.config_init['trainer']['callbacks'] = []
+        callbacks = [self.config_init[c] for c in self.parser.callbacks]
+        self.config_init['trainer']['callbacks'].extend(callbacks)
         if 'callbacks' in self.trainer_defaults:
             if isinstance(self.trainer_defaults['callbacks'], list):
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
