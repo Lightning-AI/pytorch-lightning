@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
-from torch.nn import Module
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
@@ -333,13 +332,6 @@ class DeepSpeedPlugin(DDPPlugin):
             with open(config) as f:
                 config = json.load(f)
         return config
-
-    def setup(self, model: Module) -> None:
-        if not self.lightning_module.automatic_optimization:
-            raise MisconfigurationException(
-                "DeepSpeed Plugin does not support manual optimization currently."
-                "See https://github.com/PyTorchLightning/pytorch-lightning/issues/7957 for more information."
-            )
 
     def setup_distributed(self):
         super().setup_distributed()
