@@ -94,7 +94,6 @@ class TrainingEpochLoop(Loop):
 
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
-
         """
         _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
@@ -129,7 +128,6 @@ class TrainingEpochLoop(Loop):
 
         Raises:
             StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
-
         """
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK

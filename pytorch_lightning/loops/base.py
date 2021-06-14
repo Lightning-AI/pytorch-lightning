@@ -41,7 +41,6 @@ class Loop(ABC):
             on_advance_end()
 
         on_run_end()
-
     """
 
     def __init__(self) -> None:
@@ -90,23 +89,18 @@ class Loop(ABC):
         Hook to be called as the first thing after entering :attr:`run` (except the state reset).
 
         Accepts all arguments passed to :attr:`run`.
-
         """
         void(*args, **kwargs)
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         """
         Hook to be called each time before :attr:`advance` is called. Accepts all arguments passed to :attr`run`.
-
         """
         void(*args, **kwargs)
 
     @abstractmethod
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Performs a single step. Accepts all arguments passed to :attr:`run`.
-
-        """
+        """Performs a single step. Accepts all arguments passed to :attr:`run`."""
 
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""

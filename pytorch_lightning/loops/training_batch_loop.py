@@ -538,7 +538,6 @@ class TrainingBatchLoop(Loop):
 
         Returns:
             context manager with sync behaviour off
-
         """
         if (
             isinstance(self.trainer.training_type_plugin, ParallelPlugin)
@@ -610,7 +609,6 @@ class TrainingBatchLoop(Loop):
             result: The output of the trainstep (including the loss value)
             optimizer: The optimizer optimizing the gradients to call backward for
             opt_idx: the index of the current optimizer
-
         """
         self.trainer.dev_debugger.track_event("backward_call")
 
