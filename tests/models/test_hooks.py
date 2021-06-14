@@ -593,6 +593,9 @@ def test_trainer_model_hook_system_predict(tmpdir):
     assert called == expected
 
 
+# TODO: add test for tune
+
+
 def test_hooks_with_different_argument_names(tmpdir):
     """
     Test that argument names can be anything in the hooks
