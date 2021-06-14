@@ -34,7 +34,7 @@ There are multiple ways you can speed up your model's time to convergence:
 GPU/TPU training
 ****************
 
-**Use when:** Running large datasets or want to speed up your training.
+**Use when:** Whenever possible!
 
 With Lightning, running on GPUs, TPUs or multiple node is a simple switch of a flag.
 
@@ -72,8 +72,6 @@ Prefer DDP over DP
 1. Copy model to device.
 2. Copy data to device.
 3. Copy outputs of each device back to master.
-
-|
 
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
@@ -123,7 +121,7 @@ use ``accelerator=ddp`` so you can increase the ``num_workers``, however your sc
 
 .. code-block:: bash
 
-    python my_program.py --gpus X
+    python my_program.py
 
 
 TPU training
@@ -165,7 +163,7 @@ Mixed precision (16-bit) training
 * You want to optimize for memory usage on a GPU.
 * You have a GPU that supports 16 bit precision.
 * Your optimization algorithm (training_step) is numerically stable.
-* You want to be the cool guy in the lab :p
+* You want to be the cool person in the lab :p
 
 .. raw:: html
 
@@ -178,7 +176,7 @@ Mixed precision (16-bit) training
 
 Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
-Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs. 
+Lightning offers mixed precision or 16-bit training for GPUs and TPUs.
 
 
 .. testcode::
@@ -195,7 +193,7 @@ Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs.
 Control Training Epochs
 ***********************
 
-**Use when:** when you run a hyperparameter search to find good initial parameters and want to save cost (money) or power (environment).
+**Use when:** You run a hyperparameter search to find good initial parameters and want to save time, cost (money), or power (environment).
 It can allow you to be more cost efficient and also run more experiments at the same time.
 
 You can use Trainer flags to force training for a minimum number of epochs or limit to a max number of epochs. Use the `min_epochs` and `max_epochs` Trainer flags to set the number of epochs to run.
@@ -206,7 +204,7 @@ You can use Trainer flags to force training for a minimum number of epochs or li
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
 
-If running iteration based training, i.e. infitine / iterable dataloader, you can also control the number of steps with the `min_steps` and  `max_steps` flags:
+If running iteration based training, i.e. infinite / iterable dataloader, you can also control the number of steps with the `min_steps` and  `max_steps` flags:
 
 .. testcode::
 
@@ -217,7 +215,7 @@ If running iteration based training, i.e. infitine / iterable dataloader, you ca
 You can also interupt training based on training time:
 
 .. testcode::
-    
+
     # Stop after 12 hours of training or when reaching 10 epochs (string)
     trainer = Trainer(max_time="00:12:00:00", max_epochs=10)
 
@@ -249,7 +247,7 @@ You can limit validation check to only run every n epochs using the `check_val_e
 Set validation check frequency within 1 training epoch
 ======================================================
 
-**Use when:** You have a large dataset, and want to run mid-epoch validation checks.
+**Use when:** You have a large training dataset, and want to run mid-epoch validation checks.
 
 For large datasets, it's often desirable to check validation multiple times within a training loop.
 Pass in a float to check that often within 1 training epoch. Pass in an int `k` to check every `k` training batches.
@@ -311,6 +309,8 @@ Learn more in our :ref:`trainer_flags` guide.
 Preload Data Into RAM
 *********************
 
+**Use when:** You need access to all samples in a dataset at once.
+
 When your training or preprocessing requires many operations to be performed on entire dataset(s), it can
 sometimes be beneficial to store all data in RAM given there is enough space.
 However, loading all data at the beginning of the training script has the disadvantage that it can take a long
@@ -339,7 +339,7 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
 Model Toggling
 **************
 
-**Use when:** performing gradient accumulation with multiple optimizers in a
+**Use when:** Performing gradient accumulation with multiple optimizers in a
 distributed setting.
 
 Here is an explanation of what it does:

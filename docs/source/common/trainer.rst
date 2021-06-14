@@ -1159,9 +1159,9 @@ precision
 
 |
 
-Lightning supports either double precision (64), full precision (32) or half precision (16) training.
+Lightning supports either double precision (64), full precision (32), or half precision (16) training.
 
-Half precision, or mixed precision, is the combined use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
+Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
@@ -1184,7 +1184,7 @@ Half precision, or mixed precision, is the combined use of both 32 and 16 bit fl
 .. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. Using 16-bit precision with PyTorch < 1.6 is not recommended, but supported using apex.
    :class: dropdown, warning
 
-    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ inorder to use the native AMP 16-bit precision.
+    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ in order to use the native AMP 16-bit precision with multiple GPUs.
 
     If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
 
@@ -1205,7 +1205,7 @@ Half precision, or mixed precision, is the combined use of both 32 and 16 bit fl
         module load cuda-10.0
         # ------------------------
 
-        # make sure you've loaded a cuda version > 4.0 and < 7.0
+        # make sure you've loaded a GCC version > 4.0 and < 7.0
         module load gcc-6.1.0
 
         $ pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
@@ -1218,8 +1218,8 @@ Half precision, or mixed precision, is the combined use of both 32 and 16 bit fl
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level='O2', precision=16)
 
-    If you need to configure the apex init for your particular use case, or want to ucustumize the
-    16-bit training behviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
+    If you need to configure the apex init for your particular use case, or want to customize the
+    16-bit training behaviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
 
 
 
