@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tupl
 import numpy as np
 import torch
 from deprecate import void
+from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -42,14 +43,14 @@ class TrainingBatchLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.accumulated_loss: torch.Tensor = None
+        self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
         self.warning_cache: WarningCache = WarningCache()
 
-        self._hiddens: Optional[torch.Tensor] = None
+        self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
@@ -210,9 +211,9 @@ class TrainingBatchLoop(Loop):
         batch_idx: int,
         opt_idx: int,
         optimizer: Optimizer,
-        hiddens: torch.Tensor,
+        hiddens: Tensor,
         return_result: AttributeDict,
-    ) -> Optional[torch.Tensor]:
+    ) -> Optional[Tensor]:
         """Closure for training step and backward
 
         Args:
@@ -248,7 +249,7 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
-    def on_after_backward(self, batch_idx: int, untouched_loss: torch.Tensor) -> None:
+    def on_after_backward(self, batch_idx: int, untouched_loss: Tensor) -> None:
         """Calls ``on_after_backward`` hook and tracks loss history
 
         Args:
@@ -270,13 +271,13 @@ class TrainingBatchLoop(Loop):
             training_step_output: the output of the training step (before wrapping in an AttributeDict)
 
         """
-        if isinstance(training_step_output, torch.Tensor) and not self.trainer.lightning_module.automatic_optimization:
+        if isinstance(training_step_output, Tensor) and not self.trainer.lightning_module.automatic_optimization:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
         elif self.trainer.lightning_module.automatic_optimization:
             if not any((
-                isinstance(training_step_output, torch.Tensor),
+                isinstance(training_step_output, Tensor),
                 (isinstance(training_step_output, Mapping)
                  and 'loss' in training_step_output), training_step_output is None
             )):
@@ -285,8 +286,7 @@ class TrainingBatchLoop(Loop):
                     "a dict with key 'loss' or None (where the step will be skipped)."
                 )
 
-    def training_step(self, split_batch: Any, batch_idx: int, opt_idx: int,
-                      hiddens: torch.Tensor) -> Optional[AttributeDict]:
+    def training_step(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor) -> Optional[AttributeDict]:
         """Performs the actual train step with the tied hooks.
 
         Args:
@@ -354,7 +354,7 @@ class TrainingBatchLoop(Loop):
             results.extra = training_step_output
 
         # handle scalar return
-        elif isinstance(training_step_output, torch.Tensor):
+        elif isinstance(training_step_output, Tensor):
             loss = training_step_output
 
         # map to results under the hood
@@ -425,7 +425,7 @@ class TrainingBatchLoop(Loop):
         """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, torch.Tensor]:
+    def track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
 
         Args:
@@ -480,7 +480,7 @@ class TrainingBatchLoop(Loop):
                 splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
         return splits
 
-    def build_train_args(self, batch: Any, batch_idx: int, opt_idx: int, hiddens: torch.Tensor) -> List[Any]:
+    def build_train_args(self, batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor) -> List[Any]:
         """Builds arguments for train step
 
         Args:
@@ -558,7 +558,7 @@ class TrainingBatchLoop(Loop):
 
     def training_step_and_backward(
         self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: torch.optim.Optimizer,
-        hiddens: Optional[torch.Tensor]
+        hiddens: Optional[Tensor]
     ) -> STEP_OUTPUT:
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
@@ -593,7 +593,7 @@ class TrainingBatchLoop(Loop):
 
         return result
 
-    def _check_finite(self, loss: torch.Tensor) -> None:
+    def _check_finite(self, loss: Tensor) -> None:
         """Checks fotr finite parameters and loss values.
 
         Args:
@@ -620,7 +620,7 @@ class TrainingBatchLoop(Loop):
         should_accumulate = self.should_accumulate()
 
         # backward can be called manually in the training loop
-        if isinstance(result, torch.Tensor):
+        if isinstance(result, Tensor):
             self.trainer.accelerator.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator.backward(
@@ -634,7 +634,7 @@ class TrainingBatchLoop(Loop):
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
-    def update_running_loss(self, current_loss: torch.Tensor) -> None:
+    def update_running_loss(self, current_loss: Tensor) -> None:
         """Updates the running loss value with the current value"""
         if self.trainer.lightning_module.automatic_optimization:
             # track total loss for logging (avoid mem leaks)
@@ -668,8 +668,7 @@ class TrainingBatchLoop(Loop):
         opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, opt_idx: int,
-                      hiddens: Optional[torch.Tensor]) -> Dict[str, Any]:
+    def _build_kwargs(self, batch: Any, batch_idx: int, opt_idx: int, hiddens: Optional[Tensor]) -> Dict[str, Any]:
         """Builds the keyword arguments for training_step
 
         Args:
