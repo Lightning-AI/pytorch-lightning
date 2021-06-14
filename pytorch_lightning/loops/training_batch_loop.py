@@ -76,7 +76,6 @@ class TrainingBatchLoop(Loop):
         """Resets the loop state"""
         self._hiddens = None
         self.batch_idx = 0
-        # TODO: let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
@@ -438,9 +437,7 @@ class TrainingBatchLoop(Loop):
         return grad_norm_dict
 
     def _accumulated_batches_reached(self) -> bool:
-        """
-        Determine if accumulation will be finished by the end of the current batch.
-        """
+        """Determine if accumulation will be finished by the end of the current batch."""
         # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
         return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
