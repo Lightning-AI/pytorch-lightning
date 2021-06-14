@@ -128,7 +128,7 @@ def test_deepspeed_fail_manual_optimization(tmpdir):
             return False
 
     model = TestModel()
-    trainer = Trainer(plugins='deepspeed')
+    trainer = Trainer(plugins='deepspeed', precision=16)
     with pytest.raises(
         MisconfigurationException, match="DeepSpeed Plugin does not support manual optimization currently."
     ):
