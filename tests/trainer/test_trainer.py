@@ -266,11 +266,6 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
             self.opt_step_called = True
             return out
 
-        def on_after_backward(self):
-            # should override `optimizer_step` instead but can't with `accumulate_grad_batches`
-            # replace with the above after https://github.com/PyTorchLightning/pytorch-lightning/issues/6910
-            self.opt_step_called = True
-
         def on_train_batch_start(self, *_):
             self.start_state_dict = self.state_dict()
             self.opt_step_called = False
