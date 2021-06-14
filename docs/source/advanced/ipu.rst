@@ -62,7 +62,8 @@ You can also use pure 16-bit training, where the weights are also in 16 bit prec
     from pytorch_lightning.plugins import IPUPlugin
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, precision=16, plugins=IPUPlugin(convert_model_to_half=True))
+    model = model.half()
+    trainer = pl.Trainer(ipus=8, precision=16)
     trainer.fit(model)
 
 Advanced IPU Options
