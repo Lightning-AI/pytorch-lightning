@@ -339,9 +339,10 @@ class Trainer(
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
         self.evaluation_loop = EvaluationDataLoaderLoop()
+        self.predict_loop = PredictLoop(self)
+        
         self.fit_loop.connect(self)
         self.evaluation_loop.connect(self)
-        self.predict_loop = PredictLoop(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
