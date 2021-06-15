@@ -19,7 +19,6 @@ from typing import Any, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -67,7 +66,6 @@ class IPUPlugin(ParallelPlugin):
         device_iterations: int = 1,
         autoreport: bool = True,
         autoreport_dir: Optional[str] = None,
-        convert_model_to_half: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         training_opts: Optional['poptorch.Options'] = None,
@@ -82,7 +80,6 @@ class IPUPlugin(ParallelPlugin):
             autoreport: Enable auto-reporting for IPUs using PopVision
                 https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html
             autoreport_dir: Optional directory to store autoReport output.
-            convert_model_to_half: Converts the model to half precision, which can be used for pure FP16 training.
             training_opts: Optional ``poptorch.Options`` to override the default created options for training.
             inference_opts: Optional ``poptorch.Options`` to override the default
                 created options for validation/testing and predicting.
@@ -94,7 +91,6 @@ class IPUPlugin(ParallelPlugin):
                 "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
             )
 
-        self.convert_model_to_half = convert_model_to_half
         self.device_iterations = device_iterations
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
@@ -113,12 +109,7 @@ class IPUPlugin(ParallelPlugin):
 
     def pre_dispatch(self) -> None:
         self._handle_gradient_accumulation_steps()
-        if self.convert_model_to_half:
-            log.info('Using full 16bit precision, converting LightningModule weights to FP16.')
-            self.model = self.model.half()
         precision = self.lightning_module.trainer.precision
-        precision = 16 if self.convert_model_to_half else precision
-
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
 
