@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class TrainerOptimizersMixin(ABC):
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
+    _map_sch_to_opt: Optional[Dict[int, List[int]]]
 
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         self._lightning_optimizers = None
@@ -116,10 +117,10 @@ class TrainerOptimizersMixin(ABC):
 
     def _create_scheduler_optimizer_mapping(self, optimizers, lr_schedulers):
         """Populate `opt_idx` field of the lr_scheduler with mapped optimizers."""
-        for lr_scheduler in lr_schedulers:
-            sch_opt = lr_scheduler['scheduler'].optimizer
-            optimizer_idxs = [opt_idx for opt_idx, opt in enumerate(optimizers) if sch_opt == opt]
-            lr_scheduler["opt_idx"] = optimizer_idxs
+        self._map_sch_to_opt = {}
+        for sch_idx, lr_sch in enumerate(lr_schedulers):
+            sch_opt = lr_sch['scheduler'].optimizer
+            self._map_sch_to_opt[sch_idx] = [opt_idx for opt_idx, opt in enumerate(optimizers) if sch_opt == opt]
 
     def configure_schedulers(
         self,

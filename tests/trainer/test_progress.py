@@ -114,7 +114,7 @@ def test_loop_progress_increment_sequence():
     assert p.epoch.current == Tracker()
 
 
-@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
+@pytest.mark.parametrize("use_multiple_optimizers", [True])
 def test_progress_tracking(use_multiple_optimizers, tmpdir):
     """
     This test verify that progress is correctly incremented during using FitLoop.
