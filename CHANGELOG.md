@@ -89,6 +89,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `torch.nn.UninitializedParameter` in `ModelSummary` ([#7642](https://github.com/PyTorchLightning/pytorch-lightning/pull/7642))
 
 
+- Added `progress tracking` on `FitLoop` ([#7976](https://github.com/PyTorchLightning/pytorch-lightning/pull/7976))
+
+
 ### Changed
 
 
