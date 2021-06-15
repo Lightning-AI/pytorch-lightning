@@ -126,6 +126,11 @@ class QuantizationAwareTraining(Callback):
         input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
             but break compatibility to torchscript and export with ``torch.save``.
 
+        max_num_inputs: maximum number of inputs nodes used by the model in training, evaluation, or
+            testing. This determines how many :class:`torch.quantization.QuantStub`s are needed. If
+            not specified, the model's :attr:~pytorch_lightning.core.lightning.LightningModule.example_input_array`
+            property must be defined
+
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
