@@ -38,6 +38,7 @@ from pytorch_lightning.profiler import (
     PassThroughProfiler,
     PyTorchProfiler,
     SimpleProfiler,
+    XLAProfiler,
 )
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -1178,6 +1179,7 @@ class Trainer(
                 "simple": SimpleProfiler,
                 "advanced": AdvancedProfiler,
                 "pytorch": PyTorchProfiler,
+                "xla": XLAProfiler,
             }
             profiler = profiler.lower()
             if profiler not in PROFILERS:
