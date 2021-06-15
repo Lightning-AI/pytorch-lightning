@@ -25,9 +25,9 @@ class Loop(ABC):
     """
     Basic Loops interface. All classes derived from this must implement the following properties and methods:
 
-        * :attr`done` (property): Condition to break the loop
-        * :attr`reset` (method): Resets the internal state between multiple calls of :attr`run`
-        * :attr`advance` (method): Implements one step of the loop
+        * :attr:`done` (property): Condition to break the loop
+        * :attr:`reset` (method): Resets the internal state between multiple calls of :attr:`run`
+        * :attr:`advance` (method): Implements one step of the loop
 
     This class implements the following loop structure:
 
@@ -41,7 +41,6 @@ class Loop(ABC):
             on_advance_end()
 
         on_run_end()
-
     """
 
     def __init__(self) -> None:
@@ -53,6 +52,11 @@ class Loop(ABC):
     def done(self) -> bool:
         """Property indicating when loop is finished"""
 
+    @property
+    def skip(self) -> bool:
+        """Determine whether to return immediately from the call to :meth:`run`."""
+        return False
+
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators."""
         self.trainer = proxy(trainer)
@@ -61,16 +65,19 @@ class Loop(ABC):
     def reset(self) -> None:
         """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
 
-    def run(self, *args: Any, **kwargs: Any) -> Any:
+    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
         The main entry point to the loop.
 
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
-        until :attr`done` evaluates to ``True``.
+        until :attr:`done` evaluates to ``True``.
 
         Returns:
             the output of :attr`on_run_end` (often outputs collected from each step of the loop)
         """
+        if self.skip:
+            return
+
         self.reset()
         self.on_run_start(*args, **kwargs)
 
@@ -79,53 +86,37 @@ class Loop(ABC):
                 self.on_advance_start(*args, **kwargs)
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
-                self.iteration_count = self.increment_iteration(self.iteration_count)
+                self.iteration_count += 1
             except StopIteration:
                 break
 
-        return self.on_run_end()
+        output = self.on_run_end()
+        self.teardown()
+        return output
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """
         Hook to be called as the first thing after entering :attr:`run` (except the state reset).
 
         Accepts all arguments passed to :attr:`run`.
-
         """
         void(*args, **kwargs)
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         """
         Hook to be called each time before :attr:`advance` is called. Accepts all arguments passed to :attr`run`.
-
         """
         void(*args, **kwargs)
 
     @abstractmethod
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Performs a single step. Accepts all arguments passed to :attr:`run`.
-
-        """
+        """Performs a single step. Accepts all arguments passed to :attr:`run`."""
 
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""
 
     def on_run_end(self) -> Any:
-        """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`.
+        """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`."""
 
-        Returns:
-            The returned value from the whole :attr:`run` (typically some aggregated outputs from the loop steps).
-        """
-
-    def increment_iteration(self, iteration: int) -> int:
-        """Helper Function to increment the iteration count.
-        Can be used to increment other counters at the same time.
-
-        Args:
-            iteration: The current iteration (before increment)
-
-        Returns:
-            the incremented iteration count.
-        """
-        return iteration + 1
+    def teardown(self) -> None:
+        """The very last method called inside :meth:`run`. Use to release memory etc."""

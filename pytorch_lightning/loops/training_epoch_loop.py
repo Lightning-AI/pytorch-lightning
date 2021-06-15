@@ -62,7 +62,6 @@ class TrainingEpochLoop(Loop):
         """Returns whether the training should be stopped.
         The criteria are that the number of steps reached the max steps,
         the last batch is reached or the trainer signals to stop (e.g. by early stopping).
-
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
@@ -87,6 +86,12 @@ class TrainingEpochLoop(Loop):
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        # hook
+        self.trainer.logger_connector.on_epoch_start()
+        self.trainer.call_hook("on_epoch_start")
+        self.trainer.call_hook("on_train_epoch_start")
+
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
 
@@ -95,7 +100,6 @@ class TrainingEpochLoop(Loop):
 
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
-
         """
         _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
@@ -111,14 +115,18 @@ class TrainingEpochLoop(Loop):
         if batch_output.signal == -1:
             raise StopIteration
 
+        batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
+        processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
+
         # hook
-        self.on_train_batch_end(
-            self.epoch_output,
-            batch_output.training_step_output,
-            batch,
-            self.iteration_count,
-            self._dataloader_idx,
+        self.trainer.call_hook(
+            'on_train_batch_end', processed_batch_end_outputs, batch, self.iteration_count, self._dataloader_idx
         )
+        self.trainer.call_hook('on_batch_end')
+        self.trainer.logger_connector.on_batch_end()
+
+        # figure out what to track for epoch end
+        self.track_epoch_end_reduce_metrics(self.epoch_output, batch_end_outputs)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
@@ -130,7 +138,6 @@ class TrainingEpochLoop(Loop):
 
         Raises:
             StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
-
         """
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
@@ -247,32 +254,6 @@ class TrainingEpochLoop(Loop):
         # TODO: Can we combine this with training_batch_loop's arg that does a similar check?
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
 
-    # TODO(@awaelchli): merge with on_advance_end()
-    def on_train_batch_end(
-        self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
-        dataloader_idx: int
-    ) -> None:
-        """Runs ``on_train_batch_end`` hook.
-
-        Args:
-            epoch_output: the store to add the batch outputs to
-            batch_end_outputs: the outputs of the batch step
-            batch: the batch this outputs were produced with
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
-
-        """
-        batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
-        processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
-
-        # hook
-        self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
-        self.trainer.call_hook('on_batch_end')
-        self.trainer.logger_connector.on_batch_end()
-
-        # figure out what to track for epoch end
-        self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
-
     def track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
     ) -> None:
@@ -378,7 +359,7 @@ class TrainingEpochLoop(Loop):
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 
-    def increment_accumulated_grad_global_step(self):
+    def increment_accumulated_grad_global_step(self) -> None:
         """increments global step"""
         num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
@@ -406,7 +387,7 @@ class TrainingEpochLoop(Loop):
         if self.trainer.should_stop:
             return True
 
-        # TODO(awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
+        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0

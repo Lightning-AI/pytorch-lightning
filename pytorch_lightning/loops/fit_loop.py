@@ -51,11 +51,8 @@ class FitLoop(Loop):
         max_steps: Optional[int] = None
     ):
         super().__init__()
-        # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-
         self.training_loop = TrainingEpochLoop(min_steps, max_steps)
         self.results = ResultCollection(training=True)
 
@@ -66,8 +63,7 @@ class FitLoop(Loop):
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
-        """Setter for the current epoch
-        """
+        """Setter for the current epoch"""
         self.iteration_count = value
 
     @property
@@ -77,8 +73,7 @@ class FitLoop(Loop):
 
     @global_step.setter
     def global_step(self, value: int) -> None:
-        """Sets the global step (forwards to training_loop)
-        """
+        """Sets the global step (forwards to training_loop)"""
         self.training_loop.global_step = value
 
     @property
@@ -152,9 +147,14 @@ class FitLoop(Loop):
                     f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                     ' not been met. Training will continue...'
                 )
-                self.trainer.should_stop = False
+        self.trainer.should_stop = should_stop
 
         return stop_steps or should_stop or stop_epochs
+
+    @property
+    def skip(self) -> bool:
+        """Whether we should skip the training and immediately return from the call to :meth:`run`."""
+        return self.done or self.trainer.num_training_batches == 0
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
@@ -166,11 +166,6 @@ class FitLoop(Loop):
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
-
-    def run(self) -> None:
-        """Loops over epochs if the training should not be skipped"""
-        if not self._should_skip_training():
-            return super().run()
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
@@ -198,11 +193,6 @@ class FitLoop(Loop):
             window_length=self.trainer.accumulate_grad_batches
         )
 
-        # hook
-        self.trainer.logger_connector.on_epoch_start()
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
-
     def advance(self) -> None:
         """Runs one whole epoch."""
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
@@ -211,7 +201,6 @@ class FitLoop(Loop):
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
             epoch_output = self.training_loop.run(train_dataloader)
-            # log epoch metrics
 
             if epoch_output is None:
                 return
@@ -242,10 +231,10 @@ class FitLoop(Loop):
 
     def on_run_end(self) -> None:
         """Runs teardown logic and calls the ``on_train_end`` hook"""
-
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
+        # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
         self.current_epoch -= 1
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
@@ -272,10 +261,6 @@ class FitLoop(Loop):
 
         # reset bookkeeping
         self.trainer._running_stage = None
-
-    def _should_skip_training(self) -> bool:
-        """Whether we should skip the training"""
-        return self.done or self.trainer.num_training_batches == 0
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""

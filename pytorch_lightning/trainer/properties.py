@@ -485,7 +485,7 @@ class TrainerProperties(ABC):
 
     @property
     def train_loop(self) -> FitLoop:
-        # TODO(@awaelchli): the current train_loop should be renamed to fit_loop
+        # FIXME(@awaelchli): the current train_loop should be renamed to fit_loop
         return self.fit_loop
 
     @property
