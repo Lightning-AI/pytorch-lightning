@@ -447,7 +447,7 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
 
 class ModelParallelClassificationModel(LightningModule):
 
-    def __init__(self, lr: float = 0.01, num_blocks: int = 5, automatic_optimization: bool = True):
+    def __init__(self, lr: float = 0.01, num_blocks: int = 5):
         super().__init__()
         self.lr = lr
         self.num_blocks = num_blocks
@@ -455,8 +455,6 @@ class ModelParallelClassificationModel(LightningModule):
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
         self.test_acc = Accuracy()
-        self.automatic_optimization = automatic_optimization
-        self.training_step = self.training_step_automatic if self.automatic_optimization else self.training_step_manual
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
@@ -471,24 +469,13 @@ class ModelParallelClassificationModel(LightningModule):
         logits = F.softmax(x, dim=1)
         return logits
 
-    def training_step_automatic(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
         self.log('train_loss', loss, prog_bar=True)
         self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         return {"loss": loss}
-
-    def training_step_manual(self, batch, batch_idx):
-        x, y = batch
-        logits = self.forward(x)
-        loss = F.cross_entropy(logits, y)
-        opt = self.optimizers()[0]
-        self.log('train_loss', loss, prog_bar=True)
-        self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
-        opt.zero_grad()
-        self.manual_backward(loss)
-        opt.step()
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -516,6 +503,23 @@ class ModelParallelClassificationModel(LightningModule):
             'scheduler': lr_scheduler,
             'interval': 'step',
         }]
+
+
+class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
+
+    def automatic_optimization(self) -> bool:
+        return False
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.cross_entropy(logits, y)
+        opt = self.optimizers()[0]
+        self.log('train_loss', loss, prog_bar=True)
+        self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -557,9 +561,14 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelManualOptim)
 
 
-def run_checkpoint_test(tmpdir, save_full_weights, automatic_optimization=True, accumulate_grad_batches=2):
+def run_checkpoint_test(
+    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
+):
     seed_everything(1)
-    model = ModelParallelClassificationModel(automatic_optimization=automatic_optimization)
+    if automatic_optimization:
+        model = ModelParallelClassificationModel()
+    else:
+        model = ManualModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
