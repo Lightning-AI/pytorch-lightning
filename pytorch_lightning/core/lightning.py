@@ -1951,13 +1951,28 @@ class LightningModule(
         return size_mb
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        """TODO: add docs after final api."""
+        """Appends the `trainer.callback_metrics` dictionary to the given queue.
+
+        To avoid issues with memory sharing, we cast the data to numpy arrays.
+
+        Args:
+            queue: the instance of the queue to append the data.
+
+        """
         callback_metrics: dict = apply_to_collection(
             self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
         )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        """TODO: add docs after final api."""
+        """Retrieve the `trainer.callback_metrics` dictionary from the given queue.
+
+        To preserve consistency with torch.Tensor, we cast back the data to tensors.
+
+        Args:
+            queue: the instance of the queue from where to get the data.
+
+        """
+        # NOTE: this must be called in the right order to get the `callback_metrics`
         callback_metrics: dict = queue.get()
         self.trainer.callback_metrics = apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
