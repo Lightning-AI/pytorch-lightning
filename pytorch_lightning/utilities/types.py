@@ -39,8 +39,6 @@ TRAIN_DATALOADERS = Union[
     Dict[str, DataLoader],
     Dict[str, Dict[str, DataLoader]],
     Dict[str, Sequence[DataLoader]],
-    # can't import, otherwise circular imports
-    'CombinedLoader',  # noqa: F821 undefined name 'CombinedLoader'
 ]
 # yapf: enable
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
