@@ -346,7 +346,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Return the `default_root_dir` as the `log_dir` when the logger is a `LoggerCollection` ([#8187](https://github.com/PyTorchLightning/pytorch-lightning/pull/8187))
 
 
-- `QuantizationAwareTraining` callback requires either `max_num_inputs` parameter or `model.example_input_array` in order to determine the required number of `QuantStubs` ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
 
 
 ### Deprecated

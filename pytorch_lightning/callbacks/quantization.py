@@ -25,6 +25,7 @@ from torch.quantization import QConfig
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -181,10 +182,11 @@ class QuantizationAwareTraining(Callback):
         # QuantStub converts tensors from floating point to quantized
         if self._max_num_inputs is None:
             if pl_module.example_input_array is None:
-                raise MisconfigurationException(
-                    '`max_num_inputs` or `model.example_input_array must be provided to determine number of QuantStubs'
-                )
-            num_inps = len(pl_module.example_input_array)
+                num_inps = 1
+                rank_zero_warn('Defaulting to singular QuantStub. Use `max_num_inputs` or `model.example_input_array` '
+                               'if your model takes multiple inputs', UserWarning)
+            else:
+                num_inps = len(pl_module.example_input_array)
         else:
             num_inps = self._max_num_inputs
         pl_module.quants = nn.ModuleList([torch.quantization.QuantStub() for _ in range(num_inps)])

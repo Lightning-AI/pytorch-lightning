@@ -116,7 +116,8 @@ def test_quantization_exceptions(tmpdir):
 
     model = RegressionModel()
     model.example_input_array = None
-    with pytest.raises(MisconfigurationException, match='`max_num_inputs` or `model.example_input_array must be'):
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
+    with pytest.warns(UserWarning, match='Defaulting to singular QuantStub'):
         trainer.fit(model, datamodule=RegressDataModule())
 
 
