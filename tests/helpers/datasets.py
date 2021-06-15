@@ -105,7 +105,7 @@ class MNIST(Dataset):
             raise RuntimeError('Dataset not found.')
 
     def _download(self, data_folder: str) -> None:
-        os.makedirs(data_folder)
+        os.makedirs(data_folder, exist_ok=True)
         for url in self.RESOURCES:
             logging.info(f'Downloading {url}')
             fpath = os.path.join(data_folder, os.path.basename(url))
