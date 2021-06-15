@@ -33,7 +33,7 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(self, *args, parse_as_dict: bool = True, **kwargs) -> None:
+    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -55,7 +55,7 @@ class LightningArgumentParser(ArgumentParser):
         lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
         nested_key: str,
         subclass_mode: bool = False
-    ) -> None:
+    ) -> List[str]:
         """
         Adds arguments from a lightning class to a nested key of the parser
 
