@@ -53,26 +53,6 @@ def test_ddp_cpu():
 
     trainer.fit(model)
 
-
-# TODO(edgar): only local debug purposes- remove after ci tests pass.
-'''@RunIf(min_gpus=1)
-def test_ddp_gpu(tmpdir):
-    """Tests if device is set correctely when training for DDPSpawnPlugin."""
-    trainer = Trainer(default_root_dir=tmpdir, num_processes=2, fast_dev_run=True, gpus=1, accelerator='ddp_spawn')
-
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert trainer.training_type_plugin.on_gpu
-    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
-
-    val: float = 1.0
-    val_name: str = "val_acc"
-    model = BoringCallbackDDPSpawnModel(val_name, val)
-    dm = BoringDataModule()
-
-    trainer.fit(model, datamodule=dm)
-    assert trainer.callback_metrics[val_name] == torch.tensor(val)'''
-
-
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
     """Tests if device is set correctely when training for DDPSpawnPlugin."""
