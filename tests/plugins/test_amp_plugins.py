@@ -18,10 +18,10 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
-from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -105,7 +105,7 @@ def test_amp_skip_optimizer(tmpdir):
     Test that optimizers can be skipped when using amp
     """
 
-    class CustomBoringModel(LightningModule):
+    class CustomBoringModel(BoringModel):
 
         def __init__(self):
             super().__init__()
@@ -116,10 +116,6 @@ def test_amp_skip_optimizer(tmpdir):
             x = self.layer1(x)
             x = self.layer2(x)
             return x
-
-        def loss(self, batch, prediction):
-            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-            return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
 
         def training_step(self, batch, batch_idx, optimizer_idx):
             if optimizer_idx == 1:
@@ -136,13 +132,12 @@ def test_amp_skip_optimizer(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         gpus=1,
-        max_epochs=1,
-        limit_train_batches=1,
+        fast_dev_run=1,
         amp_backend='native',
         precision=16,
     )
     model = CustomBoringModel()
-    trainer.fit(model, datamodule=BoringDataModule())
+    trainer.fit(model)
 
 
 @RunIf(min_gpus=2, amp_apex=True, special=True)
