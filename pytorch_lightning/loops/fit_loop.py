@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress, TrainingLoopProgress
+from pytorch_lightning.trainer.progress import FitLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -168,13 +168,8 @@ class FitLoop(Loop):
         if not self._should_skip_training():
             return super().run()
 
-    def _create_progress(self):
-        # create progress tracker
-        # the deepcopy is used to avoid sharing same reference for each optimizer.
-
-        # todo: (tchaton) Temporary check to be removed when progress are added to checkpoint.
-        if getattr(self.training_loop, "progress", None) is None:
-            self.training_loop.progress = TrainingLoopProgress(num_optimizers=len(self.trainer.optimizers))
+    def create_progress(self):
+        self.training_loop.create_progress()
 
         if getattr(self, "progress", None) is None:
             self.progress = FitLoopProgress(train=self.training_loop.progress)
@@ -183,7 +178,7 @@ class FitLoop(Loop):
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
-        self._create_progress()
+        self.create_progress()
 
         self.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")

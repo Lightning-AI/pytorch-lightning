@@ -142,8 +142,9 @@ class OptimizationProgress:
 
 
 @dataclass
-class TrainingLoopProgress(LoopProgress):
+class BatchLoopProgress:
 
+    batch: Progress = field(default_factory=Progress)
     optimizer_idx: Optional[int] = field(default_factory=int)
     num_optimizers: Optional[int] = field(default_factory=int)
     optimizations: Optional[tuple] = field(default_factory=tuple)
@@ -157,10 +158,29 @@ class TrainingLoopProgress(LoopProgress):
                 opt.optimizer.current.reset()
                 opt.scheduler.current.reset()
                 opt.zero_grad.current.reset()
+        self.batch.current.reset()
+
+
+@dataclass
+class TrainingLoopProgress(LoopProgress):
+
+    epoch: Progress = field(default_factory=Progress)
+    batch_loop: BatchLoopProgress = field(default_factory=BatchLoopProgress)
+
+    def increment_epoch_completed(self) -> None:
+        self.epoch.increment_completed()
+        self.reset_on_epoch()
+
+    def reset_on_batch(self) -> None:
+        if self.batch_loop.optimizations is not None:
+            for opt in self.batch_loop.optimizations:
+                opt.optimizer.current.reset()
+                opt.scheduler.current.reset()
+                opt.zero_grad.current.reset()
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
-        self.batch.current.reset()
+        self.batch_loop.reset_on_batch()
 
 
 @dataclass

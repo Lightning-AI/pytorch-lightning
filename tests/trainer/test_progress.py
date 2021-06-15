@@ -160,8 +160,10 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
     assert pr.epoch.current == Tracker(ready=2, started=2, processed=2, completed=2)
 
+    pr = trainer.fit_loop.training_loop.batch_loop.progress
+
     assert pr.batch.total == Tracker(ready=6, started=6, processed=6, completed=6)
-    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
+    assert pr.batch.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
     num_optimizers = 3 if use_multiple_optimizers else 1
     for opt_idx in range(num_optimizers):

@@ -88,10 +88,10 @@ class TrainingEpochLoop(Loop):
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # reset tracking
-        self.trainer.fit_loop.progress.train.reset_on_epoch()
+        self.progress.reset_on_epoch()
 
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.trainer.fit_loop.progress.train.epoch.increment_ready()
 
         # hook
@@ -111,8 +111,6 @@ class TrainingEpochLoop(Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         _, (batch, is_last) = next(dataloader_iter)
-
-        self.progress.batch.increment_ready()
 
         self.is_last_batch = is_last
 
@@ -136,8 +134,6 @@ class TrainingEpochLoop(Loop):
         )
         self.trainer.call_hook('on_batch_end')
         self.trainer.logger_connector.on_batch_end()
-
-        self.progress.batch.increment_completed()
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(self.epoch_output, batch_end_outputs)
@@ -225,6 +221,12 @@ class TrainingEpochLoop(Loop):
         self.progress.epoch.increment_completed()
 
         return self.epoch_output
+
+    def create_progress(self):
+        self.batch_loop.create_progress()
+
+        if getattr(self, "progress", None) is None:
+            self.progress = TrainingLoopProgress(batch=self.batch_loop.progress)
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""

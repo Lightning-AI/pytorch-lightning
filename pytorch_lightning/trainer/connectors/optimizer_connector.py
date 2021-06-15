@@ -79,7 +79,8 @@ class OptimizerConnector:
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
                 for opt_idx in lr_scheduler['opt_idx']:
-                    self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].scheduler.increment_ready()
+                    self.trainer.fit_loop.training_loop.batch_loop.progress.optimizations[opt_idx
+                                                                                          ].scheduler.increment_ready()
 
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
@@ -87,13 +88,14 @@ class OptimizerConnector:
                     lr_scheduler['scheduler'].step()
 
                 for opt_idx in lr_scheduler['opt_idx']:
-                    self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].scheduler.increment_completed()
+                    self.trainer.fit_loop.training_loop.batch_loop.progress.optimizations[
+                        opt_idx].scheduler.increment_completed()
 
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.train_loop.batch_idx,
+                        self.trainer.training_loop.batch_idx,
                         interval,
                         scheduler_idx,
                         old_lr,
