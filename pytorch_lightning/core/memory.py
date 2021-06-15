@@ -21,9 +21,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -118,7 +123,7 @@ class LayerSummary(object):
     @property
     def num_parameters(self) -> int:
         """ Returns the number of parameters in this module. """
-        return sum(np.prod(p.shape) for p in self._module.parameters())
+        return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary(object):
@@ -225,11 +230,13 @@ class ModelSummary(object):
 
     @property
     def total_parameters(self) -> int:
-        return sum(p.numel() for p in self._model.parameters())
+        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+        return sum(
+            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
+        )
 
     @property
     def model_size(self) -> float:
@@ -438,3 +445,15 @@ def get_human_readable_count(number: int) -> str:
         return f"{int(number):,d} {labels[index]}"
 
     return f"{number:,.1f} {labels[index]}"
+
+
+def _is_lazy_weight_tensor(p: Tensor) -> bool:
+    if _TORCH_GREATER_EQUAL_1_8:
+        from torch.nn.parameter import UninitializedParameter
+        if isinstance(p, UninitializedParameter):
+            warning_cache.warn(
+                "A layer with UninitializedParameter was found. "
+                "Thus, the total number of parameters detected may be inaccurate."
+            )
+            return True
+    return False
