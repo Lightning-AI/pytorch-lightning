@@ -16,7 +16,6 @@ import os
 import pickle
 from argparse import Namespace
 from dataclasses import dataclass
-from typing import Optional
 
 import cloudpickle
 import pytest
