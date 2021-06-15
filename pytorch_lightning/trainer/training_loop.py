@@ -456,10 +456,6 @@ class TrainLoop:
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
-
-            with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
-
             with self.trainer.profiler.profile("run_training_batch"):
                 batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
@@ -475,9 +471,6 @@ class TrainLoop:
                 batch_idx,
                 dataloader_idx,
             )
-
-            # release memory before running any other hooks
-            del batch
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
