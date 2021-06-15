@@ -16,7 +16,7 @@ import inspect
 import pickle
 import types
 from argparse import Namespace
-from dataclasses import is_dataclass, fields
+from dataclasses import fields, is_dataclass
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from pytorch_lightning.utilities import rank_zero_warn
