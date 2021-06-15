@@ -219,7 +219,7 @@ class FitLoop(Loop):
         if self.training_loop.batches_seen == 0:
             return
 
-        self.training_loop.update_lr_schedulers('epoch')
+        self.training_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
         did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.should_skip_evaluation(
             self.trainer.num_val_batches
