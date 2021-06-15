@@ -25,7 +25,7 @@ import uuid
 from abc import ABC
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, Iterable
 
 import numpy as np
 import onnx
@@ -1844,7 +1844,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if not isinstance(input_sample, (tuple, list)):
+        if not isinstance(input_sample, (Tuple, List)):
             input_sample = (input_sample, )
 
         if "example_outputs" not in kwargs:
@@ -1853,26 +1853,27 @@ class LightningModule(
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
 
-        def default_model_check_fn(p, inp, torch_outs):
-            # generic graph integrity checks
-            onnx_model = onnx.load(p)
-            onnx.checker.check_model(onnx_model)
-
-            # get ONNX outputs
-            ort_session = onnxruntime.InferenceSession(p)
-            ort_inputs = {inp.name: sample.detach().cpu().numpy() for inp, sample in zip(ort_session.get_inputs(), inp)}
-            ort_outs = ort_session.run(None, ort_inputs)
-
-            # compare against PyTorch outputs
-            if not isinstance(torch_outs, (tuple, list)):
-                torch_outs = (torch_outs, )
-            for ort_out, torch_out in zip(ort_outs, torch_outs):
-                np.testing.assert_allclose(torch_out.detach().cpu().numpy(), ort_out, rtol=1e-03, atol=1e-05)
-
-        model_check_fn = model_check_fn or default_model_check_fn
+        model_check_fn = model_check_fn or self._default_model_check_fn
         model_check_fn(file_path, input_sample, kwargs['example_outputs'])
 
         self.train(mode)
+        
+    @staticmethod
+    def _default_model_check_fn(p, inp, torch_outs):
+        # generic graph integrity checks
+        onnx_model = onnx.load(p)
+        onnx.checker.check_model(onnx_model)
+
+        # get ONNX outputs
+        ort_session = onnxruntime.InferenceSession(p)
+        ort_inputs = {inp.name: sample.detach().cpu().numpy() for inp, sample in zip(ort_session.get_inputs(), inp)}
+        ort_outs = ort_session.run(None, ort_inputs)
+
+        # compare against PyTorch outputs
+        if not isinstance(torch_outs, (tuple, list)):
+            torch_outs = (torch_outs, )
+        for ort_out, torch_out in zip(ort_outs, torch_outs):
+            np.testing.assert_allclose(torch_out.detach().cpu().numpy(), ort_out, rtol=1e-03, atol=1e-05)
 
     @torch.no_grad()
     def to_torchscript(
