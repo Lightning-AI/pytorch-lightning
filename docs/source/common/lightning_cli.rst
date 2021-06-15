@@ -385,7 +385,7 @@ instantiating the trainer class can be found in :code:`self.config['trainer']`.
 Configurable callbacks
 ~~~~~~~~~~~~~~~~~~~~~~
 
-As explained previously any callback can be added by including it in the config via :code:`class_path` and
+As explained previously, any callback can be added by including it in the config via :code:`class_path` and
 :code:`init_args` entries. However, there are other cases in which a callback should always be present and be
 configurable. This can be implemented as follows:
 
