@@ -92,6 +92,8 @@ practice to create a configuration file and provide this to the tool. A way to d
     nano config.yaml
     # Run training using created configuration
     python trainer.py --config config.yaml
+    # The config JSON can also be passed directly
+    python trainer.py --config '{trainer: {fast_dev_run: True}}'
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
