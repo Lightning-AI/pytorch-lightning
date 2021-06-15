@@ -166,6 +166,9 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
         assert pr.optimizations[opt_idx].optimizer.total == Tracker(ready=6, started=6, processed=None, completed=6)
         assert pr.optimizations[opt_idx].optimizer.current == Tracker(ready=1, started=1, processed=None, completed=1)
 
+        assert pr.optimizations[opt_idx].zero_grad.total == Tracker(ready=6, started=6, processed=None, completed=6)
+        assert pr.optimizations[opt_idx].zero_grad.current == Tracker(ready=1, started=1, processed=None, completed=1)
+
         if use_multiple_optimizers:
             if opt_idx == 0:
                 # update on epoch

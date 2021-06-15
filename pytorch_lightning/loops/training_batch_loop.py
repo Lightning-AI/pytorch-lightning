@@ -422,13 +422,17 @@ class TrainingBatchLoop(Loop):
 
         self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].optimizer.increment_completed()
 
-    def on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
+    def on_before_zero_grad(self, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Calls the ``on_before_zero_grad`` hook.
 
         Args:
             optimizer: the current optimizer
         """
+        self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].zero_grad.increment_ready()
+
         self.trainer.call_hook('on_before_zero_grad', optimizer)
+
+        self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].zero_grad.increment_started()
 
     def optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Zeroes out all gradients of parameters optimized by the current optimizer.
@@ -439,6 +443,8 @@ class TrainingBatchLoop(Loop):
             opt_idx: the index of the current optimizer
         """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+
+        self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].zero_grad.increment_completed()
 
     def track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
@@ -588,7 +594,7 @@ class TrainingBatchLoop(Loop):
                 is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
 
                 if is_first_batch_to_accumulate:
-                    self.on_before_zero_grad(optimizer)
+                    self.on_before_zero_grad(optimizer, opt_idx)
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                 # backward pass
