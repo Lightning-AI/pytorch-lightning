@@ -30,16 +30,16 @@ class OptimizerConnector:
         self.trainer.optimizer_frequencies = []
 
     def update_learning_rates(
-        self, interval: str, opt_indices: Optional[List[int]] = None, skip_plateau_scheduler: bool = False
+        self, interval: str, opt_indices: Optional[List[int]] = None, update_plateau_schedulers: bool = False
     ) -> None:
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
             opt_indices: indices of the optimizers to update.
-            skip_plateau_scheduler: boolean to control whether ReduceLROnPlateau scheduler is being updated.
-                This is required during 'step' interval updates to make sure correct scheduler state
-                is saved during checkpoint.
+            update_plateau_schedulers: control whether ``ReduceLROnPlateau`` or non-plateau schedulers get updated.
+                This is required to make sure correct scheduler state is saved during checkpoint.
+                Non-plateau schedulers get updated before saving checkpoints.
         """
         if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return
@@ -51,8 +51,7 @@ class OptimizerConnector:
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
                 continue
 
-            if interval == "step" and ((skip_plateau_scheduler and lr_scheduler["reduce_on_plateau"]) or
-                                       (not skip_plateau_scheduler and not lr_scheduler["reduce_on_plateau"])):
+            if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
                 continue
 
             current_idx = self.trainer.train_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
