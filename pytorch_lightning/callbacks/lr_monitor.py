@@ -55,7 +55,9 @@ class LearningRateMonitor(Callback):
     In case of multiple optimizers of same type, they will be named ``Adam``,
     ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
     be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
-    ``name`` keyword in the construction of the learning rate schedulers
+    ``name`` keyword in the construction of the learning rate schedulers.
+    A ``name`` keyword can also be used for parameter groups in the 
+    construction of the optimizer.
 
     Example::
 
@@ -65,6 +67,21 @@ class LearningRateMonitor(Callback):
                 'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
                 'name': 'my_logging_name'
             }
+            return [optimizer], [lr_scheduler]
+
+    Example::
+
+        def configure_optimizer(self):
+            optimizer = torch.optim.SGD(
+                [
+                    {
+                        'params': [p for p in self.parameters()], 
+                        'name': 'my_parameter_group_name'
+                    }
+                ], 
+                lr=0.1
+            )
+            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
             return [optimizer], [lr_scheduler]
 
     """
