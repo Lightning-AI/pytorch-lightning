@@ -219,7 +219,10 @@ class EvaluationLoop(Loop):
 
         return step_kwargs
 
-    def _track_output_for_epoch_end(self, outputs: List[Union[ResultCollection, Dict, Tensor]], output: Optional[Union[ResultCollection, Dict, Tensor]]) -> List[Union[ResultCollection, Dict, Tensor]]:
+    def _track_output_for_epoch_end(
+        self, outputs: List[Union[ResultCollection, Dict, Tensor]], output: Optional[Union[ResultCollection, Dict,
+                                                                                           Tensor]]
+    ) -> List[Union[ResultCollection, Dict, Tensor]]:
         if output is not None:
             if isinstance(output, ResultCollection):
                 output = output.detach()
