@@ -397,7 +397,8 @@ configurable. This can be implemented as follows:
     class MyLightningCLI(LightningCLI):
 
         def add_arguments_to_parser(self, parser):
-            parser.add_lightning_class_args(EarlyStopping, 'early_stopping')
+            parser.add_lightning_class_args(EarlyStopping, 'my_early_stopping')
+            parser.set_defaults({'my_early_stopping.patience': 5})
 
     cli = MyLightningCLI(MyModel)
 
@@ -409,7 +410,7 @@ To change the configuration of the :code:`EarlyStopping` in the config it would 
       ...
     trainer:
       ...
-    early_stopping:
+    my_early_stopping:
       patience: 5
 
 
