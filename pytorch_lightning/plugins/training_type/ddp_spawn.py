@@ -16,7 +16,6 @@ import os
 import re
 from typing import Any, List, Optional, Union
 
-import numpy as np
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
@@ -30,7 +29,6 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
@@ -216,6 +214,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+        # get the `callback_metrics` and set it to the trainer
         self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children
@@ -293,7 +292,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.lightning_module.add_to_queue(self.mp_queue)
+            self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
