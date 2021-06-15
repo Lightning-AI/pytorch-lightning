@@ -27,6 +27,8 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -53,7 +55,6 @@ from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -337,8 +338,9 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.evaluation_loop = EvaluationDataLoaderLoop()
         self.fit_loop.connect(self)
-        self.evaluation_loop = EvaluationLoop(self)
+        self.evaluation_loop.connect(self)
         self.predict_loop = PredictLoop(self)
 
         # training state
@@ -384,7 +386,6 @@ class Trainer(
         )
 
         self.evaluation_loop.on_trainer_init()
-        self.predict_loop.on_trainer_init()
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -429,7 +430,21 @@ class Trainer(
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None) -> None:
+        self.num_sanity_val_batches = []
+        self.num_test_batches = []
+        self.num_val_batches = []
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path = None
+        self.tested_ckpt_path = None
+
+        # when true, print evaluation results in .validate() and .test()
+        self.verbose_evaluate = True
+
+
+    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -970,9 +985,9 @@ class Trainer(
             )
             self.validating = True
 
-        # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
+        # TODO: move this check inside new loop
         # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
@@ -984,71 +999,7 @@ class Trainer(
         model.zero_grad()
         torch.set_grad_enabled(False)
 
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
-        # set up the eval loop
-        self.evaluation_loop.setup(max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
-                    output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook + store predictions
-                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-                # log batch metrics
-                self.logger_connector.update_eval_step_metrics()
-
-                # track epoch level outputs
-                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
-
-            # store batch level output per dataloader
-            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
-                self.evaluation_loop.outputs.append(dl_outputs)
-
-        outputs = self.evaluation_loop.outputs
-
-        # reset outputs
-        self.evaluation_loop.outputs = []
-
-        # with a single dataloader don't pass a 2D list
-        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
-            outputs = outputs[0]
-
-        # lightning module method
-        self.evaluation_loop.evaluation_epoch_end(outputs)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        # log epoch metrics
-        eval_loop_results = self.logger_connector.update_eval_epoch_metrics()
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
+        eval_loop_results = self.evaluation_loop.run()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1060,6 +1011,7 @@ class Trainer(
 
         return eval_loop_results
 
+    # TODO: move inside evaluation loop
     def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, ResultCollection):
