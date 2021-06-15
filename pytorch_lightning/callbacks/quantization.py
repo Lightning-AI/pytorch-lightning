@@ -188,8 +188,10 @@ class QuantizationAwareTraining(Callback):
         if self._max_num_inputs is None:
             if pl_module.example_input_array is None:
                 num_inps = 1
-                rank_zero_warn('Defaulting to singular QuantStub. Use `max_num_inputs` or `model.example_input_array` '
-                               'if your model takes multiple inputs', UserWarning)
+                rank_zero_warn(
+                    'Defaulting to singular QuantStub. Use `max_num_inputs` or `model.example_input_array` '
+                    'if your model takes multiple inputs', UserWarning
+                )
             else:
                 num_inps = len(pl_module.example_input_array)
         else:
