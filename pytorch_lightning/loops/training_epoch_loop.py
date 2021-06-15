@@ -107,6 +107,9 @@ class TrainingEpochLoop(Loop):
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
+        with self.trainer.profiler.profile("training_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
+
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
             self.batches_seen += 1

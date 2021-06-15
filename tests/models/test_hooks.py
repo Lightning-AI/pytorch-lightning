@@ -264,10 +264,10 @@ class HookedModel(BoringModel):
     @staticmethod
     def _train_batch():
         return [
-            'on_train_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
+            'on_train_batch_start',
             'forward',
             'training_step',
             'training_step_end',
@@ -282,10 +282,10 @@ class HookedModel(BoringModel):
     @staticmethod
     def _val_batch():
         return [
-            'on_validation_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
+            'on_validation_batch_start',
             'forward',
             'validation_step',
             'validation_step_end',
@@ -295,10 +295,10 @@ class HookedModel(BoringModel):
     @staticmethod
     def _test_batch():
         return [
-            'on_test_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
+            'on_test_batch_start',
             'forward',
             'test_step',
             'test_step_end',
