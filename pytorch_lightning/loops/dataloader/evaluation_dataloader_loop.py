@@ -13,7 +13,7 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class EvaluationDataLoaderLoop(DataLoaderLoop):
-    """Loops over all dataloaders for evaluation"""
+    """Loops over all dataloaders for evaluation."""
 
     def __init__(self):
         super().__init__()
@@ -149,7 +149,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
         Returns:
             a list of validation dataloaders and a list of corresponding max_batches
-
         """
         model = self.trainer.lightning_module
 

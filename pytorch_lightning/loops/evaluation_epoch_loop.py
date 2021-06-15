@@ -13,10 +13,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 class EvaluationEpochLoop(Loop):
     """
-    This is the loop performing the evaluation.
-    It mainly loops over the given dataloader and runs the evaluation or test step
-    (depending on the trainer's current state).
-
+    This is the loop performing the evaluation. It mainly loops over the given dataloader and runs the validation
+    or test step (depending on the trainer's current state).
     """
 
     def __init__(self) -> None:
@@ -30,11 +28,11 @@ class EvaluationEpochLoop(Loop):
 
     @property
     def done(self) -> bool:
-        """Returns true if the current iteration count reaches the number of dataloader batches"""
+        """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.iteration_count >= self.dl_max_batches
 
     def reset(self) -> None:
-        """Resets the loop"s internal state."""
+        """Resets the loop's internal state."""
         self.iteration_count = 0
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
@@ -62,7 +60,7 @@ class EvaluationEpochLoop(Loop):
     def advance(
         self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
-        """Calls the evaluation step with the corresponding hooks and updates the logger connector
+        """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
         Args:
             dataloader_iter: iterator over the dataloader
@@ -144,7 +142,6 @@ class EvaluationEpochLoop(Loop):
 
         Raises:
             AssertionError: If the number of dataloaders is None (has not yet been set).
-
         """
         self.trainer.logger_connector.on_batch_start()
 

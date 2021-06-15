@@ -36,5 +36,5 @@ class DataLoaderLoop(Loop):
         return self.current_dataloader_idx >= self.num_dataloaders
 
     def reset(self) -> None:
-        """resets the internal state"""
+        """Resets the internal state"""
         self.iteration_count = 0
