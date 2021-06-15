@@ -238,8 +238,16 @@ class TrainingBatchLoop(Loop):
         """
 
         result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+
         if result is not None:
             return_result.update(result)
+
+            # increment optimizer progress tracking: optimizer started
+            # this should be done only if result.loss exists
+            self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_started()
+
+            self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_started()
+
             return return_result.loss
 
     def make_closure(self, *closure_args: Any, **closure_kwargs: Any) -> Callable:
@@ -405,9 +413,6 @@ class TrainingBatchLoop(Loop):
 
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
-
-        # increment optimizer progress tracking: optimizer started
-        self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_started()
 
         # model hook
         model_ref.optimizer_step(

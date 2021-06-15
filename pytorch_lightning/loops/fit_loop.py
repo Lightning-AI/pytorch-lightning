@@ -14,6 +14,7 @@
 
 import logging
 from contextlib import suppress
+from copy import deepcopy
 from typing import Any, List, Optional, Tuple
 
 from deprecate import void
@@ -175,7 +176,8 @@ class FitLoop(Loop):
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
         # create progress tracker
-        optimizations = tuple(OptimizationProgress() for _ in self.trainer.optimizers)
+        # the deepcopy is used to avoid sharing same reference for each optimizer.
+        optimizations = tuple(deepcopy(OptimizationProgress()) for _ in self.trainer.optimizers)
         self.training_loop.progress_tracker = TrainingLoopProgress(optimizations=optimizations)
         self.progress_tracker = FitLoopProgress(train=self.training_loop.progress_tracker)
 

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.progress import FitLoopProgress, TrainingLoopProgress
 from tests.helpers import BoringModel
@@ -81,7 +83,8 @@ def test_progress_tracking_with_3_optimizers(tmpdir):
         def configure_optimizers(self):
             optimizer, lr_scheduler = super().configure_optimizers()
             optimizer, lr_scheduler = optimizer[0], lr_scheduler[0]
-            return [optimizer, optimizer, optimizer], [lr_scheduler, lr_scheduler, lr_scheduler]
+            optimizer_1 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            return [optimizer, optimizer, optimizer_1], [lr_scheduler, lr_scheduler]
 
     model = TestModel()
     model.training_epoch_end = None
@@ -121,14 +124,16 @@ def test_progress_tracking_with_3_optimizers(tmpdir):
     assert progress_tracker.batch.current.processed == 3
     assert progress_tracker.batch.current.completed == 3
 
-    assert progress_tracker.optimizations[0].optimizer.total.ready == 18
-    assert progress_tracker.optimizations[0].optimizer.total.started == 18
-    assert progress_tracker.optimizations[0].optimizer.total.processed is None
-    assert progress_tracker.optimizations[0].optimizer.total.completed == 18
+    for opt_idx in range(3):
 
-    assert progress_tracker.optimizations[0].optimizer.current.ready == 3
-    assert progress_tracker.optimizations[0].optimizer.current.started == 3
-    assert progress_tracker.optimizations[0].optimizer.current.processed is None
-    assert progress_tracker.optimizations[0].optimizer.current.completed == 3
+        assert progress_tracker.optimizations[opt_idx].optimizer.total.ready == 6
+        assert progress_tracker.optimizations[opt_idx].optimizer.total.started == 6
+        assert progress_tracker.optimizations[opt_idx].optimizer.total.processed is None
+        assert progress_tracker.optimizations[opt_idx].optimizer.total.completed == 6
+
+        assert progress_tracker.optimizations[opt_idx].optimizer.current.ready == 1
+        assert progress_tracker.optimizations[opt_idx].optimizer.current.started == 1
+        assert progress_tracker.optimizations[opt_idx].optimizer.current.processed is None
+        assert progress_tracker.optimizations[opt_idx].optimizer.current.completed == 1
 
     assert progress_tracker.optimizer_idx == 2

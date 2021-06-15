@@ -97,6 +97,8 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
         _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
+        self._create_scheduler_optimizer_mapping(optimizers, lr_schedulers)
+
         return optimizers, lr_schedulers, optimizer_frequencies
 
     def convert_to_lightning_optimizers(self):
@@ -111,6 +113,13 @@ class TrainerOptimizersMixin(ABC):
             opt_idx: _convert_to_lightning_optimizer(self, opt)
             for opt_idx, opt in enumerate(self.optimizers)
         }
+
+    def _create_scheduler_optimizer_mapping(self, optimizers, lr_schedulers):
+        # this mapping is used to quickly access optimizers associated to schedulers.
+        for lr_scheduler in lr_schedulers:
+            sch_opt = lr_scheduler['scheduler'].optimizer
+            optimizer_idxs = [opt_idx for opt_idx, opt in enumerate(optimizers) if sch_opt == opt]
+            lr_scheduler["opt_idx"] = optimizer_idxs
 
     def configure_schedulers(
         self,
