@@ -37,25 +37,28 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
 
         def __init__(self, expected_fn, expected_stage):
             super().__init__()
-            self.expected_state = expected_fn
+            self.expected_fn = expected_fn
             self.expected_stage = expected_stage
             self.lr = 0.1
 
-        def on_batch_start(self, *_):
-            assert self.trainer.state == TrainerState(
-                status=TrainerStatus.RUNNING, fn=self.expected_fn, stage=self.expected_stage
-            )
-
         def on_train_batch_start(self, *_):
+            assert self.trainer.state.status == TrainerStatus.RUNNING
+            assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.training
 
         def on_sanity_check_start(self, *_):
+            assert self.trainer.state.status == TrainerStatus.RUNNING
+            assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.sanity_checking
 
         def on_validation_batch_start(self, *_):
+            assert self.trainer.state.status == TrainerStatus.RUNNING
+            assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.validating or self.trainer.sanity_checking
 
         def on_test_batch_start(self, *_):
+            assert self.trainer.state.status == TrainerStatus.RUNNING
+            assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.testing
 
     model = TestModel(TrainerFn.TUNING, RunningStage.TRAINING)

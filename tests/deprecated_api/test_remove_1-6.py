@@ -15,7 +15,9 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 
 
@@ -28,6 +30,28 @@ def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
 
     with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
         trainer.has_arg("training_step", "batch")
+
+
+def test_v1_6_0_dataloader_renaming(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    dl = model.train_dataloader()
+
+    with pytest.deprecated_call(match=r"fit\(train_dataloader\)` is deprecated in v1.4"):
+        trainer.fit(model, train_dataloader=dl)
+
+    with pytest.deprecated_call(match=r"validate\(val_dataloaders\)` is deprecated in v1.4"):
+        trainer.validate(model, val_dataloaders=dl)
+
+    with pytest.deprecated_call(match=r"test\(test_dataloaders\)` is deprecated in v1.4"):
+        trainer.test(model, test_dataloaders=dl)
+
+    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
+        trainer.tune(model, train_dataloader=dl)
+    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
+        trainer.tuner.scale_batch_size(model, train_dataloader=dl)
+    with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
+        trainer.tuner.lr_find(model, train_dataloader=dl)
 
 
 def test_old_transfer_batch_to_device_hook(tmpdir):
@@ -172,3 +196,19 @@ def test_v1_6_0_datamodule_hooks_calls(tmpdir):
     assert dm.prepare_data_calls == 1
     assert dm.setup_calls == ['fit', None]
     assert dm.teardown_calls == ['validate', 'test']
+
+
+def test_v1_6_0_is_overridden_model():
+    model = BoringModel()
+    with pytest.deprecated_call(match="and will be removed in v1.6"):
+        assert is_overridden("validation_step", model=model)
+    with pytest.deprecated_call(match="and will be removed in v1.6"):
+        assert not is_overridden("foo", model=model)
+
+
+def test_v1_6_0_early_stopping_monitor(tmpdir):
+    with pytest.deprecated_call(
+        match=r"The `EarlyStopping\(monitor\)` argument will be required starting in v1.6."
+        " For backward compatibility, setting this to `early_stop_on`."
+    ):
+        EarlyStopping()
