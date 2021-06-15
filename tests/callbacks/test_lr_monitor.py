@@ -309,7 +309,9 @@ def test_lr_monitor_custom_pg_name(tmpdir):
 
 def test_lr_monitor_no_logger(tmpdir):
     tutils.reset_seed()
-    class TestModel(BoringModel):    
+
+    class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.linear_a = torch.nn.Linear(32, 16)
@@ -321,13 +323,17 @@ def test_lr_monitor_no_logger(tmpdir):
             return x
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(
-                [
-                    {'params': [p for p in self.linear_a.parameters()], 'name': 'linear'},
-                    {'params': [p for p in self.linear_b.parameters()], 'name': 'linear'},
-                ], 
-                lr=0.1
-            )
+            optimizer = torch.optim.SGD([
+                {
+                    'params': [p for p in self.linear_a.parameters()],
+                    'name': 'linear'
+                },
+                {
+                    'params': [p for p in self.linear_b.parameters()],
+                    'name': 'linear'
+                },
+            ],
+                                        lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
@@ -343,9 +349,8 @@ def test_lr_monitor_no_logger(tmpdir):
     )
 
     with pytest.raises(
-        MisconfigurationException, 
-        match='A single `Optimizer` cannot have multiple parameter groups with identical'
-        ):
+        MisconfigurationException, match='A single `Optimizer` cannot have multiple parameter groups with identical'
+    ):
         trainer.fit(TestModel())
 
 

@@ -20,7 +20,7 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 from collections import defaultdict
-from typing import Any, DefaultDict, Set, Dict, List, Optional, Type
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Type
 
 from torch.optim.optimizer import Optimizer
 
@@ -56,7 +56,7 @@ class LearningRateMonitor(Callback):
     ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
     be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
     ``name`` keyword in the construction of the learning rate schedulers.
-    A ``name`` keyword can also be used for parameter groups in the 
+    A ``name`` keyword can also be used for parameter groups in the
     construction of the optimizer.
 
     Example::
@@ -75,10 +75,10 @@ class LearningRateMonitor(Callback):
             optimizer = torch.optim.SGD(
                 [
                     {
-                        'params': [p for p in self.parameters()], 
+                        'params': [p for p in self.parameters()],
                         'name': 'my_parameter_group_name'
                     }
-                ], 
+                ],
                 lr=0.1
             )
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
@@ -215,10 +215,10 @@ class LearningRateMonitor(Callback):
                 return f'{name}/pg{param_group_index+1}'
             else:
                 pg_name = param_groups[param_group_index].get('name', f'pg{param_group_index+1}')
-                return f'{name}/{pg_name}' 
+                return f'{name}/{pg_name}'
         else:
             if not use_names:
-                return name 
+                return name
             else:
                 pg_name = param_groups[param_group_index].get('name')
                 return f'{name}/{pg_name}' if pg_name else name
