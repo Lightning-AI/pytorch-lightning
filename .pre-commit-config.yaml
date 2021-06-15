@@ -25,6 +25,19 @@ repos:
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=350', '--enforce-all']
+        exclude: |
+            (?x)^(
+                docs/source/_static/images/general/fast_2.gif|
+                docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source/_static/images/lightning_module/pt_to_pl.png|
+                docs/source/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source/_static/images/general/pl_overview_flat.jpg|
+                docs/source/_static/images/general/pl_overview.gif
+            )$
+      - id: detect-private-key
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.8.0
@@ -38,6 +51,11 @@ repos:
       - id: yapf
         name: Format code
         language: python
+
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: 'v2.3'
+    hooks:
+      - id: vulture
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2

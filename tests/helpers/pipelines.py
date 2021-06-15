@@ -91,7 +91,7 @@ def run_model_test(
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
         checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
-        trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
+        trainer.checkpoint_connector.restore(checkpoint_path)
 
 
 @torch.no_grad()

@@ -232,29 +232,66 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
     """ Verify optimizer.step() applied to last batch while grad accumulation """
 
-    class CurrentModel(BoringModel):
+    class TestModel(BoringModel):
 
-        def on_batch_start(self, *_):
-            self.on_train_batch_start_state_dict = self.state_dict()
+        def state_dict(self, *args, **kwargs):
+            return deepcopy(super().state_dict(*args, **kwargs))
 
-        def on_batch_end(self, outputs, batch, batch_idx, *_):
-            self.on_train_batch_start_end_dict = self.state_dict()
-            for key in self.on_train_batch_start_end_dict.keys():
-                equal = torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
-                if (batch_idx + 1) == self.trainer.num_training_batches:
-                    assert equal
-                else:
-                    assert not equal
+        def check(self, d1, d2, equal=True):
+            keys = d1.keys() | d2.keys()
+            values = [torch.equal(d1[k], d2[k]) for k in keys]
+            return all(values) if equal else not any(values)
 
-    model = CurrentModel()
+        def backward(self, *args, **kwargs) -> None:
+            pre_bwd_state_dict = self.state_dict()
+            assert self.check(self.start_state_dict, pre_bwd_state_dict)
 
+            out = super().backward(*args, **kwargs)
+
+            # state dict is equal, just the gradients changed
+            assert self.check(pre_bwd_state_dict, self.state_dict())
+
+            return out
+
+        # def optimizer_step(self, *args, **kwargs):
+        #     pre_opt_step_state_dict = self.state_dict()
+        #     assert self.check(self.start_state_dict, pre_opt_step_state_dict)
+
+        #     # this calls `backward` and `on_after_backward` inside the closure
+        #     out = super().optimizer_step(*args, **kwargs)
+
+        #     # the state dict changed
+        #     assert self.check(pre_opt_step_state_dict, self.state_dict(), equal=False)
+
+        #     self.opt_step_called = True
+        #     return out
+
+        def on_after_backward(self):
+            # should override `optimizer_step` instead but can't with `accumulate_grad_batches`
+            # replace with the above after https://github.com/PyTorchLightning/pytorch-lightning/issues/6910
+            self.opt_step_called = True
+
+        def on_train_batch_start(self, *_):
+            self.start_state_dict = self.state_dict()
+            self.opt_step_called = False
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, *_):
+            end_state_dict = self.state_dict()
+            is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
+
+            if is_last_batch or self.opt_step_called:
+                assert self.check(self.start_state_dict, end_state_dict, equal=False)
+            else:
+                assert self.check(self.start_state_dict, end_state_dict)
+
+    model = TestModel()
     trainer = Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
         max_epochs=2,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
-        limit_test_batches=0,
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
     )
 
     trainer.fit(model)
@@ -341,7 +378,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     for i, loss in enumerate(losses):
         trainer.train_loop.current_epoch = i
         trainer.train_loop.global_step = i
-        trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
+        trainer.logger_connector.callback_metrics.update({"checkpoint_on": loss})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
@@ -391,7 +428,7 @@ def test_model_checkpoint_only_weights(tmpdir):
 
     # assert restoring train state fails
     with pytest.raises(KeyError, match="checkpoint contains only the model"):
-        trainer.checkpoint_connector.restore_training_state(checkpoint)
+        trainer.checkpoint_connector.restore(new_weights_path)
 
 
 def test_model_freeze_unfreeze():

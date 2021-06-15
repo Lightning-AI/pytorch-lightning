@@ -15,6 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
@@ -32,6 +33,8 @@ from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingT
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
@@ -60,6 +63,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     train_loop: TrainLoop
+    evaluation_loop: EvaluationLoop
     """
     Accelerator properties
     """
@@ -271,8 +275,8 @@ class TrainerProperties(ABC):
         ref_model = cast(LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
-        logged_metrics = self.progress_bar_metrics
-        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        pbar_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:
             rank_zero_warn(
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
@@ -280,9 +284,7 @@ class TrainerProperties(ABC):
                 f" If this is undesired, change the name or override `get_progress_bar_dict()`"
                 f" in `LightingModule`.", UserWarning
             )
-        all_metrics = dict(**standard_metrics)
-        all_metrics.update(**logged_metrics)
-        return all_metrics
+        return {**standard_metrics, **pbar_metrics}
 
     @property
     def disable_validation(self) -> bool:
@@ -357,6 +359,10 @@ class TrainerProperties(ABC):
         found in the Trainer.callbacks list.
         """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
+        return self.checkpoint_connector.resume_checkpoint_path
 
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
@@ -501,6 +507,13 @@ class TrainerProperties(ABC):
     def min_steps(self) -> Optional[int]:
         return self.train_loop.min_steps
 
+    @property
+    def _active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
+        if self.training:
+            return self.train_loop
+        elif self.sanity_checking or self.evaluating:
+            return self.evaluation_loop
+
     """
     Logging properties
     """
@@ -509,25 +522,19 @@ class TrainerProperties(ABC):
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
 
-    @callback_metrics.setter
-    def callback_metrics(self, x: dict) -> None:
-        self.logger_connector.callback_metrics = x
-
     @property
     def logged_metrics(self) -> dict:
         return self.logger_connector.logged_metrics
-
-    @logged_metrics.setter
-    def logged_metrics(self, x: dict) -> None:
-        self.logger_connector.logged_metrics = x
 
     @property
     def progress_bar_metrics(self) -> dict:
         return self.logger_connector.progress_bar_metrics
 
-    @progress_bar_metrics.setter
-    def progress_bar_metrics(self, x: dict) -> None:
-        self.logger_connector.progress_bar_metrics = x
+    @property
+    def _results(self) -> Optional[ResultCollection]:
+        active_loop = self._active_loop
+        if active_loop is not None:
+            return active_loop.results
 
     """
     Other

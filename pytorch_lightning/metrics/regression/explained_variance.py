@@ -15,7 +15,7 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import ExplainedVariance as _ExplainedVariance
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class ExplainedVariance(_ExplainedVariance):
@@ -35,4 +35,4 @@ class ExplainedVariance(_ExplainedVariance):
         .. deprecated::
             Use :class:`~torchmetrics.ExplainedVariance`. Will be removed in v1.5.0.
         """
-        _ = multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        void(multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

@@ -26,7 +26,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class EarlyStopping(Callback):
 
     def __init__(
         self,
-        monitor: str = 'early_stop_on',
+        monitor: Optional[str] = None,
         min_delta: float = 0.0,
         patience: int = 3,
         verbose: bool = False,
@@ -100,7 +100,6 @@ class EarlyStopping(Callback):
         check_on_train_epoch_end: bool = False,
     ):
         super().__init__()
-        self.monitor = monitor
         self.min_delta = min_delta
         self.patience = patience
         self.verbose = verbose
@@ -119,6 +118,13 @@ class EarlyStopping(Callback):
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
+
+        if monitor is None:
+            rank_zero_deprecation(
+                "The `EarlyStopping(monitor)` argument will be required starting in v1.6."
+                " For backward compatibility, setting this to `early_stop_on`."
+            )
+        self.monitor = monitor or "early_stop_on"
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
