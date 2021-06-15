@@ -70,7 +70,7 @@ class TrainingBatchLoop(Loop):
         return self._optimizer_freq_cumsum
 
     def create_progress(self):
-        if getattr(self, "progress", None) is None:
+        if not self.progress:
             self.progress = BatchLoopProgress(num_optimizers=len(self.trainer.optimizers))
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:

@@ -225,7 +225,7 @@ class TrainingEpochLoop(Loop):
     def create_progress(self):
         self.batch_loop.create_progress()
 
-        if getattr(self, "progress", None) is None:
+        if not self.progress:
             self.progress = TrainingLoopProgress(batch=self.batch_loop.progress)
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:

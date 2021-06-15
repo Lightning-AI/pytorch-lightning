@@ -56,6 +56,7 @@ class FitLoop(Loop):
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.training_loop = TrainingEpochLoop(min_steps, max_steps)
         self.results = ResultCollection(training=True)
+        self.progress: Optional[FitLoopProgress] = None
 
     @property
     def current_epoch(self) -> int:
@@ -171,7 +172,7 @@ class FitLoop(Loop):
     def create_progress(self):
         self.training_loop.create_progress()
 
-        if getattr(self, "progress", None) is None:
+        if not self.progress:
             self.progress = FitLoopProgress(train=self.training_loop.progress)
 
         self.progress.train.epoch.current.reset()
