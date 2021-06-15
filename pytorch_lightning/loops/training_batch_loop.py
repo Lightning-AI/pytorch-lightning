@@ -76,7 +76,6 @@ class TrainingBatchLoop(Loop):
         """Resets the loop state"""
         self._hiddens = None
         self.batch_idx = 0
-        # TODO(@awaelchli): let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
         # reset batch tracking
@@ -466,10 +465,8 @@ class TrainingBatchLoop(Loop):
         return grad_norm_dict
 
     def _accumulated_batches_reached(self) -> bool:
-        """
-        Determine if accumulation will be finished by the end of the current batch.
-        """
-        # TODO(@awaelchli): use progress tracking of batches instead of manual batch_idx
+        """Determine if accumulation will be finished by the end of the current batch."""
+        # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
         return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
@@ -478,7 +475,7 @@ class TrainingBatchLoop(Loop):
         Args:
             is_last_batch: Whether the current batch is the last one
         """
-        # TODO(@awaelchli): use progress tracking of batches instead of manual batch_idx
+        # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
         return (self.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self) -> bool:
@@ -566,7 +563,6 @@ class TrainingBatchLoop(Loop):
 
         Returns:
             context manager with sync behaviour off
-
         """
         if (
             isinstance(self.trainer.training_type_plugin, ParallelPlugin)
@@ -638,7 +634,6 @@ class TrainingBatchLoop(Loop):
             result: The output of the trainstep (including the loss value)
             optimizer: The optimizer optimizing the gradients to call backward for
             opt_idx: the index of the current optimizer
-
         """
         self.trainer.dev_debugger.track_event("backward_call")
 
@@ -721,7 +716,7 @@ class TrainingBatchLoop(Loop):
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
                 step_kwargs['optimizer_idx'] = opt_idx
-            elif not has_opt_idx_in_train_step and self.trainer.lightning_module.automatic_optimization:
+            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'

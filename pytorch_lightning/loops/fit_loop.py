@@ -52,11 +52,8 @@ class FitLoop(Loop):
         max_steps: Optional[int] = None
     ):
         super().__init__()
-        # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-
         self.training_loop = TrainingEpochLoop(min_steps, max_steps)
         self.results = ResultCollection(training=True)
 
@@ -67,8 +64,7 @@ class FitLoop(Loop):
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
-        """Setter for the current epoch
-        """
+        """Setter for the current epoch"""
         self.iteration_count = value
 
     @property
@@ -152,7 +148,7 @@ class FitLoop(Loop):
                     f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                     ' not been met. Training will continue...'
                 )
-                self.trainer.should_stop = False
+        self.trainer.should_stop = should_stop
 
         return stop_steps or should_stop or stop_epochs
 
@@ -212,19 +208,6 @@ class FitLoop(Loop):
         self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(
             window_length=self.trainer.accumulate_grad_batches
         )
-
-        # reset tracking
-        self.progress.train.reset_on_epoch()
-
-        self.progress.train.epoch.increment_ready()
-
-        # hook
-        self.trainer.logger_connector.on_epoch_start()
-
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
-
-        self.progress.train.epoch.increment_started()
 
     def advance(self) -> None:
         """Runs one whole epoch."""
