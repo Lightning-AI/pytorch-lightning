@@ -118,6 +118,7 @@ PyTorch Lightning Documentation
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
+   advanced/ipu
    advanced/tpu
    common/test_set
    common/production_inference

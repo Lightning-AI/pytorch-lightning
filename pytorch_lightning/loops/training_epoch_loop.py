@@ -92,14 +92,14 @@ class TrainingEpochLoop(Loop):
         self.progress.reset_on_epoch()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        self.trainer.fit_loop.progress.train.epoch.increment_ready()
+        self.progress.epoch.increment_ready()
 
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
-        self.trainer.fit_loop.progress.train.epoch.increment_started()
+        self.progress.epoch.increment_started()
 
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -111,7 +111,6 @@ class TrainingEpochLoop(Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         _, (batch, is_last) = next(dataloader_iter)
-
         self.is_last_batch = is_last
 
         # ------------------------------------

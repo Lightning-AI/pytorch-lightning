@@ -380,12 +380,12 @@ def test_full_loop(tmpdir):
     assert dm.trainer is not None
 
     # validate
-    result = trainer.validate(datamodule=dm)
+    result = trainer.validate(model, dm)
     assert dm.trainer is not None
     assert result[0]['val_acc'] > 0.7
 
     # test
-    result = trainer.test(datamodule=dm)
+    result = trainer.test(model, dm)
     assert dm.trainer is not None
     assert result[0]['test_acc'] > 0.6
 
