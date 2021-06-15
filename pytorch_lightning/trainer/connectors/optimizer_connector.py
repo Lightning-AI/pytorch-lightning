@@ -95,7 +95,7 @@ class OptimizerConnector:
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.training_loop.batch_idx,
+                        self.trainer.train_loop.batch_idx,
                         interval,
                         scheduler_idx,
                         old_lr,
