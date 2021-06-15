@@ -28,7 +28,7 @@ References
 [3] https://github.com/sid-sundrani/ppo_lightning
 """
 import argparse
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, List, Tuple
 
 import gym
 import torch
@@ -144,7 +144,7 @@ class ExperienceSourceDataset(IterableDataset):
     def __init__(self, generate_batch: Callable):
         self.generate_batch = generate_batch
 
-    def __iter__(self) -> Iterable:
+    def __iter__(self):
         iterator = self.generate_batch()
         return iterator
 
