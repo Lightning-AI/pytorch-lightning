@@ -52,6 +52,11 @@ class Loop(ABC):
     def done(self) -> bool:
         """Property indicating when loop is finished"""
 
+    @property
+    def skip(self) -> bool:
+        """Determine whether to return immediately from the call to :meth:`run`."""
+        return False
+
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators."""
         self.trainer = proxy(trainer)
@@ -60,7 +65,7 @@ class Loop(ABC):
     def reset(self) -> None:
         """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
 
-    def run(self, *args: Any, **kwargs: Any) -> Any:
+    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
         The main entry point to the loop.
 
@@ -70,6 +75,9 @@ class Loop(ABC):
         Returns:
             the output of :attr`on_run_end` (often outputs collected from each step of the loop)
         """
+        if self.skip:
+            return
+
         self.reset()
         self.on_run_start(*args, **kwargs)
 
