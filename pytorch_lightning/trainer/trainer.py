@@ -21,7 +21,6 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
-from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
@@ -65,13 +64,13 @@ from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -416,9 +415,10 @@ class Trainer(
     def fit(
         self,
         model: LightningModule,
-        train_dataloader: Any = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
+        train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -426,12 +426,11 @@ class Trainer(
         Args:
             model: Model to fit.
 
-            train_dataloader: Either a single PyTorch DataLoader or a collection of these
-                (list, dict, nested lists and dicts). In the case of multiple dataloaders, please
-                see this :ref:`page <multiple-training-dataloaders>`
+            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
+                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
+                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
+            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
@@ -441,19 +440,25 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.training = True
 
+        if train_dataloader is not None:
+            rank_zero_deprecation(
+                "`trainer.fit(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
+            )
+            train_dataloaders = train_dataloader
         # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
+        if isinstance(train_dataloaders, LightningDataModule):
+            datamodule = train_dataloaders
+            train_dataloaders = None
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloader is not None or val_dataloaders is not None) and datamodule is not None:
+        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
             raise MisconfigurationException(
                 'You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.fit(datamodule=...)`'
             )
 
         # links data to the trainer
         self.data_connector.attach_data(
-            model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
+            model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
         self._run(model)
@@ -464,10 +469,11 @@ class Trainer(
     def validate(
         self,
         model: Optional[LightningModule] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
+        val_dataloaders=None,  # noqa TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -475,8 +481,8 @@ class Trainer(
         Args:
             model: The model to validate.
 
-            val_dataloaders: Either a single PyTorch DataLoader or a list of them,
-                specifying validation samples.
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
+                or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None``, use the current weights of the model.
@@ -501,11 +507,19 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
 
-        # If you supply a datamodule you can't supply val_dataloaders
-        if val_dataloaders is not None and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass both `trainer.validate(val_dataloaders=..., datamodule=...)`'
+        if val_dataloaders is not None:
+            rank_zero_deprecation(
+                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.validate(dataloaders)` instead."
             )
+            dataloaders = val_dataloaders
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(dataloaders, LightningDataModule):
+            datamodule = dataloaders
+            dataloaders = None
+        # If you supply a datamodule you can't supply val_dataloaders
+        if dataloaders is not None and datamodule:
+            raise MisconfigurationException('You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
         model = model or self.lightning_module
@@ -515,7 +529,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(model, val_dataloaders=val_dataloaders, datamodule=datamodule)
+        self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
         if not model_provided:
             self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
@@ -531,10 +545,11 @@ class Trainer(
     def test(
         self,
         model: Optional[LightningModule] = None,
-        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
+        test_dataloaders=None,  # noqa TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
@@ -543,8 +558,8 @@ class Trainer(
         Args:
             model: The model to test.
 
-            test_dataloaders: Either a single PyTorch DataLoader or a list of them,
-                specifying test samples.
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
+                or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the current weights of the model.
@@ -567,9 +582,19 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
 
+        if test_dataloaders is not None:
+            rank_zero_deprecation(
+                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.test(dataloaders)` instead."
+            )
+            dataloaders = test_dataloaders
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(dataloaders, LightningDataModule):
+            datamodule = dataloaders
+            dataloaders = None
         # If you supply a datamodule you can't supply test_dataloaders
-        if test_dataloaders is not None and datamodule:
-            raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
+        if dataloaders is not None and datamodule:
+            raise MisconfigurationException('You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
         model = model or self.lightning_module
@@ -579,7 +604,7 @@ class Trainer(
             )
 
         # links data to the trainer
-        self.data_connector.attach_data(model, test_dataloaders=test_dataloaders, datamodule=datamodule)
+        self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
         if not model_provided:
             self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
@@ -595,7 +620,7 @@ class Trainer(
     def predict(
         self,
         model: Optional[LightningModule] = None,
-        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = 'best',
@@ -608,7 +633,8 @@ class Trainer(
         Args:
             model: The model to predict with.
 
-            dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
+                or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying prediction samples.
 
             datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
@@ -634,6 +660,10 @@ class Trainer(
 
         self.predict_loop.return_predictions = return_predictions
 
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(dataloaders, LightningDataModule):
+            datamodule = dataloaders
+            dataloaders = None
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
@@ -660,11 +690,12 @@ class Trainer(
     def tune(
         self,
         model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
+        train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -672,11 +703,11 @@ class Trainer(
         Args:
             model: Model to tune.
 
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
+            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
+                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
+                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
+            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -690,19 +721,25 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.tuning = True
 
+        if train_dataloader is not None:
+            rank_zero_deprecation(
+                "`trainer.tune(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.tune(train_dataloaders)` instead. HINT: added 's'"
+            )
+            train_dataloaders = train_dataloader
         # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
+        if isinstance(train_dataloaders, LightningDataModule):
+            datamodule = train_dataloaders
+            train_dataloaders = None
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloader is not None or val_dataloaders is not None) and datamodule is not None:
+        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
             raise MisconfigurationException(
                 'You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`'
             )
 
         # links data to the trainer
         self.data_connector.attach_data(
-            model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
+            model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
         result = self.tuner._tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs)
