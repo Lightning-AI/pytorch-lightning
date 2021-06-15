@@ -456,6 +456,8 @@ class Trainer(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
+        self.checkpoint_connector.resume_start()
+
         self._run(model)
 
         assert self.state.stopped
@@ -722,8 +724,6 @@ class Trainer(
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
 
-        self.checkpoint_connector.resume_start()
-
         # hook
         self.data_connector.prepare_data(model)
         self.callback_connector._attach_model_callbacks(model, self)
@@ -785,7 +785,6 @@ class Trainer(
 
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()
-        self.checkpoint_connector.resume_end()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
@@ -811,6 +810,8 @@ class Trainer(
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
+
+        self.checkpoint_connector.resume_end()
 
         # log hyper-parameters
         if self.logger is not None:
