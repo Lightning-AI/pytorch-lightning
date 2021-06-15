@@ -627,8 +627,8 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-@pytest.mark.parametrize('cpu_offload', [True, False])
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload):
+@pytest.mark.parametrize('offload_optimizer', [True, False])
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
@@ -649,7 +649,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=5,
-        plugins=[DeepSpeedPlugin(stage=2, cpu_offload=cpu_offload)],
+        plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
         limit_val_batches=2,
         precision=16,
