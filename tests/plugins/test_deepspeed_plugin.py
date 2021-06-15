@@ -38,7 +38,6 @@ class ModelParallelBoringModelManualOptim(BoringModel):
     def __init__(self):
         super().__init__()
         self.layer = None
-        self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()[0]
@@ -53,6 +52,10 @@ class ModelParallelBoringModelManualOptim(BoringModel):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
+
+    @property
+    def automatic_optimization(self) -> bool:
+        return False
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -507,6 +510,7 @@ class ModelParallelClassificationModel(LightningModule):
 
 class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
 
+    @property
     def automatic_optimization(self) -> bool:
         return False
 
