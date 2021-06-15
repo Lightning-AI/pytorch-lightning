@@ -153,6 +153,11 @@ class FitLoop(Loop):
 
         return stop_steps or should_stop or stop_epochs
 
+    @property
+    def skip(self) -> bool:
+        """Whether we should skip the training and immediately return from the call to :meth:`run`."""
+        return self.done or self.trainer.num_training_batches == 0
+
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         # TODO(@justusschock): Do we want to forward *args and **kwargs to the inner loop here?
@@ -163,11 +168,6 @@ class FitLoop(Loop):
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
-
-    def run(self) -> None:
-        """Loops over epochs if the training should not be skipped"""
-        if not self._should_skip_training():
-            return super().run()
 
     def create_progress(self):
         self.training_loop.create_progress()
@@ -273,10 +273,6 @@ class FitLoop(Loop):
 
         # reset bookkeeping
         self.trainer._running_stage = None
-
-    def _should_skip_training(self) -> bool:
-        """Whether we should skip the training"""
-        return self.done or self.trainer.num_training_batches == 0
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
