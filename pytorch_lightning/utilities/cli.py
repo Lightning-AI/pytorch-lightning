@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -48,7 +48,7 @@ class LightningArgumentParser(ArgumentParser):
         self.add_argument(
             '--config', action=ActionConfigFile, help='Path to a configuration file in json or yaml format.'
         )
-        self.callbacks = []
+        self.callback_keys: List[str] = []
 
     def add_lightning_class_args(
         self,
@@ -66,7 +66,7 @@ class LightningArgumentParser(ArgumentParser):
         """
         assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback))
         if issubclass(lightning_class, Callback):
-            self.callbacks.append(nested_key)
+            self.callback_keys.append(nested_key)
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
         return self.add_class_arguments(
@@ -229,7 +229,7 @@ class LightningCLI:
         """Instantiates the trainer using self.config_init['trainer']"""
         if self.config_init['trainer'].get('callbacks') is None:
             self.config_init['trainer']['callbacks'] = []
-        callbacks = [self.config_init[c] for c in self.parser.callbacks]
+        callbacks = [self.config_init[c] for c in self.parser.callback_keys]
         self.config_init['trainer']['callbacks'].extend(callbacks)
         if 'callbacks' in self.trainer_defaults:
             if isinstance(self.trainer_defaults['callbacks'], list):
