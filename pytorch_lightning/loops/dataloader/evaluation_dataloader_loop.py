@@ -5,7 +5,7 @@ from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
+from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -20,7 +20,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self._dataloaders: Optional[Union[DataLoader, Sequence[DataLoader]]] = None
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
-        self.evaluation_loop = EvaluationLoop()
+        self.evaluation_loop = EvaluationEpochLoop()
 
         self._val_results = ResultCollection(training=False)
         self._test_results = ResultCollection(training=False)
@@ -121,11 +121,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.on_evaluation_end()
 
         return eval_loop_results
-
-
-# ------------------------------------------------------------------------------------------------------------
-# HELPER --- TO BE CLEANED UP
-# ------------------------------------------------------------------------------------------------------------
 
     def get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader"""

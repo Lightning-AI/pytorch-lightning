@@ -11,7 +11,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-class EvaluationLoop(Loop):
+class EvaluationEpochLoop(Loop):
     """
     This is the loop performing the evaluation.
     It mainly loops over the given dataloader and runs the evaluation or test step
