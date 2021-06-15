@@ -307,7 +307,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
     assert list(lr_monitor.lrs.keys()) == ['lr-SGD/linear']
 
 
-def test_lr_monitor_no_logger(tmpdir):
+def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
     tutils.reset_seed()
 
     class TestModel(BoringModel):
