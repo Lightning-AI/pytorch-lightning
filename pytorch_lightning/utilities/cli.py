@@ -66,11 +66,20 @@ class LightningArgumentParser(ArgumentParser):
         assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
-        return self.add_class_arguments(lightning_class, nested_key, fail_untyped=False)
+        return self.add_class_arguments(
+            lightning_class,
+            nested_key,
+            fail_untyped=False,
+            instantiate=not issubclass(lightning_class, Trainer),
+        )
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts"""
+    """Saves a LightningCLI config to the log_dir when training starts
+
+    Raises:
+        RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
+    """
 
     def __init__(
         self,
@@ -85,6 +94,11 @@ class SaveConfigCallback(Callback):
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
+        if os.path.isfile(config_path):
+            raise RuntimeError(
+                f'{self.__class__.__name__} expected {config_path} to not exist. '
+                'Aborting to avoid overwriting results of a previous run.'
+            )
         self.parser.save(self.config, config_path, skip_none=False)
 
 
@@ -212,26 +226,10 @@ class LightningCLI:
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
-        self.config_init = self.parser.instantiate_subclasses(self.config)
-        self.instantiate_datamodule()
-        self.instantiate_model()
+        self.config_init = self.parser.instantiate_classes(self.config)
+        self.datamodule = self.config_init.get('data')
+        self.model = self.config_init['model']
         self.instantiate_trainer()
-
-    def instantiate_datamodule(self) -> None:
-        """Instantiates the datamodule using self.config_init['data'] if given"""
-        if self.datamodule_class is None:
-            self.datamodule = None
-        elif self.subclass_mode_data:
-            self.datamodule = self.config_init['data']
-        else:
-            self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
-
-    def instantiate_model(self) -> None:
-        """Instantiates the model using self.config_init['model']"""
-        if self.subclass_mode_model:
-            self.model = self.config_init['model']
-        else:
-            self.model = self.model_class(**self.config_init.get('model', {}))
 
     def instantiate_trainer(self) -> None:
         """Instantiates the trainer using self.config_init['trainer']"""
@@ -242,7 +240,7 @@ class LightningCLI:
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
-        if self.save_config_callback is not None:
+        if self.save_config_callback and not self.config_init['trainer']['fast_dev_run']:
             config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
             self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])

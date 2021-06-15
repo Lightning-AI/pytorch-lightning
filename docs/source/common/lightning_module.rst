@@ -441,12 +441,12 @@ There are two ways to call `test()`:
     trainer.fit(model)
 
     # automatically auto-loads the best weights
-    trainer.test(test_dataloaders=test_dataloader)
+    trainer.test(dataloaders=test_dataloader)
 
     # or call with pretrained model
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
-    trainer.test(model, test_dataloaders=test_dataloader)
+    trainer.test(model, dataloaders=test_dataloader)
 
 ----------
 
@@ -1269,6 +1269,12 @@ on_test_epoch_end
 ~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
+    :noindex:
+
+on_test_start
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_start
     :noindex:
 
 on_test_end
