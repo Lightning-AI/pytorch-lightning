@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 
-from pytorch_lightning.trainer.progress import LoopProgress, Progress, Tracker
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Progress, Tracker, TrainingLoopProgress
+from tests.helpers import BoringModel
 
 
 def test_progress_geattr_setattr():
@@ -108,3 +112,112 @@ def test_loop_progress_increment_sequence():
     assert p.batch.current == Tracker()
     assert p.epoch.total == Tracker(completed=1)
     assert p.epoch.current == Tracker()
+
+
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
+def test_progress_tracking(use_multiple_optimizers, tmpdir):
+
+    class TestModel(BoringModel):
+
+        def __init__(self, use_multiple_optimizers: bool):
+            super().__init__()
+            if use_multiple_optimizers:
+                self.configure_optimizers = self.configure_optimizers_3
+
+        def training_step(self, batch, batch_idx, optimizer_idx: int = None):
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers_3(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            optimizer_1 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            return [optimizer, optimizer_1,
+                    optimizer_2], [lr_scheduler, {
+                        "scheduler": lr_scheduler_1,
+                        "interval": "step"
+                    }]
+
+    model = TestModel(use_multiple_optimizers)
+    model.training_epoch_end = None
+
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=3, limit_val_batches=0, callbacks=chk)
+
+    trainer.fit(model)
+
+    assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
+    assert isinstance(trainer.fit_loop.training_loop.progress, TrainingLoopProgress)
+    assert trainer.fit_loop.training_loop.progress == trainer.fit_loop.progress.train
+
+    pr = trainer.fit_loop.training_loop.progress
+
+    assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
+    assert pr.epoch.current == Tracker(ready=2, started=2, processed=2, completed=2)
+
+    assert pr.batch.total == Tracker(ready=6, started=6, processed=6, completed=6)
+    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
+
+    num_optimizers = 3 if use_multiple_optimizers else 1
+    for opt_idx in range(num_optimizers):
+
+        assert pr.optimizations[opt_idx].optimizer.total == Tracker(ready=6, started=6, processed=None, completed=6)
+        assert pr.optimizations[opt_idx].optimizer.current == Tracker(ready=1, started=1, processed=None, completed=1)
+
+        if use_multiple_optimizers:
+            if opt_idx == 0:
+                # update on epoch
+                assert pr.optimizations[opt_idx].scheduler.total == Tracker(
+                    ready=2, started=None, processed=None, completed=2
+                )
+                assert pr.optimizations[opt_idx].scheduler.current == Tracker(
+                    ready=1, started=None, processed=None, completed=1
+                )
+            elif opt_idx == 1:
+                # update on steps
+                assert pr.optimizations[opt_idx].scheduler.total == Tracker(
+                    ready=6, started=None, processed=None, completed=6
+                )
+                assert pr.optimizations[opt_idx].scheduler.current == Tracker(
+                    ready=1, started=None, processed=None, completed=1
+                )
+            else:
+                # no optimizer
+                assert pr.optimizations[opt_idx].scheduler.total == Tracker(
+                    ready=0, started=None, processed=None, completed=0
+                )
+                assert pr.optimizations[opt_idx].scheduler.current == Tracker(
+                    ready=0, started=None, processed=None, completed=0
+                )
+        else:
+            assert pr.optimizations[opt_idx].scheduler.total == Tracker(
+                ready=2, started=None, processed=None, completed=2
+            )
+            assert pr.optimizations[opt_idx].scheduler.current == Tracker(
+                ready=1, started=None, processed=None, completed=1
+            )
+
+    assert pr.optimizer_idx == (2 if use_multiple_optimizers else 0)
+
+    progress = trainer.fit_loop.progress
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        resume_from_checkpoint=chk.last_model_path
+    )
+
+    # todo: (tchaton)  Update this when restore progress is supported.
+    trainer.fit_loop.progress = progress
+    trainer.fit_loop.training_loop.progress = progress.train
+
+    trainer.fit(model)
+
+    pr = trainer.fit_loop.training_loop.progress
+
+    assert pr.epoch.total == Tracker(ready=3, started=3, processed=3, completed=3)
+    assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)

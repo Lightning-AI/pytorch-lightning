@@ -80,7 +80,7 @@ class TrainingBatchLoop(Loop):
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
         # reset batch tracking
-        self.trainer.fit_loop.progress_tracker.train.reset_on_batch()
+        self.trainer.fit_loop.progress.train.reset_on_batch()
 
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
@@ -121,8 +121,7 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        # increment batch progress tracking: batch started
-        self.trainer.fit_loop.progress_tracker.train.batch.increment_started()
+        self.trainer.fit_loop.progress.train.batch.increment_started()
 
     def advance(self, batch, batch_idx, dataloader_idx):
         """Runs the train step together with optimization (if necessary) on the current batch split
@@ -144,20 +143,19 @@ class TrainingBatchLoop(Loop):
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
 
                 # track optimizer_idx
-                self.trainer.fit_loop.progress_tracker.train.optimizer_idx = opt_idx
+                self.trainer.fit_loop.progress.train.optimizer_idx = opt_idx
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
                     self.batch_outputs[opt_idx].append(result.training_step_output)
         else:
-            self.trainer.fit_loop.progress_tracker.train.optimizer_idx = None
+            self.trainer.fit_loop.progress.train.optimizer_idx = None
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
-        # increment batch progress tracking: batch started
-        self.trainer.fit_loop.progress_tracker.train.batch.increment_processed()
+        self.trainer.fit_loop.progress.train.batch.increment_processed()
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency"""
@@ -242,11 +240,8 @@ class TrainingBatchLoop(Loop):
         if result is not None:
             return_result.update(result)
 
-            # increment optimizer progress tracking: optimizer started
             # this should be done only if result.loss exists
-            self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_started()
-
-            self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_started()
+            self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].optimizer.increment_started()
 
             return return_result.loss
 
@@ -279,8 +274,7 @@ class TrainingBatchLoop(Loop):
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
-        # increment optimizer progress tracking: optimizer ready
-        self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_ready()
+        self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].optimizer.increment_ready()
 
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
@@ -426,8 +420,7 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-        # increment optimizer progress tracking: optimizer completed
-        self.trainer.fit_loop.training_loop.progress_tracker.optimizations[opt_idx].optimizer.increment_completed()
+        self.trainer.fit_loop.training_loop.progress.optimizations[opt_idx].optimizer.increment_completed()
 
     def on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.

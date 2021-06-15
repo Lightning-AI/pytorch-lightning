@@ -115,7 +115,7 @@ class TrainerOptimizersMixin(ABC):
         }
 
     def _create_scheduler_optimizer_mapping(self, optimizers, lr_schedulers):
-        # this mapping is used to quickly access optimizers associated to schedulers.
+        """Populate `opt_idx` field of the lr_scheduler with mapped optimizers."""
         for lr_scheduler in lr_schedulers:
             sch_opt = lr_scheduler['scheduler'].optimizer
             optimizer_idxs = [opt_idx for opt_idx, opt in enumerate(optimizers) if sch_opt == opt]

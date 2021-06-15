@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -144,8 +145,11 @@ class OptimizationProgress:
 class TrainingLoopProgress(LoopProgress):
 
     optimizer_idx: Optional[int] = field(default_factory=int)
-    epoch: Progress = field(default_factory=Progress)
+    num_optimizers: Optional[int] = field(default_factory=int)
     optimizations: Optional[tuple] = field(default_factory=tuple)
+
+    def __post_init__(self):
+        self.optimizations = tuple(deepcopy(OptimizationProgress()) for _ in range(self.num_optimizers))
 
     def reset_on_batch(self) -> None:
         if self.optimizations is not None:
@@ -156,7 +160,6 @@ class TrainingLoopProgress(LoopProgress):
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
-        self.epoch.current.reset()
         self.batch.current.reset()
 
 
@@ -164,17 +167,3 @@ class TrainingLoopProgress(LoopProgress):
 class FitLoopProgress:
     train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
     val: LoopProgress = field(default_factory=LoopProgress)
-
-
-@dataclass
-class LoopsTracker:
-    """
-    Basic dataclass to track loop progress across trainer functions during trainer execution.
-
-    This class will be removed and these attributes will live in each loop.
-    """
-
-    fit: FitLoopProgress = field(default_factory=FitLoopProgress)
-    val: LoopProgress = field(default_factory=LoopProgress)
-    test: LoopProgress = field(default_factory=LoopProgress)
-    predict: LoopProgress = field(default_factory=LoopProgress)

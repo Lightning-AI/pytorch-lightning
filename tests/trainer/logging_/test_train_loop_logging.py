@@ -562,9 +562,6 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     assert model.on_train_epoch_end_called
     assert model.on_epoch_end_called
 
-    import pdb
-    pdb.set_trace()
-
 
 def test_logging_in_callbacks_with_log_function(tmpdir):
     """

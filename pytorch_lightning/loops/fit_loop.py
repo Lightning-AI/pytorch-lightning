@@ -14,7 +14,6 @@
 
 import logging
 from contextlib import suppress
-from copy import deepcopy
 from typing import Any, List, Optional, Tuple
 
 from deprecate import void
@@ -24,7 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress, OptimizationProgress, TrainingLoopProgress
+from pytorch_lightning.trainer.progress import FitLoopProgress, TrainingLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -173,13 +172,22 @@ class FitLoop(Loop):
         if not self._should_skip_training():
             return super().run()
 
-    def on_run_start(self) -> None:
-        """Calls the ``on_train_start`` hook."""
+    def _create_progress(self):
         # create progress tracker
         # the deepcopy is used to avoid sharing same reference for each optimizer.
-        optimizations = tuple(deepcopy(OptimizationProgress()) for _ in self.trainer.optimizers)
-        self.training_loop.progress_tracker = TrainingLoopProgress(optimizations=optimizations)
-        self.progress_tracker = FitLoopProgress(train=self.training_loop.progress_tracker)
+
+        # todo: (tchaton) Temporary check to be removed when progress are added to checkpoint.
+        if getattr(self.training_loop, "progress", None) is None:
+            self.training_loop.progress = TrainingLoopProgress(num_optimizers=len(self.trainer.optimizers))
+
+        if getattr(self, "progress", None) is None:
+            self.progress = FitLoopProgress(train=self.training_loop.progress)
+
+        self.progress.train.epoch.current.reset()
+
+    def on_run_start(self) -> None:
+        """Calls the ``on_train_start`` hook."""
+        self._create_progress()
 
         self.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
@@ -206,10 +214,9 @@ class FitLoop(Loop):
         )
 
         # reset tracking
-        self.progress_tracker.train.reset_on_epoch()
+        self.progress.train.reset_on_epoch()
 
-        # increment epoch process tracking: ready
-        self.progress_tracker.train.epoch.increment_ready()
+        self.progress.train.epoch.increment_ready()
 
         # hook
         self.trainer.logger_connector.on_epoch_start()
@@ -217,8 +224,7 @@ class FitLoop(Loop):
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
-        # increment epoch process tracking: started
-        self.progress_tracker.train.epoch.increment_started()
+        self.progress.train.epoch.increment_started()
 
     def advance(self) -> None:
         """Runs one whole epoch."""
