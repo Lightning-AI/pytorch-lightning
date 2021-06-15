@@ -82,7 +82,9 @@ class Loop(ABC):
             except StopIteration:
                 break
 
-        return self.on_run_end()
+        output = self.on_run_end()
+        self.teardown()
+        return output
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """
@@ -107,3 +109,6 @@ class Loop(ABC):
 
     def on_run_end(self) -> Any:
         """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`."""
+
+    def teardown(self) -> None:
+        """The very last method called inside :meth:`run`. Use to release memory etc."""
