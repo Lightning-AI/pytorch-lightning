@@ -160,7 +160,6 @@ class TrainingBatchLoop(Loop):
                 if result:
                     self.batch_outputs[opt_idx].append(result.training_step_output)
         else:
-            self.progress.optimizer_idx = None
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:

@@ -153,7 +153,7 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
 
     assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
     assert isinstance(trainer.fit_loop.training_loop.progress, TrainingLoopProgress)
-    assert trainer.fit_loop.training_loop.progress == trainer.fit_loop.progress.train
+    assert trainer.fit_loop.training_loop.progress is trainer.fit_loop.progress.train
 
     pr = trainer.fit_loop.training_loop.progress
 

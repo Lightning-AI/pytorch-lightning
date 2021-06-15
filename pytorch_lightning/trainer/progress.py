@@ -13,7 +13,7 @@
 # limitations under the License.
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Tuple
 
 
 @dataclass
@@ -146,18 +146,18 @@ class BatchLoopProgress:
 
     batch: Progress = field(default_factory=Progress)
     optimizer_idx: Optional[int] = field(default_factory=int)
-    num_optimizers: Optional[int] = field(default_factory=int)
-    optimizations: Optional[tuple] = field(default_factory=tuple)
+    num_optimizers: int = field(default=1, repr=False)
+    optimizations: Tuple[OptimizationProgress, ...] = field(init=False)
 
     def __post_init__(self):
+        # todo (tchaton) weird bug where ``OptimizationProgress`` share same counters if deepcopy is not used.
         self.optimizations = tuple(deepcopy(OptimizationProgress()) for _ in range(self.num_optimizers))
 
     def reset_on_batch(self) -> None:
-        if self.optimizations is not None:
-            for opt in self.optimizations:
-                opt.optimizer.current.reset()
-                opt.scheduler.current.reset()
-                opt.zero_grad.current.reset()
+        for opt in self.optimizations:
+            opt.optimizer.current.reset()
+            opt.scheduler.current.reset()
+            opt.zero_grad.current.reset()
         self.batch.current.reset()
 
 
