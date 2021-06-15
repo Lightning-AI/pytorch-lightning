@@ -89,7 +89,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `torch.nn.UninitializedParameter` in `ModelSummary` ([#7642](https://github.com/PyTorchLightning/pytorch-lightning/pull/7642))
 
 
-- Added support for `LightningModule` as a dataclass in `LightningModule.save_hyperparameters` ([#7992](https://github.com/PyTorchLightning/pytorch-lightning/pull/7992))
+- Added support `LightningModule.save_hyperparameters` when `LightningModule` is a dataclass ([#7992](https://github.com/PyTorchLightning/pytorch-lightning/pull/7992))
 
 
 ### Changed
