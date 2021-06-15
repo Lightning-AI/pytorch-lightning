@@ -463,12 +463,6 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            # update non-plateau LR schedulers
-            # update epoch-interval ones only when we are at the end of training epoch
-            self.update_lr_schedulers('step', update_plateau_schedulers=False)
-            if self._num_training_batches_reached(is_last_batch):
-                self.update_lr_schedulers('epoch', update_plateau_schedulers=False)
-
             # hook
             self.on_train_batch_end(
                 epoch_output,
@@ -497,8 +491,8 @@ class TrainLoop:
             # -----------------------------------------
             self.save_loggers_on_train_batch_end()
 
-            # update plateau LR scheduler after metrics are logged
-            self.update_lr_schedulers('step', update_plateau_schedulers=True)
+            # update LR schedulers
+            self.update_lr_schedulers('step')
             self.trainer.checkpoint_connector.has_trained = True
 
             self.total_batch_idx += 1
@@ -526,7 +520,7 @@ class TrainLoop:
         self.trainer.logger_connector.update_train_epoch_metrics()
         self.global_step += 1
 
-        self.update_lr_schedulers('epoch', update_plateau_schedulers=True)
+        self.update_lr_schedulers('epoch')
 
         did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.should_skip_evaluation(
             self.trainer.num_val_batches
@@ -805,7 +799,7 @@ class TrainLoop:
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
-    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool = False) -> None:
+    def update_lr_schedulers(self, interval: str) -> None:
         if interval == "step":
             finished_accumulation = self._accumulated_batches_reached()
             finished_epoch = self._num_training_batches_reached()
@@ -814,7 +808,6 @@ class TrainLoop:
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
             opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
-            update_plateau_schedulers=update_plateau_schedulers,
         )
 
     def increment_accumulated_grad_global_step(self):
