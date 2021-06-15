@@ -727,7 +727,7 @@ def test_empty_hparams_container(tmpdir):
 class DataClassModel(BoringModel):
 
     mandatory: int
-    optional: Optional[str] = "optional"
+    optional: str = "optional"
     ignore_me: bool = False
 
     def __post_init__(self):
