@@ -693,10 +693,13 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
 
             lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
             lr_dict_2 = {'scheduler': lr_scheduler2, 'interval': 'step'}
-            return (
-                {'optimizer': optimizer1, 'lr_scheduler': lr_dict_1},
-                {'optimizer': optimizer2, 'lr_scheduler': lr_dict_2}
-            )
+            return ({
+                'optimizer': optimizer1,
+                'lr_scheduler': lr_dict_1
+            }, {
+                'optimizer': optimizer2,
+                'lr_scheduler': lr_dict_2
+            })
 
         def on_save_checkpoint(self, checkpoint):
             lr_dict_1 = checkpoint['lr_schedulers'][0]
