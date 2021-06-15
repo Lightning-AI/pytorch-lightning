@@ -323,17 +323,19 @@ def test_lr_monitor_no_logger(tmpdir):
             return x
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD([
-                {
-                    'params': [p for p in self.linear_a.parameters()],
-                    'name': 'linear'
-                },
-                {
-                    'params': [p for p in self.linear_b.parameters()],
-                    'name': 'linear'
-                },
-            ],
-                                        lr=0.1)
+            optimizer = torch.optim.SGD(
+                [
+                    {
+                        'params': [p for p in self.linear_a.parameters()],
+                        'name': 'linear'
+                    },
+                    {
+                        'params': [p for p in self.linear_b.parameters()],
+                        'name': 'linear'
+                    },
+                ],
+                lr=0.1
+            )
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
