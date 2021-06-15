@@ -118,8 +118,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Simplified "should run validation" logic ([#7682](https://github.com/PyTorchLightning/pytorch-lightning/pull/7682))
     * Simplified logic for updating the learning rate for schedulers ([#7682](https://github.com/PyTorchLightning/pytorch-lightning/pull/7682))
     * Removed the `on_epoch` guard from the "should stop" validation check ([#7701](https://github.com/PyTorchLightning/pytorch-lightning/pull/7701))
-    ...
-    * Refactored internal loop interface; added new classes `EpochLoop`, `TrainingLoop`, `BatchLoop` ([#7871](https://github.com/PyTorchLightning/pytorch-lightning/pull/7871))
+    * Refactored internal loop interface; added new classes `FitLoop`, `TrainingEpochLoop`, `TrainingBatchLoop` ([#7871](https://github.com/PyTorchLightning/pytorch-lightning/pull/7871))
 
 - Refactored logging
     * Renamed and moved `core/step_result.py` to `trainer/connectors/logger_connector/result.py` ([#7736](https://github.com/PyTorchLightning/pytorch-lightning/pull/7736))
