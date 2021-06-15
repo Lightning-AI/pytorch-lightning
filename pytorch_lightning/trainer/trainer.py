@@ -28,7 +28,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
-from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -48,7 +47,6 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
@@ -67,7 +65,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -340,7 +337,7 @@ class Trainer(
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
         self.evaluation_loop = EvaluationDataLoaderLoop()
         self.predict_loop = PredictLoop(self)
-        
+
         self.fit_loop.connect(self)
         self.evaluation_loop.connect(self)
 
@@ -386,7 +383,7 @@ class Trainer(
             terminate_on_nan,
         )
 
-        self.evaluation_loop.on_trainer_init()
+        self.predict_loop.on_trainer_init()
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -443,7 +440,6 @@ class Trainer(
 
         # when true, print evaluation results in .validate() and .test()
         self.verbose_evaluate = True
-
 
     def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
@@ -1011,20 +1007,6 @@ class Trainer(
         torch.set_grad_enabled(True)
 
         return eval_loop_results
-
-    # TODO: move inside evaluation loop
-    def _track_output_for_epoch_end(self, outputs, output):
-        if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
-            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

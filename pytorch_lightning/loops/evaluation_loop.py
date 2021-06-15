@@ -2,10 +2,12 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 from deprecate import void
+from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -93,16 +95,11 @@ class EvaluationLoop(Loop):
         self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
-        self.outputs = self.trainer._track_output_for_epoch_end(self.outputs, output)
+        self.outputs = self._track_output_for_epoch_end(self.outputs, output)
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""
         return self.outputs
-
-
-# ------------------------------------------------------------------------------------------------------------
-# HELPER --- TO BE CLEANED UP
-# ------------------------------------------------------------------------------------------------------------
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).
@@ -221,3 +218,16 @@ class EvaluationLoop(Loop):
             step_kwargs['dataloader_idx'] = dataloader_idx
 
         return step_kwargs
+
+    def _track_output_for_epoch_end(self, outputs: List[Union[ResultCollection, Dict, Tensor]], output: Optional[Union[ResultCollection, Dict, Tensor]]) -> List[Union[ResultCollection, Dict, Tensor]]:
+        if output is not None:
+            if isinstance(output, ResultCollection):
+                output = output.detach()
+                if self.trainer.move_metrics_to_cpu:
+                    output = output.cpu()
+            elif isinstance(output, dict):
+                output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
+            elif isinstance(output, Tensor) and output.is_cuda and self.trainer.move_metrics_to_cpu:
+                output = output.cpu()
+            outputs.append(output)
+        return outputs
