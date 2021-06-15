@@ -680,22 +680,35 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
 
     class TestModel(BoringModel):
 
-        def training_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx, optimizer_idx):
             self.log("foo", batch_idx)
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters())
-            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-            lr_dict = {'scheduler': lr_scheduler, 'interval': 'step', 'monitor': 'foo'}
-            return [optimizer], [lr_dict]
+            optimizer1 = torch.optim.Adam(self.parameters())
+            optimizer2 = torch.optim.Adam(self.parameters())
+
+            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer1)
+            lr_dict_1 = {'scheduler': lr_scheduler1, 'interval': 'step', 'monitor': 'foo'}
+
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            lr_dict_2 = {'scheduler': lr_scheduler2, 'interval': 'step'}
+            return (
+                {'optimizer': optimizer1, 'lr_scheduler': lr_dict_1},
+                {'optimizer': optimizer2, 'lr_scheduler': lr_dict_2}
+            )
 
         def on_save_checkpoint(self, checkpoint):
-            lr_dict = checkpoint['lr_schedulers'][0]
-            # since plateau schedulers are updated after saving checkpoint, last_epoch should be 1
-            assert lr_dict['last_epoch'] == batches - 1  # last epoch starts at 0
+            lr_dict_1 = checkpoint['lr_schedulers'][0]
+            # since plateau schedulers are updated after saving checkpoint, last_epoch should be 3
+            assert lr_dict_1['last_epoch'] == batches - 1  # last epoch starts at 0
+
+            lr_dict_2 = checkpoint['lr_schedulers'][1]
+            assert lr_dict_2['_step_count'] - 1 == batches  # step count starts at 1
+
             self.on_save_checkpoint_called = True
 
     model = TestModel()
+    model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called

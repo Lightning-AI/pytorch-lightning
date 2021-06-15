@@ -162,10 +162,9 @@ def test_model_checkpoint_score_and_ckpt(
         if not reduce_lr_on_plateau:
             actual_step_count = chk['lr_schedulers'][0]['_step_count']
             actual_lr = chk['lr_schedulers'][0]['_last_lr'][0]
-            # if validation_step_none, the checkpoint gets saved after the learning rate update
-            # so we need to increase the count by one
-            assert actual_step_count == epoch + 1 + validation_step_none
-            assert actual_lr == lr * gamma**(epoch + validation_step_none)
+            # checkpoint is saved after updating lr_scheduler states
+            assert actual_step_count == epoch + 2  # step_count starts at 1
+            assert actual_lr == lr * gamma**(epoch + 1)
 
         assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
         assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)
@@ -262,6 +261,13 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         global_ix = ix + per_epoch_val_checks * epoch
         duplicated = bool(version)
 
+        # checkpoint saved at the end of training epoch will have updated
+        # lr_scheduler states
+        if epoch_aligned:
+            epoch_end_checkpoint = ix == (per_epoch_val_checks - 1)
+        else:
+            epoch_end_checkpoint = duplicated
+
         score = model.scores[global_ix]
         expected_score = getattr(model, f'{monitor}s')[global_ix].mean().item()
         expected_filename = f'{monitor}={score:.4f}-epoch={epoch}{version}.ckpt'
@@ -281,8 +287,8 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         if not reduce_lr_on_plateau:
             actual_step_count = chk['lr_schedulers'][0]['_step_count']
             actual_lr = chk['lr_schedulers'][0]['_last_lr'][0]
-            assert actual_step_count == epoch + 1 + duplicated
-            assert actual_lr == lr * gamma**(epoch + duplicated)
+            assert actual_step_count == epoch + 1 + epoch_end_checkpoint
+            assert actual_lr == lr * gamma**(epoch + epoch_end_checkpoint)
 
         return score
 
