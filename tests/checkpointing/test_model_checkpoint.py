@@ -261,8 +261,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         global_ix = ix + per_epoch_val_checks * epoch
         duplicated = bool(version)
 
-        # checkpoint saved at the end of training epoch will have updated
-        # lr_scheduler states
+        # checkpoint saved at the end of training epoch will have updated lr_scheduler states
         if epoch_aligned:
             epoch_end_checkpoint = ix == (per_epoch_val_checks - 1)
         else:

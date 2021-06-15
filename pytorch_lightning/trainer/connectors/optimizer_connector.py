@@ -38,8 +38,9 @@ class OptimizerConnector:
             interval: either 'epoch' or 'step'.
             opt_indices: indices of the optimizers to update.
             update_plateau_schedulers: control whether ``ReduceLROnPlateau`` or non-plateau schedulers get updated.
-                This is required to make sure correct scheduler state is saved during checkpoint.
-                Non-plateau schedulers get updated before saving checkpoints.
+                This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
+                commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
+                so they have to be updated separately.
         """
         if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return

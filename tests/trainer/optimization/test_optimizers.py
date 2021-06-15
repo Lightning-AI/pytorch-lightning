@@ -652,11 +652,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
             lr_dict = checkpoint['lr_schedulers'][0]
             # 2 batches ran. since the lr_dict interval is `step`, the step count should be 2
             assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
-
-            if epoch_interval:
-                compare_to = max_epochs
-            else:
-                compare_to = batches
+            compare_to = max_epochs if epoch_interval else batches
             assert lr_dict['_step_count'] - 1 == compare_to  # step count starts at 1
             assert lr_dict['_last_lr'] == [lr * gamma**compare_to]
             self.on_save_checkpoint_called = True
@@ -685,21 +681,15 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
-            optimizer1 = torch.optim.Adam(self.parameters())
-            optimizer2 = torch.optim.Adam(self.parameters())
+            optimizer_1 = torch.optim.Adam(self.parameters())
+            optimizer_2 = torch.optim.Adam(self.parameters())
 
-            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer1)
+            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
             lr_dict_1 = {'scheduler': lr_scheduler1, 'interval': 'step', 'monitor': 'foo'}
 
-            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer_2, step_size=1)
             lr_dict_2 = {'scheduler': lr_scheduler2, 'interval': 'step'}
-            return ({
-                'optimizer': optimizer1,
-                'lr_scheduler': lr_dict_1
-            }, {
-                'optimizer': optimizer2,
-                'lr_scheduler': lr_dict_2
-            })
+            return [optimizer_1, optimizer_2], [lr_dict_1, lr_dict_2]
 
         def on_save_checkpoint(self, checkpoint):
             lr_dict_1 = checkpoint['lr_schedulers'][0]

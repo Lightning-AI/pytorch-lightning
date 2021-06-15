@@ -118,7 +118,7 @@ class TrainingEpochLoop(Loop):
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
         self.update_lr_schedulers('step', update_plateau_schedulers=False)
-        if self._num_training_batches_reached(is_last_batch):
+        if self._num_training_batches_reached(is_last):
             self.update_lr_schedulers('epoch', update_plateau_schedulers=False)
 
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
@@ -355,11 +355,8 @@ class TrainingEpochLoop(Loop):
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool = False) -> None:
         """updates the lr schedulers based on the given interval"""
-        if interval == "step":
-            finished_accumulation = self.batch_loop._accumulated_batches_reached()
-            finished_epoch = self._num_training_batches_reached()
-            if not finished_accumulation and not finished_epoch:
-                return
+        if interval == "step" and self.batch_loop.should_accumulate():
+            return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
