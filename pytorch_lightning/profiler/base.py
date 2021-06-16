@@ -113,14 +113,20 @@ class BaseProfiler(AbstractProfiler):
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
+    def _add_suffix(self, filename: str, suffix: Optional[str], token: str = '-') -> str:
+        if suffix is None:
+            return filename
+        
+        if len(filename) >= 1 and filename[-1] != token:
+            filename += token
+        return filename + suffix
+
     def _prepare_filename(self, extension: str = ".txt") -> str:
         filename = ""
-        if self._stage is not None:
-            filename += f"{self._stage}-"
-        filename += str(self.filename)
-        if self._local_rank is not None:
-            filename += f"-{self._local_rank}"
-        filename += extension
+        filename = self._add_suffix(filename, self._stage.value if self._stage else None)
+        filename = self._add_suffix(filename, self.filename if self.filename else None)
+        filename = self._add_suffix(filename, str(self._local_rank) if self._local_rank is not None else None)
+        filename += extension if extension else ''
         return filename
 
     def _prepare_streams(self) -> None:
@@ -168,6 +174,7 @@ class BaseProfiler(AbstractProfiler):
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
+        print("LOCAL_RANK 1", self._local_rank)
         self._log_dir = log_dir
         self.dirpath = self.dirpath or log_dir
 
