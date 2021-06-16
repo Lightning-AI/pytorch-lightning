@@ -170,7 +170,8 @@ class LightningModule(
     def datamodule(self) -> Any:
         rank_zero_deprecation(
             "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
-            " Access the datamodule through using `self.trainer.datamodule` instead."
+            " Access the datamodule through using `self.trainer.datamodule` instead.",
+            stacklevel=5,
         )
         return self._datamodule
 
@@ -223,10 +224,10 @@ class LightningModule(
         if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
             batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         else:
-            warning_cache.warn(
+            warning_cache.deprecation(
                 "`transfer_batch_to_device` hook signature has changed in v1.4."
                 " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6", DeprecationWarning
+                " the old signature will be removed in v1.6"
             )
             batch = self.transfer_batch_to_device(batch, device)
 

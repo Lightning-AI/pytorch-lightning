@@ -14,13 +14,13 @@
 
 import logging
 import os
-import warnings
-from functools import partial, wraps
+from functools import wraps
 from typing import Any, Optional, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -65,22 +65,22 @@ def _get_rank() -> int:
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
-def _warn(*args, **kwargs):
-    warnings.warn(*args, **kwargs)
+def _info(*args, stacklevel: int = 2, **kwargs):
+    log.info(*args, stacklevel=stacklevel, **kwargs)
 
 
-def _info(*args, **kwargs):
-    log.info(*args, **kwargs)
+def _debug(*args, stacklevel: int = 2, **kwargs):
+    log.debug(*args, stacklevel=stacklevel, **kwargs)
 
 
-def _debug(*args, **kwargs):
-    log.debug(*args, **kwargs)
+@rank_zero_only
+def rank_zero_debug(*args, stacklevel: int = 4, **kwargs):
+    _debug(*args, stacklevel=stacklevel, **kwargs)
 
 
-rank_zero_debug = rank_zero_only(_debug)
-rank_zero_info = rank_zero_only(_info)
-rank_zero_warn = rank_zero_only(_warn)
-rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
+@rank_zero_only
+def rank_zero_info(*args, stacklevel: int = 4, **kwargs):
+    _info(*args, stacklevel=stacklevel, **kwargs)
 
 
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):

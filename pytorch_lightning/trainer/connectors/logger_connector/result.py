@@ -283,10 +283,10 @@ class ResultCollection(dict):
         def check_fn(v):
             if v.grad_fn is not None:
                 # raise MisconfigurationException(f'You returned a tensor with `grad_fn`. The extra values are {extra}')
-                warning_cache.warn(
+                warning_cache.deprecation(
                     f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
                     " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`", DeprecationWarning
+                    " `return {'loss': ..., 'something': something.detach()}`",
                 )
                 return v.detach()
             return v
