@@ -17,6 +17,7 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
@@ -99,6 +100,18 @@ class PartialScriptModel(LightningModule):
 
     def forward(self, x):
         return self.layer2(self.layer1(x))
+
+
+class LazyModel(LightningModule):
+    """ A model which contains lazy layers with unintialized parameters. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.LazyLinear(5)
+        self.layer2 = nn.LazyLinear(2)
+
+    def forward(self, inp):
+        return self.layer2(self.layer1(inp))
 
 
 def test_invalid_weights_summmary():
@@ -302,3 +315,24 @@ def test_model_size_precision(tmpdir):
     trainer.fit(model)
     summary = model.summarize()
     assert model.pre_calculated_model_size == summary.model_size
+
+
+@RunIf(min_torch="1.8")
+def test_lazy_model_summary():
+    """ Test that the model summary can work with lazy layers. """
+    lazy_model = LazyModel()
+    summary = ModelSummary(lazy_model)
+
+    with pytest.warns(
+        UserWarning,
+        match=r"A layer with UninitializedParameter was found. "
+        r"Thus, the total number of parameters detected may be inaccurate."
+    ):
+        if _TORCH_GREATER_EQUAL_1_9:
+            assert summary.total_parameters == 0
+            assert summary.trainable_parameters == 0
+        else:
+            # bug in 1.8: the bias of a LazyLinear layer is initialized!
+            # https://github.com/pytorch/pytorch/issues/58350
+            assert summary.total_parameters == 7
+            assert summary.trainable_parameters == 7

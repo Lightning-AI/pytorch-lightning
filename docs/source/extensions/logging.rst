@@ -68,6 +68,10 @@ except functions with `batch_start` in their names.
     def training_step(self, batch, batch_idx):
         self.log('my_metric', x)
 
+    # or a dict
+    def training_step(self, batch, batch_idx):
+        self.log('performance', {'acc': acc, 'recall': recall})
+
 Depending on where log is called from, Lightning auto-determines the correct logging mode for you. \
 But of course you can override the default behavior by manually setting the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` parameters.
 

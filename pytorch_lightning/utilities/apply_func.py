@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import dataclasses
 import operator
 from abc import ABC
 from collections import OrderedDict
@@ -58,6 +59,11 @@ CONVERSION_DTYPES = [
 def _is_namedtuple(obj: object) -> bool:
     # https://github.com/pytorch/pytorch/blob/v1.8.1/torch/nn/parallel/scatter_gather.py#L4-L8
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
+
+
+def _is_dataclass_instance(obj):
+    # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
+    return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
 def apply_to_collection(
@@ -109,6 +115,14 @@ def apply_to_collection(
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
+
+    if _is_dataclass_instance(data):
+        out = dict()
+        for field in data.__dataclass_fields__:
+            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if include_none or v is not None:
+                out[field] = v
+        return elem_type(**out)
 
     # data is neither of dtype, nor a collection
     return data
@@ -233,15 +247,15 @@ def move_data_to_device(batch: Any, device: torch.device):
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data, device: torch.device = None):
+def convert_to_tensors(data: Any, device: torch.device) -> Any:
     if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+        raise MisconfigurationException("`torch.device` should be provided.")
 
     for src_dtype, conversion_func in CONVERSION_DTYPES:
-        data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
+        data = apply_to_collection(data, src_dtype, conversion_func, device=device)
 
-    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device):
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device) -> torch.Tensor:
         return t.to(device).contiguous()
 
-    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_make_contiguous, device=device))
+    data = apply_to_collection(data, torch.Tensor, _move_to_device_and_make_contiguous, device=device)
     return data

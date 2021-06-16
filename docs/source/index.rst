@@ -57,6 +57,10 @@ PyTorch Lightning Documentation
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
+   notebooks/starters/mnist-hello-world.ipynb
+   notebooks/starters/datamodules.ipynb
+   notebooks/starters/cifar10-baseline.ipynb
+   notebooks/starters/basic-gan.ipynb
 
 .. toctree::
    :maxdepth: 2
@@ -112,6 +116,7 @@ PyTorch Lightning Documentation
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
+   advanced/ipu
    advanced/tpu
    common/test_set
    common/production_inference
