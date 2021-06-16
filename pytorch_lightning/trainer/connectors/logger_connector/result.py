@@ -28,8 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
-# TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
-_METRIC = Any  # Union[Metric, torch.Tensor]
+_METRIC = Union[Metric, torch.Tensor]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
