@@ -297,12 +297,24 @@ class ManualBoringModel(BoringModel):
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
-@pytest.mark.parametrize("accelerator", ["ddp_sharded"])
-def test_ddp_sharded_plugin_manual_optimization(tmpdir, accelerator):
+def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
+    # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        accelerator=accelerator,
+        accelerator='ddp_sharded_spawn',
+        fast_dev_run=2,
+        gpus=2,
+    )
+    trainer.fit(model)
+
+
+@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+def test_ddp_sharded_plugin_manual_optimization(tmpdir):
+    model = ManualBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator='ddp_sharded',
         fast_dev_run=2,
         gpus=2,
     )
