@@ -107,7 +107,7 @@ some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num
 1. ``num_workers=0`` means ONLY the main process will load batches (that can be a bottleneck).
 2. ``num_workers=1`` means ONLY one worker (just not the main process) will load data but it will still be slow.
 3. The ``num_workers`` depends on the batch size and your machine.
-4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in python using `os.cpu_count()`.
+4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in python using `os.cpu_count()`, but note that depending on your batch size, you may overflow RAM memory.
 
 .. warning:: Increasing ``num_workers`` will ALSO increase your CPU memory consumption.
 
@@ -359,7 +359,7 @@ Setting ``sync_grad`` to ``False`` will block this synchronization and improve y
 
 Here is an example for advanced use-case:
 
-.. testcode:: python
+.. testcode::
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
     class SimpleGAN(LightningModule):

@@ -1208,7 +1208,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         # make sure you've loaded a GCC version > 4.0 and < 7.0
         module load gcc-6.1.0
 
-        $ pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
+        pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
 
     2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
 
