@@ -437,7 +437,8 @@ def test_trainer_model_hook_system_fit_with_resume(tmpdir):
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_steps=2,
+        # already performed 1 step, now resuming to do an additional 2
+        max_steps=(1 + train_batches),
         limit_val_batches=0,
         progress_bar_refresh_rate=0,
         weights_summary=None,
@@ -464,7 +465,7 @@ def test_trainer_model_hook_system_fit_with_resume(tmpdir):
         'on_train_start',
         'on_epoch_start',
         'on_train_epoch_start',
-        *(HookedModel._train_batch() * (train_batches - 1)),
+        *(HookedModel._train_batch() * train_batches),
         'training_epoch_end',
         'on_train_epoch_end',
         'on_epoch_end',
