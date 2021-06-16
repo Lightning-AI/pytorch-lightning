@@ -1167,7 +1167,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # default used by the Trainer
-    trainer = Trainer(precision=32)
+    trainer = Trainer(precision=32, gpus=1)
 
     # 16-bit precision
     trainer = Trainer(precision=16)
@@ -1181,7 +1181,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 .. note:: 16-bit precision is not supported on CPUs.
 
 
-.. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. Using 16-bit precision with PyTorch < 1.6 is not recommended, but supported using apex.
+.. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. 16-bit precision with PyTorch < 1.6 is supported by NVIDIA Apex library.
    :class: dropdown, warning
 
     NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ in order to use the native AMP 16-bit precision with multiple GPUs.
