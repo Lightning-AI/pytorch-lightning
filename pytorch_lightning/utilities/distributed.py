@@ -20,7 +20,6 @@ from typing import Any, Optional, Union
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -294,6 +293,7 @@ def register_ddp_comm_hook(
             ddp_comm_wrapper=default.fp16_compress_wrapper,
         )
     """
+    from pytorch_lightning.utilities import rank_zero_warn
     if not _TORCH_GREATER_EQUAL_1_8:
         rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
         return
