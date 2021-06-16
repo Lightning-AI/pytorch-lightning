@@ -114,7 +114,7 @@ def test_loop_progress_increment_sequence():
     assert p.epoch.current == Tracker()
 
 
-@pytest.mark.parametrize("use_multiple_optimizers", [True])
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 def test_progress_tracking(use_multiple_optimizers, tmpdir):
     """
     This test verify that progress is correctly incremented during using FitLoop.
@@ -160,54 +160,33 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
     assert pr.epoch.current == Tracker(ready=2, started=2, processed=2, completed=2)
 
-    pr = trainer.fit_loop.training_loop.batch_loop.progress
+    pr = trainer.fit_loop.training_loop.progress
 
     assert pr.batch.total == Tracker(ready=6, started=6, processed=6, completed=6)
-    assert pr.batch.current == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
 
     num_optimizers = 3 if use_multiple_optimizers else 1
-    for opt_idx in range(num_optimizers):
+    for _ in range(num_optimizers):
 
-        assert pr.optimizations[opt_idx].optimizer.total == Tracker(ready=6, started=6, processed=None, completed=6)
-        assert pr.optimizations[opt_idx].optimizer.current == Tracker(ready=1, started=1, processed=None, completed=1)
+        total = 6 * num_optimizers
+        current = 3 * num_optimizers
 
-        assert pr.optimizations[opt_idx].zero_grad.total == Tracker(ready=6, started=6, processed=None, completed=6)
-        assert pr.optimizations[opt_idx].zero_grad.current == Tracker(ready=1, started=1, processed=None, completed=1)
+        pr.epoch.optimization.optimizer.total = Tracker(ready=total, started=total, processed=None, completed=total)
+        pr.epoch.optimization.optimizer.current = Tracker(
+            ready=current, started=current, processed=None, completed=current
+        )
 
-        if use_multiple_optimizers:
-            if opt_idx == 0:
-                # update on epoch
-                assert pr.optimizations[opt_idx].scheduler.total == Tracker(
-                    ready=2, started=None, processed=None, completed=2
-                )
-                assert pr.optimizations[opt_idx].scheduler.current == Tracker(
-                    ready=1, started=None, processed=None, completed=1
-                )
-            elif opt_idx == 1:
-                # update on steps
-                assert pr.optimizations[opt_idx].scheduler.total == Tracker(
-                    ready=6, started=None, processed=None, completed=6
-                )
-                assert pr.optimizations[opt_idx].scheduler.current == Tracker(
-                    ready=1, started=None, processed=None, completed=1
-                )
-            else:
-                # no optimizer
-                assert pr.optimizations[opt_idx].scheduler.total == Tracker(
-                    ready=0, started=None, processed=None, completed=0
-                )
-                assert pr.optimizations[opt_idx].scheduler.current == Tracker(
-                    ready=0, started=None, processed=None, completed=0
-                )
-        else:
-            assert pr.optimizations[opt_idx].scheduler.total == Tracker(
-                ready=2, started=None, processed=None, completed=2
-            )
-            assert pr.optimizations[opt_idx].scheduler.current == Tracker(
-                ready=1, started=None, processed=None, completed=1
-            )
+        pr.epoch.optimization.scheduler.total = Tracker(ready=total, started=total, processed=None, completed=total)
+        pr.epoch.optimization.scheduler.current = Tracker(
+            ready=current, started=current, processed=None, completed=current
+        )
 
-    assert pr.optimizer_idx == (2 if use_multiple_optimizers else 0)
+        pr.epoch.optimization.zero_grad.total = Tracker(ready=total, started=total, processed=None, completed=total)
+        pr.epoch.optimization.zero_grad.current = Tracker(
+            ready=current, started=current, processed=None, completed=current
+        )
+
+    assert pr.epoch.optimization.optimizer_idx == (2 if use_multiple_optimizers else 0)
 
     progress = trainer.fit_loop.progress
 

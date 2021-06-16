@@ -42,12 +42,7 @@ class OptimizerConnector:
         if opt_indices is None:
             opt_indices = []
 
-        progress = self.trainer.fit_loop.training_loop.batch_loop.progress
-
-        map_sch_to_opt = {}
-        for sch_idx, lr_sch in enumerate(self.trainer.lr_schedulers):
-            sch_opt = lr_sch['scheduler'].optimizer
-            map_sch_to_opt[sch_idx] = [opt_idx for opt_idx, opt in enumerate(self.trainer.optimizers) if sch_opt == opt]
+        progress = self.trainer.fit_loop.training_loop.batch_loop.progress_optimization
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
@@ -85,16 +80,14 @@ class OptimizerConnector:
                 # update LR
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
-                for opt_idx in map_sch_to_opt[scheduler_idx]:
-                    progress.optimizations[opt_idx].scheduler.increment_ready()
+                progress.optimization.scheduler.increment_ready()
 
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
 
-                for opt_idx in map_sch_to_opt[scheduler_idx]:
-                    progress.optimizations[opt_idx].scheduler.increment_completed()
+                progress.optimization.scheduler.increment_completed()
 
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 

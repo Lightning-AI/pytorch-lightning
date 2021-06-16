@@ -11,22 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
+from typing import Optional
 
 
 @dataclass
 class Tracker:
     """
     Track an event's progress.
-
     Args:
         ready: Intended to track the number of events ready to start.
         started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
         processed: Intended to be incremented after the event is processed.
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
-
     Attributes set to ``None`` are treated as unused and are restricted.
     """
     ready: Optional[int] = 0
@@ -59,7 +56,6 @@ class Tracker:
 class Progress:
     """
     Track aggregated and current progress.
-
     Args:
         total: Intended to track the total progress of an event
         current: Intended to track the current progress of an event
@@ -100,9 +96,7 @@ class Progress:
 class LoopProgress:
     """
     Track loop progress during execution.
-
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
-
     Args:
         epoch: Tracks epochs progress.
         batch: Tracks batch progress.
@@ -123,7 +117,6 @@ class LoopProgress:
 class OptimizationProgress:
     """
     Track optimization progress.
-
     Args:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
@@ -131,6 +124,7 @@ class OptimizationProgress:
     optimizer: Progress = Progress.from_defaults(processed=None)
     scheduler: Progress = Progress.from_defaults(started=None, processed=None)
     zero_grad: Progress = Progress.from_defaults(processed=None)
+    optimizer_idx: int = field(default_factory=int)
 
     @property
     def optimizer_steps(self) -> int:
@@ -142,45 +136,26 @@ class OptimizationProgress:
 
 
 @dataclass
-class BatchLoopProgress:
-
-    batch: Progress = field(default_factory=Progress)
-    optimizer_idx: Optional[int] = field(default_factory=int)
-    num_optimizers: int = field(default=1, repr=False)
-    optimizations: Tuple[OptimizationProgress, ...] = field(init=False)
-
-    def __post_init__(self):
-        # todo (tchaton) weird bug where ``OptimizationProgress`` share same counters if deepcopy is not used.
-        self.optimizations = tuple(deepcopy(OptimizationProgress()) for _ in range(self.num_optimizers))
-
-    def reset_on_batch(self) -> None:
-        for opt in self.optimizations:
-            opt.optimizer.current.reset()
-            opt.scheduler.current.reset()
-            opt.zero_grad.current.reset()
-        self.batch.current.reset()
+class TrainingProgress(Progress):
+    """
+    Extends ``Progress`` with training specific attributes
+    Args:
+        optimization: Tracks optimization progress
+    """
+    optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
 
 
 @dataclass
 class TrainingLoopProgress(LoopProgress):
 
-    epoch: Progress = field(default_factory=Progress)
-    batch_loop: BatchLoopProgress = field(default_factory=BatchLoopProgress)
-
-    def increment_epoch_completed(self) -> None:
-        self.epoch.increment_completed()
-        self.reset_on_epoch()
-
-    def reset_on_batch(self) -> None:
-        if self.batch_loop.optimizations is not None:
-            for opt in self.batch_loop.optimizations:
-                opt.optimizer.current.reset()
-                opt.scheduler.current.reset()
-                opt.zero_grad.current.reset()
+    epoch: TrainingProgress = field(default_factory=TrainingProgress)
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
-        self.batch_loop.reset_on_batch()
+        self.batch.current.reset()
+        self.epoch.optimization.optimizer.current.reset()
+        self.epoch.optimization.scheduler.current.reset()
+        self.epoch.optimization.zero_grad.current.reset()
 
 
 @dataclass

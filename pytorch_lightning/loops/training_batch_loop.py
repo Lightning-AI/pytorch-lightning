@@ -28,7 +28,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import BatchLoopProgress
+from pytorch_lightning.trainer.progress import Progress, TrainingProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -55,7 +55,8 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
-        self.progress: Optional[BatchLoopProgress] = None
+        self.progress: Optional[Progress] = None
+        self.progress_optimization: Optional[TrainingProgress] = None
 
     @property
     def done(self) -> bool:
@@ -68,10 +69,6 @@ class TrainingBatchLoop(Loop):
         if self._optimizer_freq_cumsum is None:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
-
-    def create_progress(self):
-        if not self.progress:
-            self.progress = BatchLoopProgress(num_optimizers=len(self.trainer.optimizers))
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         # TODO(@justusschock): can we make this a weakref/proxy?
@@ -96,9 +93,7 @@ class TrainingBatchLoop(Loop):
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
-        self.progress.reset_on_batch()
-
-        self.progress.batch.increment_ready()
+        self.progress.increment_ready()
 
         # hook
         self.trainer.logger_connector.on_batch_start()
@@ -127,11 +122,11 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        self.progress.batch.increment_started()
+        self.progress.increment_started()
         return super().on_advance_start(*args, **kwargs)
 
     def on_advance_end(self) -> None:
-        self.progress.batch.increment_completed()
+        self.progress.increment_completed()
         return super().on_advance_end()
 
     def advance(self, batch, batch_idx, dataloader_idx):
@@ -154,7 +149,7 @@ class TrainingBatchLoop(Loop):
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
 
                 # track optimizer_idx
-                self.progress.optimizer_idx = opt_idx
+                self.progress_optimization.optimization.optimizer_idx = opt_idx
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
@@ -165,7 +160,7 @@ class TrainingBatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
-        self.progress.batch.increment_processed()
+        self.progress.increment_processed()
 
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency"""
@@ -251,7 +246,7 @@ class TrainingBatchLoop(Loop):
             return_result.update(result)
 
             # this should be done only if result.loss exists
-            self.progress.optimizations[opt_idx].optimizer.increment_started()
+            self.progress_optimization.optimization.optimizer.increment_started()
 
             return return_result.loss
 
@@ -284,7 +279,7 @@ class TrainingBatchLoop(Loop):
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
-        self.progress.optimizations[opt_idx].optimizer.increment_ready()
+        self.progress_optimization.optimization.optimizer.increment_ready()
 
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
@@ -430,7 +425,7 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-        self.progress.optimizations[opt_idx].optimizer.increment_completed()
+        self.progress_optimization.optimization.optimizer.increment_completed()
 
     def on_before_zero_grad(self, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Calls the ``on_before_zero_grad`` hook.
@@ -438,11 +433,11 @@ class TrainingBatchLoop(Loop):
         Args:
             optimizer: the current optimizer
         """
-        self.progress.optimizations[opt_idx].zero_grad.increment_ready()
+        self.progress_optimization.optimization.zero_grad.increment_ready()
 
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
-        self.progress.optimizations[opt_idx].zero_grad.increment_started()
+        self.progress_optimization.optimization.zero_grad.increment_started()
 
     def optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Zeroes out all gradients of parameters optimized by the current optimizer.
@@ -454,7 +449,7 @@ class TrainingBatchLoop(Loop):
         """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-        self.progress.optimizations[opt_idx].zero_grad.increment_completed()
+        self.progress_optimization.optimization.zero_grad.increment_completed()
 
     def track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.

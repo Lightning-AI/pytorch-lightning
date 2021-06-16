@@ -222,10 +222,12 @@ class TrainingEpochLoop(Loop):
         return self.epoch_output
 
     def create_progress(self):
-        self.batch_loop.create_progress()
-
         if not self.progress:
-            self.progress = TrainingLoopProgress(batch=self.batch_loop.progress)
+            self.progress = TrainingLoopProgress()
+
+        # set reference to batch_loop
+        self.batch_loop.progress = self.progress.batch
+        self.batch_loop.progress_optimization = self.progress.epoch
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""
