@@ -23,7 +23,7 @@ import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
-PATH_RAW_NB = os.path.join(PATH_ROOT, 'notebooks')
+PATH_RAW_NB = os.path.join(PATH_ROOT, '_notebooks')
 PATH_IPYNB = os.path.join(PATH_HERE, 'notebooks')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, '.actions'))
