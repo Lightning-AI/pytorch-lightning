@@ -1964,7 +1964,7 @@ class LightningModule(
         queue.put(callback_metrics)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        """Retrieve the `trainer.callback_metrics` dictionary from the given queue.
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
 
         To preserve consistency, we cast back the data to ``torch.Tensor``.
 

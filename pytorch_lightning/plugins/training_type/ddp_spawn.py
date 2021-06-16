@@ -215,6 +215,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
         # get the `callback_metrics` and set it to the trainer
+        # only in case the user does not override it.
         self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children

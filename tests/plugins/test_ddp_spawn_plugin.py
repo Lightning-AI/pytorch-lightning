@@ -37,6 +37,14 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        queue.put("test_val")
+        return super().add_to_queue(queue)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        self.test_val = queue.get()
+        return super().get_from_queue(queue)
+
 
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
@@ -70,3 +78,4 @@ def test_ddp_spawn_extra_parameters(tmpdir):
 
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
+    assert model.test_val == "test_val"
