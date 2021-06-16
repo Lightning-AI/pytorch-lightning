@@ -264,6 +264,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `BaseFinetuning` callback to properly handle parent modules w/ parameters ([#7931](https://github.com/PyTorchLightning/pytorch-lightning/pull/7931))
 
 
+- Fixed `PyTorchProfiler` generated filenames ([#8009](https://github.com/PyTorchLightning/pytorch-lightning/pull/8009))
+
+
 ## [1.3.5] - 2021-06-08
 
 ### Added
