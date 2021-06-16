@@ -289,6 +289,27 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+def test_lightning_cli_configurable_callbacks(tmpdir):
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(LearningRateMonitor, 'learning_rate_monitor')
+
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.max_epochs=1',
+        '--learning_rate_monitor.logging_interval=epoch',
+    ]
+
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = MyLightningCLI(BoringModel)
+
+    callback = [c for c in cli.trainer.callbacks if isinstance(c, LearningRateMonitor)]
+    assert len(callback) == 1
+    assert callback[0].logging_interval == 'epoch'
+
+
 def test_lightning_cli_args_cluster_environments(tmpdir):
     plugins = [dict(class_path='pytorch_lightning.plugins.environments.SLURMEnvironment')]
 
@@ -326,6 +347,31 @@ def test_lightning_cli_args(tmpdir):
     assert 'model' not in config and 'model' not in cli.config  # no arguments to include
     assert config['data'] == cli.config['data']
     assert config['trainer'] == cli.config['trainer']
+
+
+def test_lightning_cli_save_config_cases(tmpdir):
+
+    config_path = tmpdir / 'config.yaml'
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.logger=False',
+        '--trainer.fast_dev_run=1',
+    ]
+
+    # With fast_dev_run!=False config should not be saved
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        LightningCLI(BoringModel)
+    assert not os.path.isfile(config_path)
+
+    # With fast_dev_run==False config should be saved
+    cli_args[-1] = '--trainer.max_epochs=1'
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        LightningCLI(BoringModel)
+    assert os.path.isfile(config_path)
+
+    # If run again on same directory exception should be raised since config file already exists
+    with mock.patch('sys.argv', ['any.py'] + cli_args), pytest.raises(RuntimeError):
+        LightningCLI(BoringModel)
 
 
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
