@@ -83,18 +83,20 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-        lambda_closure()
 
         if not pl_module.automatic_optimization:
             self.scaler.unscale_(optimizer)
             pl_module.trainer.call_hook("on_after_backward")
+            self.scaler.step(optimizer)
+            self.scaler.update()
+        else:
+            result = lambda_closure()
+            # lambda_closure returning None indicates that backward has been skipped
+            if result is not None:
+                self.scaler.step(optimizer)
+                self.scaler.update()
 
         return False
-
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
-        """Updates the GradScaler"""
-        self.scaler.step(optimizer)
-        self.scaler.update()
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
