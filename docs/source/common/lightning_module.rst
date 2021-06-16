@@ -563,7 +563,7 @@ Inference in research
 ^^^^^^^^^^^^^^^^^^^^^
 In the case where we want to perform inference with the system we can add a `forward` method to the LightningModule.
 
-.. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` decorator
+.. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
 
 .. code-block:: python
 
