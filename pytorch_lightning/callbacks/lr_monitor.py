@@ -220,8 +220,12 @@ class LearningRateMonitor(Callback):
         return name
 
     def _duplicate_param_group_names(self, param_groups: List[Dict]) -> Set[str]:
-        names = [pg.get('name', f'pg{i+1}') for i, pg in enumerate(param_groups)]
-        return set(n for n in names if names.count(n) > 1)
+        names = [pg.get('name', f'pg{i}') for i, pg in enumerate(param_groups, start=1)]
+        unique = set(names)
+        if len(names) == len(unique):
+            return set()
+        else:
+            return set(n for n in names if names.count(n) > 1)
 
     def _find_names(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
         # Create unique names in the case we have multiple of the same learning
