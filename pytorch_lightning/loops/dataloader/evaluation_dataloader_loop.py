@@ -137,40 +137,19 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
                 max_batches = self.trainer.num_val_batches
         return max_batches
 
+    def reload_evaluation_dataloaders(self) -> None:
+        """Reloads dataloaders"""
+        model = self.trainer.lightning_module
+        if self.trainer.testing:
+            self.trainer.reset_test_dataloader(model)
+        elif self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
+            self.trainer.reset_val_dataloader(model)
+
     def get_eval_dataloaders(self) -> List[DataLoader]:
         """Returns the validation or test dataloaders"""
         if self.trainer.testing:
             return self.trainer.test_dataloaders
         return self.trainer.val_dataloaders
-
-    # TODO: remove this method, got split into two above
-    def get_evaluation_dataloaders(self) -> Tuple[Optional[List[DataLoader]], List[Union[int, float]]]:
-        """Returns all validation/testing dataloaders together with their max_batches.
-
-        Returns:
-            a list of validation dataloaders and a list of corresponding max_batches
-        """
-        model = self.trainer.lightning_module
-
-        # select dataloaders
-        if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
-
-            dataloaders = self.trainer.test_dataloaders
-            max_batches = self.trainer.num_test_batches
-        else:
-            # val
-            if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
-                self.trainer.reset_val_dataloader(model)
-            if self.trainer.sanity_checking:
-                self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
-                ]
-                max_batches = self.trainer.num_sanity_val_batches
-            else:
-                max_batches = self.trainer.num_val_batches
-            dataloaders = self.trainer.val_dataloaders
-        return dataloaders, max_batches
 
     # TODO: this is currently also used in the new and old TrainingLoop
     def should_skip_evaluation(self, max_batches: List[Union[int, float]]) -> bool:
@@ -218,14 +197,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
         # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
-
-    def reload_evaluation_dataloaders(self) -> None:
-        """Reloads dataloaders"""
-        model = self.trainer.lightning_module
-        if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
-        else:
-            self.trainer.reset_val_dataloader(model)
 
     def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks"""

@@ -982,7 +982,8 @@ class Trainer(
             )
             self.validating = True
 
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+        self.evaluation_loop.reload_evaluation_dataloaders()
+        max_batches = self.evaluation_loop.get_max_batches()
 
         # TODO: move this check inside new loop
         # check if we want to skip this evaluation
