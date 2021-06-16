@@ -75,6 +75,10 @@ class TrainingBatchLoop(Loop):
         void(*args, **kwargs)
         self.trainer = trainer
 
+    def create_progress(self, progress: Progress, progress_optimization: TrainingProgress) -> None:
+        self.progress = progress
+        self.progress_optimization = progress_optimization
+
     def reset(self) -> None:
         """Resets the loop state"""
         self._hiddens = None

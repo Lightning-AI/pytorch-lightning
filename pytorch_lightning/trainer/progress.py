@@ -124,7 +124,6 @@ class OptimizationProgress:
     optimizer: Progress = Progress.from_defaults(processed=None)
     scheduler: Progress = Progress.from_defaults(started=None, processed=None)
     zero_grad: Progress = Progress.from_defaults(processed=None)
-    optimizer_idx: int = field(default_factory=int)
 
     @property
     def optimizer_steps(self) -> int:
@@ -142,6 +141,7 @@ class TrainingProgress(Progress):
     Args:
         optimization: Tracks optimization progress
     """
+    optimizer_idx: Optional[int] = None
     optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
 
 
