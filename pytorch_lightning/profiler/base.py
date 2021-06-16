@@ -116,7 +116,7 @@ class BaseProfiler(AbstractProfiler):
     def _add_suffix(self, filename: str, suffix: Optional[str], token: str = '-') -> str:
         if suffix is None:
             return filename
-        
+
         if len(filename) >= 1 and filename[-1] != token:
             filename += token
         return filename + suffix
