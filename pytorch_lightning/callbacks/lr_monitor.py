@@ -73,12 +73,10 @@ class LearningRateMonitor(Callback):
 
         def configure_optimizer(self):
             optimizer = torch.optim.SGD(
-                [
-                    {
-                        'params': [p for p in self.parameters()],
-                        'name': 'my_parameter_group_name'
-                    }
-                ],
+                [{
+                    'params': [p for p in self.parameters()],
+                    'name': 'my_parameter_group_name'
+                }],
                 lr=0.1
             )
             lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
