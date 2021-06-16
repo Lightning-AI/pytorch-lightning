@@ -359,8 +359,8 @@ class TrainingEpochLoop(Loop):
             return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
-            opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
             update_plateau_schedulers=update_plateau_schedulers,
+            opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 
     def increment_accumulated_grad_global_step(self) -> None:

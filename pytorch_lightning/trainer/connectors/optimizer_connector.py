@@ -30,17 +30,17 @@ class OptimizerConnector:
         self.trainer.optimizer_frequencies = []
 
     def update_learning_rates(
-        self, interval: str, opt_indices: Optional[List[int]] = None, update_plateau_schedulers: bool = False
+        self, interval: str, update_plateau_schedulers: bool, opt_indices: Optional[List[int]] = None
     ) -> None:
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
-            opt_indices: indices of the optimizers to update.
             update_plateau_schedulers: control whether ``ReduceLROnPlateau`` or non-plateau schedulers get updated.
                 This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
                 so they have to be updated separately.
+            opt_indices: indices of the optimizers to update.
         """
         if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return
