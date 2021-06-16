@@ -75,6 +75,13 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self._dataloaders)
 
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        """Runs the ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
+        void(*args, **kwargs)
+        # hook
+        self.on_evaluation_start()
+        self.on_evaluation_epoch_start()
+
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
@@ -89,13 +96,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
             self.outputs.append(dl_outputs)
-
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs the ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
-        void(*args, **kwargs)
-        # hook
-        self.on_evaluation_start()
-        self.on_evaluation_epoch_start()
 
     def on_run_end(self) -> Any:
         """Runs the ``on_evaluation_epoch_end`` hook"""
