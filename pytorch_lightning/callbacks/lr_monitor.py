@@ -215,12 +215,12 @@ class LearningRateMonitor(Callback):
                 return f'{name}/pg{param_group_index+1}'
             else:
                 pg_name = param_groups[param_group_index].get('name', f'pg{param_group_index+1}')
-                return f'{name}/{pg_name}' 
+                return f'{name}/{pg_name}'
         elif use_names:
             pg_name = param_groups[param_group_index].get('name')
             return f'{name}/{pg_name}' if pg_name else name
         else:
-            return name 
+            return name
 
     def _duplicate_param_group_names(self, param_groups: List[Dict]) -> Set[str]:
         names = [pg.get('name', f'pg{i+1}') for i, pg in enumerate(param_groups)]
