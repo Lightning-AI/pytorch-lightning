@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
-# todo (tchaton) Resolve this typing bug in python 3.6
+# TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
 _METRIC = Any  # Union[Metric, torch.Tensor]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
@@ -202,23 +202,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
-
-class _ResultMetricSerializationHelper(dict):
-    """
-    Since ``ResultCollection`` can hold ``ResultMetric`` values or dictionaries of them, we need
-    a class to differentiate between the cases after converting to state dict when saving its state.
-    """
-
-
-class _ResultMetricCollectionSerializationHelper(dict):
-    """
-    Since several ``ResultCollection`` can hold inside a ``ResultMetricCollection``, we need
-    a class to differentiate between the cases after converting to state dict when saving its state.
-    """
-
-    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
-        super().__init__(*args)
-        self.meta = metadata
+    def __getstate__(self) -> dict:
+        return {**super().__getstate__(), '_class': self.__class__.__name__}
 
 
 class ResultMetricCollection(dict):
@@ -233,6 +218,31 @@ class ResultMetricCollection(dict):
     def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
         super().__init__(*args)
         self.meta = metadata
+
+    def __getstate__(self) -> dict:
+
+        def getstate(item: ResultMetric) -> dict:
+            return item.__getstate__()
+
+        items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
+        return {"items": items, "meta": self.meta, "_class": self.__class__.__name__}
+
+    def __setstate__(self, state: dict) -> None:
+        self.meta = state["meta"]
+
+        def setstate(item: dict) -> Union[Dict[str, ResultMetric], ResultMetric, Any]:
+            # recurse through dictionaries to set the state. can't use `apply_to_collection`
+            # as it does not recurse items of the same type.
+            if not isinstance(item, dict):
+                return item
+            if item.get('_class') == ResultMetric.__name__:
+                result_metric = ResultMetric(item['meta'], item['is_tensor'])
+                result_metric.__setstate__(item)
+                return result_metric
+            return {k: setstate(v) for k, v in item.items()}
+
+        items = setstate(state["items"])
+        self.update(items)
 
 
 class ResultCollection(dict):
@@ -353,10 +363,6 @@ class ResultCollection(dict):
             )
         )
 
-        # the reduce function was drop while saving a checkpoint.
-        if key in self and self[key].meta.sync.fn is None:
-            self[key].meta.sync.fn = meta.sync.fn
-
         if key not in self:
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
@@ -424,9 +430,7 @@ class ResultCollection(dict):
         for _, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
-            value = apply_to_collection(
-                result_metric, ResultMetric, self._get_cache, on_step, include_none=False, wrong_dtype=ResultCollection
-            )
+            value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
 
             # check if the collection is empty
             has_tensor = False
@@ -525,60 +529,45 @@ class ResultCollection(dict):
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self) -> dict:
-        d = self.__dict__.copy()
         # can't deepcopy tensors with grad_fn
-        minimize = d.get('_minimize')
-        if minimize is not None:
-            d['_minimize'] = minimize.detach()
-        return d
+        minimize = None
+        if self.minimize is not None:
+            minimize = self.minimize.detach()
 
-    def state_dict(self):
-
-        def to_state_dict(
-            item: Union[ResultMetric, ResultMetricCollection]
-        ) -> Union[_ResultMetricSerializationHelper, _ResultMetricCollectionSerializationHelper]:
-            if isinstance(item, ResultMetricCollection):
-                return _ResultMetricCollectionSerializationHelper(
-                    apply_to_collection(item, ResultMetric, to_state_dict), metadata=item.meta
-                )
-            state = item.__getstate__()
-            state["meta"].sync.fn = None
-            return _ResultMetricSerializationHelper(**item.__getstate__())
-
+        # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
+        items = {k: v.__getstate__() for k, v in self.items()}
         return {
-            k: apply_to_collection(v, (ResultMetric, ResultMetricCollection), to_state_dict)
-            for k, v in self.items()
+            'training': self.training,
+            'device': self.device,
+            'minimize': minimize,
+            'batch_size': self.batch_size,
+            'items': items,
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any], sync_fn: Optional[Callable] = None) -> None:
+    def __setstate__(self, state: dict) -> None:
+        self.training = state['training']
+        self.device = state['device']
+        self._minimize = state['minimize']
+        self._batch_size = state['batch_size']
 
-        def to_result_metric_collection(item: _ResultMetricCollectionSerializationHelper) -> ResultCollection:
-            result_metric_collection = ResultMetricCollection()
-            result_metric_collection.update(item)
+        def setstate(item: dict) -> Union[ResultMetric, ResultMetricCollection]:
+            if not isinstance(item, dict):
+                raise ValueError(f'Unexpected value: {item}')
+            cls = item['_class']
+            if cls == ResultMetric.__name__:
+                result_metric = ResultMetric(item['meta'], item['is_tensor'])
+            elif cls == ResultMetricCollection.__name__:
+                result_metric = ResultMetricCollection()
+            else:
+                raise ValueError(f"Unexpected class name: {cls}")
+            result_metric.__setstate__(item)
+            return result_metric
 
-            def _to_device(item: ResultMetric) -> ResultMetric:
-                return item.to(self.device)
+        items = {k: setstate(v) for k, v in state['items'].items()}
+        self.update(items)
 
-            result_metric_collection = apply_to_collection(result_metric_collection, ResultMetric, _to_device)
-            result_metric_collection.meta = item.meta
-            result_metric_collection.meta.sync.fn = sync_fn
-            return result_metric_collection
+    def state_dict(self) -> dict:
+        return self.__getstate__()
 
-        def to_result_metric(item: _ResultMetricSerializationHelper) -> ResultMetric:
-            result_metric = ResultMetric(item["meta"], item["is_tensor"])
-            result_metric.__dict__.update(item)
-            result_metric.meta.sync.fn = sync_fn
-            return result_metric.to(self.device)
-
-        state_dict = {
-            k: apply_to_collection(v, _ResultMetricCollectionSerializationHelper, to_result_metric_collection)
-            for k, v in state_dict.items()
-        }
-        result_metric_collection = {k: v.meta for k, v in state_dict.items() if isinstance(v, ResultMetricCollection)}
-        state_dict = {
-            k: apply_to_collection(v, _ResultMetricSerializationHelper, to_result_metric)
-            for k, v in state_dict.items()
-        }
-        self.update(state_dict)
-        for k, meta in result_metric_collection.items():
-            self[k].meta = meta
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.__setstate__(state_dict)
