@@ -364,7 +364,6 @@ class CheckpointConnector:
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
-        # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
