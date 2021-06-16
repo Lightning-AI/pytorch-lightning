@@ -17,16 +17,28 @@ Convention:
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
 """
 from numbers import Number
-from typing import Any, Dict, Iterator, List, Union
+from typing import Any, Dict, Iterator, List, Mapping, Sequence, Union
 
 import torch
+from torch.utils.data import DataLoader
 from torchmetrics import Metric
 
 _METRIC = Union[Metric, torch.Tensor, Number]
-# real type is `Union[_METRIC, Dict[str, '_METRIC_COLLECTION']]` but Sphinx fails with `RecursionError`
-_METRIC_COLLECTION = Union[_METRIC, Dict[str, _METRIC]]
+_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
+# yapf: disable
+TRAIN_DATALOADERS = Union[
+    DataLoader,
+    Sequence[DataLoader],
+    Sequence[Sequence[DataLoader]],
+    Sequence[Dict[str, DataLoader]],
+    Dict[str, DataLoader],
+    Dict[str, Dict[str, DataLoader]],
+    Dict[str, Sequence[DataLoader]],
+]
+# yapf: enable
+EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]

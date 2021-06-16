@@ -289,6 +289,27 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+def test_lightning_cli_configurable_callbacks(tmpdir):
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(LearningRateMonitor, 'learning_rate_monitor')
+
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.max_epochs=1',
+        '--learning_rate_monitor.logging_interval=epoch',
+    ]
+
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = MyLightningCLI(BoringModel)
+
+    callback = [c for c in cli.trainer.callbacks if isinstance(c, LearningRateMonitor)]
+    assert len(callback) == 1
+    assert callback[0].logging_interval == 'epoch'
+
+
 def test_lightning_cli_args_cluster_environments(tmpdir):
     plugins = [dict(class_path='pytorch_lightning.plugins.environments.SLURMEnvironment')]
 
@@ -326,6 +347,31 @@ def test_lightning_cli_args(tmpdir):
     assert 'model' not in config and 'model' not in cli.config  # no arguments to include
     assert config['data'] == cli.config['data']
     assert config['trainer'] == cli.config['trainer']
+
+
+def test_lightning_cli_save_config_cases(tmpdir):
+
+    config_path = tmpdir / 'config.yaml'
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.logger=False',
+        '--trainer.fast_dev_run=1',
+    ]
+
+    # With fast_dev_run!=False config should not be saved
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        LightningCLI(BoringModel)
+    assert not os.path.isfile(config_path)
+
+    # With fast_dev_run==False config should be saved
+    cli_args[-1] = '--trainer.max_epochs=1'
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        LightningCLI(BoringModel)
+    assert os.path.isfile(config_path)
+
+    # If run again on same directory exception should be raised since config file already exists
+    with mock.patch('sys.argv', ['any.py'] + cli_args), pytest.raises(RuntimeError):
+        LightningCLI(BoringModel)
 
 
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
@@ -446,11 +492,9 @@ def test_lightning_cli_submodules(tmpdir):
     with mock.patch('sys.argv', ['any.py'] + cli_args):
         cli = LightningCLI(MainModule)
 
-    assert cli.config_init['model']['main_param'] == 2
-    assert cli.model.submodule1 == cli.config_init['model']['submodule1']
-    assert cli.model.submodule2 == cli.config_init['model']['submodule2']
-    assert isinstance(cli.config_init['model']['submodule1'], BoringModel)
-    assert isinstance(cli.config_init['model']['submodule2'], BoringModel)
+    assert cli.config['model']['main_param'] == 2
+    assert isinstance(cli.model.submodule1, BoringModel)
+    assert isinstance(cli.model.submodule2, BoringModel)
 
 
 @pytest.mark.skipif(torchvision_version < version.parse('0.8.0'), reason='torchvision>=0.8.0 is required')
@@ -497,3 +541,65 @@ def test_lightning_cli_torch_modules(tmpdir):
     assert cli.model.activation.negative_slope == 0.2
     assert len(cli.model.transform) == 2
     assert all(isinstance(v, torch.nn.Module) for v in cli.model.transform)
+
+
+class BoringModelRequiredClasses(BoringModel):
+
+    def __init__(
+        self,
+        num_classes: int,
+        batch_size: int = 8,
+    ):
+        super().__init__()
+        self.num_classes = num_classes
+        self.batch_size = batch_size
+
+
+class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
+
+    def __init__(
+        self,
+        batch_size: int = 8,
+    ):
+        super().__init__()
+        self.batch_size = batch_size
+        self.num_classes = 5  # only available after instantiation
+
+
+def test_lightning_cli_link_arguments(tmpdir):
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments('data.batch_size', 'model.batch_size')
+            parser.link_arguments('data.num_classes', 'model.num_classes', apply_on='instantiate')
+
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.max_epochs=1',
+        '--data.batch_size=12',
+    ]
+
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = MyLightningCLI(BoringModelRequiredClasses, BoringDataModuleBatchSizeAndClasses)
+
+    assert cli.model.batch_size == 12
+    assert cli.model.num_classes == 5
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments('data.batch_size', 'model.init_args.batch_size')
+            parser.link_arguments('data.num_classes', 'model.init_args.num_classes', apply_on='instantiate')
+
+    cli_args[-1] = '--model=tests.utilities.test_cli.BoringModelRequiredClasses'
+
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = MyLightningCLI(
+            BoringModelRequiredClasses,
+            BoringDataModuleBatchSizeAndClasses,
+            subclass_mode_model=True,
+        )
+
+    assert cli.model.batch_size == 8
+    assert cli.model.num_classes == 5
