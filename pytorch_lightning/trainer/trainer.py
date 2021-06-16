@@ -537,7 +537,6 @@ class Trainer(
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
-        self.validated_ckpt_path: Optional[str] = None
 
         if val_dataloaders is not None:
             rank_zero_deprecation(
@@ -613,7 +612,6 @@ class Trainer(
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
-        self.tested_ckpt_path: Optional[str] = None
 
         if test_dataloaders is not None:
             rank_zero_deprecation(
