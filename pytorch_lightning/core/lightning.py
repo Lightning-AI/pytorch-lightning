@@ -1951,7 +1951,7 @@ class LightningModule(
         return size_mb
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
-        """Appends the `trainer.callback_metrics` dictionary to the given queue.
+        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
 
         To avoid issues with memory sharing, we cast the data to numpy.
 
@@ -1973,4 +1973,5 @@ class LightningModule(
         """
         # NOTE: this must be called in the right order to get the `callback_metrics`
         callback_metrics: dict = queue.get()
-        self.trainer.callback_metrics = apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
+        self.trainer.callback_metrics.update(
+            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))

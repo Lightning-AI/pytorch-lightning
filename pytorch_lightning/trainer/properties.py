@@ -527,10 +527,6 @@ class TrainerProperties(ABC):
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
 
-    @callback_metrics.setter
-    def callback_metrics(self, val: dict) -> None:
-        self.logger_connector.callback_metrics = val
-
     @property
     def logged_metrics(self) -> dict:
         return self.logger_connector.logged_metrics

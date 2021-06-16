@@ -290,10 +290,6 @@ class LoggerConnector:
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
-    @callback_metrics.setter
-    def callback_metrics(self, val: dict) -> None:
-        self._callback_metrics = val
-
     @property
     def logged_metrics(self) -> Dict[str, _METRIC]:
         if self.trainer._results:
