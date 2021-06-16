@@ -361,7 +361,6 @@ class ResultCollection(dict):
                 group=sync_dist_group,
             )
         )
-
         if key not in self:
             self.register_key(key, meta, value)
         elif meta != self[key].meta:

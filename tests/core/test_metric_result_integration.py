@@ -29,10 +29,9 @@ from tests.helpers.runif import RunIf
 
 class DummyMetric(Metric):
 
-    def __init__(self, name: str = None):
+    def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
-        self.name = name
 
     def update(self, x):
         self.x += x
@@ -194,10 +193,10 @@ def test_result_collection_restoration(tmpdir):
     """
 
     result = ResultCollection(True, torch.device("cpu"))
-    metric_a = DummyMetric('a')
-    metric_b = DummyMetric('b')
-    metric_c = DummyMetric('c')
-    metric_d = DummyMetric('d')
+    metric_a = DummyMetric()
+    metric_b = DummyMetric()
+    metric_c = DummyMetric()
+    metric_d = DummyMetric()
     current_fx_name = None
     batch_idx = None
 
