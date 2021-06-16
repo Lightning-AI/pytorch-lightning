@@ -999,12 +999,8 @@ class Trainer(
 
         eval_loop_results = self.evaluation_loop.run()
 
-        # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
-
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
-
         torch.set_grad_enabled(True)
 
         return eval_loop_results

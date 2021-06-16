@@ -119,6 +119,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         # hook
         self.on_evaluation_end()
 
+        # save predictions to disk
+        self.evaluation_loop.predictions.to_disk()
+
         return eval_loop_results
 
     def get_max_batches(self) -> List[Union[int, float]]:
