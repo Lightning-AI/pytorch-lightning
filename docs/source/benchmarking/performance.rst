@@ -181,3 +181,19 @@ read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zer
 
         def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
             optimizer.zero_grad(set_to_none=True)
+
+----------
+
+Skip validation for early epochs
+------------------------------
+
+If you don't want to perform validation for early epochs, i.e., for ``epoch < num_no_val_epochs``, you can disable validation using the ``on_train_epoch_start`` hook. This can be especially useful when validation is performed after each training batch.
+
+Note: doesn’t work nicely with ``EarlyStopping``.
+
+.. testcode::
+    def on_train_epoch_start(self):
+        if self.trainer.current_epoch >= self.num_burnin_epochs:
+            self.trainer.limit_val_batches = 1.0
+        else:
+            self.trainer.limit_val_batches = 0
