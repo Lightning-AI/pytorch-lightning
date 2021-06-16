@@ -1974,4 +1974,5 @@ class LightningModule(
         # NOTE: this must be called in the right order to get the `callback_metrics`
         callback_metrics: dict = queue.get()
         self.trainer.callback_metrics.update(
-            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
+            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
+        )
