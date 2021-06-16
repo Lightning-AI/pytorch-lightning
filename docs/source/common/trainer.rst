@@ -1170,10 +1170,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=32, gpus=1)
 
     # 16-bit precision
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
 
     # 64-bit precision
-    trainer = Trainer(precision=64)
+    trainer = Trainer(precision=64, gpus=1)
 
 
 .. note:: When running on TPUs, torch.float16 will be used but tensor printing will still show torch.float32.
