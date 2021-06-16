@@ -17,7 +17,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
-        self._dataloaders: Optional[Union[DataLoader, Sequence[DataLoader]]] = None
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
         self.evaluation_loop = EvaluationEpochLoop()
@@ -32,8 +31,10 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
-        """Returns all dataloaders"""
-        return self._dataloaders
+        """Returns the validation or test dataloaders"""
+        if self.trainer.testing:
+            return self.trainer.test_dataloaders
+        return self.trainer.val_dataloaders
 
     @property
     def results(self) -> Optional[ResultCollection]:
@@ -66,14 +67,12 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     def reset(self) -> None:
         """Resets the internal state of the loop"""
         self.iteration_count = 0
-
-        # prepare dataloaders
-        self._dataloaders, self._max_batches = self.get_eval_dataloaders(), self.get_max_batches()
+        self._max_batches = self.get_max_batches()
         # bookkeeping
         self.outputs = []
 
         if isinstance(self._max_batches, int):
-            self._max_batches = [self._max_batches] * len(self._dataloaders)
+            self._max_batches = [self._max_batches] * len(self.dataloaders)
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
@@ -124,7 +123,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader"""
-        # select dataloaders
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches
         else:
@@ -138,18 +136,12 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         return max_batches
 
     def reload_evaluation_dataloaders(self) -> None:
-        """Reloads dataloaders"""
+        """Reloads dataloaders if necessary"""
         model = self.trainer.lightning_module
         if self.trainer.testing:
             self.trainer.reset_test_dataloader(model)
         elif self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
-
-    def get_eval_dataloaders(self) -> List[DataLoader]:
-        """Returns the validation or test dataloaders"""
-        if self.trainer.testing:
-            return self.trainer.test_dataloaders
-        return self.trainer.val_dataloaders
 
     # TODO: this is currently also used in the new and old TrainingLoop
     def should_skip_evaluation(self, max_batches: List[Union[int, float]]) -> bool:
