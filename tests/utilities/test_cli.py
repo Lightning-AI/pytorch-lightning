@@ -289,6 +289,27 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+def test_lightning_cli_configurable_callbacks(tmpdir):
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(LearningRateMonitor, 'learning_rate_monitor')
+
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.max_epochs=1',
+        '--learning_rate_monitor.logging_interval=epoch',
+    ]
+
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = MyLightningCLI(BoringModel)
+
+    callback = [c for c in cli.trainer.callbacks if isinstance(c, LearningRateMonitor)]
+    assert len(callback) == 1
+    assert callback[0].logging_interval == 'epoch'
+
+
 def test_lightning_cli_args_cluster_environments(tmpdir):
     plugins = [dict(class_path='pytorch_lightning.plugins.environments.SLURMEnvironment')]
 
