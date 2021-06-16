@@ -1115,6 +1115,29 @@ class LightningModule(
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
+        The :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` is used
+        to scale inference on multi-devices.
+
+        To prevent an OOM error, it is possible to use :class:`~pytorch_lightning.callbacks.BasePredictionWriter`
+        callback to write the predictions to disk or database after each batch or on epoch end.
+
+        The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
+        based accelerator. This happens for ``Trainer(accelerator="ddp_spawn")``
+        or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
+
+        Example ::
+
+            class MyModel(LightningModule):
+
+                def predicts_step(self, batch, batch_idx, dataloader_idx):
+                    return self(batch)
+
+            dm = ...
+            model = MyModel()
+            trainer = Trainer(gpus=2)
+            predictions = trainer.predict(model, dm)
+
+
         Args:
             batch: Current batch
             batch_idx: Index of current batch
@@ -1346,7 +1369,7 @@ class LightningModule(
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
+        self.trainer.fit_loop.training_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1445,7 +1468,7 @@ class LightningModule(
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
             ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
-            :meth:`~pytorch_lightning.trainer.training_loop.TrainLoop.run_training_batch`.
+            :meth:`~pytorch_lightning.trainer.fit_loop.training_loop.batch_loop.TrainingBatchLoop.advance`.
 
         Warning:
             When using the standard trainer and ``accumulate_grad_batches``, both

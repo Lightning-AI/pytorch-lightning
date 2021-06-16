@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -33,7 +33,7 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(self, *args, parse_as_dict: bool = True, **kwargs) -> None:
+    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -48,22 +48,25 @@ class LightningArgumentParser(ArgumentParser):
         self.add_argument(
             '--config', action=ActionConfigFile, help='Path to a configuration file in json or yaml format.'
         )
+        self.callback_keys: List[str] = []
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule]],
+        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
         nested_key: str,
         subclass_mode: bool = False
-    ) -> None:
+    ) -> List[str]:
         """
         Adds arguments from a lightning class to a nested key of the parser
 
         Args:
-            lightning_class: Any subclass of {Trainer,LightningModule,LightningDataModule}.
+            lightning_class: Any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
+        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback))
+        if issubclass(lightning_class, Callback):
+            self.callback_keys.append(nested_key)
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
         return self.add_class_arguments(
@@ -75,7 +78,11 @@ class LightningArgumentParser(ArgumentParser):
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts"""
+    """Saves a LightningCLI config to the log_dir when training starts
+
+    Raises:
+        RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
+    """
 
     def __init__(
         self,
@@ -90,6 +97,11 @@ class SaveConfigCallback(Callback):
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
+        if os.path.isfile(config_path):
+            raise RuntimeError(
+                f'{self.__class__.__name__} expected {config_path} to not exist. '
+                'Aborting to avoid overwriting results of a previous run.'
+            )
         self.parser.save(self.config, config_path, skip_none=False)
 
 
@@ -226,12 +238,14 @@ class LightningCLI:
         """Instantiates the trainer using self.config_init['trainer']"""
         if self.config_init['trainer'].get('callbacks') is None:
             self.config_init['trainer']['callbacks'] = []
+        callbacks = [self.config_init[c] for c in self.parser.callback_keys]
+        self.config_init['trainer']['callbacks'].extend(callbacks)
         if 'callbacks' in self.trainer_defaults:
             if isinstance(self.trainer_defaults['callbacks'], list):
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
-        if self.save_config_callback is not None:
+        if self.save_config_callback and not self.config_init['trainer']['fast_dev_run']:
             config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
             self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])
