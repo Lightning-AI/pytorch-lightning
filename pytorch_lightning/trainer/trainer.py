@@ -811,8 +811,6 @@ class Trainer(
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
 
-        self.checkpoint_connector.resume_end()
-
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
@@ -849,6 +847,8 @@ class Trainer(
 
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
+
+        self.checkpoint_connector.resume_end()
 
         # --------------------------
         # Pre-train
