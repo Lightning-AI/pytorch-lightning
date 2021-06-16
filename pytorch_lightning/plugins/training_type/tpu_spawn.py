@@ -313,3 +313,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def should_rank_save_checkpoint(self) -> bool:
         return self.local_rank == 0
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)

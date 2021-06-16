@@ -309,7 +309,6 @@ class LoggerConnector:
         return self._progress_bar_metrics
 
     def teardown(self):
-        # TODO(@awaelchli): This should be handled by the loops themselves
         self.trainer.train_loop.results.cpu()
         self.trainer.evaluation_loop._val_results.cpu()
         self.trainer.evaluation_loop._test_results.cpu()

@@ -1347,7 +1347,7 @@ class LightningModule(
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
+        self.trainer.fit_loop.training_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1446,7 +1446,7 @@ class LightningModule(
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
             ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
-            :meth:`~pytorch_lightning.trainer.training_loop.TrainLoop.run_training_batch`.
+            :meth:`~pytorch_lightning.trainer.fit_loop.training_loop.batch_loop.TrainingBatchLoop.advance`.
 
         Args:
             epoch: Current epoch
