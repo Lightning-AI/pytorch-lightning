@@ -1462,28 +1462,14 @@ class LightningModule(
         Override this method to adjust the default way the
         :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer.
+        once per optimizer. This method (and ``zero_grad()``) won't be called during the
+        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
             ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
             :meth:`~pytorch_lightning.trainer.fit_loop.training_loop.batch_loop.TrainingBatchLoop.advance`.
-
-        Warning:
-            When using the standard trainer and ``accumulate_grad_batches``, both
-            ``optimizer.step()`` and ``optimizer.zero_grad()`` are called only once per
-            *optimization cycle*, and not once per step. This means that code like
-            the following:
-
-            .. code-block:: python
-
-                Trainer(accumulate_grad_batches=2)
-                ...
-                def optimizer_step(...):
-                    batch_idx % 2 == 0: optimizer.step()
-
-            will produce a gradient accumulation of 4, and not the desired 2 as expected.
 
         Args:
             epoch: Current epoch
