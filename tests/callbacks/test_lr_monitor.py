@@ -296,8 +296,8 @@ def test_lr_monitor_custom_pg_name(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        limit_val_batches=0.1,
-        limit_train_batches=0.5,
+        limit_val_batches=2,
+        limit_train_batches=2,
         callbacks=[lr_monitor],
         progress_bar_refresh_rate=0,
         weights_summary=None,
@@ -341,8 +341,8 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        limit_val_batches=0.1,
-        limit_train_batches=0.5,
+        limit_val_batches=2,
+        limit_train_batches=2,
         callbacks=[lr_monitor],
         progress_bar_refresh_rate=0,
         weights_summary=None,
