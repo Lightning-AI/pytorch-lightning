@@ -141,14 +141,24 @@ class TrainingProgress(Progress):
     Args:
         optimization: Tracks optimization progress
     """
-    optimizer_idx: Optional[int] = None
     optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
+
+
+@dataclass
+class OptimizerProgress(Progress):
+    """
+    Extends ``Progress`` with optimization specific attributes
+    Args:
+        optimizer_idx: Tracks current batch optimizer_idx
+    """
+    optimizer_idx: Optional[int] = None
 
 
 @dataclass
 class TrainingLoopProgress(LoopProgress):
 
     epoch: TrainingProgress = field(default_factory=TrainingProgress)
+    batch: OptimizerProgress = field(default_factory=OptimizerProgress)
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`

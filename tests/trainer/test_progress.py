@@ -186,7 +186,7 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
             ready=current, started=current, processed=None, completed=current
         )
 
-    assert pr.epoch.optimization.optimizer_idx == (2 if use_multiple_optimizers else 0)
+    assert pr.batch.optimizer_idx == (2 if use_multiple_optimizers else 0)
 
     progress = trainer.fit_loop.progress
 
