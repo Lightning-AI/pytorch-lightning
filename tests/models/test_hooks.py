@@ -512,7 +512,7 @@ def test_trainer_model_hook_system_fit_resume(tmpdir):
     )
     trainer.fit(model)
     best_model_path = trainer.checkpoint_callback.best_model_path
-    
+
     # resume from checkpoint with HookedModel
     called = []
     model = HookedModel(called)
