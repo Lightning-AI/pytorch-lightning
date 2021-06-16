@@ -124,6 +124,9 @@ class CheckpointConnector:
 
     def restore_datamodule(self) -> None:
         """ Calls hooks on the datamodule to give it a chance to restore its state from the checkpoint. """
+        if not self._loaded_checkpoint:
+            return
+
         datamodule = self.trainer.datamodule
         if datamodule is not None:
             datamodule.on_load_checkpoint(self._loaded_checkpoint)
