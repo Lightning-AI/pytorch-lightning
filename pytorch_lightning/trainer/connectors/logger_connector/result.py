@@ -286,7 +286,7 @@ class ResultCollection(dict):
                 warning_cache.warn(
                     f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
                     " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`",
+                    " `return {'loss': ..., 'something': something.detach()}`", DeprecationWarning
                 )
                 return v.detach()
             return v
