@@ -244,7 +244,7 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    trainer.train_loop.warning_cache.clear()
+    trainer.fit_loop.training_loop.warning_cache.clear()
 
     class NewSignature(Callback):
 

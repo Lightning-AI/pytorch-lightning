@@ -493,3 +493,19 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_on_step_on_epoch_prog_bar_logger': mean,
         'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
     }
+
+
+def test_logged_metrics_has_logged_epoch_value(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('epoch', -batch_idx, logger=True)
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer.fit(model)
+
+    # should not get overridden if logged manually
+    assert trainer.logged_metrics == {'epoch': -1}

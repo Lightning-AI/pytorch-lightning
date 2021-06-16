@@ -352,7 +352,8 @@ def test_main_progress_bar_update_amount(
         checkpoint_callback=False,
     )
     trainer.fit(model)
-    progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
+    if train_batches > 0:
+        progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
     if val_batches > 0:
         progress_bar.val_progress_bar.update.assert_has_calls([call(delta) for delta in val_deltas])
 
