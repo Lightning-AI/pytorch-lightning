@@ -235,11 +235,12 @@ def test_result_collection_restoration(tmpdir):
             result_copy = deepcopy(result)
             new_result = ResultCollection(True, torch.device("cpu"))
             state_dict = result.state_dict()
-            # check the sync fn is the expected
-            assert state_dict['items']['training_step.a']['meta'].sync.fn == my_sync_dist
+            # check the sync fn was dropped
+            assert 'fn' not in state_dict['items']['training_step.a']['meta']['_sync']
             new_result.load_state_dict(state_dict)
-            assert result_copy == new_result
             # should match
+            assert result_copy == new_result
+            # the sync fn has been kept
             assert result_copy['training_step.a'].meta.sync.fn == new_result['training_step.a'].meta.sync.fn
 
         epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
@@ -290,7 +291,8 @@ def test_lightning_module_logging_result_collection(tmpdir):
             state_dict = results.state_dict()
             # sync fn should be kept
             assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce
-            assert state_dict['items']['validation_step.v']['meta'].sync.fn == self.trainer.training_type_plugin.reduce
+            # sync fn dropped from the state dict
+            assert 'fn' not in state_dict['items']['validation_step.v']['meta']['_sync']
             results.load_state_dict(state_dict)
             # check if the sync fn was preserved
             assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce

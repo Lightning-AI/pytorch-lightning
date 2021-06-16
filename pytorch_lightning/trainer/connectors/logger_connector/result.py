@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union
 
@@ -41,10 +41,14 @@ class MetricSource(LightningEnum):
 
 @dataclass
 class _Sync:
-    fn: Callable
+    fn: Optional[Callable] = None
     should: bool = False
     op: Optional[str] = None
     group: Optional[Any] = None
+
+    def __post_init__(self) -> None:
+        if self.fn is None:
+            self.fn = self.no_op
 
     @property
     def __call__(self) -> Any:
@@ -63,27 +67,41 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    reduce_fx: Union[str, Callable] = torch.mean
+    _reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
-    sync: _Sync = field(default_factory=_Sync)
+    _sync: Optional[_Sync] = None
 
-    def __post_init__(self) -> None:
+    @property
+    def reduce_fx(self) -> Callable:
+        return self._reduce_fx
+
+    @reduce_fx.setter
+    def reduce_fx(self, reduce_fx: Union[str, Callable]) -> None:
         error = (
             'Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported.'
             ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`.'
-            f' Found: {self.reduce_fx}'
+            f' Found: {reduce_fx}'
         )
-        if isinstance(self.reduce_fx, str):
-            reduce_fx = self.reduce_fx.lower()
+        if isinstance(reduce_fx, str):
+            reduce_fx = reduce_fx.lower()
             if reduce_fx == 'avg':
                 reduce_fx = 'mean'
             if reduce_fx not in ('min', 'max', 'mean', 'sum'):
                 raise MisconfigurationException(error)
-            self.reduce_fx = getattr(torch, reduce_fx)
+            self._reduce_fx = getattr(torch, reduce_fx)
         elif self.is_custom_reduction:
             raise MisconfigurationException(error)
-        self.sync.op = self.reduce_fx.__name__
+
+    @property
+    def sync(self) -> Optional[_Sync]:
+        return self._sync
+
+    @sync.setter
+    def sync(self, sync: _Sync) -> None:
+        if sync.op is None:
+            sync.op = self.reduce_fx.__name__
+        self._sync = sync
 
     @property
     def forked(self) -> bool:
@@ -113,6 +131,25 @@ class _Metadata:
     @property
     def is_custom_reduction(self) -> bool:
         return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
+
+    def __getstate__(self) -> dict:
+        # drop the `sync.fn` to avoid potential pickle errors
+        # need to drop `fn` first otherwise `asdict` produces a `RecursionError`
+        copy = replace(self, _sync=replace(self.sync, fn=None))
+        d = asdict(copy)
+        # delete the `None` value so it does not override
+        del d['_sync']['fn']
+        return d
+
+    def __setstate__(self, state: dict) -> None:
+        d = {**state, '_sync': _Sync(**state['_sync'])}
+        self.__dict__.update(d)
+
+    @classmethod
+    def _reconstruct(cls, state: dict) -> '_Metadata':
+        meta = cls(state['fx'], state['name'])
+        meta.__setstate__(state)
+        return meta
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
@@ -203,7 +240,22 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self) -> dict:
-        return {**super().__getstate__(), '_class': self.__class__.__name__}
+        d = super().__getstate__()
+        d['meta'] = d['meta'].__getstate__()
+        d['_class'] = self.__class__.__name__
+        return d
+
+    def __setstate__(self, state: dict) -> None:
+        d = {**state, 'meta': _Metadata._reconstruct(state['meta'])}
+        super().__setstate__(d)
+
+    @classmethod
+    def _reconstruct(cls, state: dict) -> 'ResultMetric':
+        # need to reconstruct twice because `meta` is used in `__init__`
+        meta = _Metadata._reconstruct(state['meta'])
+        result_metric = cls(meta, state['is_tensor'])
+        result_metric.__setstate__(state)
+        return result_metric
 
 
 class ResultMetricCollection(dict):
@@ -225,10 +277,10 @@ class ResultMetricCollection(dict):
             return item.__getstate__()
 
         items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
-        return {"items": items, "meta": self.meta, "_class": self.__class__.__name__}
+        return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
 
     def __setstate__(self, state: dict) -> None:
-        self.meta = state["meta"]
+        self.meta = _Metadata._reconstruct(state['meta'])
 
         def setstate(item: dict) -> Union[Dict[str, ResultMetric], ResultMetric, Any]:
             # recurse through dictionaries to set the state. can't use `apply_to_collection`
@@ -236,13 +288,17 @@ class ResultMetricCollection(dict):
             if not isinstance(item, dict):
                 return item
             if item.get('_class') == ResultMetric.__name__:
-                result_metric = ResultMetric(item['meta'], item['is_tensor'])
-                result_metric.__setstate__(item)
-                return result_metric
+                return ResultMetric._reconstruct(item)
             return {k: setstate(v) for k, v in item.items()}
 
         items = setstate(state["items"])
         self.update(items)
+
+    @classmethod
+    def _reconstruct(cls, state: dict) -> 'ResultMetricCollection':
+        rmc = cls()
+        rmc.__setstate__(state)
+        return rmc
 
 
 class ResultCollection(dict):
@@ -353,15 +409,16 @@ class ResultCollection(dict):
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
-            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
-            sync=_Sync(
-                should=sync_dist,
-                fn=sync_dist_fn,
-                group=sync_dist_group,
-            )
         )
+        meta.reduce_fx = reduce_fx
+        meta.sync = _Sync(
+            should=sync_dist,
+            fn=sync_dist_fn,
+            group=sync_dist_group,
+        )
+
         if key not in self:
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
@@ -548,13 +605,12 @@ class ResultCollection(dict):
                 raise ValueError(f'Unexpected value: {item}')
             cls = item['_class']
             if cls == ResultMetric.__name__:
-                result_metric = ResultMetric(item['meta'], item['is_tensor'])
+                cls = ResultMetric
             elif cls == ResultMetricCollection.__name__:
-                result_metric = ResultMetricCollection()
+                cls = ResultMetricCollection
             else:
                 raise ValueError(f"Unexpected class name: {cls}")
-            result_metric.__setstate__(item)
-            return result_metric
+            return cls._reconstruct(item)
 
         items = {k: setstate(v) for k, v in state['items'].items()}
         self.update(items)
