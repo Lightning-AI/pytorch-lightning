@@ -48,10 +48,6 @@ class OptimizerConnector:
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
                 continue
 
-            if isinstance(lr_scheduler['opt_idx'],
-                          list) and all(opt_idx not in opt_indices for opt_idx in lr_scheduler['opt_idx']):
-                continue
-
             current_idx = self.trainer.train_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
