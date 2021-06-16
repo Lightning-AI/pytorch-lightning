@@ -28,7 +28,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import OptimizerProgress, TrainingProgress
+from pytorch_lightning.trainer.progress import TrainBatchLoopProgress, TrainingProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -55,7 +55,7 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
-        self.progress: Optional[OptimizerProgress] = None
+        self.progress: Optional[TrainBatchLoopProgress] = None
         self.progress_optimization: Optional[TrainingProgress] = None
 
     @property
@@ -75,7 +75,7 @@ class TrainingBatchLoop(Loop):
         void(*args, **kwargs)
         self.trainer = trainer
 
-    def create_progress(self, progress: OptimizerProgress, progress_optimization: TrainingProgress) -> None:
+    def create_progress(self, progress: TrainBatchLoopProgress, progress_optimization: TrainingProgress) -> None:
         self.progress = progress
         self.progress_optimization = progress_optimization
 

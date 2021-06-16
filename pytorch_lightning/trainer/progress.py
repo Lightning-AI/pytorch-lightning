@@ -145,7 +145,7 @@ class TrainingProgress(Progress):
 
 
 @dataclass
-class OptimizerProgress(Progress):
+class TrainBatchLoopProgress(Progress):
     """
     Extends ``Progress`` with optimization specific attributes
     Args:
@@ -158,7 +158,7 @@ class OptimizerProgress(Progress):
 class TrainingLoopProgress(LoopProgress):
 
     epoch: TrainingProgress = field(default_factory=TrainingProgress)
-    batch: OptimizerProgress = field(default_factory=OptimizerProgress)
+    batch: TrainBatchLoopProgress = field(default_factory=TrainBatchLoopProgress)
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
