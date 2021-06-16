@@ -49,12 +49,12 @@ class TrainerCallbackHookMixin(ABC):
     def setup(self, model: LightningModule, stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.setup(self, model, stage)
+            callback.setup(self, model, stage=stage)
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.teardown(self, self.lightning_module, stage)
+            callback.teardown(self, self.lightning_module, stage=stage)
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""

@@ -11,12 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.distributed import rank_zero_warn
 
-
-class WarningCache(set):
-
-    def warn(self, m, *args, **kwargs):
-        if m not in self:
-            self.add(m)
-            rank_zero_warn(m, *args, **kwargs)
+from pytorch_lightning.loops.base import Loop  # noqa: F401
+from pytorch_lightning.loops.fit_loop import FitLoop  # noqa: F401
+from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop  # noqa: F401
+from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop  # noqa: F401

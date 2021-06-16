@@ -62,6 +62,10 @@ class ModelToProfile(LightningModule):
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
+    def predict_step(self, batch, batch_idx, dataloader_idx: int = None):
+        inputs = batch[0]
+        return self.model(inputs)
+
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 
