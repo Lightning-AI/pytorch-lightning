@@ -304,7 +304,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
     )
     trainer.fit(TestModel())
     assert lr_monitor.lr_sch_names == ['lr-SGD']
-    assert list(lr_monitor.lrs.keys()) == ['lr-SGD/linear']
+    assert list(lr_monitor.lrs) == ['lr-SGD/linear']
 
 
 def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
