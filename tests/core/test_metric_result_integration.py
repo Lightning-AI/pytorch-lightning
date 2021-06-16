@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pickle
 from copy import deepcopy
 
 import torch
@@ -38,9 +39,6 @@ class DummyMetric(Metric):
 
     def compute(self):
         return self.x
-
-    def extra_repr(self) -> str:
-        return str(self.name) if self.name else ''
 
 
 def _setup_ddp(rank, worldsize):
@@ -186,7 +184,11 @@ def test_result_collection_simple_loop():
             assert result[k].cumulated_batch_size == torch.tensor(1.), k
 
 
-def test_result_collection_restoration():
+def my_sync_dist(x):
+    return x
+
+
+def test_result_collection_restoration(tmpdir):
     """"
     This test make sure metrics are properly reloaded on failure.
     """
@@ -203,7 +205,7 @@ def test_result_collection_restoration():
         nonlocal current_fx_name
         if current_fx_name != fx and batch_idx in (None, 0):
             result.reset(metrics=False, fx=fx)
-        result.log(fx, *args, **kwargs)
+        result.log(fx, *args, **kwargs, sync_dist_fn=my_sync_dist)
         current_fx_name = fx
 
     for _ in range(2):
@@ -230,37 +232,45 @@ def test_result_collection_restoration():
             batch_log = result.metrics(on_step=True)[MetricSource.LOG]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
             assert set(batch_log['c_1']) == {'1', '2'}
+
             result_copy = deepcopy(result)
+            new_result = ResultCollection(True, torch.device("cpu"))
             state_dict = result.state_dict()
-
-            result = ResultCollection(True, torch.device("cpu"))
-            result.load_state_dict(state_dict, sync_fn=result_copy['training_step.a'].meta.sync.fn)
-
-            assert result_copy.items() == result.items()
-            assert result_copy["training_step.c_1"].meta == result["training_step.c_1"].meta
-
-        batch_idx = None
+            # check the sync fn is the expected
+            assert state_dict['items']['training_step.a']['meta'].sync.fn == my_sync_dist
+            new_result.load_state_dict(state_dict)
+            assert result_copy == new_result
+            # should match
+            assert result_copy['training_step.a'].meta.sync.fn == new_result['training_step.a'].meta.sync.fn
 
         epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
         epoch_log_copy = result_copy.metrics(on_step=False)[MetricSource.LOG]
         assert epoch_log == epoch_log_copy
 
-        assert set(epoch_log) == {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
-        for k in epoch_log:
-            if k in {'a_epoch', 'b'}:
-                assert epoch_log[k] == cumulative_sum
-            else:
-                assert epoch_log[k] == 1
-
         lightning_log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
+        epoch_log = result.metrics(on_step=False)[MetricSource.LOG]
+        assert epoch_log == {
+            'a_1_epoch': 1,
+            'a_epoch': cumulative_sum,
+            'a': cumulative_sum,
+            'b': cumulative_sum,
+            'b_1': 1
+        }
 
-        result.reset()
-        result_copy.reset()
+        # make sure can be pickled
+        pickle.loads(pickle.dumps(result))
+        # make sure can be torch.loaded
+        filepath = str(tmpdir / 'result')
+        torch.save(result, filepath)
+        torch.load(filepath)
 
         # assert metric state reset to default values
+        result.reset()
         assert metric_a.x == metric_a._defaults['x']
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
+
+        batch_idx = None
 
 
 def test_lightning_module_logging_result_collection(tmpdir):
@@ -271,21 +281,24 @@ def test_lightning_module_logging_result_collection(tmpdir):
             super().__init__()
             self.metric = DummyMetric()
 
-        def training_step(self, batch, batch_idx):
+        def validation_step(self, batch, batch_idx):
             v = self.metric(batch_idx)
             self.log_dict({"v": v, "m": self.metric})
-            return super().training_step(batch, batch_idx)
+            return super().validation_step(batch, batch_idx)
 
         def on_save_checkpoint(self, checkpoint) -> None:
-            state_dict = self.trainer.train_loop.results.state_dict()
-            checkpoint["result_collections"] = state_dict
-            self.trainer.train_loop.results.load_state_dict(state_dict)
-            assert self.trainer.train_loop.results['training_step.v'].meta.sync.fn is None
-            return super().on_save_checkpoint(checkpoint)
+            results = self.trainer._results
+            state_dict = results.state_dict()
+            # sync fn should be kept
+            assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce
+            assert state_dict['items']['validation_step.v']['meta'].sync.fn == self.trainer.training_type_plugin.reduce
+            results.load_state_dict(state_dict)
+            # check if the sync fn was preserved
+            assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce
 
     model = LoggingModel()
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, limit_val_batches=2, callbacks=[ckpt]
+        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=2, callbacks=[ckpt]
     )
     trainer.fit(model)
