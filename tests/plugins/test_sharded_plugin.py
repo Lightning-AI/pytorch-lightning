@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 import torch
 
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
@@ -297,24 +298,13 @@ class ManualBoringModel(BoringModel):
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
-def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
-    # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
+@pytest.mark.parametrize("accelerator", ["ddp_sharded"])
+def test_ddp_sharded_plugin_manual_optimization(tmpdir, accelerator):
+    tutils.set_random_master_port()
     model = ManualBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        accelerator='ddp_sharded_spawn',
-        fast_dev_run=2,
-        gpus=2,
-    )
-    trainer.fit(model)
-
-
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
-def test_ddp_sharded_plugin_manual_optimization(tmpdir):
-    model = ManualBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator='ddp_sharded',
+        accelerator=accelerator,
         fast_dev_run=2,
         gpus=2,
     )
