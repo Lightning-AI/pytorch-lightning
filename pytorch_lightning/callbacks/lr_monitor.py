@@ -256,9 +256,7 @@ class LearningRateMonitor(Callback):
 
             name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
 
-            for i in range(len(param_groups)):
-                name_and_suffix = self._add_suffix(name, param_groups, i)
-                names.append(name_and_suffix)
+            names.extend(self._add_suffix(name, param_groups, i) for i in range(len(param_groups)))
 
             if add_lr_sch_names:
                 self.lr_sch_names.append(name)
