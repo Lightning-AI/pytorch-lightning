@@ -151,7 +151,7 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     f'{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md',
-    'course_UvA-DL/*'
+    'notebooks/course_UvA-DL/*',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
