@@ -16,6 +16,7 @@ import inspect
 import pickle
 import types
 from argparse import Namespace
+from dataclasses import fields, is_dataclass
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from pytorch_lightning.utilities import rank_zero_warn
@@ -197,7 +198,11 @@ def save_hyperparameters(
 
     if not frame:
         frame = inspect.currentframe().f_back
-    init_args = get_init_args(frame)
+
+    if is_dataclass(obj):
+        init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
+    else:
+        init_args = get_init_args(frame)
     assert init_args, "failed to inspect the obj init"
 
     if ignore is not None:
