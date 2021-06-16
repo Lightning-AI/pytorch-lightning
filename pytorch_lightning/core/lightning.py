@@ -1115,6 +1115,25 @@ class LightningModule(
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
+        The :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` is used
+        to scale inference on multi-devices.
+
+        To prevent an OOM error, it is possible to use :class:`~pytorch_lightning.callbacks.BasePredictionWriter`
+        callback to write the predictions to disk or database after each batch or on epoch end.
+
+        Example ::
+
+            class MyModel(LightningModule):
+
+                def predicts_step(self, batch, batch_idx, dataloader_idx):
+                    return self(batch)
+
+            dm = ...
+            model = MyModel()
+            trainer = Trainer(gpus=2)
+            predictions = trainer.predict(model, dm)
+
+
         Args:
             batch: Current batch
             batch_idx: Index of current batch
