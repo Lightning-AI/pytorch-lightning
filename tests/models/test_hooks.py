@@ -377,17 +377,30 @@ def test_trainer_model_hook_system_fit(tmpdir):
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_no_val(tmpdir):
+def test_trainer_model_hook_system_fit_with_resume(tmpdir):
+    # initial training to get a checkpoint
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=0,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    best_model_path = trainer.checkpoint_callback.best_model_path
+
+    # resume from checkpoint with HookedModel
     called = []
     model = HookedModel(called)
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        max_steps=2,
         limit_val_batches=0,
-        limit_train_batches=train_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        resume_from_checkpoint=best_model_path,
     )
     assert called == []
     trainer.fit(model)
@@ -395,6 +408,7 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'prepare_data',
         'configure_callbacks',
         'setup',
+        'on_load_checkpoint',
         'configure_sharded_model',
         'configure_optimizers',
         'on_fit_start',
@@ -409,7 +423,7 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'on_train_start',
         'on_epoch_start',
         'on_train_epoch_start',
-        *(HookedModel._train_batch() * train_batches),
+        *(HookedModel._train_batch() * (train_batches - 1)),
         'training_epoch_end',
         'on_train_epoch_end',
         'on_epoch_end',
@@ -495,54 +509,6 @@ def test_trainer_model_hook_system_test(tmpdir):
         'on_test_end',
         'train',
         'on_test_model_train',
-        'teardown',
-    ]
-    assert called == expected
-
-
-def test_trainer_model_hook_system_fit_resume(tmpdir):
-    # initial training to get a checkpoint
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        limit_val_batches=0,
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-    best_model_path = trainer.checkpoint_callback.best_model_path
-
-    # resume from checkpoint with HookedModel
-    called = []
-    model = HookedModel(called)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        limit_val_batches=0,
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-        resume_from_checkpoint=best_model_path,
-    )
-    assert called == []
-    trainer.fit(model)
-    expected = [
-        'prepare_data',
-        'configure_callbacks',
-        'setup',
-        'on_load_checkpoint',
-        'configure_sharded_model',
-        'configure_optimizers',
-        'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
-        'train',
-        'on_train_dataloader',
-        'train_dataloader',
-        # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
-        'on_val_dataloader',
-        'val_dataloader',
-        'on_fit_end',
         'teardown',
     ]
     assert called == expected
