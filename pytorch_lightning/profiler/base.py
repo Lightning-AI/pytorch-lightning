@@ -174,7 +174,6 @@ class BaseProfiler(AbstractProfiler):
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
-        print("LOCAL_RANK 1", self._local_rank)
         self._log_dir = log_dir
         self.dirpath = self.dirpath or log_dir
 
