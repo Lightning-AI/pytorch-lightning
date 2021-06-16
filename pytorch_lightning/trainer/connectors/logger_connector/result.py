@@ -527,26 +527,20 @@ class ResultCollection(dict):
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self) -> dict:
+        d = self.__dict__.copy()
         # can't deepcopy tensors with grad_fn
-        minimize = None
-        if self.minimize is not None:
-            minimize = self.minimize.detach()
-
+        minimize = d['_minimize']
+        if minimize is not None:
+            d['_minimize'] = minimize.detach()
+        extra = self.get('_extra')
+        if extra is not None:
+            d['_extra'] = extra
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__() for k, v in self.items()}
-        return {
-            'training': self.training,
-            'device': self.device,
-            'minimize': minimize,
-            'batch_size': self.batch_size,
-            'items': items,
-        }
+        items = {k: v.__getstate__() for k, v in self.items() if k != '_extra'}
+        return {**d, 'items': items}
 
     def __setstate__(self, state: dict) -> None:
-        self.training = state['training']
-        self.device = state['device']
-        self._minimize = state['minimize']
-        self._batch_size = state['batch_size']
+        self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(item: dict) -> Union[ResultMetric, ResultMetricCollection]:
             if not isinstance(item, dict):
