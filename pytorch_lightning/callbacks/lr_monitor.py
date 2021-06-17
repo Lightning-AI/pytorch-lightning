@@ -20,7 +20,7 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List, Optional, Type
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Type
 
 from torch.optim.optimizer import Optimizer
 
@@ -55,7 +55,9 @@ class LearningRateMonitor(Callback):
     In case of multiple optimizers of same type, they will be named ``Adam``,
     ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
     be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
-    ``name`` keyword in the construction of the learning rate schedulers
+    ``name`` keyword in the construction of the learning rate schedulers.
+    A ``name`` keyword can also be used for parameter groups in the
+    construction of the optimizer.
 
     Example::
 
@@ -65,6 +67,19 @@ class LearningRateMonitor(Callback):
                 'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
                 'name': 'my_logging_name'
             }
+            return [optimizer], [lr_scheduler]
+
+    Example::
+
+        def configure_optimizer(self):
+            optimizer = torch.optim.SGD(
+                [{
+                    'params': [p for p in self.parameters()],
+                    'name': 'my_parameter_group_name'
+                }],
+                lr=0.1
+            )
+            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
             return [optimizer], [lr_scheduler]
 
     """
@@ -150,11 +165,11 @@ class LearningRateMonitor(Callback):
                 use_betas = 'betas' in opt.defaults
 
                 for i, pg in enumerate(param_groups):
-                    suffix = f'/pg{i + 1}' if len(param_groups) > 1 else ''
-                    lr = self._extract_lr(pg, f'{name}{suffix}')
+                    name_and_suffix = self._add_suffix(name, param_groups, i)
+                    lr = self._extract_lr(pg, name_and_suffix)
                     latest_stat.update(lr)
                     momentum = self._extract_momentum(
-                        param_group=pg, name=f'{name}-momentum{suffix}', use_betas=use_betas
+                        param_group=pg, name=name_and_suffix.replace(name, f'{name}-momentum'), use_betas=use_betas
                     )
                     latest_stat.update(momentum)
 
@@ -192,6 +207,26 @@ class LearningRateMonitor(Callback):
         count = seen_optimizer_types[optimizer_cls]
         return name + f'-{count - 1}' if count > 1 else name
 
+    def _add_suffix(self, name: str, param_groups: List[Dict], param_group_index: int, use_names: bool = True) -> str:
+        if len(param_groups) > 1:
+            if not use_names:
+                return f'{name}/pg{param_group_index+1}'
+            else:
+                pg_name = param_groups[param_group_index].get('name', f'pg{param_group_index+1}')
+                return f'{name}/{pg_name}'
+        elif use_names:
+            pg_name = param_groups[param_group_index].get('name')
+            return f'{name}/{pg_name}' if pg_name else name
+        return name
+
+    def _duplicate_param_group_names(self, param_groups: List[Dict]) -> Set[str]:
+        names = [pg.get('name', f'pg{i}') for i, pg in enumerate(param_groups, start=1)]
+        unique = set(names)
+        if len(names) == len(unique):
+            return set()
+        else:
+            return set(n for n in names if names.count(n) > 1)
+
     def _find_names(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
@@ -212,15 +247,16 @@ class LearningRateMonitor(Callback):
 
             # Multiple param groups for the same scheduler
             param_groups = sch.optimizer.param_groups
+            duplicates = self._duplicate_param_group_names(param_groups)
+            if duplicates:
+                raise MisconfigurationException(
+                    'A single `Optimizer` cannot have multiple parameter groups with identical '
+                    f'`name` values. {name} has duplicated parameter group names {duplicates}'
+                )
 
             name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
 
-            if len(param_groups) != 1:
-                for i in range(len(param_groups)):
-                    temp = f'{name}/pg{i + 1}'
-                    names.append(temp)
-            else:
-                names.append(name)
+            names.extend(self._add_suffix(name, param_groups, i) for i in range(len(param_groups)))
 
             if add_lr_sch_names:
                 self.lr_sch_names.append(name)

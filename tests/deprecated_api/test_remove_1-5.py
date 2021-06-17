@@ -25,12 +25,14 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 
 
@@ -242,7 +244,7 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    trainer.train_loop.warning_cache.clear()
+    trainer.fit_loop.training_loop.warning_cache.clear()
 
     class NewSignature(Callback):
 
@@ -374,3 +376,15 @@ def test_v1_5_0_datamodule_setter():
 def test_v1_5_0_trainer_tbptt_steps(tmpdir):
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         _ = Trainer(truncated_bptt_steps=1)
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize(
+    "params", [dict(cpu_offload=True),
+               dict(cpu_offload_params=True),
+               dict(cpu_offload_use_pin_memory=True)]
+)
+def test_v1_5_0_deepspeed_cpu_offload(tmpdir, params):
+
+    with pytest.deprecated_call(match="is deprecated since v1.4 and will be removed in v1.5"):
+        DeepSpeedPlugin(**params)
