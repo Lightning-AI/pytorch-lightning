@@ -15,11 +15,11 @@ To use Grid, replace ``python`` in your regular command:
 
     python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
 
-To use the ``grid train`` command:
+To use the ``grid run`` command:
 
 .. code-block:: bash
 
-    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+    grid run --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
 
 The above command will launch (20 * 4) experiments, each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
 your code.
@@ -37,3 +37,6 @@ Grid Highlights
 * Grid handles all the other parts of developing and training at scale: artifacts, logs, metrics, etc.
 * Grid works with the experiment manager of your choice, no code changes needed.
 * Use Grid Datastores- high-performance, low-latency, versioned datasets.
+* Attach Datastores to a Run so you don't have to keep downloading datasets
+* Use Grid Sessions for fast prototyping on a cloud machine of your choice
+* For more information check the `grid documentation <https://docs.grid.ai/>`_ 
