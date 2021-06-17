@@ -19,7 +19,7 @@ To use the ``grid run`` command:
 
 .. code-block:: bash
 
-    grid run --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+    grid run --gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
 
 The above command will launch (20 * 4) experiments, each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
 your code.
