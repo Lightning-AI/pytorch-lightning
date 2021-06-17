@@ -418,7 +418,7 @@ def test_trainer_model_hook_system_fit(tmpdir):
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_with_resume(tmpdir):
+def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
