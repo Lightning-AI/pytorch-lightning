@@ -343,6 +343,7 @@ class HookedModel(BoringModel):
                 dict(name='on_before_batch_transfer', args=(ANY, None)),
                 dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
                 dict(name='on_after_batch_transfer', args=(ANY, None)),
+                dict(name='forward', args=(ANY, )),
                 dict(name=f'{fn}_step', args=(ANY, i)),
                 dict(name=f'{fn}_step_end', args=({
                     key: ANY
@@ -580,12 +581,15 @@ def test_trainer_model_hook_system_eval(tmpdir, verb, noun, dataloader, key):
         dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
         dict(name=f'on_{dataloader}_dataloader'),
         dict(name=f'{dataloader}_dataloader'),
+        dict(name='train', args=(False, )),
         dict(name=f'on_{noun}_model_eval'),
+        dict(name='zero_grad'),
         dict(name=f'Callback.on_{noun}_start', args=(trainer, model)),
         dict(name=f'on_{noun}_start'),
         *model._eval_epoch(noun, trainer, model, batches, key),
         dict(name=f'Callback.on_{noun}_end', args=(trainer, model)),
         dict(name=f'on_{noun}_end'),
+        dict(name='train'),
         dict(name=f'on_{noun}_model_train'),
         dict(name='Callback.teardown', args=(trainer, model), kwargs=dict(stage=verb)),
         dict(name='teardown', kwargs=dict(stage=verb)),
