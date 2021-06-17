@@ -62,7 +62,13 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
-        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.should_skip_evaluation(self._max_batches)
+        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.skip
+
+    @property
+    def skip(self) -> bool:
+        """Returns whether the evaluation should be skipped."""
+        max_batches = self.get_max_batches()
+        return sum(max_batches) == 0
 
     def reset(self) -> None:
         """Resets the internal state of the loop"""
@@ -75,9 +81,11 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs the ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
+        """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
         void(*args, **kwargs)
         # hook
+        self.on_evaluation_model_eval()
+        self.trainer.lightning_module.zero_grad()
         self.on_evaluation_start()
         self.on_evaluation_epoch_start()
 
@@ -122,6 +130,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
 
+        # enable train mode again
+        self.on_evaluation_model_train()
+
         return eval_loop_results
 
     def get_max_batches(self) -> List[Union[int, float]]:
@@ -145,11 +156,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             self.trainer.reset_test_dataloader(model)
         elif self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
-
-    # TODO: this is currently also used in the new and old TrainingLoop
-    def should_skip_evaluation(self, max_batches: List[Union[int, float]]) -> bool:
-        """Whether the evaluation should be skipped"""
-        return sum(max_batches) == 0
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""

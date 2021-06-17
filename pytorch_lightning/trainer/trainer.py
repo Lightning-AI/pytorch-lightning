@@ -983,26 +983,10 @@ class Trainer(
             self.validating = True
 
         self.evaluation_loop.reload_evaluation_dataloaders()
-        max_batches = self.evaluation_loop.get_max_batches()
 
-        # TODO: move this check inside new loop
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(max_batches):
-            return [], []
-
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        # ref model
-        model = self.lightning_module
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
-        eval_loop_results = self.evaluation_loop.run()
-
-        # enable train mode again
-        self.evaluation_loop.on_evaluation_model_train()
-        torch.set_grad_enabled(True)
-
+        with torch.no_grad():
+            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
+            eval_loop_results = self.evaluation_loop.run()
         return eval_loop_results
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
@@ -1012,7 +996,7 @@ class Trainer(
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._run_evaluation()
+            eval_loop_results = self._run_evaluation() or ([], [])
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
