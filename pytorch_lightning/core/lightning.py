@@ -1115,6 +1115,29 @@ class LightningModule(
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
+        The :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` is used
+        to scale inference on multi-devices.
+
+        To prevent an OOM error, it is possible to use :class:`~pytorch_lightning.callbacks.BasePredictionWriter`
+        callback to write the predictions to disk or database after each batch or on epoch end.
+
+        The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
+        based accelerator. This happens for ``Trainer(accelerator="ddp_spawn")``
+        or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
+
+        Example ::
+
+            class MyModel(LightningModule):
+
+                def predicts_step(self, batch, batch_idx, dataloader_idx):
+                    return self(batch)
+
+            dm = ...
+            model = MyModel()
+            trainer = Trainer(gpus=2)
+            predictions = trainer.predict(model, dm)
+
+
         Args:
             batch: Current batch
             batch_idx: Index of current batch
@@ -1439,7 +1462,8 @@ class LightningModule(
         Override this method to adjust the default way the
         :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer.
+        once per optimizer. This method (and ``zero_grad()``) won't be called during the
+        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter

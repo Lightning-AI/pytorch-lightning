@@ -12,4 +12,4 @@ sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3
 
--r ../notebooks/.actions/requirements.txt
+-r ../_notebooks/.actions/requirements.txt
