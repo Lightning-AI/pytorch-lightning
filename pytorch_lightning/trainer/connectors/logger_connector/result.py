@@ -321,7 +321,7 @@ class ResultCollection(dict):
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
-    def __init__(self, training: bool, device: Optional[torch.device] = None) -> None:
+    def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
         super().__init__()
         self.training = training
         self._minimize = None
@@ -599,7 +599,7 @@ class ResultCollection(dict):
         items = {k: v.__getstate__() for k, v in self.items() if k != '_extra'}
         return {**d, 'items': items}
 
-    def __setstate__(self, state: dict) -> None:
+    def __setstate__(self, state: dict, map_location: Optional[Union[str, torch.device]] = None) -> None:
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
@@ -618,8 +618,11 @@ class ResultCollection(dict):
         items = {k: setstate(k, v) for k, v in state['items'].items()}
         self.update(items)
 
+        device = map_location or self.device
+        self.to(device)
+
     def state_dict(self) -> dict:
         return self.__getstate__()
 
-    def load_state_dict(self, state_dict: dict) -> None:
-        self.__setstate__(state_dict)
+    def load_state_dict(self, state_dict: dict, map_location: Optional[Union[str, torch.device]] = None) -> None:
+        self.__setstate__(state_dict, map_location=map_location)

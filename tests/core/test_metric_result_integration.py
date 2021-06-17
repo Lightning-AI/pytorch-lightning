@@ -14,6 +14,7 @@
 import pickle
 from copy import deepcopy
 
+import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -273,7 +274,8 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-def test_lightning_module_logging_result_collection(tmpdir):
+@pytest.mark.parametrize('device', ('cpu', pytest.param('cuda', marks=RunIf(min_gpus=1))))
+def test_lightning_module_logging_result_collection(tmpdir, device):
 
     class LoggingModel(BoringModel):
 
@@ -289,21 +291,40 @@ def test_lightning_module_logging_result_collection(tmpdir):
         def on_save_checkpoint(self, checkpoint) -> None:
             results = self.trainer._results
             state_dict = results.state_dict()
+
+            # check device
+            assert results['validation_step.v'].value.device.type == device
+            assert state_dict['items']['validation_step.v']['value'].device.type == device
+
             # sync fn should be kept
             assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce
+
             # sync fn dropped from the state dict
             assert 'fn' not in state_dict['items']['validation_step.v']['meta']['_sync']
             results.load_state_dict(state_dict)
-            # check the sync fn was preserved
+
+            # check device after loading
+            assert results['validation_step.v'].value.device.type == device
+
+            # sync fn was preserved in the original result
             assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce
-            new_result = ResultCollection(False, 'cpu')
-            new_result.load_state_dict(state_dict)
-            # check the default sync fn
-            assert new_result['validation_step.v'].meta.sync.fn == _Sync.no_op
+
+            # default sync fn
+            new_results = ResultCollection(False, device)
+            new_results.load_state_dict(state_dict, map_location='cpu')
+            assert new_results['validation_step.v'].meta.sync.fn == _Sync.no_op
+
+            # check map location
+            assert new_results['validation_step.v'].value.device.type == 'cpu'
 
     model = LoggingModel()
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=2, callbacks=[ckpt]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        callbacks=[ckpt],
+        gpus=1 if device == 'cuda' else 0,
     )
     trainer.fit(model)
