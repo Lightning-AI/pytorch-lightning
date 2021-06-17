@@ -405,7 +405,7 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def get_result_collections_state_dict(self) -> Dict[str, Dict[str, Any]]:
+    def get_result_collections_state_dict(self):
         return {
             RunningStage.TRAINING.value: self.trainer.train_loop.results.state_dict(),
             RunningStage.VALIDATING.value: self.trainer.evaluation_loop._val_results.state_dict(),
