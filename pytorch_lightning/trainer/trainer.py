@@ -15,7 +15,6 @@
 import logging
 import warnings
 from datetime import timedelta
-from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
@@ -28,6 +27,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
@@ -60,7 +60,6 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -336,7 +335,9 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+
+        self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.fit_loop.connect(self)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -381,8 +382,10 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
+
         self.evaluation_loop.on_trainer_init()
         self.predict_loop.on_trainer_init()
+        self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -411,6 +414,34 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    def _setup_on_init(
+        self,
+        num_sanity_val_steps: int,
+    ) -> None:
+        self.should_stop = False
+        self.state = TrainerState()
+        self.num_training_batches = 0
+        self.train_dataloader = None
+
+        if num_sanity_val_steps == -1:
+            self.num_sanity_val_steps = float("inf")
+        else:
+            self.num_sanity_val_steps = num_sanity_val_steps
+
+    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None) -> None:
+        # clean hparams
+        if hasattr(model, "hparams"):
+            parsing.clean_namespace(model.hparams)
+
+        # links data to the trainer
+        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
+
+        # check that model is configured correctly
+        self.config_validator.verify_loop_configurations(model)
+
+        # attach model log function to callback
+        self.callback_connector.attach_model_logging_functions(model)
 
     def fit(
         self,
@@ -460,6 +491,8 @@ class Trainer(
         self.data_connector.attach_data(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
+
+        self.checkpoint_connector.resume_start()
 
         self._run(model)
 
@@ -770,6 +803,13 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+
+        # restore modules after setup
+        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
+
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
@@ -810,6 +850,9 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
+
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
@@ -873,6 +916,8 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
 
+        self.checkpoint_connector.resume_end()
+
         # --------------------------
         # Pre-train
         # --------------------------
@@ -885,9 +930,6 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
-
-        # restore training and model before hpc is called
-        self.checkpoint_connector.restore()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -909,48 +951,11 @@ class Trainer(
 
         # reload data when needed
         model = self.lightning_module
-        self.train_loop.reset_train_val_dataloaders(model)
 
-        # hook
-        self.train_loop.on_train_start()
+        self.reset_train_val_dataloaders(model)
 
         try:
-            if self.train_loop.should_skip_training():
-                return
-            # run all epochs
-            epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
-            for epoch in epochs:
-
-                # hook
-                self.train_loop.on_train_epoch_start(epoch)
-
-                with self.profiler.profile("run_training_epoch"):
-                    # run train epoch
-                    self.train_loop.run_training_epoch()
-
-                if self.max_steps and self.max_steps <= self.global_step:
-                    self.train_loop.on_train_end()
-                    return
-
-                # early stopping
-                met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                if self.should_stop:
-                    if met_min_epochs and met_min_steps:
-                        self.train_loop.on_train_end()
-                        return
-                    else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
-                        self.should_stop = False
-
-            # hook
-            self.train_loop.on_train_end()
-
+            self.fit_loop.run()
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             # user could press Ctrl+c many times... only shutdown once
@@ -1235,10 +1240,10 @@ class Trainer(
         model._current_dataloader_idx = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
+        # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
-        # TrainLoop._on_train_epoch_end_hook
+        # TrainingEpochLoop._on_train_epoch_end_hook
         if self.lightning_module:
             prev_fx_name = self.lightning_module._current_fx_name
             self.lightning_module._current_fx_name = hook_name

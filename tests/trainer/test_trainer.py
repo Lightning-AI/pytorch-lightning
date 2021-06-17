@@ -253,23 +253,18 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
             return out
 
-        # def optimizer_step(self, *args, **kwargs):
-        #     pre_opt_step_state_dict = self.state_dict()
-        #     assert self.check(self.start_state_dict, pre_opt_step_state_dict)
+        def optimizer_step(self, *args, **kwargs):
+            pre_opt_step_state_dict = self.state_dict()
+            assert self.check(self.start_state_dict, pre_opt_step_state_dict)
 
-        #     # this calls `backward` and `on_after_backward` inside the closure
-        #     out = super().optimizer_step(*args, **kwargs)
+            # this calls `backward` and `on_after_backward` inside the closure
+            out = super().optimizer_step(*args, **kwargs)
 
-        #     # the state dict changed
-        #     assert self.check(pre_opt_step_state_dict, self.state_dict(), equal=False)
+            # the state dict changed
+            assert self.check(pre_opt_step_state_dict, self.state_dict(), equal=False)
 
-        #     self.opt_step_called = True
-        #     return out
-
-        def on_after_backward(self):
-            # should override `optimizer_step` instead but can't with `accumulate_grad_batches`
-            # replace with the above after https://github.com/PyTorchLightning/pytorch-lightning/issues/6910
             self.opt_step_called = True
+            return out
 
         def on_train_batch_start(self, *_):
             self.start_state_dict = self.state_dict()
@@ -931,21 +926,21 @@ def test_gradient_clipping(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.fit_loop.training_loop.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
         # test that gradient is clipped correctly
-        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
 
         return ret_val
 
-    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    trainer.fit_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
     # for the test
     model.prev_called_batch_idx = 0
 
@@ -969,14 +964,14 @@ def test_gradient_clipping_by_value(tmpdir):
         default_root_dir=tmpdir
     )
 
-    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.fit_loop.training_loop.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
         # test that gradient is clipped correctly
-        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
@@ -985,7 +980,7 @@ def test_gradient_clipping_by_value(tmpdir):
 
         return ret_val
 
-    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    trainer.fit_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
     # for the test
     model.prev_called_batch_idx = 0
 
@@ -1010,21 +1005,21 @@ def test_gradient_clipping_fp16(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.fit_loop.training_loop.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
         # test that gradient is clipped correctly
-        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
 
         return ret_val
 
-    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    trainer.fit_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
@@ -1049,14 +1044,14 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.fit_loop.training_loop.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
         # test that gradient is clipped correctly
-        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
@@ -1065,7 +1060,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
 
         return ret_val
 
-    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    trainer.fit_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)

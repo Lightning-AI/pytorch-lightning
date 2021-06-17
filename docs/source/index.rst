@@ -21,8 +21,8 @@ PyTorch Lightning Documentation
    :name: guides
    :caption: Best practices
 
+   guides/speed
    starter/style_guide
-   benchmarking/performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
    benchmarking/benchmarks
 
@@ -57,10 +57,11 @@ PyTorch Lightning Documentation
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
-   notebooks/starters/mnist-hello-world.ipynb
-   notebooks/starters/datamodules.ipynb
-   notebooks/starters/cifar10-baseline.ipynb
-   notebooks/starters/basic-gan.ipynb
+   notebooks/lightning_examples/mnist-hello-world.ipynb
+   notebooks/lightning_examples/datamodules.ipynb
+   notebooks/lightning_examples/cifar10-baseline.ipynb
+   notebooks/lightning_examples/basic-gan.ipynb
+   notebooks/lightning_examples/augmentation_kornia.ipynb
 
 .. toctree::
    :maxdepth: 2
@@ -98,12 +99,10 @@ PyTorch Lightning Documentation
 
    clouds/cloud_training
    clouds/cluster
-   advanced/amp
    common/child_modules
    common/debugging
    common/loggers
    common/early_stopping
-   common/fast_training
    common/hyperparameters
    common/lightning_cli
    advanced/lr_finder
