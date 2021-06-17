@@ -353,7 +353,7 @@ class TrainingEpochLoop(Loop):
             processed_outputs = processed_outputs[0]
         return processed_outputs
 
-    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool = False) -> None:
+    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval"""
         if interval == "step" and self.batch_loop.should_accumulate():
             return
