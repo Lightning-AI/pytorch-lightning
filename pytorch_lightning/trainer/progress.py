@@ -19,12 +19,13 @@ from typing import Optional
 class Tracker:
     """
     Track an event's progress.
+
     Args:
         ready: Intended to track the number of events ready to start.
         started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
         processed: Intended to be incremented after the event is processed.
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
-    Attributes set to ``None`` are treated as unused and are restricted.
+            Attributes set to ``None`` are treated as unused and are restricted.
     """
     ready: Optional[int] = 0
     started: Optional[int] = 0
@@ -56,6 +57,7 @@ class Tracker:
 class Progress:
     """
     Track aggregated and current progress.
+
     Args:
         total: Intended to track the total progress of an event
         current: Intended to track the current progress of an event
@@ -97,6 +99,7 @@ class LoopProgress:
     """
     Track loop progress during execution.
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
     Args:
         epoch: Tracks epochs progress.
         batch: Tracks batch progress.
@@ -117,6 +120,7 @@ class LoopProgress:
 class OptimizationProgress:
     """
     Track optimization progress.
+
     Args:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
@@ -138,6 +142,7 @@ class OptimizationProgress:
 class TrainingProgress(Progress):
     """
     Extends ``Progress`` with training specific attributes
+
     Args:
         optimization: Tracks optimization progress
     """
@@ -148,6 +153,7 @@ class TrainingProgress(Progress):
 class TrainBatchLoopProgress(Progress):
     """
     Extends ``Progress`` with optimization specific attributes
+
     Args:
         optimizer_idx: Tracks current batch optimizer_idx
     """
