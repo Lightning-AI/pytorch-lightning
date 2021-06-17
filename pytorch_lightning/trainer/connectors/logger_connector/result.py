@@ -443,7 +443,7 @@ class ResultCollection(dict):
         if key not in self:
             self.register_key(key, meta, value)
 
-        # check the stored metadata and provided one matches
+        # check the stored metadata and the current one match
         elif meta != self[key].meta:
             raise MisconfigurationException(
                 f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
@@ -633,7 +633,6 @@ class ResultCollection(dict):
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
-            nonlocal sync_fn
             if not isinstance(item, dict):
                 raise ValueError(f'Unexpected value: {item}')
             cls = item['_class']
