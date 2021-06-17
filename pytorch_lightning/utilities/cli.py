@@ -94,7 +94,7 @@ class SaveConfigCallback(Callback):
         self.config = config
         self.config_filename = config_filename
 
-    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
         if os.path.isfile(config_path):
@@ -103,6 +103,14 @@ class SaveConfigCallback(Callback):
                 'Aborting to avoid overwriting results of a previous run.'
             )
         self.parser.save(self.config, config_path, skip_none=False)
+
+    def __reduce__(self):
+        # the `ArgumentParser` is un-pickleable
+        return (
+            self.__class__,
+            (None, self.config, self.config_filename),
+            dict(),
+        )
 
 
 class LightningCLI:

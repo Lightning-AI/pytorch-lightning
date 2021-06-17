@@ -603,3 +603,22 @@ def test_lightning_cli_link_arguments(tmpdir):
 
     assert cli.model.batch_size == 8
     assert cli.model.num_classes == 5
+
+
+@pytest.mark.parametrize('logger', (False, True))
+def test_bug(tmpdir, logger):
+    # test ddp (cpu) spawn, with and without logger.
+    with mock.patch('sys.argv', ['any.py']):
+        LightningCLI(
+            BoringModel,
+            trainer_defaults={
+                'default_root_dir': str(tmpdir),
+                'logger': logger,
+                'accelerator': 'ddp_cpu',
+                'max_steps': 1,
+                'max_epochs': 1
+            }
+        )
+    print(tmpdir.listdir())
+    config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml' if logger else tmpdir / 'config.yaml'
+    assert os.path.isfile(config_path)
