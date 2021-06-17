@@ -25,7 +25,7 @@ import uuid
 from abc import ABC
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import onnx
@@ -1880,7 +1880,7 @@ class LightningModule(
         model_check_fn(file_path, input_sample, kwargs['example_outputs'])
 
         self.train(mode)
-        
+
     @staticmethod
     def _default_model_check_fn(p, inp, torch_outs):
         # generic graph integrity checks
