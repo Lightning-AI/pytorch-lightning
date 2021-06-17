@@ -245,10 +245,12 @@ class CheckpointConnector:
             val_results = self.trainer.evaluation_loop._val_results
             test_results = self.trainer.evaluation_loop._test_results
 
+            should_reset = not self.trainer.is_global_zero
+
             # restore collection and provide sync_fn
-            train_results.load_state_dict(state_dict[RunningStage.TRAINING.value], sync_fn=sync_fn)
-            val_results.load_state_dict(state_dict[RunningStage.VALIDATING.value], sync_fn=sync_fn)
-            test_results.load_state_dict(state_dict[RunningStage.TESTING.value], sync_fn=sync_fn)
+            train_results.load_state_dict(state_dict[RunningStage.TRAINING.value], sync_fn=sync_fn, should_reset=should_reset)
+            val_results.load_state_dict(state_dict[RunningStage.VALIDATING.value], sync_fn=sync_fn, should_reset=should_reset)
+            test_results.load_state_dict(state_dict[RunningStage.TESTING.value], sync_fn=sync_fn, should_reset=should_reset)
 
     def restore_optimizers(self) -> None:
         """ Restores the optimizer states from the pre-loaded checkpoint. """

@@ -32,7 +32,7 @@ import torch
 import yaml
 from omegaconf import Container, OmegaConf
 from torch import optim
-
+from torchmetrics import Metric
 import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
@@ -42,6 +42,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource
+
 
 
 class LogInTwoMethods(BoringModel):
@@ -1320,59 +1322,120 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
         Trainer(checkpoint_callback=mc)
 
 
-def test_result_collection_reload(tmpdir):
-    """
-    This is a temporary test to assert ResultCollection is properly reloaded.
-    The test is done over 2 epochs as Lightning doesn't support restarting middle of an epoch yet.
-    todo: (tchaton) Update this test when restart in middle of an epoch is supported.
-    """
+def result_collection_reload(trainer_kwargs):
+    num_processes = trainer_kwargs.get("gpus", 1)
+
+    class DummyMetric(Metric):
+
+        def __init__(self):
+            super().__init__()
+            self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
+            self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
+
+        def update(self, increment):
+            self.sum += increment
+            self.count += 1
+
+        def compute(self):
+            return self.sum / self.count
+
+        def __repr__(self):
+            return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
+
+
+    class CustomException(Exception):
+        pass
 
     class ExtendedBoringModel(BoringModel):
 
-        has_reloaded = False
-        breaking_batch_idx = 2
+        def __init__(self):
+            super().__init__()
+            self.has_reloaded = False
+            self.breaking_batch_idx = 3
+            self.has_validated_sum = False
+            self.dummy_metric = DummyMetric()
 
         def training_step(self, batch, batch_idx):
+            assert len(batch) == 1
             if self.has_reloaded:
                 if batch_idx >= self.breaking_batch_idx:
                     self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+
+                    self.dummy_metric(batch_idx)
+                    self.log("tracking_metric", batch_idx, on_step=True, on_epoch=True)
+
                     value = self.trainer.train_loop.results['training_step.tracking'].value
-                    assert value == sum(range(self.breaking_batch_idx, batch_idx + 1)) + 1
-                    return super().training_step(batch, batch_idx)
+                    shift = 1
+                    if num_processes == 2:
+                        shift += 6 if self.trainer.is_global_zero else 0
+                    expected = sum(range(self.breaking_batch_idx, batch_idx)) + shift
             else:
-                if self.trainer.current_epoch == 1:
+                if self.trainer.current_epoch == 2:
                     return
                 if batch_idx == self.breaking_batch_idx:
-                    raise Exception
+                    raise CustomException
+                
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+
+                self.dummy_metric(batch_idx)
+                self.log("tracking_metric", batch_idx, on_step=True, on_epoch=True)
                 value = self.trainer.train_loop.results['training_step.tracking'].value
                 assert value == sum(range(batch_idx + 1))
-                return super().training_step(batch, batch_idx)
+            return super().training_step(batch, batch_idx)
 
         def on_epoch_end(self) -> None:
             if self.trainer.current_epoch:
-                assert self.trainer.train_loop.results['training_step.tracking'].value == sum(range(5))
+                total = sum(range(5)) * num_processes
+                metrics = self.trainer.train_loop.results.metrics(on_step=False)
+                assert self.trainer.train_loop.results['training_step.tracking'].value == total
+                assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
+                self.has_validated_sum = True
 
     model = ExtendedBoringModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        limit_val_batches=0,
-    )
-    with suppress(Exception):
+    trainer = Trainer(**trainer_kwargs)
+
+    with suppress(CustomException):
         trainer.fit(model)
 
-    checkpoint_path = os.path.join(tmpdir, 'ckpt.pt')
+    checkpoint_path = trainer.accelerator.broadcast(os.path.join(trainer_kwargs["default_root_dir"], 'ckpt.pt'))
     trainer.save_checkpoint(checkpoint_path)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        resume_from_checkpoint=checkpoint_path
-    )
+    trainer.accelerator.barrier()
+
+    checkpoint = torch.load(checkpoint_path)
+    items = checkpoint["result_collections"]["train"]["items"]
+    assert items["training_step.tracking_metric"]["value"] == 6
+    assert items["training_step.tracking"]["value"] == 6
+
+    trainer_kwargs["resume_from_checkpoint"] = checkpoint_path
+    trainer_kwargs["max_epochs"] = 2
+
+    trainer = Trainer(**trainer_kwargs)
     model.has_reloaded = True
     trainer.fit(model)
+    assert model.has_validated_sum
+
+def test_result_collection_reload(tmpdir):
+
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 5,
+        "limit_val_batches": 0,
+    }
+    result_collection_reload(trainer_kwargs)
+
+
+@RunIf(min_gpus=2, special=True)
+def test_result_collection_reload_2_gpus(tmpdir):
+
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 5,
+        "limit_val_batches": 0,
+        "accelerator": "ddp",
+        "gpus": 2,
+    }
+    result_collection_reload(trainer_kwargs)

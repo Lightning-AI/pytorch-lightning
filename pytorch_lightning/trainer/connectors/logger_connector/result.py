@@ -162,9 +162,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.meta = metadata
         self.has_reset = False
         if is_tensor:
-            self.add_state("value", torch.tensor(0, dtype=torch.float))
+            self.add_state("value", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
+                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
 
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
@@ -241,7 +241,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self) -> dict:
-        d = super().__getstate__()
+        sync_manager = self._apply_sync if self.is_tensor else self.value._apply_sync
+        with sync_manager():
+            d = super().__getstate__()
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
@@ -465,7 +467,10 @@ class ResultCollection(dict):
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if not result_metric._computed:
+                should = result_metric.meta.sync.should
+                result_metric.meta.sync.should = True
                 result_metric.compute()
+                result_metric.meta.sync.should = should
             cache = result_metric._computed
         if cache is not None and not result_metric.meta.enable_graph:
             return cache.detach()
@@ -638,6 +643,9 @@ class ResultCollection(dict):
         self,
         state_dict: dict,
         map_location: Optional[Union[str, torch.device]] = None,
-        sync_fn: Optional[Callable] = None
+        sync_fn: Optional[Callable] = None,
+        should_reset: bool = False,
     ) -> None:
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
+        if should_reset:
+            self.reset()
