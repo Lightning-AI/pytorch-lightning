@@ -606,7 +606,7 @@ def test_lightning_cli_link_arguments(tmpdir):
 
 
 @pytest.mark.parametrize('logger', (False, True))
-def test_bug(tmpdir, logger):
+def test_cli_ddp_spawn_save_config_callback(tmpdir, logger):
     # test ddp (cpu) spawn, with and without logger.
     with mock.patch('sys.argv', ['any.py']):
         LightningCLI(
@@ -619,6 +619,5 @@ def test_bug(tmpdir, logger):
                 'max_epochs': 1
             }
         )
-    print(tmpdir.listdir())
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml' if logger else tmpdir / 'config.yaml'
     assert os.path.isfile(config_path)
