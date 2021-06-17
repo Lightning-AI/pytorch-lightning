@@ -280,7 +280,6 @@ class ResultMetricCollection(dict):
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
 
     def __setstate__(self, state: dict) -> None:
-        self.meta = _Metadata._reconstruct(state['meta'])
 
         def setstate(item: dict) -> Union[Dict[str, ResultMetric], ResultMetric, Any]:
             # recurse through dictionaries to set the state. can't use `apply_to_collection`
@@ -293,6 +292,9 @@ class ResultMetricCollection(dict):
 
         items = setstate(state["items"])
         self.update(items)
+
+        any_result_metric = next(iter(items.values()))
+        self.meta = any_result_metric.meta
 
     @classmethod
     def _reconstruct(cls, state: dict) -> 'ResultMetricCollection':
