@@ -48,7 +48,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     @property
     def predictions(self):
         """Returns the predictions from all dataloaders"""
-        # TODO: fixme
         return self.evaluation_loop.predictions
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
@@ -249,16 +248,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             if is_overridden('validation_epoch_end', model):
                 model._current_fx_name = 'validation_epoch_end'
                 model.validation_epoch_end(outputs)
-
-    def store_predictions(self, output: Optional[STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
-        """Stores predictions for later usage (e.g. writing to disk)"""
-        # Add step predictions to prediction collection to write later
-        if output is not None and self.predictions is not None:
-            if isinstance(output, ResultCollection) and self.trainer.testing:
-                self.predictions.add(output.pop('predictions', None))
-
-        # track debug metrics
-        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
     def on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook"""
