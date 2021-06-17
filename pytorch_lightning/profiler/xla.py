@@ -60,6 +60,14 @@ class XLAProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
+    RECORD_FUNCTIONS = {
+        "training_step_and_backward",
+        "training_step",
+        "backward",
+        "validation_step",
+        "test_step",
+        "predict_step",
+    }
 
     def __init__(self, port: int = 9012) -> None:
         super().__init__(dirpath=None, filename=None, output_filename=None)
@@ -69,12 +77,16 @@ class XLAProfiler(BaseProfiler):
         self._start_trace: bool = False
 
     def start(self, action_name: str) -> None:
-        if action_name in self.STEP_FUNCTIONS:
+        if action_name in self.RECORD_FUNCTIONS:
             if not self._start_trace:
                 self.server = xp.start_server(self.port)
                 self._start_trace = True
-            step = self._get_step_num(action_name)
-            recording = xp.StepTrace(action_name, step_num=step)
+
+            if action_name in self.STEP_FUNCTIONS:
+                step = self._get_step_num(action_name)
+                recording = xp.StepTrace(action_name, step_num=step)
+            else:
+                recording = xp.Trace(action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
 

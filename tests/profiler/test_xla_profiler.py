@@ -14,7 +14,10 @@
 import os
 from multiprocessing import Event, Process
 
+import pytest
+
 from pytorch_lightning import Trainer
+from pytorch_lightning.profiler import XLAProfiler
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -25,7 +28,23 @@ if _TPU_AVAILABLE:
 
 
 @RunIf(tpu=True)
-def test_xla_profiler(tmpdir):
+def test_xla_profiler_instance(tmpdir):
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler="xla",
+        tpu_cores=8,
+    )
+
+    assert isinstance(trainer.profiler, XLAProfiler)
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@pytest.mark.skipif(True, reason="XLA Profiler doesn't support Prog. capture yet")
+def test_xla_profiler_prog_capture(tmpdir):
 
     port = xu.get_free_tcp_ports()[0]
     training_started = Event()
