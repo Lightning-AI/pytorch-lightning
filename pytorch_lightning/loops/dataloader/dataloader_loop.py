@@ -13,7 +13,7 @@ class DataLoaderLoop(Loop):
     @property
     @abstractmethod
     def dataloaders(self) -> Sequence[DataLoader]:
-        """Returns the dataloaders to loop over."""
+        """Returns the dataloaders to loop over"""
 
     @property
     def current_dataloader_idx(self) -> int:
