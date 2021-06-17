@@ -13,8 +13,7 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 import logging
-from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict
 
 from pytorch_lightning.profiler.base import BaseProfiler
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -34,19 +33,19 @@ class XLAProfiler(BaseProfiler):
         "predict_step",
     }
 
-    def __init__(
-        self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
-        output_filename: Optional[str] = None,
-    ):
-        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
+    def __init__(self) -> None:
+        super().__init__(dirpath=None, filename=None, output_filename=None)
         self._recording_map: Dict = {}
+        self._start_trace: bool = False
 
     def start(self, action_name: str) -> None:
-        recording = xp.Trace(action_name)
-        recording.__enter__()
-        self._recording_map[action_name] = recording
+        if action_name in self.STEP_FUNCTIONS:
+            if not self._start_trace:
+                self.server = xp.start_server(9012)
+                self._start_trace = True
+            recording = xp.Trace(action_name)
+            recording.__enter__()
+            self._recording_map[action_name] = recording
 
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
