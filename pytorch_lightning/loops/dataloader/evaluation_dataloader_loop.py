@@ -38,7 +38,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     @property
     def results(self) -> Optional[ResultCollection]:
-        """Returns the Results of obtained from all dataloaders"""
+        """Returns the current results"""
         if self.trainer.validating or self.trainer.sanity_checking:
             return self._val_results
         elif self.trainer.testing:
