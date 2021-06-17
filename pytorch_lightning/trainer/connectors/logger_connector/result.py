@@ -622,7 +622,7 @@ class ResultCollection(dict):
                 cls = ResultMetricCollection
             else:
                 raise ValueError(f"Unexpected class name: {cls}")
-            _sync_fn = sync_fn if sync_fn else (self[k].meta.sync.fn if k in self else None)
+            _sync_fn = sync_fn or (self[k].meta.sync.fn if k in self else None)
             return cls._reconstruct(item, sync_fn=_sync_fn)
 
         items = {k: setstate(k, v) for k, v in state['items'].items()}
