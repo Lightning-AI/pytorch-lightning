@@ -39,4 +39,4 @@ Grid Highlights
 * Use Grid Datastores- high-performance, low-latency, versioned datasets.
 * Attach Datastores to a Run so you don't have to keep downloading datasets
 * Use Grid Sessions for fast prototyping on a cloud machine of your choice
-* For more information check the `grid documentation <https://docs.grid.ai/>`_ 
+* For more information check the `grid documentation <https://docs.grid.ai/>`_
