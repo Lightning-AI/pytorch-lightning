@@ -14,8 +14,8 @@
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union
-
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union, List
+from copy import deepcopy
 import torch
 from torchmetrics import Metric
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
@@ -69,6 +69,7 @@ class _Metadata:
     _reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
+    attribute_name: Optional[str] = None
     _sync: Optional[_Sync] = None
 
     @property
@@ -240,9 +241,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self) -> dict:
-        sync_manager = self._apply_sync if self.is_tensor else self.value._apply_sync
-        with sync_manager():
-            d = super().__getstate__()
+        with self._apply_sync():
+            d = deepcopy(super().__getstate__())
+        if not self.is_tensor:
+            del d["value"]
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
@@ -332,6 +334,18 @@ class ResultCollection(dict):
         self.fx_validator = FxValidator()
 
     @property
+    def result_metrics(self) -> List[ResultMetric]:
+        o = []
+        for v in self.values():
+            if isinstance(v, ResultMetric):
+                o.append(v)
+            elif isinstance(v, ResultCollection):
+                for _v in v.items():
+                    if isinstance(v, ResultMetric):
+                        o.append(_v)
+        return o
+
+    @property
     def batch_size(self) -> torch.Tensor:
         # performance: cache the `batch_size` tensor instead of re-creating it
         return self._batch_size
@@ -389,6 +403,7 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
+        attribute_name: Optional[str] = None,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -415,6 +430,7 @@ class ResultCollection(dict):
             on_epoch=on_epoch,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
+            attribute_name=attribute_name,
         )
         meta.reduce_fx = reduce_fx
         meta.sync = _Sync(
@@ -644,11 +660,15 @@ class ResultCollection(dict):
         state_dict: dict,
         map_location: Optional[Union[str, torch.device]] = None,
         sync_fn: Optional[Callable] = None,
-        should_reset: bool = False,
+        metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         
         self.fx_validator = FxValidator()
 
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
-        if should_reset:
-            self.reset()
+
+        if metrics:
+            for attribute_name, metric in metrics.items():
+                for result_metric in self.result_metrics:
+                    if result_metric.meta.attribute_name == attribute_name:
+                        result_metric.value = metric

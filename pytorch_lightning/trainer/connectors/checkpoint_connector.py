@@ -169,8 +169,8 @@ class CheckpointConnector:
 
         self.restore_optimizers_and_schedulers()
 
-        # restore logging values
-        self.restore_result_collections()
+        # restore loops
+        self.restore_loops()
 
     def restore_callbacks(self) -> None:
         """ Restores all callbacks from the pre-loaded checkpoint. """
@@ -230,32 +230,55 @@ class CheckpointConnector:
         self.restore_optimizers()
         self.restore_lr_schedulers()
 
+    def restore_loops(self) -> None:
+        """ Restores the loops state_dicts"""
+        if not self._loaded_checkpoint:
+            return
+
+        self.restore_result_collections()
+
     def restore_result_collections(self) -> None:
         """ Restores the loop result collections used for logging."""
         if not self._loaded_checkpoint:
             return
 
-        state_dict = self._loaded_checkpoint.get('result_collections', None)
-        if state_dict:
-            # get current reduce function
-            sync_fn = self.trainer.training_type_plugin.reduce
+        state_dict = self._loaded_checkpoint["loops_state_dict"].get('result_collections', None)
 
-            # get current result collections
-            train_results = self.trainer.train_loop.results
-            val_results = self.trainer.evaluation_loop._val_results
-            test_results = self.trainer.evaluation_loop._test_results
+        if not state_dict:
+            return 
 
-            should_reset = not self.trainer.is_global_zero
+        # get current reduce function
+        sync_fn = self.trainer.training_type_plugin.reduce
 
-            # restore collection and provide sync_fn
-            train_results.load_state_dict(state_dict[RunningStage.TRAINING.value], sync_fn=sync_fn, should_reset=should_reset)
-            val_results.load_state_dict(state_dict[RunningStage.VALIDATING.value], sync_fn=sync_fn, should_reset=should_reset)
-            test_results.load_state_dict(state_dict[RunningStage.TESTING.value], sync_fn=sync_fn, should_reset=should_reset)
+        # get current result collections
+        train_results = self.trainer.train_loop.results
+        val_results = self.trainer.evaluation_loop._val_results
+        test_results = self.trainer.evaluation_loop._test_results
 
-            if not self.trainer.is_global_zero:
-                for _, module in self.trainer.lightning_module.named_modules():
-                    if isinstance(module, Metric):
-                        module.reset()
+        metrics = {}
+        for module_name, module in self.trainer.lightning_module._named_members(lambda module: module._modules.items()):
+            if isinstance(module, Metric):
+                metrics[module_name] = module
+
+        # restore collection and provide sync_fn
+        self._restore_restore_collection(train_results, state_dict[RunningStage.TRAINING.value], sync_fn, metrics)
+        self._restore_restore_collection(val_results, state_dict[RunningStage.VALIDATING.value], sync_fn, metrics)
+        self._restore_restore_collection(train_results, state_dict[RunningStage.TESTING.value], sync_fn, metrics)
+
+        # restore metrics
+        if not self.trainer.is_global_zero:
+            for _, module in self.trainer.lightning_module.named_modules():
+                if isinstance(module, Metric):
+                    module.reset()
+
+    def _restore_restore_collection(self, results, state_dict, sync_fn, metrics):
+        results.load_state_dict(
+            state_dict,
+            sync_fn=sync_fn,
+            metrics=metrics
+        )
+        if not self.trainer.is_global_zero:
+            results.reset()
 
     def restore_optimizers(self) -> None:
         """ Restores the optimizer states from the pre-loaded checkpoint. """
@@ -366,12 +389,16 @@ class CheckpointConnector:
 
         model = self.trainer.lightning_module
 
+        for _, module in model.named_modules():
+            if isinstance(module, Metric):
+                module.persistent(True) 
+
         checkpoint = {
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
-            'result_collections': self.get_result_collections_state_dict()
+            'loops_state_dict': self.get_loops_state_dict()
         }
 
         if not weights_only:
@@ -411,6 +438,11 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_loops_state_dict(self) -> Dict[str, Dict[str, Any]]:
+        return {
+            "result_collections": self.get_result_collections_state_dict()
+        }
 
     def get_result_collections_state_dict(self):
         return {

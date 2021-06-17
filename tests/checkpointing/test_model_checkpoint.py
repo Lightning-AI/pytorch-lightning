@@ -1417,10 +1417,10 @@ def result_collection_reload(trainer_kwargs):
 
     trainer.accelerator.barrier()
 
-    checkpoint = torch.load(checkpoint_path)
-    items = checkpoint["result_collections"]["train"]["items"]
-    assert items["training_step.tracking_metric"]["value"] == 6
-    assert items["training_step.tracking"]["value"] == 6
+    if trainer.is_global_zero:
+        checkpoint = torch.load(checkpoint_path)
+        assert checkpoint["state_dict"]['dummy_metric.sum'] == 6
+        assert checkpoint["state_dict"]['dummy_metric_dynamic.sum'] == 9
 
     trainer_kwargs["resume_from_checkpoint"] = checkpoint_path
     trainer_kwargs["max_epochs"] = 2

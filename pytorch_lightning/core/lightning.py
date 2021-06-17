@@ -111,6 +111,7 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
+        self._map_id_to_metrics_name: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -360,6 +361,16 @@ class LightningModule(
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
+        attribute_name = None
+
+        if isinstance(value, Metric):
+
+            gen = self._named_members(lambda module: module._modules.items())
+            for module_name, module in gen:
+                if isinstance(module, Metric):
+                    if value.__getstate__() == module.__getstate__():
+                        attribute_name = module_name
+
         results.log(
             self._current_fx_name,
             name,
@@ -375,6 +386,7 @@ class LightningModule(
             sync_dist=sync_dist,
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
             sync_dist_group=sync_dist_group,
+            attribute_name=attribute_name,
         )
 
         self.trainer.logger_connector._current_fx = self._current_fx_name
