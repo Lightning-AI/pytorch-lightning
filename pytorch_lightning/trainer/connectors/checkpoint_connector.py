@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import torch
-
+from torchmetrics import Metric
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage
@@ -251,6 +251,11 @@ class CheckpointConnector:
             train_results.load_state_dict(state_dict[RunningStage.TRAINING.value], sync_fn=sync_fn, should_reset=should_reset)
             val_results.load_state_dict(state_dict[RunningStage.VALIDATING.value], sync_fn=sync_fn, should_reset=should_reset)
             test_results.load_state_dict(state_dict[RunningStage.TESTING.value], sync_fn=sync_fn, should_reset=should_reset)
+
+            if not self.trainer.is_global_zero:
+                for _, module in self.trainer.lightning_module.named_modules():
+                    if isinstance(module, Metric):
+                        module.reset()
 
     def restore_optimizers(self) -> None:
         """ Restores the optimizer states from the pre-loaded checkpoint. """

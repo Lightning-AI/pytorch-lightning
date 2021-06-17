@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Unio
 
 import torch
 from torchmetrics import Metric
-
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
@@ -605,7 +604,7 @@ class ResultCollection(dict):
         if extra is not None:
             d['_extra'] = extra
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__() for k, v in self.items() if k != '_extra'}
+        items = {k: v.__getstate__() for k, v in self.items() if k not in ('_extra', 'fx_validator')}
         return {**d, 'items': items}
 
     def __setstate__(
@@ -614,6 +613,7 @@ class ResultCollection(dict):
         map_location: Optional[Union[str, torch.device]] = None,
         sync_fn: Optional[Callable] = None
     ) -> None:
+        
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
@@ -646,6 +646,9 @@ class ResultCollection(dict):
         sync_fn: Optional[Callable] = None,
         should_reset: bool = False,
     ) -> None:
+        
+        self.fx_validator = FxValidator()
+
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
         if should_reset:
             self.reset()

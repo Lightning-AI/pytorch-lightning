@@ -1322,26 +1322,26 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
         Trainer(checkpoint_callback=mc)
 
 
+class DummyMetric(Metric):
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
+
+    def update(self, increment):
+        self.sum += increment
+        self.count += 1
+
+    def compute(self):
+        return self.sum / self.count
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
+
+
 def result_collection_reload(trainer_kwargs):
     num_processes = trainer_kwargs.get("gpus", 1)
-
-    class DummyMetric(Metric):
-
-        def __init__(self):
-            super().__init__()
-            self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
-            self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
-
-        def update(self, increment):
-            self.sum += increment
-            self.count += 1
-
-        def compute(self):
-            return self.sum / self.count
-
-        def __repr__(self):
-            return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
-
 
     class CustomException(Exception):
         pass
@@ -1354,15 +1354,23 @@ def result_collection_reload(trainer_kwargs):
             self.breaking_batch_idx = 3
             self.has_validated_sum = False
             self.dummy_metric = DummyMetric()
+            self.dummy_metric_dynamic = DummyMetric()
 
         def training_step(self, batch, batch_idx):
+            print()
+            print(self.trainer.global_rank, self.dummy_metric)
+            print()
             assert len(batch) == 1
             if self.has_reloaded:
                 if batch_idx >= self.breaking_batch_idx:
                     self.log("tracking", batch_idx, on_step=True, on_epoch=True)
 
                     self.dummy_metric(batch_idx)
-                    self.log("tracking_metric", batch_idx, on_step=True, on_epoch=True)
+                    self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
+
+                    if self.trainer.accelerator_connector.is_distributed:
+                        self.dummy_metric_dynamic(batch_idx + int(self.trainer.global_rank))
+                        self.log("tracking_metric_2", self.dummy_metric_dynamic, on_step=True, on_epoch=True)
 
                     value = self.trainer.train_loop.results['training_step.tracking'].value
                     shift = 1
@@ -1378,13 +1386,19 @@ def result_collection_reload(trainer_kwargs):
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
 
                 self.dummy_metric(batch_idx)
-                self.log("tracking_metric", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
+
+                if self.trainer.accelerator_connector.is_distributed:
+                    self.dummy_metric_dynamic(batch_idx + int(self.trainer.global_rank))
+                    self.log("tracking_metric_2", self.dummy_metric_dynamic, on_step=True, on_epoch=True)
+
                 value = self.trainer.train_loop.results['training_step.tracking'].value
                 assert value == sum(range(batch_idx + 1))
             return super().training_step(batch, batch_idx)
 
         def on_epoch_end(self) -> None:
             if self.trainer.current_epoch:
+                print(self.dummy_metric)
                 total = sum(range(5)) * num_processes
                 metrics = self.trainer.train_loop.results.metrics(on_step=False)
                 assert self.trainer.train_loop.results['training_step.tracking'].value == total
