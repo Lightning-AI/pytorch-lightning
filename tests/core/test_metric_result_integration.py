@@ -22,7 +22,7 @@ from torchmetrics import Metric
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -294,8 +294,12 @@ def test_lightning_module_logging_result_collection(tmpdir):
             # sync fn dropped from the state dict
             assert 'fn' not in state_dict['items']['validation_step.v']['meta']['_sync']
             results.load_state_dict(state_dict)
-            # check if the sync fn was preserved
+            # check the sync fn was preserved
             assert results['validation_step.v'].meta.sync.fn == self.trainer.training_type_plugin.reduce
+            new_result = ResultCollection(False, 'cpu')
+            new_result.load_state_dict(state_dict)
+            # check the default sync fn
+            assert new_result['validation_step.v'].meta.sync.fn == _Sync.no_op
 
     model = LoggingModel()
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)

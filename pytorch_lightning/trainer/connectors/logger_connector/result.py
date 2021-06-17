@@ -141,14 +141,14 @@ class _Metadata:
         del d['_sync']['fn']
         return d
 
-    def __setstate__(self, state: dict) -> None:
-        d = {**state, '_sync': _Sync(**state['_sync'])}
+    def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
+        d = {**state, '_sync': _Sync(**state['_sync'], fn=sync_fn)}
         self.__dict__.update(d)
 
     @classmethod
-    def _reconstruct(cls, state: dict) -> '_Metadata':
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> '_Metadata':
         meta = cls(state['fx'], state['name'])
-        meta.__setstate__(state)
+        meta.__setstate__(state, sync_fn=sync_fn)
         return meta
 
 
@@ -245,16 +245,16 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         d['_class'] = self.__class__.__name__
         return d
 
-    def __setstate__(self, state: dict) -> None:
-        d = {**state, 'meta': _Metadata._reconstruct(state['meta'])}
+    def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
+        d = {**state, 'meta': _Metadata._reconstruct(state['meta'], sync_fn=sync_fn)}
         super().__setstate__(d)
 
     @classmethod
-    def _reconstruct(cls, state: dict) -> 'ResultMetric':
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> 'ResultMetric':
         # need to reconstruct twice because `meta` is used in `__init__`
         meta = _Metadata._reconstruct(state['meta'])
         result_metric = cls(meta, state['is_tensor'])
-        result_metric.__setstate__(state)
+        result_metric.__setstate__(state, sync_fn=sync_fn)
         return result_metric
 
 
@@ -279,7 +279,7 @@ class ResultMetricCollection(dict):
         items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
 
-    def __setstate__(self, state: dict) -> None:
+    def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
 
         def setstate(item: dict) -> Union[Dict[str, ResultMetric], ResultMetric, Any]:
             # recurse through dictionaries to set the state. can't use `apply_to_collection`
@@ -287,7 +287,7 @@ class ResultMetricCollection(dict):
             if not isinstance(item, dict):
                 return item
             if item.get('_class') == ResultMetric.__name__:
-                return ResultMetric._reconstruct(item)
+                return ResultMetric._reconstruct(item, sync_fn=sync_fn)
             return {k: setstate(v) for k, v in item.items()}
 
         items = setstate(state["items"])
@@ -297,9 +297,9 @@ class ResultMetricCollection(dict):
         self.meta = any_result_metric.meta
 
     @classmethod
-    def _reconstruct(cls, state: dict) -> 'ResultMetricCollection':
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> 'ResultMetricCollection':
         rmc = cls()
-        rmc.__setstate__(state)
+        rmc.__setstate__(state, sync_fn=sync_fn)
         return rmc
 
 
@@ -602,7 +602,7 @@ class ResultCollection(dict):
     def __setstate__(self, state: dict) -> None:
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
-        def setstate(item: dict) -> Union[ResultMetric, ResultMetricCollection]:
+        def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
             if not isinstance(item, dict):
                 raise ValueError(f'Unexpected value: {item}')
             cls = item['_class']
@@ -612,9 +612,10 @@ class ResultCollection(dict):
                 cls = ResultMetricCollection
             else:
                 raise ValueError(f"Unexpected class name: {cls}")
-            return cls._reconstruct(item)
+            sync_fn = self[k].meta.sync.fn if k in self else None
+            return cls._reconstruct(item, sync_fn=sync_fn)
 
-        items = {k: setstate(v) for k, v in state['items'].items()}
+        items = {k: setstate(k, v) for k, v in state['items'].items()}
         self.update(items)
 
     def state_dict(self) -> dict:
