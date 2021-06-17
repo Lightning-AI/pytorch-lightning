@@ -503,6 +503,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
     callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        max_epochs=1,
         limit_val_batches=batches,
         limit_test_batches=batches,
         progress_bar_refresh_rate=0,
