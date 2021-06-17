@@ -83,6 +83,7 @@ class _Metadata:
             ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`.'
             f' Found: {reduce_fx}'
         )
+        self._reduce_fx = reduce_fx
         if isinstance(reduce_fx, str):
             reduce_fx = reduce_fx.lower()
             if reduce_fx == 'avg':
