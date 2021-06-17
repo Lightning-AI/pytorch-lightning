@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
+from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union, List
-from copy import deepcopy
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
+
 import torch
 from torchmetrics import Metric
+
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
@@ -629,7 +631,7 @@ class ResultCollection(dict):
         map_location: Optional[Union[str, torch.device]] = None,
         sync_fn: Optional[Callable] = None
     ) -> None:
-        
+
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
@@ -661,7 +663,7 @@ class ResultCollection(dict):
         sync_fn: Optional[Callable] = None,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
-        
+
         self.fx_validator = FxValidator()
 
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)

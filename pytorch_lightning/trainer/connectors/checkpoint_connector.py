@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional, Union
 
 import torch
 from torchmetrics import Metric
+
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage
@@ -245,7 +246,7 @@ class CheckpointConnector:
         state_dict = self._loaded_checkpoint["loops_state_dict"].get('result_collections', None)
 
         if not state_dict:
-            return 
+            return
 
         # get current reduce function
         sync_fn = self.trainer.training_type_plugin.reduce
@@ -272,11 +273,7 @@ class CheckpointConnector:
                     module.reset()
 
     def _restore_restore_collection(self, results, state_dict, sync_fn, metrics):
-        results.load_state_dict(
-            state_dict,
-            sync_fn=sync_fn,
-            metrics=metrics
-        )
+        results.load_state_dict(state_dict, sync_fn=sync_fn, metrics=metrics)
         if not self.trainer.is_global_zero:
             results.reset()
 
@@ -391,7 +388,7 @@ class CheckpointConnector:
 
         for _, module in model.named_modules():
             if isinstance(module, Metric):
-                module.persistent(True) 
+                module.persistent(True)
 
         checkpoint = {
             'epoch': current_epoch,
@@ -440,9 +437,7 @@ class CheckpointConnector:
         return checkpoint
 
     def get_loops_state_dict(self) -> Dict[str, Dict[str, Any]]:
-        return {
-            "result_collections": self.get_result_collections_state_dict()
-        }
+        return {"result_collections": self.get_result_collections_state_dict()}
 
     def get_result_collections_state_dict(self):
         return {
