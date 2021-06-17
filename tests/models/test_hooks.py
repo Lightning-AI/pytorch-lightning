@@ -711,7 +711,8 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 'lr_schedulers': ANY,
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
-                'state_dict': ANY
+                'state_dict': ANY,
+                'result_collections': ANY
             }, )
         ),
         dict(name='teardown', kwargs=dict(stage='fit')),
