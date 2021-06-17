@@ -218,8 +218,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
                 length = len(dataloaders[0])
             return length
-        else:
-            return 0
+        return 0
 
     def _should_track_batch_outputs_for_epoch_end(self) -> bool:
         """Whether the batch outputs should be stored for later usage"""
