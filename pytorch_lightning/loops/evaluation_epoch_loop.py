@@ -99,6 +99,10 @@ class EvaluationEpochLoop(Loop):
         """Returns the outputs of the whole run"""
         return self.outputs
 
+    def teardown(self) -> None:
+        """Frees memory of tracked outputs"""
+        self.outputs = []
+
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).
 
