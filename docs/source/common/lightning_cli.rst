@@ -92,6 +92,8 @@ practice to create a configuration file and provide this to the tool. A way to d
     nano config.yaml
     # Run training using created configuration
     python trainer.py --config config.yaml
+    # The config JSON can also be passed directly
+    python trainer.py --config '{trainer: {fast_dev_run: True}}'
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
@@ -376,6 +378,47 @@ Note that the config object :code:`self.config` is a dictionary whose keys are g
 has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.
+
+
+Configurable callbacks
+~~~~~~~~~~~~~~~~~~~~~~
+
+As explained previously, any callback can be added by including it in the config via :code:`class_path` and
+:code:`init_args` entries. However, there are other cases in which a callback should always be present and be
+configurable. This can be implemented as follows:
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import EarlyStopping
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(EarlyStopping, 'my_early_stopping')
+            parser.set_defaults({'my_early_stopping.patience': 5})
+
+    cli = MyLightningCLI(MyModel)
+
+To change the configuration of the :code:`EarlyStopping` in the config it would be:
+
+.. code-block:: yaml
+
+    model:
+      ...
+    trainer:
+      ...
+    my_early_stopping:
+      patience: 5
+
+
+Argument linking
+~~~~~~~~~~~~~~~~
+
 Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
 model and data module depend on a common parameter. For example in some cases both classes require to know the
 :code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
@@ -427,8 +470,3 @@ Instantiation links are used to automatically determine the order of instantiati
     The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
-
-.. tip::
-
-    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
-    methods that can be extended to customize a CLI.
