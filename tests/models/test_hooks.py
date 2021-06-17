@@ -419,17 +419,31 @@ def test_trainer_model_hook_system_fit(tmpdir):
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_no_val(tmpdir):
+def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
+    # initial training to get a checkpoint
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=0,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    best_model_path = trainer.checkpoint_callback.best_model_path
+
+    # resume from checkpoint with HookedModel
     called = []
     model = HookedModel(called)
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        # already performed 1 step, now resuming to do an additional 2
+        max_steps=(1 + train_batches),
         limit_val_batches=0,
-        limit_train_batches=train_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        resume_from_checkpoint=best_model_path,
     )
     assert called == []
     trainer.fit(model)
@@ -437,6 +451,7 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'prepare_data',
         'configure_callbacks',
         'setup',
+        'on_load_checkpoint',
         'configure_sharded_model',
         'configure_optimizers',
         'on_fit_start',
