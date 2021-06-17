@@ -1145,10 +1145,10 @@ class Trainer(
         model._current_dataloader_idx = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
+        # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
-        # TrainLoop._on_train_epoch_end_hook
+        # TrainingEpochLoop._on_train_epoch_end_hook
         if self.lightning_module:
             prev_fx_name = self.lightning_module._current_fx_name
             self.lightning_module._current_fx_name = hook_name
