@@ -33,17 +33,17 @@ import yaml
 from omegaconf import Container, OmegaConf
 from torch import optim
 from torchmetrics import Metric
+
 import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource
-
 
 
 class LogInTwoMethods(BoringModel):
@@ -1342,7 +1342,6 @@ def result_collection_reload(trainer_kwargs):
         def __repr__(self):
             return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
-
     class CustomException(Exception):
         pass
 
@@ -1374,7 +1373,7 @@ def result_collection_reload(trainer_kwargs):
                     return
                 if batch_idx == self.breaking_batch_idx:
                     raise CustomException
-                
+
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
 
                 self.dummy_metric(batch_idx)
@@ -1415,6 +1414,7 @@ def result_collection_reload(trainer_kwargs):
     model.has_reloaded = True
     trainer.fit(model)
     assert model.has_validated_sum
+
 
 def test_result_collection_reload(tmpdir):
 
