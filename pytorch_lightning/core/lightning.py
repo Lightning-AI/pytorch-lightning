@@ -1971,7 +1971,7 @@ class LightningModule(
         Args:
             queue: the instance of the queue from where to get the data.
         """
-        # NOTE: this must be called in the right order to get the `callback_metrics`
+        # NOTE: `add_to_queue` needs to be called before
         callback_metrics: dict = queue.get()
         self.trainer.callback_metrics.update(
             apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
