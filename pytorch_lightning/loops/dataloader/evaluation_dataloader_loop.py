@@ -38,7 +38,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     @property
     def results(self) -> Optional[ResultCollection]:
-        """Returns the Results of obtained from all dataloaders"""
+        """Returns the current results"""
         if self.trainer.validating or self.trainer.sanity_checking:
             return self._val_results
         elif self.trainer.testing:
@@ -217,8 +217,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
                 length = len(dataloaders[0])
             return length
-        else:
-            return 0
+        return 0
 
     def _should_track_batch_outputs_for_epoch_end(self) -> bool:
         """Whether the batch outputs should be stored for later usage"""
