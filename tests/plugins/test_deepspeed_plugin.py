@@ -24,13 +24,38 @@ class ModelParallelBoringModel(BoringModel):
 
     def __init__(self):
         super().__init__()
-        self.linear = None
+        self.layer = None
 
     def configure_sharded_model(self) -> None:
-        self.linear = torch.nn.Linear(32, 2)
+        self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
+
+
+class ModelParallelBoringModelManualOptim(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.layer = None
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()[0]
+        output = self(batch)
+        loss = self.loss(batch, output)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+
+    def configure_sharded_model(self) -> None:
+        self.layer = torch.nn.Linear(32, 2)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        self.configure_sharded_model()
+
+    @property
+    def automatic_optimization(self) -> bool:
+        return False
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -483,6 +508,24 @@ class ModelParallelClassificationModel(LightningModule):
         }]
 
 
+class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
+
+    @property
+    def automatic_optimization(self) -> bool:
+        return False
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.cross_entropy(logits, y)
+        opt = self.optimizers()[0]
+        self.log('train_loss', loss, prog_bar=True)
+        self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+
+
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
@@ -502,9 +545,34 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
 
 
-def run_checkpoint_test(tmpdir, save_full_weights):
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config):
+    """
+    Test to ensure ZeRO Stage 3 works with a parallel model.
+    """
+    model = ModelParallelBoringModelManualOptim()
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
+        gpus=2,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelManualOptim)
+
+
+def run_checkpoint_test(
+    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
+):
     seed_everything(1)
-    model = ModelParallelClassificationModel()
+    if automatic_optimization:
+        model = ModelParallelClassificationModel()
+    else:
+        model = ManualModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
@@ -514,7 +582,7 @@ def run_checkpoint_test(tmpdir, save_full_weights):
         plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         gpus=2,
         precision=16,
-        accumulate_grad_batches=2,
+        accumulate_grad_batches=accumulate_grad_batches,
         callbacks=[ck]
     )
     trainer.fit(model, datamodule=dm)
@@ -563,12 +631,20 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-@pytest.mark.parametrize('cpu_offload', [True, False])
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload):
+def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    where we save the full weights to one file.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+@pytest.mark.parametrize('offload_optimizer', [True, False])
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
-    os.environ['MASTER_PORT'] = "29500"
     seed_everything(42)
 
     class VerificationCallback(Callback):
@@ -585,7 +661,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=5,
-        plugins=[DeepSpeedPlugin(stage=2, cpu_offload=cpu_offload)],
+        plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
         limit_val_batches=2,
         precision=16,

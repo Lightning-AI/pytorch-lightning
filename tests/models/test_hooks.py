@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from functools import partial
+from inspect import getmembers, isfunction
 from unittest import mock
 from unittest.mock import ANY, PropertyMock
 
@@ -231,6 +231,10 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
+def get_members(cls):
+    return {h for h, _ in getmembers(cls, predicate=isfunction) if not h.startswith('_')}
+
+
 class HookedCallback(Callback):
 
     def __init__(self, called):
@@ -243,8 +247,7 @@ class HookedCallback(Callback):
                 d['kwargs'] = kwargs
             called.append(d)
 
-        hooks = {h for h, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)}
-        for h in hooks:
+        for h in get_members(Callback):
             setattr(self, h, partial(call, h))
 
 
@@ -252,34 +255,24 @@ class HookedModel(BoringModel):
 
     def __init__(self, called):
         super().__init__()
-
-        def get_members(cls):
-            return {h for h, _ in inspect.getmembers(cls, predicate=inspect.isfunction) if not h.startswith('_')}
-
         pl_module_hooks = get_members(LightningModule)
-        # remove `nn.Module` hooks
+        # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
-        pl_module_hooks.difference_update(module_hooks)
+        pl_module_hooks.difference_update(module_hooks - {'forward', 'zero_grad', 'train'})
 
-        def call(hook, fn):
-
-            def add(*args, **kwargs):
-                out = fn(*args, **kwargs)
-                d = {'name': hook}
-                if args:
-                    d['args'] = args
-                if kwargs:
-                    d['kwargs'] = kwargs
-                called.append(d)
-                return out
-
-            return add
+        def call(hook, fn, *args, **kwargs):
+            out = fn(*args, **kwargs)
+            d = {'name': hook}
+            if args:
+                d['args'] = args
+            if kwargs:
+                d['kwargs'] = kwargs
+            called.append(d)
+            return out
 
         for h in pl_module_hooks:
             attr = getattr(self, h)
-            # can't use partial here because `is_overridden` fails with
-            # AttributeError: 'functools.partial' object has no attribute '__code__'
-            setattr(self, h, call(h, attr))
+            setattr(self, h, partial(call, h, attr))
 
     def validation_epoch_end(self, *args, **kwargs):
         # `BoringModel` does not have a return for `validation_step_end` so this would fail
@@ -371,11 +364,11 @@ class HookedModel(BoringModel):
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name='Callback.on_predict_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_predict_batch_start', args=(ANY, i, 0)),
-                # TODO: `dataloader_idx` shouldn't be passed for the following 3
-                dict(name='on_before_batch_transfer', args=(ANY, 0)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
-                dict(name='on_after_batch_transfer', args=(ANY, 0)),
-                dict(name='predict_step', args=(ANY, i, 0)),
+                dict(name='on_before_batch_transfer', args=(ANY, None)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
+                dict(name='on_after_batch_transfer', args=(ANY, None)),
+                dict(name='forward', args=(ANY, )),
+                dict(name='predict_step', args=(ANY, i)),
                 # TODO: `predict_step_end`
                 dict(name='Callback.on_predict_batch_end', args=(trainer, model, ANY, ANY, i, 0)),
                 dict(name='on_predict_batch_end', args=(ANY, ANY, i, 0)),
@@ -628,7 +621,9 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
         dict(name='on_predict_dataloader'),
         dict(name='predict_dataloader'),
+        dict(name='train', args=(False, )),
         dict(name='on_predict_model_eval'),
+        dict(name='zero_grad'),
         dict(name='Callback.on_predict_start', args=(trainer, model)),
         dict(name='on_predict_start'),
         # TODO: `{,Callback}.on_epoch_{start,end}`
@@ -647,7 +642,6 @@ def test_trainer_model_hook_system_predict(tmpdir):
     assert called == expected
 
 
-# FIXME: add test with accumulate_grad_batches
 # TODO: add test for tune
 
 
@@ -712,24 +706,19 @@ def test_trainer_datamodule_hook_system(tmpdir):
         def __init__(self, called):
             super().__init__()
 
-            def call(hook, fn):
+            def call(hook, fn, *args, **kwargs):
+                out = fn(*args, **kwargs)
+                d = {'name': hook}
+                if args:
+                    d['args'] = args
+                if kwargs:
+                    d['kwargs'] = kwargs
+                called.append(d)
+                return out
 
-                def add(*args, **kwargs):
-                    out = fn(*args, **kwargs)
-                    d = {'name': hook}
-                    if args:
-                        d['args'] = args
-                    if kwargs:
-                        d['kwargs'] = kwargs
-                    called.append(d)
-                    return out
-
-                return add
-
-            hooks = {h for h, _ in inspect.getmembers(LightningDataModule, predicate=inspect.isfunction)}
-            for h in hooks:
+            for h in get_members(LightningDataModule):
                 attr = getattr(self, h)
-                setattr(self, h, call(h, attr))
+                setattr(self, h, partial(call, h, attr))
 
     model = BoringModel()
     batches = 2
@@ -809,7 +798,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name='prepare_data'),
         dict(name='setup', kwargs=dict(stage='predict')),
         dict(name='predict_dataloader'),
-        # TODO: the batch transfer hooks don't get called
+        *batch_transfer * batches,
         dict(name='teardown', kwargs=dict(stage='predict')),
     ]
     assert called == expected

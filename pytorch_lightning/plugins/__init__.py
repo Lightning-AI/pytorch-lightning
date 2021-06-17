@@ -9,6 +9,7 @@ from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin  # 
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import (  # noqa: F401
     FullyShardedNativeMixedPrecisionPlugin,
 )
+from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin  # noqa: F401
@@ -20,6 +21,7 @@ from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  #
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.ipu import IPUPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.rpc import RPCPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin  # noqa: F401
@@ -41,6 +43,8 @@ __all__ = [
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "HorovodPlugin",
+    "IPUPlugin",
+    "IPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
