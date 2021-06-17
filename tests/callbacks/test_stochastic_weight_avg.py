@@ -206,6 +206,7 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
         limit_train_batches=4,
         limit_val_batches=4,
         max_epochs=2,
+        # max_steps=10000,
     )
     trainer.fit(model)
     if use_callbacks or stochastic_weight_avg:

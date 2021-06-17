@@ -151,6 +151,9 @@ class StochasticWeightAveraging(Callback):
         if len(lr_schedulers) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
+        if trainer.max_epochs is None:
+            raise MisconfigurationException("SWA currently works only based on `max_epochs`.")
+
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
