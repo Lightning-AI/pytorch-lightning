@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import __version__, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -235,6 +235,22 @@ def get_members(cls):
     return {h for h, _ in getmembers(cls, predicate=isfunction) if not h.startswith('_')}
 
 
+class HookedCallback(Callback):
+
+    def __init__(self, called):
+
+        def call(hook, *args, **kwargs):
+            d = {'name': f'Callback.{hook}'}
+            if args:
+                d['args'] = args
+            if kwargs:
+                d['kwargs'] = kwargs
+            called.append(d)
+
+        for h in get_members(Callback):
+            setattr(self, h, partial(call, h))
+
+
 class HookedModel(BoringModel):
 
     def __init__(self, called):
@@ -246,7 +262,12 @@ class HookedModel(BoringModel):
 
         def call(hook, fn, *args, **kwargs):
             out = fn(*args, **kwargs)
-            called.append(hook)
+            d = {'name': hook}
+            if args:
+                d['args'] = args
+            if kwargs:
+                d['kwargs'] = kwargs
+            called.append(d)
             return out
 
         for h in pl_module_hooks:
@@ -293,17 +314,59 @@ class HookedModel(BoringModel):
         ]
 
     @staticmethod
-    def _test_batch():
+    def _eval_epoch(fn, trainer, model, batches, key):
+        outputs = {key: ANY}
         return [
-            'on_test_batch_start',
-            'on_before_batch_transfer',
-            'transfer_batch_to_device',
-            'on_after_batch_transfer',
-            'forward',
-            'test_step',
-            'test_step_end',
-            'on_test_batch_end',
+            dict(name='Callback.on_epoch_start', args=(trainer, model)),
+            dict(name='on_epoch_start'),
+            dict(name=f'Callback.on_{fn}_epoch_start', args=(trainer, model)),
+            dict(name=f'on_{fn}_epoch_start'),
+            *HookedModel._eval_batch(fn, trainer, model, batches, key),
+            dict(name=f'{fn}_epoch_end', args=([outputs] * batches, )),
+            dict(name=f'Callback.on_{fn}_epoch_end', args=(trainer, model)),
+            dict(name=f'on_{fn}_epoch_end'),
+            dict(name='Callback.on_epoch_end', args=(trainer, model)),
+            dict(name='on_epoch_end'),
         ]
+
+    @staticmethod
+    def _eval_batch(fn, trainer, model, batches, key):
+        out = []
+        outputs = {key: ANY}
+        for i in range(batches):
+            out.extend([
+                # TODO: `{,Callback}.on_batch_{start,end}`
+                dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
+                dict(name=f'on_{fn}_batch_start', args=(ANY, i, 0)),
+                dict(name='on_before_batch_transfer', args=(ANY, None)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
+                dict(name='on_after_batch_transfer', args=(ANY, None)),
+                dict(name='forward', args=(ANY, )),
+                dict(name=f'{fn}_step', args=(ANY, i)),
+                dict(name=f'{fn}_step_end', args=(outputs, )),
+                dict(name=f'Callback.on_{fn}_batch_end', args=(trainer, model, outputs, ANY, i, 0)),
+                dict(name=f'on_{fn}_batch_end', args=(outputs, ANY, i, 0)),
+            ])
+        return out
+
+    @staticmethod
+    def _predict_batch(trainer, model, batches):
+        out = []
+        for i in range(batches):
+            out.extend([
+                # TODO: `{,Callback}.on_batch_{start,end}`
+                dict(name='Callback.on_predict_batch_start', args=(trainer, model, ANY, i, 0)),
+                dict(name='on_predict_batch_start', args=(ANY, i, 0)),
+                dict(name='on_before_batch_transfer', args=(ANY, None)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
+                dict(name='on_after_batch_transfer', args=(ANY, None)),
+                dict(name='forward', args=(ANY, )),
+                dict(name='predict_step', args=(ANY, i)),
+                # TODO: `predict_step_end`
+                dict(name='Callback.on_predict_batch_end', args=(trainer, model, ANY, ANY, i, 0)),
+                dict(name='on_predict_batch_end', args=(ANY, ANY, i, 0)),
+            ])
+        return out
 
 
 def test_trainer_model_hook_system_fit(tmpdir):
@@ -374,20 +437,35 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'on_fit_end',
         'teardown',
     ]
+    called = [c['name'] for c in called]
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_no_val(tmpdir):
+def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
+    # initial training to get a checkpoint
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=0,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    best_model_path = trainer.checkpoint_callback.best_model_path
+
+    # resume from checkpoint with HookedModel
     called = []
     model = HookedModel(called)
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        # already performed 1 step, now resuming to do an additional 2
+        max_steps=(1 + train_batches),
         limit_val_batches=0,
-        limit_train_batches=train_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        resume_from_checkpoint=best_model_path,
     )
     assert called == []
     trainer.fit(model)
@@ -395,6 +473,7 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'prepare_data',
         'configure_callbacks',
         'setup',
+        'on_load_checkpoint',
         'configure_sharded_model',
         'configure_optimizers',
         'on_fit_start',
@@ -418,86 +497,115 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'on_fit_end',
         'teardown',
     ]
+    called = [c['name'] for c in called]
     assert called == expected
 
 
 @pytest.mark.parametrize('batches', (0, 2))
-def test_trainer_model_hook_system_validate(tmpdir, batches):
+@pytest.mark.parametrize(['verb', 'noun', 'dataloader', 'key'], [
+    ('validate', 'validation', 'val', 'x'),
+    ('test', 'test', 'test', 'y'),
+])
+def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key):
     called = []
     model = HookedModel(called)
+    callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=batches,
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-    )
-    assert called == []
-    trainer.validate(model, verbose=False)
-    hooks = [
-        'train',  # eval() == train(False)
-        'on_validation_model_eval',
-        'zero_grad',
-        'on_validation_start',
-        'on_epoch_start',
-        'on_validation_epoch_start',
-        *(HookedModel._val_batch() * batches),
-        'validation_epoch_end',
-        'on_validation_epoch_end',
-        'on_epoch_end',
-        'on_validation_end',
-        'train',
-        'on_validation_model_train'
-    ]
-    expected = [
-        'prepare_data',
-        'configure_callbacks',
-        'setup',
-        'configure_sharded_model',
-        'on_val_dataloader',
-        'val_dataloader',
-        *(hooks if batches else []),
-        'teardown',
-    ]
-    assert called == expected
-
-
-def test_trainer_model_hook_system_test(tmpdir):
-    called = []
-    model = HookedModel(called)
-    batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
         limit_test_batches=batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        callbacks=[callback],
     )
-    assert called == []
-    trainer.test(model, verbose=False)
+    assert called == [
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
+    ]
+    fn = getattr(trainer, verb)
+    fn(model, verbose=False)
+    hooks = [
+        dict(name='train', args=(False, )),
+        dict(name=f'on_{noun}_model_eval'),
+        dict(name='zero_grad'),
+        dict(name=f'Callback.on_{noun}_start', args=(trainer, model)),
+        dict(name=f'on_{noun}_start'),
+        *model._eval_epoch(noun, trainer, model, batches, key),
+        dict(name=f'Callback.on_{noun}_end', args=(trainer, model)),
+        dict(name=f'on_{noun}_end'),
+        dict(name='train'),
+        dict(name=f'on_{noun}_model_train'),
+    ]
     expected = [
-        'prepare_data',
-        'configure_callbacks',
-        'setup',
-        'configure_sharded_model',
-        'on_test_dataloader',
-        'test_dataloader',
-        'train',  # eval() == train(False)
-        'on_test_model_eval',
-        'zero_grad',
-        'on_test_start',
-        'on_epoch_start',
-        'on_test_epoch_start',
-        *(HookedModel._test_batch() * batches),
-        'test_epoch_end',
-        'on_test_epoch_end',
-        'on_epoch_end',
-        'on_test_end',
-        'train',
-        'on_test_model_train',
-        'teardown',
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
+        dict(name='prepare_data'),
+        dict(name='configure_callbacks'),
+        dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
+        dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage=verb)),
+        dict(name='setup', kwargs=dict(stage=verb)),
+        dict(name='configure_sharded_model'),
+        dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
+        dict(name=f'on_{dataloader}_dataloader'),
+        dict(name=f'{dataloader}_dataloader'),
+        *(hooks if batches else []),
+        dict(name='Callback.teardown', args=(trainer, model), kwargs=dict(stage=verb)),
+        dict(name='teardown', kwargs=dict(stage=verb)),
     ]
     assert called == expected
+
+
+def test_trainer_model_hook_system_predict(tmpdir):
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
+    batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_predict_batches=batches,
+        progress_bar_refresh_rate=0,
+        callbacks=[callback],
+    )
+    assert called == [
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
+    ]
+    trainer.predict(model)
+    expected = [
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
+        dict(name='prepare_data'),
+        dict(name='configure_callbacks'),
+        dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
+        dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage='predict')),
+        dict(name='setup', kwargs=dict(stage='predict')),
+        dict(name='configure_sharded_model'),
+        dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
+        dict(name='on_predict_dataloader'),
+        dict(name='predict_dataloader'),
+        dict(name='train', args=(False, )),
+        dict(name='on_predict_model_eval'),
+        dict(name='zero_grad'),
+        dict(name='Callback.on_predict_start', args=(trainer, model)),
+        dict(name='on_predict_start'),
+        # TODO: `{,Callback}.on_epoch_{start,end}`
+        dict(name='Callback.on_predict_epoch_start', args=(trainer, model)),
+        dict(name='on_predict_epoch_start'),
+        *model._predict_batch(trainer, model, batches),
+        # TODO: `predict_epoch_end`
+        dict(name='Callback.on_predict_epoch_end', args=(trainer, model, [[ANY] * batches])),
+        dict(name='on_predict_epoch_end', args=([[ANY] * batches], )),
+        dict(name='Callback.on_predict_end', args=(trainer, model)),
+        dict(name='on_predict_end'),
+        # TODO: `on_predict_model_train`
+        dict(name='Callback.teardown', args=(trainer, model), kwargs=dict(stage='predict')),
+        dict(name='teardown', kwargs=dict(stage='predict')),
+    ]
+    assert called == expected
+
+
+# TODO: add test for tune
 
 
 def test_hooks_with_different_argument_names(tmpdir):

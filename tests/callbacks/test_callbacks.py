@@ -47,7 +47,7 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_init_start(trainer),
         call.on_init_end(trainer),
         call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'fit'),
+        call.setup(trainer, model, stage='fit'),
         call.on_configure_sharded_model(trainer, model),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),
@@ -96,81 +96,8 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_epoch_end(trainer, model),
         call.on_train_end(trainer, model),
         call.on_fit_end(trainer, model),
-        call.teardown(trainer, model, 'fit'),
+        call.teardown(trainer, model, stage='fit'),
     ]
-
-
-def test_trainer_callback_hook_system_test(tmpdir):
-    """Test the callback hook system for test."""
-
-    model = BoringModel()
-    callback_mock = MagicMock()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[callback_mock],
-        max_epochs=1,
-        limit_test_batches=2,
-        progress_bar_refresh_rate=0,
-    )
-
-    trainer.test(model)
-
-    assert callback_mock.method_calls == [
-        call.on_init_start(trainer),
-        call.on_init_end(trainer),
-        call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'test'),
-        call.on_configure_sharded_model(trainer, model),
-        call.on_test_start(trainer, model),
-        call.on_epoch_start(trainer, model),
-        call.on_test_epoch_start(trainer, model),
-        call.on_test_batch_start(trainer, model, ANY, 0, 0),
-        call.on_test_batch_end(trainer, model, ANY, ANY, 0, 0),
-        call.on_test_batch_start(trainer, model, ANY, 1, 0),
-        call.on_test_batch_end(trainer, model, ANY, ANY, 1, 0),
-        call.on_test_epoch_end(trainer, model),
-        call.on_epoch_end(trainer, model),
-        call.on_test_end(trainer, model),
-        call.teardown(trainer, model, 'test'),
-    ]
-
-
-def test_trainer_callback_hook_system_validate(tmpdir):
-    """Test the callback hook system for validate."""
-
-    model = BoringModel()
-    callback_mock = MagicMock()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[callback_mock],
-        max_epochs=1,
-        limit_val_batches=2,
-        progress_bar_refresh_rate=0,
-    )
-
-    trainer.validate(model)
-
-    assert callback_mock.method_calls == [
-        call.on_init_start(trainer),
-        call.on_init_end(trainer),
-        call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'validate'),
-        call.on_configure_sharded_model(trainer, model),
-        call.on_validation_start(trainer, model),
-        call.on_epoch_start(trainer, model),
-        call.on_validation_epoch_start(trainer, model),
-        call.on_validation_batch_start(trainer, model, ANY, 0, 0),
-        call.on_validation_batch_end(trainer, model, ANY, ANY, 0, 0),
-        call.on_validation_batch_start(trainer, model, ANY, 1, 0),
-        call.on_validation_batch_end(trainer, model, ANY, ANY, 1, 0),
-        call.on_validation_epoch_end(trainer, model),
-        call.on_epoch_end(trainer, model),
-        call.on_validation_end(trainer, model),
-        call.teardown(trainer, model, 'validate'),
-    ]
-
-
-# TODO: add callback tests for predict and tune
 
 
 def test_callbacks_configured_in_model(tmpdir):

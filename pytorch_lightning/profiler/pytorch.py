@@ -24,7 +24,7 @@ from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.base import BaseProfiler
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
@@ -349,9 +349,9 @@ class PyTorchProfiler(BaseProfiler):
             record_functions = set()
 
         if profiled_functions is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
-                " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
+                " `record_functions` in v1.3 and will be removed in v1.5",
             )
             if not record_functions:
                 record_functions |= set(profiled_functions)

@@ -61,7 +61,7 @@ exclude .pyrightconfig.json
 
 # Exclude submodules
 exclude .gitmodules
-exclude notebooks
+exclude _notebooks
 
 # Exclude Makefile
 exclude Makefile
