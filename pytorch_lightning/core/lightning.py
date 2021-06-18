@@ -215,6 +215,11 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
+    def state_dict(self, destination=None, prefix='', keep_vars=False):
+        # drop the map id to metrics to avoid saving it.
+        self._map_id_to_metrics_name = None
+        return super().state_dict(destination=destination, prefix=prefix, keep_vars=keep_vars)
+
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
     ) -> Any:
@@ -364,12 +369,15 @@ class LightningModule(
         attribute_name = None
 
         if isinstance(value, Metric):
-
-            gen = self._named_members(lambda module: module._modules.items())
-            for module_name, module in gen:
-                if isinstance(module, Metric):
-                    if value.__getstate__() == module.__getstate__():
-                        attribute_name = module_name
+            # this is used to effiently find the attribute prefix path of metric objects 
+            # this will enable Lightning to re-attach metric reference when reloading states. 
+            if self._map_id_to_metrics_name is None:
+                self._map_id_to_metrics_name = {
+                    id(module): module_name
+                    for module_name, module in self._named_members(lambda module: module._modules.items())
+                    if isinstance(module, Metric)
+                }
+            attribute_name = self._map_id_to_metrics_name[id(value)]
 
         results.log(
             self._current_fx_name,

@@ -245,6 +245,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def __getstate__(self) -> dict:
         with self.sync_context():
             d = deepcopy(super().__getstate__())
+        # metric are being dropped, so they won't be serialized
+        # this would prevent pickling error if their API change.
         if not self.is_tensor:
             del d["value"]
         d['meta'] = d['meta'].__getstate__()
@@ -342,9 +344,9 @@ class ResultCollection(dict):
             if isinstance(v, ResultMetric):
                 o.append(v)
             elif isinstance(v, ResultCollection):
-                for _v in v.items():
-                    if isinstance(v, ResultMetric):
-                        o.append(_v)
+                def append_fn(v: ResultMetric) -> None:
+                    o.append(v)
+                apply_to_collection(v, ResultMetric, append_fn)
         return o
 
     @property
