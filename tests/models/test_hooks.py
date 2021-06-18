@@ -704,9 +704,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
     dm = HookedDataModule(called)
     trainer.fit(model, datamodule=dm)
     batch_transfer = [
-        dict(name='on_before_batch_transfer', args=(ANY, None)),
-        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-        dict(name='on_after_batch_transfer', args=(ANY, None)),
+        dict(name='on_before_batch_transfer', args=(ANY, 0)),
+        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+        dict(name='on_after_batch_transfer', args=(ANY, 0)),
     ]
     expected = [
         dict(name='prepare_data'),
