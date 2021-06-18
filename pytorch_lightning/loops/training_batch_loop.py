@@ -281,8 +281,13 @@ class TrainingBatchLoop(Loop):
                     "a dict with key 'loss' or None (where the step will be skipped)."
                 )
 
-    def _training_step(self, split_batch: Any, batch_idx: int, opt_idx: int,
-                       hiddens: Tensor) -> Optional[AttributeDict]:
+    def _training_step(
+        self,
+        split_batch: Any,
+        batch_idx: int,
+        opt_idx: int,
+        hiddens: Tensor,
+    ) -> Optional[AttributeDict]:
         """Performs the actual train step with the tied hooks.
 
         Args:
