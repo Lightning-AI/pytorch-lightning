@@ -293,8 +293,8 @@ def test_np_sanitization():
     assert logger.logged_params == sanitized_params
 
 
-@pytest.mark.parametrize("log", [True, False])
-def test_log_hyperparams_being_called(tmpdir, log):
+@pytest.mark.parametrize("logger", [True, False])
+def test_log_hyperparams_being_called(tmpdir, logger):
 
     class TestLogger(DummyLogger):
 
@@ -309,14 +309,14 @@ def test_log_hyperparams_being_called(tmpdir, log):
 
         def __init__(self, param_one, param_two):
             super().__init__()
-            self.save_hyperparameters(log=log)
+            self.save_hyperparameters(logger=logger)
 
-    logger = TestLogger()
+    test_logger = TestLogger()
     model = TestModel("pytorch", "lightning")
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        logger=logger,
+        logger=test_logger,
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -324,4 +324,4 @@ def test_log_hyperparams_being_called(tmpdir, log):
     )
     trainer.fit(model)
 
-    assert log == logger.log_hyperparams_called
+    assert logger == test_logger.log_hyperparams_called

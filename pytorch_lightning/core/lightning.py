@@ -215,14 +215,6 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    @property
-    def log_hyperparams(self) -> bool:
-        return self._log_hyperparams
-
-    @log_hyperparams.setter
-    def log_hyperparams(self, log: bool) -> None:
-        self._log_hyperparams = log
-
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
     ) -> Any:
@@ -1748,7 +1740,7 @@ class LightningModule(
         *args,
         ignore: Optional[Union[Sequence[str], str]] = None,
         frame: Optional[types.FrameType] = None,
-        log: bool = True
+        logger: bool = True
     ) -> None:
         """Save model arguments to ``hparams`` attribute.
 
@@ -1758,6 +1750,7 @@ class LightningModule(
             ignore: an argument name or a list of argument names from
                 class ``__init__`` to be ignored
             frame: a frame object. Default is None
+            logger: Whether to save hyperparameters by logger. Default: True
 
         Example::
             >>> class ManuallyArgsModel(LightningModule):
@@ -1810,7 +1803,7 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
-        self.log_hyperparams = log
+        self._log_hyperparams = logger
         # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back
