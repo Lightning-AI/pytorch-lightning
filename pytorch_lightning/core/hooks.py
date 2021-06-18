@@ -295,6 +295,23 @@ class ModelHooks:
             optimizer: The optimizer for which grads should be zeroed.
         """
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """
+        Override on_before_backward with your own implementation if you need to.
+
+        Args:
+            loss: Loss is already scaled by accumulated grads and possibly scaled by Mixed Precision.
+
+        Called to before backward step.
+
+        Example::
+
+            def on_before_backward(self, loss):
+                print(f"Current Loss: {loss}")
+
+        """
+        pass
+
     def on_after_backward(self) -> None:
         """
         Called in the training loop after loss.backward() and before optimizers do anything.
