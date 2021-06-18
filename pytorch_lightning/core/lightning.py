@@ -369,8 +369,8 @@ class LightningModule(
         attribute_name = None
 
         if isinstance(value, Metric):
-            # this is used to effiently find the attribute prefix path of metric objects 
-            # this will enable Lightning to re-attach metric reference when reloading states. 
+            # this is used to effiently find the attribute prefix path of metric objects
+            # this will enable Lightning to re-attach metric reference when reloading states.
             if self._map_id_to_metrics_name is None:
                 self._map_id_to_metrics_name = {
                     id(module): module_name
