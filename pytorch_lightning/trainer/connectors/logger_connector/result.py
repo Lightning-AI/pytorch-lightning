@@ -243,7 +243,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self) -> dict:
-        with self._apply_sync():
+        with self.sync_context():
             d = deepcopy(super().__getstate__())
         if not self.is_tensor:
             del d["value"]

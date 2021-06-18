@@ -1357,26 +1357,24 @@ def result_collection_reload(trainer_kwargs):
             self.dummy_metric_dynamic = DummyMetric()
 
         def training_step(self, batch, batch_idx):
-            print()
-            print(self.trainer.global_rank, self.dummy_metric)
-            print()
             assert len(batch) == 1
             if self.has_reloaded:
                 if batch_idx >= self.breaking_batch_idx:
                     self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                    self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
 
                     self.dummy_metric(batch_idx)
                     self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                    if self.trainer.accelerator_connector.is_distributed:
-                        self.dummy_metric_dynamic(batch_idx + int(self.trainer.global_rank))
-                        self.log("tracking_metric_2", self.dummy_metric_dynamic, on_step=True, on_epoch=True)
-
                     value = self.trainer.train_loop.results['training_step.tracking'].value
-                    shift = 1
+                    shift = 0
                     if num_processes == 2:
-                        shift += 6 if self.trainer.is_global_zero else 0
-                    expected = sum(range(self.breaking_batch_idx, batch_idx)) + shift
+                        shift = 3 if self.trainer.is_global_zero else -3
+                    expected = sum(range(batch_idx + 1)) + shift
+                    assert expected == value
+
+                    value = self.trainer.train_loop.results['training_step.tracking_2']
+                    assert expected == value
             else:
                 if self.trainer.current_epoch == 2:
                     return
@@ -1384,16 +1382,17 @@ def result_collection_reload(trainer_kwargs):
                     raise CustomException
 
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
 
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                if self.trainer.accelerator_connector.is_distributed:
-                    self.dummy_metric_dynamic(batch_idx + int(self.trainer.global_rank))
-                    self.log("tracking_metric_2", self.dummy_metric_dynamic, on_step=True, on_epoch=True)
-
                 value = self.trainer.train_loop.results['training_step.tracking'].value
                 assert value == sum(range(batch_idx + 1))
+
+                value = self.trainer.train_loop.results['training_step.tracking_2']
+                assert value == sum(range(batch_idx + 1))
+
             return super().training_step(batch, batch_idx)
 
         def on_epoch_end(self) -> None:
@@ -1403,6 +1402,8 @@ def result_collection_reload(trainer_kwargs):
                 metrics = self.trainer.train_loop.results.metrics(on_step=False)
                 assert self.trainer.train_loop.results['training_step.tracking'].value == total
                 assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
+                assert self.trainer.train_loop.results['training_step.tracking_2'].value == total
+                assert metrics[MetricSource.CALLBACK]["tracking_2"] == self.dummy_metric.compute() == 2
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
@@ -1419,8 +1420,7 @@ def result_collection_reload(trainer_kwargs):
 
     if trainer.is_global_zero:
         checkpoint = torch.load(checkpoint_path)
-        assert checkpoint["state_dict"]['dummy_metric.sum'] == 6
-        assert checkpoint["state_dict"]['dummy_metric_dynamic.sum'] == 9
+        assert checkpoint["state_dict"]['dummy_metric.sum'] == 3 * num_processes
 
     trainer_kwargs["resume_from_checkpoint"] = checkpoint_path
     trainer_kwargs["max_epochs"] = 2

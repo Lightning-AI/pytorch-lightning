@@ -46,6 +46,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
         self._loaded_checkpoint = dict()
+        self._persistent_metrics = False 
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -257,20 +258,15 @@ class CheckpointConnector:
         test_results = self.trainer.evaluation_loop._test_results
 
         metrics = {}
-        for module_name, module in self.trainer.lightning_module._named_members(lambda module: module._modules.items()):
+        model_ref = self.trainer.lightning_module
+        for module_name, module in model_ref._named_members(lambda module: module._modules.items()):
             if isinstance(module, Metric):
                 metrics[module_name] = module
 
         # restore collection and provide sync_fn
         self._restore_restore_collection(train_results, state_dict[RunningStage.TRAINING.value], sync_fn, metrics)
         self._restore_restore_collection(val_results, state_dict[RunningStage.VALIDATING.value], sync_fn, metrics)
-        self._restore_restore_collection(train_results, state_dict[RunningStage.TESTING.value], sync_fn, metrics)
-
-        # restore metrics
-        if not self.trainer.is_global_zero:
-            for _, module in self.trainer.lightning_module.named_modules():
-                if isinstance(module, Metric):
-                    module.reset()
+        self._restore_restore_collection(test_results, state_dict[RunningStage.TESTING.value], sync_fn, metrics)
 
     def _restore_restore_collection(self, results, state_dict, sync_fn, metrics):
         results.load_state_dict(state_dict, sync_fn=sync_fn, metrics=metrics)
@@ -386,9 +382,11 @@ class CheckpointConnector:
 
         model = self.trainer.lightning_module
 
-        for _, module in model.named_modules():
-            if isinstance(module, Metric):
-                module.persistent(True)
+        if not self._persistent_metrics:
+            for _, module in model.named_modules():
+                if isinstance(module, Metric):
+                    module.persistent(True)
+            self._persistent_metrics = True
 
         checkpoint = {
             'epoch': current_epoch,
