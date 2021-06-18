@@ -66,7 +66,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary things (like trainer)"""
         super().connect(trainer, *args, **kwargs)
-        self.prediction_loop.connect(trainer)
+        self.prediction_loop.connect(trainer, *args, **kwargs)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

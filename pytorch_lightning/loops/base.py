@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from abc import ABC, abstractmethod
 from typing import Any, Optional
-from weakref import proxy, ProxyType
+from weakref import proxy
 
 from deprecate import void
 
@@ -44,7 +45,7 @@ class Loop(ABC):
 
     def __init__(self) -> None:
         self.iteration_count: int = 0
-        self.trainer: Optional[ProxyType['pl.Trainer']] = None
+        self.trainer: Optional['pl.Trainer'] = None
 
     @property
     @abstractmethod
