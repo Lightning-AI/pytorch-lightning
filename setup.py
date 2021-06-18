@@ -62,9 +62,6 @@ long_description = setup_tools._load_readme_description(
     version=about.__version__,
 )
 
-install_requirements = setup_tools._load_requirements(_PATH_ROOT) + \
-    ["git+https://github.com/PyTorchLightning/metrics.git@apply_sync_fn"]
-
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
@@ -87,7 +84,7 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
-    install_requires=install_requirements,
+    install_requires=setup_tools._load_requirements(_PATH_ROOT),
     extras_require=extras,
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
