@@ -41,7 +41,15 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     @property
     def num_dataloaders(self) -> int:
         """Returns the total number of dataloaders"""
-        return self._get_num_dataloaders(self.dataloaders)
+        # case where user does:
+        # return dl1, dl2
+        dataloaders = self.dataloaders
+        if dataloaders is None:
+            return 0
+        length = len(dataloaders)
+        if length > 0 and isinstance(dataloaders[0], (list, tuple)):
+            length = len(dataloaders[0])
+        return length
 
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
@@ -221,17 +229,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
-
-    def _get_num_dataloaders(self, dataloaders: Optional[List[DataLoader]]) -> int:
-        """Returns the number of dataloaders"""
-        # case where user does:
-        # return dl1, dl2
-        if dataloaders is not None:
-            length = len(dataloaders)
-            if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
-                length = len(dataloaders[0])
-            return length
-        return 0
 
     def _should_track_batch_outputs_for_epoch_end(self) -> bool:
         """Whether the batch outputs should be stored for later usage"""
