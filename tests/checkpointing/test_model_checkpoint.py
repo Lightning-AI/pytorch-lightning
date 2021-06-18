@@ -262,10 +262,9 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         duplicated = bool(version)
 
         # checkpoint saved at the end of training epoch will have updated lr_scheduler states
+        epoch_end_checkpoint = duplicated
         if epoch_aligned:
             epoch_end_checkpoint = ix == (per_epoch_val_checks - 1)
-        else:
-            epoch_end_checkpoint = duplicated
 
         score = model.scores[global_ix]
         expected_score = getattr(model, f'{monitor}s')[global_ix].mean().item()
