@@ -121,7 +121,7 @@ class BaseProfiler(AbstractProfiler):
         if self.filename:
             args.append(self.filename)
         if self._local_rank is not None:
-            args.append(self._local_rank)
+            args.append(str(self._local_rank))
         if action_name is not None:
             args.append(action_name)
         filename = split_token.join(args) + extension
