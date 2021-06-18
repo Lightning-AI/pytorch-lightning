@@ -75,10 +75,8 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop to everything necessary (like trainer and accelerators)"""
         super().connect(trainer, *args, **kwargs)
-
-        # TODO: why do we only forward *args and **kwargs here?
-        # TODO; Can we make the trainer a weakref/proxy?
-        self.evaluation_loop.connect(trainer, *args, **kwargs)
+        # TODO: Make the trainer a weakref/proxy
+        self.evaluation_loop.connect(trainer)
 
     @property
     def done(self) -> bool:
