@@ -266,10 +266,6 @@ class FitLoop(Loop):
         """Whether the gradients should be accumulated"""
         return self.training_loop.batch_loop.should_accumulate()
 
-    def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
-        """Generates a list of active optimizers"""
-        return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
-
     def check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
         # TODO: bake this logic into the ModelCheckpoint callback
