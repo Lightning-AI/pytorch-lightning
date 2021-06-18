@@ -158,10 +158,7 @@ class FitLoop(Loop):
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
-        # TODO(@justusschock): Do we want to forward *args and **kwargs to the inner loop here?
-        # TODO(@justusschock): Can we make the trainer a weakref/proxy?
-        void(*args, **kwargs)
-        self.trainer = trainer
+        super().connect(trainer, *args, **kwargs)
         self.training_loop.connect(trainer)
 
     def reset(self) -> None:

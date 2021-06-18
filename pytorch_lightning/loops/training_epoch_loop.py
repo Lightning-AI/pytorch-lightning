@@ -68,10 +68,7 @@ class TrainingEpochLoop(Loop):
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
-
-        # TODO(@justusschock): should we forward *args and **kwargs to lower loops?
-        # TODO(@justusschock): can we make the trainer a proxy here?
-        self.trainer = trainer
+        super().connect(trainer, *args, **kwargs)
         self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
 
