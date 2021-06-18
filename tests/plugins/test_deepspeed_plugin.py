@@ -10,7 +10,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
