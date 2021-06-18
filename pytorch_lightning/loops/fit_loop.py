@@ -226,7 +226,7 @@ class FitLoop(Loop):
         )
         if did_train_only:
             self.global_step -= 1
-            self.check_checkpoint_callback(True)
+            self._check_checkpoint_callback(True)
             self.global_step += 1
 
     def on_run_end(self) -> None:
@@ -241,7 +241,7 @@ class FitLoop(Loop):
         # when a checkpoint was saved at the last step
         self.training_loop.global_step -= 1
         # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
-        self.check_checkpoint_callback(should_update=True, is_last=True)
+        self._check_checkpoint_callback(should_update=True, is_last=True)
         self.training_loop.global_step += 1
 
         # hook
@@ -266,7 +266,7 @@ class FitLoop(Loop):
         """Whether the gradients should be accumulated"""
         return self.training_loop.batch_loop.should_accumulate()
 
-    def check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
+    def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
         # TODO: bake this logic into the ModelCheckpoint callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
