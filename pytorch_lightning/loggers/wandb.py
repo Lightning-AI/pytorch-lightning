@@ -139,7 +139,7 @@ class WandbLogger(LightningLoggerBase):
         if sync_step is not None:
             warning_cache.deprecation(
                 "`WandbLogger(sync_step=(True|False))` is deprecated in v1.2.1 and will be removed in v1.5."
-                " Metrics are now logged separately and automatically synchronized.",
+                " Metrics are now logged separately and automatically synchronized."
             )
 
         super().__init__()

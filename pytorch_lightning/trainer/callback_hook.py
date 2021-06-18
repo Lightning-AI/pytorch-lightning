@@ -100,7 +100,7 @@ class TrainerCallbackHookMixin(ABC):
                 warning_cache.deprecation(
                     "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
                     " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5",
+                    " Support for the old signature will be removed in v1.5"
                 )
                 callback.on_train_epoch_end(self, self.lightning_module, outputs)
             else:

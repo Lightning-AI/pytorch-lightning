@@ -168,7 +168,7 @@ class LightningModule(
 
     @property
     def datamodule(self) -> Any:
-        rank_zero_deprecation(
+        warning_cache.deprecation(
             "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
             " Access the datamodule through using `self.trainer.datamodule` instead.",
             stacklevel=5,
@@ -1463,7 +1463,8 @@ class LightningModule(
         Override this method to adjust the default way the
         :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer.
+        once per optimizer. This method (and ``zero_grad()``) won't be called during the
+        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
