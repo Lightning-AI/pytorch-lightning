@@ -113,22 +113,18 @@ class BaseProfiler(AbstractProfiler):
             log.info(*args, **kwargs)
 
     def _prepare_filename(
-        self, action_name: Optional[str] = None, extension: str = ".txt", separation_token: str = "-"
+        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
     ) -> str:
-        filename = ""
-        token = ""
+        args = []
         if self._stage:
-            filename += f'{token}{self._stage.value}'
-            token = separation_token
+            args.append(self._stage)
         if self.filename:
-            filename += f'{token}{self.filename}'
-            token = separation_token
+            args.append(self.filename)
         if self._local_rank is not None:
-            filename += f'{token}{self._local_rank}'
-            token = separation_token
-        if action_name:
-            filename += f'{token}{action_name}'
-        filename += extension
+            args.append(self._local_rank)
+        if action_name is not None:
+            args.append(action_name)
+        filename = split_token.join(args) + extension
         return filename
 
     def _prepare_streams(self) -> None:
