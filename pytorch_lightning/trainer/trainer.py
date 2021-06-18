@@ -987,6 +987,8 @@ class Trainer(
         with torch.no_grad():
             # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
             eval_loop_results = self.evaluation_loop.run()
+
+        eval_loop_results = eval_loop_results or []
         return eval_loop_results
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
@@ -996,7 +998,7 @@ class Trainer(
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._run_evaluation() or ([], [])
+            eval_loop_results = self._run_evaluation()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
