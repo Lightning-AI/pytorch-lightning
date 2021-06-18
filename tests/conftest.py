@@ -18,6 +18,7 @@ from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
 
 import pytest
+import torch
 import torch.multiprocessing as mp
 
 
@@ -89,3 +90,14 @@ def tmpdir_server(tmpdir):
         server_thread.start()
         yield server.server_address
         server.shutdown()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def assert_cuda_memory_differential():
+    memory_start = torch.cuda.memory_allocated()
+    yield
+    memory_end = torch.cuda.memory_allocated()
+    diff = memory_end - memory_start
+    tol = 2 * 1e6  # 2 MB tolerance
+    if diff > tol:
+        raise ValueError(f"Test left CUDA memory allocated: {diff // 1e6} MB")
