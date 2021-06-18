@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.loops.base import Loop
 
 
-# TODO: Handle max_batches also in base class here
 class DataLoaderLoop(Loop):
     """Base class to loop over all dataloaders"""
 
