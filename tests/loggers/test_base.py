@@ -17,6 +17,7 @@ from typing import Optional
 from unittest.mock import MagicMock
 
 import numpy as np
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
@@ -290,3 +291,37 @@ def test_np_sanitization():
     }
     logger.log_hyperparams(Namespace(**np_params))
     assert logger.logged_params == sanitized_params
+
+
+@pytest.mark.parametrize("log", [True, False])
+def test_log_hyperparams_being_called(tmpdir, log):
+
+    class TestLogger(DummyLogger):
+
+        def __init__(self):
+            super().__init__()
+            self.log_hyperparams_called = False
+
+        def log_hyperparams(self, *args, **kwargs):
+            self.log_hyperparams_called = True
+
+    class TestModel(BoringModel):
+
+        def __init__(self, param_one, param_two):
+            super().__init__()
+            self.save_hyperparameters(log=log)
+
+    logger = TestLogger()
+    model = TestModel("pytorch", "lightning")
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+
+    assert log == logger.log_hyperparams_called
