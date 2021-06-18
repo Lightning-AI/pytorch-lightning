@@ -116,7 +116,7 @@ class BaseProfiler(AbstractProfiler):
         self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
     ) -> str:
         args = []
-        if self._stage:
+        if self._stage is not None:
             args.append(self._stage)
         if self.filename:
             args.append(self.filename)
