@@ -43,12 +43,12 @@ class TrainingEpochLoop(Loop):
         self.split_idx: Optional[int] = None
         # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
+        self.is_last_batch: Optional[bool] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
 
         self._dataloader_idx: Optional[int] = None
         self._should_stop: bool = False
-        self._is_last_batch: Optional[bool] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
@@ -64,7 +64,7 @@ class TrainingEpochLoop(Loop):
         the last batch is reached or the trainer signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self._is_last_batch)
+        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
@@ -79,7 +79,7 @@ class TrainingEpochLoop(Loop):
         """Resets the internal state of the loop for a new run"""
         self.iteration_count = 0
         self.batches_seen = 0
-        self._is_last_batch = False
+        self.is_last_batch = False
         self._dataloader_idx = 0
         self._should_stop = False
 
@@ -102,7 +102,7 @@ class TrainingEpochLoop(Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         _, (batch, is_last) = next(dataloader_iter)
-        self._is_last_batch = is_last
+        self.is_last_batch = is_last
 
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
@@ -142,7 +142,7 @@ class TrainingEpochLoop(Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.iteration_count, self._is_last_batch)
+        should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self.trainer._run_evaluation()
