@@ -48,7 +48,6 @@ class TrainingEpochLoop(Loop):
         self.batch_loop: Optional[TrainingBatchLoop] = None
 
         self._dataloader_idx: Optional[int] = None
-        self._should_stop: bool = False
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
@@ -81,7 +80,6 @@ class TrainingEpochLoop(Loop):
         self.batches_seen = 0
         self.is_last_batch = False
         self._dataloader_idx = 0
-        self._should_stop = False
 
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
