@@ -35,7 +35,7 @@ class DataLoaderLoop(Loop):
 
     @property
     def current_dataloader(self) -> DataLoader:
-        """Returns the current datalaoder"""
+        """Returns the current dataloader"""
         return self.dataloaders[self.current_dataloader_idx]
 
     @property
