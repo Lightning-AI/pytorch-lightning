@@ -212,3 +212,11 @@ def test_v1_6_0_early_stopping_monitor(tmpdir):
         " For backward compatibility, setting this to `early_stop_on`."
     ):
         EarlyStopping()
+
+
+def test_v1_6_0_train_loop(tmpdir):
+    trainer = Trainer()
+    with pytest.deprecated_call(
+            match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+    ):
+        _ = trainer.train_loop

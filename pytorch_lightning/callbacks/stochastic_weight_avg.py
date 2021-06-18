@@ -159,7 +159,7 @@ class StochasticWeightAveraging(Callback):
         self._max_epochs = trainer.max_epochs
         if self._model_contains_batch_norm:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
-            trainer.train_loop.max_epochs += 1
+            trainer.fit_loop.max_epochs += 1
 
     def on_train_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         if trainer.current_epoch == self.swa_start:
@@ -220,19 +220,19 @@ class StochasticWeightAveraging(Callback):
             # performing only one pass over the train data-loader to compute activation statistics
             # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
             trainer.num_training_batches += 1
-            trainer.train_loop._skip_backward = True
+            trainer.fit_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
             trainer.accumulate_grad_batches = len(trainer.train_dataloader)
 
     def on_train_epoch_end(self, trainer: 'pl.Trainer', *args):
-        trainer.train_loop._skip_backward = False
+        trainer.fit_loop._skip_backward = False
 
     def on_train_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
-            trainer.train_loop.max_epochs -= 1
+            trainer.fit_loop.max_epochs -= 1
             self.reset_momenta()
         elif trainer.current_epoch == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module

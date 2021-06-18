@@ -227,6 +227,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the use of `CheckpointConnector.hpc_load()` in favor of `CheckpointConnector.restore()` ([#7652](https://github.com/PyTorchLightning/pytorch-lightning/pull/7652))
 
 
+- Deprecated the `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#xxxx](https://github.com/PyTorchLightning/pytorch-lightning/pull/xxxx))
+
+
 ### Removed
 
 - Removed `ProfilerConnector` ([#7654](https://github.com/PyTorchLightning/pytorch-lightning/pull/7654))

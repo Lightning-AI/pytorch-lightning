@@ -1297,7 +1297,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
         progress_bar_refresh_rate=0,
     )
     trainer.fit(BoringModel())
-    trainer.train_loop.max_epochs = 4
+    trainer.fit_loop.max_epochs = 4
     trainer.fit(BoringModel())
 
     ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
