@@ -44,8 +44,14 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
 
     @property
     def num_dataloaders(self) -> int:
-        """Returns the number of dataloaders"""
-        return self._get_num_dataloaders(self.dataloaders)
+        """Returns the number of prediction dataloaders"""
+        # case where user does:
+        # return dl1, dl2
+        dataloaders = self.dataloaders
+        length = len(dataloaders)
+        if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
+            length = len(dataloaders[0])
+        return length
 
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
@@ -97,11 +103,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         results = self.on_predict_epoch_end()
         self.on_predict_end()
         return results
-
-
-# ------------------------------------------------------------------------------------------------------------
-# HELPER --- TO BE CLEANED UP
-# ------------------------------------------------------------------------------------------------------------
 
     def get_predict_dataloaders(self) -> Tuple[List[DataLoader], List[int]]:
         """Gets all dataloaders together with their respective max_batches"""
@@ -163,12 +164,3 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         """Calls ``on_predict_model_eval`` hook"""
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
-
-    def _get_num_dataloaders(self, dataloaders: List[DataLoader]) -> int:
-        """Returns the number of predict dataloaders"""
-        # case where user does:
-        # return dl1, dl2
-        length = len(dataloaders)
-        if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
-            length = len(dataloaders[0])
-        return length
