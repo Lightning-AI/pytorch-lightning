@@ -51,6 +51,7 @@ class InternalDebugger(object):
         self.test_dataloader_calls = []
         self.dataloader_sequence_calls = []
 
+    @enabled_only
     def track_event(
         self,
         evt_type: str,

@@ -441,12 +441,12 @@ There are two ways to call `test()`:
     trainer.fit(model)
 
     # automatically auto-loads the best weights
-    trainer.test(test_dataloaders=test_dataloader)
+    trainer.test(dataloaders=test_dataloader)
 
     # or call with pretrained model
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
-    trainer.test(model, test_dataloaders=test_dataloader)
+    trainer.test(model, dataloaders=test_dataloader)
 
 ----------
 
@@ -489,6 +489,14 @@ For research, LightningModules are best structured as systems.
             reconstruction_loss = nn.functional.mse_loss(recons, x)
             self.log('val_reconstruction', reconstruction_loss)
 
+         def predict_step(self, batch, batch_idx, dataloader_idx):
+            x, _ = batch
+
+            # encode
+            # for predictions, we could return the embedding or the reconstruction or both based on our need.
+            x = x.view(x.size(0), -1)
+            return self.encoder(x)
+
          def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0002)
 
@@ -510,6 +518,7 @@ The methods above are part of the lightning interface:
 - training_step
 - validation_step
 - test_step
+- predict_step
 - configure_optimizers
 
 Note that in this case, the train loop and val loop are exactly the same. We can of course reuse this code.
@@ -554,11 +563,19 @@ Inference in research
 ^^^^^^^^^^^^^^^^^^^^^
 In the case where we want to perform inference with the system we can add a `forward` method to the LightningModule.
 
+.. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
+
 .. code-block:: python
 
     class Autoencoder(pl.LightningModule):
+
         def forward(self, x):
             return self.decoder(x)
+
+    model = Autoencoder()
+    model.eval()
+    with torch.no_grad():
+        reconstruction = model(embedding)
 
 The advantage of adding a forward is that in complex systems, you can do a much more involved inference procedure,
 such as text generation:
@@ -575,6 +592,25 @@ such as text generation:
                 ...
             return decoded
 
+In the case where you want to scale your inference, you should be using
+:meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`.
+
+.. code-block:: python
+
+    class Autoencoder(pl.LightningModule):
+
+        def forward(self, x):
+            return self.decoder(x)
+
+        def predict_step(self, batch, batch_idx, dataloader_idx = None)
+            # this calls forward
+            return self(batch)
+
+    data_module = ...
+    model = Autoencoder()
+    trainer = Trainer(gpus=2)
+    trainer.predict(model, data_module)
+
 Inference in production
 ^^^^^^^^^^^^^^^^^^^^^^^
 For cases like production, you might want to iterate different models inside a LightningModule.
@@ -586,33 +622,41 @@ For cases like production, you might want to iterate different models inside a L
 
     class ClassificationTask(pl.LightningModule):
 
-         def __init__(self, model):
-             super().__init__()
-             self.model = model
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
 
-         def training_step(self, batch, batch_idx):
-             x, y = batch
-             y_hat = self.model(x)
-             loss = F.cross_entropy(y_hat, y)
-             return loss
-
-         def validation_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
-            acc = FM.accuracy(y_hat, y)
+            return loss
 
+        def validation_step(self, batch, batch_idx):
+            loss, acc = self._shared_eval_step(batch, batch_idx)
             metrics = {'val_acc': acc, 'val_loss': loss}
             self.log_dict(metrics)
             return metrics
 
-         def test_step(self, batch, batch_idx):
-            metrics = self.validation_step(batch, batch_idx)
-            metrics = {'test_acc': metrics['val_acc'], 'test_loss': metrics['val_loss']}
+        def test_step(self, batch, batch_idx):
+            loss, acc = self._shared_eval_step(batch, batch_idx)
+            metrics = {'test_acc': acc, 'test_loss': loss}
             self.log_dict(metrics)
+            return metrics
 
-         def configure_optimizers(self):
-             return torch.optim.Adam(self.model.parameters(), lr=0.02)
+        def _shared_eval_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.model(x)
+            loss = F.cross_entropy(y_hat, y)
+            acc = FM.accuracy(y_hat, y)
+            return loss, acc
+
+        def predict_step(self, batch, batch_idx, dataloader_idx):
+            x, y = batch
+            y_hat = self.model(x)
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.model.parameters(), lr=0.02)
 
 Then pass in any arbitrary model to be fit with this task
 
@@ -1036,7 +1080,7 @@ recurrent network trajectories."
         def training_step(self, batch, batch_idx, hiddens):
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(data, hiddens)
+            out, (hiddens, _) = self.lstm(data, hiddens)
             return {
                 "loss": ...,
                 "hiddens": hiddens
@@ -1265,6 +1309,12 @@ on_test_epoch_end
 ~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
+    :noindex:
+
+on_test_start
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_start
     :noindex:
 
 on_test_end

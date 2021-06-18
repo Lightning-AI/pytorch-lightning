@@ -296,7 +296,7 @@ def test_result_reduce_horovod(tmpdir):
                 self.training_step_called = True
 
                 tensor = torch.tensor([1.0])
-                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum', on_step=True, on_epoch=True)
+                self.log("test_tensor", tensor, sync_dist=True, reduce_fx='sum', on_step=True, on_epoch=True)
 
                 res = self._results
 

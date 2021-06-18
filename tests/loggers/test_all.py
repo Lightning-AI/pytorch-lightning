@@ -24,6 +24,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
+    CSVLogger,
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
@@ -233,6 +234,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     "logger_class",
     [
         CometLogger,
+        CSVLogger,
         MLFlowLogger,
         NeptuneLogger,
         TensorBoardLogger,
@@ -325,6 +327,7 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize(
     "logger_class", [
         CometLogger,
+        CSVLogger,
         MLFlowLogger,
         NeptuneLogger,
         TensorBoardLogger,

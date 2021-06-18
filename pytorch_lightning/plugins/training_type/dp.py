@@ -19,6 +19,7 @@ from torch.nn import DataParallel
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
@@ -101,10 +102,16 @@ class DataParallelPlugin(ParallelPlugin):
         return self.model(*args, **kwargs)
 
     def training_step_end(self, output):
-        return self.reduce(output)
+        if not is_overridden("training_step_end", self.lightning_module):
+            return self.reduce(output)
+        return output
 
     def validation_step_end(self, output):
-        return self.reduce(output)
+        if not is_overridden("validation_step_end", self.lightning_module):
+            return self.reduce(output)
+        return output
 
     def test_step_end(self, output):
-        return self.reduce(output)
+        if not is_overridden("test_step_end", self.lightning_module):
+            return self.reduce(output)
+        return output

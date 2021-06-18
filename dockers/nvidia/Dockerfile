@@ -44,10 +44,11 @@ RUN \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
     rm -rf pytorch-lightning && \
+    pip install jupyterlab[all] -U && \
     pip list
 
 RUN pip install lightning-grid -U && \
-    pip install "py>=1.10" --upgrade-strategy only-if-needed
+    pip install "py>=1.10" "protobuf>=3.15.6" --upgrade-strategy only-if-needed
 
 ENV PYTHONPATH="/workspace"
 

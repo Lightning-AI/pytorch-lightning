@@ -21,6 +21,7 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -36,6 +37,8 @@ from pytorch_lightning.plugins import (
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     HorovodPlugin,
+    IPUPlugin,
+    IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
@@ -57,6 +60,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -79,6 +83,7 @@ class AcceleratorConnector(object):
         self,
         num_processes,
         tpu_cores,
+        ipus,
         distributed_backend,
         auto_select_gpus,
         gpus,
@@ -98,6 +103,7 @@ class AcceleratorConnector(object):
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        self.ipus = ipus
         self.distributed_backend = distributed_backend
         self.auto_select_gpus = auto_select_gpus
         self.gpus = gpus
@@ -249,6 +255,10 @@ class AcceleratorConnector(object):
         return self.tpu_cores is not None
 
     @property
+    def on_ipu(self) -> bool:
+        return self.ipus is not None
+
+    @property
     def tpu_id(self) -> Optional[int]:
         if self.on_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
@@ -323,13 +333,18 @@ class AcceleratorConnector(object):
             # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
+        elif self.on_ipu:
+            if isinstance(self.ipus, int):
+                devices = list(range(self.ipus))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
+        return self.accelerator.root_device.index if not isinstance(
+            self.accelerator, (IPUAccelerator, TPUAccelerator)
+        ) else None
 
     @property
     def is_training_type_in_plugins(self) -> bool:
@@ -352,6 +367,9 @@ class AcceleratorConnector(object):
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
+
+        if self.on_ipu:
+            return IPUPrecisionPlugin(self.precision)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -463,6 +481,8 @@ class AcceleratorConnector(object):
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
         elif self.on_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
+        elif self.on_ipu:
+            plugin = IPUPlugin(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
@@ -503,6 +523,8 @@ class AcceleratorConnector(object):
             acc_cls = GPUAccelerator
         elif self.on_tpu:
             acc_cls = TPUAccelerator
+        elif self.on_ipu:
+            acc_cls = IPUAccelerator
         else:
             acc_cls = CPUAccelerator
         # as precision_plugin is dependent on training_type_plugin, make sure
@@ -566,6 +588,8 @@ class AcceleratorConnector(object):
             self._device_type = DeviceType.TPU
             if isinstance(self.tpu_cores, int):
                 self._distrib_type = DistributedType.TPU_SPAWN
+        elif self.distributed_backend == 'ipu':
+            self._device_type = DeviceType.IPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
@@ -613,8 +637,11 @@ class AcceleratorConnector(object):
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
-        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
+
+        num_ipus = self.ipus if self.ipus is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
