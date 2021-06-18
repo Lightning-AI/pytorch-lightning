@@ -55,7 +55,11 @@ class EvaluationEpochLoop(Loop):
         self.outputs = []
 
     def on_run_start(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
+        self,
+        dataloader_iter: Iterator,
+        dataloader_idx: int,
+        dl_max_batches: int,
+        num_dataloaders: int,
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary
 
@@ -72,7 +76,11 @@ class EvaluationEpochLoop(Loop):
         self.num_dataloaders = num_dataloaders
 
     def advance(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
+        self,
+        dataloader_iter: Iterator,
+        dataloader_idx: int,
+        dl_max_batches: int,
+        num_dataloaders: int,
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
@@ -145,9 +153,9 @@ class EvaluationEpochLoop(Loop):
     def evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook"""
         if self.trainer.testing:
-            output = self.trainer.call_hook('test_step_end', *args, **kwargs)
+            output = self.trainer.call_hook("test_step_end", *args, **kwargs)
         else:
-            output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
+            output = self.trainer.call_hook("validation_step_end", *args, **kwargs)
         return output
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
@@ -167,9 +175,9 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:
-            self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
+            self.trainer.call_hook("on_test_batch_start", batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
+            self.trainer.call_hook("on_validation_batch_start", batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(
         self,
@@ -187,9 +195,9 @@ class EvaluationEpochLoop(Loop):
             dataloader_idx: Index of the dataloader producing the current batch
         """
         if self.trainer.testing:
-            self.trainer.call_hook('on_test_batch_end', output, batch, batch_idx, dataloader_idx)
+            self.trainer.call_hook("on_test_batch_end", output, batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_end', output, batch, batch_idx, dataloader_idx)
+            self.trainer.call_hook("on_validation_batch_end", output, batch, batch_idx, dataloader_idx)
 
         self.trainer.logger_connector.on_batch_end()
 
@@ -207,7 +215,7 @@ class EvaluationEpochLoop(Loop):
         # Add step predictions to prediction collection to write later
         if output is not None and self.predictions is not None:
             if isinstance(output, ResultCollection) and self.trainer.testing:
-                self.predictions.add(output.pop('predictions', None))
+                self.predictions.add(output.pop("predictions", None))
 
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
@@ -224,19 +232,20 @@ class EvaluationEpochLoop(Loop):
             the keyword arguments to pass to the step function
         """
         # make dataloader_idx arg in validation_step optional
-        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
 
-        multiple_val_loaders = (not self.trainer.testing and self.num_dataloaders > 1)
-        multiple_test_loaders = (self.trainer.testing and self.num_dataloaders > 1)
+        multiple_val_loaders = not self.trainer.testing and self.num_dataloaders > 1
+        multiple_test_loaders = self.trainer.testing and self.num_dataloaders > 1
 
         if multiple_test_loaders or multiple_val_loaders:
-            step_kwargs['dataloader_idx'] = dataloader_idx
+            step_kwargs["dataloader_idx"] = dataloader_idx
 
         return step_kwargs
 
     def _track_output_for_epoch_end(
-        self, outputs: List[Union[ResultCollection, Dict, Tensor]], output: Optional[Union[ResultCollection, Dict,
-                                                                                           Tensor]]
+        self,
+        outputs: List[Union[ResultCollection, Dict, Tensor]],
+        output: Optional[Union[ResultCollection, Dict, Tensor]],
     ) -> List[Union[ResultCollection, Dict, Tensor]]:
         if output is not None:
             if isinstance(output, ResultCollection):
