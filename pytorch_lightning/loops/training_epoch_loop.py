@@ -41,16 +41,16 @@ class TrainingEpochLoop(Loop):
         self.iteration_count: int = 0
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
+        # the number of batches seen this run, updates immediately after batch_loop.run()
+        self.batches_seen: int = 0
+
+        self.batch_loop: Optional[TrainingBatchLoop] = None
 
         self._dataloader_idx: Optional[int] = None
         self._should_stop: bool = False
-
-        self.is_last_batch: Optional[bool] = None
-        self.batches_seen: int = 0
-        self.warning_cache: WarningCache = WarningCache()
-        self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
-
-        self.batch_loop: Optional[TrainingBatchLoop] = None
+        self._is_last_batch: Optional[bool] = None
+        self._warning_cache: WarningCache = WarningCache()
+        self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
     @property
     def batch_idx(self) -> int:
@@ -64,7 +64,7 @@ class TrainingEpochLoop(Loop):
         the last batch is reached or the trainer signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self._is_last_batch)
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
@@ -79,12 +79,12 @@ class TrainingEpochLoop(Loop):
         """Resets the internal state of the loop for a new run"""
         self.iteration_count = 0
         self.batches_seen = 0
-        self.is_last_batch = False
+        self._is_last_batch = False
         self._dataloader_idx = 0
         self._should_stop = False
 
         # track epoch output
-        self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
+        self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # hook
@@ -102,7 +102,7 @@ class TrainingEpochLoop(Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         _, (batch, is_last) = next(dataloader_iter)
-        self.is_last_batch = is_last
+        self._is_last_batch = is_last
 
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
@@ -182,7 +182,7 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.epoch_end_reached()
 
         # prepare epoch output
-        processed_outputs = self._prepare_outputs(self.epoch_output, batch_mode=False)
+        processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
@@ -205,7 +205,7 @@ class TrainingEpochLoop(Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
-        return self.epoch_output
+        return self._epoch_output
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""
@@ -231,7 +231,7 @@ class TrainingEpochLoop(Loop):
             if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self.warning_cache.warn(
+                    self._warning_cache.warn(
                         "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
                         " Support for the old signature will be removed in v1.5", DeprecationWarning
@@ -254,7 +254,7 @@ class TrainingEpochLoop(Loop):
         # TODO: Can we combine this with training_batch_loop's arg that does a similar check?
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
 
-    def track_epoch_end_reduce_metrics(
+    def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
     ) -> None:
         """Adds the batch outputs to the epoch outputs and prepares reduction"""
