@@ -232,9 +232,7 @@ class FitLoop(Loop):
 
         self.training_loop.update_lr_schedulers('epoch')
 
-        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.should_skip_evaluation(
-            self.trainer.num_val_batches
-        )
+        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.skip
         if did_train_only:
             self.global_step -= 1
             self.check_checkpoint_callback(True)

@@ -61,10 +61,6 @@ class Loop(ABC):
         """Connects Loop with all the necessary things like connectors and accelerators."""
         self.trainer = proxy(trainer)
 
-    @abstractmethod
-    def reset(self) -> None:
-        """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
-
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
         The main entry point to the loop.
@@ -93,6 +89,10 @@ class Loop(ABC):
         output = self.on_run_end()
         self.teardown()
         return output
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """

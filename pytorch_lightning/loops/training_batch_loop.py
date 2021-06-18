@@ -114,6 +114,12 @@ class TrainingBatchLoop(Loop):
 
         return AttributeDict(signal=0, training_step_output=self.batch_outputs)
 
+    def reset(self) -> None:
+        """Resets the loop state"""
+        self._hiddens = None
+        self.batch_idx = 0
+        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits
 
@@ -526,10 +532,10 @@ class TrainingBatchLoop(Loop):
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
                 if not self.trainer.lightning_module.automatic_optimization:
-                    self.warning_cache.warn(
+                    self.warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5", DeprecationWarning
+                        " the old signature will be removed in v1.5",
                     )
                 args.append(opt_idx)
             elif not self.trainer.has_arg(
@@ -720,10 +726,10 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self.warning_cache.warn(
+                    self.warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5", DeprecationWarning
+                        " the old signature will be removed in v1.5",
                     )
                 step_kwargs['optimizer_idx'] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:

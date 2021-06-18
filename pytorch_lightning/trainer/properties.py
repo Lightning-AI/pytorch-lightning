@@ -29,13 +29,13 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
@@ -63,7 +63,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    evaluation_loop: EvaluationLoop
+    evaluation_loop: EvaluationDataLoaderLoop
     """
     Accelerator properties
     """
@@ -513,7 +513,7 @@ class TrainerProperties(ABC):
         return self.train_loop.min_steps
 
     @property
-    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop]]:
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
         if self.training:
             return self.train_loop
         elif self.sanity_checking or self.evaluating:

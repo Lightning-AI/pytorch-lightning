@@ -47,7 +47,7 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_init_start(trainer),
         call.on_init_end(trainer),
         call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'fit'),
+        call.setup(trainer, model, stage='fit'),
         call.on_configure_sharded_model(trainer, model),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),
@@ -96,7 +96,7 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_epoch_end(trainer, model),
         call.on_train_end(trainer, model),
         call.on_fit_end(trainer, model),
-        call.teardown(trainer, model, 'fit'),
+        call.teardown(trainer, model, stage='fit'),
     ]
 
 
@@ -119,7 +119,7 @@ def test_trainer_callback_hook_system_test(tmpdir):
         call.on_init_start(trainer),
         call.on_init_end(trainer),
         call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'test'),
+        call.setup(trainer, model, stage='test'),
         call.on_configure_sharded_model(trainer, model),
         call.on_test_start(trainer, model),
         call.on_epoch_start(trainer, model),
@@ -131,7 +131,7 @@ def test_trainer_callback_hook_system_test(tmpdir):
         call.on_test_epoch_end(trainer, model),
         call.on_epoch_end(trainer, model),
         call.on_test_end(trainer, model),
-        call.teardown(trainer, model, 'test'),
+        call.teardown(trainer, model, stage='test'),
     ]
 
 
@@ -154,7 +154,7 @@ def test_trainer_callback_hook_system_validate(tmpdir):
         call.on_init_start(trainer),
         call.on_init_end(trainer),
         call.on_before_accelerator_backend_setup(trainer, model),
-        call.setup(trainer, model, 'validate'),
+        call.setup(trainer, model, stage='validate'),
         call.on_configure_sharded_model(trainer, model),
         call.on_validation_start(trainer, model),
         call.on_epoch_start(trainer, model),
@@ -166,11 +166,8 @@ def test_trainer_callback_hook_system_validate(tmpdir):
         call.on_validation_epoch_end(trainer, model),
         call.on_epoch_end(trainer, model),
         call.on_validation_end(trainer, model),
-        call.teardown(trainer, model, 'validate'),
+        call.teardown(trainer, model, stage='validate'),
     ]
-
-
-# TODO: add callback tests for predict and tune
 
 
 def test_callbacks_configured_in_model(tmpdir):

@@ -8,9 +8,7 @@ lightning_logs/
 .vscode/
 
 # Test-tube
-test_tube_logs/
-test_tube_data/
-test_tube_exp/
+test_tube_*/
 
 # Documentations
 docs/source/api
