@@ -126,7 +126,7 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.on_batch_end()
 
         # figure out what to track for epoch end
-        self.track_epoch_end_reduce_metrics(self.epoch_output, batch_end_outputs)
+        self._track_epoch_end_reduce_metrics(self._epoch_output, batch_end_outputs)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
@@ -142,7 +142,7 @@ class TrainingEpochLoop(Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self.should_check_val_fx(self.iteration_count, self.is_last_batch)
+        should_check_val = self._should_check_val_fx(self.iteration_count, self._is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self.trainer._run_evaluation()
@@ -151,7 +151,7 @@ class TrainingEpochLoop(Loop):
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)
         # -----------------------------------------
-        self.save_loggers_on_train_batch_end()
+        self._save_loggers_on_train_batch_end()
 
         # update LR schedulers
         self.update_lr_schedulers('step')
@@ -160,7 +160,7 @@ class TrainingEpochLoop(Loop):
         self.total_batch_idx += 1
 
         # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
+        self._increment_accumulated_grad_global_step()
 
         if self.done:
             raise StopIteration
@@ -359,7 +359,7 @@ class TrainingEpochLoop(Loop):
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 
-    def increment_accumulated_grad_global_step(self) -> None:
+    def _increment_accumulated_grad_global_step(self) -> None:
         """increments global step"""
         num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
@@ -370,7 +370,7 @@ class TrainingEpochLoop(Loop):
                 self.total_batch_idx, self.trainer.global_step
             )
 
-    def should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
+    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """ Decide if we should run validation. """
         if not self.trainer.enable_validation:
             return False
@@ -395,7 +395,7 @@ class TrainingEpochLoop(Loop):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         return is_val_check_batch
 
-    def save_loggers_on_train_batch_end(self) -> None:
+    def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk"""
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
