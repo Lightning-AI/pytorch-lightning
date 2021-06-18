@@ -59,6 +59,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         """
         closure_loss = self.scaler.scale(closure_loss)
 
+        # hook
+        model.trainer.call_hook("on_before_backward", closure_loss)
+
         # call `on_before_backward` hook
         closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
 

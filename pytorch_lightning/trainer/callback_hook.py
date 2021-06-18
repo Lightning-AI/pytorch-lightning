@@ -317,7 +317,7 @@ class TrainerCallbackHookMixin(ABC):
 
     def on_before_backward(self, loss: torch.Tensor) -> None:
         """
-        Called before loss.backward().
+        Called before ``loss.backward()``.
         """
         for callback in self.callbacks:
             callback.on_before_backward(self, self.lightning_module, loss)

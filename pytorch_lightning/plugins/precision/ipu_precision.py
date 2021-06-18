@@ -40,6 +40,8 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         **kwargs: Any,
     ) -> Tensor:
         # IPU internally manages bwd step.
+        # hook
+        model.trainer.call_hook("on_before_backward", closure_loss)
         return closure_loss
 
     def clip_gradients(

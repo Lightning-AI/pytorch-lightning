@@ -300,9 +300,9 @@ class ModelHooks:
         Override on_before_backward with your own implementation if you need to.
 
         Args:
-            loss: Loss is already scaled by accumulated grads and possibly scaled by Mixed Precision.
+            loss: Loss divided by number of batches for gradient accumulation and possibly scaled by Mixed Precision.
 
-        Called to before backward step.
+        Called before ``loss.backward()``.
 
         Example::
 
