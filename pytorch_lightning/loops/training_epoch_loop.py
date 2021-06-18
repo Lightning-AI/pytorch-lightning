@@ -231,10 +231,10 @@ class TrainingEpochLoop(Loop):
             if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self._warning_cache.warn(
+                    self._warning_cache.deprecation(
                         "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
-                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                        " Support for the old signature will be removed in v1.5",
                     )
                     model_ref.on_train_epoch_end(processed_epoch_output)
                 else:

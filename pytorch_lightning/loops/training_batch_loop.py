@@ -650,10 +650,10 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self.warning_cache.warn(
+                    self.warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5", DeprecationWarning
+                        " the old signature will be removed in v1.5",
                     )
                 step_kwargs['optimizer_idx'] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
