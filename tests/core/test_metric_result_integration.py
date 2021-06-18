@@ -238,7 +238,13 @@ def test_result_collection_restoration(tmpdir):
             state_dict = result.state_dict()
             # check the sync fn was dropped
             assert 'fn' not in state_dict['items']['training_step.a']['meta']['_sync']
-            new_result.load_state_dict(state_dict, metrics={"metric": metric, "metric_b": metric_b, "metric_c": metric_c})
+            new_result.load_state_dict(
+                state_dict, metrics={
+                    "metric": metric,
+                    "metric_b": metric_b,
+                    "metric_c": metric_c
+                }
+            )
             # should match
             assert result_copy == new_result
             # the sync fn has been kept

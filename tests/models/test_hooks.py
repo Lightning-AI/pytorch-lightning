@@ -15,6 +15,7 @@ from functools import partial
 from inspect import getmembers, isfunction
 from unittest import mock
 from unittest.mock import ANY, PropertyMock
+
 import pytest
 import torch
 from torch.utils.data import DataLoader
