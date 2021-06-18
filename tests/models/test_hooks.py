@@ -334,6 +334,7 @@ class HookedModel(BoringModel):
     def _eval_batch(fn, trainer, model, batches, key):
         out = []
         for i in range(batches):
+            outputs = {key: ANY}
             out.extend([
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
@@ -343,15 +344,9 @@ class HookedModel(BoringModel):
                 dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name=f'{fn}_step', args=(ANY, i)),
-                dict(name=f'{fn}_step_end', args=({
-                    key: ANY
-                }, )),
-                dict(name=f'Callback.on_{fn}_batch_end', args=(trainer, model, {
-                    key: ANY
-                }, ANY, i, 0)),
-                dict(name=f'on_{fn}_batch_end', args=({
-                    key: ANY
-                }, ANY, i, 0)),
+                dict(name=f'{fn}_step_end', args=(outputs, )),
+                dict(name=f'Callback.on_{fn}_batch_end', args=(trainer, model, outputs, ANY, i, 0)),
+                dict(name=f'on_{fn}_batch_end', args=(outputs, ANY, i, 0)),
             ])
         return out
 
