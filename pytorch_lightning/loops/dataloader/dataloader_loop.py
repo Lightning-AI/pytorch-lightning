@@ -41,7 +41,7 @@ class DataLoaderLoop(Loop):
     @property
     def num_dataloaders(self) -> int:
         """Returns the number of dataloaders present"""
-        return len(self.dataloaders)
+        return len(self.dataloaders) if self.dataloaders is not None else 0
 
     @property
     def done(self) -> bool:
