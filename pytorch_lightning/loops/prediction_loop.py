@@ -131,7 +131,7 @@ class PredictionLoop(Loop):
             the dictionary containing all the keyboard arguments for the predict step
         """
         step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
-        if self.num_dataloaders:
+        if self.num_dataloaders > 1:
             step_kwargs['dataloader_idx'] = dataloader_idx
         return step_kwargs
 
