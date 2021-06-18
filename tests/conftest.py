@@ -93,7 +93,7 @@ def tmpdir_server(tmpdir):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def assert_cuda_memory_differential():
+def assert_cuda_memory_freed():
     memory_start = torch.cuda.memory_allocated()
     yield
     memory_end = torch.cuda.memory_allocated()
