@@ -277,6 +277,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
+        attribute_name: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -314,6 +315,8 @@ class LightningModule(
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
+            attribute_name: This would be the attribute name to find a given metric.
+                If None, this will be automatically inferred by Lightning.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -366,9 +369,7 @@ class LightningModule(
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
-        attribute_name = None
-
-        if isinstance(value, Metric):
+        if attribute_name is None and isinstance(value, Metric):
             # this is used to effiently find the attribute prefix path of metric objects
             # this will enable Lightning to re-attach metric reference when reloading states.
             if self._map_id_to_metrics_name is None:

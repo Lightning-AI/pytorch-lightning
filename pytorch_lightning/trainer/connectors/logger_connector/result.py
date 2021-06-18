@@ -242,12 +242,12 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
-    def __getstate__(self) -> dict:
+    def __getstate__(self, drop_value: bool = False) -> dict:
         with self.sync_context():
             d = deepcopy(super().__getstate__())
         # metric are being dropped, so they won't be serialized
         # this would prevent pickling error if their API change.
-        if not self.is_tensor:
+        if drop_value and self.is_tensor:
             del d["value"]
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
@@ -282,7 +282,7 @@ class ResultMetricCollection(dict):
     def __getstate__(self) -> dict:
 
         def getstate(item: ResultMetric) -> dict:
-            return item.__getstate__()
+            return item.__getstate__(drop_value=True)
 
         items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}

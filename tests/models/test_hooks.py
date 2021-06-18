@@ -15,7 +15,6 @@ from functools import partial
 from inspect import getmembers, isfunction
 from unittest import mock
 from unittest.mock import ANY, PropertyMock
-
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -712,7 +711,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
                 'state_dict': ANY,
-                'result_collections': ANY
+                'loops_state_dict': {
+                    "result_collections": ANY
+                }
             }, )
         ),
         dict(name='teardown', kwargs=dict(stage='fit')),
