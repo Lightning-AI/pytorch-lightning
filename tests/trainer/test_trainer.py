@@ -987,7 +987,8 @@ def test_gradient_clipping_by_value(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=999, amp_native=True)
+# @RunIf(min_gpus=999, amp_native=True)
+@RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
