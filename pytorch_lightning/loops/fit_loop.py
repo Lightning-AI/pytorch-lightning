@@ -14,10 +14,9 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 from deprecate import void
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
