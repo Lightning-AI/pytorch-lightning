@@ -18,7 +18,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.imports import _MATPLOTLIB_AVAILABLE
 from tests.helpers import BoringModel, plotting
 
 
@@ -129,7 +129,7 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+    not _MATPLOTLIB_AVAILABLE, reason="close figure test requires matplotlib to be installed."
 )
 @patch('pytorch_lightning.loggers.neptune.neptune')
 @pytest.mark.parametrize("step_idx", [10, None])

@@ -28,6 +28,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _MATPLOTLIB_AVAILABLE
+
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
@@ -48,8 +50,6 @@ else:
     comet_ml = None
     CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
     API = None
-
-_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
 
 if _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt

@@ -24,6 +24,7 @@ from torch import is_tensor
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities.imports import _MATPLOTLIB_AVAILABLE
 
 log = logging.getLogger(__name__)
 _NEPTUNE_AVAILABLE = _module_available("neptune")
@@ -34,8 +35,6 @@ if _NEPTUNE_AVAILABLE:
 else:
     # needed for test mocks, these tests shall be updated
     neptune, Experiment = None, None
-
-_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
 
 if _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt

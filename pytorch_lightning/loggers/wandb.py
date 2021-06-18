@@ -28,7 +28,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.imports import _compare_version, _MATPLOTLIB_AVAILABLE
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -42,8 +42,6 @@ try:
 except ImportError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
-
-_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
 
 if _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt

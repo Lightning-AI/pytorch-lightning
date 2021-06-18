@@ -18,8 +18,8 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
-from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _MATPLOTLIB_AVAILABLE
 from tests.helpers import BoringModel, plotting
 
 
@@ -226,7 +226,7 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+    not _MATPLOTLIB_AVAILABLE, reason="close figure test requires matplotlib to be installed."
 )
 @patch("pytorch_lightning.loggers.comet.CometExperiment")
 @patch('pytorch_lightning.loggers.comet.comet_ml')

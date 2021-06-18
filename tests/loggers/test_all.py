@@ -32,7 +32,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.imports import _MATPLOTLIB_AVAILABLE
 from tests.helpers import BoringModel, plotting
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
@@ -411,7 +411,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+    not _MATPLOTLIB_AVAILABLE, reason="close figure test requires matplotlib to be installed."
 )
 @pytest.mark.parametrize("close", [True, False])
 @pytest.mark.parametrize(

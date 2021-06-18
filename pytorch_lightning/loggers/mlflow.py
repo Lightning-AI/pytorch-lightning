@@ -26,6 +26,7 @@ from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.imports import _MATPLOTLIB_AVAILABLE
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -39,8 +40,6 @@ except ImportError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
-
-_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
 
 if _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt
