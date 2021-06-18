@@ -192,10 +192,8 @@ class EvaluationEpochLoop(Loop):
             batch_idx: The index of the current batch
             dataloader_idx: Index of the dataloader producing the current batch
         """
-        if self.trainer.testing:
-            self.trainer.call_hook("on_test_batch_end", output, batch, batch_idx, dataloader_idx)
-        else:
-            self.trainer.call_hook("on_validation_batch_end", output, batch, batch_idx, dataloader_idx)
+        hook_name = "on_test_batch_end" if self.trainer.testing else "on_validation_batch_end"
+        self.trainer.call_hook(hook_name, output, batch, batch_idx, dataloader_idx)
 
         self.trainer.logger_connector.on_batch_end()
 
