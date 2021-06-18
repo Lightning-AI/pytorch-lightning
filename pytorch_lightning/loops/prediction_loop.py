@@ -83,10 +83,10 @@ class PredictionLoop(Loop):
         """Returns the predictions and the corresponding batch indices"""
         return self.predictions, self.all_batch_indices
 
-
-# ------------------------------------------------------------------------------------------------------------
-# HELPER --- TO BE CLEANED UP
-# ------------------------------------------------------------------------------------------------------------
+    def teardown(self) -> None:
+        """Frees memory of collected predictions."""
+        self.predictions = []
+        self.all_batch_indices = []
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual predict step together with all the

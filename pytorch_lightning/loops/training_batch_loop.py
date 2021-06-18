@@ -91,8 +91,9 @@ class TrainingBatchLoop(Loop):
             return AttributeDict(signal=-1)
 
         super().run(batch, batch_idx, dataloader_idx)
-
-        return AttributeDict(signal=0, training_step_output=self.batch_outputs)
+        output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
+        self.batch_outputs = None  # free memory
+        return output
 
     def reset(self) -> None:
         """Resets the loop state"""
