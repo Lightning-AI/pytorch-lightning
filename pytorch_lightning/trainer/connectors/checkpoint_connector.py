@@ -434,7 +434,7 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def get_loops_state_dict(self) -> Dict[str, Dict[str, Any]]:
+    def get_loops_state_dict(self):
         return {"result_collections": self.get_result_collections_state_dict()}
 
     def get_result_collections_state_dict(self):

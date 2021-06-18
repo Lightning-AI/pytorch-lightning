@@ -614,6 +614,7 @@ class ResultCollection(dict):
 
     def __getstate__(self) -> dict:
         d = self.__dict__.copy()
+        d["fx_validator"] = None
         # can't deepcopy tensors with grad_fn
         minimize = d['_minimize']
         if minimize is not None:
@@ -649,6 +650,8 @@ class ResultCollection(dict):
 
         items = {k: setstate(k, v) for k, v in state['items'].items()}
         self.update(items)
+
+        self.fx_validator = FxValidator()
 
         device = map_location or self.device
         self.to(device)
