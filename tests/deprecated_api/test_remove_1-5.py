@@ -369,10 +369,8 @@ def test_v1_5_0_datamodule_setter():
     datamodule = BoringDataModule()
     with no_deprecated_call(match="The `LightningModule.datamodule`"):
         model.datamodule = datamodule
-    from pytorch_lightning.core.lightning import warning_cache
-    warning_cache.clear()
-    _ = model.datamodule
-    assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
+    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
+        _ = model.datamodule
 
 
 def test_v1_5_0_trainer_tbptt_steps(tmpdir):
