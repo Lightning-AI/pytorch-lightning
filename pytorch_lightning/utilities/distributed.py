@@ -15,6 +15,7 @@
 import logging
 import os
 from functools import wraps
+from platform import python_version
 from typing import Any, Optional, Union
 
 import torch
@@ -65,11 +66,15 @@ rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
 def _info(*args, stacklevel: int = 2, **kwargs):
-    log.info(*args, stacklevel=stacklevel, **kwargs)
+    if python_version() >= "3.8.0":
+        kwargs['stacklevel'] = stacklevel
+    log.info(*args, **kwargs)
 
 
 def _debug(*args, stacklevel: int = 2, **kwargs):
-    log.debug(*args, stacklevel=stacklevel, **kwargs)
+    if python_version() >= "3.8.0":
+        kwargs['stacklevel'] = stacklevel
+    log.debug(*args, **kwargs)
 
 
 @rank_zero_only
