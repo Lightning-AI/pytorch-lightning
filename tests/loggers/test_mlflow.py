@@ -261,16 +261,21 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
 @pytest.mark.skipif(
     not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
 )
-@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
-@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
 @pytest.mark.parametrize("step_idx", [10, None])
 @pytest.mark.parametrize("figure_format", ['.png', '.pdf'])
-def test_mlflow_log_figure(client, mlflow, step_idx, figure_format, tmpdir):
+def test_mlflow_log_figure(step_idx, figure_format, tmpdir):
 
     logger = MLFlowLogger('test', save_dir=tmpdir, figure_file_extension=figure_format)
-    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)
 
-    # test whether figure is closed etc.
+    if step_idx is not None:
+        fname_expct = f'figure_dummy_step_{step_idx}{figure_format}'
+    else:
+        fname_expct = f'figure_dummy{figure_format}'
+    path_expct = tmpdir / logger.experiment_id / logger.run_id / 'artifacts' / fname_expct
+    assert path_expct.check(file=True)
+
+    # tests arguments to log_artifact
     with mock.patch.object(logger.experiment, 'log_artifact') as mock_log:
         f = plotting.dummy_figure()
         logger.log_figure('dummy', f, step_idx, close=True)
