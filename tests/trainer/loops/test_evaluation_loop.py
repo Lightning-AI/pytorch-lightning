@@ -77,6 +77,8 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
 def test_memory_consumption_validation(tmpdir):
     """Test that the training batch is no longer in GPU memory when running validation"""
 
+    initial_memory = torch.cuda.memory_allocated(0)
+
     class BoringLargeBatchModel(BoringModel):
 
         @property
@@ -95,14 +97,14 @@ def test_memory_consumption_validation(tmpdir):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
-            assert lower < torch.cuda.memory_allocated(0) < upper
+            assert lower < torch.cuda.memory_allocated(0) - initial_memory < upper
             return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
-            assert lower < torch.cuda.memory_allocated(0) < upper
+            assert lower < torch.cuda.memory_allocated(0) - initial_memory < upper
             return super().validation_step(batch, batch_idx)
 
     torch.cuda.empty_cache()
