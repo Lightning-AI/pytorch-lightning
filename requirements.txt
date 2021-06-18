@@ -10,4 +10,3 @@ tensorboard>=2.2.0, !=2.5.0  # 2.5.0 GPU CI error: 'Couldn't build proto file in
 pyDeprecate==0.3.1
 packaging
 typing-extensions  # TypedDict support for python<3.8
-
