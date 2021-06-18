@@ -9,7 +9,7 @@ from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
 class EvaluationDataLoaderLoop(DataLoaderLoop):
