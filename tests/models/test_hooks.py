@@ -333,8 +333,8 @@ class HookedModel(BoringModel):
     @staticmethod
     def _eval_batch(fn, trainer, model, batches, key):
         out = []
+        outputs = {key: ANY}
         for i in range(batches):
-            outputs = {key: ANY}
             out.extend([
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
