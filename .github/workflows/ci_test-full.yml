@@ -122,6 +122,7 @@ jobs:
         pip --version
         # python -m pip install --upgrade --user pip
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        pip install git+https://github.com/PyTorchLightning/metrics.git@apply_sync_fn
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade $flag
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/extra.txt
