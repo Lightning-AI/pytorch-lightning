@@ -152,10 +152,8 @@ class EvaluationEpochLoop(Loop):
 
     def evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook"""
-        if self.trainer.testing:
-            output = self.trainer.call_hook("test_step_end", *args, **kwargs)
-        else:
-            output = self.trainer.call_hook("validation_step_end", *args, **kwargs)
+        hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
+        output = self.trainer.call_hook(hook_name, *args, **kwargs)
         return output
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
