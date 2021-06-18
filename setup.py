@@ -63,7 +63,7 @@ long_description = setup_tools._load_readme_description(
 )
 
 install_requirements = setup_tools._load_requirements(_PATH_ROOT) + \
-    ["torchmetrics @ git+https://github.com/PyTorchLightning/metrics.git@apply_sync_fn"]
+    ["metrics @ git+https://github.com/PyTorchLightning/metrics.git@apply_sync_fn"]
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
