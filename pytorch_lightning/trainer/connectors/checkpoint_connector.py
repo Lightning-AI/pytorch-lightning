@@ -46,7 +46,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
         self._loaded_checkpoint = dict()
-        self._persistent_metrics = False 
+        self._persistent_metrics = False
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
