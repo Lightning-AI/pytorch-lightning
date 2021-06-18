@@ -1,5 +1,6 @@
 import json
 import os
+from pytorch_lightning.accelerators import accelerator
 from typing import Any, Dict
 
 import pytest
@@ -674,10 +675,11 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
         max_epochs=5,
         plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
+        accelerator="ddp",
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
-        callbacks=[VerificationCallback()]
+        callbacks=[verification_callback]
     )
     trainer.fit(model, datamodule=dm)
     assert verification_callback.on_train_batch_start_called
