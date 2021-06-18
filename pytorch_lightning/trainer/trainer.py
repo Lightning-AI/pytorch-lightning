@@ -48,7 +48,6 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
@@ -66,7 +65,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -342,6 +340,9 @@ class Trainer(
         self.fit_loop.connect(self)
         self.evaluation_loop.connect(self)
         self.predict_loop.connect(self)
+
+        self.fit_loop.connect(self)
+        self.evaluation_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -985,45 +986,14 @@ class Trainer(
             )
             self.validating = True
 
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+        self.evaluation_loop.reload_evaluation_dataloaders()
 
-        # TODO: move this check inside new loop
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(max_batches):
-            return [], []
+        with torch.no_grad():
+            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
+            eval_loop_results = self.evaluation_loop.run()
 
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        # ref model
-        model = self.lightning_module
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
-        eval_loop_results = self.evaluation_loop.run()
-
-        # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
-
-        # enable train mode again
-        self.evaluation_loop.on_evaluation_model_train()
-
-        torch.set_grad_enabled(True)
-
+        eval_loop_results = eval_loop_results or []
         return eval_loop_results
-
-    # TODO: move inside evaluation loop
-    def _track_output_for_epoch_end(self, outputs, output):
-        if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
-            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -1146,10 +1116,10 @@ class Trainer(
         model._current_dataloader_idx = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
+        # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
-        # TrainLoop._on_train_epoch_end_hook
+        # TrainingEpochLoop._on_train_epoch_end_hook
         if self.lightning_module:
             prev_fx_name = self.lightning_module._current_fx_name
             self.lightning_module._current_fx_name = hook_name

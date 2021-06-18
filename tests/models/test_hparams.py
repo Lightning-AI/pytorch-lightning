@@ -15,6 +15,7 @@ import functools
 import os
 import pickle
 from argparse import Namespace
+from dataclasses import dataclass
 
 import cloudpickle
 import pytest
@@ -719,3 +720,21 @@ def test_empty_hparams_container(tmpdir):
     assert not model.hparams
     model = HparamsNamespaceContainerModel(Namespace())
     assert not model.hparams
+
+
+@dataclass
+class DataClassModel(BoringModel):
+
+    mandatory: int
+    optional: str = "optional"
+    ignore_me: bool = False
+
+    def __post_init__(self):
+        super().__init__()
+        self.save_hyperparameters(ignore=("ignore_me", ))
+
+
+def test_dataclass_lightning_module(tmpdir):
+    """ Test that save_hyperparameters() works with a LightningModule as a dataclass. """
+    model = DataClassModel(33, optional="cocofruit")
+    assert model.hparams == dict(mandatory=33, optional="cocofruit")

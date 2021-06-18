@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import abstractmethod
 from typing import Sequence
 
@@ -6,14 +20,13 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.loops.base import Loop
 
 
-# TODO: Handle max_batches also in base class here
 class DataLoaderLoop(Loop):
     """Base class to loop over all dataloaders"""
 
     @property
     @abstractmethod
     def dataloaders(self) -> Sequence[DataLoader]:
-        """returns the dataloaders tomloop over"""
+        """Returns the dataloaders to loop over"""
 
     @property
     def current_dataloader_idx(self) -> int:
@@ -22,7 +35,7 @@ class DataLoaderLoop(Loop):
 
     @property
     def current_dataloader(self) -> DataLoader:
-        """Returns the current datalaoder"""
+        """Returns the current dataloader"""
         return self.dataloaders[self.current_dataloader_idx]
 
     @property
@@ -36,5 +49,5 @@ class DataLoaderLoop(Loop):
         return self.current_dataloader_idx >= self.num_dataloaders
 
     def reset(self) -> None:
-        """resets the internal state"""
+        """Resets the internal state"""
         self.iteration_count = 0
