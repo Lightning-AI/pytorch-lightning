@@ -315,15 +315,14 @@ class HookedModel(BoringModel):
 
     @staticmethod
     def _eval_epoch(fn, trainer, model, batches, key):
+        key_any = {key: ANY}
         return [
             dict(name='Callback.on_epoch_start', args=(trainer, model)),
             dict(name='on_epoch_start'),
             dict(name=f'Callback.on_{fn}_epoch_start', args=(trainer, model)),
             dict(name=f'on_{fn}_epoch_start'),
             *HookedModel._eval_batch(fn, trainer, model, batches, key),
-            dict(name=f'{fn}_epoch_end', args=([{
-                key: ANY
-            }] * batches, )),
+            dict(name=f'{fn}_epoch_end', args=([key_any] * batches, )),
             dict(name=f'Callback.on_{fn}_epoch_end', args=(trainer, model)),
             dict(name=f'on_{fn}_epoch_end'),
             dict(name='Callback.on_epoch_end', args=(trainer, model)),
