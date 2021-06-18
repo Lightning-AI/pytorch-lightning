@@ -536,7 +536,7 @@ class TrainingBatchLoop(Loop):
                 # backward pass
                 if result is not None:
                     with self.trainer.profiler.profile("backward"):
-                        self._backward(result, optimizer, opt_idx)
+                        self.backward(result, optimizer, opt_idx)
 
                     # hook - call this hook only
                     # when gradients have finished to accumulate
@@ -565,7 +565,7 @@ class TrainingBatchLoop(Loop):
         model = self.trainer.lightning_module
         detect_nan_parameters(model)
 
-    def _backward(
+    def backward(
         self, result: STEP_OUTPUT, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
     ) -> None:
         """Performs the backward step.
