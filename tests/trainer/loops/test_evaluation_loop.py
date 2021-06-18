@@ -77,7 +77,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
 def test_memory_consumption_validation(tmpdir):
     """Test that the training batch is no longer in GPU memory when running validation"""
 
-    initial_memory = torch.cuda.memory_allocated(0)
+    initial_memory = 0  # torch.cuda.memory_allocated(0)
 
     class BoringLargeBatchModel(BoringModel):
 
