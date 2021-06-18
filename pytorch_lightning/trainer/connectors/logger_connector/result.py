@@ -344,8 +344,10 @@ class ResultCollection(dict):
             if isinstance(v, ResultMetric):
                 o.append(v)
             elif isinstance(v, ResultCollection):
+
                 def append_fn(v: ResultMetric) -> None:
                     o.append(v)
+
                 apply_to_collection(v, ResultMetric, append_fn)
         return o
 
