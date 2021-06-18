@@ -113,20 +113,21 @@ class BaseProfiler(AbstractProfiler):
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
-    def _add_suffix(self, filename: str, suffix: Optional[str], token: str = '-') -> str:
-        if suffix is None:
-            return filename
-
-        if len(filename) >= 1 and filename[-1] != token:
-            filename += token
-        return filename + suffix
-
-    def _prepare_filename(self, extension: str = ".txt") -> str:
+    def _prepare_filename(self, action_name: Optional[str] = None, extension: str = ".txt", separation_token: str = "-") -> str:
         filename = ""
-        filename = self._add_suffix(filename, self._stage.value if self._stage else None)
-        filename = self._add_suffix(filename, self.filename if self.filename else None)
-        filename = self._add_suffix(filename, str(self._local_rank) if self._local_rank is not None else None)
-        filename += extension if extension else ''
+        token = ""
+        if self._stage:
+            filename += f'{token}{self._stage.value}'
+            token = separation_token
+        if self.filename:
+            filename += f'{token}{self.filename}'
+            token = separation_token
+        if self._local_rank is not None:
+            filename += f'{token}{self._local_rank}'
+            token = separation_token
+        if action_name:
+            filename += f'{token}{action_name}'
+        filename += extension
         return filename
 
     def _prepare_streams(self) -> None:
