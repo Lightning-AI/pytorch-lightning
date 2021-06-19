@@ -25,7 +25,8 @@ class Tracker:
         started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
         processed: Intended to be incremented after the event is processed.
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
-            Attributes set to ``None`` are treated as unused and are restricted.
+
+    Attributes set to ``None`` are treated as unused and are restricted.
     """
     ready: Optional[int] = 0
     started: Optional[int] = 0
@@ -137,6 +138,11 @@ class OptimizationProgress:
     def scheduler_steps(self) -> int:
         return self.scheduler.total.completed
 
+    def reset_on_epoch(self) -> None:
+        self.optimizer.current.reset()
+        self.scheduler.current.reset()
+        self.zero_grad.current.reset()
+
 
 @dataclass
 class TrainingProgress(Progress):
@@ -169,9 +175,7 @@ class TrainingLoopProgress(LoopProgress):
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
         self.batch.current.reset()
-        self.epoch.optimization.optimizer.current.reset()
-        self.epoch.optimization.scheduler.current.reset()
-        self.epoch.optimization.zero_grad.current.reset()
+        self.epoch.optimization.reset_on_epoch()
 
 
 @dataclass
