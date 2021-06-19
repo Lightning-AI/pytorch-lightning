@@ -19,7 +19,9 @@ local pl_tpu_tests = common.PyTorchTest {
 
   command: utils.scriptCommand(
     |||
+      git clone https://github.com/PyTorchLightning/pytorch-lightning.git
       cd pytorch-lightning
+      pip install -e ".[test]"
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           pytorch_lightning/utilities/xla_device.py \
           tests/accelerators/test_tpu_backend.py \

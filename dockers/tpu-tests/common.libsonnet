@@ -1,5 +1,6 @@
 local base = import 'templates/base.libsonnet';
 local metrics = import 'templates/metrics.libsonnet';
+local volumes = import 'templates/volumes.libsonnet';
 
 {
   local CloudAcceleratorTest = base.BaseTest {
