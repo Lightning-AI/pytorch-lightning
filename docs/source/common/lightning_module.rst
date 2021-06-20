@@ -1163,6 +1163,7 @@ for more information.
             backward()
             on_after_backward()
 
+            on_before_optimizer_step()
             optimizer_step()
 
             on_train_batch_end()
@@ -1411,6 +1412,12 @@ on_test_model_train
 ~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
+    :noindex:
+
+on_before_optimizer_step
+~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
     :noindex:
 
 optimizer_step

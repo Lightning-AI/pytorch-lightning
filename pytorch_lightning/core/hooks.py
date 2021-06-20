@@ -297,8 +297,13 @@ class ModelHooks:
 
     def on_after_backward(self) -> None:
         """
-        Called in the training loop after loss.backward() and before optimizers do anything.
+        Called in the training loop after ``loss.backward()`` and before optimizers do anything.
         This is the ideal place to inspect or log gradient information.
+
+        Note:
+            If :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches` is greater than one, this hook
+            is called after each of the backward passes during gradient accumulation. This is in contrast to
+            `on_before_optimizer_step()` which is always called only once before the optimizer step.
 
         Example::
 
@@ -310,6 +315,14 @@ class ModelHooks:
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
 
+        """
+
+    def on_before_optimizer_step(self, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
+        """
+        Called after ``on_after_backward()`` once the gradient is accumulated and before ``optimizer.step()``.
+
+        Called only once, in contrast to ``on_after_backward()`` which might be called multiple times corresponding
+        to the value of :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
         """
 
     def on_post_move_to_device(self) -> None:

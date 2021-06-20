@@ -300,6 +300,12 @@ class Callback(abc.ABC):
         """Called after ``loss.backward()`` and before optimizers do anything."""
         pass
 
+    def on_before_optimizer_step(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', batch_idx: int, optimizer: Optimizer, opt_idx: int
+    ) -> None:
+        """Called after ``on_after_backward()`` once the gradient is accumulated and before ``optimizer.step()``."""
+        pass
+
     def on_before_zero_grad(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', optimizer: Optimizer) -> None:
         """Called after ``optimizer.step()`` and before ``optimizer.zero_grad()``."""
         pass
