@@ -81,7 +81,9 @@ def test_gcs_logging(tmpdir):
 
     assert logger.version == expected_version
 
-    gcs_paths = [os.path.basename(path) for path in gcs_fs.listdir(log_dir, detail=False) if len(path) > 0]
+    gcs_paths = [os.path.basename(path) for path in gcs_fs.listdir(log_dir, detail=False)]
+    gcs_paths = list(filter(lambda x: len(x) > 0, gcs_paths))
+
     assert gcs_paths == [expected_version]
     assert gcs_fs.listdir(os.path.join(log_dir, expected_version), detail=False)
 
