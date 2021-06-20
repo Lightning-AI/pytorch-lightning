@@ -38,6 +38,7 @@ if _OMEGACONF_AVAILABLE:
 
 log: logging.Logger = logging.getLogger(__name__)
 
+
 class CheckpointConnector:
 
     def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
@@ -170,7 +171,6 @@ class CheckpointConnector:
                 self.trainer.training_type_plugin.barrier()
         else:
             checkpoint = self.restore_model_state(checkpoint_path)
-
 
     def restore_model_state(self, checkpoint_path: Optional[Union[str, Path]]) -> dict:
         if checkpoint_path is not None:
