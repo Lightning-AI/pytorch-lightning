@@ -160,7 +160,6 @@ class CheckpointConnector:
         checkpoint = self._loaded_checkpoint
         if hasattr(self.trainer.training_type_plugin, "num_processes"):
             num_processes = self.trainer.training_type_plugin.num_processes
-            log.info(f"Training type plugin specifies {num_processes} processes; parallelizing")
             for current_worker in range(num_processes):
                 if self.trainer.local_rank == current_worker:
                     checkpoint = self.restore_model_state(checkpoint_path)
