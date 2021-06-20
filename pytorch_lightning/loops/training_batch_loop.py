@@ -569,11 +569,12 @@ class TrainingBatchLoop(Loop):
                 if result is not None:
                     with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
+                    self.on_after_backward(batch_idx, result.loss)
 
                     # hook - call this hook only
                     # when gradients have finished to accumulate
                     if not self.should_accumulate():
-                        self.on_after_backward(batch_idx, result.loss)
+                        self.trainer.call_hook('on_before_optimizer_step', batch_idx, optimizer, opt_idx)
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
