@@ -18,8 +18,8 @@ LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.6
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
-ARG PYTHON_VERSION=3.8
-ARG XLA_VERSION=1.8
+ARG PYTHON_VERSION=3.7
+ARG XLA_VERSION=1.6
 
 SHELL ["/bin/bash", "-c"]
 
