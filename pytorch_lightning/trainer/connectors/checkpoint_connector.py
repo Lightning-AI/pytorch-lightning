@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -35,7 +36,6 @@ from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRE
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
 
-import logging
 log: logging.Logger = logging.getLogger(__name__)
 
 class CheckpointConnector:
@@ -154,9 +154,9 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
-        def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
+    def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
-        log.info("Restoring model weights")
+        log.info("Restoring model weights from checkpoint")
         checkpoint = self._loaded_checkpoint
         if hasattr(self.trainer.training_type_plugin, "num_processes"):
             num_processes = self.trainer.training_type_plugin.num_processes
