@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRE
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
 
+import logging
+log: logging.Logger = logging.getLogger(__name__)
 
 class CheckpointConnector:
 
@@ -152,14 +154,35 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
-    def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
+        def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
+        log.info("Restoring model weights")
         checkpoint = self._loaded_checkpoint
+        if hasattr(self.trainer.training_type_plugin, "num_processes"):
+            num_processes = self.trainer.training_type_plugin.num_processes
+            log.info(f"Training type plugin specifies {num_processes} processes; parallelizing")
+            for current_worker in range(num_processes):
+                if self.trainer.local_rank == current_worker:
+                    checkpoint = self.restore_model_state(checkpoint_path)
+                    log.info(
+                        f"Rank {self.trainer.training_type_plugin.global_rank}: done loading model states from {checkpoint_path}."
+                    )
+                    del checkpoint["state_dict"]
+                self.trainer.training_type_plugin.barrier()
+        else:
+            checkpoint = self.restore_model_state(checkpoint_path)
+
+
+    def restore_model_state(self, checkpoint_path: Optional[Union[str, Path]]) -> dict:
         if checkpoint_path is not None:
             checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
 
+        if self.trainer.datamodule is not None:
+            self.trainer.datamodule.on_load_checkpoint(checkpoint)
+
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
+        return checkpoint
 
     def restore_training_state(self) -> None:
         """
