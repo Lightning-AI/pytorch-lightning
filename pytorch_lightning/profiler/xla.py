@@ -70,6 +70,10 @@ class XLAProfiler(BaseProfiler):
     }
 
     def __init__(self, port: int = 9012) -> None:
+        """
+        This Profiler will help you debug and optimize training workload performance
+        for your models using Cloud TPU performance tools.
+        """
         super().__init__(dirpath=None, filename=None, output_filename=None)
         self.port = port
         self._recording_map: Dict = {}
