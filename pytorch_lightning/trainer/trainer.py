@@ -27,6 +27,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -46,14 +47,12 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -66,7 +65,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -337,9 +335,11 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.fit_loop.connect(self)
-        self.evaluation_loop = EvaluationLoop(self)
+        self.evaluation_loop = EvaluationDataLoaderLoop()
         self.predict_loop = PredictLoop(self)
+
+        self.fit_loop.connect(self)
+        self.evaluation_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -383,7 +383,6 @@ class Trainer(
             terminate_on_nan,
         )
 
-        self.evaluation_loop.on_trainer_init()
         self.predict_loop.on_trainer_init()
         self._setup_on_init(num_sanity_val_steps)
 
@@ -429,7 +428,20 @@ class Trainer(
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None) -> None:
+        self.num_sanity_val_batches = []
+        self.num_test_batches = []
+        self.num_val_batches = []
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path = None
+        self.tested_ckpt_path = None
+
+        # when true, print evaluation results in .validate() and .test()
+        self.verbose_evaluate = True
+
+    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -491,6 +503,8 @@ class Trainer(
         self.data_connector.attach_data(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
+
+        self.checkpoint_connector.resume_start()
 
         self._run(model)
 
@@ -801,6 +815,13 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+
+        # restore modules after setup
+        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
+
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
@@ -841,6 +862,9 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
+
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
@@ -904,6 +928,8 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
 
+        self.checkpoint_connector.resume_end()
+
         # --------------------------
         # Pre-train
         # --------------------------
@@ -916,9 +942,6 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
-
-        # restore training and model before hpc is called
-        self.checkpoint_connector.restore()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -970,108 +993,14 @@ class Trainer(
             )
             self.validating = True
 
-        # prepare dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+        self.evaluation_loop.reload_evaluation_dataloaders()
 
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(max_batches):
-            return [], []
+        with torch.no_grad():
+            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
+            eval_loop_results = self.evaluation_loop.run()
 
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        # ref model
-        model = self.lightning_module
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
-        # set up the eval loop
-        self.evaluation_loop.setup(max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
-                    output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook + store predictions
-                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-                # log batch metrics
-                self.logger_connector.update_eval_step_metrics()
-
-                # track epoch level outputs
-                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
-
-            # store batch level output per dataloader
-            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
-                self.evaluation_loop.outputs.append(dl_outputs)
-
-        outputs = self.evaluation_loop.outputs
-
-        # reset outputs
-        self.evaluation_loop.outputs = []
-
-        # with a single dataloader don't pass a 2D list
-        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
-            outputs = outputs[0]
-
-        # lightning module method
-        self.evaluation_loop.evaluation_epoch_end(outputs)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        # log epoch metrics
-        eval_loop_results = self.logger_connector.update_eval_epoch_metrics()
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
-        # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
-
-        # enable train mode again
-        self.evaluation_loop.on_evaluation_model_train()
-
-        torch.set_grad_enabled(True)
-
+        eval_loop_results = eval_loop_results or []
         return eval_loop_results
-
-    def _track_output_for_epoch_end(self, outputs, output):
-        if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
-            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
