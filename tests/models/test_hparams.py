@@ -30,7 +30,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
-from pytorch_lightning.utilities import AttributeDict, _HYDRA_EXPERIMENTAL_AVAILABLE, is_picklable
+from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
 from tests.helpers import BoringModel, RandomDataset
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
@@ -749,6 +749,7 @@ def test_dataclass_lightning_module(tmpdir):
 
 
 class DataModuleWithHparams(LightningDataModule):
+
     def __init__(self, hparams):
         super().__init__()
 
@@ -766,6 +767,7 @@ class DataModuleWithHparams(LightningDataModule):
 
 
 class DataModuleWithoutHparams(LightningDataModule):
+
     def __init__(self):
         super().__init__()
         self._data = None
@@ -844,6 +846,7 @@ def test_extend_with_collision(tmp_path):
 
 
 class BoringDataModule(LightningDataModule):
+
     def __init__(self, hparams):
         super().__init__()
         self.data = None

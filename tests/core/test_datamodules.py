@@ -15,7 +15,7 @@ import pickle
 from argparse import ArgumentParser
 from typing import Any, Dict, Optional
 from unittest import mock
-from unittest.mock import PropertyMock, call
+from unittest.mock import call, PropertyMock
 
 import pytest
 import torch
@@ -553,6 +553,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
 
 
 class DataModuleWithHparams(LightningDataModule):
+
     def __init__(self, arg0, arg1, kwarg0=None):
         super().__init__()
 

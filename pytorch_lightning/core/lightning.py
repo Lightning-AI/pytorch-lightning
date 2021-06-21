@@ -32,12 +32,12 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -1737,10 +1737,10 @@ class LightningModule(
 
     @torch.no_grad()
     def to_onnx(
-            self,
-            file_path: Union[str, Path],
-            input_sample: Optional[Any] = None,
-            **kwargs,
+        self,
+        file_path: Union[str, Path],
+        input_sample: Optional[Any] = None,
+        **kwargs,
     ):
         """Saves the model in ONNX format
 
@@ -1880,7 +1880,7 @@ class LightningModule(
             colliding_keys = set(colliding_keys)
             if colliding_keys:
                 raise ValueError(
-                        f'Error while adding datamodule hparams: the keys {colliding_keys} are already present in the model hparams.'
+                    f'Error while adding datamodule hparams: the keys {colliding_keys} are already present in the model hparams.'
                 )
             self.hparams.update(hparams)
             self._hparams_initial.update(hparams)
