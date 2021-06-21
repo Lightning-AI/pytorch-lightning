@@ -94,6 +94,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
+    def on_skip(self):
+        return []
+
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         assert self.trainer.evaluating or self.trainer.sanity_checking
 
