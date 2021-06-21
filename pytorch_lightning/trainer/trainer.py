@@ -1020,7 +1020,8 @@ class Trainer(
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         self.reset_predict_dataloader(self.lightning_module)
-        return self.predict_loop.run()
+        with torch.no_grad():
+            return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)

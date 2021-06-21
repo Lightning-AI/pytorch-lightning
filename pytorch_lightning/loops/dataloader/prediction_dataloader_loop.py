@@ -116,8 +116,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         # enable eval mode + no grads
         self.on_predict_model_eval()
         self.trainer.lightning_module.zero_grad()
-        self._previous_grad_status = torch.is_grad_enabled()
-        torch.set_grad_enabled(False)
 
         # hook
         self.trainer.call_hook("on_predict_start")
@@ -128,7 +126,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
 
         Returns:
             the results for all dataloaders
-
         """
         self.trainer.profiler.describe()
 
@@ -144,9 +141,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         # clear memory. the predictions are extracted in `on_predict_epoch_end`.
         self.predictions = []
         self.epoch_batch_indices = []
-
-        # reset grad to its previous status.
-        torch.set_grad_enabled(self._previous_grad_status)
 
         # hook
         self.trainer.call_hook("on_predict_end")
