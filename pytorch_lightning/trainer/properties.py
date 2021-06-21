@@ -45,7 +45,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
@@ -498,7 +497,7 @@ class TrainerProperties(ABC):
             return self.validation_loop
         elif self.testing:
             return self.test_loop
-        raise MisconfigurationException("The ``evaluation_loop`` property isn't defined.")
+        raise RuntimeError("The Trainer ``evaluation_loop`` property isn't defined and shouldn't be accessed.")
 
     @property
     def global_step(self) -> int:
