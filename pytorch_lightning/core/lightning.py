@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT, _METRIC_COLLECTION
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -1879,7 +1879,7 @@ class LightningModule(
             if colliding_keys:
                 raise ValueError(
                     f'Error while adding datamodule hparams: the keys {colliding_keys} '
-                        f'are already present in the model hparams.'
+                    f'are already present in the model hparams.'
                 )
             self.hparams.update(hparams)
             self._hparams_initial.update(hparams)
