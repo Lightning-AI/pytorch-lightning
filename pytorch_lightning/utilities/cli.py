@@ -89,20 +89,24 @@ class SaveConfigCallback(Callback):
         parser: LightningArgumentParser,
         config: Union[Namespace, Dict[str, Any]],
         config_filename: str,
+        exist_ok: bool = False,
     ) -> None:
         self.parser = parser
         self.config = config
         self.config_filename = config_filename
+        self.exist_ok = exist_ok
 
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
-        if os.path.isfile(config_path):
+        if not self.exist_ok and os.path.isfile(config_path):
             raise RuntimeError(
-                f'{self.__class__.__name__} expected {config_path} to not exist. '
-                'Aborting to avoid overwriting results of a previous run.'
+                f'{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting'
+                ' results of a previous run. You can delete the previous config file,'
+                ' set `LightningCLI(save_config_callback=None)` to disable config saving,'
+                ' or set `LightningCLI(save_config_exist_ok=True)` to overwrite the config file.'
             )
-        self.parser.save(self.config, config_path, skip_none=False)
+        self.parser.save(self.config, config_path, skip_none=False, overwrite=self.exist_ok)
 
 
 class LightningCLI:
@@ -112,8 +116,9 @@ class LightningCLI:
         self,
         model_class: Type[LightningModule],
         datamodule_class: Type[LightningDataModule] = None,
-        save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
+        save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = 'config.yaml',
+        save_config_exist_ok: bool = False,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
@@ -173,6 +178,7 @@ class LightningCLI:
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
         self.save_config_filename = save_config_filename
+        self.save_config_exist_ok = save_config_exist_ok
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
         self.seed_everything_default = seed_everything_default
@@ -246,7 +252,9 @@ class LightningCLI:
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
         if self.save_config_callback and not self.config_init['trainer']['fast_dev_run']:
-            config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
+            config_callback = self.save_config_callback(
+                self.parser, self.config, self.save_config_filename, exist_ok=self.save_config_exist_ok
+            )
             self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
