@@ -120,14 +120,22 @@ class DeepNestedModel(LightningModule):
     def __init__(self):
         super().__init__()
         self.branch1 = nn.Sequential(
-            nn.Linear(5, 5),
-            nn.Sequential(
                 nn.Linear(5, 5),
                 nn.Sequential(
-                    nn.Linear(5, 5),
-                    nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 3))))
+                        nn.Linear(5, 5),
+                        nn.Sequential(
+                                nn.Linear(5, 5),
+                                nn.Sequential(
+                                        nn.Linear(5, 5),
+                                        nn.Sequential(
+                                                nn.Linear(5, 5),
+                                                nn.Sequential(
+                                                        nn.Linear(5, 3)
+                                                )
+                                        )
+                                )
+                        )
                 )
-            )
         )
         self.branch2 = nn.Linear(5, 10)
         self.head = UnorderedModel()
@@ -362,14 +370,12 @@ def test_lazy_model_summary():
 
 
 def test_max_depth_0_equals_mode_top():
-    summary_top = DeepNestedModel().summarize(mode="top")
-    summary_full_0 = DeepNestedModel().summarize(mode="full", max_depth=0)
-    assert str(summary_top) == str(summary_full_0)
+    assert str(DeepNestedModel().summarize(mode="top")) \
+           == str(DeepNestedModel().summarize(mode="full", max_depth=0))
 
 
 @pytest.mark.parametrize('max_depth', [None, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
-    assert not any([
-        l.count(".") > max_depth
-        for l in DeepNestedModel().summarize(mode="full", max_depth=max_depth).layer_names if max_depth is not None
-    ])
+    assert not any([l.count(".") > max_depth for l in
+                    DeepNestedModel().summarize(mode="full", max_depth=max_depth).layer_names
+                    if max_depth is not None])

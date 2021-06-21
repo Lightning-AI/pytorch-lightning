@@ -132,12 +132,7 @@ class ModelSummary(object):
 
     Args:
         model: The model to summarize (also referred to as the root module)
-        mode: Can be one of
-
-             - `top` (default): only the top-level modules will be recorded (the children of the root module)
-             - `full`: summarizes all layers and their submodules in the root module
-
-        max_depth: Maximum depth of modules to show when mode="full"
+        max_depth: Maximum depth of modules to show, or -1 to show all modules.
 
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
@@ -162,7 +157,7 @@ class ModelSummary(object):
         ...         return self.net(x)
         ...
         >>> model = LitModel()
-        >>> ModelSummary(model, mode='top')  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=0)  # doctest: +NORMALIZE_WHITESPACE
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
@@ -171,7 +166,7 @@ class ModelSummary(object):
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
-        >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
         0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
@@ -184,14 +179,10 @@ class ModelSummary(object):
         0.530     Total estimated model params size (MB)
     """
 
-    MODE_TOP = "top"
-    MODE_FULL = "full"
-    MODE_DEFAULT = MODE_TOP
-    MODES = [MODE_FULL, MODE_TOP]
+    MODES = dict(top=0, full=-1)
 
-    def __init__(self, model, mode: str = MODE_DEFAULT, max_depth: Optional[int] = None):
+    def __init__(self, model, max_depth: int = -1):
         self._model = model
-        self._mode = mode
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
@@ -201,12 +192,12 @@ class ModelSummary(object):
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
-        if self._mode == ModelSummary.MODE_FULL:
-            mods = self._model.named_modules()
-            mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self._mode == ModelSummary.MODE_TOP:
+        if self._max_depth == 0:
             # the children are the top-level modules
             mods = self._model.named_children()
+        elif self._max_depth ==-1 or self._max_depth > 0:
+            mods = self._model.named_modules()
+            mods = list(mods)[1:]  # do not include root module (LightningModule)
         else:
             mods = []
         return list(mods)
@@ -253,13 +244,10 @@ class ModelSummary(object):
         for layer in summary.values():
             layer.detach_hook()
 
-        if self._max_depth is not None:
-            if self._mode == "top":
-                warning_cache.warn("ModelSummary's max_depth parameter only works when mode='full'.")
-            else:
-                # remove summary entries with depth > max_depth
-                for k in [k for k in summary.keys() if k.count(".") > self._max_depth]:
-                    del summary[k]
+        if self._max_depth >= 0:
+            # remove summary entries with depth > max_depth
+            for k in [k for k in summary.keys() if k.count(".") > self._max_depth]:
+                del summary[k]
 
         return summary
 
