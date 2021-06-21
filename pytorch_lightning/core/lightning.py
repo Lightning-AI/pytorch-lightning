@@ -1610,7 +1610,7 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: str = "top") -> Optional[ModelSummary]:
+    def summarize(self, mode: Optional[str] = "top") -> Optional[ModelSummary]:
         model_summary = None
 
         if mode in ModelSummary.MODES:

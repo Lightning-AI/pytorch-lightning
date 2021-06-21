@@ -154,8 +154,8 @@ def test_invalid_weights_summmary():
         Trainer(weights_summary='temp')
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
-def test_empty_model_summary_shapes(mode: ModelSummary):
+@pytest.mark.parametrize('mode', ["full", "top"])
+def test_empty_model_summary_shapes(mode: str):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
@@ -165,7 +165,7 @@ def test_empty_model_summary_shapes(mode: ModelSummary):
 
 
 @RunIf(min_gpus=1)
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 @pytest.mark.parametrize(['device'], [
     pytest.param(torch.device('cpu')),
     pytest.param(torch.device('cuda', 0)),
@@ -208,18 +208,18 @@ def test_mixed_dtype_model_summary():
     ]
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
-def test_hooks_removed_after_summarize(mode):
+@pytest.mark.parametrize('max_depth', [-1, 0])
+def test_hooks_removed_after_summarize(max_depth):
     """ Test that all hooks were properly removed after summary, even ones that were not run. """
     model = UnorderedModel()
-    summary = ModelSummary(model, mode=mode)
+    summary = ModelSummary(model, max_depth=max_depth)
     # hooks should be removed
     for _, layer in summary.summarize().items():
         handle = layer._hook_handle
         assert handle.id not in handle.hooks_dict_ref()
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()
@@ -243,7 +243,7 @@ def test_rnn_summary_shapes(mode):
     ]
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
@@ -257,7 +257,7 @@ def test_summary_parameter_count(mode):
     ]
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
@@ -271,7 +271,7 @@ def test_summary_layer_types(mode):
     ]
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_summary_with_scripted_modules(mode):
     model = PartialScriptModel()
     summary = model.summarize(mode=mode)
@@ -280,7 +280,7 @@ def test_summary_with_scripted_modules(mode):
     assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 @pytest.mark.parametrize(['example_input', 'expected_size'], [
     pytest.param([], UNKNOWN_SIZE),
     pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
@@ -314,7 +314,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     assert summary.in_sizes == [expected_size]
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_model_size(mode):
     """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
@@ -322,7 +322,7 @@ def test_model_size(mode):
     assert model.pre_calculated_model_size == summary.model_size
 
 
-@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_empty_model_size(mode):
     """ Test empty model size is zero. """
     model = EmptyModule()
@@ -369,13 +369,24 @@ def test_lazy_model_summary():
             assert summary.trainable_parameters == 7
 
 
-def test_max_depth_0_equals_mode_top():
-    assert str(DeepNestedModel().summarize(mode="top")) \
-           == str(DeepNestedModel().summarize(mode="full", max_depth=0))
+def test_max_depth_equals_mode_interface():
+    """Test model.summarize(full/top) interface matches ModelSummary mapping"""
+    model = DeepNestedModel()
+
+    summary_top = model.summarize(mode="top")
+    summary_0 = ModelSummary(model, max_depth=0)
+    assert str(summary_top) == str(summary_0)
+
+    summary_full = model.summarize(mode="full")
+    summary_minus1 = ModelSummary(model, max_depth=-1)
+    assert str(summary_full) == str(summary_minus1)
 
 
-@pytest.mark.parametrize('max_depth', [None, 0, 1, 3, 999])
+@pytest.mark.parametrize('max_depth', [-1, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
-    assert not any([l.count(".") > max_depth for l in
-                    DeepNestedModel().summarize(mode="full", max_depth=max_depth).layer_names
-                    if max_depth is not None])
+    """Check if only modules with desired depth are shown"""
+    model = DeepNestedModel()
+    summary = ModelSummary(model, max_depth=max_depth)
+    for lname in summary.layer_names:
+        if max_depth >= 0:
+            assert lname.count(".") <= max_depth
