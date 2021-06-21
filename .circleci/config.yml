@@ -79,7 +79,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.7
+      - XLA_VER: 1.8
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -90,6 +90,7 @@ jobs:
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
+      - setup_remote_docker
       - *deploy_cluster
       - *stats
       - codecov/upload:
