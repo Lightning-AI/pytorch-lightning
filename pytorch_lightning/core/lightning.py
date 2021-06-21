@@ -1735,10 +1735,10 @@ class LightningModule(
 
     @torch.no_grad()
     def to_onnx(
-            self,
-            file_path: Union[str, Path],
-            input_sample: Optional[Any] = None,
-            **kwargs,
+        self,
+        file_path: Union[str, Path],
+        input_sample: Optional[Any] = None,
+        **kwargs,
     ):
         """Saves the model in ONNX format
 
@@ -1878,7 +1878,7 @@ class LightningModule(
             colliding_keys = set(colliding_keys)
             if colliding_keys:
                 raise ValueError(
-                        f'Error while adding datamodule hparams: the keys {colliding_keys} '
+                    f'Error while adding datamodule hparams: the keys {colliding_keys} '
                         f'are already present in the model hparams.'
                 )
             self.hparams.update(hparams)

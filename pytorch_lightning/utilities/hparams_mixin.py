@@ -25,10 +25,7 @@ from pytorch_lightning.utilities.parsing import save_hyperparameters
 
 class HyperparametersMixin:
 
-    __jit_unused_properties__ = [
-        "hparams",
-        "hparams_initial"
-    ]
+    __jit_unused_properties__ = ["hparams", "hparams_initial"]
 
     def save_hyperparameters(
         self,
