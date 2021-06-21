@@ -59,7 +59,8 @@ class Loop(ABC):
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators."""
-        self.trainer = proxy(trainer)
+        # TODO(@justusschock): Make the trainer a weakref/proxy
+        self.trainer = trainer
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
