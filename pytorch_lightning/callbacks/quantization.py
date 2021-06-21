@@ -246,13 +246,11 @@ class QuantizationAwareTraining(Callback):
             raise MisconfigurationException('`method_to_quantize` must be a callable model attribute')
         self.__quant_method = quant_method
         setattr(
-            pl_module,
-            self.method_to_quantize,
+            pl_module, self.method_to_quantize,
             wrap_qat_forward_context(
-                quant_cb=self,
-                model=pl_module,
-                func=quant_method,
-                trigger_condition=self._collect_quantization))
+                quant_cb=self, model=pl_module, func=quant_method, trigger_condition=self._collect_quantization
+            )
+        )
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
