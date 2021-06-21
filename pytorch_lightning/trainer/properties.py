@@ -497,7 +497,7 @@ class TrainerProperties(ABC):
             return self.validation_loop
         elif self.state.fn == TrainerFn.TESTING:
             return self.test_loop
-        raise RuntimeError("The Trainer ``evaluation_loop`` property isn't defined and shouldn't be accessed.")
+        raise RuntimeError("The Trainer ``evaluation_loop`` property isn't defined. Accessed outside of scope. ")
 
     @property
     def global_step(self) -> int:
