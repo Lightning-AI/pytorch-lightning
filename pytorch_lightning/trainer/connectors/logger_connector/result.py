@@ -366,7 +366,7 @@ class ResultCollection(dict):
         return self.get('_extra', {})
 
     @extra.setter
-    def extra(self, extra: Mapping[str, Any]) -> None:
+    def extra(self, extra: Dict[str, Any]) -> None:
 
         def check_fn(v):
             if v.grad_fn is not None:
@@ -378,7 +378,8 @@ class ResultCollection(dict):
                 return v.detach()
             return v
 
-        extra = apply_to_collection(extra, torch.Tensor, check_fn)
+        # update instead of replace to keep the extra dict reference. TODO: remove with v1.6 deprecation removal
+        extra.update(apply_to_collection(extra, torch.Tensor, check_fn))
         self['_extra'] = extra
 
     def log(
