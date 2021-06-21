@@ -1614,12 +1614,11 @@ class LightningModule(
         model_summary = None
 
         if mode in ModelSummary.MODES:
-            max_depth = ModelSummary.MODES[mode]     # map from mode interface to max_depth
+            max_depth = ModelSummary.MODES[mode]  # map from mode interface to max_depth
             model_summary = ModelSummary(self, max_depth=max_depth)
             log.info("\n" + str(model_summary))
         elif mode is not None:
-            raise MisconfigurationException(
-                    f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+            raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
 
         return model_summary
 
