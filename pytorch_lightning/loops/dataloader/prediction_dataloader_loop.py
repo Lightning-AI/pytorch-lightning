@@ -20,7 +20,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         self.prediction_loop: PredictionLoop = PredictionLoop()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
-        self._dataloaders: Optional[List[DataLoader]] = None
         self._return_predictions: bool = False
 
     @property
