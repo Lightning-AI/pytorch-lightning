@@ -362,8 +362,9 @@ def test_lazy_model_summary():
 
 
 def test_max_depth_0_equals_mode_top():
-    assert str(DeepNestedModel().summarize(mode="top")) \
-           == str(DeepNestedModel().summarize(mode="full", max_depth=0))
+    summary_top = DeepNestedModel().summarize(mode="top")
+    summary_full_0 = DeepNestedModel().summarize(mode="full", max_depth=0)
+    assert str(summary_top) == str(summary_full_0)
 
 
 @pytest.mark.parametrize('max_depth', [None, 0, 1, 3, 999])
