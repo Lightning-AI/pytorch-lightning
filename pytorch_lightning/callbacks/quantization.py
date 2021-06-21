@@ -17,9 +17,10 @@ Quantization
 
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import torch
+import torch.nn as nn
 from torch.quantization import QConfig
 
 import pytorch_lightning as pl
@@ -69,6 +70,13 @@ def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -
         return data
 
     return wrapper
+
+
+def _recursive_getattr(obj: Any, attribs: str):
+    if '.' in attribs:
+        attrib, attribs = attribs.split('.', 1)
+        return _recursive_getattr(getattr(obj, attrib), attribs)
+    return getattr(obj, attribs)
 
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
@@ -138,6 +146,8 @@ class QuantizationAwareTraining(Callback):
         observer_type: str = "average",
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
+        modules_to_skip: Optional[List[str]] = None,
+        method_to_quantize: str = 'forward',
         input_compatible: bool = True,
         quantize_on_fit_end: bool = True,
     ) -> None:
@@ -160,7 +170,9 @@ class QuantizationAwareTraining(Callback):
             )
         self._collect_quantization = collect_quantization
 
+        self.method_to_quantize = method_to_quantize
         self.modules_to_fuse = modules_to_fuse
+        self.modules_to_skip = modules_to_skip
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
         self._forward_calls = 0
@@ -175,6 +187,21 @@ class QuantizationAwareTraining(Callback):
                 )
         return True
 
+    def _check_feasible_skip(self, model):
+        if not self.modules_to_skip:
+            return False
+        for m in self.modules_to_skip:
+            if not _recursive_hasattr(model, m):
+                raise MisconfigurationException(
+                    f'You have requested to skip quantization for {m} but it is not a model attribute'
+                )
+            module = _recursive_getattr(model, m)
+            if not isinstance(module, nn.Module):
+                raise MisconfigurationException(
+                    f'You have requested to skip quantization for {m} but it is not a `nn.Module`'
+                )
+        return True
+
     def on_fit_start(self, trainer, pl_module):
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
@@ -182,10 +209,18 @@ class QuantizationAwareTraining(Callback):
         pl_module.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        self.__module_forward = pl_module.forward
-        pl_module.forward = wrap_qat_forward_context(
-            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_condition=self._collect_quantization
-        )
+        quant_method = getattr(pl_module, self.method_to_quantize)
+        if not callable(quant_method):
+            raise MisconfigurationException('`method_to_quantize` must be a callable model attribute')
+        self.__quant_method = quant_method
+        setattr(
+            pl_module,
+            self.method_to_quantize,
+            wrap_qat_forward_context(
+                quant_cb=self,
+                model=pl_module,
+                func=quant_method,
+                trigger_condition=self._collect_quantization))
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
@@ -196,6 +231,12 @@ class QuantizationAwareTraining(Callback):
                 pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
+
+        # Disable qconfig for any modules the user requested to skip
+        if self._check_feasible_skip(pl_module):
+            for m in self.modules_to_skip:
+                module = _recursive_getattr(pl_module, m)
+                module.qconfig = None
 
         if self._check_feasible_fuse(pl_module):
             torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
@@ -216,6 +257,7 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.convert(pl_module, inplace=True)
         # check we shall preserve wrapper
         if self._input_compatible:
-            pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
+            final_method = wrap_quantize_forward_context(model=pl_module, func=self.__quant_method)
         else:
-            pl_module.forward = self.__module_forward
+            final_method = self.__quant_method
+        setattr(pl_module, self.method_to_quantize, final_method)
