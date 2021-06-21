@@ -374,9 +374,11 @@ class HookedModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    'kwargs', [
+    'kwargs',
+    [
         {},
-        pytest.param(dict(gpus=1, plugins='deepspeed'), marks=RunIf(deepspeed=True, min_gpus=1)),
+        # these precision plugins modify the optimization flow, so testing them explicitly
+        pytest.param(dict(gpus=1, precision=16, plugins='deepspeed'), marks=RunIf(deepspeed=True, min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend='native'), marks=RunIf(amp_native=True, min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend='apex'), marks=RunIf(amp_apex=True, min_gpus=1)),
     ]
