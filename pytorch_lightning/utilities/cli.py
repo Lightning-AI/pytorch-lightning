@@ -155,6 +155,8 @@ class LightningCLI:
             model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on.
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class.
             save_config_callback: A callback class to save the training config.
+            save_config_filename: Filename for the config file.
+            save_config_exist_ok: Whether to overwrite an existing config file.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
