@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -491,7 +491,7 @@ class TrainerProperties(ABC):
 
     @property
     def evaluation_loop(self) -> EvaluationDataLoaderLoop:
-        if self.training or self.sanity_checking:
+        if self.state.fn == TrainerFn.FITTING or self.sanity_checking:
             return self.fit_loop.validation_loop
         elif self.validating:
             return self.validation_loop
