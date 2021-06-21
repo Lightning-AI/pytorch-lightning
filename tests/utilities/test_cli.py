@@ -603,3 +603,14 @@ def test_lightning_cli_link_arguments(tmpdir):
 
     assert cli.model.batch_size == 8
     assert cli.model.num_classes == 5
+
+
+def test_cli_config_overwrite(tmpdir):
+    trainer_defaults = {'default_root_dir': str(tmpdir), 'logger': False, 'max_steps': 1, 'max_epochs': 1}
+
+    with mock.patch('sys.argv', ['any.py']):
+        LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
+    with mock.patch('sys.argv', ['any.py']), pytest.raises(RuntimeError, match='Aborting to avoid overwriting'):
+        LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
+    with mock.patch('sys.argv', ['any.py']):
+        LightningCLI(BoringModel, save_config_overwrite=True, trainer_defaults=trainer_defaults)
