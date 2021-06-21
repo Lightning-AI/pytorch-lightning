@@ -14,6 +14,7 @@
 
 from typing import Any, List, Optional, Sequence, Union
 
+import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
@@ -22,6 +23,7 @@ from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -98,6 +100,23 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
+
+    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
+        if not (self.trainer.evaluating or self.trainer.sanity_checking):
+            rank_zero_warn(
+                f"`validation` was called but the running stage is set to {self.trainer.state.stage}."
+                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
+            )
+            self.validating = True
+
+        self.reload_evaluation_dataloaders()
+
+        with torch.no_grad():
+            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
+            eval_loop_results = super().run(*args, **kwargs)
+
+        eval_loop_results = eval_loop_results or []
+        return eval_loop_results
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""

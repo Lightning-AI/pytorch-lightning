@@ -64,6 +64,8 @@ class TrainerProperties(ABC):
     state: TrainerState
     fit_loop: FitLoop
     evaluation_loop: EvaluationDataLoaderLoop
+    validation_loop: EvaluationDataLoaderLoop
+    test_loop: EvaluationDataLoaderLoop
     """
     Accelerator properties
     """
@@ -487,6 +489,14 @@ class TrainerProperties(ABC):
     def train_loop(self) -> FitLoop:
         # FIXME(@awaelchli): the current train_loop should be renamed to fit_loop
         return self.fit_loop
+
+    @property
+    def evaluation_loop(self) -> EvaluationDataLoaderLoop:
+        if self.training:
+            return self.fit_loop.validation_loop
+        elif self.validating and self.sanity_checking:
+            return self.validation_loop
+        return self.test_loop
 
     @property
     def global_step(self) -> int:

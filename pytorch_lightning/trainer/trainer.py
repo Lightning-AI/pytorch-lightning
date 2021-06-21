@@ -335,11 +335,13 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.evaluation_loop = EvaluationDataLoaderLoop()
+        self.validation_loop = EvaluationDataLoaderLoop()
+        self.test_loop = EvaluationDataLoaderLoop()
         self.predict_loop = PredictLoop(self)
 
         self.fit_loop.connect(self)
-        self.evaluation_loop.connect(self)
+        self.validation_loop.connect(self)
+        self.test_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -843,7 +845,7 @@ class Trainer(
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
                         {self._run_train}                     ||
-                     or {self._run_evaluation}                ||
+                     or {self._run_evaluate}                  ||
                      or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
@@ -985,23 +987,6 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
-        if not (self.evaluating or self.sanity_checking):
-            rank_zero_warn(
-                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
-                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
-            )
-            self.validating = True
-
-        self.evaluation_loop.reload_evaluation_dataloaders()
-
-        with torch.no_grad():
-            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
-            eval_loop_results = self.evaluation_loop.run()
-
-        eval_loop_results = eval_loop_results or []
-        return eval_loop_results
-
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
@@ -1009,7 +994,7 @@ class Trainer(
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._run_evaluation()
+            eval_loop_results = self.evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1072,7 +1057,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            self._run_evaluation()
+            self.evaluation_loop.run()
 
             self.on_sanity_check_end()
 
