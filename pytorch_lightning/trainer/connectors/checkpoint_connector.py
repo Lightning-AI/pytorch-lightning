@@ -244,7 +244,12 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        state_dict = self._loaded_checkpoint["loops_state_dict"].get('result_collections', None)
+        loops = self._loaded_checkpoint.get("loops", None)
+
+        if not loops:
+            return
+
+        state_dict = loops.get('result_collections', None)
 
         if not state_dict:
             return
@@ -393,7 +398,7 @@ class CheckpointConnector:
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
-            'loops_state_dict': self.get_loops_state_dict()
+            'loops': self.get_loops_state_dict()
         }
 
         if not weights_only:
@@ -439,7 +444,7 @@ class CheckpointConnector:
 
     def get_result_collections_state_dict(self):
         return {
-            RunningStage.TRAINING.value: self.trainer.train_loop.results.state_dict(),
+            RunningStage.TRAINING.value: self.trainer.fit_loop.results.state_dict(),
             RunningStage.VALIDATING.value: self.trainer.evaluation_loop._val_results.state_dict(),
             RunningStage.TESTING.value: self.trainer.evaluation_loop._test_results.state_dict(),
         }

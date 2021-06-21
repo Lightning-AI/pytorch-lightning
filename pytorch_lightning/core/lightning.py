@@ -215,10 +215,10 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def state_dict(self, destination=None, prefix='', keep_vars=False):
+    def state_dict(self, *args, **kwargs) -> Dict[str, Any]:
         # drop the map id to metrics to avoid saving it.
         self._map_id_to_metrics_name = None
-        return super().state_dict(destination=destination, prefix=prefix, keep_vars=keep_vars)
+        return super().state_dict(*args, **kwargs)
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
@@ -277,7 +277,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        attribute_name: Optional[str] = None,
+        metric_prefix_name: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -315,8 +315,11 @@ class LightningModule(
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
-            attribute_name: This would be the attribute name to find a given metric.
-                If None, this will be automatically inferred by Lightning.
+            metric_prefix_name: To enable ``Fault Tolerant Logging``, Lightning requires a way to restore TorchMetric Metric
+                instance references on-reload. When the logged Metric are LightningModule attributes,
+                metric_prefix_name should be None. However, when this is not, metric_prefix_name should be provided as
+                Lightning won't be able to find your nn.Metric reference.
+
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -369,8 +372,8 @@ class LightningModule(
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
-        if attribute_name is None and isinstance(value, Metric):
-            # this is used to effiently find the attribute prefix path of metric objects
+        if metric_prefix_name is None and isinstance(value, Metric):
+            # this is used to efficiently find the attribute prefix path of metric objects
             # this will enable Lightning to re-attach metric reference when reloading states.
             if self._map_id_to_metrics_name is None:
                 self._map_id_to_metrics_name = {
@@ -378,7 +381,7 @@ class LightningModule(
                     for module_name, module in self._named_members(lambda module: module._modules.items())
                     if isinstance(module, Metric)
                 }
-            attribute_name = self._map_id_to_metrics_name[id(value)]
+            metric_prefix_name = self._map_id_to_metrics_name[id(value)]
 
         results.log(
             self._current_fx_name,
@@ -395,7 +398,7 @@ class LightningModule(
             sync_dist=sync_dist,
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
             sync_dist_group=sync_dist_group,
-            attribute_name=attribute_name,
+            metric_prefix_name=metric_prefix_name,
         )
 
         self.trainer.logger_connector._current_fx = self._current_fx_name

@@ -71,7 +71,7 @@ class _Metadata:
     _reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
-    attribute_name: Optional[str] = None
+    metric_prefix_name: Optional[str] = None
     _sync: Optional[_Sync] = None
 
     @property
@@ -340,15 +340,10 @@ class ResultCollection(dict):
     @property
     def result_metrics(self) -> List[ResultMetric]:
         o = []
-        for v in self.values():
-            if isinstance(v, ResultMetric):
-                o.append(v)
-            elif isinstance(v, ResultCollection):
+        def append_fn(v: ResultMetric) -> None:
+            o.append(v)
 
-                def append_fn(v: ResultMetric) -> None:
-                    o.append(v)
-
-                apply_to_collection(v, ResultMetric, append_fn)
+        apply_to_collection(self.values(), ResultMetric, append_fn)
         return o
 
     @property
@@ -409,7 +404,7 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        attribute_name: Optional[str] = None,
+        metric_prefix_name: Optional[str] = None,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -436,7 +431,7 @@ class ResultCollection(dict):
             on_epoch=on_epoch,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
-            attribute_name=attribute_name,
+            metric_prefix_name=metric_prefix_name,
         )
         meta.reduce_fx = reduce_fx
         meta.sync = _Sync(
@@ -676,7 +671,7 @@ class ResultCollection(dict):
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
 
         if metrics:
-            for attribute_name, metric in metrics.items():
+            for metric_prefix_name, metric in metrics.items():
                 for result_metric in self.result_metrics:
-                    if result_metric.meta.attribute_name == attribute_name:
+                    if result_metric.meta.metric_prefix_name == metric_prefix_name:
                         result_metric.value = metric

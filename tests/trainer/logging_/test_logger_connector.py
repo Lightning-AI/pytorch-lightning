@@ -309,7 +309,7 @@ def test_metrics_reset(tmpdir):
             logits = self.forward(batch)
             loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels.unsqueeze(1))
             probs = torch.sigmoid(logits.detach())
-            self.log(f"loss/{stage}", loss, attribute_name="dummy")
+            self.log(f"loss/{stage}", loss, metric_prefix_name="dummy")
 
             acc = self._modules[f"acc_{stage}"]
             ap = self._modules[f"ap_{stage}"]
@@ -322,8 +322,8 @@ def test_metrics_reset(tmpdir):
             acc.reset.reset_mock()
             ap.reset.reset_mock()
 
-            self.log(f"{stage}/accuracy", acc, attribute_name="dummy")
-            self.log(f"{stage}/ap", ap, attribute_name="dummy")
+            self.log(f"{stage}/accuracy", acc, metric_prefix_name="dummy")
+            self.log(f"{stage}/ap", ap, metric_prefix_name="dummy")
 
             return loss
 

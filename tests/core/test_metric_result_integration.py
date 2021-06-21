@@ -222,9 +222,9 @@ def test_result_collection_restoration(tmpdir):
             cumulative_sum += i
 
             metric = metric_a if i < 1 else metric_d
-            lightning_log('training_step', 'a', metric, on_step=True, on_epoch=True, attribute_name="metric")
-            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True, attribute_name="metric_b")
-            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False, attribute_name="metric_c")
+            lightning_log('training_step', 'a', metric, on_step=True, on_epoch=True, metric_prefix_name="metric")
+            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_prefix_name="metric_b")
+            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_prefix_name="metric_c")
             lightning_log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             lightning_log('training_step', 'b_1', b, on_step=False, on_epoch=True)
             lightning_log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
