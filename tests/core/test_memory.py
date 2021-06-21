@@ -370,15 +370,15 @@ def test_lazy_model_summary():
 
 
 def test_max_depth_equals_mode_interface():
-    """Test model.summarize(full/top) interface matches ModelSummary mapping"""
+    """Test model.summarize(full/top) interface mapping matches max_depth"""
     model = DeepNestedModel()
 
     summary_top = model.summarize(mode="top")
-    summary_0 = ModelSummary(model, max_depth=0)
+    summary_0 = model.summarize(max_depth=0)
     assert str(summary_top) == str(summary_0)
 
     summary_full = model.summarize(mode="full")
-    summary_minus1 = ModelSummary(model, max_depth=-1)
+    summary_minus1 = model.summarize(max_depth=-1)
     assert str(summary_full) == str(summary_minus1)
 
 

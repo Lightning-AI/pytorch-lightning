@@ -1610,16 +1610,28 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: Optional[str] = "top") -> Optional[ModelSummary]:
+    def summarize(
+            self,
+            mode: Optional[str] = "top",
+            max_depth: Optional[int] = None
+    ) -> Optional[ModelSummary]:
         model_summary = None
 
-        if mode in ModelSummary.MODES:
-            max_depth = ModelSummary.MODES[mode]     # map from mode interface to max_depth
+        if max_depth is None:
+            rank_zero_deprecation(
+                    "The use of model.summarize(mode) argument will be "
+                    "deprecated in a future release, in favour of 'max_depth'.")
+
+            if mode in ModelSummary.MODES:
+                # temporary map from mode interface to max_depth
+                max_depth = ModelSummary.MODES[mode]
+                model_summary = ModelSummary(self, max_depth=max_depth)
+                log.info("\n" + str(model_summary))
+            elif mode is not None:
+                raise MisconfigurationException(
+                        f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        else:
             model_summary = ModelSummary(self, max_depth=max_depth)
-            log.info("\n" + str(model_summary))
-        elif mode is not None:
-            raise MisconfigurationException(
-                    f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
 
         return model_summary
 
