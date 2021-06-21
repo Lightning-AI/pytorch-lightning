@@ -115,6 +115,12 @@ class TrainingEpochLoop(Loop):
         if batch_output.signal == -1:
             raise StopIteration
 
+        # update non-plateau LR schedulers
+        # update epoch-interval ones only when we are at the end of training epoch
+        self.update_lr_schedulers('step', update_plateau_schedulers=False)
+        if self._num_training_batches_reached(is_last):
+            self.update_lr_schedulers('epoch', update_plateau_schedulers=False)
+
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
@@ -153,8 +159,8 @@ class TrainingEpochLoop(Loop):
         # -----------------------------------------
         self.save_loggers_on_train_batch_end()
 
-        # update LR schedulers
-        self.update_lr_schedulers('step')
+        # update plateau LR scheduler after metrics are logged
+        self.update_lr_schedulers('step', update_plateau_schedulers=True)
         self.trainer.checkpoint_connector.has_trained = True
 
         self.total_batch_idx += 1
@@ -351,15 +357,13 @@ class TrainingEpochLoop(Loop):
             processed_outputs = processed_outputs[0]
         return processed_outputs
 
-    def update_lr_schedulers(self, interval: str) -> None:
+    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval"""
-        if interval == "step":
-            finished_accumulation = self.batch_loop._accumulated_batches_reached()
-            finished_epoch = self._num_training_batches_reached()
-            if not finished_accumulation and not finished_epoch:
-                return
+        if interval == "step" and self.batch_loop.should_accumulate():
+            return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
+            update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 

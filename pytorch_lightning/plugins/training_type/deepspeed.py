@@ -29,9 +29,10 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import _warn, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -263,7 +264,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 "The usage of `cpu_offload`, `cpu_offload_params`, and `cpu_offload_use_pin_memory` "
                 "is deprecated since v1.4 and will be removed in v1.5."
                 " From now on use `offload_optimizer`, `offload_parameters` and `pin_memory`.",
-                category=DeprecationWarning
+                category=LightningDeprecationWarning
             )
             offload_optimizer = cpu_offload
             offload_parameters = cpu_offload_params
