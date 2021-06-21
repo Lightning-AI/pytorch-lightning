@@ -342,8 +342,8 @@ class TrainingBatchLoop(Loop):
 
         # handle dict return
         if isinstance(training_step_output, dict):
-            loss = training_step_output.pop("loss", None)
-            hiddens = training_step_output.pop("hiddens", None)
+            loss = training_step_output.get("loss")
+            hiddens = training_step_output.get("hiddens")
             if hiddens is not None:
                 hiddens = hiddens.detach()
             results.extra = training_step_output
