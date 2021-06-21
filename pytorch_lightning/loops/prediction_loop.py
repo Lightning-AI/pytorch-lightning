@@ -13,18 +13,18 @@ class PredictionLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.warning_cache = WarningCache()
-        self.dl_max_batches: Optional[int] = None
-        self.num_dataloaders: Optional[int] = None
         self.return_predictions: bool = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
-        self.all_batch_indices: List[int] = []
+        self._dl_max_batches: Optional[int] = None
+        self._num_dataloaders: Optional[int] = None
+        self._warning_cache = WarningCache()
+        self._all_batch_indices: List[int] = []
 
     @property
     def done(self) -> bool:
         """Ends prediction when the iteration count exceeds the total number of available batches"""
-        return self.iteration_count >= self.dl_max_batches
+        return self.iteration_count >= self._dl_max_batches
 
     @property
     def should_store_predictions(self) -> bool:
@@ -35,7 +35,7 @@ class PredictionLoop(Loop):
     def reset(self) -> None:
         """Resets the loops internal state"""
         self.iteration_count = 0
-        self.all_batch_indices: List[int] = []
+        self._all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
 
     def on_run_start(
@@ -56,8 +56,8 @@ class PredictionLoop(Loop):
             return_predictions: whether to return the obtained predictions
         """
         void(dataloader_iter, dataloader_idx)
-        self.dl_max_batches = dl_max_batches
-        self.num_dataloaders = num_dataloaders
+        self._dl_max_batches = dl_max_batches
+        self._num_dataloaders = num_dataloaders
         self.return_predictions = return_predictions
 
     def advance(
@@ -77,18 +77,18 @@ class PredictionLoop(Loop):
             raise StopIteration
 
         with self.trainer.profiler.profile("predict_step"):
-            self.predict_step(batch, batch_idx, dataloader_idx)
+            self._predict_step(batch, batch_idx, dataloader_idx)
 
     def on_run_end(self) -> Tuple[Any, Any]:
         """Returns the predictions and the corresponding batch indices"""
-        return self.predictions, self.all_batch_indices
+        return self.predictions, self._all_batch_indices
 
     def teardown(self) -> None:
         """Frees memory of collected predictions."""
         self.predictions = []
-        self.all_batch_indices = []
+        self._all_batch_indices = []
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual predict step together with all the
         necessary bookkeeping and the hooks tied to the predict step.
 
@@ -96,7 +96,6 @@ class PredictionLoop(Loop):
             batch: the current batch to run the prediction on
             batch_idx: the index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
-
         """
         # configure step_kwargs
         step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
@@ -112,7 +111,7 @@ class PredictionLoop(Loop):
         predictions = self.trainer.accelerator.predict_step(step_kwargs)
 
         if predictions is None:
-            self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
+            self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
         self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
@@ -131,7 +130,7 @@ class PredictionLoop(Loop):
             the dictionary containing all the keyboard arguments for the predict step
         """
         step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
-        if self.num_dataloaders > 1:
+        if self._num_dataloaders > 1:
             step_kwargs['dataloader_idx'] = dataloader_idx
         return step_kwargs
 
@@ -141,4 +140,4 @@ class PredictionLoop(Loop):
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
-                self.all_batch_indices.append(batch_sampler.batch_indices)
+                self._all_batch_indices.append(batch_sampler.batch_indices)
