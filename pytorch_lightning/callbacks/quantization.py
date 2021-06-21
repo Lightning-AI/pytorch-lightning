@@ -131,6 +131,38 @@ class QuantizationAwareTraining(Callback):
             `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_
             to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
 
+        modules_to_skip: a list of module names whose ``qconfig`` should be set to ``None``. This allows
+            selectively skipping quantization for certain module(s) which may present issues (such as
+            :class:`torch.nn.Embedding`). Strings can include nested attributes with dot syntax.
+
+        method_to_quantize: name of method on the :class:`pytorch_lightning.core.lightning.LightningModule`
+            which should be wrapped by :class:`torch.quantization.QuantStub` and
+            :class:`torch.quantization.DeQuantStub`. Defaults to ``forward`` but can be customized to allow
+            non-quantizable layers to be skipped. For example
+
+            .. code-block::
+
+                class MyModel(pl.LightningModule):
+
+                    def forward(self, x):
+
+                        # A layer that can't be quantized for whatever reason
+                        x = self.non_quantizable_op(x)
+
+                        # Wrap the stubs around remaining layers
+                        # Note quant/dequant will be automatically added by the callback
+                        # You do NOT need to add these attributes or modify your forward manually
+                        x = self.quant(x)
+                        x = self.qforward(x)
+                        x = self.dequant(x)
+                        return x
+
+                    def qforward(self, x):
+                        return self.quantizable_op(x)  # Could be a much longer implementation
+
+                quant_cb = QuantizationAwareTraining(method_to_quantize='qforward')
+
+
         input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
             but break compatibility to torchscript and export with ``torch.save``.
 
