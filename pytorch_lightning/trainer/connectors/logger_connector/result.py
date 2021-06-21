@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
+from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
@@ -73,6 +74,7 @@ class _Metadata:
     _reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
+    metric_prefix_name: Optional[str] = None
     _sync: Optional[_Sync] = None
 
     @property
@@ -165,9 +167,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.meta = metadata
         self.has_reset = False
         if is_tensor:
-            self.add_state("value", torch.tensor(0, dtype=torch.float))
+            self.add_state("value", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
+                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
 
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
@@ -243,8 +245,13 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
-    def __getstate__(self) -> dict:
-        d = super().__getstate__()
+    def __getstate__(self, drop_value: bool = False) -> dict:
+        with self.sync_context():
+            d = deepcopy(super().__getstate__())
+        # metric are being dropped, so they won't be serialized
+        # this would prevent pickling error if their API change.
+        if drop_value and self.is_tensor:
+            del d["value"]
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
@@ -278,7 +285,7 @@ class ResultMetricCollection(dict):
     def __getstate__(self) -> dict:
 
         def getstate(item: ResultMetric) -> dict:
-            return item.__getstate__()
+            return item.__getstate__(drop_value=True)
 
         items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
@@ -332,6 +339,16 @@ class ResultCollection(dict):
         self._batch_size = torch.tensor(1, device=device)
         self.device: Optional[Union[str, torch.device]] = device
         self.fx_validator = FxValidator()
+
+    @property
+    def result_metrics(self) -> List[ResultMetric]:
+        o = []
+
+        def append_fn(v: ResultMetric) -> None:
+            o.append(v)
+
+        apply_to_collection(self.values(), ResultMetric, append_fn)
+        return o
 
     @property
     def batch_size(self) -> torch.Tensor:
@@ -398,6 +415,7 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
+        metric_prefix_name: Optional[str] = None,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -424,6 +442,7 @@ class ResultCollection(dict):
             on_epoch=on_epoch,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
+            metric_prefix_name=metric_prefix_name,
         )
         meta.reduce_fx = reduce_fx
         meta.sync = _Sync(
@@ -432,8 +451,11 @@ class ResultCollection(dict):
             group=sync_dist_group,
         )
 
+        # register logged value if it doesn't exist
         if key not in self:
             self.register_key(key, meta, value)
+
+        # check the stored metadata and the current one match
         elif meta != self[key].meta:
             raise MisconfigurationException(
                 f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
@@ -472,7 +494,10 @@ class ResultCollection(dict):
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if not result_metric._computed:
+                should = result_metric.meta.sync.should
+                result_metric.meta.sync.should = True
                 result_metric.compute()
+                result_metric.meta.sync.should = should
             cache = result_metric._computed
         if cache is not None and not result_metric.meta.enable_graph:
             return cache.detach()
@@ -599,6 +624,7 @@ class ResultCollection(dict):
 
     def __getstate__(self) -> dict:
         d = self.__dict__.copy()
+        d["fx_validator"] = None
         # can't deepcopy tensors with grad_fn
         minimize = d['_minimize']
         if minimize is not None:
@@ -607,10 +633,16 @@ class ResultCollection(dict):
         if extra is not None:
             d['_extra'] = extra
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__() for k, v in self.items() if k != '_extra'}
+        items = {k: v.__getstate__() for k, v in self.items() if k not in ('_extra', 'fx_validator')}
         return {**d, 'items': items}
 
-    def __setstate__(self, state: dict, map_location: Optional[Union[str, torch.device]] = None) -> None:
+    def __setstate__(
+        self,
+        state: dict,
+        map_location: Optional[Union[str, torch.device]] = None,
+        sync_fn: Optional[Callable] = None
+    ) -> None:
+
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
@@ -623,11 +655,13 @@ class ResultCollection(dict):
                 cls = ResultMetricCollection
             else:
                 raise ValueError(f"Unexpected class name: {cls}")
-            sync_fn = self[k].meta.sync.fn if k in self else None
-            return cls._reconstruct(item, sync_fn=sync_fn)
+            _sync_fn = sync_fn or (self[k].meta.sync.fn if k in self else None)
+            return cls._reconstruct(item, sync_fn=_sync_fn)
 
         items = {k: setstate(k, v) for k, v in state['items'].items()}
         self.update(items)
+
+        self.fx_validator = FxValidator()
 
         device = map_location or self.device
         self.to(device)
@@ -635,5 +669,20 @@ class ResultCollection(dict):
     def state_dict(self) -> dict:
         return self.__getstate__()
 
-    def load_state_dict(self, state_dict: dict, map_location: Optional[Union[str, torch.device]] = None) -> None:
-        self.__setstate__(state_dict, map_location=map_location)
+    def load_state_dict(
+        self,
+        state_dict: dict,
+        map_location: Optional[Union[str, torch.device]] = None,
+        sync_fn: Optional[Callable] = None,
+        metrics: Optional[Dict[str, Metric]] = None,
+    ) -> None:
+
+        self.fx_validator = FxValidator()
+
+        self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
+
+        if metrics:
+            for metric_prefix_name, metric in metrics.items():
+                for result_metric in self.result_metrics:
+                    if result_metric.meta.metric_prefix_name == metric_prefix_name:
+                        result_metric.value = metric

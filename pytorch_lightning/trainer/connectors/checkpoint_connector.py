@@ -18,9 +18,11 @@ from pathlib import Path
 from typing import Optional, Union
 
 import torch
+from torchmetrics import Metric
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     DeviceType,
@@ -44,6 +46,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
         self._loaded_checkpoint = dict()
+        self._persistent_metrics = False
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -176,6 +179,9 @@ class CheckpointConnector:
 
         self.restore_optimizers_and_schedulers()
 
+        # restore loops
+        self.restore_loops()
+
     def restore_callbacks(self) -> None:
         """ Restores all callbacks from the pre-loaded checkpoint. """
         if not self._loaded_checkpoint:
@@ -233,6 +239,52 @@ class CheckpointConnector:
             )
         self.restore_optimizers()
         self.restore_lr_schedulers()
+
+    def restore_loops(self) -> None:
+        """ Restores the loops state_dicts"""
+        if not self._loaded_checkpoint:
+            return
+
+        self.restore_result_collections()
+
+    def restore_result_collections(self) -> None:
+        """ Restores the loop result collections used for logging."""
+        if not self._loaded_checkpoint:
+            return
+
+        loops = self._loaded_checkpoint.get("loops", None)
+
+        if not loops:
+            return
+
+        state_dict = loops.get('result_collections', None)
+
+        if not state_dict:
+            return
+
+        # get current reduce function
+        sync_fn = self.trainer.training_type_plugin.reduce
+
+        # get current result collections
+        train_results = self.trainer.train_loop.results
+        val_results = self.trainer.evaluation_loop._val_results
+        test_results = self.trainer.evaluation_loop._test_results
+
+        metrics = {}
+        model_ref = self.trainer.lightning_module
+        for module_name, module in model_ref._named_members(lambda module: module._modules.items()):
+            if isinstance(module, Metric):
+                metrics[module_name] = module
+
+        # restore collection and provide sync_fn
+        self._restore_restore_collection(train_results, state_dict[RunningStage.TRAINING.value], sync_fn, metrics)
+        self._restore_restore_collection(val_results, state_dict[RunningStage.VALIDATING.value], sync_fn, metrics)
+        self._restore_restore_collection(test_results, state_dict[RunningStage.TESTING.value], sync_fn, metrics)
+
+    def _restore_restore_collection(self, results, state_dict, sync_fn, metrics):
+        results.load_state_dict(state_dict, sync_fn=sync_fn, metrics=metrics)
+        if not self.trainer.is_global_zero:
+            results.reset()
 
     def restore_optimizers(self) -> None:
         """ Restores the optimizer states from the pre-loaded checkpoint. """
@@ -311,11 +363,16 @@ class CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': PyTorch Lightning's version
-                'callbacks':                 "callback specific state"[] # if not weights_only
-                'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
-                'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
-                'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
-                'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
+                'callbacks':                 "callback specific state"[]    # if not weights_only
+                'optimizer_states':          "PT optim's state_dict"[]      # if not weights_only
+                'lr_schedulers':             "PT sched's state_dict"[]      # if not weights_only
+                'native_amp_scaling_state':   PT amp's state_dict           # if not weights_only and use native amp
+                'result_collections': {
+                    "train":                  PT TrainLoop ResultCollection state_dict
+                    "validation":             PT ValidationLoop ResultCollection state_dict
+                    "test":                   PT TestLoop ResultCollection state_dict
+                }
+                'amp_scaling_state':         Apex's state_dict              # if not weights_only and use apex amp
                 'state_dict':                Model's state_dict (e.g. network weights)
                 CHECKPOINT_HYPER_PARAMS_NAME:
                 CHECKPOINT_HYPER_PARAMS_KEY:
@@ -336,11 +393,18 @@ class CheckpointConnector:
 
         model = self.trainer.lightning_module
 
+        if not self._persistent_metrics:
+            for _, module in model.named_modules():
+                if isinstance(module, Metric):
+                    module.persistent(True)
+            self._persistent_metrics = True
+
         checkpoint = {
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
+            'loops': self.get_loops_state_dict()
         }
 
         if not weights_only:
@@ -380,6 +444,16 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_loops_state_dict(self):
+        return {"result_collections": self.get_result_collections_state_dict()}
+
+    def get_result_collections_state_dict(self):
+        return {
+            RunningStage.TRAINING.value: self.trainer.fit_loop.results.state_dict(),
+            RunningStage.VALIDATING.value: self.trainer.evaluation_loop._val_results.state_dict(),
+            RunningStage.TESTING.value: self.trainer.evaluation_loop._test_results.state_dict(),
+        }
 
     def hpc_load(self, checkpoint_path: str) -> None:
         """
