@@ -300,7 +300,8 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
                 dict(name='on_before_zero_grad', args=(ANY, )),
                 dict(name='optimizer_zero_grad', args=(0, i, ANY, 0)),
-                # TODO: `on_before_backward`
+                dict(name='Callback.on_before_backward', args=(trainer, model, ANY)),
+                dict(name='on_before_backward', args=(ANY, )),
                 dict(name='backward', args=(ANY, ANY, 0)),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
                 dict(name='on_after_backward'),
@@ -372,7 +373,15 @@ class HookedModel(BoringModel):
         return out
 
 
-def test_trainer_model_hook_system_fit(tmpdir):
+@pytest.mark.parametrize(
+    'kwargs', [
+        {},
+        pytest.param(dict(gpus=1, plugins='deepspeed'), marks=RunIf(deepspeed=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend='native'), marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend='apex'), marks=RunIf(amp_apex=True, min_gpus=1)),
+    ]
+)
+def test_trainer_model_hook_system_fit(tmpdir, kwargs):
     called = []
     model = HookedModel(called)
     callback = HookedCallback(called)
@@ -385,7 +394,8 @@ def test_trainer_model_hook_system_fit(tmpdir):
         limit_val_batches=val_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
-        callbacks=[callback]
+        callbacks=[callback],
+        **kwargs,
     )
     assert called == [
         dict(name='Callback.on_init_start', args=(trainer, )),

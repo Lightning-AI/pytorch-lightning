@@ -651,7 +651,6 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
 
         def __init__(self):
             self.on_train_batch_start_called = False
-            self.on_before_backward_called = False
 
         def on_train_batch_start(
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
@@ -659,11 +658,6 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
             self.on_train_batch_start_called = True
-
-        def on_before_backward(self, trainer, pl_module, loss):
-            assert isinstance(loss, torch.Tensor)
-            assert loss.grad_fn is not None
-            self.on_before_backward_called = True
 
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
@@ -674,7 +668,6 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
         max_epochs=5,
         plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
-        accelerator="ddp",
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
@@ -682,7 +675,6 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     )
     trainer.fit(model, datamodule=dm)
     assert verification_callback.on_train_batch_start_called
-    assert verification_callback.on_before_backward_called
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)

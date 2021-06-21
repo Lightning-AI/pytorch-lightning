@@ -19,7 +19,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
@@ -70,17 +69,6 @@ def test_amp_apex_ddp(
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
-class CheckOnBeforeBackward(Callback):
-
-    def __init__(self):
-        self.on_before_backward_called = False
-
-    def on_before_backward(self, trainer, pl_module, loss):
-        assert isinstance(loss, torch.Tensor)
-        assert loss.grad_fn is not None
-        self.on_before_backward_called = True
-
-
 class GradientUnscaleBoringModel(BoringModel):
 
     def on_after_backward(self):
@@ -88,16 +76,11 @@ class GradientUnscaleBoringModel(BoringModel):
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
 
-        cb = [cb for cb in self.trainer.callbacks if isinstance(cb, CheckOnBeforeBackward)]
-        assert len(cb) == 1
-        assert cb[0].on_before_backward_called
-
 
 @RunIf(min_gpus=2, amp_native=True)
 @pytest.mark.parametrize('accum', [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
     model = GradientUnscaleBoringModel()
-    cb = CheckOnBeforeBackward()
 
     trainer = Trainer(
         max_epochs=2,
@@ -112,7 +95,6 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         track_grad_norm=2,
         log_every_n_steps=1,
         accumulate_grad_batches=accum,
-        callbacks=[cb]
     )
     trainer.fit(model)
 
@@ -161,7 +143,6 @@ def test_amp_skip_optimizer(tmpdir):
 @RunIf(min_gpus=2, amp_apex=True, special=True)
 @pytest.mark.parametrize("amp_level", ['O2'])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
-    cb = CheckOnBeforeBackward()
 
     class CustomBoringModel(BoringModel):
 
@@ -169,11 +150,6 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
             assert self.layer.weight.dtype == torch.float16
             assert self.trainer.precision_plugin._connected
             return super().training_step(batch, batch_idx)
-
-        def on_after_backward(self):
-            cb = [cb for cb in self.trainer.callbacks if isinstance(cb, CheckOnBeforeBackward)]
-            assert len(cb) == 1
-            assert cb[0].on_before_backward_called
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -183,7 +159,6 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         gpus=2,
         accelerator='ddp',
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
-        callbacks=[cb]
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = CustomBoringModel()
