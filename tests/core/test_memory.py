@@ -120,22 +120,14 @@ class DeepNestedModel(LightningModule):
     def __init__(self):
         super().__init__()
         self.branch1 = nn.Sequential(
+            nn.Linear(5, 5),
+            nn.Sequential(
                 nn.Linear(5, 5),
                 nn.Sequential(
-                        nn.Linear(5, 5),
-                        nn.Sequential(
-                                nn.Linear(5, 5),
-                                nn.Sequential(
-                                        nn.Linear(5, 5),
-                                        nn.Sequential(
-                                                nn.Linear(5, 5),
-                                                nn.Sequential(
-                                                        nn.Linear(5, 3)
-                                                )
-                                        )
-                                )
-                        )
+                    nn.Linear(5, 5),
+                    nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 3))))
                 )
+            )
         )
         self.branch2 = nn.Linear(5, 10)
         self.head = UnorderedModel()
