@@ -16,7 +16,6 @@ import logging
 from contextlib import suppress
 from typing import Any, List, Optional, Tuple
 
-from deprecate import void
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl

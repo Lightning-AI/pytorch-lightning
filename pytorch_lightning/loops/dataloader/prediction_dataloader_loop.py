@@ -1,6 +1,5 @@
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Union
 
-import torch
 from deprecate.utils import void
 from torch.utils.data import DataLoader
 
