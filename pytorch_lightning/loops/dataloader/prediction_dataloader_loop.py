@@ -18,11 +18,11 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.prediction_loop: PredictionLoop = PredictionLoop()
-        self._return_predictions: bool = False
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
         self._dataloaders: Optional[List[DataLoader]] = None
         self._max_batches: Optional[List[int]] = None
+        self._return_predictions: bool = False
 
     @property
     def return_predictions(self) -> bool:
@@ -56,7 +56,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders"""
-        return self._dataloaders
+        return self.trainer.predict_dataloaders
 
     @property
     def done(self) -> bool:
@@ -71,7 +71,8 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         super().reset()
-        self._dataloaders, self._max_batches = self.get_predict_dataloaders()
+        self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
+        self._max_batches = self.trainer.num_predict_batches
 
         # convert max_batches to list
         if isinstance(self._max_batches, int):
@@ -86,7 +87,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader"""
-
         void(*args, **kwargs)
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dataloader_iter = enumerate(dataloader)
@@ -103,15 +103,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         results = self.on_predict_epoch_end()
         self.on_predict_end()
         return results
-
-    def get_predict_dataloaders(self) -> Tuple[List[DataLoader], List[int]]:
-        """Gets all dataloaders together with their respective max_batches"""
-        self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
-
-        dataloaders = self.trainer.predict_dataloaders
-        max_batches = self.trainer.num_predict_batches
-
-        return dataloaders, max_batches
 
     def should_skip_predict(self, max_batches: List[int]):
         """Whether to skip prediction (no batches available)"""
