@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.prediction_loop import PredictionLoop
+from pytorch_lightning.loops.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
@@ -16,7 +16,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
-        self.prediction_loop: PredictionLoop = PredictionLoop()
+        self.epoch_loop: PredictionEpochLoop = PredictionEpochLoop()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
         self._return_predictions: bool = False
@@ -75,7 +75,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary things (like trainer)"""
         super().connect(trainer, *args, **kwargs)
-        self.prediction_loop.connect(trainer, *args, **kwargs)
+        self.epoch_loop.connect(trainer, *args, **kwargs)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
@@ -94,7 +94,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self.max_batches[self.current_dataloader_idx]
 
-        dl_predictions, dl_batch_indices = self.prediction_loop.run(
+        dl_predictions, dl_batch_indices = self.epoch_loop.run(
             dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders, self.return_predictions
         )
         self.predictions.append(dl_predictions)

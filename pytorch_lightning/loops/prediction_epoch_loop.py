@@ -8,7 +8,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
-class PredictionLoop(Loop):
+class PredictionEpochLoop(Loop):
     """Loop performing prediction on arbitrary sequentially used dataloaders."""
 
     def __init__(self) -> None:
