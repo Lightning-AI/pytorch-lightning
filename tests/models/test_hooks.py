@@ -283,7 +283,8 @@ class HookedModel(BoringModel):
         pass
 
     @staticmethod
-    def _train_batch(trainer, model, batches):
+    def _train_batch(trainer, model, batches, device=torch.device('cpu'), **kwargs):
+        using_native_amp = kwargs.get('amp_backend') == 'native'
         out = []
         for i in range(batches):
             out.extend([
@@ -292,7 +293,7 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
                 dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, None)),
                 dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='training_step', args=(ANY, i)),
@@ -308,7 +309,7 @@ class HookedModel(BoringModel):
                 dict(
                     name='optimizer_step',
                     args=(0, i, ANY, 0, ANY),
-                    kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=False)
+                    kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp)
                 ),
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
                 dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
@@ -317,14 +318,14 @@ class HookedModel(BoringModel):
         return out
 
     @staticmethod
-    def _eval_epoch(fn, trainer, model, batches, key):
+    def _eval_epoch(fn, trainer, model, batches, key, device=torch.device('cpu')):
         outputs = {key: ANY}
         return [
             dict(name='Callback.on_epoch_start', args=(trainer, model)),
             dict(name='on_epoch_start'),
             dict(name=f'Callback.on_{fn}_epoch_start', args=(trainer, model)),
             dict(name=f'on_{fn}_epoch_start'),
-            *HookedModel._eval_batch(fn, trainer, model, batches, key),
+            *HookedModel._eval_batch(fn, trainer, model, batches, key, device=device),
             dict(name=f'{fn}_epoch_end', args=([outputs] * batches, )),
             dict(name=f'Callback.on_{fn}_epoch_end', args=(trainer, model)),
             dict(name=f'on_{fn}_epoch_end'),
@@ -333,7 +334,7 @@ class HookedModel(BoringModel):
         ]
 
     @staticmethod
-    def _eval_batch(fn, trainer, model, batches, key):
+    def _eval_batch(fn, trainer, model, batches, key, device=torch.device('cpu')):
         out = []
         outputs = {key: ANY}
         for i in range(batches):
@@ -342,7 +343,7 @@ class HookedModel(BoringModel):
                 dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name=f'on_{fn}_batch_start', args=(ANY, i, 0)),
                 dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, None)),
                 dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name=f'{fn}_step', args=(ANY, i)),
@@ -372,7 +373,17 @@ class HookedModel(BoringModel):
         return out
 
 
-def test_trainer_model_hook_system_fit(tmpdir):
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {},
+        # these precision plugins modify the optimization flow, so testing them explicitly
+        pytest.param(dict(gpus=1, precision=16, plugins='deepspeed'), marks=RunIf(deepspeed=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend='native'), marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend='apex'), marks=RunIf(amp_apex=True, min_gpus=1)),
+    ]
+)
+def test_trainer_model_hook_system_fit(tmpdir, kwargs):
     called = []
     model = HookedModel(called)
     callback = HookedCallback(called)
@@ -385,7 +396,8 @@ def test_trainer_model_hook_system_fit(tmpdir):
         limit_val_batches=val_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
-        callbacks=[callback]
+        callbacks=[callback],
+        **kwargs,
     )
     assert called == [
         dict(name='Callback.on_init_start', args=(trainer, )),
@@ -401,6 +413,9 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'pytorch-lightning_version': __version__,
         'state_dict': ANY,
     }
+    if kwargs.get('amp_backend') == 'native':
+        saved_ckpt['native_amp_scaling_state'] = ANY
+    device = torch.device('cuda:0' if 'gpus' in kwargs else 'cpu')
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
         dict(name='Callback.on_init_end', args=(trainer, )),
@@ -426,7 +441,7 @@ def test_trainer_model_hook_system_fit(tmpdir):
         dict(name='zero_grad'),
         dict(name='Callback.on_validation_start', args=(trainer, model)),
         dict(name='on_validation_start'),
-        *model._eval_epoch('validation', trainer, model, val_batches, 'x'),
+        *model._eval_epoch('validation', trainer, model, val_batches, 'x', device=device),
         dict(name='Callback.on_validation_end', args=(trainer, model)),
         dict(name='on_validation_end'),
         dict(name='train'),
@@ -442,13 +457,13 @@ def test_trainer_model_hook_system_fit(tmpdir):
         dict(name='on_epoch_start'),
         dict(name='Callback.on_train_epoch_start', args=(trainer, model)),
         dict(name='on_train_epoch_start'),
-        *model._train_batch(trainer, model, train_batches),
+        *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
         dict(name='train', args=(False, )),
         dict(name='on_validation_model_eval'),
         dict(name='zero_grad'),
         dict(name='Callback.on_validation_start', args=(trainer, model)),
         dict(name='on_validation_start'),
-        *model._eval_epoch('validation', trainer, model, val_batches, 'x'),
+        *model._eval_epoch('validation', trainer, model, val_batches, 'x', device=device),
         dict(name='Callback.on_validation_end', args=(trainer, model)),
         # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_validation_end`
         dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
