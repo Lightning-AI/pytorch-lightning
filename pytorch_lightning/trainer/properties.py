@@ -491,11 +491,11 @@ class TrainerProperties(ABC):
 
     @property
     def evaluation_loop(self) -> EvaluationDataLoaderLoop:
-        if self.state.fn == TrainerFn.FITTING or self.sanity_checking:
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             return self.fit_loop.validation_loop
-        elif self.validating:
+        elif self.state.fn == TrainerFn.VALIDATING:
             return self.validation_loop
-        elif self.testing:
+        elif self.state.fn == TrainerFn.TESTING:
             return self.test_loop
         raise RuntimeError("The Trainer ``evaluation_loop`` property isn't defined and shouldn't be accessed.")
 
