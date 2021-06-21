@@ -440,8 +440,8 @@ def test_trainer_model_hook_system_fit(tmpdir):
         dict(name='Callback.on_validation_start', args=(trainer, model)),
         dict(name='on_validation_start'),
         *model._eval_epoch('validation', trainer, model, val_batches, 'x'),
-        # FIXME: order correct?
         dict(name='Callback.on_validation_end', args=(trainer, model)),
+        # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_validation_end`
         dict(name='Callback.on_save_checkpoint', args=(trainer, model)),
         dict(
             name='on_save_checkpoint',
@@ -454,7 +454,7 @@ def test_trainer_model_hook_system_fit(tmpdir):
                 'pytorch-lightning_version': __version__,
                 'state_dict': ANY
             }, )
-        ),  # from train epoch end  # FIXME
+        ),
         dict(name='on_validation_end'),
         dict(name='train'),
         dict(name='on_validation_model_train'),
