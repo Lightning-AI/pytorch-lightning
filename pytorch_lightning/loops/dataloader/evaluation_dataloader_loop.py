@@ -96,14 +96,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         assert self.trainer.evaluating or self.trainer.sanity_checking
-        self.validating = True
-
-        self.reload_evaluation_dataloaders()
 
         # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
-        eval_loop_results = super().run(*args, **kwargs)
-
-        return eval_loop_results
+        return super().run(*args, **kwargs)
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
