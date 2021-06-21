@@ -51,6 +51,11 @@ class TrainingEpochLoop(Loop):
         self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
+        self._results = ResultCollection(training=True)
+
+    @property
+    def results(self) -> ResultCollection:
+        return self._results
 
     @property
     def batch_idx(self) -> int:
