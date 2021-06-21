@@ -1019,6 +1019,7 @@ class Trainer(
         return eval_loop_results
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
+        self.reset_predict_dataloader(self.lightning_module)
         return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):

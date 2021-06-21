@@ -21,7 +21,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
         self._dataloaders: Optional[List[DataLoader]] = None
-        self._max_batches: Optional[List[int]] = None
         self._return_predictions: bool = False
 
     @property
@@ -54,6 +53,14 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         return length
 
     @property
+    def max_batches(self) -> List[int]:
+        """The max number of batches this loop will run for each dataloader."""
+        max_batches = self.trainer.num_predict_batches
+        if isinstance(max_batches, int):
+            max_batches = [max_batches] * len(self.dataloaders)
+        return max_batches
+
+    @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders"""
         return self.trainer.predict_dataloaders
@@ -61,7 +68,11 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     @property
     def done(self) -> bool:
         """Whether prediction is finished: Max batches run or all dataloaders processed"""
-        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.should_skip_predict(self._max_batches)
+        return self.current_dataloader_idx >= len(self.dataloaders)
+
+    @property
+    def skip(self) -> bool:
+        return sum(self.max_batches) == 0
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary things (like trainer)"""
@@ -71,13 +82,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         super().reset()
-        self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
-        self._max_batches = self.trainer.num_predict_batches
-
-        # convert max_batches to list
-        if isinstance(self._max_batches, int):
-            self._max_batches = [self._max_batches] * len(self.dataloaders)
-
         self.predictions = []
         self.epoch_batch_indices = []
 
@@ -90,7 +94,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         void(*args, **kwargs)
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dataloader_iter = enumerate(dataloader)
-        dl_max_batches = self._max_batches[self.current_dataloader_idx]
+        dl_max_batches = self.max_batches[self.current_dataloader_idx]
 
         dl_predictions, dl_batch_indices = self.prediction_loop.run(
             dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders, self.return_predictions
@@ -104,14 +108,10 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         self.on_predict_end()
         return results
 
-    def should_skip_predict(self, max_batches: List[int]):
-        """Whether to skip prediction (no batches available)"""
-        return sum(max_batches) == 0
-
     def on_predict_start(self) -> None:
-        """Sets model to eval mode and disables gradients.
-        Also calls ``on_predict_start`` and ``on_predict_epoch_start`` hooks
-
+        """
+        Sets model to eval mode and disables gradients. Also calls ``on_predict_start`` and
+        ``on_predict_epoch_start`` hooks.
         """
         # enable eval mode + no grads
         self.on_predict_model_eval()
