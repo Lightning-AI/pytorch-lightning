@@ -287,7 +287,7 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
-                # TODO: `{,Callback}.on_batch_{start,end}`
+                # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
@@ -402,6 +402,15 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs):
         dict(name='Callback.on_init_end', args=(trainer, )),
     ]
     trainer.fit(model)
+    saved_ckpt = {
+        'callbacks': ANY,
+        'epoch': 1,
+        'global_step': train_batches,
+        'lr_schedulers': ANY,
+        'optimizer_states': ANY,
+        'pytorch-lightning_version': __version__,
+        'state_dict': ANY,
+    }
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
         dict(name='Callback.on_init_end', args=(trainer, )),
@@ -452,19 +461,8 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs):
         *model._eval_epoch('validation', trainer, model, val_batches, 'x'),
         dict(name='Callback.on_validation_end', args=(trainer, model)),
         # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_validation_end`
-        dict(name='Callback.on_save_checkpoint', args=(trainer, model)),
-        dict(
-            name='on_save_checkpoint',
-            args=({
-                'callbacks': ANY,
-                'epoch': 1,
-                'global_step': train_batches,
-                'lr_schedulers': ANY,
-                'optimizer_states': ANY,
-                'pytorch-lightning_version': __version__,
-                'state_dict': ANY
-            }, )
-        ),
+        dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
+        dict(name='on_save_checkpoint', args=(saved_ckpt, )),
         dict(name='on_validation_end'),
         dict(name='train'),
         dict(name='on_validation_model_train'),
