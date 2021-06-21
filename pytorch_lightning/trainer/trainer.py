@@ -993,7 +993,10 @@ class Trainer(
 
         assert self.evaluating
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
+        # reload dataloaders
+        self.evaluation_loop.reload_evaluation_dataloaders()
+
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
             eval_loop_results = self.evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1056,8 +1059,12 @@ class Trainer(
             # hook and callback
             self.on_sanity_check_start()
 
+            # reload dataloaders
+            self.evaluation_loop.reload_evaluation_dataloaders()
+
             # run eval step
-            self.evaluation_loop.run()
+            with torch.no_grad():
+                self.evaluation_loop.run()
 
             self.on_sanity_check_end()
 

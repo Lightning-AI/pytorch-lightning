@@ -14,7 +14,6 @@
 
 from typing import Any, List, Optional, Sequence, Union
 
-import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
@@ -23,7 +22,6 @@ from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -35,10 +33,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         super().__init__()
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
-        self.evaluation_loop = EvaluationEpochLoop()
+        self.epoch_loop = EvaluationEpochLoop()
 
-        self._val_results = ResultCollection(training=False)
-        self._test_results = ResultCollection(training=False)
+        self._results = ResultCollection(training=False)
 
     @property
     def num_dataloaders(self) -> int:
@@ -61,24 +58,20 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         return self.trainer.val_dataloaders
 
     @property
-    def results(self) -> Optional[ResultCollection]:
+    def results(self) -> ResultCollection:
         """Returns the current results"""
-        if self.trainer.validating or self.trainer.sanity_checking:
-            return self._val_results
-        elif self.trainer.testing:
-            return self._test_results
-        return None
+        return self._results
 
     @property
     def predictions(self):
         """Returns the predictions from all dataloaders"""
-        return self.evaluation_loop.predictions
+        return self.epoch_loop.predictions
 
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop to everything necessary (like trainer and accelerators)"""
         super().connect(trainer, *args, **kwargs)
         # TODO: Make the trainer a weakref/proxy
-        self.evaluation_loop.connect(trainer)
+        self.epoch_loop.connect(trainer)
 
     @property
     def done(self) -> bool:
@@ -102,20 +95,14 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
-        if not (self.trainer.evaluating or self.trainer.sanity_checking):
-            rank_zero_warn(
-                f"`validation` was called but the running stage is set to {self.trainer.state.stage}."
-                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
-            )
-            self.validating = True
+        assert self.trainer.evaluating or self.trainer.sanity_checking
+        self.validating = True
 
         self.reload_evaluation_dataloaders()
 
-        with torch.no_grad():
-            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
-            eval_loop_results = super().run(*args, **kwargs)
+        # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
+        eval_loop_results = super().run(*args, **kwargs)
 
-        eval_loop_results = eval_loop_results or []
         return eval_loop_results
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
@@ -134,7 +121,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
-        dl_outputs = self.evaluation_loop.run(
+        dl_outputs = self.epoch_loop.run(
             dataloader_iter,
             self.current_dataloader_idx,
             dl_max_batches,
@@ -169,12 +156,12 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.on_evaluation_end()
 
         # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
+        self.epoch_loop.predictions.to_disk()
 
         # enable train mode again
         self.on_evaluation_model_train()
 
-        return eval_loop_results
+        return eval_loop_results or []
 
     def get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader"""
