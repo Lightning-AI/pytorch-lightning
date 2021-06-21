@@ -116,25 +116,18 @@ class LazyModel(LightningModule):
 
 class DeepNestedModel(LightningModule):
     """ A model with deep nested layers. """
+
     def __init__(self):
         super().__init__()
         self.branch1 = nn.Sequential(
+            nn.Linear(5, 5),
+            nn.Sequential(
                 nn.Linear(5, 5),
                 nn.Sequential(
-                        nn.Linear(5, 5),
-                        nn.Sequential(
-                                nn.Linear(5, 5),
-                                nn.Sequential(
-                                        nn.Linear(5, 5),
-                                        nn.Sequential(
-                                                nn.Linear(5, 5),
-                                                nn.Sequential(
-                                                        nn.Linear(5, 3)
-                                                )
-                                        )
-                                )
-                        )
+                    nn.Linear(5, 5),
+                    nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 3))))
                 )
+            )
         )
         self.branch2 = nn.Linear(5, 10)
         self.head = UnorderedModel()
@@ -375,6 +368,7 @@ def test_max_depth_0_equals_mode_top():
 
 @pytest.mark.parametrize('max_depth', [None, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
-    assert not any([l.count(".") > max_depth for l in
-                    DeepNestedModel().summarize(mode="full", max_depth=max_depth).layer_names
-                    if max_depth is not None])
+    assert not any([
+        l.count(".") > max_depth
+        for l in DeepNestedModel().summarize(mode="full", max_depth=max_depth).layer_names if max_depth is not None
+    ])
