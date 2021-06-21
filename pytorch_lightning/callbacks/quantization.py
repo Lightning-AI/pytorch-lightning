@@ -225,12 +225,12 @@ class QuantizationAwareTraining(Callback):
         for m in self.modules_to_skip:
             if not _recursive_hasattr(model, m):
                 raise MisconfigurationException(
-                    f'You have requested to skip quantization for {m} but it is not a model attribute'
+                    f'{m} is not a model attribute, cannot skip quantization'
                 )
             module = _recursive_getattr(model, m)
             if not isinstance(module, nn.Module):
                 raise MisconfigurationException(
-                    f'You have requested to skip quantization for {m} but it is not a `nn.Module`'
+                    f'{m} is not a `nn.Module`, cannot skip quantization'
                 )
         return True
 

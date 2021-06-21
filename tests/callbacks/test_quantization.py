@@ -23,7 +23,7 @@ from pytorch_lightning.metrics.functional.mean_relative_error import mean_relati
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import RegressionModel
+from tests.helpers.simple_models import RegressionModel, NonQuantizableModel
 
 
 @pytest.mark.parametrize("observe", ['average', 'histogram'])
@@ -114,6 +114,21 @@ def test_quantization_exceptions(tmpdir):
     with pytest.raises(MisconfigurationException, match='one or more of them is not your model attributes'):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
+    qcb = QuantizationAwareTraining(method_to_quantize='on_gpu')
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    with pytest.raises(MisconfigurationException, match='`method_to_quantize` must be a callable model attribute'):
+        trainer.fit(RegressionModel(), datamodule=RegressDataModule())
+
+    qcb = QuantizationAwareTraining(modules_to_skip=['foo'])
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    with pytest.raises(MisconfigurationException, match='foo is not a model attribute, cannot skip quantization'):
+        trainer.fit(RegressionModel(), datamodule=RegressDataModule())
+
+    qcb = QuantizationAwareTraining(modules_to_skip=['on_gpu'])
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    with pytest.raises(MisconfigurationException, match='on_gpu is not a `nn.Module`, cannot skip quantization'):
+        trainer.fit(RegressionModel(), datamodule=RegressDataModule())
+
 
 def custom_trigger_never(trainer):
     return False
@@ -152,3 +167,16 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     trainer.fit(qmodel, datamodule=dm)
 
     assert qcb._forward_calls == expected_count
+
+
+def test_non_quantizable(tmpdir):
+    """QAT params can work around quantization limits of complex layers like embeddings"""
+
+    # Training fit works
+    model = NonQuantizableModel()
+    qcb = QuantizationAwareTraining(method_to_quantize='qforward', modules_to_skip=['embed'])
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    # Quant/dequant stubs are in the appropriate place within the converted model
+    model(model.example_input_array)

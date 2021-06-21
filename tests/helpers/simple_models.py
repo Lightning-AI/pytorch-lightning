@@ -14,9 +14,11 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.metrics import Accuracy, MeanSquaredError
+from tests.helpers.datasets import ExampleDataset
 
 
 class ClassificationModel(LightningModule):
@@ -118,3 +120,38 @@ class RegressionModel(LightningModule):
         out = self.forward(x)
         self.log('test_loss', F.mse_loss(out, y), prog_bar=False)
         self.log('test_MSE', self.test_mse(out, y), prog_bar=True)
+
+
+class NonQuantizableModel(LightningModule):
+    """More challenging model for QAT due to embedding layer"""
+
+    def __init__(self):
+        super(NonQuantizableModel, self).__init__()
+        self.embed = nn.Embedding(16, 64)
+        self.linear = nn.Linear(1024, 64)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        embeddings = self.embed(x)
+        embeddings = embeddings.view(batch_size, -1)
+        feats = self.qforward(embeddings)
+        probs = self.softmax(feats)
+        return probs
+
+    def qforward(self, embeddings):
+        return self.linear(embeddings)
+
+    def training_step(self, batch, batch_idx):
+        out = self.forward(batch)
+        return None
+
+    def train_dataloader(self):
+        return DataLoader(ExampleDataset(self), batch_size=2)
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters())
+
+    @property
+    def example_input_array(self):
+        return torch.zeros(1, 16, dtype=torch.int32)
