@@ -72,12 +72,6 @@ class TrainingBatchLoop(Loop):
         void(*args, **kwargs)
         self.trainer = trainer
 
-    def reset(self) -> None:
-        """Resets the loop state"""
-        self._hiddens = None
-        self.batch_idx = 0
-        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
-
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
 
@@ -104,6 +98,12 @@ class TrainingBatchLoop(Loop):
         super().run(batch, batch_idx, dataloader_idx)
 
         return AttributeDict(signal=0, training_step_output=self.batch_outputs)
+
+    def reset(self) -> None:
+        """Resets the loop state"""
+        self._hiddens = None
+        self.batch_idx = 0
+        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits
