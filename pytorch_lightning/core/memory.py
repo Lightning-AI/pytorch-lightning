@@ -137,6 +137,8 @@ class ModelSummary(object):
              - `top` (default): only the top-level modules will be recorded (the children of the root module)
              - `full`: summarizes all layers and their submodules in the root module
 
+        max_depth: Maximum depth of modules to show when mode="full"
+
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
 
@@ -187,9 +189,10 @@ class ModelSummary(object):
     MODE_DEFAULT = MODE_TOP
     MODES = [MODE_FULL, MODE_TOP]
 
-    def __init__(self, model, mode: str = MODE_DEFAULT):
+    def __init__(self, model, mode: str = MODE_DEFAULT, max_depth: Optional[int] = None):
         self._model = model
         self._mode = mode
+        self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precisin_megabytes in case of mixed precision?
@@ -249,6 +252,14 @@ class ModelSummary(object):
             self._forward_example_input()
         for layer in summary.values():
             layer.detach_hook()
+
+        if self._max_depth is not None:
+            if self._mode == "top":
+                warning_cache.warn("ModelSummary's max_depth parameter only works when mode='full'.")
+            # remove summary entries with depth > max_depth
+            for k in [k for k in summary.keys() if k.count(".") > self._max_depth]:
+                del summary[k]
+
         return summary
 
     def _forward_example_input(self) -> None:

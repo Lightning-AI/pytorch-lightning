@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Add `max_depth` parameter to ModelSummary when mode="full"  ([#8062](https://github.com/PyTorchLightning/pytorch-lightning/pull/8062))
+
 - Add support for named parameter groups in `LearningRateMonitor` ([#7987](https://github.com/PyTorchLightning/pytorch-lightning/pull/7987))
 
 

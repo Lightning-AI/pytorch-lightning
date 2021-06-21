@@ -114,6 +114,36 @@ class LazyModel(LightningModule):
         return self.layer2(self.layer1(inp))
 
 
+class DeepNestedModel(LightningModule):
+    """ A model with deep nested layers. """
+    def __init__(self):
+        super().__init__()
+        self.branch1 = nn.Sequential(
+                nn.Linear(5, 5),
+                nn.Sequential(
+                        nn.Linear(5, 5),
+                        nn.Sequential(
+                                nn.Linear(5, 5),
+                                nn.Sequential(
+                                        nn.Linear(5, 5),
+                                        nn.Sequential(
+                                                nn.Linear(5, 5),
+                                                nn.Sequential(
+                                                        nn.Linear(5, 3)
+                                                )
+                                        )
+                                )
+                        )
+                )
+        )
+        self.branch2 = nn.Linear(5, 10)
+        self.head = UnorderedModel()
+        self.example_input_array = torch.rand(2, 5)
+
+    def forward(self, inp):
+        return self.head(self.branch1(inp), self.branch2(inp))
+
+
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
@@ -336,3 +366,15 @@ def test_lazy_model_summary():
             # https://github.com/pytorch/pytorch/issues/58350
             assert summary.total_parameters == 7
             assert summary.trainable_parameters == 7
+
+
+def test_max_depth_0_equals_mode_top():
+    assert str(DeepNestedModel().summarize(mode="top")) \
+           == str(DeepNestedModel().summarize(mode="full", max_depth=0))
+
+
+@pytest.mark.parametrize('max_depth', [None, 0, 1, 3, 999])
+def test_max_depth_param(max_depth):
+    assert not any([l.count(".") > max_depth for l in
+                    DeepNestedModel().summarize(mode="full", max_depth=max_depth).layer_names
+                    if max_depth is not None])
