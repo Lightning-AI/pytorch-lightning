@@ -653,7 +653,7 @@ class TrainingBatchLoop(Loop):
                     self.warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5",
+                        " the old signature will be removed in v1.5"
                     )
                 step_kwargs['optimizer_idx'] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
