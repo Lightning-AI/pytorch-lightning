@@ -256,9 +256,10 @@ class ModelSummary(object):
         if self._max_depth is not None:
             if self._mode == "top":
                 warning_cache.warn("ModelSummary's max_depth parameter only works when mode='full'.")
-            # remove summary entries with depth > max_depth
-            for k in [k for k in summary.keys() if k.count(".") > self._max_depth]:
-                del summary[k]
+            else:
+                # remove summary entries with depth > max_depth
+                for k in [k for k in summary.keys() if k.count(".") > self._max_depth]:
+                    del summary[k]
 
         return summary
 
