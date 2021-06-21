@@ -14,12 +14,13 @@
 import copy
 import inspect
 import re
+import types
 from argparse import Namespace
-from typing import Union, Any
+from typing import Any, Optional, Sequence, Union
 
-from pytorch_lightning.core.saving import PRIMITIVE_TYPES, ALLOWED_CONFIG_TYPES
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import AttributeDict
-from pytorch_lightning.utilities.parsing import get_init_args
+from pytorch_lightning.utilities.parsing import save_hyperparameters
 
 
 class HyperparametersMixin:
@@ -29,76 +30,71 @@ class HyperparametersMixin:
         "hparams_initial"
     ]
 
-    def save_hyperparameters(self, *args, frame=None) -> None:
-        """Save all model arguments.
-
+    def save_hyperparameters(
+        self,
+        *args,
+        ignore: Optional[Union[Sequence[str], str]] = None,
+        frame: Optional[types.FrameType] = None
+    ) -> None:
+        """Save model arguments to ``hparams`` attribute.
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or argumenst from class `__init__`
-
-        >>> from collections import OrderedDict
-        >>> class ManuallyArgsModel(HyperparametersMixin):
-        ...     def __init__(self, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # manually assign arguments
-        ...         self.save_hyperparameters('arg1', 'arg3')
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg3": 3.14
-
-        >>> class AutomaticArgsModel(HyperparametersMixin):
-        ...     def __init__(self, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # equivalent automatic
-        ...         self.save_hyperparameters()
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg2": abc
-        "arg3": 3.14
-
-        >>> class SingleArgModel(HyperparametersMixin):
-        ...     def __init__(self, params):
-        ...         super().__init__()
-        ...         # manually assign single argument
-        ...         self.save_hyperparameters(params)
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-        >>> model.hparams
-        "p1": 1
-        "p2": abc
-        "p3": 3.14
+                or string names or arguments from class ``__init__``
+            ignore: an argument name or a list of argument names from
+                class ``__init__`` to be ignored
+            frame: a frame object. Default is None
+        Example::
+            >>> class ManuallyArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # manually assign arguments
+            ...         self.save_hyperparameters('arg1', 'arg3')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
+            >>> class AutomaticArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # equivalent automatic
+            ...         self.save_hyperparameters()
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg2": abc
+            "arg3": 3.14
+            >>> class SingleArgModel(LightningModule):
+            ...     def __init__(self, params):
+            ...         super().__init__()
+            ...         # manually assign single argument
+            ...         self.save_hyperparameters(params)
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
+            >>> model.hparams
+            "p1": 1
+            "p2": abc
+            "p3": 3.14
+            >>> class ManuallyArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # pass argument(s) to ignore as a string or in a list
+            ...         self.save_hyperparameters(ignore='arg2')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
         """
+        # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back
-        init_args = get_init_args(frame)
-        assert init_args, "failed to inspect the self init"
-        if not args:
-            # take all arguments
-            hp = init_args
-            self._hparams_name = "kwargs" if hp else None
-        else:
-            # take only listed arguments in `save_hparams`
-            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
-            if len(isx_non_str) == 1:
-                hp = args[isx_non_str[0]]
-                cand_names = [k for k, v in init_args.items() if v == hp]
-                self._hparams_name = cand_names[0] if cand_names else None
-            else:
-                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
-                self._hparams_name = "kwargs"
-
-        # `hparams` are expected here
-        if hp:
-            self._set_hparams(hp)
-        # make deep copy so  there is not other runtime changes reflected
-        self._hparams_initial = copy.deepcopy(self._hparams)
+        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         hp = self._to_hparams_dict(hp)
@@ -121,7 +117,7 @@ class HyperparametersMixin:
         return hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, str]:
+    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams

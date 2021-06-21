@@ -13,15 +13,16 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from unittest import mock
-from unittest.mock import call, PropertyMock
+from unittest.mock import PropertyMock, call
 
 import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -551,6 +552,26 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         ])
 
 
+class DataModuleWithHparams(LightningDataModule):
+    def __init__(self, arg0, arg1, kwarg0=None):
+        super().__init__()
+
+        self.arg0 = arg0
+        self.arg1 = arg1
+        self.kwarg0 = kwarg0
+
+        self.save_hyperparameters()
+
+    def prepare_data(self, *args, **kwargs):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
+
+    def train_dataloader(self, *args, **kwargs):
+        pass
+
+
 def test_simple_hyperparameters_saving():
-    data = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
-    assert data.hparams == AttributeDict({'data_dir': data.data_dir})
+    data = DataModuleWithHparams(10, "foo", kwarg0="bar")
+    assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})

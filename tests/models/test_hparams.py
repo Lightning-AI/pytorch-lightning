@@ -30,7 +30,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
-from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
+from pytorch_lightning.utilities import AttributeDict, _HYDRA_EXPERIMENTAL_AVAILABLE, is_picklable
 from tests.helpers import BoringModel, RandomDataset
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
@@ -783,7 +783,7 @@ class DataModuleWithoutHparams(LightningDataModule):
 def test_extending_existing_hparams(tmpdir):
     """Test that the new hparams are added to the existing ones."""
     hparams = {'arg1': 'abc'}
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
     old_hparams = copy.deepcopy(model.hparams)
     model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
@@ -809,7 +809,7 @@ def test_extending_non_existing_hparams(tmpdir):
 def test_extending_with_namespace(tmpdir):
     """Test that we can extend hparams with a namespace."""
     hparams = Namespace(arg1='abc')
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
     old_hparams = copy.deepcopy(model.hparams)
     model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
@@ -821,7 +821,7 @@ def test_extending_with_namespace(tmpdir):
 def test_extend_with_unsupported_hparams(tmpdir):
     """Test that usupported hparams structures raise an error when extending."""
     hparams = ('arg1', 'abc')
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
 
     with pytest.raises(ValueError):
         model.add_datamodule_hparams(DataModuleWithHparams(hparams))
@@ -830,7 +830,7 @@ def test_extend_with_unsupported_hparams(tmpdir):
 def test_extend_with_primitive_hparams(tmpdir):
     """Test that primitives raise an error when extending."""
     hparams = 5
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
 
     with pytest.raises(ValueError):
         model.add_datamodule_hparams(DataModuleWithHparams(hparams))
@@ -838,9 +838,23 @@ def test_extend_with_primitive_hparams(tmpdir):
 
 def test_extend_with_collision(tmp_path):
     """Test that new hparams cannot collide with existing hparams."""
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
     with pytest.raises(ValueError):
         model.add_datamodule_hparams(DataModuleWithHparams({'batch_size': 5}))
+
+
+class BoringDataModule(LightningDataModule):
+    def __init__(self, hparams):
+        super().__init__()
+        self.data = None
+
+        self.hparams = hparams
+
+    def setup(self, stage: Optional[str] = None):
+        self.data = torch.randn(10, 32)
+
+    def train_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(TensorDataset(self.data), batch_size=10)
 
 
 def test_adding_datamodule_hparams(tmpdir):
@@ -859,7 +873,7 @@ def test_adding_datamodule_hparams(tmpdir):
     assert hparams == model.hparams_initial
 
     path_yaml = os.path.join(trainer.logger.log_dir, trainer.logger.NAME_HPARAMS_FILE)
-    logged_hparams = load_hparams_from_yaml(path_yaml)
+    logged_hparams = AttributeDict(load_hparams_from_yaml(path_yaml))
     assert hparams == logged_hparams
 
 
@@ -875,7 +889,7 @@ def test_colliding_datamodule_hparams(tmpdir):
 
 
 def test_adding_hparams_of_datamodule_without_hparams(tmpdir):
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
     hparams = copy.deepcopy(model.hparams)
     model.add_datamodule_hparams(DataModuleWithoutHparams())
 
