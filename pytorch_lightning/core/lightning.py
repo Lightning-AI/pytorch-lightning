@@ -14,13 +14,11 @@
 """nn.Module with additional great features."""
 
 import collections
-import copy
 import inspect
 import logging
 import numbers
 import os
 import tempfile
-import types
 import uuid
 from abc import ABC
 from pathlib import Path
@@ -32,12 +30,12 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -45,9 +43,9 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
+from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT, _METRIC_COLLECTION
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -1880,7 +1878,8 @@ class LightningModule(
             colliding_keys = set(colliding_keys)
             if colliding_keys:
                 raise ValueError(
-                        f'Error while adding datamodule hparams: the keys {colliding_keys} are already present in the model hparams.'
+                        f'Error while adding datamodule hparams: the keys {colliding_keys} '
+                        f'are already present in the model hparams.'
                 )
             self.hparams.update(hparams)
             self._hparams_initial.update(hparams)

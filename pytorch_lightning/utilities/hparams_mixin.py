@@ -37,14 +37,16 @@ class HyperparametersMixin:
         frame: Optional[types.FrameType] = None
     ) -> None:
         """Save model arguments to ``hparams`` attribute.
+
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
                 or string names or arguments from class ``__init__``
             ignore: an argument name or a list of argument names from
                 class ``__init__`` to be ignored
             frame: a frame object. Default is None
+
         Example::
-            >>> class ManuallyArgsModel(LightningModule):
+            >>> class ManuallyArgsModel(HyperparametersMixin):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # manually assign arguments
@@ -55,7 +57,8 @@ class HyperparametersMixin:
             >>> model.hparams
             "arg1": 1
             "arg3": 3.14
-            >>> class AutomaticArgsModel(LightningModule):
+
+            >>> class AutomaticArgsModel(HyperparametersMixin):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # equivalent automatic
@@ -67,7 +70,8 @@ class HyperparametersMixin:
             "arg1": 1
             "arg2": abc
             "arg3": 3.14
-            >>> class SingleArgModel(LightningModule):
+
+            >>> class SingleArgModel(HyperparametersMixin):
             ...     def __init__(self, params):
             ...         super().__init__()
             ...         # manually assign single argument
@@ -79,7 +83,8 @@ class HyperparametersMixin:
             "p1": 1
             "p2": abc
             "p3": 3.14
-            >>> class ManuallyArgsModel(LightningModule):
+
+            >>> class ManuallyArgsModel(HyperparametersMixin):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # pass argument(s) to ignore as a string or in a list
@@ -150,7 +155,7 @@ class HyperparametersMixin:
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
-        except Exception as e:
+        except Exception:
             return "hparams"
 
         return None
