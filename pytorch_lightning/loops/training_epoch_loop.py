@@ -158,7 +158,7 @@ class TrainingEpochLoop(Loop):
         should_check_val = self.should_check_val_fx(self.iteration_count, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
-            self._run_evaluation()
+            self._run_validation()
             self.trainer.training = True
 
         # -----------------------------------------
@@ -178,7 +178,7 @@ class TrainingEpochLoop(Loop):
         if self.done:
             raise StopIteration
 
-    def _run_evaluation(self):
+    def _run_validation(self):
         # reload dataloaders
         self.trainer.fit_loop.validation_loop.reload_evaluation_dataloaders()
 
