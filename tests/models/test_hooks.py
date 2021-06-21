@@ -400,6 +400,7 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'optimizer_states': ANY,
         'pytorch-lightning_version': __version__,
         'state_dict': ANY,
+        'loops': ANY,
     }
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
@@ -757,7 +758,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
                 'state_dict': ANY,
-                'loops_state_dict': {
+                'loops': {
                     "result_collections": ANY
                 }
             }, )
