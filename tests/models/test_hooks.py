@@ -489,7 +489,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
     # resume from checkpoint with HookedModel
     called = []
     model = HookedModel(called)
-    callback = HookedCallback(called)
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -498,13 +497,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         limit_val_batches=0,
         progress_bar_refresh_rate=0,
         weights_summary=None,
-        callbacks=[callback],
         resume_from_checkpoint=best_model_path,
     )
-    assert called == [
-        dict(name='Callback.on_init_start', args=(trainer, )),
-        dict(name='Callback.on_init_end', args=(trainer, )),
-    ]
     assert called == []
     trainer.fit(model)
     expected = [
@@ -526,7 +520,10 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         'on_train_start',
         'on_epoch_start',
         'on_train_epoch_start',
-        *(HookedModel._train_batch() * train_batches),
+        *[
+            h['name']
+            for h in HookedModel._train_batch(trainer, model, train_batches) if not h['name'].startswith('Callback')
+        ],
         'training_epoch_end',
         'on_train_epoch_end',
         'on_epoch_end',
