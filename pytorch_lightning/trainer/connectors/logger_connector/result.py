@@ -340,6 +340,7 @@ class ResultCollection(dict):
     @property
     def result_metrics(self) -> List[ResultMetric]:
         o = []
+
         def append_fn(v: ResultMetric) -> None:
             o.append(v)
 
