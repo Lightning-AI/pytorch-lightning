@@ -34,11 +34,16 @@ class EvaluationLoop(object):
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
         self.num_dataloaders: Optional[int] = None
-        self._results = ResultCollection(training=False)
+        self._val_results = ResultCollection(training=False)
+        self._test_results = ResultCollection(training=False)
 
     @property
     def results(self) -> Optional[ResultCollection]:
-        return self._results
+        if self.trainer.validating or self.trainer.sanity_checking:
+            return self._val_results
+        elif self.trainer.testing:
+            return self._test_results
+        return None
 
     def on_trainer_init(self) -> None:
         self.trainer.num_sanity_val_batches = []

@@ -61,14 +61,13 @@ class Loop(ABC):
         """Connects Loop with all the necessary things like connectors and accelerators."""
         self.trainer = proxy(trainer)
 
-    def on_skip(self):
+    def on_skip(self) -> Optional[Any]:
         """
-        The function run when loop should be skipped.
+        The function to run when :attr:`run` should be skipped.
 
         Returns:
-            default output of :attr`on_run_end` (often outputs collected from each step of the loop)
+            the default output value of :attr:`on_run_end`
         """
-        pass
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
@@ -78,7 +77,7 @@ class Loop(ABC):
         until :attr:`done` evaluates to ``True``.
 
         Returns:
-            the output of :attr`on_run_end` (often outputs collected from each step of the loop)
+            the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
         if self.skip:
             return self.on_skip()

@@ -63,7 +63,7 @@ class FitLoop(Loop):
             return self.training_loop.results
         elif self.trainer.validating:
             return self.validation_loop.results
-        raise RuntimeError("FitLoop `results` property isn't defined. Accessed outside of scope. ")
+        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
     def current_epoch(self) -> int:

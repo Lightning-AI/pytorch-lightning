@@ -99,8 +99,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         assert self.trainer.evaluating or self.trainer.sanity_checking
-
-        # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
+        # the model is set to eval mode in `on_run_start()` and back to train mode in `on_run_end()`
         return super().run(*args, **kwargs)
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
@@ -159,7 +158,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         # enable train mode again
         self.on_evaluation_model_train()
 
-        return eval_loop_results or []
+        return eval_loop_results
 
     def get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader"""
