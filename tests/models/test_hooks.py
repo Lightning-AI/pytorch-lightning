@@ -287,7 +287,7 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
-                # TODO: `{,Callback}.on_batch_{start,end}`
+                # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
