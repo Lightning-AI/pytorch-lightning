@@ -21,55 +21,58 @@ import json
 import os
 import sys
 
+import torch
 
-try:
-    import horovod.torch as hvd
-except ImportError:
-    print('You requested to import Horovod which is missing or not supported for your OS.')
-
-PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.abspath(os.path.join(PATH_HERE, '..', '..', '..', '..'))
-sys.path.insert(0, os.path.abspath(PATH_ROOT))
+# this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
+PYTHONPATH = os.getenv('PYTHONPATH', '')
+if ':' in PYTHONPATH:
+    sys.path = PYTHONPATH.split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
-# Move project root to the front of the search path, as some imports may have reordered things
-idx = sys.path.index(PATH_ROOT)
-sys.path[0], sys.path[idx] = sys.path[idx], sys.path[0]
+if _HOROVOD_AVAILABLE:
+    import horovod.torch as hvd  # noqa: E402
+else:
+    print('You requested to import Horovod which is missing or not supported for your OS.')
 
-from tests.base import EvalModelTemplate  # noqa: E402
-from tests.base.develop_pipelines import run_prediction  # noqa: E402
-from tests.base.develop_utils import set_random_master_port, reset_seed  # noqa: E402
-
+from tests.helpers import BoringModel  # noqa: E402
+from tests.helpers.utils import reset_seed, set_random_master_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainer-options', required=True)
 parser.add_argument('--on-gpu', action='store_true', default=False)
 
 
-def run_test_from_config(trainer_options):
+def run_test_from_config(trainer_options, on_gpu, check_size=True):
     """Trains the default model with the given config."""
     set_random_master_port()
     reset_seed()
 
     ckpt_path = trainer_options['weights_save_path']
-    trainer_options.update(checkpoint_callback=ModelCheckpoint(dirpath=ckpt_path))
+    trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
-    model = EvalModelTemplate()
+    class TestModel(BoringModel):
 
+        def training_epoch_end(self, outputs) -> None:
+            res = self.trainer.training_type_plugin.reduce(torch.tensor(1., device=self.device), reduce_op="sum")
+            assert res.sum() == self.trainer.training_type_plugin.world_size
+
+    model = TestModel()
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # Horovod should be initialized following training. If not, this will raise an exception.
-    assert hvd.size() == 2
+    if check_size:
+        assert hvd.size() == 2
 
     if trainer.global_rank > 0:
         return
 
     # test model loading
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = BoringModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -77,18 +80,21 @@ def run_test_from_config(trainer_options):
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(dataloader, pretrained_model)
+        batch = next(iter(dataloader))
+        pretrained_model(batch)
 
-    # test HPC loading / saving
+    # test HPC saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
-    trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
+    # test HPC loading
+    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
+    trainer.checkpoint_connector.restore(checkpoint_path)
 
-    if args.on_gpu:
-        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+    if on_gpu:
+        trainer = Trainer(gpus=1, accelerator='horovod', max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    run_test_from_config(json.loads(args.trainer_options))
+    run_test_from_config(json.loads(args.trainer_options), args.on_gpu)

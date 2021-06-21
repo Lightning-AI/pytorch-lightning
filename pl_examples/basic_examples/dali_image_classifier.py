@@ -12,31 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
-from argparse import ArgumentParser
 from random import shuffle
 from warnings import warn
 
 import numpy as np
 import torch
+from packaging.version import Version
 from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, DALI_AVAILABLE
+from pl_examples import _DALI_AVAILABLE, _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
-if TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
+if _TORCHVISION_MNIST_AVAILABLE:
+    from torchvision.datasets import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
-if DALI_AVAILABLE:
-    import nvidia.dali.ops as ops
+if _DALI_AVAILABLE:
+    from nvidia.dali import __version__ as dali_version
+    from nvidia.dali import ops
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+
+    NEW_DALI_API = Version(dali_version) >= Version('0.28.0')
+    if NEW_DALI_API:
+        from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 else:
     warn('NVIDIA DALI is not available')
-    ops, Pipeline, DALIClassificationIterator = ..., ABC, ABC
+    ops, Pipeline, DALIClassificationIterator, LastBatchPolicy = ..., ABC, ABC, ABC
 
 
 class ExternalMNISTInputIterator(object):
@@ -84,29 +92,50 @@ class ExternalSourcePipeline(Pipeline):
 
 class DALIClassificationLoader(DALIClassificationIterator):
     """
-    This class extends DALI's original DALIClassificationIterator with the __len__() function so that we can call len() on it
+    This class extends DALI's original `DALIClassificationIterator` with the `__len__()` function
+     so that we can call `len()` on it
     """
 
     def __init__(
-            self,
-            pipelines,
-            size=-1,
-            reader_name=None,
-            auto_reset=False,
-            fill_last_batch=True,
-            dynamic_shape=False,
-            last_batch_padded=False,
+        self,
+        pipelines,
+        size=-1,
+        reader_name=None,
+        auto_reset=False,
+        fill_last_batch=True,
+        dynamic_shape=False,
+        last_batch_padded=False,
     ):
-        super().__init__(pipelines, size, reader_name, auto_reset, fill_last_batch, dynamic_shape, last_batch_padded)
+        if NEW_DALI_API:
+            last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
+            super().__init__(
+                pipelines,
+                size,
+                reader_name,
+                auto_reset,
+                dynamic_shape,
+                last_batch_policy=last_batch_policy,
+                last_batch_padded=last_batch_padded
+            )
+        else:
+            super().__init__(
+                pipelines, size, reader_name, auto_reset, fill_last_batch, dynamic_shape, last_batch_padded
+            )
+        self._fill_last_batch = fill_last_batch
 
     def __len__(self):
         batch_count = self._size // (self._num_gpus * self.batch_size)
-        last_batch = 1 if self._fill_last_batch else 0
+        last_batch = 1 if self._fill_last_batch else 1
         return batch_count + last_batch
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hidden_dim=128, learning_rate=1e-3):
+
+    def __init__(
+        self,
+        hidden_dim: int = 128,
+        learning_rate: float = 0.0001,
+    ):
         super().__init__()
         self.save_hyperparameters()
 
@@ -143,65 +172,59 @@ class LitClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--hidden_dim', type=int, default=128)
-        parser.add_argument('--learning_rate', type=float, default=0.0001)
-        return parser
+
+class MyDataModule(pl.LightningDataModule):
+
+    def __init__(
+        self,
+        batch_size: int = 32,
+    ):
+        super().__init__()
+        dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+        self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+        self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
+
+        eii_train = ExternalMNISTInputIterator(self.mnist_train, batch_size)
+        eii_val = ExternalMNISTInputIterator(self.mnist_val, batch_size)
+        eii_test = ExternalMNISTInputIterator(self.mnist_test, batch_size)
+
+        self.pipe_train = ExternalSourcePipeline(batch_size=batch_size, eii=eii_train, num_threads=2, device_id=0)
+        self.pipe_val = ExternalSourcePipeline(batch_size=batch_size, eii=eii_val, num_threads=2, device_id=0)
+        self.pipe_test = ExternalSourcePipeline(batch_size=batch_size, eii=eii_test, num_threads=2, device_id=0)
+
+    def train_dataloader(self):
+        return DALIClassificationLoader(
+            self.pipe_train,
+            size=len(self.mnist_train),
+            auto_reset=True,
+            fill_last_batch=True,
+        )
+
+    def val_dataloader(self):
+        return DALIClassificationLoader(
+            self.pipe_val,
+            size=len(self.mnist_val),
+            auto_reset=True,
+            fill_last_batch=False,
+        )
+
+    def test_dataloader(self):
+        return DALIClassificationLoader(
+            self.pipe_test,
+            size=len(self.mnist_test),
+            auto_reset=True,
+            fill_last_batch=False,
+        )
 
 
 def cli_main():
-    if not DALI_AVAILABLE:
+    if not _DALI_AVAILABLE:
         return
 
-    pl.seed_everything(1234)
-
-    # ------------
-    # args
-    # ------------
-    parser = ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser = pl.Trainer.add_argparse_args(parser)
-    parser = LitClassifier.add_model_specific_args(parser)
-    args = parser.parse_args()
-
-    # ------------
-    # data
-    # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
-    mnist_train, mnist_val = random_split(dataset, [55000, 5000])
-
-    eii_train = ExternalMNISTInputIterator(mnist_train, args.batch_size)
-    eii_val = ExternalMNISTInputIterator(mnist_val, args.batch_size)
-    eii_test = ExternalMNISTInputIterator(mnist_test, args.batch_size)
-
-    pipe_train = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_train, num_threads=2, device_id=0)
-    train_loader = DALIClassificationLoader(pipe_train, size=len(mnist_train), auto_reset=True, fill_last_batch=False)
-
-    pipe_val = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_val, num_threads=2, device_id=0)
-    val_loader = DALIClassificationLoader(pipe_val, size=len(mnist_val), auto_reset=True, fill_last_batch=False)
-
-    pipe_test = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_test, num_threads=2, device_id=0)
-    test_loader = DALIClassificationLoader(pipe_test, size=len(mnist_test), auto_reset=True, fill_last_batch=False)
-
-    # ------------
-    # model
-    # ------------
-    model = LitClassifier(args.hidden_dim, args.learning_rate)
-
-    # ------------
-    # training
-    # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
-    trainer.fit(model, train_loader, val_loader)
-
-    # ------------
-    # testing
-    # ------------
-    trainer.test(test_dataloaders=test_loader)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)
 
 
 if __name__ == "__main__":
+    cli_lightning_logo()
     cli_main()

@@ -11,22 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.metric import Metric
 
-from pytorch_lightning.metrics.classification import (
+from pytorch_lightning.metrics.classification import (  # noqa: F401
     Accuracy,
-    Precision,
-    Recall,
-    FBeta,
+    AUC,
+    AUROC,
+    AveragePrecision,
+    ConfusionMatrix,
     F1,
-    ConfusionMatrix
+    FBeta,
+    HammingDistance,
+    IoU,
+    Precision,
+    PrecisionRecallCurve,
+    Recall,
+    ROC,
+    StatScores,
 )
-
-from pytorch_lightning.metrics.regression import (
-    MeanSquaredError,
-    MeanAbsoluteError,
-    MeanSquaredLogError,
+from pytorch_lightning.metrics.metric import Metric, MetricCollection  # noqa: F401
+from pytorch_lightning.metrics.regression import (  # noqa: F401
     ExplainedVariance,
+    MeanAbsoluteError,
+    MeanSquaredError,
+    MeanSquaredLogError,
     PSNR,
+    R2Score,
     SSIM,
+)
+from pytorch_lightning.utilities import rank_zero_deprecation
+
+rank_zero_deprecation(
+    "`pytorch_lightning.metrics.*` module has been renamed to `torchmetrics.*` and split off to its own package"
+    " (https://github.com/PyTorchLightning/metrics) since v1.3 and will be removed in v1.5"
 )

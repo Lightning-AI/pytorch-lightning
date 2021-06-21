@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 To run this template just do:
 python generative_adversarial_net.py
@@ -13,17 +26,31 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa
-import torchvision
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
 
-from pytorch_lightning.core import LightningModule, LightningDataModule
+from pl_examples import _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+
+if _TORCHVISION_AVAILABLE:
+    import torchvision
+    from torchvision import transforms
+if _TORCHVISION_MNIST_AVAILABLE:
+    from torchvision.datasets import MNIST
+else:
+    from tests.helpers.datasets import MNIST
 
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim, img_shape):
+    """
+    >>> Generator(img_shape=(1, 8, 8))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Generator(
+      (model): Sequential(...)
+    )
+    """
+
+    def __init__(self, latent_dim: int = 100, img_shape: tuple = (1, 28, 28)):
         super().__init__()
         self.img_shape = img_shape
 
@@ -40,7 +67,7 @@ class Generator(nn.Module):
             *block(256, 512),
             *block(512, 1024),
             nn.Linear(1024, int(np.prod(img_shape))),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, z):
@@ -50,6 +77,13 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+    """
+    >>> Discriminator(img_shape=(1, 28, 28))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Discriminator(
+      (model): Sequential(...)
+    )
+    """
+
     def __init__(self, img_shape):
         super().__init__()
 
@@ -69,32 +103,51 @@ class Discriminator(nn.Module):
 
 
 class GAN(LightningModule):
-    @staticmethod
-    def add_argparse_args(parent_parser: ArgumentParser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-        parser.add_argument("--b1", type=float, default=0.5,
-                            help="adam: decay of first order momentum of gradient")
-        parser.add_argument("--b2", type=float, default=0.999,
-                            help="adam: decay of second order momentum of gradient")
-        parser.add_argument("--latent_dim", type=int, default=100,
-                            help="dimensionality of the latent space")
+    """
+    >>> GAN(img_shape=(1, 8, 8))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    GAN(
+      (generator): Generator(
+        (model): Sequential(...)
+      )
+      (discriminator): Discriminator(
+        (model): Sequential(...)
+      )
+    )
+    """
 
-        return parser
-
-    def __init__(self, hparams: Namespace):
+    def __init__(
+        self,
+        img_shape: tuple = (1, 28, 28),
+        lr: float = 0.0002,
+        b1: float = 0.5,
+        b2: float = 0.999,
+        latent_dim: int = 100,
+    ):
         super().__init__()
 
-        self.hparams = hparams
+        self.save_hyperparameters()
 
         # networks
-        mnist_shape = (1, 28, 28)
-        self.generator = Generator(latent_dim=self.hparams.latent_dim, img_shape=mnist_shape)
-        self.discriminator = Discriminator(img_shape=mnist_shape)
+        self.generator = Generator(latent_dim=self.hparams.latent_dim, img_shape=img_shape)
+        self.discriminator = Discriminator(img_shape=img_shape)
 
         self.validation_z = torch.randn(8, self.hparams.latent_dim)
 
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
+
+    @staticmethod
+    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group=True):
+        if use_argument_group:
+            parser = parent_parser.add_argument_group("pl.GAN")
+            parser_out = parent_parser
+        else:
+            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser_out = parser
+        parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+        parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
+        parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
+        parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+        return parser_out
 
     def forward(self, z):
         return self.generator(z)
@@ -137,8 +190,7 @@ class GAN(LightningModule):
             fake = torch.zeros(imgs.size(0), 1)
             fake = fake.type_as(imgs)
 
-            fake_loss = self.adversarial_loss(
-                self.discriminator(self(z).detach()), fake)
+            fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
@@ -166,14 +218,18 @@ class GAN(LightningModule):
 
 
 class MNISTDataModule(LightningDataModule):
+    """
+    >>> MNISTDataModule()  # doctest: +ELLIPSIS
+    <...generative_adversarial_net.MNISTDataModule object at ...>
+    """
+
     def __init__(self, batch_size: int = 64, data_path: str = os.getcwd(), num_workers: int = 4):
         super().__init__()
         self.batch_size = batch_size
         self.data_path = data_path
         self.num_workers = num_workers
 
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                                             transforms.Normalize([0.5], [0.5])])
+        self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
         self.dims = (1, 28, 28)
 
     def prepare_data(self, stage=None):
@@ -194,7 +250,7 @@ def main(args: Namespace) -> None:
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = GAN(args)
+    model = GAN(lr=args.lr, b1=args.b1, b2=args.b2, latent_dim=args.latent_dim)
 
     # ------------------------
     # 2 INIT TRAINER
@@ -211,6 +267,7 @@ def main(args: Namespace) -> None:
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     parser = ArgumentParser()
 
     # Add program level args, if any.

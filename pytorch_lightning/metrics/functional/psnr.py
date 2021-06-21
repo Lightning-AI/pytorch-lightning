@@ -1,64 +1,35 @@
-
-from typing import Tuple, Optional
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from typing import Optional, Tuple, Union
 
 import torch
+from torchmetrics.functional import psnr as _psnr
+
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-def _psnr_compute(
-    sum_squared_error: torch.Tensor,
-    n_obs: int,
-    data_range: float,
-    base: float = 10.0,
-    reduction: str = 'elementwise_mean',
-) -> torch.Tensor:
-    psnr_base_e = 2 * torch.log(data_range) - torch.log(sum_squared_error / n_obs)
-    psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
-    return psnr
-
-
-def _psnr_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
-    sum_squared_error = torch.sum(torch.pow(preds - target, 2))
-    n_obs = target.numel()
-    return sum_squared_error, n_obs
-
-
+@deprecated_metrics(target=_psnr)
 def psnr(
     preds: torch.Tensor,
     target: torch.Tensor,
     data_range: Optional[float] = None,
     base: float = 10.0,
     reduction: str = 'elementwise_mean',
+    dim: Optional[Union[int, Tuple[int, ...]]] = None,
 ) -> torch.Tensor:
     """
-    Computes the peak signal-to-noise ratio
-
-    Args:
-        preds: estimated signal
-        target: groun truth signal
-        data_range: the range of the data. If None, it is determined from the data (max - min)
-        base: a base of a logarithm to use (default: 10)
-        reduction: a method to reduce metric score over labels.
-
-            - ``'elementwise_mean'``: takes the mean (default)
-            - ``'sum'``: takes the sum
-            - ``'none'``: no reduction will be applied
-        return_state: returns a internal state that can be ddp reduced
-            before doing the final calculation
-
-    Return:
-        Tensor with PSNR score
-
-    Example:
-
-        >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
-        >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
-        >>> psnr(pred, target)
-        tensor(2.5527)
-
+    .. deprecated::
+        Use :func:`torchmetrics.functional.psnr`. Will be removed in v1.5.0.
     """
-    if data_range is None:
-        data_range = target.max() - target.min()
-    else:
-        data_range = torch.tensor(float(data_range))
-    sum_squared_error, n_obs = _psnr_update(preds, target)
-    return _psnr_compute(sum_squared_error, n_obs, data_range, base, reduction)
+    return void(preds, target, data_range, base, reduction, dim)

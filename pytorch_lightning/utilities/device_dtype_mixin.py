@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 from torch.nn import Module
@@ -37,12 +37,13 @@ class DeviceDtypeModuleMixin(Module):
 
     @property
     def device(self) -> Union[str, torch.device]:
-        return self._device
+        device = self._device
 
-    @device.setter
-    def device(self, new_device: Union[str, torch.device]):
-        # Necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
+        # make this more explicit to always include the index
+        if device.type == 'cuda' and device.index is None:
+            return torch.device(f'cuda:{torch.cuda.current_device()}')
+
+        return device
 
     def to(self, *args, **kwargs) -> Module:
         """Moves and/or casts the parameters and buffers.
@@ -107,7 +108,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(device=out[0], dtype=out[1])
         return super().to(*args, **kwargs)
 
-    def cuda(self, device: Optional[int] = None) -> Module:
+    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Module:
         """Moves all model parameters and buffers to the GPU.
         This also makes associated parameters and buffers different objects. So
         it should be called before constructing optimizer if the module will
@@ -120,11 +121,13 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.__update_properties(device=torch.device('cuda', index=device))
+        property_device = device if isinstance(device, torch.device) else torch.device('cuda', index=device)
+        self.__update_properties(device=property_device)
         return super().cuda(device=device)
 
     def cpu(self) -> Module:
         """Moves all model parameters and buffers to the CPU.
+
         Returns:
             Module: self
         """

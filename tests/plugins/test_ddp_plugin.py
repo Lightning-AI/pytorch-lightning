@@ -1,123 +1,48 @@
-import os
-from unittest import mock
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import torch
 
-import pytest
-from pytorch_lightning import Trainer, accelerators
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from tests.base.boring_model import BoringModel
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0",
-    },
-)
-@mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize(
-    ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
-)
-def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        gpus=gpus,
-        num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        callbacks=[CB()],
-    )
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+from pytorch_lightning import Trainer
+from pytorch_lightning.plugins import DDPPlugin
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0",
-    },
-)
-@mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize(
-    ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
-)
-def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
-    class MyDDP(DDPPlugin):
-        pass
+class BoringModelGPU(BoringModel):
 
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, MyDDP)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        gpus=gpus,
-        num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        plugins=[MyDDP()],
-        callbacks=[CB()],
-    )
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    def on_train_start(self) -> None:
+        # make sure that the model is on GPU when training
+        assert self.device == torch.device(f"cuda:{self.trainer.training_type_plugin.local_rank}")
+        self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0",
-    },
-)
-@mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize(
-    ["ddp_backend", "gpus", "num_processes"],
-    [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
-)
-def test_ddp_choice_custom_ddp_cpu_custom_args(
-    tmpdir, ddp_backend, gpus, num_processes
-):
-    class MyDDP(DDPPlugin):
-        pass
+@RunIf(skip_windows=True, min_gpus=2, special=True)
+def test_ddp_with_2_gpus():
+    """Tests if device is set correctely when training and after teardown for DDPPlugin."""
+    trainer = Trainer(gpus=2, accelerator="ddp", fast_dev_run=True)
+    # assert training type plugin attributes for device setting
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert trainer.training_type_plugin.on_gpu
+    assert not trainer.training_type_plugin.on_tpu
+    local_rank = trainer.training_type_plugin.local_rank
+    assert trainer.training_type_plugin.root_device == torch.device(f"cuda:{local_rank}")
 
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend.ddp_plugin, MyDDP)
-            raise SystemExit()
+    model = BoringModelGPU()
 
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        gpus=gpus,
-        num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        plugins=[MyDDP(broadcast_buffers=False, find_unused_parameters=True)],
-        callbacks=[CB()],
-    )
+    trainer.fit(model)
 
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    # assert after training, model is moved to CPU and memory is deallocated
+    assert model.device == torch.device("cpu")
+    cuda_memory = torch.cuda.memory_allocated()
+    assert cuda_memory < model.start_cuda_memory

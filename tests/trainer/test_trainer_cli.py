@@ -13,16 +13,15 @@
 # limitations under the License.
 import inspect
 import pickle
-import sys
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
-import torch
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import argparse_utils
+from pytorch_lightning.utilities import argparse
+from tests.helpers.runif import RunIf
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -44,12 +43,8 @@ def test_default_args(mock_argparse, tmpdir):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize('cli_args', [
-    ['--accumulate_grad_batches=22'],
-    ['--weights_save_path=./'],
-    []
-])
-def test_add_argparse_args_redefined(cli_args):
+@pytest.mark.parametrize('cli_args', [['--accumulate_grad_batches=22'], ['--weights_save_path=./'], []])
+def test_add_argparse_args_redefined(cli_args: list):
     """Redefines some default Trainer arguments via the cli and
     tests the Trainer initialization correctness.
     """
@@ -71,9 +66,23 @@ def test_add_argparse_args_redefined(cli_args):
     assert isinstance(trainer, Trainer)
 
 
+@pytest.mark.parametrize('cli_args', [['--accumulate_grad_batches=22'], ['--weights_save_path=./'], []])
+def test_add_argparse_args(cli_args: list):
+    """Simple test ensuring Trainer.add_argparse_args works."""
+    parser = ArgumentParser(add_help=False)
+    parser = Trainer.add_argparse_args(parser)
+    args = parser.parse_args(cli_args)
+    assert Trainer.from_argparse_args(args)
+
+    parser = ArgumentParser(add_help=False)
+    parser = Trainer.add_argparse_args(parser, use_argument_group=False)
+    args = parser.parse_args(cli_args)
+    assert Trainer.from_argparse_args(args)
+
+
 def test_get_init_arguments_and_types():
     """Asserts a correctness of the `get_init_arguments_and_types` Trainer classmethod."""
-    args = argparse_utils.get_init_arguments_and_types(Trainer)
+    args = argparse.get_init_arguments_and_types(Trainer)
     parameters = inspect.signature(Trainer).parameters
     assert len(parameters) == len(args)
     for arg in args:
@@ -84,11 +93,8 @@ def test_get_init_arguments_and_types():
     assert isinstance(trainer, Trainer)
 
 
-@pytest.mark.parametrize('cli_args', [
-    ['--callbacks=1', '--logger'],
-    ['--foo', '--bar=1']
-])
-def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
+@pytest.mark.parametrize('cli_args', [['--callbacks=1', '--logger'], ['--foo', '--bar=1']])
+def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
     """Asserts thar an error raised in case of passing not default cli arguments."""
 
     class _UnkArgError(Exception):
@@ -106,36 +112,56 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         parser.parse_args(cli_args)
 
 
-@pytest.mark.parametrize(['cli_args', 'expected'], [
-    pytest.param('--auto_lr_find --auto_scale_batch_size power',
-                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power'}),
-    pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
-                 {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
-    pytest.param('--auto_lr_find TRUE --auto_scale_batch_size FALSE',
-                 {'auto_lr_find': True, 'auto_scale_batch_size': False}),
-    pytest.param('--auto_lr_find t --auto_scale_batch_size ON',
-                 {'auto_lr_find': True, 'auto_scale_batch_size': True}),
-    pytest.param('--auto_lr_find 0 --auto_scale_batch_size n',
-                 {'auto_lr_find': False, 'auto_scale_batch_size': False}),
-    pytest.param('--tpu_cores=8',
-                 {'tpu_cores': 8}),
-    pytest.param("--tpu_cores=1,",
-                 {'tpu_cores': '1,'}),
-    pytest.param(
-        "",
-        {
-            # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
-            # They should not be changed by the argparse interface.
-            "min_steps": None,
-            "max_steps": None,
-            "log_gpu_memory": None,
-            "distributed_backend": None,
-            "weights_save_path": None,
-            "truncated_bptt_steps": None,
-            "resume_from_checkpoint": None,
-            "profiler": None,
-        }),
-])
+@pytest.mark.parametrize(
+    ['cli_args', 'expected'],
+    [
+        pytest.param(
+            '--auto_lr_find --auto_scale_batch_size power', {
+                'auto_lr_find': True,
+                'auto_scale_batch_size': 'power'
+            }
+        ),
+        pytest.param(
+            '--auto_lr_find any_string --auto_scale_batch_size', {
+                'auto_lr_find': 'any_string',
+                'auto_scale_batch_size': True
+            }
+        ),
+        pytest.param(
+            '--auto_lr_find TRUE --auto_scale_batch_size FALSE', {
+                'auto_lr_find': True,
+                'auto_scale_batch_size': False
+            }
+        ),
+        pytest.param(
+            '--auto_lr_find t --auto_scale_batch_size ON', {
+                'auto_lr_find': True,
+                'auto_scale_batch_size': True
+            }
+        ),
+        pytest.param(
+            '--auto_lr_find 0 --auto_scale_batch_size n', {
+                'auto_lr_find': False,
+                'auto_scale_batch_size': False
+            }
+        ),
+        pytest.param(
+            "",
+            {
+                # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
+                # They should not be changed by the argparse interface.
+                "min_steps": None,
+                "max_steps": None,
+                "log_gpu_memory": None,
+                "accelerator": None,
+                "weights_save_path": None,
+                "truncated_bptt_steps": None,
+                "resume_from_checkpoint": None,
+                "profiler": None,
+            }
+        ),
+    ]
+)
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(' ') if cli_args else []
@@ -149,12 +175,32 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.parametrize(['cli_args', 'expected_gpu'], [
-    pytest.param('--gpus 1', [0]),
-    pytest.param('--gpus 0,', [0]),
+@RunIf(min_python="3.7.0")
+@pytest.mark.parametrize(
+    'cli_args,expected', [
+        ('', False),
+        ('--fast_dev_run=0', False),
+        ('--fast_dev_run=True', True),
+        ('--fast_dev_run 2', 2),
+    ]
+)
+def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
+    """Test multi type argument with bool."""
+    cli_args = cli_args.split(' ') if cli_args else []
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
+        parser = ArgumentParser(add_help=False)
+        parser = Trainer.add_argparse_args(parent_parser=parser)
+        args = Trainer.parse_argparser(parser)
+    assert args.fast_dev_run is expected
+
+
+@pytest.mark.parametrize(['cli_args', 'expected_parsed', 'expected_device_ids'], [
+    pytest.param('', None, None),
+    pytest.param('--gpus 1', 1, [0]),
+    pytest.param('--gpus 0,', '0,', [0]),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
+@RunIf(min_gpus=1)
+def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_ids):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(' ') if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
@@ -162,12 +208,12 @@ def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparser(parser)
 
+    assert args.gpus == expected_parsed
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_gpu
+    assert trainer.data_parallel_device_ids == expected_device_ids
 
 
-@pytest.mark.skipif(sys.version_info < (3, 7),
-                    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec")
+@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),

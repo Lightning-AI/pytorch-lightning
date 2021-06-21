@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -29,6 +29,8 @@ def test_neptune_online(neptune):
     # It's important to check if the internal variable _experiment was initialized in __init__.
     # Calling logger.experiment would cause a side-effect of initializing _experiment,
     # if it wasn't already initialized.
+    assert logger._experiment is None
+    _ = logger.experiment
     assert logger._experiment == created_experiment
     assert logger.name == created_experiment.name
     assert logger.version == created_experiment.id
@@ -37,10 +39,9 @@ def test_neptune_online(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_existing_experiment(neptune):
     logger = NeptuneLogger(experiment_id='TEST-123')
-
-    neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
-
+    neptune.Session.with_default_backend().get_project().get_experiments.assert_not_called()
     experiment = logger.experiment
+    neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
     assert logger.experiment_name == experiment.get_system_properties()['name']
     assert logger.params == experiment.get_parameters()
     assert logger.properties == experiment.get_properties()
@@ -50,7 +51,8 @@ def test_neptune_existing_experiment(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_offline(neptune):
     logger = NeptuneLogger(offline_mode=True)
-
+    neptune.Session.assert_not_called()
+    _ = logger.experiment
     neptune.Session.assert_called_once_with(backend=neptune.OfflineBackend())
     assert logger.experiment == neptune.Session().get_project().create_experiment()
 
@@ -74,8 +76,8 @@ def test_neptune_additional_methods(neptune):
     created_experiment.log_metric.reset_mock()
 
     logger.log_text('test', 'text')
-    created_experiment.log_metric.assert_called_once_with('test', 'text')
-    created_experiment.log_metric.reset_mock()
+    created_experiment.log_text.assert_called_once_with('test', 'text')
+    created_experiment.log_text.reset_mock()
 
     logger.log_image('test', 'image file')
     created_experiment.log_image.assert_called_once_with('test', 'image file')
@@ -102,7 +104,7 @@ def test_neptune_additional_methods(neptune):
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
     """Verify that neptune experiment was closed after training"""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     def _run_training(logger):
         logger._experiment = MagicMock()
@@ -112,7 +114,9 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
             limit_train_batches=0.05,
             logger=logger,
         )
+        assert trainer.log_dir is None
         trainer.fit(model)
+        assert trainer.log_dir is None
         return logger
 
     logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))

@@ -14,14 +14,17 @@ local tputests = base.BaseTest {
   imageTag: std.extVar('image-tag'),
 
   tpuSettings+: {
-    softwareVersion: 'pytorch-nightly',
+    softwareVersion: 'pytorch-VERSION',
   },
   accelerator: tpus.v3_8,
 
   command: utils.scriptCommand(
     |||
       cd pytorch-lightning
-      coverage run --source=pytorch_lightning -m pytest tests/models/test_tpu.py -v
+      coverage run --source=pytorch_lightning -m pytest -v --capture=no \
+          pytorch_lightning/utilities/xla_device.py \
+          tests/accelerators/test_tpu_backend.py \
+          tests/models/test_tpu.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml

@@ -10,11 +10,15 @@ assignees: ''
 
 <!-- A clear and concise description of what the bug is. -->
 
-## Please reproduce using [the BoringModel and post here](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing)
+## Please reproduce using the BoringModel
+
 
 <!-- Please paste your BoringModel colab link here. -->
 
 ### To Reproduce
+
+Use following [**BoringModel**](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing) and post here
+
 <!-- If you could not reproduce using the BoringModel and still think there's a bug, please post here -->
 
 ### Expected behavior

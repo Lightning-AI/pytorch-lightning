@@ -13,20 +13,21 @@
 # limitations under the License.
 
 import io
-from distutils.version import LooseVersion
-from typing import Union, IO
 from pathlib import Path
-from urllib.parse import urlparse
-import torch
+from typing import IO, Union
+
 import fsspec
+import torch
+from fsspec.implementations.local import LocalFileSystem
+from packaging.version import Version
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
-    if path_or_url.startswith("http"):
-        return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
+    if str(path_or_url).startswith("http"):
+        return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)
@@ -39,7 +40,7 @@ def get_filesystem(path: Union[str, Path]):
         return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
-        return fsspec.filesystem("file")
+        return LocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):
@@ -52,11 +53,12 @@ def atomic_save(checkpoint, filepath: str):
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
+
     bytesbuffer = io.BytesIO()
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
     # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
     # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-    if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+    if Version(torch.__version__).release[:3] == (1, 6, 0):
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)

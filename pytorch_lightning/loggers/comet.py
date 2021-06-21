@@ -11,27 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Comet Logger
 ------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-try:
-    import comet_ml
+import torch
+from torch import is_tensor
 
-except ModuleNotFoundError:  # pragma: no-cover
-    comet_ml = None
-    CometExperiment = None
-    CometExistingExperiment = None
-    CometOfflineExperiment = None
-    API = None
-    generate_guid = None
-else:
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
+_COMET_AVAILABLE = _module_available("comet_ml")
+
+if _COMET_AVAILABLE:
+    import comet_ml
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import Experiment as CometExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
@@ -41,14 +43,11 @@ else:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
-
-import torch
-from torch import is_tensor
-
-from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+else:
+    # needed for test mocks, these tests shall be updated
+    comet_ml = None
+    CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
+    API = None
 
 
 class CometLogger(LightningLoggerBase):
@@ -77,6 +76,7 @@ class CometLogger(LightningLoggerBase):
             save_dir='.',  # Optional
             project_name='default_project',  # Optional
             rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
+            experiment_key=os.environ.get('COMET_EXPERIMENT_KEY'),  # Optional
             experiment_name='default'  # Optional
         )
         trainer = Trainer(logger=comet_logger)
@@ -116,6 +116,12 @@ class CometLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `workspace`, `log_code`, etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
+
+    Raises:
+        ImportError:
+            If required Comet package is not installed on the device.
+        MisconfigurationException:
+            If neither ``api_key`` nor ``save_dir`` are passed as arguments.
     """
 
     LOGGER_JOIN_CHAR = '-'
@@ -311,3 +317,7 @@ class CometLogger(LightningLoggerBase):
         # needed later
         state["_experiment"] = None
         return state
+
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        if self._experiment is not None:
+            self._experiment.set_model_graph(model)

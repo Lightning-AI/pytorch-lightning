@@ -25,24 +25,21 @@ def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
     not affected by this utility function.
 
     Args:
-        in_dict:
-        to_cpu: Wheter to move tensor to cpu
+        in_dict: Dictionary with tensors to detach
+        to_cpu: Whether to move tensor to cpu
 
     Return:
-        out_dict:
+        out_dict: Dictionary with detached tensors
     """
     out_dict = {}
     for k, v in in_dict.items():
         if isinstance(v, dict):
-            out_dict.update({k: recursive_detach(v)})
+            v = recursive_detach(v, to_cpu=to_cpu)
         elif callable(getattr(v, 'detach', None)):
-            # detach
             v = v.detach()
             if to_cpu:
                 v = v.cpu()
-            out_dict.update({k: v})
-        else:
-            out_dict.update({k: v})
+        out_dict[k] = v
     return out_dict
 
 
@@ -56,7 +53,8 @@ def is_oom_error(exception):
 def is_cuda_out_of_memory(exception):
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
-        and "CUDA out of memory." in exception.args[0]
+        and "CUDA" in exception.args[0] \
+        and "out of memory" in exception.args[0]
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
@@ -79,4 +77,10 @@ def garbage_collection_cuda():
     """Garbage collection Torch (CUDA) memory."""
     gc.collect()
     if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+        try:
+            # This is the last thing that should cause an OOM error, but seemingly it can.
+            torch.cuda.empty_cache()
+        except RuntimeError as exception:
+            if not is_oom_error(exception):
+                # Only handle OOM errors
+                raise

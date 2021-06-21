@@ -11,29 +11,45 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 MLflow Logger
 -------------
 """
+import logging
+import os
 import re
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
+
+log = logging.getLogger(__name__)
+LOCAL_FILE_URI_PREFIX = "file:"
+_MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
-    from mlflow.tracking import MlflowClient
-except ModuleNotFoundError:  # pragma: no-cover
-    mlflow = None
-    MlflowClient = None
+    from mlflow.tracking import context, MlflowClient
+    from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
+# todo: there seems to be still some remaining import error with Conda env
+except ImportError:
+    _MLFLOW_AVAILABLE = False
+    mlflow, MlflowClient, context = None, None, None
+    MLFLOW_RUN_NAME = "mlflow.runName"
+
+# before v1.1.0
+if hasattr(context, 'resolve_tags'):
+    from mlflow.tracking.context import resolve_tags
 
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+# since v1.1.0
+elif hasattr(context, 'registry'):
+    from mlflow.tracking.context.registry import resolve_tags
+else:
 
-LOCAL_FILE_URI_PREFIX = "file:"
+    def resolve_tags(tags=None):
+        return tags
 
 
 class MLFlowLogger(LightningLoggerBase):
@@ -71,14 +87,22 @@ class MLFlowLogger(LightningLoggerBase):
 
     Args:
         experiment_name: The name of the experiment
+        run_name: Name of the new run. The `run_name` is internally stored as a ``mlflow.runName`` tag.
+            If the ``mlflow.runName`` tag has already been set in `tags`, the value is overridden by the `run_name`.
         tracking_uri: Address of local or remote tracking server.
-            If not provided, defaults to `file:<save_dir>`.
+            If not provided, defaults to `MLFLOW_TRACKING_URI` environment variable if set, otherwise it falls
+            back to `file:<save_dir>`.
         tags: A dictionary tags for the experiment.
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
+        artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
+            default.
 
+    Raises:
+        ImportError:
+            If required MLFlow package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'
@@ -86,14 +110,18 @@ class MLFlowLogger(LightningLoggerBase):
     def __init__(
         self,
         experiment_name: str = 'default',
-        tracking_uri: Optional[str] = None,
+        run_name: Optional[str] = None,
+        tracking_uri: Optional[str] = os.getenv('MLFLOW_TRACKING_URI'),
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
+        artifact_location: Optional[str] = None,
     ):
         if mlflow is None:
-            raise ImportError('You want to use `mlflow` logger which is not installed yet,'
-                              ' install it with `pip install mlflow`.')
+            raise ImportError(
+                'You want to use `mlflow` logger which is not installed yet,'
+                ' install it with `pip install mlflow`.'
+            )
         super().__init__()
         if not tracking_uri:
             tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
@@ -101,9 +129,12 @@ class MLFlowLogger(LightningLoggerBase):
         self._experiment_name = experiment_name
         self._experiment_id = None
         self._tracking_uri = tracking_uri
+        self._run_name = run_name
         self._run_id = None
         self.tags = tags
         self._prefix = prefix
+        self._artifact_location = artifact_location
+
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
@@ -124,10 +155,21 @@ class MLFlowLogger(LightningLoggerBase):
                 self._experiment_id = expt.experiment_id
             else:
                 log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
-                self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
+                self._experiment_id = self._mlflow_client.create_experiment(
+                    name=self._experiment_name,
+                    artifact_location=self._artifact_location,
+                )
 
         if self._run_id is None:
-            run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
+            if self._run_name is not None:
+                self.tags = self.tags or {}
+                if MLFLOW_RUN_NAME in self.tags:
+                    log.warning(
+                        f'The tag {MLFLOW_RUN_NAME} is found in tags. '
+                        f'The value will be overridden by {self._run_name}.'
+                    )
+                self.tags[MLFLOW_RUN_NAME] = self._run_name
+            run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
         return self._mlflow_client
 
@@ -148,6 +190,12 @@ class MLFlowLogger(LightningLoggerBase):
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for k, v in params.items():
+            if len(str(v)) > 250:
+                rank_zero_warn(
+                    f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", RuntimeWarning
+                )
+                continue
+
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only

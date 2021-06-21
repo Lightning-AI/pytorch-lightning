@@ -16,14 +16,19 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Tuple, Dict, Union, List, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, DeviceType
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -71,14 +76,15 @@ class LayerSummary(object):
     def __del__(self):
         self.detach_hook()
 
-    def _register_hook(self) -> RemovableHandle:
+    def _register_hook(self) -> Optional[RemovableHandle]:
         """
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
+        Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
 
         Return:
-            A handle for the installed hook.
+            A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
         def hook(module, inp, out):
@@ -88,7 +94,10 @@ class LayerSummary(object):
             self._out_size = parse_batch_shape(out)
             self._hook_handle.remove()
 
-        return self._module.register_forward_hook(hook)
+        handle = None
+        if not isinstance(self._module, torch.jit.ScriptModule):
+            handle = self._module.register_forward_hook(hook)
+        return handle
 
     def detach_hook(self):
         """
@@ -114,7 +123,7 @@ class LayerSummary(object):
     @property
     def num_parameters(self) -> int:
         """ Returns the number of parameters in this module. """
-        return sum(np.prod(p.shape) for p in self._module.parameters())
+        return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary(object):
@@ -159,6 +168,7 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
+        0.530     Total estimated model params size (MB)
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -169,6 +179,7 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
+        0.530     Total estimated model params size (MB)
     """
 
     MODE_TOP = "top"
@@ -180,6 +191,10 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
+        # 1 byte -> 8 bits
+        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -213,6 +228,21 @@ class ModelSummary(object):
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
+    @property
+    def total_parameters(self) -> int:
+        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
+
+    @property
+    def trainable_parameters(self) -> int:
+        return sum(
+            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
+        )
+
+    @property
+    def model_size(self) -> float:
+        # todo: seems it does not work with quantized models - it returns 0.0
+        return self.total_parameters * self._precision_megabytes
+
     def summarize(self) -> Dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
@@ -227,9 +257,9 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
-        input_ = model.transfer_batch_to_device(input_, model.device)
+        input_ = model._apply_batch_transfer_handler(input_)
 
-        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and not trainer.use_tpu:
+        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training
@@ -248,7 +278,7 @@ class ModelSummary(object):
         """
         Makes a summary listing with:
 
-        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
+        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
         arrays = [
             [" ", list(map(str, range(len(self._layer_summary))))],
@@ -259,11 +289,11 @@ class ModelSummary(object):
         if self._model.example_input_array is not None:
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
+        total_parameters = self.total_parameters
+        trainable_parameters = self.trainable_parameters
+        model_size = self.model_size
 
-        trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
-        total_parameters = sum(p.numel() for p in self._model.parameters())
-
-        return _format_summary_table(total_parameters, trainable_parameters, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -280,7 +310,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(total_parameters: int, trainable_parameters: int, *cols) -> str:
+def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols) -> str:
     """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -316,6 +346,8 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, *col
     summary += "Non-trainable params"
     summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
     summary += "Total params"
+    summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
+    summary += "Total estimated model params size (MB)"
 
     return summary
 
@@ -367,10 +399,12 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
+
+
+def get_formatted_model_size(total_model_size: float) -> float:
+    return f"{total_model_size:,.3f}"
 
 
 def get_human_readable_count(number: int) -> str:
@@ -405,9 +439,21 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
-    else:
-        return f"{number:,.1f} {labels[index]}"
+
+    return f"{number:,.1f} {labels[index]}"
+
+
+def _is_lazy_weight_tensor(p: Tensor) -> bool:
+    if _TORCH_GREATER_EQUAL_1_8:
+        from torch.nn.parameter import UninitializedParameter
+        if isinstance(p, UninitializedParameter):
+            warning_cache.warn(
+                "A layer with UninitializedParameter was found. "
+                "Thus, the total number of parameters detected may be inaccurate."
+            )
+            return True
+    return False

@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import inspect
 import pickle
+import types
 from argparse import Namespace
-from typing import Dict, Union, Tuple
+from dataclasses import fields, is_dataclass
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -55,13 +57,34 @@ def str_to_bool(val: str) -> bool:
     raise ValueError(f'invalid truth value {val}')
 
 
+def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
+    """Convert a string representation to truth of bool if possible, or otherwise try to convert it to an int.
+
+    >>> str_to_bool_or_int("FALSE")
+    False
+    >>> str_to_bool_or_int("1")
+    True
+    >>> str_to_bool_or_int("2")
+    2
+    >>> str_to_bool_or_int("abc")
+    'abc'
+    """
+    val = str_to_bool_or_str(val)
+    if isinstance(val, bool):
+        return val
+    try:
+        return int(val)
+    except ValueError:
+        return val
+
+
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled"""
 
     try:
         pickle.dumps(obj)
         return True
-    except (pickle.PicklingError, AttributeError):
+    except (pickle.PickleError, AttributeError):
         return False
 
 
@@ -115,7 +138,6 @@ def get_init_args(frame) -> dict:
     self_var, args_var, kwargs_var = parse_class_init_keys(cls)
     filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
     exclude_argnames = (*filtered_vars, '__class__', 'frame', 'frame_args')
-
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
     local_args.update(local_args.get(kwargs_var, {}))
@@ -162,6 +184,56 @@ def flatten_dict(source, result=None):
     return result
 
 
+def save_hyperparameters(
+    obj: Any,
+    *args,
+    ignore: Optional[Union[Sequence[str], str]] = None,
+    frame: Optional[types.FrameType] = None
+) -> None:
+    """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
+
+    if len(args) == 1 and not isinstance(args, str) and not args[0]:
+        # args[0] is an empty container
+        return
+
+    if not frame:
+        frame = inspect.currentframe().f_back
+
+    if is_dataclass(obj):
+        init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
+    else:
+        init_args = get_init_args(frame)
+    assert init_args, "failed to inspect the obj init"
+
+    if ignore is not None:
+        if isinstance(ignore, str):
+            ignore = [ignore]
+        if isinstance(ignore, (list, tuple)):
+            ignore = [arg for arg in ignore if isinstance(arg, str)]
+        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
+    if not args:
+        # take all arguments
+        hp = init_args
+        obj._hparams_name = "kwargs" if hp else None
+    else:
+        # take only listed arguments in `save_hparams`
+        isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
+        if len(isx_non_str) == 1:
+            hp = args[isx_non_str[0]]
+            cand_names = [k for k, v in init_args.items() if v == hp]
+            obj._hparams_name = cand_names[0] if cand_names else None
+        else:
+            hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
+            obj._hparams_name = "kwargs"
+
+    # `hparams` are expected here
+    if hp:
+        obj._set_hparams(hp)
+    # make deep copy so  there is not other runtime changes reflected
+    obj._hparams_initial = copy.deepcopy(obj._hparams)
+
+
 class AttributeDict(Dict):
     """Extended dictionary accesisable with dot notation.
 
@@ -197,72 +269,94 @@ class AttributeDict(Dict):
         return out
 
 
-def lightning_hasattr(model, attribute):
-    """ Special hasattr for lightning. Checks for attribute in model namespace,
-        the old hparams namespace/dict, and the datamodule. """
-    trainer = getattr(model, 'trainer', None)
-
-    attr = False
-    # Check if attribute in model
-    if hasattr(model, attribute):
-        attr = True
-    # Check if attribute in model.hparams, either namespace or dict
-    elif hasattr(model, 'hparams'):
-        if isinstance(model.hparams, dict):
-            attr = attribute in model.hparams
-        else:
-            attr = hasattr(model.hparams, attribute)
-    # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if not attr and trainer is not None:
-        attr = hasattr(trainer.datamodule, attribute)
-
-    return attr
-
-
-def lightning_getattr(model, attribute):
-    """ Special getattr for lightning. Checks for attribute in model namespace,
-        the old hparams namespace/dict, and the datamodule. """
-    trainer = getattr(model, 'trainer', None)
-
-    # Check if attribute in model
-    if hasattr(model, attribute):
-        attr = getattr(model, attribute)
-    # Check if attribute in model.hparams, either namespace or dict
-    elif hasattr(model, 'hparams') and isinstance(model.hparams, dict) and attribute in model.hparams:
-        attr = model.hparams[attribute]
-    elif hasattr(model, 'hparams') and hasattr(model.hparams, attribute):
-        attr = getattr(model.hparams, attribute)
-    # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        attr = getattr(trainer.datamodule, attribute)
-    else:
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
-    return attr
-
-
-def lightning_setattr(model, attribute, value):
-    """ Special setattr for lightning. Checks for attribute in model namespace
-        and the old hparams namespace/dict.
-        Will also set the attribute on datamodule, if it exists.
+def _lightning_get_all_attr_holders(model, attribute):
     """
-    if not lightning_hasattr(model, attribute):
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
-
+    Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
+    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
+    """
     trainer = getattr(model, 'trainer', None)
+
+    holders = []
 
     # Check if attribute in model
     if hasattr(model, attribute):
-        setattr(model, attribute, value)
+        holders.append(model)
 
     # Check if attribute in model.hparams, either namespace or dict
-    elif hasattr(model, 'hparams'):
-        if isinstance(model.hparams, dict):
-            model.hparams[attribute] = value
-        else:
-            setattr(model.hparams, attribute, value)
+    if hasattr(model, 'hparams'):
+        if attribute in model.hparams:
+            holders.append(model.hparams)
 
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
     if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        setattr(trainer.datamodule, attribute, value)
+        holders.append(trainer.datamodule)
+
+    return holders
+
+
+def _lightning_get_first_attr_holder(model, attribute):
+    """
+    Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
+    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
+    returns the last one that has it.
+    """
+    holders = _lightning_get_all_attr_holders(model, attribute)
+    if len(holders) == 0:
+        return None
+    # using the last holder to preserve backwards compatibility
+    return holders[-1]
+
+
+def lightning_hasattr(model, attribute):
+    """
+    Special hasattr for Lightning. Checks for attribute in model namespace,
+    the old hparams namespace/dict, and the datamodule.
+    """
+    return _lightning_get_first_attr_holder(model, attribute) is not None
+
+
+def lightning_getattr(model, attribute):
+    """
+    Special getattr for Lightning. Checks for attribute in model namespace,
+    the old hparams namespace/dict, and the datamodule.
+
+    Raises:
+        AttributeError:
+            If ``model`` doesn't have ``attribute`` in any of
+            model namespace, the hparams namespace/dict, and the datamodule.
+    """
+    holder = _lightning_get_first_attr_holder(model, attribute)
+    if holder is None:
+        raise AttributeError(
+            f'{attribute} is neither stored in the model namespace'
+            ' nor the `hparams` namespace/dict, nor the datamodule.'
+        )
+
+    if isinstance(holder, dict):
+        return holder[attribute]
+    return getattr(holder, attribute)
+
+
+def lightning_setattr(model, attribute, value):
+    """
+    Special setattr for Lightning. Checks for attribute in model namespace
+    and the old hparams namespace/dict.
+    Will also set the attribute on datamodule, if it exists.
+
+    Raises:
+        AttributeError:
+            If ``model`` doesn't have ``attribute`` in any of
+            model namespace, the hparams namespace/dict, and the datamodule.
+    """
+    holders = _lightning_get_all_attr_holders(model, attribute)
+    if len(holders) == 0:
+        raise AttributeError(
+            f'{attribute} is neither stored in the model namespace'
+            ' nor the `hparams` namespace/dict, nor the datamodule.'
+        )
+
+    for holder in holders:
+        if isinstance(holder, dict):
+            holder[attribute] = value
+        else:
+            setattr(holder, attribute, value)

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 CSV logger
 ----------
@@ -21,16 +20,18 @@ CSV logger for basic experiment logging that does not require opening ports
 """
 import csv
 import io
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 class ExperimentWriter(object):
@@ -67,6 +68,7 @@ class ExperimentWriter(object):
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics"""
+
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
                 return value.item()
@@ -162,6 +164,7 @@ class CSVLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
 

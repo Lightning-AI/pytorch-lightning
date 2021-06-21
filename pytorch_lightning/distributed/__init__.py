@@ -11,4 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.distributed.dist import LightningDistributed  # noqa: F401

@@ -15,9 +15,13 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
-from tests.base.models import ParityModuleRNN
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers import BoringModel
+from tests.helpers.advanced_models import ParityModuleRNN
+from tests.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):
@@ -30,6 +34,23 @@ class EmptyModule(LightningModule):
 
     def forward(self, *args, **kwargs):
         return {'loss': self.parameter.sum()}
+
+
+class PreCalculatedModel(BoringModel):
+    """ A model with precalculated total params size in MB for FP16 and FP32. """
+
+    def __init__(self, precision: int = 32):
+        super().__init__()
+        # 32K params
+        self.layer = nn.Linear(32, 1000, bias=False)
+        # 218K params
+        self.layer1 = nn.Linear(1000, 218, bias=False)
+        # calculate model size based on precision.
+        self.pre_calculated_model_size = 1.0 / (32 / precision)
+
+    def forward(self, x):
+        x = self.layer(x)
+        return self.layer1(x)
 
 
 class UnorderedModel(LightningModule):
@@ -60,19 +81,50 @@ class MixedDtypeModel(LightningModule):
 
     def __init__(self):
         super().__init__()
-        self.embed = nn.Embedding(10, 20)   # expects dtype long as input
-        self.reduce = nn.Linear(20, 1)      # dtype: float
+        self.embed = nn.Embedding(10, 20)  # expects dtype long as input
+        self.reduce = nn.Linear(20, 1)  # dtype: float
         self.example_input_array = torch.tensor([[0, 2, 1], [3, 5, 3]])  # dtype: long
 
     def forward(self, x):
         return self.reduce(self.embed(x))
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
-def test_empty_model_summary_shapes(mode):
+class PartialScriptModel(LightningModule):
+    """ A model which contains scripted layers. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = torch.jit.script(nn.Linear(5, 3))
+        self.layer2 = nn.Linear(3, 2)
+        self.example_input_array = torch.rand(2, 5)
+
+    def forward(self, x):
+        return self.layer2(self.layer1(x))
+
+
+class LazyModel(LightningModule):
+    """ A model which contains lazy layers with unintialized parameters. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.LazyLinear(5)
+        self.layer2 = nn.LazyLinear(2)
+
+    def forward(self, inp):
+        return self.layer2(self.layer1(inp))
+
+
+def test_invalid_weights_summmary():
+    """ Test that invalid value for weights_summary raises an error. """
+    with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
+        UnorderedModel().summarize(mode='temp')
+
+    with pytest.raises(MisconfigurationException, match='`weights_summary` can be None, .* got temp'):
+        Trainer(weights_summary='temp')
+
+
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_empty_model_summary_shapes(mode: ModelSummary):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
@@ -81,33 +133,30 @@ def test_empty_model_summary_shapes(mode):
     assert summary.param_nums == []
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 @pytest.mark.parametrize(['device'], [
     pytest.param(torch.device('cpu')),
     pytest.param(torch.device('cuda', 0)),
     pytest.param(torch.device('cuda', 0)),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
     model.train()
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
-        [2, 10],    # layer 2
-        [2, 7],     # combine
-        [2, 3],     # layer 1
-        [2, 7],     # relu
+        [2, 10],  # layer 2
+        [2, 7],  # combine
+        [2, 3],  # layer 1
+        [2, 7],  # relu
         UNKNOWN_SIZE,
     ]
     assert summary.out_sizes == [
-        [2, 2],     # layer 2
-        [2, 9],     # combine
-        [2, 5],     # layer 1
-        [2, 7],     # relu
+        [2, 2],  # layer 2
+        [2, 9],  # combine
+        [2, 5],  # layer 1
+        [2, 7],  # relu
         UNKNOWN_SIZE,
     ]
     assert model.training
@@ -119,19 +168,16 @@ def test_mixed_dtype_model_summary():
     model = MixedDtypeModel()
     summary = model.summarize()
     assert summary.in_sizes == [
-        [2, 3],         # embed
-        [2, 3, 20],     # reduce
+        [2, 3],  # embed
+        [2, 3, 20],  # reduce
     ]
     assert summary.out_sizes == [
-        [2, 3, 20],     # embed
-        [2, 3, 1],      # reduce
+        [2, 3, 20],  # embed
+        [2, 3, 1],  # reduce
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_hooks_removed_after_summarize(mode):
     """ Test that all hooks were properly removed after summary, even ones that were not run. """
     model = UnorderedModel()
@@ -142,10 +188,7 @@ def test_hooks_removed_after_summarize(mode):
         assert handle.id not in handle.hooks_dict_ref()
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()
@@ -164,15 +207,12 @@ def test_rnn_summary_shapes(mode):
         [b, t, h],  # linear
     ]
     assert summary.out_sizes == [
-        [[b, t, h], [[1, b, h], [1, b, h]]],    # rnn
-        [b, t, o]                               # linear
+        [[b, t, h], [[1, b, h], [1, b, h]]],  # rnn
+        [b, t, o]  # linear
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
@@ -186,10 +226,7 @@ def test_summary_parameter_count(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
@@ -203,10 +240,16 @@ def test_summary_layer_types(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_summary_with_scripted_modules(mode):
+    model = PartialScriptModel()
+    summary = model.summarize(mode=mode)
+    assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
+    assert summary.in_sizes == [UNKNOWN_SIZE, [2, 3]]
+    assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
+
+
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 @pytest.mark.parametrize(['example_input', 'expected_size'], [
     pytest.param([], UNKNOWN_SIZE),
     pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
@@ -220,6 +263,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     """ Test the types of example inputs supported for display in the summary. """
 
     class DummyModule(nn.Module):
+
         def forward(self, *args, **kwargs):
             return None
 
@@ -237,3 +281,58 @@ def test_example_input_array_types(example_input, expected_size, mode):
     model.example_input_array = example_input
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
+
+
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_model_size(mode):
+    """ Test model size is calculated correctly. """
+    model = PreCalculatedModel()
+    summary = model.summarize(mode=mode)
+    assert model.pre_calculated_model_size == summary.model_size
+
+
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_empty_model_size(mode):
+    """ Test empty model size is zero. """
+    model = EmptyModule()
+    summary = model.summarize(mode=mode)
+    assert 0.0 == summary.model_size
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_model_size_precision(tmpdir):
+    """ Test model size for half and full precision. """
+    model = PreCalculatedModel()
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        max_steps=1,
+        max_epochs=1,
+        precision=32,
+    )
+    trainer.fit(model)
+    summary = model.summarize()
+    assert model.pre_calculated_model_size == summary.model_size
+
+
+@RunIf(min_torch="1.8")
+def test_lazy_model_summary():
+    """ Test that the model summary can work with lazy layers. """
+    lazy_model = LazyModel()
+    summary = ModelSummary(lazy_model)
+
+    with pytest.warns(
+        UserWarning,
+        match=r"A layer with UninitializedParameter was found. "
+        r"Thus, the total number of parameters detected may be inaccurate."
+    ):
+        if _TORCH_GREATER_EQUAL_1_9:
+            assert summary.total_parameters == 0
+            assert summary.trainable_parameters == 0
+        else:
+            # bug in 1.8: the bias of a LazyLinear layer is initialized!
+            # https://github.com/pytorch/pytorch/issues/58350
+            assert summary.total_parameters == 7
+            assert summary.trainable_parameters == 7

@@ -11,31 +11,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import platform
 from typing import Optional
+from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import DATASETS_PATH, TORCHVISION_AVAILABLE
+from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE
 from pytorch_lightning import LightningDataModule
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
-if TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
+if _TORCHVISION_MNIST_AVAILABLE:
     from torchvision.datasets import MNIST
 else:
-    from tests.base.datasets import MNIST
+    from tests.helpers.datasets import MNIST
 
 
 class MNISTDataModule(LightningDataModule):
     """
     Standard MNIST, train, val, test splits and transforms
+
+    >>> MNISTDataModule()  # doctest: +ELLIPSIS
+    <...mnist_datamodule.MNISTDataModule object at ...>
     """
 
     name = "mnist"
 
     def __init__(
         self,
-        data_dir: str = DATASETS_PATH,
+        data_dir: str = _DATASETS_PATH,
         val_split: int = 5000,
         num_workers: int = 16,
         normalize: bool = False,
@@ -50,8 +56,17 @@ class MNISTDataModule(LightningDataModule):
             val_split: how many of the training images to use for the validation split
             num_workers: how many workers to use for loading data
             normalize: If true applies image normalize
+            seed: starting seed for RNG.
+            batch_size: desired batch size.
         """
         super().__init__(*args, **kwargs)
+        if num_workers and platform.system() == "Windows":
+            # see: https://stackoverflow.com/a/59680818
+            warn(
+                f"You have requested num_workers={num_workers} on Windows,"
+                " but currently recommended is 0, so we set it for you"
+            )
+            num_workers = 0
 
         self.dims = (1, 28, 28)
         self.data_dir = data_dir
@@ -120,12 +135,12 @@ class MNISTDataModule(LightningDataModule):
 
     @property
     def default_transforms(self):
-        if not TORCHVISION_AVAILABLE:
+        if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:
-            mnist_transforms = transform_lib.Compose(
-                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
-            )
+            mnist_transforms = transform_lib.Compose([
+                transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5, ), std=(0.5, ))
+            ])
         else:
             mnist_transforms = transform_lib.ToTensor()
 

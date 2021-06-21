@@ -15,9 +15,10 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class SubSubModule(DeviceDtypeModuleMixin):
@@ -31,9 +32,9 @@ class SubModule(nn.Module):
         self.module = SubSubModule()
 
 
-class TopModule(EvalModelTemplate):
+class TopModule(BoringModel):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.module = SubModule()
 
@@ -55,10 +56,9 @@ class DeviceAssertCallback(Callback):
 ])
 @pytest.mark.parametrize(['dst_device'], [
     pytest.param(torch.device('cpu')),
-    pytest.param(torch.device('cuda')),
     pytest.param(torch.device('cuda', 0)),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """
     Test that the device and dtype property updates propagate through mixed nesting of regular
@@ -76,12 +76,12 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     assert model.dtype == model.module.module.dtype == dst_dtype
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        distributed_backend='dp',
+        accelerator='dp',
         gpus=2,
         callbacks=[DeviceAssertCallback()],
         max_steps=1,
@@ -89,14 +89,34 @@ def test_submodules_multi_gpu_dp(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         callbacks=[DeviceAssertCallback()],
         max_steps=1,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ['device'],
+    [
+        pytest.param(None),  # explicitly call without an index to see if the returning device contains an index
+        pytest.param(0),
+        pytest.param(torch.device('cuda', 0)),
+    ]
+)
+@RunIf(min_gpus=1)
+def test_gpu_cuda_device(device):
+    model = TopModule()
+
+    model.cuda(device)
+
+    device = model.device
+    assert device.type == 'cuda'
+    assert device.index is not None
+    assert device.index == torch.cuda.current_device()

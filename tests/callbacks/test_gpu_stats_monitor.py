@@ -12,24 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GPUStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor(tmpdir):
     """
     Test GPU stats are logged using a logger.
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     gpu_stats = GPUStatsMonitor(intra_step_time=True)
     logger = CSVLogger(tmpdir)
     log_every_n_steps = 2
@@ -44,8 +46,8 @@ def test_gpu_stats_monitor(tmpdir):
         logger=logger
     )
 
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
@@ -58,7 +60,7 @@ def test_gpu_stats_monitor(tmpdir):
         'utilization.gpu',
         'memory.used',
         'memory.free',
-        'utilization.memory'
+        'utilization.memory',
     ]
 
     for f in fields:
@@ -71,15 +73,15 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
     Test GPUStatsMonitor on CPU machine.
     """
     with pytest.raises(MisconfigurationException, match='NVIDIA driver is not installed'):
-        gpu_stats = GPUStatsMonitor()
+        GPUStatsMonitor()
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_logger(tmpdir):
     """
     Test GPUStatsMonitor with no logger in Trainer.
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(
@@ -87,26 +89,26 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
         callbacks=[gpu_stats],
         max_epochs=1,
         gpus=1,
-        logger=False
+        logger=False,
     )
 
     with pytest.raises(MisconfigurationException, match='Trainer that has no logger.'):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     """
     Test GPUStatsMonitor raises a warning when not training on GPU device.
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[gpu_stats],
         max_steps=1,
-        gpus=None
+        gpus=None,
     )
 
     with pytest.raises(MisconfigurationException, match='not running on GPU'):

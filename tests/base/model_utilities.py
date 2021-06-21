@@ -13,7 +13,7 @@
 # limitations under the License.
 from torch.utils.data import DataLoader
 
-from tests.base.datasets import TrialMNIST
+from tests.helpers.datasets import TrialMNIST
 
 
 class ModelTemplateData:

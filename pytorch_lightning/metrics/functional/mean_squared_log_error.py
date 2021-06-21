@@ -11,41 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple
 
 import torch
-from pytorch_lightning.metrics.utils import _check_same_shape
+from torchmetrics.functional import mean_squared_log_error as _mean_squared_log_error
+
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-def _mean_squared_log_error_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
-    _check_same_shape(preds, target)
-    sum_squared_log_error = torch.sum(torch.pow(torch.log1p(preds) - torch.log1p(target), 2))
-    n_obs = target.numel()
-    return sum_squared_log_error, n_obs
-
-
-def _mean_squared_log_error_compute(sum_squared_log_error: torch.Tensor, n_obs: int) -> torch.Tensor:
-    return sum_squared_log_error / n_obs
-
-
+@deprecated_metrics(target=_mean_squared_log_error)
 def mean_squared_log_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
-    Computes mean squared log error
-
-    Args:
-        pred: estimated labels
-        target: ground truth labels
-
-    Return:
-        Tensor with RMSLE
-
-    Example:
-
-        >>> x = torch.tensor([0., 1, 2, 3])
-        >>> y = torch.tensor([0., 1, 2, 2])
-        >>> mean_squared_log_error(x, y)
-        tensor(0.0207)
-
+    .. deprecated::
+        Use :func:`torchmetrics.functional.mean_squared_log_error`. Will be removed in v1.5.0.
     """
-    sum_squared_log_error, n_obs = _mean_squared_log_error_update(preds, target)
-    return _mean_squared_log_error_compute(sum_squared_log_error, n_obs)
+    return void(preds, target)

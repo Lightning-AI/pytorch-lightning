@@ -14,7 +14,7 @@
 
 FROM google/cloud-sdk:slim
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.6
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
@@ -23,12 +23,13 @@ ARG XLA_VERSION=1.6
 
 SHELL ["/bin/bash", "-c"]
 
-ARG CONDA_VERSION=4.7.12
+ARG CONDA_VERSION=4.9.2
 # for skipping configurations
-ENV DEBIAN_FRONTEND=noninteractive
-ENV CONDA_ENV=lightning
+ENV \
+    DEBIAN_FRONTEND=noninteractive \
+    CONDA_ENV=lightning
 
-# show system inforation
+# show system info
 RUN lsb_release -a && cat /etc/*-release
 
 RUN apt-get update -qq && \
@@ -41,20 +42,21 @@ RUN apt-get update -qq && \
         ca-certificates \
         libomp5 \
     && \
-# Install conda and python.
-# NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
+    # Install conda and python.
+    # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
-# Cleaning
+    # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/miniconda3/bin:$PATH"
-ENV LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
+ENV \
+    PATH="/root/miniconda3/bin:$PATH" \
+    LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
 COPY environment.yml environment.yml
 
 RUN conda create -y --name $CONDA_ENV && \
@@ -67,16 +69,17 @@ RUN conda create -y --name $CONDA_ENV && \
     conda clean -ya && \
     rm environment.yml
 
-ENV PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH
-ENV LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
-# if you want this environment to be the default one, uncomment the following line:
-ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+ENV \
+    PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
+    # if you want this environment to be the default one, uncomment the following line:
+    CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 # Disable cache
 RUN pip --version && \
     pip config set global.cache-dir false && \
     conda remove pytorch torchvision && \
-# Install Pytorch XLA
+    # Install Pytorch XLA
     py_version=${PYTHON_VERSION/./} && \
     # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
     gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
@@ -88,18 +91,18 @@ RUN pip --version && \
 # Get package
 COPY ./ ./pytorch-lightning/
 
-# Install pytorch-lightning dependencies.
 RUN \
     python --version && \
-# Install PL dependencies
     cd pytorch-lightning && \
-    # drop Torch as it was installed with XLA
+    # drop packages installed with XLA
     python -c "fname = 'requirements.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)" && \
-    # drop Horovod as it is not needed
-    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    # drop TorchVision as it was installed with XLA
     python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)" && \
-    pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed && \
+    # drop unnecessary packages
+    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
+    python ./requirements/adjust_versions.py ./requirements/extra.txt && \
+    # install PL dependencies
+    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache
@@ -110,4 +113,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
-    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.8').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"
+    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.9').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"

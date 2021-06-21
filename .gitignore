@@ -8,14 +8,14 @@ lightning_logs/
 .vscode/
 
 # Test-tube
-test_tube_logs/
-test_tube_data/
-test_tube_exp/
+test_tube_*/
 
 # Documentations
 docs/source/api
 docs/source/*.md
 docs/source/generated
+docs/source/*/generated
+docs/source/notebooks
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -27,6 +27,7 @@ timit_data/
 # C extensions
 *.so
 
+# PyCharm
 .idea/
 
 # Distribution / packaging
@@ -126,11 +127,14 @@ ENV/
 
 # mypy
 .mypy_cache/
+# pytest
+.pytest_cache/
 
 # data
 .data/
 Datasets/
 mnist/
+legacy/checkpoints/
 
 # pl tests
 ml-runs/
@@ -141,3 +145,11 @@ pytorch\ lightning
 test-reports/
 wandb
 .forked/
+*.prof
+*.tar.gz
+
+# dataset generated from bolts in examples.
+cifar-10-batches-py
+*.pt
+# ctags
+tags
