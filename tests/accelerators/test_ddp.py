@@ -31,7 +31,9 @@ from tests.utilities.distributed import call_training_script
 CLI_ARGS = '--max_epochs 1 --gpus 2 --accelerator ddp'
 
 
-def _test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     # call the script
     call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120, as_module=as_module)
 
@@ -44,16 +46,8 @@ def _test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_only_asfile(tmpdir):
-    _test_multi_gpu_model_ddp_fit_only(tmpdir, as_module=False)
-
-
-@RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_only_asmodule(tmpdir):
-    _test_multi_gpu_model_ddp_fit_only(tmpdir, as_module=True)
-
-
-def _test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     # call the script
     call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir, as_module=as_module)
 
@@ -66,16 +60,8 @@ def _test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_test_only_asfile(tmpdir):
-    _test_multi_gpu_model_ddp_test_only(tmpdir, as_module=False)
-
-
-@RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_test_only_asmodule(tmpdir):
-    _test_multi_gpu_model_ddp_test_only(tmpdir, as_module=True)
-
-
-def _test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
     # call the script
     call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20, as_module=as_module)
 
@@ -89,16 +75,6 @@ def _test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
     model_outs = result['result']
     for out in model_outs:
         assert out['test_acc'] > 0.7
-
-
-@RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_test_asfile(tmpdir):
-    _test_multi_gpu_model_ddp_fit_test(tmpdir, as_module=False)
-
-
-@RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_test_asmodule(tmpdir):
-    _test_multi_gpu_model_ddp_fit_test(tmpdir, as_module=True)
 
 
 @RunIf(skip_windows=True)
