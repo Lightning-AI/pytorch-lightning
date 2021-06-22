@@ -15,7 +15,7 @@
 import logging
 import os
 import warnings
-from functools import partial, wraps
+from functools import wraps
 from platform import python_version
 from typing import Any, Optional, Union
 
@@ -95,16 +95,6 @@ def rank_zero_info(*args, stacklevel: int = 4, **kwargs):
 @rank_zero_only
 def rank_zero_warn(*args, stacklevel: int = 4, **kwargs):
     _warn(*args, stacklevel=stacklevel, **kwargs)
-
-
-class LightningDeprecationWarning(DeprecationWarning):
-    ...
-
-
-# enable our warnings
-warnings.simplefilter('default', LightningDeprecationWarning)
-
-rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
