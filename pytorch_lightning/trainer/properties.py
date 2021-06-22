@@ -134,6 +134,10 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.tpu_cores
 
     @property
+    def ipus(self) -> int:
+        return self.accelerator_connector.ipus
+
+    @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
 
