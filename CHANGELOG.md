@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Add `extract_batch_size` utility and corresponding tests to extract batch dimension from multiple batch types. ([#8357](https://github.com/PyTorchLightning/pytorch-lightning/pull/8357/))
 
+
 - Add support for named parameter groups in `LearningRateMonitor` ([#7987](https://github.com/PyTorchLightning/pytorch-lightning/pull/7987))
 
 
@@ -191,6 +192,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for `devices` flag to Trainer ([#8440](https://github.com/PyTorchLightning/pytorch-lightning/pull/8440))
 
+
+- Added support for quantization of models with multiple inputs/outputs and forward method kwargs ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
 
 
 ### Changed

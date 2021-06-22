@@ -48,9 +48,13 @@ def wrap_qat_forward_context(
             quant_cb._forward_calls += 1
             data = [q(d) for q, d in zip(model.quants, data)]
         data = func(*data, **kwargs)
+        output_dtype = type(data)
         # apply custom trigger
         if _quant_run:
-            data = model.dequant(data)
+            if output_dtype in (tuple, list):
+                data = output_dtype([model.dequant(d) for d in data])
+            else:
+                data = model.dequant(data)
         return data
 
     return wrapper
@@ -65,7 +69,11 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
     def wrapper(*data, **kwargs) -> Any:
         data = [q(d) for q, d in zip(model.quants, data)]
         data = func(*data, **kwargs)
-        data = model.dequant(data)
+        output_dtype = type(data)
+        if output_dtype in (tuple, list):
+            data = output_dtype([model.dequant(d) for d in data])
+        else:
+            data = model.dequant(data)
         return data
 
     return wrapper

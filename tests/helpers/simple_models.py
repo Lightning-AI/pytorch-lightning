@@ -14,9 +14,11 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.metrics import Accuracy, MeanSquaredError
+from tests.helpers.datasets import ExampleDataset
 
 
 class ClassificationModel(LightningModule):
@@ -159,3 +161,38 @@ class MultiInputModel(LightningModule):
     def example_input_array(self):
         """Two MNIST-sized squares"""
         return torch.randn(1, 3, 28, 28), torch.randn(1, 3, 28, 28)
+
+
+class MultiOutputModel(LightningModule):
+
+    def __init__(self, output_dtype: type):
+        super(MultiOutputModel, self).__init__()
+        if output_dtype not in (list, tuple):
+            raise ValueError('output_dtype must be one of (list, tuple)')
+        self.output_dtype = output_dtype
+        self.conv1 = nn.Conv2d(3, 8, kernel_size=3)
+        self.conv2 = nn.Conv2d(8, 32, kernel_size=3)
+
+    def forward(self, x):
+        c1 = self.conv1(x)
+        c2 = self.conv2(c1)
+        return self.output_dtype([c1, c2])
+
+    def training_step(self, batch, batch_idx):
+        """Dummy loss as-in BoringModel"""
+        out = self.forward(batch)
+        loss = torch.tensor(0.)
+        for o in out:
+            loss += torch.nn.functional.mse_loss(o, torch.ones_like(o))
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters())
+
+    def train_dataloader(self):
+        return DataLoader(ExampleDataset(self), batch_size=2)
+
+    @property
+    def example_input_array(self):
+        """MNIST-size square image"""
+        return torch.randn(1, 3, 28, 28)

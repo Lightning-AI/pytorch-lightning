@@ -23,7 +23,7 @@ from pytorch_lightning.metrics.functional.mean_relative_error import mean_relati
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import MultiInputDatamodule, RegressDataModule
 from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import MultiInputModel, RegressionModel
+from tests.helpers.simple_models import MultiInputModel, MultiOutputModel, RegressionModel
 
 
 @pytest.mark.parametrize("observe", ['average', 'histogram'])
@@ -164,6 +164,13 @@ def test_quantize_wrapper_multi_input(tmpdir):
     """Pass multi-tensor input through QAT forward wrappers"""
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(MultiInputModel(), datamodule=MultiInputDatamodule())
+
+
+@pytest.mark.parametrize('output_dtype', [list, tuple])
+def test_quantize_wrapper_multi_output(tmpdir, output_dtype):
+    """Dequantize multiple output tensors in QAT forward wrappers"""
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(MultiOutputModel(output_dtype))
 
 
 def test_quantize_wrapper_kwargs(tmpdir):
