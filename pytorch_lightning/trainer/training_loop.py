@@ -642,10 +642,10 @@ class TrainLoop:
             if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self.warning_cache.warn(
+                    self.warning_cache.deprecation(
                         "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
-                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                        " Support for the old signature will be removed in v1.5",
                     )
                     model_ref.on_train_epoch_end(processed_epoch_output)
                 else:
@@ -944,10 +944,10 @@ class TrainLoop:
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
                 if not self.trainer.lightning_module.automatic_optimization:
-                    self.warning_cache.warn(
+                    self.warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5", DeprecationWarning
+                        " the old signature will be removed in v1.5",
                     )
                 args.append(opt_idx)
             elif not self.trainer.has_arg(

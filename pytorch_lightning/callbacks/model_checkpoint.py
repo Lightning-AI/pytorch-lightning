@@ -607,10 +607,10 @@ class ModelCheckpoint(Callback):
             self.save_top_k = 1
 
         if deprecation_warning:
-            warning_cache.warn(
+            warning_cache.deprecation(
                 "Relying on `self.log('val_loss', ...)` to set the ModelCheckpoint monitor is deprecated in v1.2"
                 " and will be removed in v1.4. Please, create your own `mc = ModelCheckpoint(monitor='your_monitor')`"
-                " and use it as `Trainer(callbacks=[mc])`.", DeprecationWarning
+                " and use it as `Trainer(callbacks=[mc])`.",
             )
 
     def _validate_monitor_key(self, trainer: 'pl.Trainer') -> None:

@@ -362,15 +362,6 @@ def test_v1_5_0_trainer_gpus_str_parsing(*_):
         assert gpus == [0]
 
 
-def test_v1_5_0_datamodule_setter():
-    model = BoringModel()
-    datamodule = BoringDataModule()
-    with no_deprecated_call(match="The `LightningModule.datamodule`"):
-        model.datamodule = datamodule
-    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
-        _ = model.datamodule
-
-
 def test_v1_5_0_trainer_tbptt_steps(tmpdir):
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         _ = Trainer(truncated_bptt_steps=1)
