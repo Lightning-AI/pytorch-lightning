@@ -424,7 +424,7 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-        self.log_device_info()
+        self._log_device_info()
 
     def _setup_on_init(
         self,
@@ -1224,7 +1224,7 @@ class Trainer(
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
-    def log_device_info(self) -> None:
+    def _log_device_info(self) -> None:
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
 
         num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
