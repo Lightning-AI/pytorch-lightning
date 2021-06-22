@@ -18,7 +18,7 @@ import types
 from argparse import Namespace
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -97,7 +97,7 @@ def clean_namespace(hparams):
     del_attrs = [k for k, v in hparams_dict.items() if not is_picklable(v)]
 
     for k in del_attrs:
-        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
+        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled")
         del hparams_dict[k]
 
 

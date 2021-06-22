@@ -14,8 +14,8 @@
 
 import logging
 import os
-import warnings
-from functools import partial, wraps
+from functools import wraps
+from platform import python_version
 from typing import Any, Optional, Union
 
 import torch
@@ -65,22 +65,26 @@ def _get_rank() -> int:
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
-def _warn(*args, **kwargs):
-    warnings.warn(*args, **kwargs)
-
-
-def _info(*args, **kwargs):
+def _info(*args, stacklevel: int = 2, **kwargs):
+    if python_version() >= "3.8.0":
+        kwargs['stacklevel'] = stacklevel
     log.info(*args, **kwargs)
 
 
-def _debug(*args, **kwargs):
+def _debug(*args, stacklevel: int = 2, **kwargs):
+    if python_version() >= "3.8.0":
+        kwargs['stacklevel'] = stacklevel
     log.debug(*args, **kwargs)
 
 
-rank_zero_debug = rank_zero_only(_debug)
-rank_zero_info = rank_zero_only(_info)
-rank_zero_warn = rank_zero_only(_warn)
-rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
+@rank_zero_only
+def rank_zero_debug(*args, stacklevel: int = 4, **kwargs):
+    _debug(*args, stacklevel=stacklevel, **kwargs)
+
+
+@rank_zero_only
+def rank_zero_info(*args, stacklevel: int = 4, **kwargs):
+    _info(*args, stacklevel=stacklevel, **kwargs)
 
 
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
@@ -294,6 +298,7 @@ def register_ddp_comm_hook(
             ddp_comm_wrapper=default.fp16_compress_wrapper,
         )
     """
+    from pytorch_lightning.utilities import rank_zero_warn
     if not _TORCH_GREATER_EQUAL_1_8:
         rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
         return

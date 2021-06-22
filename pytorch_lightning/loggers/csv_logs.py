@@ -29,7 +29,8 @@ import torch
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 log = logging.getLogger(__name__)
 
