@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from pytorch_lightning.loops.base import Loop  # noqa: F401
-from pytorch_lightning.loops.batch import TrainingBatchLoop  # noqa: F401
-from pytorch_lightning.loops.dataloader import DataLoaderLoop, EvaluationLoop, PredictionLoop  # noqa: F401
-from pytorch_lightning.loops.epoch import EvaluationEpochLoop, PredictionEpochLoop, TrainingEpochLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationLoop  # noqa: F401
 from pytorch_lightning.loops.fit_loop import FitLoop  # noqa: F401
