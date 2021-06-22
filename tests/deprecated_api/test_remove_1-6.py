@@ -227,3 +227,11 @@ def test_v1_6_0_extras_with_gradients(tmpdir):
     match = r"\{'foo'\} has a `grad_fn`.*behaviour will change in v1\.6"
     with pytest.deprecated_call(match=match):
         trainer.fit(model)
+
+
+def test_v1_6_0_train_loop(tmpdir):
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+    ):
+        _ = trainer.train_loop
