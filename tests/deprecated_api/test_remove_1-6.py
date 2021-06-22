@@ -239,7 +239,7 @@ def test_v1_6_0_train_loop(tmpdir):
 
 
 def test_v1_6_0_rank_zero_warnings_moved():
-    with pytest.deprecated_call(match='in v1.3.8 and will be removed in v1.6'):
+    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
         rank_zero_warn('test')
-    with pytest.deprecated_call(match='in v1.3.8 and will be removed in v1.6'):
+    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
         rank_zero_deprecation('test')
