@@ -30,7 +30,7 @@ from pytorch_lightning.trainer.callback_hook import warning_cache as callback_wa
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
 
