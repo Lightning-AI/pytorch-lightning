@@ -61,7 +61,12 @@ class PredictionEpochLoop(Loop):
         self.return_predictions = return_predictions
 
     def advance(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, *args: Any, **kwargs: Any
+        self,
+        dataloader_iter: Iterator,
+        dataloader_idx: int,
+        dl_max_batches: int,
+        num_dataloaders: int,
+        return_predictions: bool = False
     ) -> None:
         """Runs one prediction step.
         Args:
@@ -71,7 +76,6 @@ class PredictionEpochLoop(Loop):
             num_dataloaders: the total number of dataloaders
             return_predictions: whether to return the obtained predictions
         """
-        void(dl_max_batches, *args, **kwargs)
         batch_idx, batch = next(dataloader_iter)
         if batch is None:
             raise StopIteration
