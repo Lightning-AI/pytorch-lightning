@@ -109,7 +109,6 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
 
         def setup(self, stage: Optional[str] = None) -> None:
             assert torch.distributed.is_initialized()
-            raise SystemExit()
 
     model = TestModel()
     trainer = Trainer(
@@ -118,8 +117,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
         accelerator="ddp",
         gpus=1,
     )
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer.fit(model)
 
 
 @RunIf(min_gpus=2, min_torch="1.8.1", special=True)
