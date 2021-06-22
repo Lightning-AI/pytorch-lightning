@@ -338,8 +338,8 @@ class LitAutoEncoder(pl.LightningModule):
 ## Examples
 
 ###### Hello world
-- [MNIST hello world](https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/01-mnist-hello-world.ipynb)
-- [MNIST on TPUs](https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/06-mnist-tpu-training.ipynb)
+- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
+- [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_)
 
 ###### Contrastive Learning
 - [BYOL](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol)
@@ -348,7 +348,6 @@ class LitAutoEncoder(pl.LightningModule):
 - [SIMCLR](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr)
 
 ###### NLP
-- [BERT](https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/04-transformers-text-classification.ipynb)
 - [GPT-2](https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2)
 
 
@@ -358,7 +357,7 @@ class LitAutoEncoder(pl.LightningModule):
 - [Reinforce](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#reinforce)
 
 ###### Vision
-- [GAN](https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/03-basic-gan.ipynb)
+- [GAN](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/basic-gan.html)
 
 ###### Classic ML
 - [Logistic Regression](https://lightning-bolts.readthedocs.io/en/latest/classic_ml.html#logistic-regression)
