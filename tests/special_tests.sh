@@ -70,6 +70,12 @@ done
 
 nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 
+# needs to run outside of `pytest`
+python tests/utilities/test_warnings.py
+if [ $? -eq 0 ]; then
+    report+="Ran\ttests/utilities/test_warnings.py\n"
+fi
+
 # echo test report
 printf '=%.s' {1..80}
 printf "\n$report"
