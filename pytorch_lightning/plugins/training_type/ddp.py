@@ -158,7 +158,7 @@ class DDPPlugin(ParallelPlugin):
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
-        if __main__.__spec__ is None:  # pragma: no-cover . Script called as `python a/b/c.py`
+        if __main__.__spec__ is None:  # pragma: no-cover
             # when user is using hydra find the absolute path
             path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
 
