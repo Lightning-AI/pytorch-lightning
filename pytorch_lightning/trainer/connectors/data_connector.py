@@ -113,6 +113,8 @@ class DataConnector:
     def attach_datamodule(
         self, model: 'pl.LightningModule', datamodule: Optional['pl.LightningDataModule'] = None
     ) -> None:
+        datamodule = datamodule or getattr(model, 'datamodule', None)
+
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule is None:
             return
