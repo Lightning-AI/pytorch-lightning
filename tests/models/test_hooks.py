@@ -286,12 +286,13 @@ class HookedModel(BoringModel):
         # `BoringModel` does not have a return for `test_step_end` so this would fail
         pass
 
-    @staticmethod
-    def _train_batch(trainer, model, batches, device=torch.device('cpu'), **kwargs):
+    def _train_batch(self, trainer, model, batches, device=torch.device('cpu'), **kwargs):
         using_native_amp = kwargs.get('amp_backend') == 'native'
+        using_apex = kwargs.get('amp_backend') == 'apex'
+        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
-            out.extend([
+            expected = [
                 # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
@@ -299,26 +300,46 @@ class HookedModel(BoringModel):
                 dict(name='on_before_batch_transfer', args=(ANY, None)),
                 dict(name='transfer_batch_to_device', args=(ANY, device, None)),
                 dict(name='on_after_batch_transfer', args=(ANY, None)),
+                *([dict(name='optimizers')] if not self.automatic_optimization else []),
                 dict(name='forward', args=(ANY, )),
+            ]
+            if not self.automatic_optimization:
+                # FIXME: can be simplified?
+                expected += [
+                    # FIXME: None, None?
+                    *([dict(name='backward', args=(ANY, None, None))] if using_apex else []),
+                    dict(name='manual_backward', args=(ANY, ANY)),
+                    *([
+                        dict(name='Callback.on_after_backward', args=(trainer, model)),
+                        dict(name=('on_after_backward'))
+                    ] if using_native_amp or using_apex or using_deepspeed else []),
+                ]
+            expected += [
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
-                dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
-                dict(name='on_before_zero_grad', args=(ANY, )),
-                dict(name='optimizer_zero_grad', args=(0, i, ANY, 0)),
-                # TODO: `on_before_backward`
-                *([dict(name='backward', args=(ANY, ANY, 0))] if kwargs.get('plugins') != 'deepspeed' else []),
-                dict(name='Callback.on_after_backward', args=(trainer, model)),
-                dict(name='on_after_backward'),
-                # TODO: `on_before_optimizer_step`
-                dict(
-                    name='optimizer_step',
-                    args=(0, i, ANY, 0, ANY),
-                    kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp)
-                ),
+            ]
+            if self.automatic_optimization:
+                expected += [
+                    dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
+                    dict(name='on_before_zero_grad', args=(ANY, )),
+                    dict(name='optimizer_zero_grad', args=(0, i, ANY, 0)),
+                    # TODO: `on_before_backward`
+                    *([dict(name='backward', args=(ANY, ANY, 0))] if kwargs.get('plugins') != 'deepspeed' else []),
+                    dict(name='Callback.on_after_backward', args=(trainer, model)),
+                    dict(name='on_after_backward'),
+                    # TODO: `on_before_optimizer_step`
+                    dict(
+                        name='optimizer_step',
+                        args=(0, i, ANY, 0, ANY),
+                        kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp)
+                    )
+                ]
+            expected += [
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
                 dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
                 dict(name='Callback.on_batch_end', args=(trainer, model)),
-            ])
+            ]
+            out.extend(expected)
         return out
 
     @staticmethod
@@ -387,9 +408,31 @@ class HookedModel(BoringModel):
         pytest.param(dict(gpus=1, precision=16, amp_backend='apex'), marks=RunIf(amp_apex=True, min_gpus=1)),
     ]
 )
-def test_trainer_model_hook_system_fit(tmpdir, kwargs):
+@pytest.mark.parametrize('auto_opt', (True, False))
+def test_trainer_model_hook_system_fit(tmpdir, kwargs, auto_opt):
     called = []
-    model = HookedModel(called)
+
+    class TestModel(HookedModel):
+
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.automatic_optimization = auto_opt
+
+        def training_step(self, batch, batch_idx):
+            if auto_opt:
+                return super().training_step(batch, batch_idx)
+            # FIXME: why does deepspeed need this?
+            if kwargs.get('plugins') == 'deepspeed':
+                opt = self.optimizers()[0]
+            else:
+                opt = self.optimizers()
+            opt.zero_grad()
+            loss = self.step(batch[0])
+            self.manual_backward(loss, opt)
+            opt.step()
+            return {'loss': loss}
+
+    model = TestModel(called)
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
@@ -548,10 +591,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         'on_train_start',
         'on_epoch_start',
         'on_train_epoch_start',
-        *[
-            h['name']
-            for h in HookedModel._train_batch(trainer, model, train_batches) if not h['name'].startswith('Callback')
-        ],
+        *[h['name'] for h in model._train_batch(trainer, model, train_batches) if not h['name'].startswith('Callback')],
         'training_epoch_end',
         'on_train_epoch_end',
         'on_epoch_end',
