@@ -366,19 +366,20 @@ class ResultCollection(dict):
         return self.get('_extra', {})
 
     @extra.setter
-    def extra(self, extra: Mapping[str, Any]) -> None:
+    def extra(self, extra: Dict[str, Any]) -> None:
 
         def check_fn(v):
             if v.grad_fn is not None:
-                warning_cache.warn(
+                warning_cache.deprecation(
                     f"One of the returned values {set(extra.keys())} has a `grad_fn`. We will detach it automatically"
                     " but this behaviour will change in v1.6. Please detach it manually:"
-                    " `return {'loss': ..., 'something': something.detach()}`", DeprecationWarning
+                    " `return {'loss': ..., 'something': something.detach()}`"
                 )
                 return v.detach()
             return v
 
-        extra = apply_to_collection(extra, torch.Tensor, check_fn)
+        # update instead of replace to keep the extra dict reference. TODO: remove with v1.6 deprecation removal
+        extra.update(apply_to_collection(extra, torch.Tensor, check_fn))
         self['_extra'] = extra
 
     def log(

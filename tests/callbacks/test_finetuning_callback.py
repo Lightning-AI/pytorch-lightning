@@ -27,7 +27,8 @@ from tests.helpers import BoringModel, RandomDataset
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
         epoch = trainer.current_epoch
         if self.unfreeze_backbone_at_epoch <= epoch:
             optimizer = trainer.optimizers[0]

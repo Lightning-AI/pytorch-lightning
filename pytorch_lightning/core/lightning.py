@@ -169,7 +169,7 @@ class LightningModule(
         warning_cache.deprecation(
             "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
             " Access the datamodule through using `self.trainer.datamodule` instead.",
-            stacklevel=5,
+            stacklevel=6,
         )
         return self._datamodule
 
