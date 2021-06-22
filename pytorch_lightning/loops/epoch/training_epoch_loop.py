@@ -18,7 +18,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
+from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden

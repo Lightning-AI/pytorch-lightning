@@ -18,8 +18,8 @@ from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
+from pytorch_lightning.loops.dataloader_loop import DataLoaderLoop
+from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
