@@ -23,7 +23,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
 
     @property
     def return_predictions(self) -> bool:
-        """whether to return the predictions or not"""
+        """Whether to return the predictions or not"""
         return self._return_predictions
 
     @return_predictions.setter
