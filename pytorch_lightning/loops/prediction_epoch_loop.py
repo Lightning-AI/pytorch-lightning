@@ -28,7 +28,7 @@ class PredictionEpochLoop(Loop):
 
     @property
     def should_store_predictions(self) -> bool:
-        """whether the predictions should be stored for later usage (e.g. aggregation or returning)"""
+        """Whether the predictions should be stored for later usage (e.g. aggregation or returning)"""
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
