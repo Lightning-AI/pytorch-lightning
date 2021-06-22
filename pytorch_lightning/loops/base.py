@@ -63,10 +63,10 @@ class Loop(ABC):
 
     def on_skip(self) -> Optional[Any]:
         """
-        The function to run when :attr:`run` should be skipped.
+        The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
         Returns:
-            the default output value of :attr:`on_run_end`
+            the default output value of :meth:`on_run_end`
         """
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
