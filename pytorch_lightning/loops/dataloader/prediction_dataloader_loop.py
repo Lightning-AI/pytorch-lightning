@@ -28,7 +28,6 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
 
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
-        """whether to return the predictions or not"""
         # ``DDPSpawnPlugin`` plugins and derivate don't support return predictions.
         is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin)
         if return_predictions and is_ddp_spawn:
