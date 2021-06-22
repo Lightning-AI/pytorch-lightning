@@ -13,4 +13,4 @@
 # limitations under the License.
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop  # noqa: F401
-from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationLoop  # noqa: F401

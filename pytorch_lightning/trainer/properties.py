@@ -29,7 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -524,10 +524,10 @@ class TrainerProperties(ABC):
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.training_loop.is_last_batch
+        return self.fit_loop.epoch_loop.is_last_batch
 
     @property
-    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop]]:
         if self.training:
             return self.fit_loop
         elif self.sanity_checking or self.evaluating:

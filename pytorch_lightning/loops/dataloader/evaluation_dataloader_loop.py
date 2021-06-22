@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
-class EvaluationDataLoaderLoop(DataLoaderLoop):
+class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
     def __init__(self):
