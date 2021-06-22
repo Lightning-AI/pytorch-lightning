@@ -168,9 +168,10 @@ class LightningModule(
 
     @property
     def datamodule(self) -> Any:
-        rank_zero_deprecation(
+        warning_cache.deprecation(
             "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
-            " Access the datamodule through using `self.trainer.datamodule` instead."
+            " Access the datamodule through using `self.trainer.datamodule` instead.",
+            stacklevel=6,
         )
         return self._datamodule
 
@@ -223,10 +224,10 @@ class LightningModule(
         if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
             batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         else:
-            warning_cache.warn(
+            warning_cache.deprecation(
                 "`transfer_batch_to_device` hook signature has changed in v1.4."
                 " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6", DeprecationWarning
+                " the old signature will be removed in v1.6"
             )
             batch = self.transfer_batch_to_device(batch, device)
 
@@ -1674,7 +1675,7 @@ class LightningModule(
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.train_loop.running_loss.mean()
+        running_train_loss = self.trainer.fit_loop.running_loss.mean()
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
@@ -1688,7 +1689,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
+            tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version

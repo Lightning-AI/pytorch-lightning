@@ -14,6 +14,8 @@
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
@@ -51,6 +53,12 @@ class TrainingEpochLoop(Loop):
         self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
+
+        self._results = ResultCollection(training=True)
+
+    @property
+    def results(self) -> ResultCollection:
+        return self._results
 
     @property
     def batch_idx(self) -> int:
@@ -115,6 +123,12 @@ class TrainingEpochLoop(Loop):
         if batch_output.signal == -1:
             raise StopIteration
 
+        # update non-plateau LR schedulers
+        # update epoch-interval ones only when we are at the end of training epoch
+        self.update_lr_schedulers('step', update_plateau_schedulers=False)
+        if self._num_training_batches_reached(is_last):
+            self.update_lr_schedulers('epoch', update_plateau_schedulers=False)
+
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
@@ -145,7 +159,7 @@ class TrainingEpochLoop(Loop):
         should_check_val = self.should_check_val_fx(self.iteration_count, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
-            self.trainer._run_evaluation()
+            self._run_validation()
             self.trainer.training = True
 
         # -----------------------------------------
@@ -153,8 +167,8 @@ class TrainingEpochLoop(Loop):
         # -----------------------------------------
         self.save_loggers_on_train_batch_end()
 
-        # update LR schedulers
-        self.update_lr_schedulers('step')
+        # update plateau LR scheduler after metrics are logged
+        self.update_lr_schedulers('step', update_plateau_schedulers=True)
         self.trainer.checkpoint_connector.has_trained = True
 
         self.total_batch_idx += 1
@@ -164,6 +178,13 @@ class TrainingEpochLoop(Loop):
 
         if self.done:
             raise StopIteration
+
+    def _run_validation(self):
+        # reload dataloaders
+        self.trainer.fit_loop.validation_loop.reload_evaluation_dataloaders()
+
+        with torch.no_grad():
+            self.trainer.fit_loop.validation_loop.run()
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
@@ -207,6 +228,10 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.on_epoch_end()
         return self.epoch_output
 
+    def teardown(self) -> None:
+        """Frees memory of tracked epoch outputs."""
+        self.epoch_output = None
+
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""
         # We cannot rely on Trainer.call_hook because the signatures might be different across
@@ -231,10 +256,10 @@ class TrainingEpochLoop(Loop):
             if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self.warning_cache.warn(
+                    self.warning_cache.deprecation(
                         "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
-                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                        " Support for the old signature will be removed in v1.5",
                     )
                     model_ref.on_train_epoch_end(processed_epoch_output)
                 else:
@@ -347,15 +372,13 @@ class TrainingEpochLoop(Loop):
             processed_outputs = processed_outputs[0]
         return processed_outputs
 
-    def update_lr_schedulers(self, interval: str) -> None:
+    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval"""
-        if interval == "step":
-            finished_accumulation = self.batch_loop._accumulated_batches_reached()
-            finished_epoch = self._num_training_batches_reached()
-            if not finished_accumulation and not finished_epoch:
-                return
+        if interval == "step" and self.batch_loop.should_accumulate():
+            return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
+            update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 

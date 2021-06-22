@@ -97,10 +97,10 @@ class TrainerCallbackHookMixin(ABC):
         """
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                warning_cache.warn(
+                warning_cache.deprecation(
                     "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
                     " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    " Support for the old signature will be removed in v1.5"
                 )
                 callback.on_train_epoch_end(self, self.lightning_module, outputs)
             else:
@@ -254,7 +254,7 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        return len(parameters) == 2 and parameters[1] != "args"
+        return len(parameters) == 2 and parameters[0] != "args"
 
     @staticmethod
     def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:

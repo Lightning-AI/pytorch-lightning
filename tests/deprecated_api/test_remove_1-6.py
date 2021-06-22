@@ -212,3 +212,26 @@ def test_v1_6_0_early_stopping_monitor(tmpdir):
         " For backward compatibility, setting this to `early_stop_on`."
     ):
         EarlyStopping()
+
+
+def test_v1_6_0_extras_with_gradients(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            loss = super().training_step(*args)['loss']
+            return {"loss": loss, 'foo': loss}
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    model = TestModel()
+    match = r"\{'foo'\} has a `grad_fn`.*behaviour will change in v1\.6"
+    with pytest.deprecated_call(match=match):
+        trainer.fit(model)
+
+
+def test_v1_6_0_train_loop(tmpdir):
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+    ):
+        _ = trainer.train_loop

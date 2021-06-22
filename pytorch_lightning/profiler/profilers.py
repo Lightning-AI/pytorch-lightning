@@ -1,7 +1,7 @@
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 rank_zero_deprecation(
-    "Using ``import pytorch_lightning.profiler.profilers`` is depreceated in v1.4, and will be removed in v1.6. "
+    "Using ``import pytorch_lightning.profiler.profilers`` is deprecated in v1.4, and will be removed in v1.6. "
     "HINT: Use ``import pytorch_lightning.profiler`` directly."
 )
 
