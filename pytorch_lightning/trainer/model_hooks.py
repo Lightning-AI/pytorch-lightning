@@ -17,8 +17,6 @@ from abc import ABC
 from typing import Optional
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
 class TrainerModelHooksMixin(ABC):

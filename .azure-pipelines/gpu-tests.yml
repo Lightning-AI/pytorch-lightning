@@ -55,13 +55,9 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
-        export GIT_TERMINAL_PROMPT=1
-        #sudo apt-get install -y cmake
-        # python -m pip install "pip==20.1"
-        pip install --requirement requirements.txt
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
-        pip install fairscale>=0.3.4 deepspeed==0.3.14 --upgrade-strategy only-if-needed
+        pip install fairscale>=0.3.4 deepspeed==0.3.14
+        pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
 

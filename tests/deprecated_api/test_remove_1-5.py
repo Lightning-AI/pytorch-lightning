@@ -30,7 +30,7 @@ from pytorch_lightning.trainer.callback_hook import warning_cache as callback_wa
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringModel
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.utils import no_warning_call
 
 
@@ -360,6 +360,15 @@ def test_v1_5_0_trainer_gpus_str_parsing(*_):
     with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='0' .* will change."):
         gpus = device_parser.parse_gpu_ids("0")
         assert gpus == [0]
+
+
+def test_v1_5_0_datamodule_setter():
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    with no_deprecated_call(match="The `LightningModule.datamodule`"):
+        model.datamodule = datamodule
+    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
+        _ = model.datamodule
 
 
 def test_v1_5_0_trainer_tbptt_steps(tmpdir):
