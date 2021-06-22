@@ -378,6 +378,28 @@ class HookedModel(BoringModel):
         return out
 
 
+@RunIf(deepspeed=True, min_gpus=1)
+def test_ci_bug(tmpdir):
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
+    train_batches = 2
+    val_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+        callbacks=[callback],
+        gpus=1,
+        precision=16,
+        plugins='deepspeed',
+    )
+    trainer.fit(model)
+
+
 @pytest.mark.parametrize(
     'kwargs',
     [
