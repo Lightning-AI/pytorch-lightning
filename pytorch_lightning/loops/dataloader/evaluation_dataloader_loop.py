@@ -33,10 +33,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         super().__init__()
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
-        self.evaluation_loop = EvaluationEpochLoop()
+        self.epoch_loop = EvaluationEpochLoop()
 
-        self._val_results = ResultCollection(training=False)
-        self._test_results = ResultCollection(training=False)
+        self._results = ResultCollection(training=False)
 
     @property
     def num_dataloaders(self) -> int:
@@ -59,23 +58,19 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         return self.trainer.val_dataloaders
 
     @property
-    def results(self) -> Optional[ResultCollection]:
+    def results(self) -> ResultCollection:
         """Returns the current results"""
-        if self.trainer.validating or self.trainer.sanity_checking:
-            return self._val_results
-        elif self.trainer.testing:
-            return self._test_results
-        return None
+        return self._results
 
     @property
     def predictions(self):
         """Returns the predictions from all dataloaders"""
-        return self.evaluation_loop.predictions
+        return self.epoch_loop.predictions
 
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop to everything necessary (like trainer and accelerators)"""
         super().connect(trainer, *args, **kwargs)
-        self.evaluation_loop.connect(trainer)
+        self.epoch_loop.connect(trainer)
 
     @property
     def done(self) -> bool:
@@ -98,6 +93,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
+    def on_skip(self) -> List:
+        return []
+
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
         void(*args, **kwargs)
@@ -114,7 +112,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
-        dl_outputs = self.evaluation_loop.run(
+        dl_outputs = self.epoch_loop.run(
             dataloader_iter,
             self.current_dataloader_idx,
             dl_max_batches,
@@ -149,7 +147,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.on_evaluation_end()
 
         # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
+        self.epoch_loop.predictions.to_disk()
 
         # enable train mode again
         self.on_evaluation_model_train()

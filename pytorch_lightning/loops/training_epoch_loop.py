@@ -14,6 +14,8 @@
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
@@ -51,6 +53,12 @@ class TrainingEpochLoop(Loop):
         self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
+
+        self._results = ResultCollection(training=True)
+
+    @property
+    def results(self) -> ResultCollection:
+        return self._results
 
     @property
     def batch_idx(self) -> int:
@@ -148,7 +156,7 @@ class TrainingEpochLoop(Loop):
         should_check_val = self.should_check_val_fx(self.iteration_count, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
-            self.trainer._run_evaluation()
+            self._run_validation()
             self.trainer.training = True
 
         # -----------------------------------------
@@ -167,6 +175,13 @@ class TrainingEpochLoop(Loop):
 
         if self.done:
             raise StopIteration
+
+    def _run_validation(self):
+        # reload dataloaders
+        self.trainer.fit_loop.validation_loop.reload_evaluation_dataloaders()
+
+        with torch.no_grad():
+            self.trainer.fit_loop.validation_loop.run()
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.

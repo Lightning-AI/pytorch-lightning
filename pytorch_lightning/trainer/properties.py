@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -63,7 +63,8 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    evaluation_loop: EvaluationDataLoaderLoop
+    validation_loop: EvaluationDataLoaderLoop
+    test_loop: EvaluationDataLoaderLoop
     """
     Accelerator properties
     """
@@ -482,6 +483,16 @@ class TrainerProperties(ABC):
     """
     Loop properties
     """
+
+    @property
+    def evaluation_loop(self) -> EvaluationDataLoaderLoop:
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            return self.fit_loop.validation_loop
+        elif self.state.fn == TrainerFn.VALIDATING:
+            return self.validation_loop
+        elif self.state.fn == TrainerFn.TESTING:
+            return self.test_loop
+        raise RuntimeError("The `Trainer.evaluation_loop` property isn't defined. Accessed outside of scope")
 
     @property
     def global_step(self) -> int:
