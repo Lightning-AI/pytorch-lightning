@@ -125,7 +125,8 @@ class PredictionEpochLoop(Loop):
             self.predictions.append(predictions)
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
-        """Assembles the keyword arguments for the ``predict_step``
+        """
+        Assembles the keyword arguments for the ``predict_step``
 
         Args:
             batch: the current batch to run the prediction on
