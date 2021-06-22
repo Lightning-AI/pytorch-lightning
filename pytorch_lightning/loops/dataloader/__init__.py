@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop  # noqa: F401
-from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop  # noqa: F401

@@ -29,7 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
