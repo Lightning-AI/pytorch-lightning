@@ -157,7 +157,8 @@ class DDPPlugin(ParallelPlugin):
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
-        if __main__.__loader__.name == "__main__":  # Script called as `python a/b/c.py`
+        # See https://docs.python.org/3/reference/import.html#main-spec
+        if __main__.__spec__ is None:  # Script called as `python a/b/c.py`
             # when user is using hydra find the absolute path
             path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
 
@@ -172,7 +173,7 @@ class DDPPlugin(ParallelPlugin):
             # use the same python interpreter and actually running
             command = [sys.executable] + command
         else:  # Script called as `python -m a.b.c`
-            command = [sys.executable, "-m", __main__.__loader__.name] + sys.argv[1:]
+            command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
         # the visible devices tell us how many GPUs we want to use.
         # when the trainer script was called the device has already been scoped by the time

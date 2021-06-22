@@ -25,7 +25,7 @@ def call_training_script(module_file, cli_args, method, tmpdir, timeout=60, as_m
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
     cli_args += ['--trainer_method', method]
-    file_args = ["-m", module_file.__loader__.name] if as_module else [str(file)]
+    file_args = ["-m", module_file.__spec__.name] if as_module else [str(file)]
     command = [sys.executable] + file_args + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
