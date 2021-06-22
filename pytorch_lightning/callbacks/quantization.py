@@ -223,10 +223,7 @@ class QuantizationAwareTraining(Callback):
                     'if your model takes multiple inputs', UserWarning
                 )
             else:
-                input_sample = pl_module.example_input_array
-                if not isinstance(input_sample, (tuple, list)):
-                    input_sample = (input_sample, )
-                num_inps = len(input_sample)
+                num_inps = len(pl_module.example_input_array)
         else:
             num_inps = self._max_num_inputs
         pl_module.quants = nn.ModuleList([torch.quantization.QuantStub() for _ in range(num_inps)])
