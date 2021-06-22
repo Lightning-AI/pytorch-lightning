@@ -63,7 +63,7 @@ class BaseFinetuning(Callback):
 
         class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
 
-            def __init__(self, unfreeze_at_epoch=10)
+            def __init__(self, unfreeze_at_epoch=10):
                 self._unfreeze_at_epoch = unfreeze_at_epoch
 
             def freeze_before_training(self, pl_module):
