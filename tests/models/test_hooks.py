@@ -306,6 +306,7 @@ class HookedModel(BoringModel):
                 dict(name='on_before_zero_grad', args=(ANY, )),
                 dict(name='optimizer_zero_grad', args=(0, i, ANY, 0)),
                 # TODO: `on_before_backward`
+                # DeepSpeed handles backward internally
                 *([dict(name='backward', args=(ANY, ANY, 0))] if kwargs.get('plugins') != 'deepspeed' else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
                 dict(name='on_after_backward'),
@@ -432,17 +433,18 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs):
         dict(name='prepare_data'),
         dict(name='configure_callbacks'),
         dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
-        # FIXME
+        # DeepSpeed needs the batch size to figure out throughput logging
         *([dict(name='train_dataloader')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage='fit')),
         dict(name='setup', kwargs=dict(stage='fit')),
         dict(name='configure_sharded_model'),
         dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
-        # FIXME
+        # DeepSpeed skips initializing optimizers here as they are handled via config
         *([dict(name='configure_optimizers')] if kwargs.get('plugins') != 'deepspeed' else []),
         dict(name='Callback.on_fit_start', args=(trainer, model)),
         dict(name='on_fit_start'),
-        # FIXME
+        # TODO: explore whether DeepSpeed can have the same flow for optimizers
+        # DeepSpeed did not find any optimizer in the config so they are loaded here
         *([dict(name='configure_optimizers')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.on_pretrain_routine_start', args=(trainer, model)),
         dict(name='on_pretrain_routine_start'),
