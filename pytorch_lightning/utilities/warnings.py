@@ -11,30 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Warning-related utilities"""
-import warnings
-from functools import partial
-
-from pytorch_lightning.utilities.distributed import rank_zero_only
-
-
-def _warn(*args, stacklevel: int = 2, **kwargs):
-    warnings.warn(*args, stacklevel=stacklevel, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_warn(*args, stacklevel: int = 4, **kwargs):
-    _warn(*args, stacklevel=stacklevel, **kwargs)
-
-
-class LightningDeprecationWarning(DeprecationWarning):
-    ...
-
-
-# enable our warnings
-warnings.simplefilter('default', LightningDeprecationWarning)
-
-rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 
 
 class WarningCache(set):
