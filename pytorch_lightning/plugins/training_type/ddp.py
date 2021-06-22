@@ -85,6 +85,10 @@ class DDPPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
+    def is_distributed(self) -> bool:
+        return True
+
+    @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
 
