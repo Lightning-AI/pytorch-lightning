@@ -68,7 +68,9 @@ class PredictionEpochLoop(Loop):
         num_dataloaders: int,
         return_predictions: bool = False
     ) -> None:
-        """Runs one prediction step.
+        """
+        Runs one prediction step.
+
         Args:
             dataloader_iter: the iterator over the current dataloader
             dataloader_idx: the index of the current dataloader
