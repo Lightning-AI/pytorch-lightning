@@ -131,6 +131,36 @@ class QuantizationAwareTraining(Callback):
             not specified, the model's :attr:~pytorch_lightning.core.lightning.LightningModule.example_input_array`
             property must be defined
 
+        max_num_inputs: maximum number of input tensors used by the model in training, evaluation, or
+            testing. This determines how many :class:`torch.quantization.QuantStub`s are needed. Multiple axes of
+            a singular tensor do not count as distinct inputs, only multiple tensors. If the number of tensor
+            inputs varies for different model phases, the highest number should be used. For instance,
+
+            .. code-block::
+
+                class SingleInputTrain(pl.LightningModule):
+
+                    def training_step(self, batch, batch_idx):
+                        t1 = batch  # Single tensor --> max_num_inputs=1
+                        type(t1)    # torch.Tensor
+                        t1.shape    # (1, 3, 224, 224)
+                        out = self(t1)
+
+                class MultiValInput(SingleInputTrain):
+
+                    # Re-use ``training_step`` from above
+
+                    def validation_step(self, batch, batch_idx):
+                        # Model expects two tensors during validation
+                        # This is greater than training --> max_num_inputs=2
+                        t1, t2 = batch
+                        out = self(t1, t2)
+
+            If this parameter is not specified, the model's
+            :attr:~pytorch_lightning.core.lightning.LightningModule.example_input_array` property will be used if
+            defined, otherwise a singular input is assumed and a ``UserWarning`` is issued.
+
+
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
