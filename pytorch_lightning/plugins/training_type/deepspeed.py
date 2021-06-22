@@ -29,10 +29,9 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.distributed import _warn, LightningDeprecationWarning, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed

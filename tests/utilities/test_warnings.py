@@ -20,7 +20,8 @@ import os
 from contextlib import redirect_stderr
 from io import StringIO
 
-from pytorch_lightning.utilities.warnings import _warn, rank_zero_deprecation, rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.distributed import _warn, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.warnings import WarningCache
 
 running_special = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1"
 if running_special:
