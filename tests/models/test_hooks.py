@@ -311,7 +311,7 @@ class HookedModel(BoringModel):
                     dict(name='manual_backward', args=(ANY, ANY)),
                     *([
                         dict(name='Callback.on_after_backward', args=(trainer, model)),
-                        dict(name=('on_after_backward'))
+                        dict(name='on_after_backward'),
                     ] if using_native_amp or using_apex or using_deepspeed else []),
                 ]
             expected += [
