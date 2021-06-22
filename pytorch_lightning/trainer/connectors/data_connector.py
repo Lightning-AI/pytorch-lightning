@@ -124,7 +124,7 @@ class DataConnector:
                 setattr(model, method, getattr(datamodule, method))
 
         # Add hparams from datamodule
-            model.add_datamodule_hparams(datamodule)
+        model.add_datamodule_hparams(datamodule)
 
         # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
         batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
