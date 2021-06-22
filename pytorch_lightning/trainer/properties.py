@@ -485,11 +485,6 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def train_loop(self) -> FitLoop:
-        # FIXME(@awaelchli): the current train_loop should be renamed to fit_loop
-        return self.fit_loop
-
-    @property
     def evaluation_loop(self) -> EvaluationDataLoaderLoop:
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             return self.fit_loop.validation_loop
@@ -501,32 +496,32 @@ class TrainerProperties(ABC):
 
     @property
     def global_step(self) -> int:
-        return self.train_loop.global_step
+        return self.fit_loop.global_step
 
     @property
     def current_epoch(self) -> int:
-        return self.train_loop.current_epoch
+        return self.fit_loop.current_epoch
 
     @property
     def max_epochs(self) -> Optional[int]:
-        return self.train_loop.max_epochs
+        return self.fit_loop.max_epochs
 
     @property
     def min_epochs(self) -> Optional[int]:
-        return self.train_loop.min_epochs
+        return self.fit_loop.min_epochs
 
     @property
     def max_steps(self) -> Optional[int]:
-        return self.train_loop.max_steps
+        return self.fit_loop.max_steps
 
     @property
     def min_steps(self) -> Optional[int]:
-        return self.train_loop.min_steps
+        return self.fit_loop.min_steps
 
     @property
     def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
         if self.training:
-            return self.train_loop
+            return self.fit_loop
         elif self.sanity_checking or self.evaluating:
             return self.evaluation_loop
 

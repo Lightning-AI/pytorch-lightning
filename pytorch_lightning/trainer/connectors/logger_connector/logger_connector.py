@@ -211,7 +211,7 @@ class LoggerConnector:
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
-        if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
+        if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
         # when metrics should be logged
