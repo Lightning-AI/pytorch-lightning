@@ -21,6 +21,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
 from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -54,7 +55,15 @@ class FitLoop(Loop):
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.training_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.results = ResultCollection(training=True)
+        self.validation_loop = EvaluationDataLoaderLoop()
+
+    @property
+    def results(self) -> ResultCollection:
+        if self.trainer.training:
+            return self.training_loop.results
+        elif self.trainer.validating:
+            return self.validation_loop.results
+        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
     def current_epoch(self) -> int:
@@ -163,6 +172,7 @@ class FitLoop(Loop):
         void(*args, **kwargs)
         self.trainer = trainer
         self.training_loop.connect(trainer)
+        self.validation_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""

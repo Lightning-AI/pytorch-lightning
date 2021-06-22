@@ -194,11 +194,11 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.train_loop.batch_idx
+            assert self.train_batch_idx == trainer.fit_loop.batch_idx
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.train_loop.batch_idx + 1
+            assert self.train_batch_idx == trainer.fit_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1

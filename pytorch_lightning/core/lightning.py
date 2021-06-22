@@ -1673,7 +1673,7 @@ class LightningModule(
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.train_loop.running_loss.mean()
+        running_train_loss = self.trainer.fit_loop.running_loss.mean()
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
@@ -1687,7 +1687,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
+            tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
