@@ -330,8 +330,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         files = [file for file in files if file.endswith('.json')]
         assert len(files) == 2, files
         local_rank = trainer.local_rank
-        assert any(f'training_step_{local_rank}' in f for f in files)
-        assert any(f'validation_step_{local_rank}' in f for f in files)
+        assert any(f'{local_rank}-training_step_and_backward' in f for f in files)
+        assert any(f'{local_rank}-validation_step' in f for f in files)
 
 
 def test_pytorch_profiler_trainer_test(tmpdir):

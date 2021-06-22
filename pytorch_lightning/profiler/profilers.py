@@ -120,14 +120,19 @@ class BaseProfiler(AbstractProfiler):
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
-    def _prepare_filename(self, extension: str = ".txt") -> str:
-        filename = ""
+    def _prepare_filename(
+        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
+    ) -> str:
+        args = []
         if self._stage is not None:
-            filename += f"{self._stage}-"
-        filename += str(self.filename)
+            args.append(self._stage)
+        if self.filename:
+            args.append(self.filename)
         if self._local_rank is not None:
-            filename += f"-{self._local_rank}"
-        filename += extension
+            args.append(str(self._local_rank))
+        if action_name is not None:
+            args.append(action_name)
+        filename = split_token.join(args) + extension
         return filename
 
     def _prepare_streams(self) -> None:
