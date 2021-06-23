@@ -134,7 +134,6 @@ class TestFSDPModel(BoringModel):
     skip_windows=True,
     fairscale_fully_sharded=True,
     amp_native=True,
-    special=True,
 )
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
@@ -157,7 +156,6 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     skip_windows=True,
     fairscale_fully_sharded=True,
     amp_native=True,
-    special=True,
 )
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """

@@ -189,7 +189,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 def test_transfer_batch_hook_ddp(tmpdir):
     """
     Test custom data are properly moved to the right device using ddp

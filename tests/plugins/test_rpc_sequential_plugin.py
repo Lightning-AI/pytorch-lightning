@@ -27,7 +27,7 @@ from tests.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
+@RunIf(min_gpus=2, fairscale_pipe=True)
 def test_rpc_sequential_plugin_manual(tmpdir):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -50,7 +50,7 @@ def test_rpc_sequential_plugin_manual(tmpdir):
         trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
-@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
+@RunIf(min_gpus=2, fairscale_pipe=True)
 def test_rpc_sequential_plugin_manual_amp(tmpdir):
     model = SequentialModelRPCManual()
     trainer = Trainer(
@@ -72,7 +72,7 @@ def test_rpc_sequential_plugin_manual_amp(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
+@RunIf(min_gpus=2, fairscale_pipe=True)
 def test_rpc_sequential_plugin_automatic(tmpdir):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(
@@ -95,7 +95,7 @@ def test_rpc_sequential_plugin_automatic(tmpdir):
         trainer.accelerator.training_type_plugin.exit_rpc_process()
 
 
-@RunIf(min_gpus=2, special=True, fairscale_pipe=True)
+@RunIf(min_gpus=2, fairscale_pipe=True)
 def test_rpc_sequential_plugin_with_wrong_balance(tmpdir):
     model = SequentialModelRPCAutomatic()
     trainer = Trainer(

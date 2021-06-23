@@ -486,7 +486,7 @@ def test_logging_sync_dist_true(tmpdir, gpus):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp

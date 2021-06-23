@@ -580,7 +580,7 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 def test_optimizer_state_on_device(tmpdir):
     """ Test that optimizers that create state initially at instantiation still end up with the state on the GPU. """
 

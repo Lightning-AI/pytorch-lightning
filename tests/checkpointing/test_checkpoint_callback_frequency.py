@@ -106,7 +106,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
 
 @mock.patch('torch.save')
-@RunIf(special=True, min_gpus=2)
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 

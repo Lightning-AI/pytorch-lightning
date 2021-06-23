@@ -17,8 +17,6 @@ import sys
 import pytest
 import torch
 
-from tests.helpers.runif import RunIf
-
 ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.insert(0, ROOT)
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -31,7 +29,6 @@ from tests.helpers.boring_model import BoringModel  # noqa: E402
 # TODO(Borda): When multi-node tests are re-enabled (.github/workflows/ci_test-mnodes.yml)
 # use an environment variable `PL_RUNNING_MULTINODE_TESTS` and set `RunIf(multinode=True)`
 @pytest.mark.skip("Multi-node testing is currently disabled")
-@RunIf(special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
@@ -71,7 +68,6 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 # TODO(Borda): When multi-node tests are re-enabled (.github/workflows/ci_test-mnodes.yml)
 # use an environment variable `PL_RUNNING_MULTINODE_TESTS` and set `RunIf(multinode=True)`
 @pytest.mark.skip("Multi-node testing is currently disabled")
-@RunIf(special=True)
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log

@@ -27,7 +27,7 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(skip_windows=True, min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_gpus=2)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctely when training and after teardown for DDPPlugin."""
     trainer = Trainer(gpus=2, accelerator="ddp", fast_dev_run=True)

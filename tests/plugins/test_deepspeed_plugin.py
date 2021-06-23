@@ -239,7 +239,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 def test_warn_deepspeed_override_backward(tmpdir):
     """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
 
@@ -260,7 +260,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(['dataset_cls', 'value'], [(RandomDataset, "auto"), (RandomDataset, 10),
                                                     (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
 def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
@@ -298,7 +298,7 @@ def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
     Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
@@ -331,7 +331,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
     Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
@@ -366,7 +366,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_custom_precision_params(tmpdir):
     """Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes."""
 
@@ -429,7 +429,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
     Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
@@ -526,7 +526,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
         opt.step()
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
     Test to ensure ZeRO Stage 3 works with a parallel model.
@@ -545,7 +545,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config):
     """
     Test to ensure ZeRO Stage 3 works with a parallel model.
@@ -612,7 +612,7 @@ def run_checkpoint_test(
     assert results[-1] > 0.7
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
@@ -621,7 +621,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=False)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
@@ -630,7 +630,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=True)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
@@ -639,7 +639,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 @pytest.mark.parametrize('offload_optimizer', [True, False])
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
@@ -671,7 +671,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
     """
     Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3.

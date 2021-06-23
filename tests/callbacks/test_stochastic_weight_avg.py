@@ -133,7 +133,7 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0", special=True)
+@RunIf(min_gpus=2, min_torch="1.6.0")
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 

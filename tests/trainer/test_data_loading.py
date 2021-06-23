@@ -97,7 +97,7 @@ def check_replace_distributed_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
         trainer.test(model)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
     check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode)

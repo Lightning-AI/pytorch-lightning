@@ -1472,23 +1472,23 @@ def test_trainer_predict_cpu(tmpdir, datamodule, progress_bar_refresh_rate):
     predict(tmpdir, None, None, 1, datamodule=datamodule, pbrr=progress_bar_refresh_rate)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize('num_gpus', [1, 2])
 def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@RunIf(min_gpus=2, special=True, fairscale=True)
+@RunIf(min_gpus=2, fairscale=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None)
 
 
-@RunIf(min_gpus=2, skip_windows=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 

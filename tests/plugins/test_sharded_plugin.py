@@ -258,7 +258,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True)
+@RunIf(skip_windows=True, fairscale=True)
 @pytest.mark.parametrize(
     "trainer_kwargs", (
         dict(num_processes=2),
@@ -296,7 +296,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
@@ -309,7 +309,7 @@ def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(

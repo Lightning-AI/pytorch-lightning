@@ -23,7 +23,7 @@ from io import StringIO
 from pytorch_lightning.utilities.warnings import _warn, rank_zero_deprecation, rank_zero_warn, WarningCache
 
 running_special = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1"
-if False:
+if running_special:
 
     stderr = StringIO()
     with redirect_stderr(stderr):

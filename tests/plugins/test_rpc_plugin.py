@@ -66,7 +66,7 @@ class CustomRPCPlugin(RPCPlugin):
         return
 
 
-@RunIf(min_gpus=2, special=True, rpc=True)
+@RunIf(min_gpus=2, rpc=True)
 def test_rpc_function_calls_ddp(tmpdir):
     model = BoringModel()
     plugin = CustomRPCPlugin()
