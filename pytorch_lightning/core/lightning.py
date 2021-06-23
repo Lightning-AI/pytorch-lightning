@@ -323,8 +323,8 @@ class LightningModule(
                 instance references on-reload. When the logged Metric are LightningModule attributes,
                 metric_prefix_name should be None. However, when this is not, metric_prefix_name should be provided as
                 Lightning won't be able to find your nn.Metric reference.
-            is_global_zero: Whether the value will be logged only on rank 0. This will prevent synchornization across processes 
-                and avoid a deadlock. 
+            is_global_zero: Whether the value will be logged only on rank 0. This will prevent synchornization across processes
+                and avoid a deadlock.
 
         """
         if tbptt_reduce_fx is not None:
