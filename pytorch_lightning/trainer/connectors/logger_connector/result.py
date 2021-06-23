@@ -16,7 +16,8 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
-
+from datetime import timedelta
+import pytorch_lightning as pl
 import torch
 from torchmetrics import Metric
 
@@ -47,6 +48,7 @@ class MetricSource(LightningEnum):
 class _Sync:
     fn: Optional[Callable] = None
     should: bool = False
+    is_global_zero: bool = False
     op: Optional[str] = None
     group: Optional[Any] = None
 
@@ -55,8 +57,12 @@ class _Sync:
             self.fn = self.no_op
 
     @property
+    def should_sync(self) -> bool:
+        return self.should and not self.is_global_zero
+
+    @property
     def __call__(self) -> Any:
-        return partial(self.fn, reduce_op=self.op, group=self.group) if self.should else self.no_op
+        return partial(self.fn, reduce_op=self.op, group=self.group) if self.should_sync else self.no_op
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:
@@ -193,6 +199,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def compute(self) -> torch.Tensor:
         if self.is_tensor:
+            print(self.meta.name, "sync", self.meta.sync.is_global_zero)
             value = self.meta.sync(self.value)
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
@@ -246,8 +253,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        with self.sync_context():
+        print(self.meta.name, "__getstate__", self.meta.sync.is_global_zero)
+        with self.sync_context(should_sync=not self.meta.sync.is_global_zero):
             d = deepcopy(super().__getstate__())
+        print("SYNCED")
         # metric are being dropped, so they won't be serialized
         # this would prevent pickling error if their API change.
         if drop_value and self.is_tensor:
@@ -345,9 +354,10 @@ class ResultCollection(dict):
         o = []
 
         def append_fn(v: ResultMetric) -> None:
+            nonlocal o
             o.append(v)
 
-        apply_to_collection(self.values(), ResultMetric, append_fn)
+        apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
 
     @property
@@ -416,6 +426,7 @@ class ResultCollection(dict):
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
         metric_prefix_name: Optional[str] = None,
+        is_global_zero: bool = False,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -449,6 +460,7 @@ class ResultCollection(dict):
             should=sync_dist,
             fn=sync_dist_fn,
             group=sync_dist_group,
+            is_global_zero=is_global_zero,
         )
 
         # register logged value if it doesn't exist
@@ -457,6 +469,7 @@ class ResultCollection(dict):
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
+            import pdb; pdb.set_trace()
             raise MisconfigurationException(
                 f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
             )
@@ -632,6 +645,10 @@ class ResultCollection(dict):
         extra = self.get('_extra')
         if extra is not None:
             d['_extra'] = extra
+
+        for result_metric in self.result_metrics:
+            result_metric.meta.name
+
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
         items = {k: v.__getstate__() for k, v in self.items() if k not in ('_extra', 'fx_validator')}
         return {**d, 'items': items}
@@ -640,7 +657,7 @@ class ResultCollection(dict):
         self,
         state: dict,
         map_location: Optional[Union[str, torch.device]] = None,
-        sync_fn: Optional[Callable] = None
+        sync_fn: Optional[Callable] = None,
     ) -> None:
 
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
