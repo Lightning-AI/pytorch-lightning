@@ -25,7 +25,6 @@ from pytorch_lightning.utilities import (
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
@@ -69,7 +68,6 @@ class RunIf:
         skip_windows: bool = False,
         special: bool = False,
         fairscale: bool = False,
-        fairscale_pipe: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         **kwargs
@@ -91,7 +89,6 @@ class RunIf:
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             special: running in special mode, outside pytest suit
             fairscale: if `fairscale` module is required to run the test
-            fairscale_pipe: if `fairscale` with pipe module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
@@ -159,10 +156,6 @@ class RunIf:
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
-
-        if fairscale_pipe:
-            conditions.append(not _FAIRSCALE_PIPE_AVAILABLE)
-            reasons.append("Fairscale Pipe")
 
         if fairscale_fully_sharded:
             conditions.append(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE)
