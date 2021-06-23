@@ -1340,9 +1340,6 @@ class DummyMetric(Metric):
     def compute(self):
         return self.sum // self.count
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
-
 
 def result_collection_reload(trainer_kwargs):
     num_processes = trainer_kwargs.get("gpus", 1)

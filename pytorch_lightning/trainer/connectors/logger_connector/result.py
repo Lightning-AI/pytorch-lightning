@@ -255,7 +255,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             d = deepcopy(super().__getstate__())
         # metric are being dropped, so they won't be serialized
         # this would prevent pickling error if their API change.
-        if drop_value and self.is_tensor:
+        if drop_value and not self.is_tensor:
             del d["value"]
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
@@ -287,10 +287,10 @@ class ResultMetricCollection(dict):
         super().__init__(*args)
         self.meta = metadata
 
-    def __getstate__(self) -> dict:
+    def __getstate__(self, drop_value: bool = False) -> dict:
 
         def getstate(item: ResultMetric) -> dict:
-            return item.__getstate__(drop_value=True)
+            return item.__getstate__(drop_value=drop_value)
 
         items = apply_to_collection(dict(self), (ResultMetric, ResultMetricCollection), getstate)
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
@@ -641,11 +641,8 @@ class ResultCollection(dict):
         if extra is not None:
             d['_extra'] = extra
 
-        for result_metric in self.result_metrics:
-            result_metric.meta.name
-
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__() for k, v in self.items() if k not in ('_extra', 'fx_validator')}
+        items = {k: v.__getstate__(drop_value=True) for k, v in self.items() if k not in ('_extra', 'fx_validator')}
         return {**d, 'items': items}
 
     def __setstate__(
