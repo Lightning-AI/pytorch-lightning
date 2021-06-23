@@ -62,7 +62,15 @@ from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerSta
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _IPU_AVAILABLE,
+    _TPU_AVAILABLE,
+    DeviceType,
+    parsing,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -414,7 +422,12 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def _setup_on_init(self, num_sanity_val_steps: int) -> None:
+    def _setup_on_init(
+        self,
+        num_sanity_val_steps: int,
+    ) -> None:
+        self._log_device_info()
+      
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = 0
@@ -1178,3 +1191,30 @@ class Trainer(
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    def _log_device_info(self) -> None:
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
+
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
+
+        num_ipus = self.ipus if self.ipus is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
+
+        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+            rank_zero_warn(
+                "GPU available but not used. Set the gpus flag in your trainer"
+                " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
+
+        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+            rank_zero_warn(
+                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
+                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+            )
+
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+            rank_zero_warn(
+                "IPU available but not used. Set the `ipus` flag in your trainer"
+                " `Trainer(ipus=8)` or script `--ipus=8`."
+            )

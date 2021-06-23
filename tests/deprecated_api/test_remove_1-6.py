@@ -17,6 +17,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -235,3 +236,10 @@ def test_v1_6_0_train_loop(tmpdir):
         match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
     ):
         _ = trainer.train_loop
+
+
+def test_v1_6_0_rank_zero_warnings_moved():
+    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
+        rank_zero_warn('test')
+    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
+        rank_zero_deprecation('test')
