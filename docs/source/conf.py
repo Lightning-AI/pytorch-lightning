@@ -152,6 +152,7 @@ language = None
 exclude_patterns = [
     f'{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md',
     'notebooks/course_UvA-DL/*',
+    'notebooks/template*',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
