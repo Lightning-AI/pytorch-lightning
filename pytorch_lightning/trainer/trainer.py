@@ -27,7 +27,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
@@ -343,8 +343,8 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.validation_loop = EvaluationDataLoaderLoop()
-        self.test_loop = EvaluationDataLoaderLoop()
+        self.validation_loop = EvaluationLoop()
+        self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionDataLoaderLoop()
         self.fit_loop.connect(self)
         self.validation_loop.connect(self)

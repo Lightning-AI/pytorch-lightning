@@ -63,8 +63,8 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    validation_loop: EvaluationDataLoaderLoop
-    test_loop: EvaluationDataLoaderLoop
+    validation_loop: EvaluationLoop
+    test_loop: EvaluationLoop
     """
     Accelerator properties
     """
@@ -489,7 +489,7 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def evaluation_loop(self) -> EvaluationDataLoaderLoop:
+    def evaluation_loop(self) -> EvaluationLoop:
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             return self.fit_loop.validation_loop
         elif self.state.fn == TrainerFn.VALIDATING:
