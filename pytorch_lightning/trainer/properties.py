@@ -523,6 +523,10 @@ class TrainerProperties(ABC):
         return self.fit_loop.min_steps
 
     @property
+    def is_last_batch(self) -> bool:
+        return self.fit_loop.training_loop.is_last_batch
+
+    @property
     def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
         if self.training:
             return self.fit_loop
