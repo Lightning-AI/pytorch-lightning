@@ -17,14 +17,15 @@ from argparse import Namespace
 from types import MethodType
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
+
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.seed import seed_everything
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
@@ -348,7 +349,7 @@ class LightningCLI:
             automatic = []
             for key, (base_class, link_to) in self.parser.optimizers_and_lr_schedulers.items():
                 if not isinstance(base_class, tuple):
-                    base_class = (base_class,)
+                    base_class = (base_class, )
                 if link_to == 'AUTOMATIC' and any(issubclass(c, class_type) for c in base_class):
                     automatic.append(key)
             return automatic
@@ -410,14 +411,16 @@ class LightningCLI:
 
 def _global_add_class_path(class_type: Type, init_args: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        'class_path': class_type.__module__+'.'+class_type.__name__,
+        'class_path': class_type.__module__ + '.' + class_type.__name__,
         'init_args': init_args,
     }
 
 
 def _add_class_path_generator(class_type: Type):
+
     def add_class_path(init_args: Dict[str, Any]) -> Dict[str, Any]:
         return _global_add_class_path(class_type, init_args)
+
     return add_class_path
 
 
@@ -434,5 +437,5 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
     args_class = import_object(init['class_path'])
     kwargs = init.get('init_args', {})
     if not isinstance(args, tuple):
-        args = (args,)
+        args = (args, )
     return args_class(*args, **kwargs)
