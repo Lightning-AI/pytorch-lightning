@@ -31,7 +31,7 @@ from tests.utilities.distributed import call_training_script
 CLI_ARGS = '--max_epochs 1 --gpus 2 --accelerator ddp'
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("as_module", [True, False])
 def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     # call the script
@@ -45,7 +45,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     assert result['status'] == 'complete'
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("as_module", [True, False])
 def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     # call the script

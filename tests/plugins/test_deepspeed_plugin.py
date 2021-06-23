@@ -260,7 +260,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 @pytest.mark.parametrize(['dataset_cls', 'value'], [(RandomDataset, "auto"), (RandomDataset, 10),
                                                     (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
 def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):

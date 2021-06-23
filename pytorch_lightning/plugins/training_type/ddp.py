@@ -175,10 +175,14 @@ class DDPPlugin(ParallelPlugin):
 
             # enable ddp to work within pytest.
             current_test = os.getenv("PYTEST_CURRENT_TEST", None)
+            is_special = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == '1'
             if current_test:
                 current_test = current_test[:-7]
                 if '[' in current_test:
-                    current_test = current_test.split('[')[0]
+                    if is_special:
+                        current_test = current_test.split('[')[0]
+                    else:
+                        raise MisconfigurationException("Parametrized ddp tests should be run with RunIf(special=True)")
                 command[1] = current_test
 
             # use the same python interpreter and actually running

@@ -542,7 +542,7 @@ def test_progress_bar_can_be_pickled():
     pickle.dumps(bar)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize([
     "total_train_samples",
     "train_batch_size",
