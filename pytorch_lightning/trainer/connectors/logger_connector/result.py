@@ -468,8 +468,6 @@ class ResultCollection(dict):
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
-            import pdb
-            pdb.set_trace()
             raise MisconfigurationException(
                 f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
             )
