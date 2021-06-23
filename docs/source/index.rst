@@ -106,6 +106,7 @@ PyTorch Lightning Documentation
    common/debugging
    common/early_stopping
    common/hyperparameters
+   common/production_inference
    advanced/ipu
    common/lightning_cli
    advanced/lr_finder
@@ -121,7 +122,6 @@ PyTorch Lightning Documentation
    advanced/transfer_learning
    advanced/tpu
    common/test_set
-   common/production_inference
 
 .. toctree::
    :maxdepth: 1
