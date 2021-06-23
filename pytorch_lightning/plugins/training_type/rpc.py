@@ -83,3 +83,7 @@ class RPCPlugin(DDPPlugin):
     @property
     def rpc_enabled(self) -> bool:
         return True
+
+    def __del__(self):
+        self.exit_rpc_process()
+        super().__del__()
