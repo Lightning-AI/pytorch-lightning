@@ -15,7 +15,7 @@ Continue reading to learn about:
 
 * `Data Objects in Lightning <Data Objects in Lightning_>`_
 
-* `Models Defined by Data <Models Defined by Data_>`_
+* `Dynamically Configuring Models using Data <Dynamically Configuring Models using Data_>`_
 
 * `Multiple Datasets <Multiple DataSets_>`_
 
@@ -37,6 +37,8 @@ There are a few different Data objects used in Lightning:
      - The PyTorch :class:`~torch.utils.data.Dataset` represents a map from keys to data samples.
    * - :class:`~torch.utils.data.DataLoader`
      - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a DataSet.
+   * - :class:`torch.utils.data.IterableDataset`
+     - The PyTorch :class:`~torch.utils.data.IterableDataset` represents an iterable over data samples, useful for data streams.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
      - A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of a training DataLoader, validation DataLoader(s) and test DataLoader(s), along with the matching transforms and data processing/downloads steps required.
 
@@ -52,7 +54,7 @@ For example, here's the PyTorch code for loading an MNIST :class:`~torch.utils.d
 
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST
-    import os
+    import tempfile
     from torchvision import datasets, transforms
 
     # transforms
@@ -61,7 +63,7 @@ For example, here's the PyTorch code for loading an MNIST :class:`~torch.utils.d
                                   transforms.Normalize((0.1307,), (0.3081,))])
 
     # data
-    mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
+    mnist_train = MNIST(tempfile.mkdtemp(), train=True, download=True, transform=transform)
     mnist_train = DataLoader(mnist_train, batch_size=64)
 
 .. testoutput::
@@ -147,13 +149,13 @@ We recommend grouping the full definition of the datasets into a :class:`~pytorc
             self.vocab_size = 0
 
         def prepare_data(self):
-            # called only on 1 GPU
+            # called only on rank 0 process
             download_dataset()
             tokenize()
             build_vocab()
 
         def setup(self, stage: Optional[str] = None):
-            # called on every GPU
+            # called on every process
             vocab = load_vocab()
             self.vocab_size = len(vocab)
 
@@ -193,9 +195,9 @@ Read :ref:`this <datamodules>` for more details on LightningDataModules.
 
 ---------------
 
-**********************
-Models Defined by Data
-**********************
+*****************************************
+Dynamically Configuring Models using Data
+*****************************************
 
 When your models need to know about the data, it's best to process the data before passing it to the model.
 
@@ -308,8 +310,6 @@ Return multiple DataLoaders
 ---------------------------
 You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.lightning.LightningModule`, and Lightning will take care of batch combination.
 
-For more details please have a look at :paramref:`~pytorch_lightning.trainer.trainer.Trainer.Trainer.multiple_trainloader_mode`
-
 .. testcode::
 
     class LitModel(LightningModule):
@@ -384,6 +384,11 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
+
+By default, the trainer ends one epoch when the largest dataset is traversed, and smaller datasets reload when running out of their data.
+To change this behaviour, you can set the trainer Flag ``multiple_trainloader_mode=min_size`` to make all the datasets reload when reaching the minimum length of datasets. 
+
+For more details please have a look at :paramref:`~pytorch_lightning.trainer.trainer.Trainer.Trainer.multiple_trainloader_mode`
 
 ----------
 
