@@ -74,12 +74,12 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
-    - bash: |
-        bash tests/special_tests.sh
-      displayName: 'Testing: special'
+    #- bash: |
+    #    bash tests/special_tests.sh
+    #  displayName: 'Testing: special'
 
     - bash: |
         python -m coverage report

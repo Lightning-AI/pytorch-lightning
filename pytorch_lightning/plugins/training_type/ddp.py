@@ -171,8 +171,16 @@ class DDPPlugin(ParallelPlugin):
                 full_path = os.path.abspath(command[0])
 
             command[0] = full_path
+
+            # enable ddp to work within pytest.
+            current_test = os.getenv("PYTEST_CURRENT_TEST", None)
+            if current_test:
+                command[1] = current_test[:-7]
+                command = [sys.executable] + command
+
             # use the same python interpreter and actually running
             command = [sys.executable] + command
+
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
