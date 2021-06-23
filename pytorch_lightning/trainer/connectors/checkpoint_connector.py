@@ -451,8 +451,9 @@ class CheckpointConnector:
     def get_result_collections_state_dict(self):
         return {
             RunningStage.TRAINING.value: self.trainer.fit_loop.results.state_dict(),
-            RunningStage.VALIDATING.value: self.trainer.evaluation_loop._val_results.state_dict(),
-            RunningStage.TESTING.value: self.trainer.evaluation_loop._test_results.state_dict(),
+            RunningStage.SANITY_CHECKING.value: self.trainer.fit_loop.validation_loop.results.state_dict(),
+            RunningStage.VALIDATING.value: self.trainer.validation_loop.results.state_dict(),
+            RunningStage.TESTING.value: self.trainer.evaluation_loop.results.state_dict(),
         }
 
     def hpc_load(self, checkpoint_path: str) -> None:
