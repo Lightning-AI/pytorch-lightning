@@ -299,6 +299,7 @@ class LoggerConnector:
         return self._progress_bar_metrics
 
     def teardown(self):
-        self.trainer.fit_loop.results.cpu()
-        self.trainer.evaluation_loop._val_results.cpu()
-        self.trainer.evaluation_loop._test_results.cpu()
+        self.trainer.fit_loop.training_loop._results.cpu()
+        self.trainer.fit_loop.validation_loop._results.cpu()
+        self.trainer.validation_loop._results.cpu()
+        self.trainer.test_loop._results.cpu()
