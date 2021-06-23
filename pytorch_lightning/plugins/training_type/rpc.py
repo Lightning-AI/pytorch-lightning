@@ -86,4 +86,4 @@ class RPCPlugin(DDPPlugin):
 
     def __del__(self):
         # avoid hang
-        ...
+        pass
