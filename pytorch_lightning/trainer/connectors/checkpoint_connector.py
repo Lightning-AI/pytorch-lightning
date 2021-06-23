@@ -22,7 +22,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     DeviceType,
@@ -279,10 +279,10 @@ class CheckpointConnector:
 
         # restore collection and provide sync_fn
         self._restore_restore_collection(
-            train_results, state_dict[RunningStage.TRAINING.value][RunningStage.TRAINING.value], sync_fn, metrics
+            train_results, state_dict[TrainerFn.FITTING.value][RunningStage.TRAINING.value], sync_fn, metrics
         )
         self._restore_restore_collection(
-            validation_results, state_dict[RunningStage.TRAINING.value][RunningStage.VALIDATING.value], sync_fn, metrics
+            validation_results, state_dict[TrainerFn.FITTING.value][RunningStage.VALIDATING.value], sync_fn, metrics
         )
         self._restore_restore_collection(validate_results, state_dict[RunningStage.VALIDATING.value], sync_fn, metrics)
         self._restore_restore_collection(test_results, state_dict[RunningStage.TESTING.value], sync_fn, metrics)
@@ -456,7 +456,7 @@ class CheckpointConnector:
 
     def get_result_collections_state_dict(self):
         return {
-            RunningStage.TRAINING.value: {
+            TrainerFn.FITTING.value: {
                 RunningStage.TRAINING.value: self.trainer.fit_loop.training_loop.results.state_dict(),
                 RunningStage.VALIDATING.value: self.trainer.fit_loop.validation_loop.results.state_dict(),
             },
