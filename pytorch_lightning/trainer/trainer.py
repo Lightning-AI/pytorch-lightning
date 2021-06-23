@@ -27,7 +27,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import TrainingEpochLoop
+from pytorch_lightning.loops import TrainingEpochLoop, TrainingBatchLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -349,8 +349,10 @@ class Trainer(
             max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        training_batch_loop = TrainingBatchLoop()
         validation_epoch_loop = EvaluationLoop()
-        training_epoch_loop.connect(trainer=self)
+        training_epoch_loop.connect(trainer=self, batch_loop=training_batch_loop)
+        training_batch_loop.connect(trainer=self)
         validation_epoch_loop.connect(trainer=self)
         self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop, validation_loop=validation_epoch_loop)
 
