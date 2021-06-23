@@ -14,13 +14,14 @@
 from collections.abc import Generator
 from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
+from datetime import timedelta
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
-from datetime import timedelta
-import pytorch_lightning as pl
+
 import torch
 from torchmetrics import Metric
 
+import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
@@ -469,7 +470,8 @@ class ResultCollection(dict):
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
-            import pdb; pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             raise MisconfigurationException(
                 f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
             )
