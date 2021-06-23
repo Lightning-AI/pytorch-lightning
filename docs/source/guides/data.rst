@@ -173,7 +173,7 @@ We recommend grouping the full definition of the datasets into a :class:`~pytorc
         def test_dataloader(self):
             transforms = ...
             return DataLoader(self.test, batch_size=64)
-            
+
         def predict_dataloader(self):
             transforms = ...
             return DataLoader(self.predict, batch_size=64)
@@ -334,7 +334,7 @@ You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.lightni
             loaders = [loader_a, loader_b]
 
             return loaders
-            
+
         def training_step(self, batch, batch_idx):
              # access a list with a batch from each DataLoader
              batch_a, batch_b = batch
@@ -394,7 +394,7 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_d = batch_c_d["d"]
 
 By default, the trainer ends one epoch when the largest dataset is traversed, and smaller datasets reload when running out of their data.
-To change this behaviour, you can set the trainer Flag ``multiple_trainloader_mode=min_size`` to make all the datasets reload when reaching the minimum length of datasets. 
+To change this behaviour, you can set the trainer Flag ``multiple_trainloader_mode=min_size`` to make all the datasets reload when reaching the minimum length of datasets.
 
 For more details please have a look at :paramref:`~pytorch_lightning.trainer.trainer.Trainer.Trainer.multiple_trainloader_mode`
 
