@@ -16,9 +16,6 @@ import logging
 from contextlib import suppress
 from typing import Any, Optional
 
-from deprecate import void
-from torch.optim import Optimizer
-
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
