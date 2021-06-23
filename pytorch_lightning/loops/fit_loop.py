@@ -33,26 +33,19 @@ class FitLoop(Loop):
     Args:
         min_epochs: The minimum number of epochs
         max_epochs: The maximum number of epochs
-        min_steps: The minimum number of steps
-        max_steps: The maximum number of epoch
 
     .. note::
         If neither the minimum epochs nor steps are specified the minimum number of epochs is set to 1
         and if neither the maximum steps nor epochs are specified, the maximum epochs are set to 1000.
     """
 
-    def __init__(
-        self,
-        min_epochs: Optional[int] = None,
-        max_epochs: Optional[int] = None,
-        min_steps: Optional[int] = None,
-        max_steps: Optional[int] = None
-    ):
+    # FIXME: update the note above
+    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
-        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.validation_loop = EvaluationLoop()
+        self.min_epochs = min_epochs
+        self.max_epochs = max_epochs
+        self.epoch_loop: Optional[TrainingEpochLoop] = None
+        self.validation_loop: Optional[EvaluationLoop] = None
 
     @property
     def results(self) -> ResultCollection:
@@ -162,11 +155,11 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
-        self.validation_loop.connect(trainer)
+    def connect(self, trainer: 'pl.Trainer', epoch_loop: TrainingEpochLoop, validation_loop: EvaluationLoop) -> None:
+        """Connects the loop with a trainer and two other loops: a training epoch loop and a validation loop."""
+        super().connect(trainer)
+        self.epoch_loop = epoch_loop
+        self.validation_loop = validation_loop
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""

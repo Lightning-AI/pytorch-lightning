@@ -27,6 +27,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops import TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -342,14 +343,28 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        # .fit() loop
+        self.fit_loop = FitLoop(
+            min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
+            max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
+        )
+        training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        validation_epoch_loop = EvaluationLoop()
+        training_epoch_loop.connect(trainer=self)
+        validation_epoch_loop.connect(trainer=self)
+        self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop, validation_loop=validation_epoch_loop)
+
+        # .validate() loop
         self.validation_loop = EvaluationLoop()
+        self.validation_loop.connect(trainer=self)
+
+        # .test() loop
         self.test_loop = EvaluationLoop()
+        self.test_loop.connect(trainer=self)
+
+        # .predict() loop
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self)
-        self.validation_loop.connect(self)
-        self.test_loop.connect(self)
-        self.predict_loop.connect(self)
+        self.predict_loop.connect(trainer=self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
