@@ -120,7 +120,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         def training_epoch_end(self, outputs) -> None:
             local_rank = int(os.getenv("LOCAL_RANK"))
             if self.trainer.is_global_zero:
-                self.log('my_loss_2', (1 + local_rank), on_epoch=True, is_global_zero=True)
+                self.log('my_loss_2', (1 + local_rank), on_epoch=True, rank_zero_only=True)
             data = str(self.global_rank)
             obj = [[data], (data, ), set(data)]
             out = self.trainer.training_type_plugin.broadcast(obj)
