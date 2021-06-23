@@ -65,6 +65,24 @@ def _get_rank() -> int:
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
+def rank_zero_warn(*args, stacklevel: int = 5, **kwargs):
+    from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
+    rank_zero_deprecation(
+        '`pytorch_lightning.utilities.distributed.rank_zero_warn` has been moved to'
+        ' `pytorch_lightning.utilities.rank_zero_warn` in v1.3.7 and will be removed in v1.6'
+    )
+    return rank_zero_warn(*args, stacklevel=stacklevel, **kwargs)
+
+
+def rank_zero_deprecation(*args, stacklevel: int = 5, **kwargs):
+    from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+    rank_zero_deprecation(
+        '`pytorch_lightning.utilities.distributed.rank_zero_deprecation` has been moved to'
+        ' `pytorch_lightning.utilities.rank_zero_deprecation` in v1.3.7 and will be removed in v1.6'
+    )
+    return rank_zero_deprecation(*args, stacklevel=stacklevel, **kwargs)
+
+
 def _info(*args, stacklevel: int = 2, **kwargs):
     if python_version() >= "3.8.0":
         kwargs['stacklevel'] = stacklevel
