@@ -85,5 +85,5 @@ class RPCPlugin(DDPPlugin):
         return True
 
     def __del__(self):
-        self.exit_rpc_process()
-        super().__del__()
+        # avoid hang
+        ...
