@@ -349,6 +349,7 @@ class LitAutoEncoder(pl.LightningModule):
 
 ###### NLP
 - [GPT-2](https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2)
+- [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
 
 
 ###### Reinforcement Learning
