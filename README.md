@@ -339,7 +339,6 @@ class LitAutoEncoder(pl.LightningModule):
 
 ###### Hello world
 - [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
-- [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_)
 
 ###### Contrastive Learning
 - [BYOL](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol)
