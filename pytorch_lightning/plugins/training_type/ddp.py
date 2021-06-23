@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-import re
 import subprocess
 import sys
 from time import sleep
