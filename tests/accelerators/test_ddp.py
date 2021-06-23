@@ -59,7 +59,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     assert result['status'] == 'complete'
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("as_module", [True, False])
 def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
     # call the script
@@ -125,7 +125,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, min_torch="1.8.1")
+@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
 @pytest.mark.parametrize("precision", [16, 32])
 def test_ddp_wrapper(tmpdir, precision):
     """
