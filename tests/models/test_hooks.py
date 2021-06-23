@@ -513,6 +513,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         'optimizer_states': ANY,
         'pytorch-lightning_version': __version__,
         'state_dict': ANY,
+        'loops': ANY,
     }
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
@@ -531,7 +532,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
                 'lr_schedulers': ANY,
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
-                'state_dict': ANY
+                'state_dict': ANY,
+                'loops': ANY,
             }, )
         ),
         dict(name='configure_sharded_model'),
