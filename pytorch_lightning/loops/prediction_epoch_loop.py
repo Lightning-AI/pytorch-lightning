@@ -46,7 +46,8 @@ class PredictionEpochLoop(Loop):
         num_dataloaders: int,
         return_predictions: bool = False
     ) -> None:
-        """Prepares the loops internal state
+        """
+        Prepares the loops internal state
 
         Args:
             dataloader_iter: the iterator over the current dataloader
