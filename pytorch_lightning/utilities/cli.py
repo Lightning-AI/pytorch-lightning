@@ -15,7 +15,7 @@ import os
 import warnings
 from argparse import Namespace
 from types import MethodType
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
@@ -55,7 +55,7 @@ class LightningArgumentParser(ArgumentParser):
             '--config', action=ActionConfigFile, help='Path to a configuration file in json or yaml format.'
         )
         self.callback_keys: List[str] = []
-        self.optimizers_and_lr_schedulers: Dict[str, Tuple[Type, str]] = {}
+        self.optimizers_and_lr_schedulers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
 
     def add_lightning_class_args(
         self,
@@ -345,7 +345,7 @@ class LightningCLI:
         'AUTOMATIC', then a `configure_optimizers` method is automatically implemented in the model class.
         """
 
-        def get_automatic(class_type):
+        def get_automatic(class_type: Type) -> List[str]:
             automatic = []
             for key, (base_class, link_to) in self.parser.optimizers_and_lr_schedulers.items():
                 if not isinstance(base_class, tuple):
@@ -383,7 +383,7 @@ class LightningCLI:
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
-        def configure_optimizers(self):
+        def configure_optimizers(self: LightningModule) -> Union[Optimizer, Tuple[List[Optimizer], List[_LRScheduler]]]:
             optimizer = instantiate_class(self.parameters(), optimizer_init)
             if not lr_scheduler_init:
                 return optimizer
@@ -416,7 +416,7 @@ def _global_add_class_path(class_type: Type, init_args: Dict[str, Any]) -> Dict[
     }
 
 
-def _add_class_path_generator(class_type: Type):
+def _add_class_path_generator(class_type: Type) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
 
     def add_class_path(init_args: Dict[str, Any]) -> Dict[str, Any]:
         return _global_add_class_path(class_type, init_args)
