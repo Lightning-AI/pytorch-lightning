@@ -347,7 +347,7 @@ def test_non_blocking():
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, '0'])
 def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
     """
-    Ensure when using torchelastic and nproc_per_node is set to the default of 1
+    Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device
     That we omit sanitizing the gpus as only one of the GPUs is visible.
     """
     trainer = Trainer(gpus=gpus)
