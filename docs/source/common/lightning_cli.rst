@@ -1,6 +1,7 @@
 .. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
+    import torch
     from unittest import mock
     from typing import List
     from pytorch_lightning.core.lightning import LightningModule
@@ -385,7 +386,7 @@ instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
 
 Configurable callbacks
-~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^
 
 As explained previously, any callback can be added by including it in the config via :code:`class_path` and
 :code:`init_args` entries. However, there are other cases in which a callback should always be present and be
@@ -417,7 +418,7 @@ To change the configuration of the :code:`EarlyStopping` in the config it would 
 
 
 Argument linking
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
 model and data module depend on a common parameter. For example in some cases both classes require to know the
@@ -470,3 +471,72 @@ Instantiation links are used to automatically determine the order of instantiati
     The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+
+
+Optimizers and learning rate schedulers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optimizers and learning rate schedulers can also be made configurable. The most common case is when a model only has a
+single optimizer and optionally a single learning rate scheduler. In this case the model's
+:class:`~pytorch_lightning.core.lightning.LightningModule` could be left without implementing the
+:code:`configure_optimizers`, method since it is normally always the same and just adds boilerplate. The following code
+snippet shows how to implement it:
+
+.. testcode::
+
+    import torch
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(torch.optim.Adam)
+            parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
+
+    cli = MyLightningCLI(MyModel)
+
+With this the :code:`configure_optimizers` method is automatically implemented and in the config the :code:`optimizer`
+and :code:`lr_scheduler` groups would accept all of the options for the given classes, in this example :code:`Adam` and
+:code:`ExponentialLR`.
+
+There is also the possibility of selecting among multiple classes by giving them as a tuple. For example:
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
+
+In this case in the config the :code:`optimizer` group instead of having directly init settings, it should specify
+:code:`class_path` and optionally :code:`init_args`. Sub-classes of the classes in the tuple would also be accepted.
+
+For more complex cases in which there could more than one optimizer and/or learning rate scheduler, the automatic
+implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An example is:
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
+
+    class MyModel(LightningModule):
+
+        def __init__(self, optimizer1_init: dict):
+            super().__init__()
+            self.optimizer1_init = optimizer1_init
+
+        def configure_optimizers(self):
+            return instantiate_class(self.parameters(), self.optimizer1_init)
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(torch.optim.Adam, link_to='model.optimizer1_init')
+
+    cli = MyLightningCLI(MyModel)
+
+For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
+a single class or a tuple of classes, the value given to :code:`optimizer1_init` will always be a dictionary including
+:code:`class_path` and :code:`init_args` entries. The function
+:func:`~pytorch_lightning.utilities.cli.instantiate_class` takes care of importing the class defined in
+:code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
+:code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
