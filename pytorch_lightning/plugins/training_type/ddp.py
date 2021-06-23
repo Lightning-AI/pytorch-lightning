@@ -13,11 +13,12 @@
 # limitations under the License.
 import logging
 import os
+import re
 import subprocess
 import sys
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-import re
+
 import __main__
 import numpy as np
 import torch
