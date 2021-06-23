@@ -14,9 +14,9 @@
 import operator
 import os
 from collections import namedtuple
+from unittest import mock
 from unittest.mock import patch
 
-import mock
 import pytest
 import torch
 
