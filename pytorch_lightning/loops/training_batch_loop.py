@@ -23,7 +23,6 @@ from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
@@ -67,11 +66,6 @@ class TrainingBatchLoop(Loop):
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        # TODO(@justusschock): can we make this a weakref/proxy?
-        void(*args, **kwargs)
-        self.trainer = trainer
-
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
 
@@ -96,8 +90,9 @@ class TrainingBatchLoop(Loop):
             return AttributeDict(signal=-1)
 
         super().run(batch, batch_idx, dataloader_idx)
-
-        return AttributeDict(signal=0, training_step_output=self.batch_outputs)
+        output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
+        self.batch_outputs = None  # free memory
+        return output
 
     def reset(self) -> None:
         """Resets the loop state"""

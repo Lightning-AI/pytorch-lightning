@@ -70,7 +70,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop to everything necessary (like trainer and accelerators)"""
         super().connect(trainer, *args, **kwargs)
-        # TODO: Make the trainer a weakref/proxy
         self.epoch_loop.connect(trainer)
 
     @property
