@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
+import os
 from collections import namedtuple
 from unittest.mock import patch
 
+import mock
 import pytest
 import torch
 
@@ -329,3 +331,25 @@ def test_non_blocking():
     with patch.object(batch, 'to', wraps=batch.to) as mocked:
         batch = trainer.accelerator.batch_to_device(batch, torch.device('cuda:0'))
         mocked.assert_called_with(torch.device('cuda', 0))
+
+
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "1",
+        "RANK": "3",
+        "WORLD_SIZE": "4",
+        "LOCAL_WORLD_SIZE": "2",
+    }
+)
+@mock.patch('torch.cuda.device_count', return_value=1)
+@pytest.mark.parametrize("gpus", [[0, 1, 2], 2, '0'])
+def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
+    """
+    Ensure when using torchelastic and nproc_per_node is set to the default of 1
+    That we omit sanitizing the gpus as only one of the GPUs is visible.
+    """
+    trainer = Trainer(gpus=gpus)
+    assert trainer.accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
+    assert trainer.gpus == gpus
