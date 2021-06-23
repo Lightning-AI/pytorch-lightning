@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
+import os
 from collections import namedtuple
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -21,6 +23,7 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
@@ -217,6 +220,29 @@ def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
 def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
+
+
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "1",
+        "RANK": "3",
+        "WORLD_SIZE": "4",
+        "LOCAL_WORLD_SIZE": "2",
+    }
+)
+@mock.patch('torch.cuda.device_count', return_value=1)
+@pytest.mark.parametrize("gpus", [[0, 1, 2], 2, '0'])
+def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
+    """
+    Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device
+    That we omit sanitizing the gpus as only one of the GPUs is visible.
+    """
+    trainer = Trainer(gpus=gpus)
+    assert isinstance(trainer.accelerator_connector.cluster_environment, TorchElasticEnvironment)
+    assert trainer.accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
+    assert trainer.gpus == gpus
 
 
 @RunIf(min_gpus=1)
