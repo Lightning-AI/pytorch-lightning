@@ -85,7 +85,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fault-tolerant training
     * Add `{,load_}state_dict` to `ResultCollection` ([#7948](https://github.com/PyTorchLightning/pytorch-lightning/pull/7948))
-    * Add `result_collections` to checkpoint and `restore_result_collections` to `CheckpointConnector` ([#7966](https://github.com/PyTorchLightning/pytorch-lightning/pull/7966))
+    * Add `result_collections` to checkpoint and `restore_result_collections` to `CheckpointConnector` and add `rank_zero_only` to `LightningModule.log` function ([#7966](https://github.com/PyTorchLightning/pytorch-lightning/pull/7966))
 
 - Added a warning if `Trainer(log_every_n_steps)` is a value too high for the training dataloader ([#7734](https://github.com/PyTorchLightning/pytorch-lightning/pull/7734))
 

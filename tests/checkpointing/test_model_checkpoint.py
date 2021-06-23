@@ -1401,7 +1401,6 @@ def result_collection_reload(trainer_kwargs):
 
         def on_epoch_end(self) -> None:
             if self.trainer.current_epoch:
-                print(self.dummy_metric)
                 total = sum(range(5)) * num_processes
                 metrics = self.trainer.train_loop.results.metrics(on_step=False)
                 assert self.trainer.train_loop.results['training_step.tracking'].value == total

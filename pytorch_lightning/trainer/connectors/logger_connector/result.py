@@ -47,7 +47,7 @@ class MetricSource(LightningEnum):
 class _Sync:
     fn: Optional[Callable] = None
     should: bool = False
-    is_global_zero: bool = False
+    rank_zero_only: bool = False
     op: Optional[str] = None
     group: Optional[Any] = None
 
@@ -57,7 +57,7 @@ class _Sync:
 
     @property
     def should_sync(self) -> bool:
-        return self.should and not self.is_global_zero
+        return self.should and not self.rank_zero_only
 
     @property
     def __call__(self) -> Any:
@@ -198,7 +198,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def compute(self) -> torch.Tensor:
         if self.is_tensor:
-            print(self.meta.name, "sync", self.meta.sync.is_global_zero)
             value = self.meta.sync(self.value)
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
@@ -252,10 +251,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        print(self.meta.name, "__getstate__", self.meta.sync.is_global_zero)
-        with self.sync_context(should_sync=not self.meta.sync.is_global_zero):
+        with self.sync_context(should_sync=not self.meta.sync.rank_zero_only):
             d = deepcopy(super().__getstate__())
-        print("SYNCED")
         # metric are being dropped, so they won't be serialized
         # this would prevent pickling error if their API change.
         if drop_value and self.is_tensor:
@@ -425,7 +422,7 @@ class ResultCollection(dict):
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
         metric_prefix_name: Optional[str] = None,
-        is_global_zero: bool = False,
+        rank_zero_only: bool = False,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -459,7 +456,7 @@ class ResultCollection(dict):
             should=sync_dist,
             fn=sync_dist_fn,
             group=sync_dist_group,
-            is_global_zero=is_global_zero,
+            rank_zero_only=rank_zero_only,
         )
 
         # register logged value if it doesn't exist

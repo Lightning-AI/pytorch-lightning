@@ -106,7 +106,7 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         # Add sync_dist=True to sync logging across all GPU workers
         self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
 
-It is possible to perform some computation manually and log the reduced result on rank 0 as follow:
+It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
 
 .. testcode::
 
@@ -121,7 +121,7 @@ It is possible to perform some computation manually and log the reduced result o
         # when logging only rank 0, don't forget to add
         # ``is_global_zero`` in self.log to avoid deadlock.
         if self.trainer.is_global_zero:
-            self.log("my_reduced_metric", mean, is_global_zero=True)
+            self.log("my_reduced_metric", mean, rank_zero_only=True)
 
 
 Make models pickleable

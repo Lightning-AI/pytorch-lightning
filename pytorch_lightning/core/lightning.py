@@ -280,7 +280,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
         metric_prefix_name: Optional[str] = None,
-        is_global_zero: Optional[bool] = None,
+        rank_zero_only: Optional[bool] = None,
     ) -> None:
         """
         Log a key, value
@@ -323,7 +323,7 @@ class LightningModule(
                 instance references on-reload. When the logged Metric are LightningModule attributes,
                 metric_prefix_name should be None. However, when this is not, metric_prefix_name should be provided as
                 Lightning won't be able to find your nn.Metric reference.
-            is_global_zero: Whether the value will be logged only on rank 0. This will prevent
+            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent
                 synchronization across processes and avoid a deadlock.
 
         """
@@ -405,7 +405,7 @@ class LightningModule(
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
             sync_dist_group=sync_dist_group,
             metric_prefix_name=metric_prefix_name,
-            is_global_zero=is_global_zero,
+            rank_zero_only=rank_zero_only,
         )
 
         self.trainer.logger_connector._current_fx = self._current_fx_name

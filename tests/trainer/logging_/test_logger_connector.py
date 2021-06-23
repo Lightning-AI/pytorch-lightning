@@ -387,7 +387,6 @@ def test_metrics_reset(tmpdir):
         max_epochs=1,
         progress_bar_refresh_rate=0,
         num_sanity_val_steps=2,
-        checkpoint_callback=False,
     )
 
     trainer.fit(model)
