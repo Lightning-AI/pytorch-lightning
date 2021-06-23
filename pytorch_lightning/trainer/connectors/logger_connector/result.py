@@ -690,8 +690,9 @@ class ResultCollection(dict):
 
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
 
-        if metrics:
-            for metric_prefix_name, metric in metrics.items():
-                for result_metric in self.result_metrics:
-                    if result_metric.meta.metric_prefix_name == metric_prefix_name:
-                        result_metric.value = metric
+        if not metrics:
+            return
+        for metric_prefix_name, metric in metrics.items():
+            for result_metric in self.result_metrics:
+                if result_metric.meta.metric_prefix_name == metric_prefix_name:
+                    result_metric.value = metric
