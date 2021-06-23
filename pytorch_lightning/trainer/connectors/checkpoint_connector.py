@@ -204,8 +204,8 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.train_loop.global_step = self._loaded_checkpoint['global_step']
-        self.trainer.train_loop.current_epoch = self._loaded_checkpoint['epoch']
+        self.trainer.fit_loop.global_step = self._loaded_checkpoint['global_step']
+        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:

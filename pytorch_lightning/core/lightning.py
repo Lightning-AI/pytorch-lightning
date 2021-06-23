@@ -27,6 +27,7 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
@@ -413,11 +414,11 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
+        tbptt_reduce_fx: Optional[Any] = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional[Any] = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
+        sync_dist_op: Optional[Any] = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
     ) -> None:
@@ -1700,7 +1701,7 @@ class LightningModule(
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.train_loop.running_loss.mean()
+        running_train_loss = self.trainer.fit_loop.running_loss.mean()
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
@@ -1714,7 +1715,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
+            tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
@@ -1998,3 +1999,30 @@ class LightningModule(
         size_mb = os.path.getsize(tmp_name) / 1e6
         os.remove(tmp_name)
         return size_mb
+
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
+
+        To avoid issues with memory sharing, we cast the data to numpy.
+
+        Args:
+            queue: the instance of the queue to append the data.
+        """
+        callback_metrics: dict = apply_to_collection(
+            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+        )  # send as numpy to avoid issues with memory sharing
+        queue.put(callback_metrics)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
+
+        To preserve consistency, we cast back the data to ``torch.Tensor``.
+
+        Args:
+            queue: the instance of the queue from where to get the data.
+        """
+        # NOTE: `add_to_queue` needs to be called before
+        callback_metrics: dict = queue.get()
+        self.trainer.callback_metrics.update(
+            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
+        )

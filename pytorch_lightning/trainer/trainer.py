@@ -62,7 +62,15 @@ from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerSta
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _IPU_AVAILABLE,
+    _TPU_AVAILABLE,
+    DeviceType,
+    parsing,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -335,11 +343,13 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.evaluation_loop = EvaluationDataLoaderLoop()
+        self.validation_loop = EvaluationDataLoaderLoop()
+        self.test_loop = EvaluationDataLoaderLoop()
         self.predict_loop = PredictLoop(self)
 
         self.fit_loop.connect(self)
-        self.evaluation_loop.connect(self)
+        self.validation_loop.connect(self)
+        self.test_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -413,6 +423,8 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+        self._log_device_info()
 
     def _setup_on_init(
         self,
@@ -843,7 +855,7 @@ class Trainer(
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
                         {self._run_train}                     ||
-                     or {self._run_evaluation}                ||
+                     or {self._run_evaluate}                  ||
                      or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
@@ -985,31 +997,17 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
-        if not (self.evaluating or self.sanity_checking):
-            rank_zero_warn(
-                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
-                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
-            )
-            self.validating = True
-
-        self.evaluation_loop.reload_evaluation_dataloaders()
-
-        with torch.no_grad():
-            # the model is set to eval mode in on_run_start() and back to train mode in on_run_end()
-            eval_loop_results = self.evaluation_loop.run()
-
-        eval_loop_results = eval_loop_results or []
-        return eval_loop_results
-
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
         assert self.evaluating
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._run_evaluation()
+        # reload dataloaders
+        self.evaluation_loop.reload_evaluation_dataloaders()
+
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
+            eval_loop_results = self.evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1071,8 +1069,12 @@ class Trainer(
             # hook and callback
             self.on_sanity_check_start()
 
+            # reload dataloaders
+            self.evaluation_loop.reload_evaluation_dataloaders()
+
             # run eval step
-            self._run_evaluation()
+            with torch.no_grad():
+                self.evaluation_loop.run()
 
             self.on_sanity_check_end()
 
@@ -1221,3 +1223,30 @@ class Trainer(
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    def _log_device_info(self) -> None:
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
+
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
+
+        num_ipus = self.ipus if self.ipus is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
+
+        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+            rank_zero_warn(
+                "GPU available but not used. Set the gpus flag in your trainer"
+                " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
+
+        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+            rank_zero_warn(
+                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
+                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+            )
+
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+            rank_zero_warn(
+                "IPU available but not used. Set the `ipus` flag in your trainer"
+                " `Trainer(ipus=8)` or script `--ipus=8`."
+            )
