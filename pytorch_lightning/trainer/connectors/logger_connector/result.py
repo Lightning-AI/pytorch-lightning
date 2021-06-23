@@ -255,7 +255,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             d = deepcopy(super().__getstate__())
         # metric are being dropped, so they won't be serialized
         # this would prevent pickling error if their API change.
-        if drop_value and not self.is_tensor:
+        if drop_value and not self.is_tensor and "value" in d:
             del d["value"]
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
@@ -630,7 +630,7 @@ class ResultCollection(dict):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
-    def __getstate__(self) -> dict:
+    def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()
         d["fx_validator"] = None
         # can't deepcopy tensors with grad_fn
@@ -642,7 +642,7 @@ class ResultCollection(dict):
             d['_extra'] = extra
 
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {k: v.__getstate__(drop_value=True) for k, v in self.items() if k not in ('_extra', 'fx_validator')}
+        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items() if k not in ('_extra', 'fx_validator')}
         return {**d, 'items': items}
 
     def __setstate__(
@@ -675,8 +675,8 @@ class ResultCollection(dict):
         device = map_location or self.device
         self.to(device)
 
-    def state_dict(self) -> dict:
-        return self.__getstate__()
+    def state_dict(self, drop_value: bool = True) -> dict:
+        return self.__getstate__(drop_value)
 
     def load_state_dict(
         self,
