@@ -374,7 +374,6 @@ class DDPPlugin(ParallelPlugin):
             find_unused_parameters=False
         )
 
-    def teardown(self) -> None:
+    def __del__(self) -> None:
         if torch_distrib.is_initialized():
             torch_distrib.destroy_process_group()
-        super().teardown()
