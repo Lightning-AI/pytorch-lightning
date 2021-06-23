@@ -211,9 +211,8 @@ class IPUPlugin(ParallelPlugin):
             dataloader = apply_to_collection(dataloader, DataLoader, self.process_dataloader)
             return dataloader
         if not isinstance(dataloader, poptorch.DataLoader):
-            dataloader = self._convert_to_poptorch_loader(
-                dataloader=dataloader, opts=self._create_opts(training=self.lightning_module.training)
-            )
+            opts = self.training_opts if self.lightning_module.training else self.inference_opts
+            dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader
 
     def _convert_to_poptorch_loader(self, dataloader: Union[Iterable, DataLoader],
@@ -266,9 +265,11 @@ class IPUPlugin(ParallelPlugin):
 
     @property
     def _n_replicate(self):
-        # Ensure we replicate values to have enough dimensions to split across devices
-        accumulate_grad_batches = self._original_accumulate_grad_batches
-        return self.replication_factor * self.device_iterations * accumulate_grad_batches
+        opts = self.training_opts if self.lightning_module.training else self.inference_opts
+        accumulate_grad_batches = opts.Training.gradient_accumulation
+        device_iterations = opts.device_iterations
+        replication_factor = opts.replication_factor
+        return replication_factor * device_iterations * accumulate_grad_batches
 
     def _prepare_input(self, args: Any):
 
