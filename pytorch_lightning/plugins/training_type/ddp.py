@@ -17,7 +17,7 @@ import subprocess
 import sys
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-
+import re
 import __main__
 import numpy as np
 import torch
@@ -175,8 +175,10 @@ class DDPPlugin(ParallelPlugin):
             # enable ddp to work within pytest.
             current_test = os.getenv("PYTEST_CURRENT_TEST", None)
             if current_test:
-                command[1] = current_test[:-7]
-                command = [sys.executable] + command
+                current_test = current_test[:-7]
+                if '[' in current_test:
+                    current_test = current_test.split('[')[0]
+                command[1] = current_test
 
             # use the same python interpreter and actually running
             command = [sys.executable] + command
