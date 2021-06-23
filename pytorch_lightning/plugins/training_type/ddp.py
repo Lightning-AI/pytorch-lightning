@@ -377,3 +377,6 @@ class DDPPlugin(ParallelPlugin):
     def __del__(self) -> None:
         if torch_distrib.is_initialized():
             torch_distrib.destroy_process_group()
+        # clean up memory
+        with torch.cuda.device(self.root_device):
+            torch.cuda.empty_cache()
