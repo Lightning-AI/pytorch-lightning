@@ -296,6 +296,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
 
         def on_save_checkpoint(self, checkpoint) -> None:
             results = self.trainer._results
+            # simplify logic
             state_dict = results.state_dict(drop_value=False)
 
             # check device
