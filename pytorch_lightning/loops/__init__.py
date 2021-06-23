@@ -16,5 +16,8 @@ from pytorch_lightning.loops.base import Loop  # noqa: F401
 from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop  # noqa: F401
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop  # noqa: F401
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop  # noqa: F401
+from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop  # noqa: F401
+from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop  # noqa: F401
 from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop  # noqa: F401
 from pytorch_lightning.loops.fit_loop import FitLoop  # noqa: F401
