@@ -106,7 +106,7 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         # Add sync_dist=True to sync logging across all GPU workers
         self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
 
-It is possible to perform computation manually and log the value on rank 0.
+It is possible to perform some computation manually and log the reduced result on rank 0 as follow:
 
 .. testcode::
 
