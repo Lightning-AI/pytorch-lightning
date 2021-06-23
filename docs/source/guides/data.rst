@@ -173,8 +173,12 @@ We recommend grouping the full definition of the datasets into a :class:`~pytorc
         def test_dataloader(self):
             transforms = ...
             return DataLoader(self.test, batch_size=64)
+            
+        def predict_dataloader(self):
+            transforms = ...
+            return DataLoader(self.predict, batch_size=64)
 
-Using DataModules allows easier sharing of full :class:`~torch.utils.data.Dataset` definitions.
+DataModules are easier to re-use compared to pure :class:`~torch.utils.data.Dataset` definitions.
 
 .. code-block:: python
 
@@ -261,36 +265,36 @@ TODO: add code snippet.
 Using LightningModule hooks
 ===========================
 
-Concatenated DataSet
+Concatenated Dataset
 --------------------
-For training with multiple Datasets you can create a :class:`~torch.utils.data.dataloader` class
+For training with multiple Datasets you can create a :class:`~torch.utils.data.DataLoader` class
 which wraps your multiple DataSets (this of course also works for testing and validation
-DataSets).
+Datasets).
 
 (`reference <https://discuss.pytorch.org/t/train-simultaneously-on-two-DataSets/649/2>`_)
 
 .. testcode::
 
-    class ConcatDataSet(torch.utils.data.DataSet):
-        def __init__(self, *DataSets):
-            self.DataSets = DataSets
+    class ConcatDataset(torch.utils.data.Dataset):
+        def __init__(self, *datasets):
+            self.datasets = datasets
 
         def __getitem__(self, i):
-            return tuple(d[i] for d in self.DataSets)
+            return tuple(d[i] for d in self.datadets)
 
         def __len__(self):
-            return min(len(d) for d in self.DataSets)
+            return min(len(d) for d in self.datadets)
 
     class LitModel(LightningModule):
 
         def train_dataloader(self):
-            concat_DataSet = ConcatDataSet(
-                DataSets.ImageFolder(traindir_A),
-                DataSets.ImageFolder(traindir_B)
+            concat_dataset = ConcatDataset(
+                datasets.ImageFolder(traindir_A),
+                datasets.ImageFolder(traindir_B)
             )
 
             loader = torch.utils.data.DataLoader(
-                concat_DataSet,
+                concat_dataset,
                 batch_size=args.batch_size,
                 shuffle=True,
                 num_workers=args.workers,
@@ -330,6 +334,10 @@ You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.lightni
             loaders = [loader_a, loader_b]
 
             return loaders
+            
+        def training_step(self, batch, batch_idx):
+             # access a list with a batch from each DataLoader
+             batch_a, batch_b = batch
 
 Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
@@ -426,7 +434,7 @@ needs to wrap the DataLoaders with `CombinedLoader`.
         return combined_loaders
 
 
-Test with additional data loaders
+Test with additional dataloaders
 =================================
 You can run inference on a test set even if the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_dataloader` method hasn't been
 defined within your :class:`~pytorch_lightning.core.Lightning.LightningModule` instance. For example, rhis would be the case if your test data
@@ -509,23 +517,23 @@ Lightning can handle TBTT automatically via this flag.
 
 ----------
 
-Iterable DataSets
+Iterable Datasets
 =================
-Lightning supports using IterableDataSets as well as map-style DataSets. IterableDataSets provide a more natural
+Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
 option when using sequential data.
 
-.. note:: When using an IterableDataSet you must set the ``val_check_interval`` to 1.0 (the default) or an int
+.. note:: When using an IterableDataset you must set the ``val_check_interval`` to 1.0 (the default) or an int
     (specifying the number of training batches to run before validation) when initializing the Trainer. This is
-    because the IterableDataSet does not have a ``__len__`` and Lightning requires this to calculate the validation
+    because the IterableDataset does not have a ``__len__`` and Lightning requires this to calculate the validation
     interval when ``val_check_interval`` is less than one. Similarly, you can set ``limit_{mode}_batches`` to a float or
     an int. If it is set to 0.0 or 0 it will set ``num_{mode}_batches`` to 0, if it is an int it will set ``num_{mode}_batches``
-    to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole DataSet, otherwise it will throw an exception.
+    to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole Dataset, otherwise it will throw an exception.
     Here mode can be train/val/test.
 
 .. testcode::
 
     # IterableDataSet
-    class CustomDataSet(IterableDataSet):
+    class CustomDataset(IterableDataset):
 
         def __init__(self, data):
             self.data_source
@@ -533,13 +541,14 @@ option when using sequential data.
         def __iter__(self):
             return iter(self.data_source)
 
-    # Setup DataLoader
-    def train_dataloader(self):
-        seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
-        iterable_DataSet = CustomDataSet(seq_data)
+    class LitModel(LightningModule):
+        # Setup DataLoader
+        def train_dataloader(self):
+            seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
+            iterable_dataset = CustomDataset(seq_data)
 
-        dataloader = DataLoader(DataSet=iterable_DataSet, batch_size=5)
-        return dataloader
+            dataloader = DataLoader(Dataset=iterable_dataset, batch_size=5)
+            return dataloader
 
 .. testcode::
 
