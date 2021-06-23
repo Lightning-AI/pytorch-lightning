@@ -266,9 +266,10 @@ class CheckpointConnector:
         sync_fn = self.trainer.training_type_plugin.reduce
 
         # get current result collections
-        train_results = self.trainer.train_loop.results
-        val_results = self.trainer.evaluation_loop._val_results
-        test_results = self.trainer.evaluation_loop._test_results
+        train_results = self.trainer.fit_loop.training_loop.results
+        validation_results = self.trainer.fit_loop.validation_loop.results
+        validate_results = self.trainer.validation_loop.results
+        test_results = self.trainer.test_loop.results
 
         metrics = {}
         model_ref = self.trainer.lightning_module
@@ -277,8 +278,13 @@ class CheckpointConnector:
                 metrics[module_name] = module
 
         # restore collection and provide sync_fn
-        self._restore_restore_collection(train_results, state_dict[RunningStage.TRAINING.value], sync_fn, metrics)
-        self._restore_restore_collection(val_results, state_dict[RunningStage.VALIDATING.value], sync_fn, metrics)
+        self._restore_restore_collection(
+            train_results, state_dict[RunningStage.TRAINING.value][RunningStage.TRAINING.value], sync_fn, metrics
+        )
+        self._restore_restore_collection(
+            validation_results, state_dict[RunningStage.TRAINING.value][RunningStage.VALIDATING.value], sync_fn, metrics
+        )
+        self._restore_restore_collection(validate_results, state_dict[RunningStage.VALIDATING.value], sync_fn, metrics)
         self._restore_restore_collection(test_results, state_dict[RunningStage.TESTING.value], sync_fn, metrics)
 
     def _restore_restore_collection(self, results, state_dict, sync_fn, metrics):
@@ -450,8 +456,10 @@ class CheckpointConnector:
 
     def get_result_collections_state_dict(self):
         return {
-            RunningStage.TRAINING.value: self.trainer.fit_loop.training_loop.results.state_dict(),
-            RunningStage.SANITY_CHECKING.value: self.trainer.fit_loop.validation_loop.results.state_dict(),
+            RunningStage.TRAINING.value: {
+                RunningStage.TRAINING.value: self.trainer.fit_loop.training_loop.results.state_dict(),
+                RunningStage.VALIDATING.value: self.trainer.fit_loop.validation_loop.results.state_dict(),
+            },
             RunningStage.VALIDATING.value: self.trainer.validation_loop.results.state_dict(),
             RunningStage.TESTING.value: self.trainer.evaluation_loop.results.state_dict(),
         }
