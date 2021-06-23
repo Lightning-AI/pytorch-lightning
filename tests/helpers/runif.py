@@ -29,7 +29,6 @@ from pytorch_lightning.utilities import (
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
-    _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -69,7 +68,6 @@ class RunIf:
         horovod_nccl: bool = False,
         skip_windows: bool = False,
         special: bool = False,
-        rpc: bool = False,
         fairscale: bool = False,
         fairscale_pipe: bool = False,
         fairscale_fully_sharded: bool = False,
@@ -92,7 +90,6 @@ class RunIf:
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             special: running in special mode, outside pytest suit
-            rpc: requires Remote Procedure Call (RPC)
             fairscale: if `fairscale` module is required to run the test
             fairscale_pipe: if `fairscale` with pipe module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
@@ -158,10 +155,6 @@ class RunIf:
             env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0')
             conditions.append(env_flag != '1')
             reasons.append("Special execution")
-
-        if rpc:
-            conditions.append(not _RPC_AVAILABLE)
-            reasons.append("RPC")
 
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)

@@ -145,10 +145,6 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return self._results
 
-    @property
-    def rpc_enabled(self) -> bool:
-        return False
-
     def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
         return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
 
