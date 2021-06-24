@@ -1945,5 +1945,16 @@ def test_cloud_fit_local(tmpdir):
     before_params = deepcopy(model.state_dict())
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=True)
     trainer.cloud_fit(model, local=True)
-    after_params = deepcopy(model.state_dict())
+    after_params = model.state_dict()
+    assert all(not torch.equal(bp, ap) for bp, ap in zip(before_params.values(), after_params.values()))
+
+
+@RunIf(grid=True)
+def test_cloud_fit_on_run(tmpdir):
+    model = BoringModel()
+    before_params = deepcopy(model.state_dict())
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=True)
+    trainer.cloud_fit(model, experiment_type="run", instance_type="t2.medium")
+    after_params = model.state_dict()
+    return
     assert all(not torch.equal(bp, ap) for bp, ap in zip(before_params.values(), after_params.values()))

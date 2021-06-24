@@ -1230,7 +1230,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         grid_config: Optional['GridConfig'] = None,
         local: bool = False,
-        name: Optional[str] = None,
+        run_name: Optional[str] = None,
         instance_type: Optional[str] = None,
         disk_size: Optional[int] = 200,
         datastore_name: Optional[str] = None,
@@ -1245,7 +1245,7 @@ class Trainer(
 
         if not grid_config:
             grid_config = GridConfig(
-                name=name or f"cloudfit-{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}",
+                run_name=run_name or f"cloudfit-{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}",
                 instance_type=instance_type,
                 disk_size=disk_size,
                 datastore_name=datastore_name,
