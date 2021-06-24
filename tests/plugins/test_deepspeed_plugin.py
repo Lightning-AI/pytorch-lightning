@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 from typing import Any, Dict
@@ -265,6 +266,10 @@ def test_warn_deepspeed_override_backward(tmpdir):
                                                     (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
 def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
+    # the previous parametrization can impact the current one as it's not guaranteed that resources will be released
+    # between parametrizations. This is important as we call `destroy_process_group` in `DDPPlugin.__del__`.
+    # Another option would be to not use `parametrize`: https://github.com/pytest-dev/pytest/discussions/8153
+    gc.collect()
 
     class TestModel(BoringModel):
 
@@ -639,9 +644,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-@pytest.mark.parametrize('offload_optimizer', [True, False])
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
+def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
@@ -669,6 +672,16 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
         callbacks=[VerificationCallback()]
     )
     trainer.fit(model, datamodule=dm)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
