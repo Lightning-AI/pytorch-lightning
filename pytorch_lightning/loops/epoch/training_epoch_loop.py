@@ -175,10 +175,10 @@ class TrainingEpochLoop(Loop):
 
     def _run_validation(self):
         # reload dataloaders
-        self.trainer.fit_loop.validation_loop.reload_evaluation_dataloaders()
+        self.trainer.fit_loop.val_loop.reload_evaluation_dataloaders()
 
         with torch.no_grad():
-            self.trainer.fit_loop.validation_loop.run()
+            self.trainer.fit_loop.val_loop.run()
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
