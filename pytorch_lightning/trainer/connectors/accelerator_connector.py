@@ -118,9 +118,9 @@ class AcceleratorConnector(object):
         self.amp_level = amp_level
         self.is_slurm_managing_tasks = False
 
-        self._precision_plugin: Union[None, PrecisionPlugin, ProxyType[PrecisionPlugin]] = None
-        self._training_type_plugin: Union[None, TrainingTypePlugin, ProxyType[TrainingTypePlugin]] = None
-        self._cluster_environment: Union[None, ClusterEnvironment, ProxyType[ClusterEnvironment]] = None
+        self._precision_plugin: Union[None, PrecisionPlugin, ProxyType] = None
+        self._training_type_plugin: Union[None, TrainingTypePlugin, ProxyType] = None
+        self._cluster_environment: Union[None, ClusterEnvironment, ProxyType] = None
 
         plugins = plugins if plugins is not None else []
 
@@ -226,13 +226,13 @@ class AcceleratorConnector(object):
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
-    def precision_plugin(self) -> Union[PrecisionPlugin, ProxyType[PrecisionPlugin]]:
+    def precision_plugin(self) -> Union[PrecisionPlugin, ProxyType]:
         if self._precision_plugin is None:
             self._precision_plugin = self.select_precision_plugin()
         return self._precision_plugin
 
     @property
-    def training_type_plugin(self) -> Union[TrainingTypePlugin, ProxyType[TrainingTypePlugin]]:
+    def training_type_plugin(self) -> Union[TrainingTypePlugin, ProxyType]:
         if self._training_type_plugin_resolved:
             # avoid calling `resolve_training_type_plugin` multiple times
             return self._training_type_plugin
@@ -244,7 +244,7 @@ class AcceleratorConnector(object):
         return self._training_type_plugin
 
     @property
-    def cluster_environment(self) -> Union[ClusterEnvironment, ProxyType[ClusterEnvironment]]:
+    def cluster_environment(self) -> Union[ClusterEnvironment, ProxyType]:
         if self._cluster_environment is None:
             self._cluster_environment = self.select_cluster_environment()
         return self._cluster_environment
