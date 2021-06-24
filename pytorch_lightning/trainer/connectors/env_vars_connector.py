@@ -15,6 +15,7 @@
 from functools import wraps
 from typing import Callable
 
+from pytorch_lightning.utilities import _GRID_AVAILABLE
 from pytorch_lightning.utilities.argparse import get_init_arguments_and_types, parse_env_variables
 
 
@@ -35,6 +36,9 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
         env_variables = vars(parse_env_variables(cls))
         # update the kwargs by env variables
         kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
+
+        if _GRID_AVAILABLE:
+            self.trainer_kwargs = kwargs
 
         # all args were already moved to kwargs
         return fn(self, **kwargs)

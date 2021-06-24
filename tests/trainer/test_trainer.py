@@ -1937,3 +1937,13 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.test()
     with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
         trainer.predict()
+
+
+@RunIf(grid=True)
+def test_fit_cloud_local(tmpdir):
+    model = BoringModel()
+    before_params = deepcopy(model.state_dict())
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=True)
+    trainer.cloud_fit(model, debugging=True)
+    after_params = deepcopy(model.state_dict())
+    assert all(not torch.equal(bp, ap) for bp, ap in zip(before_params.values(), after_params.values()))

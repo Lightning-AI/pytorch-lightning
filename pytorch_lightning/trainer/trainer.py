@@ -14,7 +14,7 @@
 """Trainer to automate the training."""
 import logging
 import warnings
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
@@ -63,6 +63,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _GRID_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     DeviceType,
@@ -76,6 +77,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
+
+GridConfig = None
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -1218,3 +1221,45 @@ class Trainer(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
+
+    def cloud_fit(
+        self,
+        model: LightningModule,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        grid_config: Optional['GridConfig'] = None,
+        debugging: bool = True,
+        name: Optional[str] = None,
+        instance_type: Optional[str] = None,
+        disk_size: Optional[int] = 200,
+        datastore_name: Optional[str] = None,
+        datastore_version: Optional[str] = '1',
+        datastore_mount_dir: Optional[str] = None,
+        experiment_type: Optional[str] = 'session',
+    ):
+        if not _GRID_AVAILABLE:
+            raise MisconfigurationException("Please, pip install lightning-grid --upgrade")
+
+        from grid.pytorch_lightning import cloud_fit, GridConfig
+
+        if not grid_config:
+            grid_config = GridConfig(
+                name=name or f"cloudfit-{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}",
+                instance_type=instance_type,
+                disk_size=disk_size,
+                datastore_name=datastore_name,
+                datastore_version=datastore_version,
+                datastore_mount_dir=datastore_mount_dir,
+                experiment_type=experiment_type,
+            )
+
+        cloud_fit(
+            model=model,
+            train_dataloaders=train_dataloaders,
+            val_dataloaders=val_dataloaders,
+            datamodule=datamodule,
+            grid_config=grid_config,
+            trainer_kwargs=self.trainer_kwargs,
+            debugging=debugging,
+        )

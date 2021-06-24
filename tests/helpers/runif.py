@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import (
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
+    _GRID_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
@@ -70,6 +71,7 @@ class RunIf:
         fairscale: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
+        grid: bool = False,
         **kwargs
     ):
         """
@@ -91,6 +93,7 @@ class RunIf:
             fairscale: if `fairscale` module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
+            grid: if `grid` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -164,6 +167,10 @@ class RunIf:
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
+
+        if grid:
+            conditions.append(not _GRID_AVAILABLE)
+            reasons.append("Lightning Grid")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
