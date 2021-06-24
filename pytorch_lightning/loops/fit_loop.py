@@ -18,8 +18,8 @@ from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
-from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
+from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
@@ -51,15 +51,15 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.training_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.validation_loop = EvaluationDataLoaderLoop()
+        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        self.val_loop = EvaluationLoop()
 
     @property
     def results(self) -> ResultCollection:
         if self.trainer.training:
-            return self.training_loop.results
+            return self.epoch_loop.results
         elif self.trainer.validating:
-            return self.validation_loop.results
+            return self.val_loop.results
         raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
@@ -75,59 +75,59 @@ class FitLoop(Loop):
     @property
     def global_step(self) -> int:
         """Returns the global step"""
-        return self.training_loop.global_step
+        return self.epoch_loop.global_step
 
     @global_step.setter
     def global_step(self, value: int) -> None:
-        """Sets the global step (forwards to training_loop)"""
-        self.training_loop.global_step = value
+        """Sets the global step (forwards to epoch_loop)"""
+        self.epoch_loop.global_step = value
 
     @property
     def total_batch_idx(self) -> int:
         """Returns the total number of batches already run (across all epochs)"""
-        return self.training_loop.total_batch_idx
+        return self.epoch_loop.total_batch_idx
 
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.training_loop.iteration_count
+        return self.epoch_loop.iteration_count
 
     @property
     def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt"""
-        return self.training_loop.split_idx
+        return self.epoch_loop.split_idx
 
     @property
     def min_steps(self) -> int:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum numnber of steps to run"""
-        return self.training_loop.min_steps
+        return self.epoch_loop.min_steps
 
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run"""
-        return self.training_loop.max_steps
+        return self.epoch_loop.max_steps
 
     @max_steps.setter
     def max_steps(self, value: int) -> None:
-        """Sets the maximum number of steps (forwards to training_loop)"""
+        """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
-        self.training_loop.max_steps = value
+        self.epoch_loop.max_steps = value
 
     @property
     def running_loss(self) -> TensorRunningAccum:
         """Returns the running loss"""
-        return self.training_loop.batch_loop.running_loss
+        return self.epoch_loop.batch_loop.running_loss
 
     @property
     def _skip_backward(self) -> bool:
         """ Determines whether the loop will skip backward during automatic optimization. """
-        return self.training_loop.batch_loop._skip_backward
+        return self.epoch_loop.batch_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """ Determines whether the loop will skip backward during automatic optimization. """
-        self.training_loop.batch_loop._skip_backward = value
+        self.epoch_loop.batch_loop._skip_backward = value
 
     @property
     def done(self) -> bool:
@@ -165,8 +165,8 @@ class FitLoop(Loop):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.training_loop.connect(trainer)
-        self.validation_loop.connect(trainer)
+        self.epoch_loop.connect(trainer)
+        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -193,7 +193,7 @@ class FitLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(
+        self.epoch_loop.batch_loop.accumulated_loss = TensorRunningAccum(
             window_length=self.trainer.accumulate_grad_batches
         )
 
@@ -204,7 +204,7 @@ class FitLoop(Loop):
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.training_loop.run(train_dataloader)
+            epoch_output = self.epoch_loop.run(train_dataloader)
 
             if epoch_output is None:
                 return
@@ -220,10 +220,10 @@ class FitLoop(Loop):
 
     def on_advance_end(self) -> None:
         """Updates the LR schedulers and does some internal bookkeeping"""
-        if self.training_loop.batches_seen == 0:
+        if self.epoch_loop.batches_seen == 0:
             return
 
-        self.training_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
+        self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
         did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.skip
         if did_train_only:
@@ -241,10 +241,10 @@ class FitLoop(Loop):
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
-        self.training_loop.global_step -= 1
+        self.epoch_loop.global_step -= 1
         # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
         self._check_checkpoint_callback(should_update=True, is_last=True)
-        self.training_loop.global_step += 1
+        self.epoch_loop.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -266,7 +266,7 @@ class FitLoop(Loop):
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
-        return self.training_loop.batch_loop.should_accumulate()
+        return self.epoch_loop.batch_loop.should_accumulate()
 
     def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
