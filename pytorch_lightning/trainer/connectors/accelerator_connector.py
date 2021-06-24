@@ -118,9 +118,9 @@ class AcceleratorConnector(object):
         self.amp_level = amp_level
         self.is_slurm_managing_tasks = False
 
-        self._precision_plugin: Optional[Union[PrecisionPlugin, ProxyType[PrecisionPlugin]] = None
-        self._training_type_plugin: Optional[TrainingTypePlugin, ProxyType[TrainingTypePlugin]] = None
-        self._cluster_environment: Optional[ClusterEnvironment, ProxyType[ClusterEnvironment]] = None
+        self._precision_plugin: Union[None, PrecisionPlugin, ProxyType[PrecisionPlugin]] = None
+        self._training_type_plugin: Union[None, TrainingTypePlugin, ProxyType[TrainingTypePlugin]] = None
+        self._cluster_environment: Union[None, ClusterEnvironment, ProxyType[ClusterEnvironment]] = None
 
         plugins = plugins if plugins is not None else []
 
