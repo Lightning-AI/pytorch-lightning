@@ -105,10 +105,18 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
     assert save_mock.call_count == expected
 
 
-@mock.patch('torch.save')
 @RunIf(special=True, min_gpus=2)
-@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
-def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+def test_top_k_ddp_0(tmpdir):
+    _top_k_ddp(tmpdir, k=1, epochs=1, val_check_interval=1.0, expected=1)
+
+
+@RunIf(special=True, min_gpus=2)
+def test_top_k_ddp_1(tmpdir):
+    _top_k_ddp(tmpdir, k=2, epochs=2, val_check_interval=0.3, expected=5)
+
+
+@mock.patch('torch.save')
+def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
 
