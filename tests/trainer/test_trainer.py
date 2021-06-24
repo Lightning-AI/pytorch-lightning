@@ -1951,10 +1951,20 @@ def test_cloud_fit_local(tmpdir):
 
 @RunIf(grid=True)
 def test_cloud_fit_on_run(tmpdir):
+    from grid.pytorch_lightning import GridConfig
     model = BoringModel()
     before_params = deepcopy(model.state_dict())
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=True)
-    trainer.cloud_fit(model, experiment_type="run", instance_type="t2.medium")
+    grid_config = GridConfig(
+        run_name=None,
+        instance_type='t2.medium',
+        disk_size=100,
+        datastore_name='hymenoptera-data',
+        datastore_version='1',
+        datastore_mount_dir='/home/jovyan/data',
+        experiment_type="run",
+    )
+    trainer.cloud_fit(model, grid_config=grid_config)
     after_params = model.state_dict()
     return
     assert all(not torch.equal(bp, ap) for bp, ap in zip(before_params.values(), after_params.values()))
