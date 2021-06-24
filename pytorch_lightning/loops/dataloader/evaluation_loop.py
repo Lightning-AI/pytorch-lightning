@@ -19,14 +19,14 @@ from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
+from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
-class EvaluationDataLoaderLoop(DataLoaderLoop):
+class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
     def __init__(self):
