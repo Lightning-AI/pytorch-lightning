@@ -650,6 +650,8 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
+    gc.collect()
+
     seed_everything(42)
 
     class VerificationCallback(Callback):
