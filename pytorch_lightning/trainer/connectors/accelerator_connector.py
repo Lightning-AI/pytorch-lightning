@@ -539,6 +539,8 @@ class AcceleratorConnector(object):
         )
         self._training_type_plugin = proxy(self.training_type_plugin)
         self._precision_plugin = proxy(self.precision_plugin)
+        
+        return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
