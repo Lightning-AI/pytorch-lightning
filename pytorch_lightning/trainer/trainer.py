@@ -1229,7 +1229,7 @@ class Trainer(
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         grid_config: Optional['GridConfig'] = None,
-        debugging: bool = True,
+        local: bool = False,
         name: Optional[str] = None,
         instance_type: Optional[str] = None,
         disk_size: Optional[int] = 200,
@@ -1261,5 +1261,5 @@ class Trainer(
             datamodule=datamodule,
             grid_config=grid_config,
             trainer_kwargs=self.trainer_kwargs,
-            debugging=debugging,
+            local=local,
         )
