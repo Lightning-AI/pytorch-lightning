@@ -384,7 +384,5 @@ class DDPPlugin(ParallelPlugin):
     def __del__(self) -> None:
         if torch_distrib.is_initialized():
             torch_distrib.destroy_process_group()
-        if self.on_gpu:
-            # clean up memory
-            with torch.cuda.device(self.root_device):
-                torch.cuda.empty_cache()
+        # `is_initialized` is checked inside and we already set the default device with `set_device(self.root_device)`
+        torch.cuda.empty_cache()

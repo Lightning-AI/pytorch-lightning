@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import gc
 import os
 import sys
 import threading
@@ -37,9 +36,6 @@ def restore_env_variables():
     """ Ensures that environment variables set during the test do not leak out. """
     env_backup = os.environ.copy()
     yield
-    # if a destructor accesses an environment variable, we need to make sure that `os.environ` is not cleared
-    # before `__del__` is called. Force the call by triggering garbage collection.
-    gc.collect()
     # restore environment as it was before running the test
     os.environ.clear()
     os.environ.update(env_backup)
