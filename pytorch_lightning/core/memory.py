@@ -191,15 +191,13 @@ class ModelSummary(object):
             if mode in ModelSummary.MODES:
                 from pytorch_lightning.utilities import rank_zero_deprecation
                 rank_zero_deprecation(
-                        "The use of `mode` argument is deprecated in v1.4 "
-                        "and will be removed in v1.5, use `max_depth` argument instead."
+                    "The use of `mode` argument is deprecated in v1.4 "
+                    "and will be removed in v1.5, use `max_depth` argument instead."
                 )
                 max_depth = ModelSummary.MODES[mode]
             else:
                 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-                raise MisconfigurationException(
-                        f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}."
-                )
+                raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
 
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
