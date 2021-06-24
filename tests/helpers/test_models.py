@@ -23,11 +23,12 @@ from tests.helpers.simple_models import ClassificationModel, RegressionModel
 
 
 @pytest.mark.parametrize(
-    "data_class,model_class", [
+    "data_class,model_class",
+    [
         (None, BoringModel),
         (None, BasicGAN),
         (None, ParityModuleRNN),
-        (None, ParityModuleMNIST),
+        # (None, ParityModuleMNIST),
         (ClassifDataModule, ClassificationModel),
         (RegressDataModule, RegressionModel),
     ]
