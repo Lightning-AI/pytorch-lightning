@@ -19,6 +19,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -48,6 +49,7 @@ class TrainingEpochLoop(Loop):
         self.is_last_batch: Optional[bool] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
+        self.val_loop: Optional[EvaluationLoop] = None
 
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
@@ -56,7 +58,11 @@ class TrainingEpochLoop(Loop):
 
     @property
     def results(self) -> ResultCollection:
-        return self._results
+        if self.trainer.training:
+            return self._results
+        elif self.trainer.validating:
+            return self.val_loop.results
+        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
     def batch_idx(self) -> int:
@@ -77,6 +83,8 @@ class TrainingEpochLoop(Loop):
         super().connect(trainer, *args, **kwargs)
         self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
+        self.val_loop = EvaluationLoop()
+        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
@@ -173,13 +181,6 @@ class TrainingEpochLoop(Loop):
         if self.done:
             raise StopIteration
 
-    def _run_validation(self):
-        # reload dataloaders
-        self.trainer.fit_loop.val_loop.reload_evaluation_dataloaders()
-
-        with torch.no_grad():
-            self.trainer.fit_loop.val_loop.run()
-
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
 
@@ -225,6 +226,13 @@ class TrainingEpochLoop(Loop):
     def teardown(self) -> None:
         """Frees memory of tracked epoch outputs."""
         self.epoch_output = None
+
+    def _run_validation(self):
+        # reload dataloaders
+        self.val_loop.reload_evaluation_dataloaders()
+
+        with torch.no_grad():
+            self.val_loop.run()
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""
