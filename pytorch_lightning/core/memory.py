@@ -195,6 +195,7 @@ class ModelSummary(object):
                         "and will be removed in v1.5, use `max_depth` argument instead.")
                 max_depth = ModelSummary.MODES[mode]
             else:
+                from pytorch_lightning.utilities.exceptions import MisconfigurationException
                 raise MisconfigurationException(
                         f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
 
