@@ -65,9 +65,11 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.hparams_mixin import merge_hparams
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS, _EVALUATE_OUTPUT, \
+    _PREDICT_OUTPUT
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -896,7 +898,11 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            hparams_initial = merge_hparams(
+                self.lightning_module.hparams_initial,
+                {} if self.datamodule is None else self.datamodule.hparams_initial,
+            )
+            self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 

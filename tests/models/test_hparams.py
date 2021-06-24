@@ -18,6 +18,7 @@ import pickle
 from argparse import Namespace
 from dataclasses import dataclass
 from typing import Optional
+from unittest import mock
 
 import cloudpickle
 import pytest
@@ -749,22 +750,13 @@ def test_dataclass_lightning_module(tmpdir):
     assert model.hparams == dict(mandatory=33, optional="cocofruit")
 
 
-class DataModuleWithHparams(LightningDataModule):
+class NoHparamsModel(BoringModel):
+    """ Tests a model without hparams. """
 
-    def __init__(self, hparams):
-        super().__init__()
-
-        self.hparams = hparams
-        self._data = None
-
-    def prepare_data(self, *args, **kwargs):
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-        self._data = TensorDataset(torch.randn(100, 20))
-
-    def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        return DataLoader(self._data, batch_size=10)
+    def training_step(self, batch, batch_idx):
+        output = self.layer(batch[0])
+        loss = self.loss(batch, output)
+        return {"loss": loss}
 
 
 class DataModuleWithoutHparams(LightningDataModule):
@@ -777,76 +769,13 @@ class DataModuleWithoutHparams(LightningDataModule):
         pass
 
     def setup(self, stage: Optional[str] = None):
-        self._data = TensorDataset(torch.randn(100, 20))
+        self.data = torch.randn(10, 32)
 
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        return DataLoader(self._data, batch_size=10)
+        return DataLoader(TensorDataset(self.data), batch_size=10)
 
 
-def test_extending_existing_hparams(tmpdir):
-    """Test that the new hparams are added to the existing ones."""
-    hparams = {'arg1': 'abc'}
-    model = CustomBoringModel()
-    old_hparams = copy.deepcopy(model.hparams)
-    model.add_datamodule_hparams(DataModuleWithHparams(hparams))
-
-    old_hparams.update(hparams)
-    assert old_hparams == model.hparams
-    assert old_hparams == model.hparams_initial
-
-
-def test_extending_non_existing_hparams(tmpdir):
-    """Test that hparams are created if they do not exist yet when we try to extend them."""
-
-    class DummyModel(LightningModule):
-        pass
-
-    hparams = {'arg1': 'abc'}
-    model = DummyModel()
-    model.add_datamodule_hparams(DataModuleWithHparams(hparams))
-
-    assert hparams == model.hparams
-    assert hparams == model.hparams_initial
-
-
-def test_extending_with_namespace(tmpdir):
-    """Test that we can extend hparams with a namespace."""
-    hparams = Namespace(arg1='abc')
-    model = CustomBoringModel()
-    old_hparams = copy.deepcopy(model.hparams)
-    model.add_datamodule_hparams(DataModuleWithHparams(hparams))
-
-    old_hparams.update(vars(hparams))
-    assert old_hparams == model.hparams
-    assert old_hparams == model.hparams_initial
-
-
-def test_extend_with_unsupported_hparams(tmpdir):
-    """Test that usupported hparams structures raise an error when extending."""
-    hparams = ('arg1', 'abc')
-    model = CustomBoringModel()
-
-    with pytest.raises(ValueError):
-        model.add_datamodule_hparams(DataModuleWithHparams(hparams))
-
-
-def test_extend_with_primitive_hparams(tmpdir):
-    """Test that primitives raise an error when extending."""
-    hparams = 5
-    model = CustomBoringModel()
-
-    with pytest.raises(ValueError):
-        model.add_datamodule_hparams(DataModuleWithHparams(hparams))
-
-
-def test_extend_with_collision(tmp_path):
-    """Test that new hparams cannot collide with existing hparams."""
-    model = CustomBoringModel()
-    with pytest.raises(ValueError):
-        model.add_datamodule_hparams(DataModuleWithHparams({'batch_size': 5}))
-
-
-class BoringDataModule(LightningDataModule):
+class DataModuleWithHparams(LightningDataModule):
 
     def __init__(self, hparams):
         super().__init__()
@@ -861,24 +790,49 @@ class BoringDataModule(LightningDataModule):
         return DataLoader(TensorDataset(self.data), batch_size=10)
 
 
-def test_adding_datamodule_hparams(tmpdir):
-    """Test that hparams from datamodule are added to the checkpoint."""
-    model = SaveHparamsModel({'arg1': 5, 'arg2': 'abc'})
-    data = BoringDataModule({'data_dir': 'foo'})
+def _get_mock_logger(tmpdir):
+    mock_logger = mock.MagicMock(name="logger")
+    mock_logger.name = "mock_logger"
+    mock_logger.save_dir = tmpdir
+    mock_logger.version = "0"
+    del mock_logger.__iter__
+    return mock_logger
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+@pytest.mark.parametrize("model", (SaveHparamsModel({'arg1': 5, 'arg2': 'abc'}), NoHparamsModel()))
+@pytest.mark.parametrize("data", (DataModuleWithHparams({'data_dir': 'foo'}), DataModuleWithoutHparams()))
+def test_adding_datamodule_hparams(tmpdir, model, data):
+    """Test that hparams from datamodule and model are logged."""
+    org_model_hparams = copy.deepcopy(model.hparams_initial)
+    org_data_hparams = copy.deepcopy(data.hparams_initial)
+
+    mock_logger = _get_mock_logger(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
     trainer.fit(model, datamodule=data)
 
-    hparams = model.hparams
-    hparams.update(data.hparams)
-    raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    model = SaveHparamsModel.load_from_checkpoint(raw_checkpoint_path)
-    assert hparams == model.hparams
-    assert hparams == model.hparams_initial
+    # Hparams of model and data were not modified
+    assert org_model_hparams == model.hparams
+    assert org_data_hparams == data.hparams
 
-    path_yaml = os.path.join(trainer.logger.log_dir, trainer.logger.NAME_HPARAMS_FILE)
-    logged_hparams = AttributeDict(load_hparams_from_yaml(path_yaml))
-    assert hparams == logged_hparams
+    # Merged hparams were logged
+    merged_hparams = copy.deepcopy(org_model_hparams)
+    merged_hparams.update(org_data_hparams)
+    mock_logger.log_hyperparams.assert_called_with(merged_hparams)
+
+
+def test_no_datamodule_for_hparams(tmpdir):
+    """Test that hparams model are logged if no datamodule is used."""
+    model = SaveHparamsModel({'arg1': 5, 'arg2': 'abc'})
+    org_model_hparams = copy.deepcopy(model.hparams_initial)
+    data = DataModuleWithoutHparams()
+    data.setup()
+
+    mock_logger = _get_mock_logger(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    trainer.fit(model, data.train_dataloader())
+
+    # Merged hparams were logged
+    mock_logger.log_hyperparams.assert_called_with(org_model_hparams)
 
 
 def test_merging_hparams(tmpdir):
@@ -902,12 +856,3 @@ def test_colliding_datamodule_hparams(tmpdir):
 
     with pytest.raises(ValueError):
         merge_hparams(model_hparams, data_hparams)
-
-
-def test_adding_hparams_of_datamodule_without_hparams(tmpdir):
-    model = CustomBoringModel()
-    hparams = copy.deepcopy(model.hparams)
-    model.add_datamodule_hparams(DataModuleWithoutHparams())
-
-    assert hparams == model.hparams
-    assert hparams == model.hparams_initial
