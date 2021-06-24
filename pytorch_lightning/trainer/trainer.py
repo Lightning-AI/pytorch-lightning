@@ -28,6 +28,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -56,13 +57,20 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _IPU_AVAILABLE,
+    _TPU_AVAILABLE,
+    DeviceType,
+    parsing,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -345,11 +353,11 @@ class Trainer(
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
         self.validation_loop = EvaluationDataLoaderLoop()
         self.test_loop = EvaluationDataLoaderLoop()
-        self.predict_loop = PredictLoop(self)
-
+        self.predict_loop = PredictionDataLoaderLoop()
         self.fit_loop.connect(self)
         self.validation_loop.connect(self)
         self.test_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -393,8 +401,6 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
-
-        self.predict_loop.on_trainer_init()
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -429,6 +435,8 @@ class Trainer(
         self,
         num_sanity_val_steps: int,
     ) -> None:
+        self._log_device_info()
+
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = 0
@@ -451,6 +459,9 @@ class Trainer(
 
         # when true, print evaluation results in .validate() and .test()
         self.verbose_evaluate = True
+
+        self.num_predict_batches = []
+        self.predicted_ckpt_path = None
 
     def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
@@ -1018,42 +1029,9 @@ class Trainer(
         return eval_loop_results
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        # prepare dataloaders
-        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
-
-        # check if we want to skip this evaluation
-        if self.predict_loop.should_skip_predict(max_batches):
-            return []
-
-        # set up the eval loop
-        self.predict_loop.setup(max_batches, dataloaders)
-
-        # call hook
-        self.predict_loop.on_predict_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # lightning module methods
-                with self.profiler.profile("predict_step"):
-                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
-
-        # call hook
-        results = self.predict_loop.on_predict_epoch_end()
-
-        # call hook
-        self.predict_loop.on_predict_end()
-
-        return results
+        self.reset_predict_dataloader(self.lightning_module)
+        with torch.no_grad():
+            return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
@@ -1222,3 +1200,30 @@ class Trainer(
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    def _log_device_info(self) -> None:
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
+
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
+
+        num_ipus = self.ipus if self.ipus is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
+
+        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+            rank_zero_warn(
+                "GPU available but not used. Set the gpus flag in your trainer"
+                " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
+
+        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+            rank_zero_warn(
+                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
+                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+            )
+
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+            rank_zero_warn(
+                "IPU available but not used. Set the `ipus` flag in your trainer"
+                " `Trainer(ipus=8)` or script `--ipus=8`."
+            )

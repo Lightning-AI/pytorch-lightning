@@ -14,10 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, List, Optional, Tuple
-
-from deprecate import void
-from torch.optim import Optimizer
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
@@ -167,10 +164,7 @@ class FitLoop(Loop):
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
-        # TODO(@justusschock): Do we want to forward *args and **kwargs to the inner loop here?
-        # TODO(@justusschock): Can we make the trainer a weakref/proxy?
-        void(*args, **kwargs)
-        self.trainer = trainer
+        super().connect(trainer, *args, **kwargs)
         self.training_loop.connect(trainer)
         self.validation_loop.connect(trainer)
 
@@ -234,7 +228,7 @@ class FitLoop(Loop):
         did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.skip
         if did_train_only:
             self.global_step -= 1
-            self.check_checkpoint_callback(True)
+            self._check_checkpoint_callback(True)
             self.global_step += 1
 
     def on_run_end(self) -> None:
@@ -249,7 +243,7 @@ class FitLoop(Loop):
         # when a checkpoint was saved at the last step
         self.training_loop.global_step -= 1
         # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
-        self.check_checkpoint_callback(should_update=True, is_last=True)
+        self._check_checkpoint_callback(should_update=True, is_last=True)
         self.training_loop.global_step += 1
 
         # hook
@@ -274,11 +268,7 @@ class FitLoop(Loop):
         """Whether the gradients should be accumulated"""
         return self.training_loop.batch_loop.should_accumulate()
 
-    def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
-        """Generates a list of active optimizers"""
-        return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
-
-    def check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
+    def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
         # TODO: bake this logic into the ModelCheckpoint callback
         if should_update and self.trainer.checkpoint_connector.has_trained:

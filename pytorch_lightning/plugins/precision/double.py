@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, List, Tuple
+from typing import Any, cast, Generator, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -96,7 +96,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
         `lr_schedulers`.
         """
-        model = model.to(dtype=torch.float64)
+        model = cast(LightningModule, model.to(dtype=torch.float64))
         model = LightningDoublePrecisionModule(model)
 
         return super().connect(model, optimizers, lr_schedulers)

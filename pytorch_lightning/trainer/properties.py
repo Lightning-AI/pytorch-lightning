@@ -135,6 +135,10 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.tpu_cores
 
     @property
+    def ipus(self) -> int:
+        return self.accelerator_connector.ipus
+
+    @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
 
@@ -524,6 +528,10 @@ class TrainerProperties(ABC):
     @property
     def min_steps(self) -> Optional[int]:
         return self.fit_loop.min_steps
+
+    @property
+    def is_last_batch(self) -> bool:
+        return self.fit_loop.training_loop.is_last_batch
 
     @property
     def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
