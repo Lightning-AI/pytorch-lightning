@@ -17,8 +17,8 @@ from contextlib import suppress
 from typing import Any, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
