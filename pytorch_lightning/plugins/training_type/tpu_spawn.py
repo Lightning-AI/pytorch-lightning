@@ -202,6 +202,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
+                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def save(self, state_dict: Dict, path: str) -> None:
         xm.save(state_dict, path)
