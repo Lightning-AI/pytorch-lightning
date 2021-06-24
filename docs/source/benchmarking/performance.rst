@@ -191,10 +191,10 @@ If you don't want to perform validation for early epochs, i.e., for ``epoch < nu
 
 Note: doesn’t work nicely with ``EarlyStopping``.
 
-``
+.. code-block:: python
     def on_train_epoch_start(self):
         if self.trainer.current_epoch >= self.num_burnin_epochs:
             self.trainer.limit_val_batches = 1.0
         else:
             self.trainer.limit_val_batches = 0
-``
+
