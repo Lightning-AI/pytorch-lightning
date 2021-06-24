@@ -630,7 +630,16 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=True)
 
 
-def _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload):
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    where we save the full weights to one file.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
+
+
+def _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     seed_everything(42)
 
     class VerificationCallback(Callback):
@@ -660,13 +669,13 @@ def _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
     """ Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works. """
-    _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload=False)
+    _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_cpu_offload(tmpdir):
     """ Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works, CPU offload works """
-    _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload=True)
+    _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
