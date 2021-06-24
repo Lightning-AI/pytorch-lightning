@@ -491,7 +491,7 @@ class TrainerProperties(ABC):
     @property
     def evaluation_loop(self) -> EvaluationLoop:
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return self.fit_loop.validation_loop
+            return self.fit_loop.val_loop
         elif self.state.fn == TrainerFn.VALIDATING:
             return self.validation_loop
         elif self.state.fn == TrainerFn.TESTING:

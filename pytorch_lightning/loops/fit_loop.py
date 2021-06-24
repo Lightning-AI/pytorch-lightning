@@ -52,14 +52,14 @@ class FitLoop(Loop):
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.validation_loop = EvaluationLoop()
+        self.val_loop = EvaluationLoop()
 
     @property
     def results(self) -> ResultCollection:
         if self.trainer.training:
             return self.epoch_loop.results
         elif self.trainer.validating:
-            return self.validation_loop.results
+            return self.val_loop.results
         raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
@@ -166,7 +166,7 @@ class FitLoop(Loop):
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
         self.epoch_loop.connect(trainer)
-        self.validation_loop.connect(trainer)
+        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
