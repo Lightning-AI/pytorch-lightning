@@ -25,17 +25,11 @@ jobs:
 
     pool: gridai-spot-pool
 
-    #strategy:
-    #  matrix:
-    #    PT16:
-    #      torch.version: '1.6'
-    #      python.version: '3.7'
-
     # ToDo: this need to have installed docker in the base image...
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
 
     workspace:
       clean: all
