@@ -15,6 +15,7 @@
 import logging
 import os
 from typing import List, Optional, Sequence, Union
+from weakref import proxy, ProxyType
 
 import torch
 
@@ -117,9 +118,9 @@ class AcceleratorConnector(object):
         self.amp_level = amp_level
         self.is_slurm_managing_tasks = False
 
-        self._precision_plugin: Optional[PrecisionPlugin] = None
-        self._training_type_plugin: Optional[TrainingTypePlugin] = None
-        self._cluster_environment: Optional[ClusterEnvironment] = None
+        self._precision_plugin: Optional[Union[PrecisionPlugin, ProxyType[PrecisionPlugin]] = None
+        self._training_type_plugin: Optional[TrainingTypePlugin, ProxyType[TrainingTypePlugin]] = None
+        self._cluster_environment: Optional[ClusterEnvironment, ProxyType[ClusterEnvironment]] = None
 
         plugins = plugins if plugins is not None else []
 
@@ -225,13 +226,13 @@ class AcceleratorConnector(object):
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
+    def precision_plugin(self) -> Union[PrecisionPlugin, ProxyType[PrecisionPlugin]]:
         if self._precision_plugin is None:
             self._precision_plugin = self.select_precision_plugin()
         return self._precision_plugin
 
     @property
-    def training_type_plugin(self) -> TrainingTypePlugin:
+    def training_type_plugin(self) -> Union[TrainingTypePlugin, ProxyType[TrainingTypePlugin]]:
         if self._training_type_plugin_resolved:
             # avoid calling `resolve_training_type_plugin` multiple times
             return self._training_type_plugin
@@ -243,7 +244,9 @@ class AcceleratorConnector(object):
         return self._training_type_plugin
 
     @property
-    def cluster_environment(self) -> ClusterEnvironment:
+    def cluster_environment(self) -> Union[ClusterEnvironment, ProxyType[ClusterEnvironment]]:
+        if self._cluster_environment is None:
+            self._cluster_environment = self.select_cluster_environment()
         return self._cluster_environment
 
     @property
@@ -496,7 +499,8 @@ class AcceleratorConnector(object):
                 training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
-            training_type.cluster_environment = self.select_cluster_environment()
+            training_type.cluster_environment = self.cluster_environment
+            self._cluster_environment = proxy(self.cluster_environment)
 
         if hasattr(training_type, 'num_nodes'):
             # set num_nodes for training_type from trainer setting
@@ -529,10 +533,12 @@ class AcceleratorConnector(object):
             acc_cls = CPUAccelerator
         # as precision_plugin is dependent on training_type_plugin, make sure
         # that we first select training_type_plugin, then precision_plugin
-        return acc_cls(
+        accelerator = acc_cls(
             training_type_plugin=self.training_type_plugin,
             precision_plugin=self.precision_plugin,
         )
+        self._training_type_plugin = proxy(self.training_type_plugin)
+        self._precision_plugin = proxy(self.precision_plugin)
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
