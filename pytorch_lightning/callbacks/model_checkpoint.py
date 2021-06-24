@@ -483,15 +483,6 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: 'pl.Trainer', filepath: str) -> None:
-        if trainer.training_type_plugin.rpc_enabled:
-            # RPCPlugin manages saving all model states
-            # TODO: the rpc plugin should wrap trainer.save_checkpoint
-            # instead of us having to do it here manually
-            trainer.training_type_plugin.rpc_save_model(trainer, self._do_save, filepath)
-        else:
-            self._do_save(trainer, filepath)
-
-    def _do_save(self, trainer: 'pl.Trainer', filepath: str) -> None:
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
