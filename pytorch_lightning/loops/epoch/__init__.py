@@ -14,5 +14,4 @@
 
 from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop  # noqa: F401
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop  # noqa: F401
-
-# from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop  # noqa: F401
+from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop  # noqa: F401
