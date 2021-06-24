@@ -895,6 +895,25 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
     trainer.fit(model, train_dataloader=dataloader)
 
 
+def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
+    """ Test that a warning message is shown if the dataloader length is too short for the chosen logging interval. """
+    model = BoringModel()
+    dataloader = DataLoader(RandomDataset(32, length=10))
+    model.train_dataloader = lambda: dataloader
+
+    with pytest.warns(UserWarning, match=r"The number of training samples \(10\) is smaller than the logging interval"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            log_every_n_steps=11,
+        )
+        trainer.fit(model)
+
+    with pytest.warns(UserWarning, match=r"The number of training samples \(1\) is smaller than the logging interval"):
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1)
+        trainer.fit(model)
+
+
 def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning message is shown when an IterableDataset defines `__len__`. """
     model = BoringModel()

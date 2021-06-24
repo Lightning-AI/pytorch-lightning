@@ -19,9 +19,13 @@
         ):
             pass
 
+    class MyClassModel(LightningModule):
+        def __init__(self, num_classes: int):
+            pass
+
     class MyDataModule(LightningDataModule):
         def __init__(self, batch_size: int = 8):
-            pass
+            self.num_classes = 5
 
     def send_email(address, message):
         pass
@@ -64,7 +68,7 @@ LightningCLI
 ^^^^^^^^^^^^
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
-class. The minimal installation of pytorch-lightning does not include this support. To enable it either install
+class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
 lightning with the :code:`all` extras require or install the package :code:`jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
@@ -88,6 +92,8 @@ practice to create a configuration file and provide this to the tool. A way to d
     nano config.yaml
     # Run training using created configuration
     python trainer.py --config config.yaml
+    # The config JSON can also be passed directly
+    python trainer.py --config '{trainer: {fast_dev_run: True}}'
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
@@ -372,6 +378,47 @@ Note that the config object :code:`self.config` is a dictionary whose keys are g
 has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.
+
+
+Configurable callbacks
+~~~~~~~~~~~~~~~~~~~~~~
+
+As explained previously, any callback can be added by including it in the config via :code:`class_path` and
+:code:`init_args` entries. However, there are other cases in which a callback should always be present and be
+configurable. This can be implemented as follows:
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import EarlyStopping
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(EarlyStopping, 'my_early_stopping')
+            parser.set_defaults({'my_early_stopping.patience': 5})
+
+    cli = MyLightningCLI(MyModel)
+
+To change the configuration of the :code:`EarlyStopping` in the config it would be:
+
+.. code-block:: yaml
+
+    model:
+      ...
+    trainer:
+      ...
+    my_early_stopping:
+      patience: 5
+
+
+Argument linking
+~~~~~~~~~~~~~~~~
+
 Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
 model and data module depend on a common parameter. For example in some cases both classes require to know the
 :code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
@@ -402,13 +449,24 @@ The linking of arguments is observed in the help of the tool, which for this exa
         model.batch_size <-- data.batch_size
                               Number of samples in a batch (type: int)
 
+Sometimes a parameter value is only available after class instantiation. An example could be that your model requires the number of classes to instantiate its fully connected layer (for a classification task) but the value is not available until the data module has been instantiated.
+The code below illustrates how to address this.
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments('data.num_classes', 'model.num_classes', apply_on='instantiate')
+
+    cli = MyLightningCLI(MyClassModel, MyDataModule)
+
+Instantiation links are used to automatically determine the order of instantiation, in this case data first.
+
 .. tip::
 
     The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
-
-.. tip::
-
-    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
-    methods that can be extended to customize a CLI.

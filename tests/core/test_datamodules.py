@@ -34,6 +34,7 @@ from tests.helpers.utils import reset_seed
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
 
+    model = BoringModel()
     dm = BoringDataModule()
     trainer = Trainer()
     trainer.datamodule = dm
@@ -43,29 +44,53 @@ def test_can_prepare_data(local_rank, node_rank):
     # local rank = 0   (True)
     trainer.prepare_data_per_node = True
 
+    dm.random_full = None
+    dm._has_prepared_data = False
     local_rank.return_value = 0
     assert trainer.local_rank == 0
     assert trainer.data_connector.can_prepare_data()
 
+    trainer.data_connector.prepare_data(model)
+    assert dm.random_full is not None
+
     # local rank = 1   (False)
+    dm.random_full = None
+    dm._has_prepared_data = False
     local_rank.return_value = 1
     assert trainer.local_rank == 1
     assert not trainer.data_connector.can_prepare_data()
 
+    trainer.data_connector.prepare_data(model)
+    assert dm.random_full is None
+
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
+    dm.random_full = None
+    dm._has_prepared_data = False
     trainer.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
     assert trainer.data_connector.can_prepare_data()
 
+    trainer.data_connector.prepare_data(model)
+    assert dm.random_full is not None
+
     # global rank = 1   (False)
+    dm.random_full = None
+    dm._has_prepared_data = False
     node_rank.return_value = 1
     local_rank.return_value = 0
     assert not trainer.data_connector.can_prepare_data()
+
+    trainer.data_connector.prepare_data(model)
+    assert dm.random_full is None
+
     node_rank.return_value = 0
     local_rank.return_value = 1
     assert not trainer.data_connector.can_prepare_data()
+
+    trainer.data_connector.prepare_data(model)
+    assert dm.random_full is None
 
     # 2 dm
     # prepar per node = True
@@ -355,12 +380,12 @@ def test_full_loop(tmpdir):
     assert dm.trainer is not None
 
     # validate
-    result = trainer.validate(datamodule=dm)
+    result = trainer.validate(model, dm)
     assert dm.trainer is not None
     assert result[0]['val_acc'] > 0.7
 
     # test
-    result = trainer.test(datamodule=dm)
+    result = trainer.test(model, dm)
     assert dm.trainer is not None
     assert result[0]['test_acc'] > 0.6
 
@@ -526,46 +551,3 @@ def test_dm_init_from_datasets_dataloaders(iterable):
             call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
         ])
-
-
-def test_datamodule_hooks_calls(tmpdir):
-    """Test that repeated calls to DataHooks' hooks have no effect"""
-
-    class TestDataModule(BoringDataModule):
-        setup_calls = []
-        teardown_calls = []
-        prepare_data_calls = 0
-
-        def setup(self, stage=None):
-            super().setup(stage=stage)
-            self.setup_calls.append(stage)
-
-        def teardown(self, stage=None):
-            super().teardown(stage=stage)
-            self.teardown_calls.append(stage)
-
-        def prepare_data(self):
-            super().prepare_data()
-            self.prepare_data_calls += 1
-
-    dm = TestDataModule()
-    dm.prepare_data()
-    dm.prepare_data()
-    dm.setup('fit')
-    dm.setup('fit')
-    dm.setup()
-    dm.setup()
-    dm.teardown('validate')
-    dm.teardown('validate')
-
-    assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ['fit', None]
-    assert dm.teardown_calls == ['validate']
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    trainer.test(BoringModel(), datamodule=dm)
-
-    # same number of calls
-    assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ['fit', None]
-    assert dm.teardown_calls == ['validate', 'test']

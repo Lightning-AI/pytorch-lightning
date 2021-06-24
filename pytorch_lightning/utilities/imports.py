@@ -77,6 +77,7 @@ _DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')
 _FAIRSCALE_AVAILABLE = _TORCH_GREATER_EQUAL_1_6 and not _IS_WINDOWS and _module_available('fairscale.nn')
 _FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.le, "0.1.3")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
+_FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.group')
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
@@ -84,6 +85,7 @@ _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
+_POPTORCH_AVAILABLE = _module_available('poptorch')
 _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
@@ -95,3 +97,9 @@ _XLA_AVAILABLE = _module_available("torch_xla")
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if _POPTORCH_AVAILABLE:
+    import poptorch
+    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
+else:
+    _IPU_AVAILABLE = False

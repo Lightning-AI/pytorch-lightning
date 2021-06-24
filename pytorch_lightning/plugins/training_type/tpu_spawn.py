@@ -23,6 +23,7 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -67,11 +68,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def world_size(self) -> int:
-        return self.num_processes
+        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
-        return self.device
+        return xm.xla_device()
 
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
@@ -129,7 +130,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        return MpDeviceLoader(dataloader, self.device)
+        return MpDeviceLoader(dataloader, self.root_device)
 
     def configure_ddp(self) -> None:
         pass
@@ -168,12 +169,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.barrier("end-process")
 
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             time.sleep(2)
 
+    @parameter_validation
     def model_to_device(self) -> None:
-        self.device = xm.xla_device()
-        self.model = self.wrapped_model.to(self.device)
+        self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
@@ -185,7 +186,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+            rank_zero_warn("cleaning up tpu spawn environment...")
 
             # save the last weights
             last_path = None
@@ -196,7 +197,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 self.save(self.lightning_module.state_dict(), last_path)
 
-            if self.global_rank == 0:
+            if self.local_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
@@ -209,7 +210,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.device, dtype=torch.float)
+        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -302,3 +303,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
+
+    def teardown(self) -> None:
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)
+        self.barrier("teardown")
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.local_rank == 0
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)

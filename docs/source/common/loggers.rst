@@ -202,7 +202,7 @@ The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere exc
 Weights and Biases
 ==================
 
-`Weights and Biases <https://www.wandb.com/>`_ is a third-party logger.
+`Weights and Biases <https://docs.wandb.ai/integrations/lightning/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.WandbLogger` as your logger do the following.
 First, install the package:
 
@@ -215,8 +215,13 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 .. code-block:: python
 
     from pytorch_lightning.loggers import WandbLogger
-    wandb_logger = WandbLogger(offline=True)
+
+    # instrument experiment with W&B
+    wandb_logger = WandbLogger(project='MNIST', log_model='all')
     trainer = Trainer(logger=wandb_logger)
+
+    # log gradients and model topology
+    wandb_logger.watch(model)
 
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
@@ -226,8 +231,8 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.logger.experiment.log({
-                 "generated_images": [wandb.Image(some_img, caption="...")]
+            self.log({
+                "generated_images": [wandb.Image(some_img, caption="...")]
             })
 
 .. seealso::

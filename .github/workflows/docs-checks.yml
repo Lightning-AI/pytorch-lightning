@@ -11,23 +11,32 @@ jobs:
   sphinx-check:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
-    - uses: ammaraskar/sphinx-action@master
-      with:
-        # git is required to clone the docs theme
-        # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
-        pre-build-command: "apt-get update -y && apt-get install -y git && pip install -r requirements/docs.txt"
-        docs-folder: "docs/"
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          # lfs: true
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          # git is required to clone the docs theme
+          # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
+          pre-build-command: "apt-get update -y && apt-get install -y git pandoc && pip install -r requirements/docs.txt"
+          docs-folder: "docs/"
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
   test-docs:
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
+          # lfs: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
+
+      - name: Weekly reset caching
+        run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
+        id: times
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -35,13 +44,14 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-
 
       - name: Install dependencies
         run: |
-          python --version
+          sudo apt-get update
+          sudo apt-get install -y cmake pandoc
           pip --version
           # remove Horovod from requirements
           python .github/prune-packages.py requirements/extra.txt "horovod"
@@ -56,18 +66,19 @@ jobs:
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
+        working-directory: ./docs
         run: |
           # First run the same pipeline as Read-The-Docs
-          apt-get update && sudo apt-get install -y cmake
-          cd docs
           make doctest
           make coverage
 
   make-docs:
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
+          # lfs: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -84,7 +95,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python --version
+          sudo apt-get update
+          sudo apt-get install -y cmake pandoc
           pip --version
           # pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/docs.txt
@@ -94,10 +106,9 @@ jobs:
         shell: bash
 
       - name: Make Documentation
+        working-directory: ./docs
         run: |
           # First run the same pipeline as Read-The-Docs
-          cd docs
-          make clean
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs

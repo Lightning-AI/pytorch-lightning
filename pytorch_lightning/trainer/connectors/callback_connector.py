@@ -29,18 +29,15 @@ class CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks,
-        checkpoint_callback,
-        progress_bar_refresh_rate,
-        process_position,
-        default_root_dir,
-        weights_save_path,
-        resume_from_checkpoint,
-        stochastic_weight_avg,
+        callbacks: Optional[Union[List[Callback], Callback]],
+        checkpoint_callback: bool,
+        progress_bar_refresh_rate: Optional[int],
+        process_position: int,
+        default_root_dir: Optional[str],
+        weights_save_path: Optional[str],
+        stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
-        self.trainer.resume_from_checkpoint = resume_from_checkpoint
-
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
@@ -53,7 +50,7 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self.configure_checkpoint_callbacks(checkpoint_callback)
+        self._configure_checkpoint_callbacks(checkpoint_callback)
 
         # configure swa callback
         self._configure_swa_callbacks()
@@ -69,7 +66,16 @@ class CallbackConnector:
         # it is important that these are the last callbacks to run
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
-    def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
+    def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
+        # TODO: Remove this error in v1.5 so we rely purely on the type signature
+        if not isinstance(checkpoint_callback, bool):
+            error_msg = (
+                "Invalid type provided for checkpoint_callback:"
+                f" Expected bool but received {type(checkpoint_callback)}."
+            )
+            if isinstance(checkpoint_callback, Callback):
+                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
+            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
                 "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"

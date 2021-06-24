@@ -23,8 +23,8 @@ import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
-from pytorch_lightning.profiler.profilers import BaseProfiler
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
@@ -90,7 +90,7 @@ class RegisterRecordFunction:
 
                 self._handles[module_name] = [pre_forward_handle, post_forward_handle]
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         for handles in self._handles.values():
             for h in handles:
                 h.remove()
@@ -349,9 +349,9 @@ class PyTorchProfiler(BaseProfiler):
             record_functions = set()
 
         if profiled_functions is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
-                " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
+                " `record_functions` in v1.3 and will be removed in v1.5"
             )
             if not record_functions:
                 record_functions |= set(profiled_functions)
@@ -427,11 +427,15 @@ class PyTorchProfiler(BaseProfiler):
             def on_trace_ready(profiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
-                        handler = tensorboard_trace_handler(self.dirpath, self._prepare_filename(extension=""))
+                        handler = tensorboard_trace_handler(
+                            self.dirpath, self._prepare_filename(action_name=action_name, extension="")
+                        )
                         handler(profiler)
 
                     if self._export_to_flame_graph:
-                        path = os.path.join(self.dirpath, self._prepare_filename(extension=".stack"))
+                        path = os.path.join(
+                            self.dirpath, self._prepare_filename(action_name=action_name, extension=".stack")
+                        )
                         profiler.export_stacks(path, metric=self._metric)
                 else:
                     rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")

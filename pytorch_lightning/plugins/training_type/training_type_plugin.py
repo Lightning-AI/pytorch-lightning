@@ -13,7 +13,8 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -60,11 +61,19 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU"""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def on_tpu(self) -> bool:
+        """Returns whether the current process is done on TPU"""
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
+        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -140,6 +149,17 @@ class TrainingTypePlugin(Plugin, ABC):
     def rpc_enabled(self) -> bool:
         return False
 
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        optimizer_states = checkpoint["optimizer_states"]
+        for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
+            optimizer.load_state_dict(opt_state)
+
     def start_training(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
@@ -153,19 +173,19 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -187,6 +207,22 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return dataloader
 
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the train dataloader."""
+        return dataloader
+
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the val dataloader."""
+        return dataloader
+
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the test dataloader."""
+        return dataloader
+
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the predict dataloader."""
+        return dataloader
+
     def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
         return trainer.init_optimizers(model)
 
@@ -202,33 +238,6 @@ class TrainingTypePlugin(Plugin, ABC):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
-
-    def restore_model_state_from_ckpt_path(
-        self,
-        ckpt_path: str,
-        map_location: Callable = lambda storage, loc: storage,
-    ) -> Tuple[Dict, bool]:
-        """
-        This function is used to load and restore the model state.
-
-        Args:
-            ckpt_path: Path to a checkpoint
-            map_location: lambda function to map checkpoint location
-
-        Return
-            checkpoint: Return loaded checkpoint
-            bool: Wether to load optimizer / lr_schedulers states from checkpoint
-
-        """
-        ckpt = pl_load(ckpt_path, map_location=map_location)
-        # restore datamodule states
-        if self.lightning_module.trainer.datamodule is not None:
-            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
-
-        # hook: give user access to checkpoint if needed.
-        self.lightning_module.on_load_checkpoint(ckpt)
-        self.lightning_module.load_state_dict(ckpt['state_dict'])
-        return ckpt, True
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
@@ -290,6 +299,57 @@ class TrainingTypePlugin(Plugin, ABC):
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
 
+    @abstractmethod
+    def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other resources.
+        """
+        raise NotImplementedError
+
     @classmethod
     def register_plugins(cls, plugin_registry):
+        pass
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        """Returns whether the checkpoint should be saved (rank based)"""
+        return self.is_global_zero
+
+    def on_train_start(self) -> None:
+        """Called when train begins."""
+        pass
+
+    def on_validation_start(self) -> None:
+        """Called when validation begins."""
+        pass
+
+    def on_test_start(self) -> None:
+        """Called when test begins."""
+        pass
+
+    def on_predict_start(self) -> None:
+        """Called when predict begins."""
+        pass
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        pass
+
+    def on_validation_end(self) -> None:
+        """Called when validation ends."""
+        pass
+
+    def on_test_end(self) -> None:
+        """Called when test end."""
+        pass
+
+    def on_predict_end(self):
+        """Called when predict ends."""
+        pass
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+        """
         pass
