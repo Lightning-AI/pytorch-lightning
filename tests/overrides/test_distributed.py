@@ -147,3 +147,13 @@ def test_fast_forward_on_random_sampler():
 
     batch_sampler_iter = iter(batch_sampler)
     assert next(batch_sampler_iter) == [12, 8, 2]
+    has_raised = False
+    try:
+        for _ in range(5):
+            next(batch_sampler_iter)
+    except StopIteration:
+        has_raised = True
+        assert sampler.rng_state is None
+        assert sampler.current_iteration == 0
+        sampler.load_state_dict(sampler.state_dict())
+    assert has_raised

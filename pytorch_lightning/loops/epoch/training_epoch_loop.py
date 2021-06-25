@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 
@@ -138,12 +138,6 @@ class TrainingEpochLoop(Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        if self.trainer.is_restarting:
-            # todo (tchaton) Consume batches using samplers.
-            for _ in range(self.current_batch_seen):
-                _, (batch, is_last) = next(dataloader_iter)
-            self.trainer.is_restarting = False
-
         _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
 
@@ -211,19 +205,8 @@ class TrainingEpochLoop(Loop):
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
 
-        # reset fast forward sampler
-        self.reset_sampler()
-
         if self.done:
             raise StopIteration
-
-    def reset_sampler(self):
-        sampler = self.trainer.train_dataloader.sampler
-        if not isinstance(sampler, Sequence):
-            sampler = [sampler]
-
-        for s in sampler:
-            s.reset_on_epoch()
 
     def _run_validation(self):
         # reload dataloaders

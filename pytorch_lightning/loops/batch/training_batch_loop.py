@@ -169,6 +169,13 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
 
+                # handle optimization restart
+                if self.trainer.is_restarting:
+                    if opt_idx < self.progress.current.completed:
+                        continue
+                    else:
+                        self.trainer.is_restarting = False
+
                 # track optimizer_idx
                 self.progress.optimizer_idx = opt_idx
 

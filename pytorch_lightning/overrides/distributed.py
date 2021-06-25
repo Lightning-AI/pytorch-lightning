@@ -163,7 +163,6 @@ class FastForwardSampler:
     def __iter__(self) -> Iterator[List[int]]:
         self.rng_state = torch.random.get_rng_state()
         for batch in self._sampler:
-            print(batch)
             if self.restarted and self.current_iteration > 0:
                 self.current_iteration -= 1
                 if self.current_iteration == 0:
@@ -171,8 +170,7 @@ class FastForwardSampler:
             else:
                 self.current_iteration += 1
                 yield batch
-
-    def reset_on_epoch(self) -> None:
+        self.rng_state = None
         self.current_iteration = 0
 
     def __len__(self) -> int:
@@ -199,5 +197,6 @@ class FastForwardSampler:
 
     def load_state_dict(self, state_dict):
         self.current_iteration = state_dict["current_iteration"]
-        torch.random.set_rng_state(state_dict["rng_state"])
+        if state_dict["rng_state"] is not None:
+            torch.random.set_rng_state(state_dict["rng_state"])
         self.restarted = True

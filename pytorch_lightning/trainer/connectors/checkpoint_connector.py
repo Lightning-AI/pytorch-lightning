@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 import torch
 
@@ -178,6 +178,9 @@ class CheckpointConnector:
         # restore progress (loops etc.)
         self.restore_progress()
 
+        # restore samplers
+        self.restore_samplers()
+
         self.restore_optimizers_and_schedulers()
 
     def restore_callbacks(self) -> None:
@@ -222,6 +225,21 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
+
+    def restore_samplers(self) -> None:
+        if not self._loaded_checkpoint:
+            return
+
+        state_dict = self._loaded_checkpoint.get("samplers", None)
+        if state_dict:
+            fit_state_dict = state_dict[TrainerFn.FITTING.value]
+            # Todo: Find a way to not create the train_dataloader on reload
+            self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+            samplers = self.trainer.train_dataloader.sampler
+            if not isinstance(samplers, Sequence):
+                samplers = [samplers]
+            for sampler, state_dict in zip(samplers, fit_state_dict):
+                sampler.load_state_dict(state_dict)
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
@@ -362,6 +380,7 @@ class CheckpointConnector:
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
             'progress_tracking': self.get_process_state_dict(),
+            'samplers': self.get_samplers_state_dict(),
         }
 
         if not weights_only:
@@ -401,6 +420,12 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_samplers_state_dict(self):
+        samplers = self.trainer.train_dataloader.sampler
+        if not isinstance(samplers, Sequence):
+            samplers = [samplers]
+        return {TrainerFn.FITTING.value: [s.state_dict() for s in samplers]}
 
     def get_process_state_dict(self):
         return {TrainerFn.FITTING.value: self.trainer.fit_loop.progress.state_dict()}
