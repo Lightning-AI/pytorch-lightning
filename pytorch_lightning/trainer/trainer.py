@@ -23,7 +23,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks import Callback, BaseFinetuning
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -492,6 +492,10 @@ class Trainer(
         """
         Trainer._log_api_event("fit")
 
+        # if self.callback_connector.contains_finetune_callback(self.callbacks):
+        #     # TODO: if we find a finetuning callback in the trainer should we remove it? or just warn the user?
+        #     rank_zero_warn("You are calling trainer.fit(), but your trainer is using a fine-tuning callback")
+
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
@@ -806,6 +810,17 @@ class Trainer(
         self.tuning = False
 
         return result
+    
+    def finetune(
+        self,
+        model: 'pl.LightningModule',
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        strategy: Optional[Union[str, BaseFinetuning]] = None,
+    ) -> None:
+        self._resolve_callbacks(model, strategy)
+        return self.fit(model, train_dataloaders, val_dataloaders, datamodule)
 
     def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams

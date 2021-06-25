@@ -16,11 +16,11 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase, BaseFinetuning
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.callbacks.finetuning import _DEFAULTS_FINETUNE_STRATEGIES, instantiate_default_finetuning_callbacks
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 
 class CallbackConnector:
 
@@ -185,3 +185,38 @@ class CallbackConnector:
         checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
         return not_checkpoints + checkpoints
+
+    @staticmethod
+    def contains_finetune_callback(callbacks: List[Callback]) -> bool:
+        return any(isinstance(callback, BaseFinetuning) for callback in callbacks)
+
+    @staticmethod
+    def _resolve_finetuning_callback(callbacks: List[Callback], model: 'pl.LightningModule', strategy: Optional[Union[str, BaseFinetuning]] = None) -> List[Callback]:
+        """
+        This function is used to select the `BaseFinetuning` to be used for finetuning.
+        """
+        if strategy is not None and not isinstance(strategy, (str, BaseFinetuning)):
+            raise MisconfigurationException(
+                "strategy should be a ``pytorch_lightning.callbacks.BaseFinetuning``"
+                f"callback or a str within {list(_DEFAULTS_FINETUNE_STRATEGIES.keys())}"
+            )
+
+        if isinstance(strategy, BaseFinetuning):
+            callback = [strategy]
+        else:
+            model_callback = model.configure_callbacks()
+            if len(model_callback) > 1:
+                raise MisconfigurationException(
+                    f"{model} configure_finetune_callback should create a list with only 1 callback"
+                )
+            if len(model_callback) == 1:
+                if strategy is not None:
+                    rank_zero_warn(
+                        f"The model contains a default finetune callback. The provided {strategy} will be overriden.\n"
+                        " HINT: Provide a `BaseFinetuning` callback as strategy to make it prioritized. ", UserWarning
+                    )
+                callback = model_callback
+            else:
+                callback = instantiate_default_finetuning_callbacks(strategy)
+
+        return self._merge_callbacks(self.callbacks, callback)

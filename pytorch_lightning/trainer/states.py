@@ -40,6 +40,7 @@ class TrainerFn(LightningEnum):
     TESTING = 'test'
     PREDICTING = 'predict'
     TUNING = 'tune'
+    FINETUNING = 'finetune'
 
     @property
     def _setup_fn(self) -> 'TrainerFn':
