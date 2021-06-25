@@ -118,8 +118,8 @@ It is possible to perform some computation manually and log the reduced result o
     def test_epoch_end(self, outputs):
         mean = torch.mean(self.all_gather(outputs))
 
-        # when logging only rank 0, don't forget to add
-        # ``is_global_zero`` in self.log to avoid deadlock.
+        # When logging only on rank 0, don't forget to add
+        # ``rank_zero_only=True`` to avoid deadlocks on synchronization.
         if self.trainer.is_global_zero:
             self.log("my_reduced_metric", mean, rank_zero_only=True)
 
