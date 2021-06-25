@@ -160,7 +160,7 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
 
     Raises:
         MisconfigurationException:
-            If machine has lesser available GPUs than requested.
+            If machine has fewer available GPUs than requested.
     """
     all_available_gpus = _get_all_available_gpus()
     for gpu in gpus:
