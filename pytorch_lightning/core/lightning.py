@@ -217,11 +217,6 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def state_dict(self, *args, **kwargs) -> Dict[str, Any]:
-        # drop the map id to metrics to avoid saving it.
-        self._metric_attributes = None
-        return super().state_dict(*args, **kwargs)
-
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
     ) -> Any:
