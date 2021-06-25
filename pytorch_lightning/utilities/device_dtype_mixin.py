@@ -184,7 +184,7 @@ class DeviceDtypeModuleMixin(Module):
         dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
 
-        def apply_fn(module) -> None:
+        def apply_fn(module):
             if not isinstance(module, DeviceDtypeModuleMixin):
                 return
             if device is not None:
