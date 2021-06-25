@@ -505,6 +505,7 @@ class ResultCollection(dict):
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if not result_metric._computed:
+                # always reduce on epoch end
                 should = result_metric.meta.sync.should
                 result_metric.meta.sync.should = True
                 result_metric.compute()
