@@ -24,6 +24,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import F
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -250,7 +251,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        with self.sync_context(should_sync=not self.meta.sync.rank_zero_only):
+        with self.sync_context(
+            should_sync=not self.meta.sync.rank_zero_only,
+            process_group=self.meta.sync.group,
+            distributed_available=distributed_available
+        ):
             d = deepcopy(super().__getstate__())
         # metric are being dropped, so they won't be serialized
         # this would prevent pickling error if their API change.

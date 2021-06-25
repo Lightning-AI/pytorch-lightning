@@ -43,7 +43,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -407,8 +407,8 @@ class LightningModule(
             enable_graph=enable_graph,
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
-            sync_dist=sync_dist,
-            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
+            sync_dist=sync_dist and distributed_available(),
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
