@@ -171,10 +171,10 @@ class TrainingBatchLoop(Loop):
 
                 # handle optimization restart
                 if self.trainer.is_restarting:
-                    if opt_idx < self.progress.current.completed:
-                        continue
-                    else:
+                    if self.progress.current.completed is None or self.progress.current.completed >= opt_idx:
                         self.trainer.is_restarting = False
+                    else:
+                        continue
 
                 # track optimizer_idx
                 self.progress.optimizer_idx = opt_idx

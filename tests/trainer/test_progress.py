@@ -114,7 +114,7 @@ def test_loop_progress_increment_sequence():
     assert p.epoch.current == Tracker()
 
 
-@pytest.mark.parametrize("use_multiple_optimizers", [False])
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
@@ -237,7 +237,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     optimization = pr.epoch.optimization
 
     total = 3 * 3 * (3 if use_multiple_optimizers else 1)
-    current = (3 if use_multiple_optimizers else 0)
+    current = (3 if use_multiple_optimizers else 1)
 
     assert optimization.optimizer.total == Tracker(ready=total, started=total, processed=None, completed=total)
     assert optimization.optimizer.current == Tracker(ready=current, started=current, processed=None, completed=current)
@@ -247,6 +247,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     # for multiple optimizers: 4 batches + 1 on epoch
     total = (3 * 3 + 3 if use_multiple_optimizers else 3)
-    current = (2 if use_multiple_optimizers else 0)
+    current = (2 if use_multiple_optimizers else 1)
     assert optimization.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
     assert optimization.scheduler.current == Tracker(ready=current, started=None, processed=None, completed=current)
