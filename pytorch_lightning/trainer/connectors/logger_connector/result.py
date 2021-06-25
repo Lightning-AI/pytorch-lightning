@@ -244,7 +244,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         object.__setattr__(self, key, value)
 
     def __repr__(self) -> str:
-        state = f"value={self.value}"
+        state = f"{repr(self.meta.name)}, value={self.value}"
         if self.is_tensor and self.meta.is_mean_reduction:
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
@@ -691,7 +691,8 @@ class ResultCollection(dict):
 
         if not metrics:
             return
+        result_metrics = self.result_metrics
         for metric_attribute, metric in metrics.items():
-            for result_metric in self.result_metrics:
+            for result_metric in result_metrics:
                 if result_metric.meta.metric_attribute == metric_attribute:
                     result_metric.value = metric

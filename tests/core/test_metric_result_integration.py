@@ -135,9 +135,9 @@ def test_result_metric_integration():
 
     assert str(result) == (
         "ResultCollection(True, cpu, {"
-        "'h.a': ResultMetric(value=DummyMetric()), "
-        "'h.b': ResultMetric(value=DummyMetric()), "
-        "'h.c': ResultMetric(value=DummyMetric())"
+        "'h.a': ResultMetric('a', value=DummyMetric()), "
+        "'h.b': ResultMetric('b', value=DummyMetric()), "
+        "'h.c': ResultMetric('c', value=DummyMetric())"
         "})"
     )
 
@@ -208,7 +208,7 @@ def test_result_collection_restoration(tmpdir):
         result.log(fx, *args, **kwargs, sync_dist_fn=my_sync_dist)
         current_fx_name = fx
 
-    for _ in range(2):
+    for epoch in range(2):
 
         cumulative_sum = 0
 
@@ -238,6 +238,10 @@ def test_result_collection_restoration(tmpdir):
             state_dict = result.state_dict()
             # check the sync fn was dropped
             assert 'fn' not in state_dict['items']['training_step.a']['meta']['_sync']
+
+            assert not new_result.result_metrics
+            assert len(result.result_metrics) == 7 + epoch > 0
+
             new_result.load_state_dict(
                 state_dict, metrics={
                     "metric": metric,
