@@ -499,6 +499,7 @@ class AcceleratorConnector(object):
                 training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
+            # transfer ownership of the cluster environment to the training type
             training_type.cluster_environment = self.cluster_environment
             self._cluster_environment = proxy(self.cluster_environment)
 
@@ -537,6 +538,7 @@ class AcceleratorConnector(object):
             training_type_plugin=self.training_type_plugin,
             precision_plugin=self.precision_plugin,
         )
+        # transfer ownership of the plugins to the accelerator
         self._training_type_plugin = proxy(self.training_type_plugin)
         self._precision_plugin = proxy(self.precision_plugin)
 
