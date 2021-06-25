@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
-from typing import Any, List, MutableSequence, Optional, Tuple, Union
+from typing import Any, List, MutableSequence, Optional, Tuple, Union, type_check_only
 
 import torch
 
@@ -95,7 +95,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     return gpus
 
 
-def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[int, str, List]]:
+def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[int, List[int]]]:
     """
     Parses the tpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -120,11 +120,13 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[int, str
 
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
+    else:  # need to inform mypy `tpu_cores` has now a right type
+        tpu_cores_parsed: Optional[Union[int, List[int]]] = tpu_cores
 
-    if tpu_cores is not None and not _TPU_AVAILABLE:
+    if tpu_cores_parsed is not None and not _TPU_AVAILABLE:
         raise MisconfigurationException('No TPU devices were found.')
 
-    return tpu_cores
+    return tpu_cores_parsed
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
