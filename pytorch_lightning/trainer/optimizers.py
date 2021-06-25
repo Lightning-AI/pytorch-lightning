@@ -166,8 +166,8 @@ class TrainerOptimizersMixin(ABC):
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     if monitor is None:
                         raise MisconfigurationException(
-                            '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
-                            ' For example:'
+                            '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`'
+                            ' scheduler is used. For example:'
                             ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                         )
                     lr_schedulers.append({
