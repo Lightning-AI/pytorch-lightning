@@ -147,6 +147,7 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
     exclude_argnames = (*filtered_vars, '__class__', 'frame', 'frame_args')
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
+    # kwargs_var might be None => raised an error by mypy
     if kwargs_var:
         local_args.update(local_args.get(kwargs_var, {}))
     local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
