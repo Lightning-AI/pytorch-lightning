@@ -23,6 +23,7 @@ from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
@@ -68,6 +69,11 @@ class TrainingBatchLoop(Loop):
         if self._optimizer_freq_cumsum is None:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
+
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+        # TODO(@justusschock): can we make this a weakref/proxy?
+        void(*args, **kwargs)
+        self.trainer = trainer
 
     def create_progress(self, progress: TrainBatchLoopProgress, progress_optimization: TrainingProgress) -> None:
         self.progress = progress

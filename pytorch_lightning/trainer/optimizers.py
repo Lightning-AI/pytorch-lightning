@@ -28,7 +28,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class TrainerOptimizersMixin(ABC):
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
-    _map_sch_to_opt: Optional[Dict[int, List[int]]]
 
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         self._lightning_optimizers = None

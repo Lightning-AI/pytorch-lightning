@@ -122,7 +122,7 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
 
     class TestModel(BoringModel):
 
-        def __init__(self, use_multiple_optimizers: bool):
+        def __init__(self):
             super().__init__()
             if use_multiple_optimizers:
                 self.configure_optimizers = self.configure_optimizers_3
@@ -136,19 +136,14 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
             optimizer_1 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
             lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            return [optimizer, optimizer_1,
-                    optimizer_2], [lr_scheduler, {
-                        "scheduler": lr_scheduler_1,
-                        "interval": "step"
-                    }]
+            return [optimizer, optimizer_1, optimizer_2], \
+                   [lr_scheduler, {"scheduler": lr_scheduler_1, "interval": "step"}]
 
-    model = TestModel(use_multiple_optimizers)
+    model = TestModel()
     model.training_epoch_end = None
 
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=3, limit_val_batches=0, callbacks=chk)
-
     trainer.fit(model)
 
     assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
@@ -198,7 +193,7 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
         resume_from_checkpoint=chk.last_model_path
     )
 
-    # todo: (tchaton)  Update this when restore progress is supported.
+    # TODO(@tchaton): Update this when restore progress is supported.
     trainer.fit_loop.progress = progress
     trainer.fit_loop.epoch_loop.progress = progress.train
 

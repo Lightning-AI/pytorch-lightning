@@ -30,9 +30,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for checkpointing based on a provided time interval during training ([#7515](https://github.com/PyTorchLightning/pytorch-lightning/pull/7515))
 
 
-- Added dataclasses for progress tracking (
-    [#6603](https://github.com/PyTorchLightning/pytorch-lightning/pull/6603),
-    [#7574](https://github.com/PyTorchLightning/pytorch-lightning/pull/7574))
+- Progress tracking
+  * Added dataclasses for progress tracking ([#6603](https://github.com/PyTorchLightning/pytorch-lightning/pull/6603), [#7574](https://github.com/PyTorchLightning/pytorch-lightning/pull/7574))
+  * Integrate progress tracking with the training loops ([#7976](https://github.com/PyTorchLightning/pytorch-lightning/pull/7976))
 
 
 - Added support for passing a `LightningDataModule` positionally as the second argument to `trainer.{validate,test,predict}` ([#7431](https://github.com/PyTorchLightning/pytorch-lightning/pull/7431))
@@ -100,9 +100,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added support for `torch.nn.UninitializedParameter` in `ModelSummary` ([#7642](https://github.com/PyTorchLightning/pytorch-lightning/pull/7642))
-
-
-- Added `progress tracking` to `FitLoop` ([#7976](https://github.com/PyTorchLightning/pytorch-lightning/pull/7976))
 
 
 - Added support `LightningModule.save_hyperparameters` when `LightningModule` is a dataclass ([#7992](https://github.com/PyTorchLightning/pytorch-lightning/pull/7992))

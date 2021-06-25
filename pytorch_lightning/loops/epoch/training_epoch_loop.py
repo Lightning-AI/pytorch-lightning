@@ -243,6 +243,10 @@ class TrainingEpochLoop(Loop):
         # set progress reference to batch_loop
         self.batch_loop.create_progress(progress=self.progress.batch, progress_optimization=self.progress.epoch)
 
+    def teardown(self) -> None:
+        """Frees memory of tracked epoch outputs."""
+        self._epoch_output = None
+
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""
         # We cannot rely on Trainer.call_hook because the signatures might be different across
