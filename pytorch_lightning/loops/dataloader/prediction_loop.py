@@ -5,13 +5,13 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.prediction_epoch_loop import PredictionEpochLoop
+from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
 
-class PredictionDataLoaderLoop(DataLoaderLoop):
+class PredictionLoop(DataLoaderLoop):
     """Loop to run over dataloaders for prediction"""
 
     def __init__(self):

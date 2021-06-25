@@ -17,7 +17,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no --disable-warnings'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --durations=0 --capture=no --disable-warnings'
 
 # find tests marked as `@RunIf(special=True)`
 grep_output=$(grep --recursive --line-number --word-regexp 'tests' 'benchmarks' --regexp 'special=True')
