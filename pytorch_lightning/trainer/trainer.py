@@ -1230,31 +1230,17 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         grid_config: Optional['GridConfig'] = None,
         local: bool = False,
-        run_name: Optional[str] = None,
-        instance_type: Optional[str] = None,
-        disk_size: Optional[int] = 200,
-        datastore_name: Optional[str] = None,
-        datastore_version: Optional[str] = '1',
-        datastore_mount_dir: Optional[str] = None,
-        experiment_type: Optional[str] = 'session',
     ):
         if not _GRID_AVAILABLE:
             raise MisconfigurationException("Please, pip install lightning-grid --upgrade")
 
         from grid.pytorch_lightning import cloud_fit, GridConfig
 
-        if not grid_config:
-            grid_config = GridConfig(
-                run_name=run_name or f"cloudfit-{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}",
-                instance_type=instance_type,
-                disk_size=disk_size,
-                datastore_name=datastore_name,
-                datastore_version=datastore_version,
-                datastore_mount_dir=datastore_mount_dir,
-                experiment_type=experiment_type,
-            )
+        if grid_config is None and not local:
+            raise RuntimeError("Cloud fit should either be called with local=True or with a grid_config argument")
 
         cloud_fit(
+            pl_trainer=self,
             model=model,
             train_dataloaders=train_dataloaders,
             val_dataloaders=val_dataloaders,
