@@ -152,15 +152,15 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
     trainer.fit(model)
 
     assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
-    assert isinstance(trainer.fit_loop.training_loop.progress, TrainingLoopProgress)
-    assert trainer.fit_loop.training_loop.progress is trainer.fit_loop.progress.train
+    assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingLoopProgress)
+    assert trainer.fit_loop.epoch_loop.progress is trainer.fit_loop.progress.train
 
-    pr = trainer.fit_loop.training_loop.progress
+    pr = trainer.fit_loop.epoch_loop.progress
 
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
     assert pr.epoch.current == Tracker(ready=2, started=2, processed=2, completed=2)
 
-    pr = trainer.fit_loop.training_loop.progress
+    pr = trainer.fit_loop.epoch_loop.progress
 
     assert pr.batch.total == Tracker(ready=6, started=6, processed=6, completed=6)
     assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
@@ -200,11 +200,11 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
 
     # todo: (tchaton)  Update this when restore progress is supported.
     trainer.fit_loop.progress = progress
-    trainer.fit_loop.training_loop.progress = progress.train
+    trainer.fit_loop.epoch_loop.progress = progress.train
 
     trainer.fit(model)
 
-    pr = trainer.fit_loop.training_loop.progress
+    pr = trainer.fit_loop.epoch_loop.progress
 
     assert pr.epoch.total == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)

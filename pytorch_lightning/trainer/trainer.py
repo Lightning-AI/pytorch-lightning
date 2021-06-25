@@ -27,6 +27,8 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
+from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -46,27 +48,31 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _IPU_AVAILABLE,
+    _TPU_AVAILABLE,
+    DeviceType,
+    parsing,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -337,9 +343,13 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.validation_loop = EvaluationLoop()
+        self.test_loop = EvaluationLoop()
+        self.predict_loop = PredictionLoop()
         self.fit_loop.connect(self)
-        self.evaluation_loop = EvaluationLoop(self)
-        self.predict_loop = PredictLoop(self)
+        self.validation_loop.connect(self)
+        self.test_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -382,9 +392,6 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
-
-        self.evaluation_loop.on_trainer_init()
-        self.predict_loop.on_trainer_init()
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -419,6 +426,8 @@ class Trainer(
         self,
         num_sanity_val_steps: int,
     ) -> None:
+        self._log_device_info()
+
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = 0
@@ -429,7 +438,23 @@ class Trainer(
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None) -> None:
+        self.num_sanity_val_batches = []
+        self.num_test_batches = []
+        self.num_val_batches = []
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path = None
+        self.tested_ckpt_path = None
+
+        # when true, print evaluation results in .validate() and .test()
+        self.verbose_evaluate = True
+
+        self.num_predict_batches = []
+        self.predicted_ckpt_path = None
+
+    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -491,6 +516,8 @@ class Trainer(
         self.data_connector.attach_data(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
+
+        self.checkpoint_connector.resume_start()
 
         self._run(model)
 
@@ -801,6 +828,13 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+
+        # restore modules after setup
+        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
+
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
@@ -822,7 +856,7 @@ class Trainer(
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
                         {self._run_train}                     ||
-                     or {self._run_evaluation}                ||
+                     or {self._run_evaluate}                  ||
                      or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
@@ -841,6 +875,9 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
+
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
@@ -904,6 +941,8 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.slurm_connector.register_slurm_signal_handlers()
 
+        self.checkpoint_connector.resume_end()
+
         # --------------------------
         # Pre-train
         # --------------------------
@@ -916,9 +955,6 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
-
-        # restore training and model before hpc is called
-        self.checkpoint_connector.restore()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -962,125 +998,17 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
-        if not (self.evaluating or self.sanity_checking):
-            rank_zero_warn(
-                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
-                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
-            )
-            self.validating = True
-
-        # prepare dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
-
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(max_batches):
-            return [], []
-
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        # ref model
-        model = self.lightning_module
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
-        # set up the eval loop
-        self.evaluation_loop.setup(max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                with self.profiler.profile("evaluation_step_and_end"):
-                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
-                    output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook + store predictions
-                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
-
-                # log batch metrics
-                self.logger_connector.update_eval_step_metrics()
-
-                # track epoch level outputs
-                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
-
-            # store batch level output per dataloader
-            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
-                self.evaluation_loop.outputs.append(dl_outputs)
-
-        outputs = self.evaluation_loop.outputs
-
-        # reset outputs
-        self.evaluation_loop.outputs = []
-
-        # with a single dataloader don't pass a 2D list
-        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
-            outputs = outputs[0]
-
-        # lightning module method
-        self.evaluation_loop.evaluation_epoch_end(outputs)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        # log epoch metrics
-        eval_loop_results = self.logger_connector.update_eval_epoch_metrics()
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
-        # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
-
-        # enable train mode again
-        self.evaluation_loop.on_evaluation_model_train()
-
-        torch.set_grad_enabled(True)
-
-        return eval_loop_results
-
-    def _track_output_for_epoch_end(self, outputs, output):
-        if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
-            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
-                output = output.cpu()
-            outputs.append(output)
-        return outputs
-
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
         assert self.evaluating
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self._run_evaluation()
+        # reload dataloaders
+        self.evaluation_loop.reload_evaluation_dataloaders()
+
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
+            eval_loop_results = self.evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1092,42 +1020,9 @@ class Trainer(
         return eval_loop_results
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        # prepare dataloaders
-        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
-
-        # check if we want to skip this evaluation
-        if self.predict_loop.should_skip_predict(max_batches):
-            return []
-
-        # set up the eval loop
-        self.predict_loop.setup(max_batches, dataloaders)
-
-        # call hook
-        self.predict_loop.on_predict_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # lightning module methods
-                with self.profiler.profile("predict_step"):
-                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
-
-        # call hook
-        results = self.predict_loop.on_predict_epoch_end()
-
-        # call hook
-        self.predict_loop.on_predict_end()
-
-        return results
+        self.reset_predict_dataloader(self.lightning_module)
+        with torch.no_grad():
+            return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
@@ -1142,8 +1037,12 @@ class Trainer(
             # hook and callback
             self.on_sanity_check_start()
 
+            # reload dataloaders
+            self.evaluation_loop.reload_evaluation_dataloaders()
+
             # run eval step
-            self._run_evaluation()
+            with torch.no_grad():
+                self.evaluation_loop.run()
 
             self.on_sanity_check_end()
 
@@ -1292,3 +1191,30 @@ class Trainer(
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    def _log_device_info(self) -> None:
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
+
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
+
+        num_ipus = self.ipus if self.ipus is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
+
+        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+            rank_zero_warn(
+                "GPU available but not used. Set the gpus flag in your trainer"
+                " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
+
+        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+            rank_zero_warn(
+                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
+                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+            )
+
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+            rank_zero_warn(
+                "IPU available but not used. Set the `ipus` flag in your trainer"
+                " `Trainer(ipus=8)` or script `--ipus=8`."
+            )

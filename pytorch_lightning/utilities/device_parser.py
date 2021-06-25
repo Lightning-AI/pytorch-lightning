@@ -16,7 +16,8 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.plugins.environments import TorchElasticEnvironment
+from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
 
@@ -78,6 +79,11 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+
+    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+        # omit sanity check on torchelastic as by default shows one visible GPU per process
+        return gpus
+
     gpus = _sanitize_gpu_ids(gpus)
 
     return gpus
@@ -121,12 +127,11 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
     else:
         num_gpus = int(s.strip())
         if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-            rank_zero_warn(
+            rank_zero_deprecation(
                 f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
                 " In the current version of Lightning, this will select"
                 f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
                 f" {list(range(num_gpus))} (same as gpus={s} (int)).",
-                DeprecationWarning,
             )
             return [num_gpus]
         return num_gpus

@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 
 import torch
 
@@ -82,7 +82,8 @@ class CheckpointConnector:
 
     def resume_end(self) -> None:
         """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
-        rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
+        if self.resume_checkpoint_path:
+            rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
         self._loaded_checkpoint = dict()
 
@@ -93,9 +94,9 @@ class CheckpointConnector:
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> bool:
+    def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> None:
         """
-        Attempt to restore model/training states from a 'PyTorch-Lightning checkpoint' file
+        Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file
         through file-read and state-restore, in this priority:
 
         1. from HPC weights if found
@@ -103,43 +104,53 @@ class CheckpointConnector:
         3. don't restore
 
         All restored states are listed in return value description of `dump_checkpoint`.
+
+        Args:
+            checkpoint_path: Path to a PyTorch Lightning checkpoint file.
         """
-        self.resume_checkpoint_path = checkpoint_path or self.resume_checkpoint_path
+        self.resume_checkpoint_path = checkpoint_path
         self.resume_start()
-        model = self.trainer.lightning_module
 
-        self.restore_model_state(model, self._loaded_checkpoint)
+        # restore module states
+        self.restore_datamodule()
+        self.restore_model()
 
-        if self.trainer._device_type == DeviceType.GPU:
-            model.cuda(self.trainer.root_gpu)
+        # restore callback states
+        self.restore_callbacks()
 
         # restore training state
-        if self._loaded_checkpoint:
-            self.restore_training_state(self._loaded_checkpoint)
-
+        self.restore_training_state()
         self.resume_end()
-        return True
 
-    def restore_model_state(self, model: LightningModule, checkpoint) -> None:
-        """
-        Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
-        """
-        if not checkpoint:
+    def restore_datamodule(self) -> None:
+        """ Calls hooks on the datamodule to give it a chance to restore its state from the checkpoint. """
+        if not self._loaded_checkpoint:
             return
 
-        # restore datamodule states
-        if self.trainer.datamodule is not None:
-            self.trainer.datamodule.on_load_checkpoint(checkpoint)
+        datamodule = self.trainer.datamodule
+        if datamodule is not None:
+            datamodule.on_load_checkpoint(self._loaded_checkpoint)
+
+    def restore_model(self) -> None:
+        """
+        Restores a model's weights from a PyTorch Lightning checkpoint. Hooks are called first go give
+        the LightningModule a chance to modify the contents, then finally the model gets updated with
+        the loaded weights.
+        """
+        if not self._loaded_checkpoint:
+            return
+
+        model = self.trainer.lightning_module
 
         # hook: give user access to checkpoint if needed.
-        model.on_load_checkpoint(checkpoint)
+        model.on_load_checkpoint(self._loaded_checkpoint)
 
         # call hpc specific hook
         if self.hpc_resume_path is not None:
             model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
-        self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
+        self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
@@ -150,19 +161,16 @@ class CheckpointConnector:
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
 
-    def restore_training_state(self, checkpoint: Dict[str, Any]) -> None:
+    def restore_training_state(self) -> None:
         """
         Restore the trainer state from the pre-loaded checkpoint. This includes the precision settings, loop progress,
         optimizer states and learning rate scheduler states.
         """
-        if not checkpoint:
+        if not self._loaded_checkpoint:
             return
 
         # restore precision plugin (scaler etc.)
-        self.trainer.precision_plugin.on_load_checkpoint(checkpoint)
-
-        self.restore_callbacks()
-
+        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
         # restore progress (loops etc.)
         self.restore_progress()
 
@@ -190,8 +198,8 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.train_loop.global_step = self._loaded_checkpoint['global_step']
-        self.trainer.train_loop.current_epoch = self._loaded_checkpoint['epoch']
+        self.trainer.fit_loop.global_step = self._loaded_checkpoint['global_step']
+        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -232,10 +240,8 @@ class CheckpointConnector:
             return
 
         # restore the optimizers
-        optimizer_states = self._loaded_checkpoint['optimizer_states']
-        for optimizer, opt_state in zip(self.trainer.optimizers, optimizer_states):
-            optimizer.load_state_dict(opt_state)
-
+        self.trainer.training_type_plugin.load_optimizer_state_dict(self._loaded_checkpoint)
+        for optimizer in self.trainer.optimizers:
             # move optimizer to GPU 1 weight at a time
             # avoids OOM
             if self.trainer.root_gpu is not None:

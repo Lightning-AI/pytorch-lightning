@@ -27,7 +27,8 @@ from tests.helpers import BoringModel, RandomDataset
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
         epoch = trainer.current_epoch
         if self.unfreeze_backbone_at_epoch <= epoch:
             optimizer = trainer.optimizers[0]
@@ -275,7 +276,7 @@ def test_base_finetuning_internal_state(tmpdir):
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
     trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
-    with pytest.raises(IndexError, match="index 6 is out of range"):
+    with pytest.raises(ValueError, match="loaded state dict has a different number of parameter groups"):
         trainer.fit(model)
 
 

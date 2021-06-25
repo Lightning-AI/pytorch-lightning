@@ -63,7 +63,7 @@ class BaseFinetuning(Callback):
 
         class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
 
-            def __init__(self, unfreeze_at_epoch=10)
+            def __init__(self, unfreeze_at_epoch=10):
                 self._unfreeze_at_epoch = unfreeze_at_epoch
 
             def freeze_before_training(self, pl_module):
@@ -285,7 +285,7 @@ class BaseFinetuning(Callback):
 
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
-        for opt_idx, optimizer in trainer.train_loop.get_active_optimizers():
+        for opt_idx, optimizer in trainer.fit_loop.epoch_loop.batch_loop.get_active_optimizers():
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
             current_param_groups = optimizer.param_groups

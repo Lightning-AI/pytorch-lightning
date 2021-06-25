@@ -394,10 +394,6 @@ class Accelerator:
     def scaler(self) -> Optional['GradScaler']:
         return getattr(self.precision_plugin, 'scaler', None)
 
-    @property
-    def rpc_enabled(self) -> bool:
-        return self.training_type_plugin.rpc_enabled
-
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom

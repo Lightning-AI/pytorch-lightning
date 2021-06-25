@@ -693,17 +693,6 @@ def test_logging_raises(tmpdir):
     class TestModel(BoringModel):
 
         def training_step(self, *args):
-            loss = super().training_step(*args)['loss']
-            return {"loss": loss, 'foo': loss}
-
-    trainer = Trainer(default_root_dir=tmpdir)
-    model = TestModel()
-    with pytest.raises(MisconfigurationException, match='You returned a tensor with `grad_fn`'):
-        trainer.fit(model)
-
-    class TestModel(BoringModel):
-
-        def training_step(self, *args):
             self.log('foo', -1, prog_bar=False)
             self.log('foo', -1, prog_bar=True)
             return super().training_step(*args)
