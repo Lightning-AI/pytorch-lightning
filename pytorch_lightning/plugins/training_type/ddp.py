@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Union
 import __main__
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
+import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
@@ -234,7 +234,7 @@ class DDPPlugin(ParallelPlugin):
         self.init_ddp_connection()
 
         # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not torch_distrib.is_initialized():
+        if self.is_global_zero and not torch.distributed.is_initialized():
             log.info("-" * 100)
             log.info(f"distributed_backend={self.distributed_backend}")
             log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
@@ -304,9 +304,11 @@ class DDPPlugin(ParallelPlugin):
         world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if not torch_distrib.is_initialized():
+        if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch.distributed.init_process_group(
+                self.torch_distributed_backend, rank=global_rank, world_size=world_size
+            )
 
     def pre_dispatch(self):
         # move the model to the correct device
@@ -323,8 +325,8 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs):
-        if torch_distrib.is_available() and torch_distrib.is_initialized():
-            torch_distrib.barrier()
+        if torch.distributed.is_initialized():
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
@@ -382,7 +384,7 @@ class DDPPlugin(ParallelPlugin):
         )
 
     def __del__(self) -> None:
-        if torch_distrib.is_initialized():
-            torch_distrib.destroy_process_group()
+        if torch.distributed.is_initialized():
+            torch.distributed.destroy_process_group()
         # `is_initialized` is checked inside and we already set the default device with `set_device(self.root_device)`
         torch.cuda.empty_cache()
