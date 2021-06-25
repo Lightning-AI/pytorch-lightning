@@ -243,12 +243,12 @@ An alternative to using a DataModule is to defer initialization of the models mo
 .. _multiple-training-dataloaders:
 
 *****************
-Multiple DataSets
+Multiple Datasets
 *****************
 
 There are a few ways to pass multiple DataSets to Lightning:
 
-1. Create a :class:`~torch.utils.data.DataLoader` that iterates over multiple DataSets under the hood.
+1. Create a :class:`~torch.utils.data.DataLoader` that iterates over multiple Datasets under the hood.
 2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
    will automatically combine the batches from different DataLoaders.
 3. In the validation and test loop you have the option to return multiple DataLoaders,
@@ -532,7 +532,7 @@ option when using sequential data.
 
 .. testcode::
 
-    # IterableDataSet
+    # IterableDataset
     class CustomDataset(IterableDataset):
 
         def __init__(self, data):
