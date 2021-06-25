@@ -23,7 +23,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.callbacks import Callback, BaseFinetuning
+from pytorch_lightning.callbacks import BaseFinetuning, Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -810,7 +810,7 @@ class Trainer(
         self.tuning = False
 
         return result
-    
+
     def finetune(
         self,
         model: 'pl.LightningModule',

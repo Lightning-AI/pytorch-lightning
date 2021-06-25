@@ -16,11 +16,15 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase, BaseFinetuning
+from pytorch_lightning.callbacks import BaseFinetuning, Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.finetuning import (
+    _DEFAULTS_FINETUNE_STRATEGIES,
+    instantiate_default_finetuning_callbacks,
+)
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.callbacks.finetuning import _DEFAULTS_FINETUNE_STRATEGIES, instantiate_default_finetuning_callbacks
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 class CallbackConnector:
 
@@ -191,7 +195,11 @@ class CallbackConnector:
         return any(isinstance(callback, BaseFinetuning) for callback in callbacks)
 
     @staticmethod
-    def _resolve_finetuning_callback(callbacks: List[Callback], model: 'pl.LightningModule', strategy: Optional[Union[str, BaseFinetuning]] = None) -> List[Callback]:
+    def _resolve_finetuning_callback(
+        callbacks: List[Callback],
+        model: 'pl.LightningModule',
+        strategy: Optional[Union[str, BaseFinetuning]] = None
+    ) -> List[Callback]:
         """
         This function is used to select the `BaseFinetuning` to be used for finetuning.
         """
