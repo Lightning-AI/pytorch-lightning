@@ -56,12 +56,11 @@ class _Sync:
             self.fn = self.no_op
 
     @property
-    def should_sync(self) -> bool:
-        return self.should and not self.rank_zero_only
-
-    @property
     def __call__(self) -> Any:
-        return partial(self.fn, reduce_op=self.op, group=self.group) if self.should_sync else self.no_op
+        return (
+            partial(self.fn, reduce_op=self.op, group=self.group)
+            if self.should and not self.rank_zero_only else self.no_op
+        )
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:
