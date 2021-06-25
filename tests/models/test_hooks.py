@@ -400,7 +400,6 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'optimizer_states': ANY,
         'pytorch-lightning_version': __version__,
         'state_dict': ANY,
-        'loops': ANY,
     }
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
@@ -513,16 +512,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         'optimizer_states': ANY,
         'pytorch-lightning_version': __version__,
         'state_dict': ANY,
-        'loops': {
-            "result_collections": {
-                "fit": {
-                    "train": ANY,
-                    "validate": ANY,
-                },
-                "validate": ANY,
-                "test": ANY
-            }
-        },
     }
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
@@ -542,16 +531,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
                 'state_dict': ANY,
-                'loops': {
-                    "result_collections": {
-                        "fit": {
-                            "train": ANY,
-                            "validate": ANY,
-                        },
-                        "validate": ANY,
-                        "test": ANY
-                    }
-                },
             }, )
         ),
         dict(name='configure_sharded_model'),
@@ -821,9 +800,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
                 'state_dict': ANY,
-                'loops': {
-                    "result_collections": ANY
-                }
             }, )
         ),
         dict(name='teardown', kwargs=dict(stage='fit')),
