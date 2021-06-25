@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
-from typing import Any, List, MutableSequence, Optional, Tuple, Union, type_check_only
+from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
