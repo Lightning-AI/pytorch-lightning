@@ -18,7 +18,6 @@ from types import MethodType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -26,6 +25,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.types import LRScheduler, LRSchedulerType
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
@@ -33,9 +33,6 @@ if _JSONARGPARSE_AVAILABLE:
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
-
-LRScheduler = (_LRScheduler, ReduceLROnPlateau)
-LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
