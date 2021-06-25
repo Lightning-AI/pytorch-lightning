@@ -126,7 +126,7 @@ def test_progress_serialization():
     assert progress == progress_reloaded
 
 
-@pytest.mark.parametrize("use_multiple_optimizers", [False])
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 def test_progress_tracking(use_multiple_optimizers, tmpdir):
     """
     This test verify that progress is correctly incremented during using FitLoop.
@@ -202,12 +202,11 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
 
         pr.epoch.optimization.zero_grad.total = Tracker(ready=total, started=total, processed=None, completed=total)
 
-    # todo @(tchaton): Resolve wrong current increment
-    # pr.epoch.optimization.zero_grad.current = Tracker(
-    #    ready=current, started=current, processed=None, completed=current
-    # )
+        pr.epoch.optimization.zero_grad.current = Tracker(
+            ready=current, started=current, processed=None, completed=current
+        )
 
-    # assert pr.batch.optimizer_idx == 1 if use_multiple_optimizers else 0
+    assert pr.batch.optimizer_idx == (1 if use_multiple_optimizers else 0)
 
     checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
     assert checkpoint["epoch"] == 1
@@ -220,12 +219,14 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
         limit_val_batches=0,
         resume_from_checkpoint=chk.last_model_path
     )
+
     model.should_fail = False
     trainer.fit(model)
 
     pr = trainer.fit_loop.epoch_loop.progress
 
-    import pdb
-    pdb.set_trace()
     assert pr.epoch.total == Tracker(ready=3, started=3, processed=3, completed=3)
-    assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.epoch.current == Tracker(ready=2, started=2, processed=2, completed=2)
+
+    assert pr.batch.total == Tracker(ready=9, started=9, processed=9, completed=9)
+    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)

@@ -63,8 +63,9 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    validation_loop: EvaluationLoop
+    val_loop: EvaluationLoop
     test_loop: EvaluationLoop
+    is_restarting: bool = False
     """
     Accelerator properties
     """

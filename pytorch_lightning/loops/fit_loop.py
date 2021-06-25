@@ -54,7 +54,7 @@ class FitLoop(Loop):
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         self.val_loop = EvaluationLoop()
-        self._progress: FitLoopProgress = FitLoopProgress(train=self.epoch_loop.progress)
+        self._progress: Optional[FitLoopProgress] = None
 
     @property
     def results(self) -> ResultCollection:
@@ -117,6 +117,16 @@ class FitLoop(Loop):
         self.epoch_loop.max_steps = value
 
     @property
+    def total_epoch_completed(self) -> int:
+        """Returns the total number of epoch completed"""
+        return self.progress.train.epoch.total.completed
+
+    @property
+    def total_optimizer_step_completed(self) -> int:
+        """Returns the total number of optimizer step completed"""
+        return self.progress.train.epoch.optimization.optimizer.total.completed
+
+    @property
     def running_loss(self) -> TensorRunningAccum:
         """Returns the running loss"""
         return self.epoch_loop.batch_loop.running_loss
@@ -139,14 +149,14 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
-        stop_epochs = self.max_epochs is not None and self.current_epoch >= self.max_epochs
+        stop_steps = self.max_steps is not None and self.total_optimizer_step_completed >= self.max_steps
+        stop_epochs = self.max_epochs is not None and self.total_epoch_completed >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
-            met_min_epochs = self.current_epoch >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+            met_min_epochs = self.total_epoch_completed >= self.min_epochs if self.min_epochs else True
+            met_min_steps = self.total_optimizer_step_completed >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 should_stop = True
             else:
@@ -175,6 +185,8 @@ class FitLoop(Loop):
 
     @property
     def progress(self) -> FitLoopProgress:
+        if not self._progress:
+            self._progress = FitLoopProgress(train=self.epoch_loop.progress)
         return self._progress
 
     @progress.setter

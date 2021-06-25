@@ -273,7 +273,10 @@ class CheckpointConnector:
 
         state_dict = progress_tracking.get(TrainerFn.FITTING.value, None)
         if state_dict:
+            # used to assign progress to sub-loops.
             self.trainer.fit_loop.progress = FitLoopProgress.load_state_dict(state_dict)
+
+        self.trainer.is_restarting = True
 
     # ----------------------------------
     # PRIVATE OPS

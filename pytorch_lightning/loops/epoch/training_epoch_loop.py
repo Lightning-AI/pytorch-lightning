@@ -81,12 +81,20 @@ class TrainingEpochLoop(Loop):
         return self.iteration_count
 
     @property
+    def total_optimizer_step(self) -> int:
+        return self.progress.epoch.optimization.optimizer.total.completed
+
+    @property
+    def current_batch_seen(self) -> int:
+        return self.progress.batch.current.completed
+
+    @property
     def done(self) -> bool:
         """Returns whether the training should be stopped.
         The criteria are that the number of steps reached the max steps,
         the last batch is reached or the trainer signals to stop (e.g. by early stopping).
         """
-        max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
+        max_steps_reached = self.max_steps is not None and (self.total_optimizer_step) >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
@@ -105,8 +113,11 @@ class TrainingEpochLoop(Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        # reset tracking
-        self.progress.reset_on_epoch()
+        if not self.trainer.is_restarting:
+            # reset tracking
+            self.progress.reset_on_epoch()
+        else:
+            self.batches_seen = self.current_batch_seen
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.progress.epoch.increment_ready()
@@ -127,6 +138,14 @@ class TrainingEpochLoop(Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
+        if self.trainer.is_restarting:
+            # todo (tchaton) Consume batches using samplers.
+            for _ in range(self.current_batch_seen):
+                _, (batch, is_last) = next(dataloader_iter)
+            self.trainer.is_restarting = False
+
+        print("HERE")
+
         _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
 

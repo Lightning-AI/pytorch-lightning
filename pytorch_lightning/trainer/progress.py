@@ -59,7 +59,19 @@ class Tracker:
 
     @classmethod
     def load_state_dict(cls, state_dict):
-        return cls(**state_dict)
+        tracker = cls(**state_dict)
+        tracker.reset_on_restart()
+        return tracker
+
+    def reset_on_restart(self):
+        if self.ready is not None:
+            self.ready = self.completed
+
+        if self.started is not None:
+            self.started = self.completed
+
+        if self.processed is not None:
+            self.processed = self.completed
 
 
 @dataclass
