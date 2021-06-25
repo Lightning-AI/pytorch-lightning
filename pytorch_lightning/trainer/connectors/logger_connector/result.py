@@ -79,7 +79,7 @@ class _Metadata:
     _reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
-    metric_prefix_name: Optional[str] = None
+    metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
 
     @property
@@ -421,7 +421,7 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        metric_prefix_name: Optional[str] = None,
+        metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
@@ -449,7 +449,7 @@ class ResultCollection(dict):
             on_epoch=on_epoch,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
-            metric_prefix_name=metric_prefix_name,
+            metric_attribute=metric_attribute,
         )
         meta.reduce_fx = reduce_fx
         meta.sync = _Sync(
@@ -695,7 +695,7 @@ class ResultCollection(dict):
 
         if not metrics:
             return
-        for metric_prefix_name, metric in metrics.items():
+        for metric_attribute, metric in metrics.items():
             for result_metric in self.result_metrics:
-                if result_metric.meta.metric_prefix_name == metric_prefix_name:
+                if result_metric.meta.metric_attribute == metric_attribute:
                     result_metric.value = metric
