@@ -201,7 +201,7 @@ Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 
-**Docker:** Another option is utilized the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
+**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
 python -m pytest pytorch_lightning tests pl_examples -v
