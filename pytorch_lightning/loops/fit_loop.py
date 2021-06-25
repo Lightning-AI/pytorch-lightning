@@ -54,7 +54,7 @@ class FitLoop(Loop):
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         self.val_loop = EvaluationLoop()
-        self.progress: Optional[FitLoopProgress] = None
+        self._progress: FitLoopProgress = FitLoopProgress(train=self.epoch_loop.progress)
 
     @property
     def results(self) -> ResultCollection:
@@ -170,23 +170,23 @@ class FitLoop(Loop):
         self.epoch_loop.connect(trainer)
         self.val_loop.connect(trainer)
 
-        # add progress tracking to the loops
-        self.create_progress()
-
     def reset(self) -> None:
         """Resets the internal state of this loop"""
 
-    def create_progress(self):
-        self.epoch_loop.create_progress()
+    @property
+    def progress(self) -> FitLoopProgress:
+        return self._progress
 
-        if not self.progress:
-            self.progress = FitLoopProgress(train=self.epoch_loop.progress)
-
-        self.progress.train.epoch.current.reset()
+    @progress.setter
+    def progress(self, progress: FitLoopProgress) -> None:
+        if progress:
+            self._progress = progress
+            self.epoch_loop.progress = progress.train
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
 
+        # reset current epoch counter to 0
         self.progress.train.epoch.current.reset()
 
         self.results.to(device=self.trainer.lightning_module.device)

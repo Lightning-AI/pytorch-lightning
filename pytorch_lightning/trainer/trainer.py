@@ -992,11 +992,17 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
+            self._set_store_timeout()
+            # save a checkpoint for fault tolerant training
+            self.fit_loop._check_checkpoint_callback(True)
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
             self.state.stage = None
             raise
+
+    def _set_store_timeout(self):
+        pass
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

@@ -21,6 +21,8 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.progress import FitLoopProgress
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     DeviceType,
@@ -171,6 +173,7 @@ class CheckpointConnector:
 
         # restore precision plugin (scaler etc.)
         self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+
         # restore progress (loops etc.)
         self.restore_progress()
 
@@ -198,8 +201,7 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.fit_loop.global_step = self._loaded_checkpoint['global_step']
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint['epoch']
+        self.restore_progress_tracking()
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -259,6 +261,19 @@ class CheckpointConnector:
         lr_schedulers = self._loaded_checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
+
+    def restore_progress_tracking(self) -> None:
+        """ Restores the loop progress states from the pre-loaded checkpoint. """
+        if not self._loaded_checkpoint:
+            return
+
+        progress_tracking = self._loaded_checkpoint.get('progress_tracking', None)
+        if not progress_tracking:
+            return
+
+        state_dict = progress_tracking.get(TrainerFn.FITTING.value, None)
+        if state_dict:
+            self.trainer.fit_loop.progress = FitLoopProgress.load_state_dict(state_dict)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -328,12 +343,6 @@ class CheckpointConnector:
         # dump epoch/global_step/pytorch-lightning_version
         current_epoch = self.trainer.current_epoch
         global_step = self.trainer.global_step
-        has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
-
-        global_step += 1
-        if not has_reached_max_steps:
-            current_epoch += 1
-
         model = self.trainer.lightning_module
 
         checkpoint = {
@@ -341,6 +350,7 @@ class CheckpointConnector:
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
+            'progress_tracking': self.get_process_state_dict(),
         }
 
         if not weights_only:
@@ -348,7 +358,7 @@ class CheckpointConnector:
             checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
 
             optimizer_states = []
-            for i, optimizer in enumerate(self.trainer.optimizers):
+            for _, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
                 optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
@@ -380,6 +390,9 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_process_state_dict(self):
+        return {TrainerFn.FITTING.value: self.trainer.fit_loop.progress.state_dict()}
 
     def hpc_load(self, checkpoint_path: str) -> None:
         """

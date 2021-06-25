@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import dataclasses
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -53,6 +54,13 @@ class Tracker:
         args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
         return f"{self.__class__.__name__}({', '.join(args)})"
 
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(**state_dict)
+
 
 @dataclass
 class Progress:
@@ -94,6 +102,16 @@ class Progress:
     def from_defaults(cls, **kwargs: Optional[int]) -> 'Progress':
         return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
 
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(
+            total=Tracker.load_state_dict(state_dict["total"]),
+            current=Tracker.load_state_dict(state_dict["current"]),
+        )
+
 
 @dataclass
 class LoopProgress:
@@ -115,6 +133,16 @@ class LoopProgress:
     def reset_on_epoch(self) -> None:
         self.batch.current.reset()
         self.epoch.current.reset()
+
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(
+            epoch=Progress.load_state_dict(state_dict["epoch"]),
+            batch=Progress.load_state_dict(state_dict["batch"]),
+        )
 
 
 @dataclass
@@ -143,6 +171,17 @@ class OptimizationProgress:
         self.scheduler.current.reset()
         self.zero_grad.current.reset()
 
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(
+            optimizer=Progress.load_state_dict(state_dict["optimizer"]),
+            scheduler=Progress.load_state_dict(state_dict["scheduler"]),
+            zero_grad=Progress.load_state_dict(state_dict["zero_grad"]),
+        )
+
 
 @dataclass
 class TrainingProgress(Progress):
@@ -154,6 +193,17 @@ class TrainingProgress(Progress):
     """
     optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
 
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(
+            total=Tracker.load_state_dict(state_dict["total"]),
+            current=Tracker.load_state_dict(state_dict["current"]),
+            optimization=OptimizationProgress.load_state_dict(state_dict["optimization"]),
+        )
+
 
 @dataclass
 class TrainBatchLoopProgress(Progress):
@@ -164,6 +214,19 @@ class TrainBatchLoopProgress(Progress):
         optimizer_idx: Tracks current batch optimizer_idx
     """
     optimizer_idx: Optional[int] = None
+
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        total = Tracker.load_state_dict(state_dict.pop("total"))
+        current = Tracker.load_state_dict(state_dict.pop("current"))
+        return cls(
+            total=total,
+            current=current,
+            **state_dict,
+        )
 
 
 @dataclass
@@ -177,8 +240,28 @@ class TrainingLoopProgress(LoopProgress):
         self.batch.current.reset()
         self.epoch.optimization.reset_on_epoch()
 
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(
+            epoch=TrainingProgress.load_state_dict(state_dict["epoch"]),
+            batch=TrainBatchLoopProgress.load_state_dict(state_dict["batch"]),
+        )
+
 
 @dataclass
 class FitLoopProgress:
     train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
     val: LoopProgress = field(default_factory=LoopProgress)
+
+    def state_dict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        return cls(
+            train=TrainingLoopProgress.load_state_dict(state_dict["train"]),
+            val=LoopProgress.load_state_dict(state_dict["val"])
+        )

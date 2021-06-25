@@ -49,12 +49,27 @@ class TrainingEpochLoop(Loop):
         self.is_last_batch: Optional[bool] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.progress: Optional[TrainingLoopProgress] = None
+        self._progress: Optional[TrainingLoopProgress] = None
 
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
         self._results = ResultCollection(training=True)
+
+    @property
+    def progress(self) -> TrainingLoopProgress:
+        if not self._progress:
+            self._progress = TrainingLoopProgress()
+            self.batch_loop.progress = self._progress.batch
+            self.batch_loop.progress_optimization = self._progress.epoch
+        return self._progress
+
+    @progress.setter
+    def progress(self, progress: TrainingLoopProgress) -> None:
+        if progress:
+            self.batch_loop.progress = progress.batch
+            self.batch_loop.progress_optimization = progress.epoch
+            self._progress = progress
 
     @property
     def results(self) -> ResultCollection:
@@ -235,13 +250,6 @@ class TrainingEpochLoop(Loop):
         self.progress.epoch.increment_completed()
 
         return self._epoch_output
-
-    def create_progress(self):
-        if not self.progress:
-            self.progress = TrainingLoopProgress()
-
-        # set progress reference to batch_loop
-        self.batch_loop.create_progress(progress=self.progress.batch, progress_optimization=self.progress.epoch)
 
     def teardown(self) -> None:
         """Frees memory of tracked epoch outputs."""

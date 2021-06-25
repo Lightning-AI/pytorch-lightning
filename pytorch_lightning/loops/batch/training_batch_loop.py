@@ -55,8 +55,24 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
-        self.progress: Optional[TrainBatchLoopProgress] = None
-        self.progress_optimization: Optional[TrainingProgress] = None
+        self._progress: Optional[TrainBatchLoopProgress] = None
+        self._progress_optimization: Optional[TrainingProgress] = None
+
+    @property
+    def progress(self) -> Optional[TrainBatchLoopProgress]:
+        return self._progress
+
+    @progress.setter
+    def progress(self, progress: TrainBatchLoopProgress):
+        self._progress = progress
+
+    @property
+    def progress_optimization(self) -> Optional[TrainingProgress]:
+        return self._progress_optimization
+
+    @progress_optimization.setter
+    def progress_optimization(self, progress_optimization: TrainingProgress):
+        self._progress_optimization = progress_optimization
 
     @property
     def done(self) -> bool:
@@ -74,10 +90,6 @@ class TrainingBatchLoop(Loop):
         # TODO(@justusschock): can we make this a weakref/proxy?
         void(*args, **kwargs)
         self.trainer = trainer
-
-    def create_progress(self, progress: TrainBatchLoopProgress, progress_optimization: TrainingProgress) -> None:
-        self.progress = progress
-        self.progress_optimization = progress_optimization
 
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
