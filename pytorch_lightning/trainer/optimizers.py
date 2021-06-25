@@ -19,7 +19,7 @@ import torch
 from torch import optim
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -29,7 +29,7 @@ class TrainerOptimizersMixin(ABC):
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
 
-    def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
+    def init_optimizers(self, model: 'pl.LightningModule') -> Tuple[List, List, List]:
         self._lightning_optimizers = None
         optim_conf = model.configure_optimizers()
         if optim_conf is None:

@@ -19,8 +19,8 @@ from typing import Any, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -37,7 +37,7 @@ if _POPTORCH_AVAILABLE:
 
 class LightningIPUModule(_LightningModuleWrapperBase):
 
-    def __init__(self, pl_module: LightningModule, precision: Union[str, int]):
+    def __init__(self, pl_module: 'pl.LightningModule', precision: Union[str, int]):
         super().__init__(pl_module)
         self.precision = precision
 
@@ -184,7 +184,7 @@ class IPUPlugin(ParallelPlugin):
                 opts.Training.set(gradient_accumulation=1)
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> Optional['pl.LightningModule']:
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
