@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
@@ -251,16 +250,16 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
+        skip = ['update', 'compute', '_update_signature']
+        if not self.is_tensor and drop_value:
+            # Avoid serializing ResultMetrics which are passed Metrics
+            skip.append('value')
         with self.sync_context(
             should_sync=not self.meta.sync.rank_zero_only,
             process_group=self.meta.sync.group,
             distributed_available=distributed_available
         ):
-            d = deepcopy(super().__getstate__())
-        # metric are being dropped, so they won't be serialized
-        # this would prevent pickling error if their API change.
-        if drop_value and not self.is_tensor and "value" in d:
-            del d["value"]
+            d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
