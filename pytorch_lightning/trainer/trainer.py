@@ -1126,6 +1126,8 @@ class Trainer(
 
         model._current_fx_name = None
         model._current_dataloader_idx = None
+        # these could have become stale if metrics are defined in `setup`
+        model._metric_attributes = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
