@@ -179,9 +179,7 @@ class DeviceDtypeModuleMixin(Module):
         return super().half()
 
     def __update_properties(
-        self,
-        device: Optional[torch.device] = None,
-        dtype: Optional[Union[str, torch.dtype]] = None
+        self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
 
         def apply_fn(module):
