@@ -17,7 +17,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no --disable-warnings'
 
 # find tests marked as `@RunIf(special=True)`
 grep_output=$(grep --recursive --line-number --word-regexp 'tests' 'benchmarks' --regexp 'special=True')
@@ -70,6 +70,12 @@ done
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+fi
+
+# needs to run outside of `pytest`
+python tests/utilities/test_warnings.py
+if [ $? -eq 0 ]; then
+    report+="Ran\ttests/utilities/test_warnings.py\n"
 fi
 
 # echo test report

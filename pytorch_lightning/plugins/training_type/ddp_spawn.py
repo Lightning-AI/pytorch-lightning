@@ -28,16 +28,15 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities import (
+    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    rank_zero_deprecation,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import (
-    rank_zero_deprecation,
-    rank_zero_only,
-    rank_zero_warn,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -214,6 +213,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+        # get the `callback_metrics` and set it to the trainer
+        # only in case the user does not override it.
+        self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -290,6 +292,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
+            self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer

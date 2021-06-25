@@ -23,8 +23,6 @@ from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullySharde
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ipu import IPUPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
-from pytorch_lightning.plugins.training_type.rpc import RPCPlugin  # noqa: F401
-from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401
@@ -53,8 +51,6 @@ __all__ = [
     "SingleTPUPlugin",
     "TPUHalfPrecisionPlugin",
     "TPUSpawnPlugin",
-    "RPCPlugin",
-    "RPCSequentialPlugin",
     "TrainingTypePlugin",
     "ParallelPlugin",
     "Plugin",

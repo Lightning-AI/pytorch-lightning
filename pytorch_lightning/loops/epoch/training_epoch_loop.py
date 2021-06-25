@@ -14,9 +14,11 @@
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
+from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -41,16 +43,20 @@ class TrainingEpochLoop(Loop):
         self.iteration_count: int = 0
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
-
-        self._dataloader_idx: Optional[int] = None
-        self._should_stop: bool = False
-
-        self.is_last_batch: Optional[bool] = None
+        # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
-        self.warning_cache: WarningCache = WarningCache()
-        self.epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+        self.is_last_batch: Optional[bool] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
+
+        self._dataloader_idx: Optional[int] = None
+        self._warning_cache: WarningCache = WarningCache()
+        self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+        self._results = ResultCollection(training=True)
+
+    @property
+    def results(self) -> ResultCollection:
+        return self._results
 
     @property
     def batch_idx(self) -> int:
@@ -68,10 +74,7 @@ class TrainingEpochLoop(Loop):
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
-
-        # TODO(@justusschock): should we forward *args and **kwargs to lower loops?
-        # TODO(@justusschock): can we make the trainer a proxy here?
-        self.trainer = trainer
+        super().connect(trainer, *args, **kwargs)
         self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
 
@@ -81,10 +84,9 @@ class TrainingEpochLoop(Loop):
         self.batches_seen = 0
         self.is_last_batch = False
         self._dataloader_idx = 0
-        self._should_stop = False
 
         # track epoch output
-        self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
+        self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # hook
@@ -115,6 +117,12 @@ class TrainingEpochLoop(Loop):
         if batch_output.signal == -1:
             raise StopIteration
 
+        # update non-plateau LR schedulers
+        # update epoch-interval ones only when we are at the end of training epoch
+        self.update_lr_schedulers('step', update_plateau_schedulers=False)
+        if self._num_training_batches_reached(is_last):
+            self.update_lr_schedulers('epoch', update_plateau_schedulers=False)
+
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
@@ -126,7 +134,7 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.on_batch_end()
 
         # figure out what to track for epoch end
-        self.track_epoch_end_reduce_metrics(self.epoch_output, batch_end_outputs)
+        self._track_epoch_end_reduce_metrics(self._epoch_output, batch_end_outputs)
 
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
@@ -142,28 +150,35 @@ class TrainingEpochLoop(Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self.should_check_val_fx(self.iteration_count, self.is_last_batch)
+        should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
-            self.trainer._run_evaluation()
+            self._run_validation()
             self.trainer.training = True
 
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)
         # -----------------------------------------
-        self.save_loggers_on_train_batch_end()
+        self._save_loggers_on_train_batch_end()
 
-        # update LR schedulers
-        self.update_lr_schedulers('step')
+        # update plateau LR scheduler after metrics are logged
+        self.update_lr_schedulers('step', update_plateau_schedulers=True)
         self.trainer.checkpoint_connector.has_trained = True
 
         self.total_batch_idx += 1
 
         # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
+        self._increment_accumulated_grad_global_step()
 
         if self.done:
             raise StopIteration
+
+    def _run_validation(self):
+        # reload dataloaders
+        self.trainer.fit_loop.val_loop.reload_evaluation_dataloaders()
+
+        with torch.no_grad():
+            self.trainer.fit_loop.val_loop.run()
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
@@ -182,7 +197,7 @@ class TrainingEpochLoop(Loop):
         self.trainer.logger_connector.epoch_end_reached()
 
         # prepare epoch output
-        processed_outputs = self._prepare_outputs(self.epoch_output, batch_mode=False)
+        processed_outputs = self._prepare_outputs(self._epoch_output, batch_mode=False)
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
@@ -205,7 +220,7 @@ class TrainingEpochLoop(Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
-        return self.epoch_output
+        return self._epoch_output
 
     def teardown(self) -> None:
         """Frees memory of tracked epoch outputs."""
@@ -235,7 +250,7 @@ class TrainingEpochLoop(Loop):
             if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self.warning_cache.deprecation(
+                    self._warning_cache.deprecation(
                         "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
                         " Support for the old signature will be removed in v1.5",
@@ -258,7 +273,7 @@ class TrainingEpochLoop(Loop):
         # TODO: Can we combine this with training_batch_loop's arg that does a similar check?
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
 
-    def track_epoch_end_reduce_metrics(
+    def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
     ) -> None:
         """Adds the batch outputs to the epoch outputs and prepares reduction"""
@@ -351,19 +366,17 @@ class TrainingEpochLoop(Loop):
             processed_outputs = processed_outputs[0]
         return processed_outputs
 
-    def update_lr_schedulers(self, interval: str) -> None:
+    def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval"""
-        if interval == "step":
-            finished_accumulation = self.batch_loop._accumulated_batches_reached()
-            finished_epoch = self._num_training_batches_reached()
-            if not finished_accumulation and not finished_epoch:
-                return
+        if interval == "step" and self.batch_loop.should_accumulate():
+            return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
+            update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
 
-    def increment_accumulated_grad_global_step(self) -> None:
+    def _increment_accumulated_grad_global_step(self) -> None:
         """increments global step"""
         num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
@@ -374,7 +387,7 @@ class TrainingEpochLoop(Loop):
                 self.total_batch_idx, self.trainer.global_step
             )
 
-    def should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
+    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """ Decide if we should run validation. """
         if not self.trainer.enable_validation:
             return False
@@ -399,7 +412,7 @@ class TrainingEpochLoop(Loop):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         return is_val_check_batch
 
-    def save_loggers_on_train_batch_end(self) -> None:
+    def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk"""
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs

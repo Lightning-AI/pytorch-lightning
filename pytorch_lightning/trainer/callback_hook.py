@@ -256,7 +256,7 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        return len(parameters) == 2 and parameters[1] != "args"
+        return len(parameters) == 2 and parameters[0] != "args"
 
     @staticmethod
     def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
