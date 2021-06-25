@@ -992,6 +992,65 @@ def test_lr_schedulers(tmpdir):
     trainer.fit(model)
 
 
+def test_lr_schedulers_reduce_lr_on_plateau(tmpdir):
+    """
+    Test `lr_schedulers()` returns the same objects
+    in the same order as `configure_optimizers()` returns.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self, scheduler_as_dict=False):
+            super().__init__()
+            self.scheduler_as_dict = scheduler_as_dict
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            return {'train_loss_1': torch.tensor([0.]), 'train_loss_2': torch.tensor([0.])}
+
+        def training_epoch_end(self, outputs):
+            scheduler_1, scheduler_2 = self.lr_schedulers()
+
+            loss = torch.stack([x['train_loss_1'] for x in outputs]).mean()
+            scheduler_1.step(loss)
+
+            loss = torch.stack([x['train_loss_2'] for x in outputs]).mean()
+            scheduler_1.step(loss)
+
+        def configure_optimizers(self):
+            optimizer_1 = torch.optim.SGD(self.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.SGD(self.parameters(), lr=0.1)
+
+            if self.scheduler_as_dict:
+                scheduler_1 = {
+                    'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1),
+                    'monitor': 'train_loss_1'
+                }
+
+                scheduler_2 = {
+                    'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_2),
+                    'monitor': 'train_loss_2'
+                }
+            else:
+                scheduler_1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
+                scheduler_2 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_2)
+
+            return [optimizer_1, optimizer_2], [scheduler_1, scheduler_2]
+
+    for test_scheduler_as_dict in [True, False]:
+        model = TestModel(scheduler_as_dict=test_scheduler_as_dict)
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            limit_test_batches=1,
+        )
+
+        trainer.fit(model)
+
+
 def test_lr_scheduler_step_not_called(tmpdir):
     """
     Test `lr_scheduler.step()` is not called in manual optimization.
