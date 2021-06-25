@@ -24,7 +24,11 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import (
+    FastForwardSampler,
+    IndexBatchSamplerWrapper,
+    UnrepeatedDistributedSampler,
+)
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -129,6 +133,7 @@ class TrainerDataLoadingMixin(ABC):
         need_dist_sampler = self.accelerator_connector.is_distributed and not isinstance(
             dataloader.sampler, DistributedSampler
         )
+
         if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
@@ -137,10 +142,12 @@ class TrainerDataLoadingMixin(ABC):
                     ' distributed training. Either remove the sampler from your DataLoader or set'
                     ' `replace_sampler_ddp`=False if you want to use your custom sampler.'
                 )
-
-            # replace with distributed sampler
             sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
-            dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
+        else:
+            # use current sampler
+            sampler = dataloader.sampler
+
+        dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
 
         return dataloader
 
@@ -149,6 +156,7 @@ class TrainerDataLoadingMixin(ABC):
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
+
         if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
             batch_sampler = type(batch_sampler)(
                 sampler,
@@ -157,13 +165,13 @@ class TrainerDataLoadingMixin(ABC):
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-            dl_args['batch_sampler'] = batch_sampler
+            dl_args['batch_sampler'] = FastForwardSampler(batch_sampler)
             dl_args['batch_size'] = 1
             dl_args['shuffle'] = False
             dl_args['sampler'] = None
             dl_args['drop_last'] = False
         else:
-            dl_args['sampler'] = sampler
+            dl_args['sampler'] = FastForwardSampler(sampler)
             dl_args['shuffle'] = False
             dl_args['batch_sampler'] = None
 

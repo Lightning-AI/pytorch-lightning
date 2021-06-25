@@ -13,6 +13,7 @@
 # limitations under the License.
 import dataclasses
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Optional
 
 
@@ -29,10 +30,10 @@ class Tracker:
 
     Attributes set to ``None`` are treated as unused and are restricted.
     """
-    ready: Optional[int] = 0
-    started: Optional[int] = 0
-    processed: Optional[int] = 0
-    completed: Optional[int] = 0
+    ready: Optional[int] = field(default_factory=int)
+    started: Optional[int] = field(default_factory=int)
+    processed: Optional[int] = field(default_factory=int)
+    completed: Optional[int] = field(default_factory=int)
 
     def reset(self) -> None:
         if self.ready is not None:
@@ -60,7 +61,6 @@ class Tracker:
     @classmethod
     def load_state_dict(cls, state_dict):
         tracker = cls(**state_dict)
-        tracker.reset_on_restart()
         return tracker
 
     def reset_on_restart(self):
@@ -166,9 +166,15 @@ class OptimizationProgress:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
     """
-    optimizer: Progress = Progress.from_defaults(processed=None)
-    scheduler: Progress = Progress.from_defaults(started=None, processed=None)
-    zero_grad: Progress = Progress.from_defaults(processed=None)
+    optimizer: Progress = field(
+        default_factory=partial(Progress.from_defaults, ready=0, started=0, processed=None, completed=0)
+    )
+    scheduler: Progress = field(
+        default_factory=partial(Progress.from_defaults, ready=0, started=None, processed=None, completed=0)
+    )
+    zero_grad: Progress = field(
+        default_factory=partial(Progress.from_defaults, ready=0, started=0, processed=None, completed=0)
+    )
 
     @property
     def optimizer_steps(self) -> int:
@@ -225,7 +231,7 @@ class TrainBatchLoopProgress(Progress):
     Args:
         optimizer_idx: Tracks current batch optimizer_idx
     """
-    optimizer_idx: Optional[int] = None
+    optimizer_idx: Optional[int] = field(default_factory=int)
 
     def state_dict(self):
         return dataclasses.asdict(self)

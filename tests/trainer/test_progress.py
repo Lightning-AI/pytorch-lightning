@@ -114,26 +114,9 @@ def test_loop_progress_increment_sequence():
     assert p.epoch.current == Tracker()
 
 
-def test_progress_serialization():
-    """
-    This test is used to make sure Progress Tracking is properly reloaded from a state_dict
-    """
-    progress = FitLoopProgress()
-    progress.train.batch.increment_completed()
-    progress.train.batch.optimizer_idx = 2
-    state_dict = progress.state_dict()
-    progress_reloaded = FitLoopProgress.load_state_dict(state_dict)
-    assert progress == progress_reloaded
-
-
-# @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
-# @pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
 @pytest.mark.parametrize("use_multiple_optimizers", [True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
-    """
-    This test verify that progress is correctly incremented during using FitLoop.
-    """
 
     class CustomException(BaseException):
         pass
@@ -166,15 +149,18 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     model = TestModel()
     model.training_epoch_end = None
 
-    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    chk = ModelCheckpoint(dirpath=tmpdir, filename=str(use_multiple_optimizers), save_last=True)
+    chk.last_model_path = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=3,
         limit_val_batches=0,
         callbacks=chk,
-        accumulate_grad_batches=accumulate_grad_batches
+        accumulate_grad_batches=accumulate_grad_batches,
+        resume_from_checkpoint=None,
     )
+
     # simulate random failure in training_step
     try:
         trainer.fit(model)

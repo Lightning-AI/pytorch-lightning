@@ -21,7 +21,7 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.progress import FitLoopProgress
+from pytorch_lightning.trainer.progress import FitLoopProgress, Tracker
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
@@ -30,6 +30,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
@@ -273,8 +274,15 @@ class CheckpointConnector:
 
         state_dict = progress_tracking.get(TrainerFn.FITTING.value, None)
         if state_dict:
+
+            def fn(v: Tracker) -> Tracker:
+                v.reset_on_restart()
+                return v
+
             # used to assign progress to sub-loops.
-            self.trainer.fit_loop.progress = FitLoopProgress.load_state_dict(state_dict)
+            progress = FitLoopProgress.load_state_dict(state_dict)
+            progress = apply_to_collection(progress, Tracker, fn)
+            self.trainer.fit_loop.progress = progress
 
         self.trainer.is_restarting = True
 

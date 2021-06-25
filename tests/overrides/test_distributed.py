@@ -15,9 +15,14 @@ from collections.abc import Iterable
 
 import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
+from torch.utils.data.sampler import RandomSampler
 
 from pytorch_lightning import seed_everything
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import (
+    FastForwardSampler,
+    IndexBatchSamplerWrapper,
+    UnrepeatedDistributedSampler,
+)
 from pytorch_lightning.utilities.data import has_len
 
 
@@ -67,3 +72,78 @@ def test_index_batch_sampler_methods():
 
     assert isinstance(index_batch_sampler, Iterable)
     assert has_len(index_batch_sampler)
+
+
+def test_fast_forward_on_batch_sampler():
+    dataset = range(15)
+    sampler = SequentialSampler(dataset)
+    batch_sampler = BatchSampler(sampler, 3, False)
+    index_batch_sampler = FastForwardSampler(batch_sampler)
+
+    assert isinstance(index_batch_sampler, Iterable)
+    assert has_len(index_batch_sampler)
+
+    index_batch_sampler_iter = iter(index_batch_sampler)
+
+    assert next(index_batch_sampler_iter) == [0, 1, 2]
+    assert next(index_batch_sampler_iter) == [3, 4, 5]
+
+    state_dict = index_batch_sampler.state_dict()
+    assert state_dict["current_iteration"] == 2
+
+    dataset = range(15)
+    sampler = SequentialSampler(dataset)
+    batch_sampler = BatchSampler(sampler, 3, False)
+    index_batch_sampler = FastForwardSampler(batch_sampler)
+    index_batch_sampler.load_state_dict(state_dict)
+
+    index_batch_sampler_iter = iter(index_batch_sampler)
+    assert next(index_batch_sampler_iter) == [6, 7, 8]
+
+
+def test_fast_forward_on_sequential_sampler():
+    dataset = range(15)
+    sampler = FastForwardSampler(SequentialSampler(dataset))
+    batch_sampler = BatchSampler(sampler, 3, False)
+
+    batch_sampler_iter = iter(batch_sampler)
+
+    assert next(batch_sampler_iter) == [0, 1, 2]
+    assert next(batch_sampler_iter) == [3, 4, 5]
+
+    state_dict = sampler.state_dict()
+    assert state_dict["current_iteration"] == 6
+
+    dataset = range(15)
+    sampler = FastForwardSampler(SequentialSampler(dataset))
+    batch_sampler = BatchSampler(sampler, 3, False)
+    sampler.load_state_dict(state_dict)
+
+    batch_sampler_iter = iter(batch_sampler)
+    assert next(batch_sampler_iter) == [6, 7, 8]
+
+
+def test_fast_forward_on_random_sampler():
+    seed_everything(42)
+
+    dataset = range(15)
+    sampler = FastForwardSampler(RandomSampler(dataset))
+    batch_sampler = BatchSampler(sampler, 3, False)
+
+    batch_sampler_iter = iter(batch_sampler)
+
+    assert next(batch_sampler_iter) == [14, 9, 1]
+    assert next(batch_sampler_iter) == [7, 11, 3]
+    assert next(batch_sampler_iter) == [12, 8, 2]
+
+    state_dict = sampler.state_dict()
+    assert state_dict["current_iteration"] == 9
+    state_dict["current_iteration"] = 6
+
+    dataset = range(15)
+    sampler = FastForwardSampler(RandomSampler(dataset))
+    batch_sampler = BatchSampler(sampler, 3, False)
+    sampler.load_state_dict(state_dict)
+
+    batch_sampler_iter = iter(batch_sampler)
+    assert next(batch_sampler_iter) == [12, 8, 2]
