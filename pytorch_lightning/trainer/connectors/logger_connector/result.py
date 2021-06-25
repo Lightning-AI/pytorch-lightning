@@ -634,12 +634,13 @@ class ResultCollection(dict):
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self, drop_value: bool = True) -> dict:
-        d = self.__dict__.copy()
-        d["fx_validator"] = None
+        d = {k: v for k, v in self.__dict__.items() if k != 'fx_validator'}
+
         # can't deepcopy tensors with grad_fn
         minimize = d['_minimize']
         if minimize is not None:
             d['_minimize'] = minimize.detach()
+
         extra = self.get('_extra')
         if extra is not None:
             d['_extra'] = extra
@@ -657,7 +658,6 @@ class ResultCollection(dict):
         map_location: Optional[Union[str, torch.device]] = None,
         sync_fn: Optional[Callable] = None,
     ) -> None:
-
         self.__dict__.update({k: v for k, v in state.items() if k != 'items'})
 
         def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
@@ -676,8 +676,6 @@ class ResultCollection(dict):
         items = {k: setstate(k, v) for k, v in state['items'].items()}
         self.update(items)
 
-        self.fx_validator = FxValidator()
-
         device = map_location or self.device
         self.to(device)
 
@@ -691,9 +689,6 @@ class ResultCollection(dict):
         sync_fn: Optional[Callable] = None,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
-
-        self.fx_validator = FxValidator()
-
         self.__setstate__(state_dict, map_location=map_location, sync_fn=sync_fn)
 
         if not metrics:
