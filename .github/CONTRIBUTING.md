@@ -2,6 +2,8 @@
 
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!
 
+Check out our blog on how you can [start contributing](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
+
 ## Main Core Value: One less thing to remember
 
 Simplify the API as much as possible from the user perspective.
@@ -58,13 +60,13 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 ## Contribution Types
 
-We are always looking for help implementing new features or fixing bugs.
+We are always looking for help to implement new features or fixing bugs.
 
 A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
-1. If you find a bug please submit a github issue.
+1. If you find a bug please submit a GitHub issue.
 
    - Make sure the title explains the issue.
    - Describe your setup, what you are trying to do, expected vs. actual behaviour. Please add configs and code samples.
@@ -79,12 +81,12 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 
 3. Submit a PR!
 
-_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution and we can help you or finish it with you :]_
+_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution, and we can help you or finish it with you :]_
 
 ### New Features:
 
-1. Submit a github issue - describe what is the motivation of such feature (adding the use case or an example is helpful).
-2. Let's discuss to determine the feature scope.
+1. Submit a GitHub issue - describe what is the motivation of such feature (adding the use case, or an example is helpful).
+2. Let's discuss determining the feature scope.
 3. Submit a PR! We recommend test driven approach to adding new features as well:
 
    - Write a test for the functionality you want to add.
@@ -199,7 +201,7 @@ Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 
-**Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
+**Docker:** Another option is utilized the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
 python -m pytest pytorch_lightning tests pl_examples -v
@@ -230,7 +232,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - Make sure all tests are passing.
    - Make sure you add a GitHub issue to your PR.
 5. Use tags in PR name for following cases:
-   - **[blocked by #<number>]** if you work is depending on others changes.
+   - **[blocked by #<number>]** if your work is depending on others changes.
    - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
