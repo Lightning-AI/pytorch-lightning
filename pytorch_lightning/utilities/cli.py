@@ -18,7 +18,7 @@ from types import MethodType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -34,6 +34,9 @@ if _JSONARGPARSE_AVAILABLE:
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
+
+LRScheduler = (_LRScheduler, ReduceLROnPlateau)
+LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -90,7 +93,7 @@ class LightningArgumentParser(ArgumentParser):
         link_to: str = 'AUTOMATIC',
     ) -> None:
         """
-        Adds arguments from an Optimizer class to a nested key of the parser
+        Adds arguments from an optimizer class to a nested key of the parser
 
         Args:
             optimizer_class: Any subclass of torch.optim.Optimizer.
@@ -114,22 +117,22 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lr_scheduler_args(
         self,
-        lr_scheduler_class: Union[Type[_LRScheduler], Tuple[Type[_LRScheduler], ...]],
+        lr_scheduler_class: Union[LRSchedulerType, Tuple[LRSchedulerType, ...]],
         nested_key: str = 'lr_scheduler',
         link_to: str = 'AUTOMATIC',
     ) -> None:
         """
-        Adds arguments from an _LRScheduler class to a nested key of the parser
+        Adds arguments from a learning rate scheduler class to a nested key of the parser
 
         Args:
-            optimizer_class: Any subclass of torch.optim.lr_scheduler._LRScheduler.
+            lr_scheduler_class: Any subclass of torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
         if isinstance(lr_scheduler_class, tuple):
-            assert all(issubclass(o, _LRScheduler) for o in lr_scheduler_class)
+            assert all(issubclass(o, LRScheduler) for o in lr_scheduler_class)
         else:
-            assert issubclass(lr_scheduler_class, _LRScheduler)
+            assert issubclass(lr_scheduler_class, LRScheduler)
         kwargs = {
             'instantiate': False,
             'fail_untyped': False,
@@ -341,8 +344,8 @@ class LightningCLI:
     def add_configure_optimizers_method_to_model(self) -> None:
         """Adds to the model an automatically generated configure_optimizers method
 
-        If a single Optimizer and optionally a single _LRScheduler argument groups are added to the parser as
-        'AUTOMATIC', then a `configure_optimizers` method is automatically implemented in the model class.
+        If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC',
+        then a `configure_optimizers` method is automatically implemented in the model class.
         """
 
         def get_automatic(class_type: Type) -> List[str]:
@@ -355,7 +358,7 @@ class LightningCLI:
             return automatic
 
         optimizers = get_automatic(Optimizer)
-        lr_schedulers = get_automatic(_LRScheduler)
+        lr_schedulers = get_automatic(LRScheduler)
 
         if len(optimizers) == 0:
             return
@@ -383,7 +386,7 @@ class LightningCLI:
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
-        def configure_optimizers(self: LightningModule) -> Union[Optimizer, Tuple[List[Optimizer], List[_LRScheduler]]]:
+        def configure_optimizers(self: LightningModule) -> Union[Optimizer, Tuple[List[Optimizer], List[LRSchedulerType]]]:
             optimizer = instantiate_class(self.parameters(), optimizer_init)
             if not lr_scheduler_init:
                 return optimizer

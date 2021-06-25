@@ -511,8 +511,8 @@ There is also the possibility of selecting among multiple classes by giving them
 In this case in the config the :code:`optimizer` group instead of having directly init settings, it should specify
 :code:`class_path` and optionally :code:`init_args`. Sub-classes of the classes in the tuple would also be accepted.
 
-For more complex cases in which there could more than one optimizer and/or learning rate scheduler, the automatic
-implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An example is:
+The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
+example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
 
 .. testcode::
 
@@ -520,22 +520,32 @@ implementation of :code:`configure_optimizers` can be disabled by linking the co
 
     class MyModel(LightningModule):
 
-        def __init__(self, optimizer1_init: dict):
+        def __init__(self, optimizer_init: dict, lr_scheduler_init: dict):
             super().__init__()
-            self.optimizer1_init = optimizer1_init
+            self.optimizer_init = optimizer_init
+            self.lr_scheduler_init = lr_scheduler_init
 
         def configure_optimizers(self):
-            return instantiate_class(self.parameters(), self.optimizer1_init)
+            optimizer = instantiate_class(self.parameters(), self.optimizer_init)
+            scheduler = instantiate_class(optimizer, self.lr_scheduler_init)
+            return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}
 
     class MyLightningCLI(LightningCLI):
 
         def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(torch.optim.Adam, link_to='model.optimizer1_init')
+            parser.add_optimizer_args(
+                torch.optim.Adam,
+                link_to='model.optimizer_init',
+            )
+            parser.add_lr_scheduler_args(
+                torch.optim.lr_scheduler.ReduceLROnPlateau,
+                link_to='model.lr_scheduler_init',
+            )
 
     cli = MyLightningCLI(MyModel)
 
 For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
-a single class or a tuple of classes, the value given to :code:`optimizer1_init` will always be a dictionary including
+a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including
 :code:`class_path` and :code:`init_args` entries. The function
 :func:`~pytorch_lightning.utilities.cli.instantiate_class` takes care of importing the class defined in
 :code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
