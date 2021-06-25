@@ -261,12 +261,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
             # on rank=0 let everyone know training is starting
-            rank_zero_info((
-                "-" * 100,
-                f"distributed_backend={self.distributed_backend}",
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes",
-                "-" * 100,
-            ))
+            rank_zero_info(
+                f"{'-' * 100}\n"
+                f"distributed_backend={self.torch_distributed_backend}\n"
+                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
+                f"{'-' * 100}\n"
+            )
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
