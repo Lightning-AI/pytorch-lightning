@@ -33,4 +33,3 @@ Lightning can handle TBTT automatically via this flag.
 
 .. note:: If you need to modify how the batch is split,
     override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
-
