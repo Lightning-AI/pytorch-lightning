@@ -386,7 +386,9 @@ class LightningCLI:
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
-        def configure_optimizers(self: LightningModule) -> Union[Optimizer, Tuple[List[Optimizer], List[LRSchedulerType]]]:
+        def configure_optimizers(
+            self: LightningModule
+        ) -> Union[Optimizer, Tuple[List[Optimizer], List[LRSchedulerType]]]:
             optimizer = instantiate_class(self.parameters(), optimizer_init)
             if not lr_scheduler_init:
                 return optimizer
