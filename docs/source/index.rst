@@ -116,6 +116,7 @@ PyTorch Lightning Documentation
    common/weights_loading
    common/optimizers
    advanced/profiler
+   common/sequences
    common/single_gpu
    advanced/training_tricks
    advanced/pruning_quantization
