@@ -1380,6 +1380,7 @@ def result_collection_reload(trainer_kwargs):
                 if self.trainer.current_epoch == 2:
                     return
                 if batch_idx == self.breaking_batch_idx:
+                    # simulate failure mid epoch
                     raise CustomException
 
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
@@ -1432,25 +1433,21 @@ def result_collection_reload(trainer_kwargs):
 
 
 def test_result_collection_reload(tmpdir):
-
-    trainer_kwargs = {
+    result_collection_reload({
         "default_root_dir": tmpdir,
         "max_epochs": 1,
         "limit_train_batches": 5,
         "limit_val_batches": 0,
-    }
-    result_collection_reload(trainer_kwargs)
+    })
 
 
 @RunIf(min_gpus=2, special=True)
 def test_result_collection_reload_2_gpus(tmpdir):
-
-    trainer_kwargs = {
+    result_collection_reload({
         "default_root_dir": tmpdir,
         "max_epochs": 1,
         "limit_train_batches": 5,
         "limit_val_batches": 0,
         "accelerator": "ddp",
         "gpus": 2,
-    }
-    result_collection_reload(trainer_kwargs)
+    })
