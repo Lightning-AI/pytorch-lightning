@@ -126,8 +126,11 @@ def test_progress_serialization():
     assert progress == progress_reloaded
 
 
-@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
-def test_progress_tracking(use_multiple_optimizers, tmpdir):
+# @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
+# @pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+@pytest.mark.parametrize("use_multiple_optimizers", [True])
+@pytest.mark.parametrize("accumulate_grad_batches", [1])
+def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
     """
     This test verify that progress is correctly incremented during using FitLoop.
     """
@@ -164,7 +167,15 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
     model.training_epoch_end = None
 
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=3, limit_val_batches=0, callbacks=chk)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        callbacks=chk,
+        accumulate_grad_batches=accumulate_grad_batches
+    )
+    # simulate random failure in training_step
     try:
         trainer.fit(model)
     except CustomException:
@@ -185,39 +196,45 @@ def test_progress_tracking(use_multiple_optimizers, tmpdir):
     assert pr.batch.current == Tracker(ready=2, started=2, processed=1, completed=1)
 
     num_optimizers = 3 if use_multiple_optimizers else 1
+
     for _ in range(num_optimizers):
 
-        total = 4 * num_optimizers
-        current = 3 * num_optimizers
+        optimization = pr.epoch.optimization
 
-        pr.epoch.optimization.optimizer.total = Tracker(ready=total, started=total, processed=None, completed=total)
-        pr.epoch.optimization.optimizer.current = Tracker(
+        total = 4 * num_optimizers + (1 if use_multiple_optimizers else 0)
+
+        # we raised expection on the first optimizer
+        current = (1 if use_multiple_optimizers else 0)
+
+        assert optimization.optimizer.total == Tracker(ready=total, started=total, processed=None, completed=total)
+        assert optimization.optimizer.current == Tracker(
             ready=current, started=current, processed=None, completed=current
         )
 
-        pr.epoch.optimization.scheduler.total = Tracker(ready=total, started=total, processed=None, completed=total)
-        pr.epoch.optimization.scheduler.current = Tracker(
+        assert optimization.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
+        assert optimization.zero_grad.current == Tracker(
             ready=current, started=current, processed=None, completed=current
         )
 
-        pr.epoch.optimization.zero_grad.total = Tracker(ready=total, started=total, processed=None, completed=total)
+        # for multiple optimizers: 4 batches + 1 on epoch
+        total = (5 if use_multiple_optimizers else 1)
 
-        pr.epoch.optimization.zero_grad.current = Tracker(
-            ready=current, started=current, processed=None, completed=current
-        )
+        assert optimization.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
+        assert optimization.scheduler.current == Tracker(ready=0, started=None, processed=None, completed=0)
 
     assert pr.batch.optimizer_idx == (1 if use_multiple_optimizers else 0)
 
     checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
     assert checkpoint["epoch"] == 1
-    assert checkpoint["global_step"] == 4
+    assert checkpoint["global_step"] == 4 // accumulate_grad_batches
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
         limit_train_batches=3,
         limit_val_batches=0,
-        resume_from_checkpoint=chk.last_model_path
+        resume_from_checkpoint=chk.last_model_path,
+        accumulate_grad_batches=accumulate_grad_batches
     )
 
     model.should_fail = False

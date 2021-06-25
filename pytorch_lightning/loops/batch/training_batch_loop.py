@@ -127,6 +127,10 @@ class TrainingBatchLoop(Loop):
         self.batch_idx = 0
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
+        if not self.trainer.is_restarting:
+            # reset tracking
+            self.progress_optimization.optimization.reset_on_epoch()
+
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits
 
