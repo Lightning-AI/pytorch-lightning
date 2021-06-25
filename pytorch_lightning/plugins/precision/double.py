@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -33,7 +33,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
         pl_module: the model to wrap
     """
 
-    def __init__(self, pl_module: LightningModule):
+    def __init__(self, pl_module: 'pl.LightningModule'):
         super().__init__(pl_module)
 
     @staticmethod
@@ -96,7 +96,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
         `lr_schedulers`.
         """
-        model = cast(LightningModule, model.to(dtype=torch.float64))
+        model = cast(pl.LightningModule, model.to(dtype=torch.float64))
         model = LightningDoublePrecisionModule(model)
 
         return super().connect(model, optimizers, lr_schedulers)

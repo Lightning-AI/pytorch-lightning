@@ -25,8 +25,8 @@ from weakref import ReferenceType
 import numpy as np
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -300,7 +300,7 @@ class LightningLoggerBase(ABC):
             kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         """
         Record model graph
 
@@ -396,7 +396,7 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 

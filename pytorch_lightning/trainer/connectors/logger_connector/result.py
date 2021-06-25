@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 import torch
 from torchmetrics import Metric
 
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
@@ -346,7 +345,6 @@ class ResultCollection(dict):
         self._minimize = None
         self._batch_size = torch.tensor(1, device=device)
         self.device: Optional[Union[str, torch.device]] = device
-        self.fx_validator = FxValidator()
 
     @property
     def result_metrics(self) -> List[ResultMetric]:
@@ -635,7 +633,7 @@ class ResultCollection(dict):
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self, drop_value: bool = True) -> dict:
-        d = {k: v for k, v in self.__dict__.items() if k != 'fx_validator'}
+        d = self.__dict__.copy()
 
         # can't deepcopy tensors with grad_fn
         minimize = d['_minimize']
