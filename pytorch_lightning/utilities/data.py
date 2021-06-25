@@ -25,7 +25,7 @@ def has_iterable_dataset(dataloader: DataLoader):
 
 def has_len(dataloader: DataLoader) -> bool:
     """
-    Checks if a given Dataloader has __len__ method implemented i.e. if
+    Checks if a given Dataloader has ``__len__`` method implemented i.e. if
     it is a finite dataloader or infinite dataloader.
 
     Raises:

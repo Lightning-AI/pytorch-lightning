@@ -32,7 +32,7 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
 
     Raises:
         TypeError:
-            If ``gpus`` is not a List
+            If ``gpus`` is not a list
         AssertionError:
             If GPU list is empty
     """
