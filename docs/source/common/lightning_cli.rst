@@ -497,7 +497,18 @@ snippet shows how to implement it:
 
 With this the :code:`configure_optimizers` method is automatically implemented and in the config the :code:`optimizer`
 and :code:`lr_scheduler` groups would accept all of the options for the given classes, in this example :code:`Adam` and
-:code:`ExponentialLR`.
+:code:`ExponentialLR`. Therefore, the config file would be structured like:
+
+.. code-block:: yaml
+
+    optimizer:
+      lr: 0.01
+    lr_scheduler:
+      gamma: 0.2
+    model:
+      ...
+    trainer:
+      ...
 
 There is also the possibility of selecting among multiple classes by giving them as a tuple. For example:
 
@@ -510,6 +521,18 @@ There is also the possibility of selecting among multiple classes by giving them
 
 In this case in the config the :code:`optimizer` group instead of having directly init settings, it should specify
 :code:`class_path` and optionally :code:`init_args`. Sub-classes of the classes in the tuple would also be accepted.
+A corresponding example of the config file would be:
+
+.. code-block:: yaml
+
+    optimizer:
+      class_path: torch.optim.Adam
+      init_args:
+        lr: 0.01
+    model:
+      ...
+    trainer:
+      ...
 
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
 example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
