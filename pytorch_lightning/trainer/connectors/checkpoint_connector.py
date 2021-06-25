@@ -266,8 +266,8 @@ class CheckpointConnector:
         sync_fn = self.trainer.training_type_plugin.reduce
 
         # get current result collections
-        train_results = self.trainer.fit_loop.training_loop.results
-        validation_results = self.trainer.fit_loop.validation_loop.results
+        train_results = self.trainer.fit_loop.epoch_loop.results
+        validation_results = self.trainer.fit_loop.val_loop.results
         validate_results = self.trainer.validation_loop.results
         test_results = self.trainer.test_loop.results
 
@@ -457,8 +457,8 @@ class CheckpointConnector:
     def get_result_collections_state_dict(self):
         return {
             TrainerFn.FITTING.value: {
-                RunningStage.TRAINING.value: self.trainer.fit_loop.training_loop.results.state_dict(),
-                RunningStage.VALIDATING.value: self.trainer.fit_loop.validation_loop.results.state_dict(),
+                RunningStage.TRAINING.value: self.trainer.fit_loop.epoch_loop.results.state_dict(),
+                RunningStage.VALIDATING.value: self.trainer.fit_loop.val_loop.results.state_dict(),
             },
             RunningStage.VALIDATING.value: self.trainer.validation_loop.results.state_dict(),
             RunningStage.TESTING.value: self.trainer.evaluation_loop.results.state_dict(),
