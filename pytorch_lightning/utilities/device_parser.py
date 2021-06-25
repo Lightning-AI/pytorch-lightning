@@ -16,6 +16,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
+from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
@@ -78,6 +79,11 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+
+    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+        # omit sanity check on torchelastic as by default shows one visible GPU per process
+        return gpus
+
     gpus = _sanitize_gpu_ids(gpus)
 
     return gpus

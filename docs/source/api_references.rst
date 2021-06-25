@@ -89,8 +89,6 @@ Training Type Plugins
     DDPSpawnPlugin
     DeepSpeedPlugin
     HorovodPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
 
