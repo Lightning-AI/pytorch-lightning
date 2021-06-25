@@ -303,8 +303,10 @@ class DDPPlugin(ParallelPlugin):
 
             # on rank=0 let everyone know training is starting
             rank_zero_info((
-                "-" * 100, f"distributed_backend={self.distributed_backend}",
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes", "-" * 100,
+                "-" * 100,
+                f"distributed_backend={self.distributed_backend}",
+                f"All DDP processes registered. Starting ddp with {self.world_size} processes",
+                "-" * 100,
             ))
 
     def pre_dispatch(self):
