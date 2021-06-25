@@ -98,7 +98,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Publish CUDA to Docker Hub
-        if: matrix.pytorch_version <= 1.8
+        if: ${{ matrix.pytorch_version != '1.10' }}
         # publish master/release
         uses: docker/build-push-action@v2
         with:
