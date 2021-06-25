@@ -646,10 +646,7 @@ class ResultCollection(dict):
             d['_extra'] = extra
 
         # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
-        items = {
-            k: v.__getstate__(drop_value=drop_value)
-            for k, v in self.items() if k not in ('_extra', 'fx_validator')
-        }
+        items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items() if k != '_extra'}
         return {**d, 'items': items}
 
     def __setstate__(
