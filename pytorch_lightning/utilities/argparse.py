@@ -170,6 +170,10 @@ def add_argparse_args(
     Only arguments of the allowed types (str, float, int, bool) will
     extend the ``parent_parser``.
 
+    Raises:
+        RuntimeError:
+            If ``parent_parser`` is not an ``ArgumentParser`` instance
+
     Examples:
 
         # Option 1: Default usage.
