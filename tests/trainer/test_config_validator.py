@@ -166,6 +166,7 @@ def test_error_on_dataloader_idx(tmpdir, stage):
     step_name = 'validation_step' if stage == 'val' else 'test_step'
 
     class TestModel(BoringModel):
+
         def validation_step(self, batch, batch_idx, dataloader_idx):
             return super().validation_step(batch, batch_idx)
 
@@ -185,6 +186,7 @@ def test_error_on_dataloader_idx(tmpdir, stage):
             trainer.test(model)
 
     class TestModel(BoringModel):
+
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
