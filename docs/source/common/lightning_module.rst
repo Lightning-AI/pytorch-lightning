@@ -1053,7 +1053,11 @@ truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
 Truncated back prop breaks performs backprop every k steps of
-a much longer sequence.
+a much longer sequence. This is made possible by splitting the training batches
+along the time-dimensions into splits of size k during the `training_step`. In
+order to keep the same forward propagation behavior, the hidden states of your
+module should be kept between each time-dimension split.
+
 
 If this is enabled, your batches will automatically get truncated
 and the trainer will apply Truncated Backprop to it.
@@ -1070,23 +1074,41 @@ recurrent network trajectories."
 
     class MyModel(LightningModule):
 
-        def __init__(self):
+        def __init__(self, input_size, hidden_size, num_layers, output_size,
+                     truncated_bptt_steps, criterion):
             super().__init__()
+            self.lstm = nn.LSTM(
+                input_size=input_size,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+            )
+            self.linear = nn.Linear(hidden_size, outpur_size)
+            self.criterion = criterion
+
             # Important: This property activates truncated backpropagation through time
             # Setting this value to 2 splits the batch into sequences of size 2
-            self.truncated_bptt_steps = 2
+            self.truncated_bptt_steps = truncated_bptt_steps
 
         # Truncated back-propagation through time
         def training_step(self, batch, batch_idx, hiddens):
+            x, y = batch
+
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
-            out, (hiddens, _) = self.lstm(data, hiddens)
+            out, hiddens = self.lstm(x, hiddens)
+
+            y_hat = self.linear(out[:, -1])
+            loss = self.criterion(y_hat, y)
+
             return {
-                "loss": ...,
+                "loss": loss,
                 "hiddens": hiddens
             }
 
-Lightning takes care to split your batch along the time-dimension.
+Lightning takes care to split your batch along the time-dimension. It is
+assumed to be the second dimension of your batches. Therefore, in the
+example above we have set `batch_first=True`.
 
 .. code-block:: python
 
