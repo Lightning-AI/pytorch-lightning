@@ -1,4 +1,4 @@
-version =
+version = 1
 
 test_patterns = ["tests/**", "benchmarks/**"]
 
