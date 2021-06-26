@@ -1,4 +1,6 @@
-version = 1
+version =
+
+test_patterns = ["tests/**", "benchmarks/**"]
 
 [[analyzers]]
 name = "secrets"
