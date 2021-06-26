@@ -118,6 +118,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add torchelastic check when sanitizing GPUs ([#8095](https://github.com/PyTorchLightning/pytorch-lightning/pull/8095))
 
 
+- Added better error message when `dataloader_idx` should be used or not ([#8146](https://github.com/PyTorchLightning/pytorch-lightning/pull/8146))
+
+
 ### Changed
 
 
