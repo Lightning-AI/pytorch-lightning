@@ -60,7 +60,7 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 ## Contribution Types
 
-We are always looking for help to implement new features or fixing bugs.
+We are always open to contributors helping with new features or bug fixes.
 
 A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
@@ -86,7 +86,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 ### New Features:
 
 1. Submit a GitHub issue - describe what is the motivation of such feature (adding the use case, or an example is helpful).
-2. Let's discuss determining the feature scope.
+2. Determine the feature scope with us.
 3. Submit a PR! We recommend test driven approach to adding new features as well:
 
    - Write a test for the functionality you want to add.
@@ -232,7 +232,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - Make sure all tests are passing.
    - Make sure you add a GitHub issue to your PR.
 5. Use tags in PR name for following cases:
-   - **[blocked by #<number>]** if your work is depending on others changes.
+   - **[blocked by #<number>]** if your work is dependent on other PRs.
    - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer

@@ -369,8 +369,8 @@ class LitAutoEncoder(pl.LightningModule):
 
 The lightning community is maintained by
 - [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
-- 480+ community active contributors.
-- read how you can [start contributing](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
+- 480+ active community contributors.
+- read about how you can [start contributing](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
