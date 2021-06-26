@@ -1053,10 +1053,10 @@ truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
 Truncated back prop breaks performs backprop every k steps of
-a much longer sequence. This is made possible by splitting the training batches
-along the time-dimensions into splits of size k during the `training_step`. In
-order to keep the same forward propagation behavior, the hidden states of your
-module should be kept between each time-dimension split.
+a much longer sequence. This is made possible by passing training batches
+splitted along the time-dimensions into splits of size k to the
+`training_step`. In order to keep the same forward propagation behavior, all
+hidden states should be kept in-between each time-dimension split.
 
 
 If this is enabled, your batches will automatically get truncated
