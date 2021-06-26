@@ -33,9 +33,6 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
         pl_module: the model to wrap
     """
 
-    def __init__(self, pl_module: 'pl.LightningModule'):
-        super().__init__(pl_module)
-
     @staticmethod
     def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
         if data.is_floating_point():
