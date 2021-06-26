@@ -157,3 +157,48 @@ def test_trainer_manual_optimization_config(tmpdir):
     trainer = Trainer(accumulate_grad_batches=2)
     with pytest.raises(MisconfigurationException, match="Automatic gradient accumulation is not supported"):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize("stage", ["val", "test"])
+def test_error_on_dataloader_idx(tmpdir, stage):
+    """ Test error message when dataloader_idx should and should not be present in _step methods """
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    step_name = 'validation_step' if stage == 'val' else 'test_step'
+
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            return super().test_step(batch, batch_idx)
+
+    # _step method has dataloader_idx argument but only one loader
+    with pytest.raises(
+        MisconfigurationException,
+        match=f'You provided only a single {stage}'
+        f' dataloader, but have included the `dataloader_idx` in the {step_name} method'
+    ):
+        model = TestModel()
+        if stage == 'val':
+            trainer.fit(model)
+        else:
+            trainer.test(model)
+
+    class TestModel(BoringModel):
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+        def test_dataloader(self):
+            return [super().test_dataloader(), super().test_dataloader()]
+
+    # _step methods does not have dataloader_idx argument and multiple loaders
+    with pytest.raises(
+        MisconfigurationException,
+        match=f'You provide multiple {stage} dataloaders,'
+        f' but no `dataloader_idx` argument given in {step_name}.'
+    ):
+        model = TestModel()
+        if stage == 'val':
+            trainer.fit(model)
+        else:
+            trainer.test(model)

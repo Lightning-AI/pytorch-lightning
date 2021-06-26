@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from inspect import signature
+
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_warn
@@ -100,6 +102,20 @@ class ConfigValidator:
             rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop')
         if has_step and not has_loader:
             rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
+        if has_step and has_loader:
+            sig_args = signature(getattr(model, step_name)).parameters
+            loaders = getattr(model, loader_name)()
+            len_loaders = 1 if not isinstance(loaders, list) else len(loaders)
+            if (len(sig_args) == 2 and len_loaders != 1):
+                raise MisconfigurationException(
+                    f'You provide multiple {stage} dataloaders, but no `dataloader_idx` argument'
+                    f' given in {step_name}.'
+                )
+            if (len(sig_args) == 3 and len_loaders < 2):
+                raise MisconfigurationException(
+                    f'You provided only a single {stage} dataloader, but have included the `dataloader_idx`'
+                    f' in the {step_name} method.'
+                )
 
     def __verify_predict_loop_configuration(self, model: 'pl.LightningModule') -> None:
         has_predict_dataloader = is_overridden('predict_dataloader', model)
