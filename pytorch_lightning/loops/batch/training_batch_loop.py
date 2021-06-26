@@ -37,6 +37,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
+
 class TrainingBatchLoop(Loop):
     """ Runs over a single batch of data. """
 
