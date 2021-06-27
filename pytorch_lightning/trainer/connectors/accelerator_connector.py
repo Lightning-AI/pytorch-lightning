@@ -376,9 +376,9 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-        elif self.precision == 64:
+        if self.precision == 64:
             return DoublePrecisionPlugin()
-        elif self.precision == 16:
+        if self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
@@ -389,7 +389,7 @@ class AcceleratorConnector(object):
                     )
                 elif not _NATIVE_AMP_AVAILABLE:
                     msg = "You have asked for native AMP but your PyTorch version does not support it." \
-                          " Consider upgrading with `pip install torch>=1.6`."
+                                  " Consider upgrading with `pip install torch>=1.6`."
                     if _APEX_AVAILABLE:
                         self.amp_type = AMPType.APEX
                         msg += " We will attempt to use NVIDIA Apex for this session."
