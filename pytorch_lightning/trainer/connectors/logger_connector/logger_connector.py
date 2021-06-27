@@ -211,7 +211,7 @@ class LoggerConnector:
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
-        if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
+        if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
         # when metrics should be logged
@@ -299,6 +299,7 @@ class LoggerConnector:
         return self._progress_bar_metrics
 
     def teardown(self):
-        self.trainer.train_loop.results.cpu()
-        self.trainer.evaluation_loop._val_results.cpu()
-        self.trainer.evaluation_loop._test_results.cpu()
+        self.trainer.fit_loop.epoch_loop._results.cpu()
+        self.trainer.fit_loop.val_loop._results.cpu()
+        self.trainer.validation_loop._results.cpu()
+        self.trainer.test_loop._results.cpu()

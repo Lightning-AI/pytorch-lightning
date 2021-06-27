@@ -18,6 +18,7 @@ import sys
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
+import __main__
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
@@ -36,7 +37,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -155,19 +156,25 @@ class DDPPlugin(ParallelPlugin):
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
-        # when user is using hydra find the absolute path
-        path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
+        # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
+        # See https://docs.python.org/3/reference/import.html#main-spec
+        if __main__.__spec__ is None:  # pragma: no-cover
+            # Script called as `python a/b/c.py`
+            # when user is using hydra find the absolute path
+            path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
 
-        # pull out the commands used to run the script and resolve the abs file path
-        command = sys.argv
-        try:
-            full_path = path_lib(command[0])
-        except Exception:
-            full_path = os.path.abspath(command[0])
+            # pull out the commands used to run the script and resolve the abs file path
+            command = sys.argv
+            try:
+                full_path = path_lib(command[0])
+            except Exception:
+                full_path = os.path.abspath(command[0])
 
-        command[0] = full_path
-        # use the same python interpreter and actually running
-        command = [sys.executable] + command
+            command[0] = full_path
+            # use the same python interpreter and actually running
+            command = [sys.executable] + command
+        else:  # Script called as `python -m a.b.c`
+            command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
         # the visible devices tell us how many GPUs we want to use.
         # when the trainer script was called the device has already been scoped by the time
@@ -225,13 +232,6 @@ class DDPPlugin(ParallelPlugin):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         self.init_ddp_connection()
-
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.distributed_backend}")
-            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
-            log.info("-" * 100)
 
         # set the ranks and devices
         self.dist.rank = self.global_rank
@@ -300,6 +300,14 @@ class DDPPlugin(ParallelPlugin):
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+
+            # on rank=0 let everyone know training is starting
+            rank_zero_info(
+                f"{'-' * 100}\n"
+                f"distributed_backend={self.torch_distributed_backend}\n"
+                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
+                f"{'-' * 100}\n"
+            )
 
     def pre_dispatch(self):
         # move the model to the correct device

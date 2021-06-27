@@ -28,16 +28,15 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities import (
+    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    rank_zero_deprecation,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import (
-    rank_zero_deprecation,
-    rank_zero_only,
-    rank_zero_warn,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -183,13 +182,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.distributed_backend}")
-            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
-            log.info("-" * 100)
-
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
@@ -214,6 +206,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+        # get the `callback_metrics` and set it to the trainer
+        # only in case the user does not override it.
+        self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
@@ -265,6 +260,14 @@ class DDPSpawnPlugin(ParallelPlugin):
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
+            # on rank=0 let everyone know training is starting
+            rank_zero_info(
+                f"{'-' * 100}\n"
+                f"distributed_backend={self.torch_distributed_backend}\n"
+                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
+                f"{'-' * 100}\n"
+            )
+
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
             return None
@@ -273,6 +276,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+
+        # requires to compute the state_dict on all processes in case Metrics are present
+        state_dict = self.lightning_module.state_dict()
 
         if self.global_rank == 0 and self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
@@ -284,12 +290,13 @@ class DDPSpawnPlugin(ParallelPlugin):
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
+                atomic_save(self.on_save(state_dict), last_path)
 
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
+            self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
