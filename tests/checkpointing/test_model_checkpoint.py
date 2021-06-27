@@ -1272,7 +1272,7 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
 
         # check best_k_models state
         expected = {"epoch=0-v1.ckpt", "epoch=1-v1.ckpt"} if i else {"epoch=0.ckpt", "epoch=1.ckpt"}
-        assert {Path(f).name for f in mc.best_k_models.keys()} == expected
+        assert {Path(f).name for f in mc.best_k_models} == expected
 
     # check created ckpts
     assert set(f.basename for f in tmpdir.listdir()) == {
@@ -1307,7 +1307,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
     expected = {'test.ckpt', *[f"test-v{i}.ckpt" for i in ckpt_range]}
     # check best_k_models state
-    assert {Path(f).name for f in mc.best_k_models.keys()} == expected
+    assert {Path(f).name for f in mc.best_k_models} == expected
     # check created ckpts
     assert set(os.listdir(tmpdir)) == expected
 
