@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
-import os
 import logging
+import os
+import signal
+import time
 import warnings
 from datetime import timedelta
 from pathlib import Path
@@ -21,7 +23,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
-import time
+
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
@@ -40,8 +42,6 @@ from pytorch_lightning.profiler import (
     PyTorchProfiler,
     SimpleProfiler,
 )
-import signal
-from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -75,6 +75,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed

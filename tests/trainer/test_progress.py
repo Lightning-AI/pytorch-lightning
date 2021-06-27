@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators import accelerator
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Progress, Tracker, TrainingLoopProgress
 from tests.helpers import BoringModel
@@ -368,6 +368,5 @@ def test_checkpointing_ddp_on_expection(tmpdir):
         pass
 
     if trainer.is_global_zero:
-        import pdb; pdb.set_trace()
-
-    
+        import pdb
+        pdb.set_trace()
