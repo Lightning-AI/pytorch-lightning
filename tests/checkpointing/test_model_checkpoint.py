@@ -1275,13 +1275,12 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
         assert {Path(f).name for f in mc.best_k_models.keys()} == expected
 
     # check created ckpts
-    assert {f.basename
-            for f in tmpdir.listdir()} == {
-                "epoch=0.ckpt",
-                "epoch=1.ckpt",
-                "epoch=0-v1.ckpt",
-                "epoch=1-v1.ckpt",
-            }
+    assert {f.basename for f in tmpdir.listdir()} == {
+        "epoch=0.ckpt",
+        "epoch=1.ckpt",
+        "epoch=0-v1.ckpt",
+        "epoch=1-v1.ckpt",
+    }
 
 
 def test_ckpt_version_after_rerun_same_trainer(tmpdir):
