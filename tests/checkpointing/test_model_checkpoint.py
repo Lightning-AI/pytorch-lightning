@@ -340,7 +340,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     path_yaml = os.path.join(tmpdir, 'best_k_models.yaml')
     checkpoint.to_yaml(path_yaml)
     d = yaml.full_load(open(path_yaml, 'r'))
-    best_k = {k: v for k, v in checkpoint.best_k_models.items()}
+    best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
 

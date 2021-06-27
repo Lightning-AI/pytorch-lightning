@@ -158,7 +158,7 @@ class PredictionCollection(object):
             # Switch predictions so each entry has its own dict
             outputs = []
             for values in zip(*predictions.values()):
-                output_element = {k: v for k, v in zip(predictions.keys(), values)}
+                output_element = dict(zip(predictions.keys(), values))
                 outputs.append(output_element)
 
             # Write predictions for current file to disk

@@ -366,7 +366,7 @@ class LoggerCollection(LightningLoggerBase):
         self._logger_iterable = logger_iterable
 
     def __getitem__(self, index: int) -> LightningLoggerBase:
-        return [logger for logger in self._logger_iterable][index]
+        return list(self._logger_iterable)[index]
 
     def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
         for logger in self._logger_iterable:
