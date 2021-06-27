@@ -273,7 +273,8 @@ class TrainingBatchLoop(Loop):
             return_result.update(result)
 
             # this should be done only if result.loss exists
-            self.progress_optimization.optimization.optimizer.increment_started()
+            if not self.should_accumulate():
+                self.progress_optimization.optimization.optimizer.increment_started()
 
             return return_result.loss
 
