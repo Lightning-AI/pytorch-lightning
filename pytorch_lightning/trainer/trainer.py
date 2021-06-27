@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import os
+import sys
 import logging
 import warnings
 from datetime import timedelta
@@ -1029,7 +1030,8 @@ class Trainer(
                     pid = int(pid)
                     if pid != os.getpid():
                         os.kill(pid, signal.SIGKILL)
-                os.kill(os.getpid(), signal.SIGKILL)
+                del os.environ["PL_INTERACTIVE_DDP_PROCS"]
+                sys.exit(0)
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

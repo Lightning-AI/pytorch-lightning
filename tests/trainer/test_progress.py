@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators import accelerator
 import pytest
 import torch
-
+from tests.helpers.runif import RunIf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Progress, Tracker, TrainingLoopProgress
 from tests.helpers import BoringModel
-
+import os
 
 class CustomException(BaseException):
     pass
@@ -341,12 +340,13 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     assert pr.dataloader_idx == 2
 
 
-def test_checkpointing_ddp_on_expection(tmpdir):
+@RunIf(min_gpus=2, special=True)
+def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            if batch_idx == 1 and self.trainer.global_rank == 1:
+            if batch_idx == 1 and self.trainer.is_global_zero:
                 raise CustomException
             return super().training_step(batch, batch_idx)
 
@@ -361,13 +361,14 @@ def test_checkpointing_ddp_on_expection(tmpdir):
         accelerator="ddp",
     )
 
-    # simulate random failure in training_step
+    # simulate random failure in training_step on rank 0
     try:
         trainer.fit(model)
-    except CustomException:
+    except SystemExit:
         pass
 
-    if trainer.is_global_zero:
-        import pdb; pdb.set_trace()
+    pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
+    assert pids is None
+
 
     
