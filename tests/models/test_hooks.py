@@ -287,13 +287,13 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
