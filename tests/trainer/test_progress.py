@@ -304,10 +304,6 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
     assert pr.dataloader_idx == 1
 
-    print()
-    print("RESTARTING")
-    print()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -316,7 +312,7 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
         callbacks=chk,
         resume_from_checkpoint=chk.last_model_path,
         val_check_interval=2,
-        num_sanity_val_steps=0,
+        num_sanity_val_steps=0,  # TODO (tchaton) This fails when increasing to 1
     )
 
     trainer.fit(model)
@@ -331,6 +327,7 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
     assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
+    # total = 3 (num validation samples) * 3 (num dataloaders) * 2 (num validation)
     assert pr.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
     assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.dataloader_idx == 2
