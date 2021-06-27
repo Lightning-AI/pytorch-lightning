@@ -114,6 +114,8 @@ class EvaluationEpochLoop(Loop):
         # hook + store predictions
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
+        del batch
+
         # log batch metrics
         self.trainer.logger_connector.update_eval_step_metrics()
 
