@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 import logging
 import os
 import subprocess
 import sys
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-
+import tempfile
 import __main__
 import numpy as np
 import torch
@@ -141,6 +142,17 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
+        # share ddp pids to all processes
+        self.share_pids()
+
+    def share_pids(self):
+        self.barrier()
+        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        pids = ','.join(str(pid) for pid in pids.cpu().numpy().tolist())
+        os.environ["PL_INTERACTIVE_DDP_PROCS"] = pids
+        print(os.environ["PL_INTERACTIVE_DDP_PROCS"])
+        self.barrier()
+
     def _call_children_scripts(self):
 
         # bookkeeping of spawned processes
@@ -155,6 +167,7 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+        os.environ["PL_TMPDIR"] = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -306,7 +319,11 @@ class DDPPlugin(ParallelPlugin):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(
+                self.torch_distributed_backend,
+                rank=global_rank,
+                world_size=world_size,
+            )
 
     def pre_dispatch(self):
         # move the model to the correct device

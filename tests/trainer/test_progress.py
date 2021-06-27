@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.accelerators import accelerator
 import pytest
 import torch
 
@@ -338,3 +339,35 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     assert pr.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
     assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.dataloader_idx == 2
+
+
+def test_checkpointing_ddp_on_expection(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 1 and self.trainer.global_rank == 1:
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        gpus=2,
+        accelerator="ddp",
+    )
+
+    # simulate random failure in training_step
+    try:
+        trainer.fit(model)
+    except CustomException:
+        pass
+
+    if trainer.is_global_zero:
+        import pdb; pdb.set_trace()
+
+    

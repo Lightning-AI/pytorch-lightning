@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
+import os
 import logging
 import warnings
 from datetime import timedelta
@@ -20,7 +21,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
-
+import time
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
@@ -39,6 +40,8 @@ from pytorch_lightning.profiler import (
     PyTorchProfiler,
     SimpleProfiler,
 )
+import signal
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -992,7 +995,8 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
-            self._set_store_timeout()
+            # try syncing remaing processes, kill otherwise
+            self._syncing_processes()
             # save a checkpoint for fault tolerant training
             self.fit_loop._check_checkpoint_callback(True)
             # give accelerators a chance to finish
@@ -1001,8 +1005,31 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _set_store_timeout(self):
-        pass
+    def _syncing_processes(self):
+        if distributed_available():
+            sync_dir = os.path.join(os.getenv("PL_TMPDIR"), ".sync")
+
+            if not os.path.exists(sync_dir):
+                try:
+                    os.makedirs(sync_dir)
+                except FileExistsError:
+                    pass
+
+            torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.p"))
+
+            time.sleep(1)
+
+            if len(os.listdir(sync_dir)) == self.world_size:
+                return
+
+            pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
+            if pids:
+                print("Detected deadlock, Lightning will terminate the processes.")
+                for pid in pids.split(','):
+                    pid = int(pid)
+                    if pid != os.getpid():
+                        os.kill(pid, signal.SIGKILL)
+                os.kill(os.getpid(), signal.SIGKILL)
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
