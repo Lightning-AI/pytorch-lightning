@@ -15,8 +15,7 @@ from functools import partial
 from typing import Optional, Type, Union
 from unittest.mock import Mock
 
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
@@ -24,7 +23,7 @@ def is_overridden(
     method_name: str,
     instance: Optional[object] = None,
     parent: Optional[Type[object]] = None,
-    model: Optional[Union[LightningModule, LightningDataModule]] = None,
+    model: Optional[Union['pl.LightningModule', 'pl.LightningDataModule']] = None,
 ) -> bool:
     if model is not None and instance is None:
         rank_zero_deprecation(
@@ -38,10 +37,10 @@ def is_overridden(
         return False
 
     if parent is None:
-        if isinstance(instance, LightningModule):
-            parent = LightningModule
-        elif isinstance(instance, LightningDataModule):
-            parent = LightningDataModule
+        if isinstance(instance, pl.LightningModule):
+            parent = pl.LightningModule
+        elif isinstance(instance, pl.LightningDataModule):
+            parent = pl.LightningDataModule
         if parent is None:
             raise ValueError("Expected a parent")
 

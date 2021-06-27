@@ -22,8 +22,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.core import LightningModule
 from pytorch_lightning.overrides.distributed import (
     FastForwardSampler,
     IndexBatchSamplerWrapper,
@@ -234,7 +234,7 @@ class TrainerDataLoadingMixin(ABC):
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
-    def reset_train_dataloader(self, model: LightningModule) -> None:
+    def reset_train_dataloader(self, model: 'pl.LightningModule') -> None:
         """Resets the train dataloader and initialises required variables
         (number of batches, when to validate, etc.).
 
@@ -320,7 +320,7 @@ class TrainerDataLoadingMixin(ABC):
 
     def _reset_eval_dataloader(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         mode: str,
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
@@ -420,7 +420,7 @@ class TrainerDataLoadingMixin(ABC):
 
         return loader_num_batches, dataloaders
 
-    def reset_val_dataloader(self, model: LightningModule) -> None:
+    def reset_val_dataloader(self, model: 'pl.LightningModule') -> None:
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
@@ -465,7 +465,7 @@ class TrainerDataLoadingMixin(ABC):
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model)
 
-    def request_dataloader(self, model: LightningModule, stage: str) -> DataLoader:
+    def request_dataloader(self, model: 'pl.LightningModule', stage: str) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
 
         Args:
