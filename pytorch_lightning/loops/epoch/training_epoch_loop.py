@@ -186,10 +186,19 @@ class TrainingEpochLoop(Loop):
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
+
+        if self.trainer.is_restarting:
+            should_check_val = self.trainer.fit_loop.epoch_loop.progress.batch.should_check_val
+        else:
+            self.trainer.fit_loop.epoch_loop.progress.batch.should_check_val = should_check_val
+
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
             self.trainer.training = True
+
+        # inform trainer that restart is completed
+        self.trainer.is_restarting = False
 
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)

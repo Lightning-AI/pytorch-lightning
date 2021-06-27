@@ -20,6 +20,10 @@ from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Pr
 from tests.helpers import BoringModel
 
 
+class CustomException(BaseException):
+    pass
+
+
 def test_progress_geattr_setattr():
     p = Tracker(ready=10, completed=None)
     # can read
@@ -117,9 +121,6 @@ def test_loop_progress_increment_sequence():
 @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
-
-    class CustomException(BaseException):
-        pass
 
     class TestModel(BoringModel):
 
@@ -250,3 +251,86 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     current = (2 if use_multiple_optimizers else 1)
     assert optimization.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
     assert optimization.scheduler.current == Tracker(ready=current, started=None, processed=None, completed=current)
+
+
+def test_progress_tracking_validation_multiple_datasets(tmpdir):
+
+    class ValidationModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            if self.trainer.fit_loop.epoch_loop.batch_idx == 3 and batch_idx == 1 and dataloader_idx == 1:
+                raise CustomException
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader(), super().val_dataloader()]
+
+    model = ValidationModel()
+    model.validation_epoch_end = None
+
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    chk.last_model_path = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=3,
+        callbacks=chk,
+        resume_from_checkpoint=None,
+        val_check_interval=2,
+        num_sanity_val_steps=0,
+    )
+
+    # simulate random failure in training_step
+    try:
+        trainer.fit(model)
+    except CustomException:
+        pass
+
+    pr = trainer.fit_loop.val_loop.progress
+
+    assert isinstance(pr, LoopProgress)
+    assert pr.epoch.total == Tracker(ready=2, started=2, processed=1, completed=1)
+    assert pr.epoch.current == Tracker(ready=1, started=1, processed=0, completed=0)
+
+    # 3 dataloaders with 3 samples for batch_idx == 1 + first dataloader on batch_idx == 1 + failure on batch_idx = 1
+    current = 2
+    total = 3 * 3 + 3 + current
+    assert pr.batch.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
+    assert pr.batch.current == Tracker(ready=current, started=current, processed=current - 1, completed=current - 1)
+
+    assert pr.dataloader_idx == 1
+
+    print()
+    print("RESTARTING")
+    print()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=3,
+        callbacks=chk,
+        resume_from_checkpoint=chk.last_model_path,
+        val_check_interval=2,
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(model)
+
+    pr = trainer.fit_loop.epoch_loop.progress
+
+    assert pr.epoch.total == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
+
+    pr = trainer.fit_loop.val_loop.progress
+
+    assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
+    assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
+
+    assert pr.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
+    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
+    assert pr.dataloader_idx == 2

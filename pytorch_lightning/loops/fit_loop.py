@@ -186,7 +186,7 @@ class FitLoop(Loop):
     @property
     def progress(self) -> FitLoopProgress:
         if not self._progress:
-            self._progress = FitLoopProgress(train=self.epoch_loop.progress)
+            self._progress = FitLoopProgress(train=self.epoch_loop.progress, val=self.val_loop.progress)
         return self._progress
 
     @progress.setter
@@ -194,6 +194,7 @@ class FitLoop(Loop):
         if progress:
             self._progress = progress
             self.epoch_loop.progress = progress.train
+            self.val_loop.progress = progress.val
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""

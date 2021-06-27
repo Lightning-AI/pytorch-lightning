@@ -186,7 +186,7 @@ class FastForwardSampler:
 
     @property
     def sampler(self) -> Sampler:
-        return self._sampler.sampler
+        return self._sampler
 
     @property
     def batch_indices(self) -> Optional[List[int]]:

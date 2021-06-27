@@ -158,6 +158,30 @@ class LoopProgress:
 
 
 @dataclass
+class ValLoopProgress(LoopProgress):
+    """
+    Track loop progress during execution.
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
+    Args:
+        epoch: Tracks epochs progress.
+        batch: Tracks batch progress.
+        dataloader_idx: Tracks current dataloader index.
+    """
+    dataloader_idx: int = field(default_factory=int)
+
+    @classmethod
+    def load_state_dict(cls, state_dict):
+        epoch = Progress.load_state_dict(state_dict.pop("epoch"))
+        batch = Progress.load_state_dict(state_dict.pop("batch"))
+        return cls(
+            epoch=epoch,
+            batch=batch,
+            **state_dict,
+        )
+
+
+@dataclass
 class OptimizationProgress:
     """
     Track optimization progress.
@@ -232,6 +256,7 @@ class TrainBatchLoopProgress(Progress):
         optimizer_idx: Tracks current batch optimizer_idx
     """
     optimizer_idx: Optional[int] = field(default_factory=int)
+    should_check_val: Optional[bool] = field(default_factory=bool)
 
     def state_dict(self):
         return dataclasses.asdict(self)
@@ -272,7 +297,7 @@ class TrainingLoopProgress(LoopProgress):
 @dataclass
 class FitLoopProgress:
     train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
-    val: LoopProgress = field(default_factory=LoopProgress)
+    val: ValLoopProgress = field(default_factory=ValLoopProgress)
 
     def state_dict(self):
         return dataclasses.asdict(self)
@@ -281,5 +306,5 @@ class FitLoopProgress:
     def load_state_dict(cls, state_dict):
         return cls(
             train=TrainingLoopProgress.load_state_dict(state_dict["train"]),
-            val=LoopProgress.load_state_dict(state_dict["val"])
+            val=ValLoopProgress.load_state_dict(state_dict["val"])
         )

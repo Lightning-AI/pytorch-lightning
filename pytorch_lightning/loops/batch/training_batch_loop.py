@@ -174,8 +174,6 @@ class TrainingBatchLoop(Loop):
                 if self.trainer.is_restarting:
                     if len(active_optimizers) > 1 and opt_idx < self.progress.current.completed:
                         continue
-                    else:
-                        self.trainer.is_restarting = False
 
                 # track optimizer_idx
                 self.progress.optimizer_idx = opt_idx
