@@ -202,7 +202,11 @@ class ModelIO(object):
         model.on_load_checkpoint(checkpoint)
 
         # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'], strict=strict)
+        keys = model.load_state_dict(checkpoint['state_dict'], strict=strict)
+
+        if not strict:
+            log.warn("Missing Keys: " + keys.missing_keys)
+            log.warn("Unexpected Keys: " + keys.unexpected_keys)
 
         return model
 
