@@ -15,6 +15,7 @@ import pytest
 import torch
 from tests.helpers.runif import RunIf
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Progress, Tracker, TrainingLoopProgress
 from tests.helpers import BoringModel
