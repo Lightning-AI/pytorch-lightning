@@ -11,15 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
 import pytest
 import torch
-from tests.helpers.runif import RunIf
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Progress, Tracker, TrainingLoopProgress
 from tests.helpers import BoringModel
-import os
+from tests.helpers.runif import RunIf
+
 
 class CustomException(BaseException):
     pass
@@ -370,6 +373,3 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 
     pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
     assert pids is None
-
-
-    
