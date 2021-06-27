@@ -138,7 +138,7 @@ class TrainingBatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
-    def on_run_end(self) -> Any:
+    def on_run_end(self) -> None:
         # release memory
         self._remaining_splits = None
 
