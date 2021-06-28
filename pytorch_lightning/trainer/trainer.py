@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+from pytorch_lightning.utilities.distributed import distributed_available
 import traceback
 import warnings
 from datetime import timedelta
@@ -993,8 +994,9 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
-            # try syncing remaing processes, kill otherwise
-            self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            if distributed_available():
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping

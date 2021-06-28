@@ -407,28 +407,24 @@ class DDPPlugin(ParallelPlugin):
         self._pids = pids if isinstance(pids, list) else [pids]
 
     def reconciliate_processes(self, trace: str):
-        if self.world_size > 1:
-            sync_dir = self._sync_dir
+        if self.world_size < 2:
+            return
 
-            if not os.path.exists(sync_dir):
-                # avoid race condition
-                try:
-                    os.makedirs(sync_dir)
-                except FileExistsError:
-                    pass
+        sync_dir = self._sync_dir
 
-            # save a file locally.
-            torch.save(trace, os.path.join(sync_dir, f"{self.global_rank}.pl"))
+        # save a file locally.
+        torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
 
-            # sleep for a short time
-            time.sleep(3)
+        # sleep for a short time
+        time.sleep(3)
 
-            # return if all processes wrote a file in the `sync_dir`.
-            if len(os.listdir(sync_dir)) == self.world_size:
-                return
+        # return if all processes wrote a file in the `sync_dir`.
+        # todo (tchaton) Add support for non-shared file-system which will fail.
+        if len(os.listdir(sync_dir)) == self.world_size:
+            return
 
-            for pid in self._pids:
-                if pid != os.getpid():
-                    os.kill(pid, signal.SIGKILL)
-                shutil.rmtree(sync_dir)
-                raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+        for pid in self._pids:
+            if pid != os.getpid():
+                os.kill(pid, signal.SIGKILL)
+            shutil.rmtree(sync_dir)
+            raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
