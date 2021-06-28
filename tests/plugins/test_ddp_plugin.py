@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
@@ -46,3 +47,28 @@ def test_ddp_with_2_gpus():
     assert model.device == torch.device("cpu")
     cuda_memory = torch.cuda.memory_allocated()
     assert cuda_memory < model.start_cuda_memory
+
+
+class BarrierModel(BoringModel):
+
+    def setup(self, stage=None):
+        assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        self.trainer.accelerator.barrier("barrier before model is wrapped")
+
+    def on_train_start(self):
+        assert isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        self.trainer.accelerator.barrier("barrier after model is wrapped")
+
+
+@RunIf(min_gpus=4, special=True)
+def test_ddp_barrier_non_consecutive_device_ids(tmpdir):
+    
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        gpus=[1, 3],
+        accelerator="ddp",
+    )
+    trainer.fit(model)
