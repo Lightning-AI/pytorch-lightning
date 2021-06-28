@@ -1179,7 +1179,7 @@ class Trainer(
             gpus = pick_multiple_gpus(gpus)
 
         # TODO (@seannaren, @kaushikb11): Add IPU parsing logic here
-        gpu_ids = device_parser.parse_gpu_ids(self.gpus)
+        gpu_ids = device_parser.parse_gpu_ids(gpus)
         tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         return gpu_ids, tpu_cores
 
