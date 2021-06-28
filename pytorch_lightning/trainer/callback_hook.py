@@ -18,6 +18,7 @@ from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Type
 
 import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
