@@ -25,7 +25,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.utilities.types import LRScheduler, LRSchedulerType
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple, LRSchedulerType
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
@@ -126,9 +127,9 @@ class LightningArgumentParser(ArgumentParser):
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
         if isinstance(lr_scheduler_class, tuple):
-            assert all(issubclass(o, LRScheduler) for o in lr_scheduler_class)
+            assert all(issubclass(o, LRSchedulerTypeTuple) for o in lr_scheduler_class)
         else:
-            assert issubclass(lr_scheduler_class, LRScheduler)
+            assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
         kwargs = {
             'instantiate': False,
             'fail_untyped': False,
@@ -298,12 +299,13 @@ class LightningCLI:
         """Creates argument links for optimizers and lr_schedulers that specified a link_to"""
         for key in self.parser.optimizers_and_lr_schedulers.keys():
             class_type, link_to = self.parser.optimizers_and_lr_schedulers[key]
-            if link_to != 'AUTOMATIC':
-                if isinstance(class_type, tuple):
-                    self.parser.link_arguments(key, link_to)
-                else:
-                    add_class_path = _add_class_path_generator(class_type)
-                    self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
+            if link_to == 'AUTOMATIC':
+                continue
+            if isinstance(class_type, tuple):
+                self.parser.link_arguments(key, link_to)
+            else:
+                add_class_path = _add_class_path_generator(class_type)
+                self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     def parse_arguments(self) -> None:
         """Parses command line arguments and stores it in self.config"""
@@ -354,7 +356,7 @@ class LightningCLI:
             return automatic
 
         optimizers = get_automatic(Optimizer)
-        lr_schedulers = get_automatic(LRScheduler)
+        lr_schedulers = get_automatic(LRSchedulerTypeTuple)
 
         if len(optimizers) == 0:
             return
@@ -365,7 +367,7 @@ class LightningCLI:
                 f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}."
             )
 
-        if type(self.model).configure_optimizers != LightningModule.configure_optimizers:
+        if is_overridden('configure_optimizers', self.model):
             warnings.warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."

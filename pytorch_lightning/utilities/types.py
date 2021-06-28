@@ -43,5 +43,5 @@ TRAIN_DATALOADERS = Union[
 ]
 # yapf: enable
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
-LRScheduler = (_LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
 LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
