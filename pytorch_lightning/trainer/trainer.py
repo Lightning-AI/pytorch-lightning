@@ -994,7 +994,7 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
-            if distributed_available():
+            if distributed_available() and self.world_size > 1:
                 # try syncing remaing processes, kill otherwise
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
