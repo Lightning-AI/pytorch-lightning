@@ -654,8 +654,8 @@ class ModelCheckpoint(Callback):
         if self.monitor is not None and not self._is_valid_monitor_key(metrics):
             raise MisconfigurationException(
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
-                f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
+                f" {list(metrics.keys())}."
+                f" HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
 
     def _get_metric_interpolated_filepath_name(
