@@ -46,8 +46,11 @@ def str_to_bool(val: str) -> bool:
     """Convert a string representation of truth to bool.
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
+    are 'n', 'no', 'f', 'false', 'off', and '0'.
+
+    Raises:
+        ValueError:
+            If ``val`` isn't in one of the aforementioned true or false values.
 
     >>> str_to_bool('YES')
     True
