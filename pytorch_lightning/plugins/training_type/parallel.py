@@ -85,7 +85,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         """
         Function to re-conciliate processes on failure
         """
-        pass
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes """
