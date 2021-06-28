@@ -237,8 +237,7 @@ class EvaluationLoop(DataLoaderLoop):
         model = self.trainer.lightning_module
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
-        else:
-            return is_overridden("validation_epoch_end", model)
+        return is_overridden("validation_epoch_end", model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Runs ``{validation/test}_epoch_end``"""

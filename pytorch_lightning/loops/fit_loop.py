@@ -58,7 +58,7 @@ class FitLoop(Loop):
     def results(self) -> ResultCollection:
         if self.trainer.training:
             return self.epoch_loop.results
-        elif self.trainer.validating:
+        if self.trainer.validating:
             return self.val_loop.results
         raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
