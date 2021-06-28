@@ -9,6 +9,7 @@ from pytorch_lightning.profiler.advanced import AdvancedProfiler  # noqa E402
 from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler, PassThroughProfiler  # noqa E402
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler  # noqa E402
 from pytorch_lightning.profiler.simple import SimpleProfiler  # noqa E402
+from pytorch_lightning.profiler.xla import XLAProfiler  # noqa E402
 
 __all__ = [
     'AbstractProfiler',
@@ -17,4 +18,5 @@ __all__ = [
     'PassThroughProfiler',
     'PyTorchProfiler',
     'SimpleProfiler',
+    'XLAProfiler',
 ]
