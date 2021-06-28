@@ -15,9 +15,10 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-import tempfile
+
 import __main__
 import numpy as np
 import torch
@@ -152,7 +153,7 @@ class DDPPlugin(ParallelPlugin):
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = ','.join(str(pid) for pid in pids.cpu().numpy().tolist())
         os.environ["PL_INTERACTIVE_DDP_PROCS"] = pids
-        self.barrier()        
+        self.barrier()
 
     def _call_children_scripts(self):
 
@@ -168,7 +169,7 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-        
+
         # TODO (tchaton) Add support for non-shared filesystem.
         os.environ["PL_TMPDIR"] = tempfile.mkdtemp()
 

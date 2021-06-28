@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
-import os
-import sys
-import time
 import logging
+import os
+import signal
+import time
+import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
-from pytorch_lightning.utilities.distributed import distributed_available
+
 import torch
-import signal
-import traceback
+
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
@@ -34,7 +34,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import Plugin
+from pytorch_lightning.plugins import DDPPlugin, Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -43,7 +43,6 @@ from pytorch_lightning.profiler import (
     PyTorchProfiler,
     SimpleProfiler,
 )
-from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -77,7 +76,8 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException, DeadlockDetectedException
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -1010,7 +1010,7 @@ class Trainer(
             sync_dir = os.getenv("PL_TMPDIR")
 
             if not os.path.exists(sync_dir):
-                # avoid race condition
+                # avoid race condition
                 try:
                     os.makedirs(sync_dir)
                 except FileExistsError:
@@ -1019,10 +1019,10 @@ class Trainer(
             # save a file locally.
             torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.p"))
 
-            # sleep for a short time
+            # sleep for a short time
             time.sleep(3)
 
-            # return if all processes wrote a file in the `sync_dir`.
+            # return if all processes wrote a file in the `sync_dir`.
             if len(os.listdir(sync_dir)) == self.world_size:
                 return
 

@@ -19,4 +19,3 @@ class MisconfigurationException(Exception):
 
 class DeadlockDetectedException(Exception):
     pass
-

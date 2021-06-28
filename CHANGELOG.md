@@ -220,6 +220,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Trainer(resume_from_checkpoint=...)` now restores the model directly after `LightningModule.setup()`, which is before `LightningModule.configure_sharded_model()` ([#7652](https://github.com/PyTorchLightning/pytorch-lightning/pull/7652))
 
 
+- Added a mechanism to detect deadlock and kill the processes when it happens ([#8167](https://github.com/PyTorchLightning/pytorch-lightning/pull/8167))
+
+
 ### Deprecated
 
 
@@ -313,6 +316,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed a DDP info message that was never shown ([#8111](https://github.com/PyTorchLightning/pytorch-lightning/pull/8111))
+
 
 
 ## [1.3.7] - 2021-06-22
