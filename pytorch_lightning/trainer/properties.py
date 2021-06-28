@@ -54,7 +54,7 @@ class TrainerProperties(ABC):
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
     _weights_save_path: str
-    _accumulated_grad_batches: Union[int, float, Dict[int, int]]
+    _accumulate_grad_batches: Union[int, float, Dict[int, int]]
 
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
@@ -221,16 +221,16 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def accumulated_grad_batches(self) -> Union[int, float, Dict[int, int]]:
-        return self._accumulated_grad_batches
+    def accumulate_grad_batches(self) -> Union[int, float, Dict[int, int]]:
+        return self._accumulate_grad_batches
 
-    @accumulated_grad_batches.setter
-    def accumulated_grad_batches(self, new_acc_grad_batches: Union[int, float, Dict[int, int]]) -> None:
+    @accumulate_grad_batches.setter
+    def accumulate_grad_batches(self, new_acc_grad_batches: Union[int, float, Dict[int, int]]) -> None:
         if isinstance(new_acc_grad_batches, float):
             if new_acc_grad_batches != float('inf'):
                 new_acc_grad_batches = int(new_acc_grad_batches)
 
-        self._accumulated_grad_batches = new_acc_grad_batches
+        self._accumulate_grad_batches = new_acc_grad_batches
 
     @property
     def log_dir(self) -> Optional[str]:
