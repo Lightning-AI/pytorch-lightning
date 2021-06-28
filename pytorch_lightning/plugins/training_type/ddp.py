@@ -147,24 +147,6 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-        # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
-
-    def _share_information_to_prevent_deadlock(self):
-        self._share_pids()
-
-        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
-
-    def _share_pids(self):
-        """
-        Make all DDP processes aware of all processes pids.
-        """
-        self.barrier()
-        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
-        pids = pids.cpu().numpy().tolist()
-        self._pids = pids if isinstance(pids, list) else [pids]
-
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         assert self.local_rank == 0
@@ -347,7 +329,8 @@ class DDPPlugin(ParallelPlugin):
 
         self.configure_ddp()
 
-        self.barrier()
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
@@ -410,6 +393,21 @@ class DDPPlugin(ParallelPlugin):
             description="DDP Plugin with `find_unused_parameters` as False",
             find_unused_parameters=False
         )
+
+    def _share_information_to_prevent_deadlock(self):
+        self._share_pids()
+
+        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
+        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+
+    def _share_pids(self):
+        """
+        Make all DDP processes aware of all processes pids.
+        """
+        self.barrier()
+        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        pids = pids.cpu().numpy().tolist()
+        self._pids = pids if isinstance(pids, list) else [pids]
 
     def reconciliate_processes(self, trace: str):
         if self.world_size > 1:
