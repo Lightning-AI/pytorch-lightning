@@ -419,7 +419,7 @@ class DDPPlugin(ParallelPlugin):
         time.sleep(3)
 
         # return if all processes wrote a file in the `sync_dir`.
-        # todo (tchaton) Add support for non-shared file-system which will fail.
+        # todo (tchaton) Add support for non-shared file-system which will fail.
         if len(os.listdir(sync_dir)) == self.world_size:
             return
 
