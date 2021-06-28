@@ -278,8 +278,7 @@ class LoggerConnector:
     def metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
-        metrics = self.trainer._results.metrics(on_step)
-        return metrics
+        return self.trainer._results.metrics(on_step)
 
     @property
     def gpus_metrics(self) -> Dict[str, str]:
