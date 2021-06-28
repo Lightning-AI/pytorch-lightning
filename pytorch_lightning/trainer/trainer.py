@@ -13,9 +13,6 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
-import os
-import signal
-import time
 import traceback
 import warnings
 from datetime import timedelta
@@ -34,7 +31,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPPlugin, Plugin
+from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -76,8 +73,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
