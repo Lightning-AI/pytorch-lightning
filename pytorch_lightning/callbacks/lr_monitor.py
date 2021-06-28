@@ -211,9 +211,8 @@ class LearningRateMonitor(Callback):
         if len(param_groups) > 1:
             if not use_names:
                 return f'{name}/pg{param_group_index+1}'
-            else:
-                pg_name = param_groups[param_group_index].get('name', f'pg{param_group_index+1}')
-                return f'{name}/{pg_name}'
+            pg_name = param_groups[param_group_index].get('name', f'pg{param_group_index+1}')
+            return f'{name}/{pg_name}'
         elif use_names:
             pg_name = param_groups[param_group_index].get('name')
             return f'{name}/{pg_name}' if pg_name else name
@@ -224,8 +223,7 @@ class LearningRateMonitor(Callback):
         unique = set(names)
         if len(names) == len(unique):
             return set()
-        else:
-            return {n for n in names if names.count(n) > 1}
+        return set(n for n in names if names.count(n) > 1)
 
     def _find_names(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
         # Create unique names in the case we have multiple of the same learning
