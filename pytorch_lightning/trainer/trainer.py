@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
@@ -38,6 +39,7 @@ from pytorch_lightning.profiler import (
     PassThroughProfiler,
     PyTorchProfiler,
     SimpleProfiler,
+    XLAProfiler,
 )
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -74,6 +76,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -995,6 +998,9 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
@@ -1193,6 +1199,7 @@ class Trainer(
                 "simple": SimpleProfiler,
                 "advanced": AdvancedProfiler,
                 "pytorch": PyTorchProfiler,
+                "xla": XLAProfiler,
             }
             profiler = profiler.lower()
             if profiler not in PROFILERS:
