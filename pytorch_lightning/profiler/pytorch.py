@@ -132,14 +132,13 @@ class ScheduleWrapper:
     def num_step(self) -> int:
         if self._current_action == "training_step_and_backward":
             return self._num_training_step_and_backward
-        elif self._current_action == "validation_step":
+        if self._current_action == "validation_step":
             return self._num_validation_step
-        elif self._current_action == "test_step":
+        if self._current_action == "test_step":
             return self._num_test_step
-        elif self._current_action == "predict_step":
+        if self._current_action == "predict_step":
             return self._num_predict_step
-        else:
-            return 0
+        return 0
 
     def _step(self) -> None:
         if self._current_action == "training_step_and_backward":
@@ -159,11 +158,11 @@ class ScheduleWrapper:
     def has_finished(self) -> bool:
         if self._current_action == "training_step_and_backward":
             return self._training_step_and_backward_reached_end
-        elif self._current_action == "validation_step":
+        if self._current_action == "validation_step":
             return self._validation_step_reached_end
-        elif self._current_action == "test_step":
+        if self._current_action == "test_step":
             return self._test_step_reached_end
-        elif self._current_action == "predict_step":
+        if self._current_action == "predict_step":
             return self._predict_step_reached_end
         return False
 
