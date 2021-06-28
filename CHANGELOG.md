@@ -315,6 +315,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a DDP info message that was never shown ([#8111](https://github.com/PyTorchLightning/pytorch-lightning/pull/8111))
 
 
+- Fixed metrics generated during `validation sanity checking` are cleaned on end ([#8171](https://github.com/PyTorchLightning/pytorch-lightning/pull/8171))
+
+
 ## [1.3.7] - 2021-06-22
 
 - Fixed a bug where skipping an optimizer while using amp causes amp to trigger an assertion error ([#7975](https://github.com/PyTorchLightning/pytorch-lightning/pull/7975))
