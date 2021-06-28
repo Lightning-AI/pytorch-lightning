@@ -24,9 +24,9 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
-from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple, LRSchedulerType
+from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
