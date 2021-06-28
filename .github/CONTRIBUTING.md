@@ -2,7 +2,7 @@
 
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!
 
-Check out our blog on how you can [start contributing](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
+If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
 
 ## Main Core Value: One less thing to remember
 
@@ -60,7 +60,7 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 ## Contribution Types
 
-We are always open to contributors helping with new features or bug fixes.
+We are always open to contributions of new features or bug fixes.
 
 A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
