@@ -440,7 +440,7 @@ class CheckpointConnector:
         return checkpoint
 
     def get_gradients_state_dict(self):
-        return {n:p.grad for n, p in self.trainer.lightning_module.named_parameters()}
+        return {n: p.grad for n, p in self.trainer.lightning_module.named_parameters()}
 
     def get_samplers_state_dict(self):
         return {
