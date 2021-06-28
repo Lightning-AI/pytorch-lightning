@@ -103,7 +103,8 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         self.total_size = len(self.dataset)
         # If any process has at least one batch, every other process needs to
         # have at least one batch, or the DistributedDataParallel could lock up.
-        assert self.num_samples >= 1 or self.total_size == 0
+        if not (self.num_samples >= 1 or self.total_size == 0):
+            raise AssertionError
 
     def __iter__(self) -> Iterator[List[int]]:
         if self.shuffle:
@@ -114,11 +115,13 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         else:
             indices = list(range(len(self.dataset)))
 
-        assert len(indices) == self.total_size
+        if len(indices) != self.total_size:
+            raise AssertionError
 
         # subsample
         indices = indices[self.rank:self.total_size:self.num_replicas]
-        assert len(indices) == self.num_samples
+        if len(indices) != self.num_samples:
+            raise AssertionError
 
         return iter(indices)
 

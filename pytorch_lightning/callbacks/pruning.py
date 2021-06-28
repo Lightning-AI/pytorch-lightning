@@ -245,7 +245,8 @@ class ModelPruning(Callback):
             _PYTORCH_PRUNING_METHOD[pruning_fn]
             if self._use_global_unstructured else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
         )
-        assert callable(pruning_fn)
+        if not callable(pruning_fn):
+            raise AssertionError
         if self._use_global_unstructured:
             self._global_kwargs = kwargs
         # save the function __name__ now because partial does not include it
@@ -293,7 +294,8 @@ class ModelPruning(Callback):
 
         The ``resample_parameters`` argument can be used to reset the parameters with a new :math:`\theta_z \sim \mathcal{D}_\theta`
         """  # noqa: E501
-        assert self._original_layers is not None
+        if self._original_layers is None:
+            raise AssertionError
         for d in self._original_layers.values():
             copy = d["data"]
             names = d["names"]

@@ -521,7 +521,8 @@ class Trainer(
 
         self._run(model)
 
-        assert self.state.stopped
+        if not self.state.stopped:
+            raise AssertionError
         self.training = False
 
     def validate(
@@ -595,7 +596,8 @@ class Trainer(
         # run validate
         results = self._run(model)
 
-        assert self.state.stopped
+        if not self.state.stopped:
+            raise AssertionError
         self.validating = False
 
         return results
@@ -670,7 +672,8 @@ class Trainer(
         # run test
         results = self._run(model)
 
-        assert self.state.stopped
+        if not self.state.stopped:
+            raise AssertionError
         self.testing = False
 
         return results
@@ -740,7 +743,8 @@ class Trainer(
 
         results = self._run(model)
 
-        assert self.state.stopped
+        if not self.state.stopped:
+            raise AssertionError
         self.predicting = False
 
         return results
@@ -802,7 +806,8 @@ class Trainer(
 
         result = self.tuner._tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs)
 
-        assert self.state.stopped
+        if not self.state.stopped:
+            raise AssertionError
         self.tuning = False
 
         return result
@@ -1002,7 +1007,8 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        assert self.evaluating
+        if not self.evaluating:
+            raise AssertionError
 
         # reload dataloaders
         self.evaluation_loop.reload_evaluation_dataloaders()

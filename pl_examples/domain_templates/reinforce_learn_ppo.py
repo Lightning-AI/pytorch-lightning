@@ -259,7 +259,8 @@ class PPOLightning(pl.LightningModule):
         Returns:
             list of discounted rewards/advantages
         """
-        assert isinstance(rewards[0], float)
+        if not isinstance(rewards[0], float):
+            raise AssertionError
 
         cumul_reward = []
         sum_r = 0.0

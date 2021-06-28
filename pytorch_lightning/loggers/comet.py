@@ -241,7 +241,8 @@ class CometLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
+        if rank_zero_only.rank != 0:
+            raise AssertionError("experiment tried to log from global_rank != 0")
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):

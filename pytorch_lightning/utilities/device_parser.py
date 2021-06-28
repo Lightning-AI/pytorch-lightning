@@ -42,7 +42,8 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     if not isinstance(gpus, list):
         raise TypeError("gpus should be a list")
 
-    assert len(gpus) > 0, "gpus should be a non empty list"
+    if len(gpus) <= 0:
+        raise AssertionError("gpus should be a non empty list")
 
     # set root gpu
     root_gpu = gpus[0]
@@ -171,7 +172,8 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
 
 
 def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ...]]) -> Optional[List[int]]:
-    assert gpus is not None
+    if gpus is None:
+        raise AssertionError
     if isinstance(gpus, (MutableSequence, tuple)):
         return list(gpus)
 

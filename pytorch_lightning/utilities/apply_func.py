@@ -177,7 +177,8 @@ def apply_to_collections(
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
-        assert len(data1) == len(data2), 'Sequence collections have different sizes'
+        if len(data1) != len(data2):
+            raise AssertionError('Sequence collections have different sizes')
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)

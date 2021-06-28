@@ -190,7 +190,8 @@ class StochasticWeightAveraging(Callback):
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
             )
             default_scheduler_cfg = _get_default_scheduler_config()
-            assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
+            if not (default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1):
+                raise AssertionError
             default_scheduler_cfg["scheduler"] = self._swa_scheduler
 
             if trainer.lr_schedulers:

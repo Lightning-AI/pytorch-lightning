@@ -352,8 +352,10 @@ class LightningModule(
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
         results = self.trainer._results
-        assert results is not None
-        assert self._current_fx_name is not None
+        if results is None:
+            raise AssertionError
+        if self._current_fx_name is None:
+            raise AssertionError
         FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
@@ -1622,8 +1624,10 @@ class LightningModule(
 
         """
         time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
-        assert len(time_dims) >= 1, "Unable to determine batch time dimension"
-        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
+        if len(time_dims) < 1:
+            raise AssertionError("Unable to determine batch time dimension")
+        if not all(x == time_dims[0] for x in time_dims):
+            raise AssertionError("Batch time dimension length is ambiguous")
 
         splits = []
         for t in range(0, time_dims[0], split_size):

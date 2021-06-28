@@ -255,7 +255,8 @@ class NeptuneLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded, currently ignored
         """
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+        if rank_zero_only.rank != 0:
+            raise AssertionError('experiment tried to log from global_rank != 0')
 
         metrics = self._add_prefix(metrics)
         for key, val in metrics.items():

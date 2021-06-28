@@ -135,7 +135,8 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
 
 
 def _get_abbrev_qualified_cls_name(cls):
-    assert isinstance(cls, type), repr(cls)
+    if not isinstance(cls, type):
+        raise AssertionError(repr(cls))
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
         return f"pl.{cls.__name__}"

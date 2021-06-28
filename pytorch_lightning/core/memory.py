@@ -433,7 +433,8 @@ def get_human_readable_count(number: int) -> str:
         A string formatted according to the pattern described above.
 
     """
-    assert number >= 0
+    if number < 0:
+        raise AssertionError
     labels = PARAMETER_NUM_UNITS
     num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
     num_groups = int(np.ceil(num_digits / 3))

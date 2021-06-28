@@ -169,7 +169,8 @@ class EvaluationEpochLoop(Loop):
         """
         self.trainer.logger_connector.on_batch_start()
 
-        assert self.num_dataloaders is not None
+        if self.num_dataloaders is None:
+            raise AssertionError
         self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:

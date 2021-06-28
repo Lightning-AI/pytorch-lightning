@@ -148,7 +148,8 @@ class LoggerConnector:
             return
 
         # logs user requested information to logger
-        assert not self._epoch_end_reached
+        if self._epoch_end_reached:
+            raise AssertionError
         self.log_metrics(self.metrics[MetricSource.LOG], step=self._eval_log_step)
 
         # increment the step even if nothing was logged
@@ -172,7 +173,8 @@ class LoggerConnector:
                 self.eval_loop_results.append(callback_metrics)
 
     def update_eval_epoch_metrics(self) -> _EVALUATE_OUTPUT:
-        assert self._epoch_end_reached
+        if not self._epoch_end_reached:
+            raise AssertionError
         metrics = self.metrics
 
         if not self.trainer.sanity_checking:
@@ -214,13 +216,15 @@ class LoggerConnector:
             return
 
         # when metrics should be logged
-        assert not self._epoch_end_reached
+        if self._epoch_end_reached:
+            raise AssertionError
         if self.should_update_logs or self.trainer.fast_dev_run:
             self.log_metrics(self.metrics[MetricSource.LOG])
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
-        assert self._epoch_end_reached
+        if not self._epoch_end_reached:
+            raise AssertionError
         self.log_metrics(self.metrics[MetricSource.LOG])
 
         # reset result collection for next epoch
@@ -242,7 +246,8 @@ class LoggerConnector:
         self.trainer.logger_connector._split_idx = None
 
     def on_epoch_end(self) -> None:
-        assert self._epoch_end_reached
+        if not self._epoch_end_reached:
+            raise AssertionError
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
         self._callback_metrics.update(metrics[MetricSource.CALLBACK])
@@ -250,7 +255,8 @@ class LoggerConnector:
         self._current_fx = None
 
     def on_batch_end(self) -> None:
-        assert not self._epoch_end_reached
+        if self._epoch_end_reached:
+            raise AssertionError
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
         self._callback_metrics.update(metrics[MetricSource.CALLBACK])

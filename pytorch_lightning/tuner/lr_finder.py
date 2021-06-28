@@ -87,8 +87,8 @@ class _LRFinder(object):
     """
 
     def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
-        assert mode in ('linear', 'exponential'), \
-            'mode should be either `linear` or `exponential`'
+        if mode not in ('linear', 'exponential'):
+            raise AssertionError('mode should be either `linear` or `exponential`')
 
         self.mode = mode
         self.lr_min = lr_min

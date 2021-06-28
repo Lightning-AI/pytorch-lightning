@@ -153,7 +153,8 @@ class TensorBoardLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
+        if rank_zero_only.rank != 0:
+            raise AssertionError('tried to init log dirs in non global_rank=0')
         if self.root_dir:
             self._fs.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
@@ -203,7 +204,8 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+        if rank_zero_only.rank != 0:
+            raise AssertionError('experiment tried to log from global_rank != 0')
 
         metrics = self._add_prefix(metrics)
 

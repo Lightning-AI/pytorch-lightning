@@ -204,7 +204,8 @@ def save_hyperparameters(
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
         init_args = get_init_args(frame)
-    assert init_args, "failed to inspect the obj init"
+    if not init_args:
+        raise AssertionError("failed to inspect the obj init")
 
     if ignore is not None:
         if isinstance(ignore, str):

@@ -40,7 +40,8 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
         # for FSDP module. To overcome this, needs to call sharded_module.clip_grad_norm(clip_val)
         # however we rely on LightningModule's configure_sharded_model to wrap FSDP, it would be hard to
         # trace back the root FSDP. Now we only support clip by value.
-        assert (
-            gradient_clip_algorithm == GradClipAlgorithmType.VALUE
-        ), "`gradient_clip_algorithm`: `norm` is currently not supported for `FullyShardedNativeMixedPrecisionPlugin`"
+        if (
+            gradient_clip_algorithm != GradClipAlgorithmType.VALUE
+        ):
+            raise AssertionError("`gradient_clip_algorithm`: `norm` is currently not supported for `FullyShardedNativeMixedPrecisionPlugin`")
         self.clip_grad_by_value(optimizer, clip_val)
