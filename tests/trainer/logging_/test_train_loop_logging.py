@@ -712,3 +712,10 @@ def test_logging_raises(tmpdir):
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean,sum}\)` are currently supported'):
         trainer.fit(model)
+
+
+def test_log_gpu_memory_without_logging_on_step(tmpdir):
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_gpu_memory='all', log_every_n_steps=1)
+    trainer.fit(model)
