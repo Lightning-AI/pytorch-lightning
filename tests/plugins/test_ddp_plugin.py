@@ -62,7 +62,7 @@ class BarrierModel(BoringModel):
 
 @RunIf(min_gpus=4, special=True)
 def test_ddp_barrier_non_consecutive_device_ids(tmpdir):
-    
+
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
