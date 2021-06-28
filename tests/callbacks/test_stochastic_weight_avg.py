@@ -50,11 +50,8 @@ if _TORCH_GREATER_EQUAL_1_6:
 
         def train_dataloader(self):
 
-            if self.iterable_dataset:
-                dset = RandomIterableDataset(32, 64)
-
-            else:
-                dset = RandomDataset(32, 64)
+            dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
+            dset = dset_cls(32, 64)
 
             return DataLoader(dset, batch_size=2)
 
