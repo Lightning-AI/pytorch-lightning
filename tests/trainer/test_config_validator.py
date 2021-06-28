@@ -174,14 +174,14 @@ def test_error_on_dataloader_idx(tmpdir, stage):
             return super().test_step(batch, batch_idx)
 
     # _step method has dataloader_idx argument but only one loader and no default
-    
+
     with pytest.raises(
         MisconfigurationException,
         match=f'You provided only a single {stage}'
         f' dataloader, but have included the `dataloader_idx` in the {step_name} method.'
         ' Either remove the argument or give it a default value i.e. `dataloader_idx=0`.'
     ):
-        model = TestModel()    
+        model = TestModel()
         if stage == 'val':
             trainer.fit(model)
         else:
