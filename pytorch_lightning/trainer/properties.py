@@ -16,7 +16,7 @@ import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import cast, List, Optional, Type, TypeVar, Union, Dict
+from typing import cast, Dict, List, Optional, Type, TypeVar, Union
 
 import torch
 from torch.optim import Optimizer
@@ -219,17 +219,17 @@ class TrainerProperties(ABC):
     """
     General properties
     """
-    
+
     @property
     def accumulated_grad_batches(self) -> Union[int, float, Dict[int, int]]:
         return self._accumulated_grad_batches
-    
+
     @accumulated_grad_batches.setter
     def accumulated_grad_batches(self, new_acc_grad_batches: Union[int, float, Dict[int, int]]) -> None:
         if isinstance(new_acc_grad_batches, float):
             if new_acc_grad_batches != float('inf'):
                 new_acc_grad_batches = int(new_acc_grad_batches)
-                
+
         self._accumulated_grad_batches = new_acc_grad_batches
 
     @property
