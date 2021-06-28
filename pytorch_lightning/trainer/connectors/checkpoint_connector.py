@@ -446,13 +446,15 @@ class CheckpointConnector:
         return {
             TrainerFn.FITTING.value: {
                 RunningStage.TRAINING.value: self._get_samplers_state_dict(self.trainer.train_dataloader.sampler),
-                RunningStage.VALIDATING.value: self._get_samplers_state_dict([dl.sampler for dl in self.trainer.val_dataloaders] if self.trainer.val_dataloaders else None)
+                RunningStage.VALIDATING.value: self._get_samplers_state_dict(
+                    [dl.sampler for dl in self.trainer.val_dataloaders] if self.trainer.val_dataloaders else None
+                )
             }
         }
 
     def _get_samplers_state_dict(self, samplers: Optional[Sampler]):
         if not samplers:
-            return [] 
+            return []
         if not isinstance(samplers, Sequence):
             samplers = [samplers]
         samplers = [s if isinstance(s, FastForwardSampler) else s.sampler for s in samplers]
