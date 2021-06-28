@@ -21,11 +21,11 @@ from typing import cast, List, Optional, Type, TypeVar, Union
 import torch
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -146,7 +146,7 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.parallel_device_ids
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         return self.accelerator.lightning_module
 
     @property
@@ -277,7 +277,7 @@ class TrainerProperties(ABC):
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.lightning_module
-        ref_model = cast(LightningModule, ref_model)
+        ref_model = cast(pl.LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
         pbar_metrics = self.progress_bar_metrics

@@ -22,7 +22,13 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def metrics_to_scalars(metrics: Any) -> Any:
-    """Recursively walk through a collection and convert single-item tensors to scalar values"""
+    """
+    Recursively walk through a collection and convert single-item tensors to scalar values
+
+    Raises:
+        MisconfigurationException:
+            If ``value`` contains multiple elements, hence preventing conversion to ``float``
+    """
 
     def to_item(value: torch.Tensor) -> numbers.Number:
         if value.numel() != 1:

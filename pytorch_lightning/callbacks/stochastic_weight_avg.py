@@ -265,7 +265,7 @@ class StochasticWeightAveraging(Callback):
         """
         Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165
         """
-        for bn_module in self.momenta.keys():
+        for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
 
     @staticmethod
