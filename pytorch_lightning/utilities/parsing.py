@@ -177,16 +177,16 @@ def collect_init_args(
     """
     _, _, _, local_vars = inspect.getargvalues(frame)
     # frame.f_back must be of a type types.FrameType for get_init_args/collect_init_args due to mypy
-    if isinstance(frame.f_back, types.FrameType):
-        if '__class__' in local_vars:
-            local_args = get_init_args(frame)
-            # recursive update
-            path_args.append(local_args)
-            return collect_init_args(frame.f_back, path_args, inside=True)
-        elif not inside:
-            return collect_init_args(frame.f_back, path_args, inside)
-        else:
-            return path_args
+    if not isinstance(frame.f_back, types.FrameType):
+        return path_args
+
+    if '__class__' in local_vars:
+        local_args = get_init_args(frame)
+        # recursive update
+        path_args.append(local_args)
+        return collect_init_args(frame.f_back, path_args, inside=True)
+    elif not inside:
+        return collect_init_args(frame.f_back, path_args, inside)
     else:
         return path_args
 
