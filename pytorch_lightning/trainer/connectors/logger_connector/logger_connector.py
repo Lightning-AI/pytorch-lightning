@@ -38,6 +38,7 @@ class LoggerConnector:
         self._progress_bar_metrics: Dict[str, float] = {}
         self._logged_metrics: Dict[str, _METRIC] = {}
         self._callback_metrics: Dict[str, _METRIC] = {}
+        self._gpus_metrics: Dict[str, str] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
@@ -93,11 +94,6 @@ class LoggerConnector:
         """
         if self.trainer.logger is None or not metrics:
             return
-
-        # add gpu memory
-        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            metrics.update(mem_map)
 
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
@@ -213,6 +209,8 @@ class LoggerConnector:
         if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
+        self._log_gpus_metrics()
+
         # when metrics should be logged
         assert not self._epoch_end_reached
         if self.should_update_logs or self.trainer.fast_dev_run:
@@ -225,6 +223,12 @@ class LoggerConnector:
 
         # reset result collection for next epoch
         self.trainer._results.reset(metrics=True)
+
+    def _log_gpus_metrics(self):
+        for key, mem in self.gpus_metrics.items():
+            gpu_id = int(key.split('/')[0].split(':')[1])
+            if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
     """
     Utilities and properties
@@ -275,6 +279,13 @@ class LoggerConnector:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
         return self.trainer._results.metrics(on_step)
+
+    @property
+    def gpus_metrics(self) -> Dict[str, str]:
+        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
+            self._gpus_metrics.update(mem_map)
+        return self._gpus_metrics
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
