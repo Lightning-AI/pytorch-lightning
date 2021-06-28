@@ -132,19 +132,18 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         return s
     if s == '-1':
         return -1
-    elif ',' in s:
+    if ',' in s:
         return [int(x.strip()) for x in s.split(',') if len(x) > 0]
-    else:
-        num_gpus = int(s.strip())
-        if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-            rank_zero_deprecation(
-                f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-                " In the current version of Lightning, this will select"
-                f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-                f" {list(range(num_gpus))} (same as gpus={s} (int)).",
-            )
-            return [num_gpus]
-        return num_gpus
+    num_gpus = int(s.strip())
+    if _compare_version("pytorch_lightning", operator.lt, "1.5"):
+        rank_zero_deprecation(
+            f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
+            " In the current version of Lightning, this will select"
+            f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
+            f" {list(range(num_gpus))} (same as gpus={s} (int)).",
+        )
+        return [num_gpus]
+    return num_gpus
 
 
 def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:

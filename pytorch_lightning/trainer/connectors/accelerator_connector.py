@@ -376,9 +376,9 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-        elif self.precision == 64:
+        if self.precision == 64:
             return DoublePrecisionPlugin()
-        elif self.precision == 16:
+        if self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 

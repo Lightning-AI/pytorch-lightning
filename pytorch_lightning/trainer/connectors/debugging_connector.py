@@ -89,9 +89,8 @@ class DebuggingConnector:
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
-    elif batches > 1 and batches % 1.0 == 0:
+    if batches > 1 and batches % 1.0 == 0:
         return int(batches)
-    else:
-        raise MisconfigurationException(
-            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
-        )
+    raise MisconfigurationException(
+        f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
+    )
