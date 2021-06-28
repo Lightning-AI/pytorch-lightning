@@ -13,14 +13,15 @@
 # limitations under the License.
 import logging
 import os
+import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import time
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-import signal
-import shutil
+
 import __main__
 import numpy as np
 import torch
@@ -41,7 +42,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException, DeadlockDetectedException
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _HYDRA_AVAILABLE:
@@ -156,7 +157,6 @@ class DDPPlugin(ParallelPlugin):
         self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
 
     def _share_pids(self):
-
         """
         Make all DDP processes aware of all processes pids.
         """
@@ -179,7 +179,7 @@ class DDPPlugin(ParallelPlugin):
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
-        # create a temporary directory used to synchronize processes on deadlock. 
+        # create a temporary directory used to synchronize processes on deadlock.
         self._sync_dir = tempfile.mkdtemp()
         os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir
         if not os.path.exists(self._sync_dir):
