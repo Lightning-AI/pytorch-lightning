@@ -15,3 +15,8 @@
 
 class MisconfigurationException(Exception):
     pass
+
+
+class DeadlockDetectedException(Exception):
+    pass
+

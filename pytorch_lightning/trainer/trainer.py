@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
+import os
+import sys
+import time
 import logging
 import warnings
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
 from weakref import proxy
-
+from pytorch_lightning.utilities.distributed import distributed_available
 import torch
-
+import signal
+import traceback
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
@@ -39,6 +43,7 @@ from pytorch_lightning.profiler import (
     PyTorchProfiler,
     SimpleProfiler,
 )
+from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -72,7 +77,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException, DeadlockDetectedException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -992,11 +997,44 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
+            # try syncing remaing processes, kill otherwise
+            self._syncing_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
             self.state.stage = None
             raise
+
+    def _syncing_processes(self, trace: str):
+        if distributed_available() and isinstance(self.accelerator.training_type_plugin, DDPPlugin):
+            sync_dir = os.getenv("PL_TMPDIR")
+
+            if not os.path.exists(sync_dir):
+                # avoid race condition
+                try:
+                    os.makedirs(sync_dir)
+                except FileExistsError:
+                    pass
+
+            # save a file locally.
+            torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.p"))
+
+            # sleep for a short time
+            time.sleep(3)
+
+            # return if all processes wrote a file in the `sync_dir`.
+            if len(os.listdir(sync_dir)) == self.world_size:
+                return
+
+            # get pids
+            pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
+            if pids:
+                for pid in pids.split(','):
+                    pid = int(pid)
+                    if pid != os.getpid():
+                        os.kill(pid, signal.SIGKILL)
+                del os.environ["PL_INTERACTIVE_DDP_PROCS"]
+                raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

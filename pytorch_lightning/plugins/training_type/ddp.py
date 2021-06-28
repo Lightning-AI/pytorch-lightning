@@ -17,7 +17,7 @@ import subprocess
 import sys
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-
+import tempfile
 import __main__
 import numpy as np
 import torch
@@ -141,6 +141,19 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
+        # share ddp pids to all processes
+        self._share_pids()
+
+    def _share_pids(self):
+        """
+        Make all DDP processes aware of all processes pids.
+        """
+        self.barrier()
+        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        pids = ','.join(str(pid) for pid in pids.cpu().numpy().tolist())
+        os.environ["PL_INTERACTIVE_DDP_PROCS"] = pids
+        self.barrier()        
+
     def _call_children_scripts(self):
 
         # bookkeeping of spawned processes
@@ -155,6 +168,9 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+        
+        # TODO (tchaton) Add support for non-shared filesystem.
+        os.environ["PL_TMPDIR"] = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec

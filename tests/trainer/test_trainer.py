@@ -39,7 +39,7 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
@@ -1937,3 +1937,35 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.test()
     with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
         trainer.predict()
+
+
+@RunIf(min_gpus=2, special=True)
+def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
+
+    class CustomException(Exception):
+        pass
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 1 and self.trainer.is_global_zero:
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        gpus=2,
+        accelerator="ddp",
+    )
+
+    # simulate random failure in training_step on rank 0
+    with pytest.raises(DeadlockDetectedException, match="CustomException"):
+        trainer.fit(model)
+
+    pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
+    assert pids is None
