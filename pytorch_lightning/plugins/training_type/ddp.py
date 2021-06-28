@@ -162,10 +162,7 @@ class DDPPlugin(ParallelPlugin):
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
         # create a temporary directory used to synchronize processes on deadlock.
-        self._sync_dir = tempfile.mkdtemp()
-        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir
-        if not os.path.exists(self._sync_dir):
-            os.makedirs(self._sync_dir)
+        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
