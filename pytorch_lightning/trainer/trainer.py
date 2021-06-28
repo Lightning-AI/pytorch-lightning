@@ -16,7 +16,7 @@ import logging
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -1171,14 +1171,17 @@ class Trainer(
 
         return output
 
-    def _device_parsing(self, gpus, auto_select_gpus, tpu_cores):
-
+    def _device_parsing(
+        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
+                                                                                                            str, int]]
+    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
         if auto_select_gpus and isinstance(gpus, int):
             gpus = pick_multiple_gpus(gpus)
 
-        gpus = device_parser.parse_gpu_ids(self.gpus)
+        # TODO (@seannaren, @kaushikb11): Add IPU parsing logic here
+        gpu_ids = device_parser.parse_gpu_ids(self.gpus)
         tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        return gpus, tpu_cores
+        return gpu_ids, tpu_cores
 
     @staticmethod
     def _log_api_event(event: str) -> None:
