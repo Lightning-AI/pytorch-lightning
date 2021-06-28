@@ -712,3 +712,35 @@ def test_logging_raises(tmpdir):
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean,sum}\)` are currently supported'):
         trainer.fit(model)
+
+
+def test_sanity_metrics_are_reset_and_dont_appear_in_prog_bar(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = super().validation_step(batch, batch_idx)
+            if self.trainer.sanity_checking:
+                self.log("val_loss", output["x"], prog_bar=True, logger=True)
+            return output
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            if batch_idx == 0:
+                pass
+                assert self.trainer.logger_connector._progress_bar_metrics == {}
+                assert self.trainer.logger_connector._logged_metrics == {}
+                assert self.trainer.logger_connector._callback_metrics == {}
+            self.log("train_loss", loss, prog_bar=True, logger=True)
+            return loss
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        num_sanity_val_steps=2,
+    )
+    trainer.fit(TestModel())
+
+    assert "val_loss" not in trainer.progress_bar_metrics

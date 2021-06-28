@@ -536,6 +536,10 @@ class ResultCollection(dict):
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
 
+            # convert metric collection to dict container.
+            if isinstance(value, ResultMetricCollection):
+                value = dict(value.items())
+
             # check if the collection is empty
             has_tensor = False
 
@@ -633,6 +637,8 @@ class ResultCollection(dict):
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self, drop_value: bool = True) -> dict:
+        import pdb
+        pdb.set_trace()
         d = self.__dict__.copy()
 
         # can't deepcopy tensors with grad_fn
