@@ -479,7 +479,7 @@ Optimizers and learning rate schedulers
 Optimizers and learning rate schedulers can also be made configurable. The most common case is when a model only has a
 single optimizer and optionally a single learning rate scheduler. In this case the model's
 :class:`~pytorch_lightning.core.lightning.LightningModule` could be left without implementing the
-:code:`configure_optimizers`, method since it is normally always the same and just adds boilerplate. The following code
+:code:`configure_optimizers` method since it is normally always the same and just adds boilerplate. The following code
 snippet shows how to implement it:
 
 .. testcode::
