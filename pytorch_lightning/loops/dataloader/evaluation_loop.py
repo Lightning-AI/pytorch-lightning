@@ -34,7 +34,6 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
         self.epoch_loop = EvaluationEpochLoop()
-        self._has_run: bool = False
         self._results = ResultCollection(training=False)
 
     @property
@@ -122,10 +121,6 @@ class EvaluationLoop(DataLoaderLoop):
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
             self.outputs.append(dl_outputs)
-
-        if not self.trainer.sanity_checking:
-            # indicate the loop has run
-            self._has_run = True
 
     def on_run_end(self) -> Any:
         """Runs the ``on_evaluation_epoch_end`` hook"""

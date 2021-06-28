@@ -652,15 +652,11 @@ class ModelCheckpoint(Callback):
 
         # validate metric
         if self.monitor is not None and not self._is_valid_monitor_key(metrics):
-            m = (
+            raise MisconfigurationException(
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
                 f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
-            if not trainer.fit_loop.val_loop._has_run:
-                warning_cache.warn(m)
-            else:
-                raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(
         self,
