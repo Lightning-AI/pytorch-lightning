@@ -637,8 +637,6 @@ class ResultCollection(dict):
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self, drop_value: bool = True) -> dict:
-        import pdb
-        pdb.set_trace()
         d = self.__dict__.copy()
 
         # can't deepcopy tensors with grad_fn
