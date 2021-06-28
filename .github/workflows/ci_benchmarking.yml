@@ -7,7 +7,7 @@ on:
 jobs:
   parity-test:
     timeoutInMinutes: 120
-    
+
     cancelTimeoutInMinutes: 2
 
     pool: gridai-spot-pool
@@ -24,5 +24,3 @@ jobs:
       - bash: |
           python -m pytest benchmarks -v --maxfail=2 --durations=0
         displayName: 'Testing: benchmarks'
-
-    
