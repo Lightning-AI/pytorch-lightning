@@ -458,7 +458,8 @@ class TrainingBatchLoop(Loop):
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
         )
-
+        print()
+        print(batch_idx)
         self.progress_optimization.optimization.optimizer.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:

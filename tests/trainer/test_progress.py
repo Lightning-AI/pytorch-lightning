@@ -122,8 +122,8 @@ def test_loop_progress_increment_sequence():
     assert p.epoch.current == Tracker()
 
 
-@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
-@pytest.mark.parametrize("accumulate_grad_batches", [1])
+@pytest.mark.parametrize("use_multiple_optimizers", [False])
+@pytest.mark.parametrize("accumulate_grad_batches", [2])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
     class TestModel(BoringModel):
