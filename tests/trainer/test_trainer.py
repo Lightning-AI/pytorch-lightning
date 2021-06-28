@@ -1941,6 +1941,7 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
 
 @RunIf(min_gpus=2, special=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
+    """ Test that DDP kills the remaining processes when only one rank is throwing an exception. """
 
     class CustomException(Exception):
         pass
@@ -1949,6 +1950,8 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 
         def training_step(self, batch, batch_idx):
             if batch_idx == 1 and self.trainer.is_global_zero:
+                # rank 0: raises an exception
+                # rank 1: continues training but will hang on the next barrier in the training loop
                 raise CustomException
             return super().training_step(batch, batch_idx)
 
