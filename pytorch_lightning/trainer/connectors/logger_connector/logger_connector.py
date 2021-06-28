@@ -91,12 +91,15 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
+        if self.trainer.logger is None:
+            return
+
         # add gpu memory
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             metrics.update(mem_map)
 
-        if self.trainer.logger is None or not metrics:
+        if not metrics:
             return
 
         # turn all tensors to scalars
