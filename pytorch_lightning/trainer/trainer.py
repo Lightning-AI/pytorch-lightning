@@ -324,7 +324,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
-        gpu_ids, tpu_cores = self._device_parsing(gpus, auto_select_gpus, tpu_cores)
+        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -1171,7 +1171,7 @@ class Trainer(
 
         return output
 
-    def _device_parsing(
+    def _parse_devices(
         self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
                                                                                                             str, int]]
     ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
