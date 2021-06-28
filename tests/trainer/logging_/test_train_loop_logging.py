@@ -727,7 +727,6 @@ def test_sanity_metrics_are_reset(tmpdir):
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             if batch_idx == 0:
-                pass
                 assert self.trainer.logger_connector._progress_bar_metrics == {}
                 assert self.trainer.logger_connector._logged_metrics == {}
                 assert self.trainer.logger_connector._callback_metrics == {}
