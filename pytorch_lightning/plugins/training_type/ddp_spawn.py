@@ -312,9 +312,8 @@ class DDPSpawnPlugin(ParallelPlugin):
     def barrier(self, *args, **kwargs) -> None:
         if not torch_distrib.is_initialized():
             return
-        device_ids = self.determine_ddp_device_ids()
-        if _TORCH_GREATER_EQUAL_1_8 and device_ids is not None:
-            torch_distrib.barrier(device_ids=device_ids)
+        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch_distrib.barrier()
 
