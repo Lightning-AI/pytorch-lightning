@@ -283,7 +283,7 @@ class HookedModel(BoringModel):
         pass
 
     @staticmethod
-    def _train_batch(trainer, model, batches):
+    def _train_batch(trainer, model, batches, current_epoch=0):
         out = []
         for i in range(batches):
             out.extend([
@@ -299,7 +299,7 @@ class HookedModel(BoringModel):
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
                 dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
                 dict(name='on_before_zero_grad', args=(ANY, )),
-                dict(name='optimizer_zero_grad', args=(0, i, ANY, 0)),
+                dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
                 # TODO: `on_before_backward`
                 dict(name='backward', args=(ANY, ANY, 0)),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
@@ -307,7 +307,7 @@ class HookedModel(BoringModel):
                 # TODO: `on_before_optimizer_step`
                 dict(
                     name='optimizer_step',
-                    args=(0, i, ANY, 0, ANY),
+                    args=(current_epoch, i, ANY, 0, ANY),
                     kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=False)
                 ),
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
@@ -487,6 +487,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
     # resume from checkpoint with HookedModel
     called = []
     model = HookedModel(called)
+    callback = HookedCallback(called)
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -496,41 +497,83 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         progress_bar_refresh_rate=0,
         weights_summary=None,
         resume_from_checkpoint=best_model_path,
+        callbacks=[callback]
     )
-    assert called == []
-    trainer.fit(model)
-    expected = [
-        'prepare_data',
-        'configure_callbacks',
-        'setup',
-        'on_load_checkpoint',
-        'configure_sharded_model',
-        'configure_optimizers',
-        'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
-        'train',
-        'on_train_dataloader',
-        'train_dataloader',
-        # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
-        'on_val_dataloader',
-        'val_dataloader',
-        'on_train_start',
-        'on_epoch_start',
-        'on_train_epoch_start',
-        *[
-            h['name']
-            for h in HookedModel._train_batch(trainer, model, train_batches) if not h['name'].startswith('Callback')
-        ],
-        'training_epoch_end',
-        'on_train_epoch_end',
-        'on_epoch_end',
-        'on_save_checkpoint',  # from train epoch end
-        'on_train_end',
-        'on_fit_end',
-        'teardown',
+    assert called == [
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
     ]
-    called = [c['name'] for c in called]
+    trainer.fit(model)
+    saved_ckpt = {
+        'callbacks': ANY,
+        'epoch': 2,  # TODO: wrong saved epoch
+        'global_step': (1 + train_batches),
+        'lr_schedulers': ANY,
+        'optimizer_states': ANY,
+        'pytorch-lightning_version': __version__,
+        'state_dict': ANY,
+    }
+    expected = [
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
+        dict(name='prepare_data'),
+        dict(name='configure_callbacks'),
+        dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
+        dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage='fit')),
+        dict(name='setup', kwargs=dict(stage='fit')),
+        dict(
+            name='on_load_checkpoint',
+            args=({
+                'callbacks': ANY,
+                'epoch': 1,
+                'global_step': 1,
+                'lr_schedulers': ANY,
+                'optimizer_states': ANY,
+                'pytorch-lightning_version': __version__,
+                'state_dict': ANY,
+            }, )
+        ),
+        dict(name='configure_sharded_model'),
+        dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
+        dict(name='configure_optimizers'),
+        dict(name='Callback.on_fit_start', args=(trainer, model)),
+        dict(name='on_fit_start'),
+        dict(name='Callback.on_pretrain_routine_start', args=(trainer, model)),
+        dict(name='on_pretrain_routine_start'),
+        dict(name='Callback.on_pretrain_routine_end', args=(trainer, model)),
+        dict(name='on_pretrain_routine_end'),
+        dict(name='train'),
+        dict(name='on_train_dataloader'),
+        dict(name='train_dataloader'),
+        # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
+        dict(name='on_val_dataloader'),
+        dict(name='val_dataloader'),
+        dict(name='Callback.on_train_start', args=(trainer, model)),
+        dict(name='on_train_start'),
+        dict(name='Callback.on_epoch_start', args=(trainer, model)),
+        dict(name='on_epoch_start'),
+        dict(name='Callback.on_train_epoch_start', args=(trainer, model)),
+        dict(name='on_train_epoch_start'),
+        # TODO: wrong current epoch after reload
+        *model._train_batch(trainer, model, train_batches, current_epoch=1),
+        dict(name='training_epoch_end', args=([dict(loss=ANY)] * train_batches, )),
+        dict(name='Callback.on_train_epoch_end', args=(
+            trainer,
+            model,
+            [dict(loss=ANY)] * train_batches,
+        )),
+        dict(name='on_train_epoch_end', args=([dict(loss=ANY)] * train_batches, )),
+        dict(name='Callback.on_epoch_end', args=(trainer, model)),
+        dict(name='on_epoch_end'),
+        dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
+        dict(name='on_save_checkpoint', args=(saved_ckpt, )),
+        dict(name='Callback.on_train_end', args=(trainer, model)),
+        dict(name='on_train_end'),
+        dict(name='Callback.on_fit_end', args=(trainer, model)),
+        dict(name='on_fit_end'),
+        dict(name='Callback.teardown', args=(trainer, model), kwargs=dict(stage='fit')),
+        dict(name='teardown', kwargs=dict(stage='fit')),
+    ]
     assert called == expected
 
 
@@ -756,7 +799,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 'lr_schedulers': ANY,
                 'optimizer_states': ANY,
                 'pytorch-lightning_version': __version__,
-                'state_dict': ANY
+                'state_dict': ANY,
             }, )
         ),
         dict(name='teardown', kwargs=dict(stage='fit')),

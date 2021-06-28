@@ -60,9 +60,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
-    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
-    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -378,9 +376,9 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-        elif self.precision == 64:
+        if self.precision == 64:
             return DoublePrecisionPlugin()
-        elif self.precision == 16:
+        if self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
@@ -636,19 +634,6 @@ class AcceleratorConnector(object):
             raise MisconfigurationException(
                 'Your chosen distributed type does not support num_nodes > 1. '
                 'Please set accelerator=ddp or accelerator=ddp2.'
-            )
-
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
-
-        num_ipus = self.ipus if self.ipus is not None else 0
-        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs')
-
-        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
-            rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer"
-                " `Trainer(gpus=1)` or script `--gpus=1`."
             )
 
     def _set_horovod_backend(self):

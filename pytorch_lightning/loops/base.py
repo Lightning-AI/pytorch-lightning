@@ -14,7 +14,6 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional
-from weakref import proxy
 
 from deprecate import void
 
@@ -59,7 +58,8 @@ class Loop(ABC):
 
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators."""
-        self.trainer = proxy(trainer)
+        # TODO(@justusschock): Make the trainer a weakref/proxy
+        self.trainer = trainer
 
     def on_skip(self) -> Optional[Any]:
         """

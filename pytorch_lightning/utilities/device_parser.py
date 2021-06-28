@@ -16,6 +16,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
+from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
@@ -28,6 +29,12 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
 
     Returns:
         designated root GPU device id
+
+    Raises:
+        TypeError:
+            If ``gpus`` is not a list
+        AssertionError:
+            If GPU list is empty
     """
     if gpus is None:
         return None
@@ -78,6 +85,11 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+
+    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+        # omit sanity check on torchelastic as by default shows one visible GPU per process
+        return gpus
+
     gpus = _sanitize_gpu_ids(gpus)
 
     return gpus
@@ -96,6 +108,10 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
 
     Returns:
         a list of tpu_cores to be used or ``None`` if no TPU cores were requested
+
+    Raises:
+        MisconfigurationException:
+            If TPU cores aren't 1 or 8 cores, or no TPU devices are found
     """
     _check_data_type(tpu_cores)
 
@@ -116,19 +132,18 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         return s
     if s == '-1':
         return -1
-    elif ',' in s:
+    if ',' in s:
         return [int(x.strip()) for x in s.split(',') if len(x) > 0]
-    else:
-        num_gpus = int(s.strip())
-        if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-            rank_zero_deprecation(
-                f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-                " In the current version of Lightning, this will select"
-                f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-                f" {list(range(num_gpus))} (same as gpus={s} (int)).",
-            )
-            return [num_gpus]
-        return num_gpus
+    num_gpus = int(s.strip())
+    if _compare_version("pytorch_lightning", operator.lt, "1.5"):
+        rank_zero_deprecation(
+            f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
+            " In the current version of Lightning, this will select"
+            f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
+            f" {list(range(num_gpus))} (same as gpus={s} (int)).",
+        )
+        return [num_gpus]
+    return num_gpus
 
 
 def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
@@ -141,6 +156,10 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
 
     Returns:
         unmodified gpus variable
+
+    Raises:
+        MisconfigurationException:
+            If machine has fewer available GPUs than requested.
     """
     all_available_gpus = _get_all_available_gpus()
     for gpu in gpus:
@@ -180,6 +199,10 @@ def _check_data_type(device_ids: Any) -> None:
 
     Args:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
+
+    Raises:
+        MisconfigurationException:
+            If ``device_ids`` of GPU/TPUs aren't ``int``, ``str``, sequence of ``int`` or ``None``
     """
     if device_ids is not None and \
             (not isinstance(device_ids, (int, str, MutableSequence, tuple)) or isinstance(device_ids, bool)):

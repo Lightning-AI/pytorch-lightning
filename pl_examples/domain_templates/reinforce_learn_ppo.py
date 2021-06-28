@@ -413,7 +413,7 @@ class PPOLightning(pl.LightningModule):
 
             return loss_actor
 
-        elif optimizer_idx == 1:
+        if optimizer_idx == 1:
             loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
             self.log('loss_critic', loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 

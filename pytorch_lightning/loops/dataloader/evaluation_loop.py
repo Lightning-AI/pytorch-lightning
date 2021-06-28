@@ -19,14 +19,14 @@ from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.evaluation_epoch_loop import EvaluationEpochLoop
+from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
-class EvaluationDataLoaderLoop(DataLoaderLoop):
+class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
     def __init__(self):
@@ -70,7 +70,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop to everything necessary (like trainer and accelerators)"""
         super().connect(trainer, *args, **kwargs)
-        # TODO: Make the trainer a weakref/proxy
         self.epoch_loop.connect(trainer)
 
     @property
@@ -234,8 +233,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         model = self.trainer.lightning_module
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
-        else:
-            return is_overridden("validation_epoch_end", model)
+        return is_overridden("validation_epoch_end", model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Runs ``{validation/test}_epoch_end``"""

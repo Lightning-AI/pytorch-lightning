@@ -29,7 +29,13 @@ def print_nan_gradients(model: nn.Module) -> None:
 
 
 def detect_nan_parameters(model: nn.Module) -> None:
-    """ Iterates over model parameters and prints gradients if any parameter is not finite. """
+    """
+    Iterates over model parameters and prints gradients if any parameter is not finite.
+
+    Raises:
+        ValueError:
+            If ``NaN`` or ``inf`` values are found
+    """
     for name, param in model.named_parameters():
         if not torch.isfinite(param).all():
             print_nan_gradients(model)

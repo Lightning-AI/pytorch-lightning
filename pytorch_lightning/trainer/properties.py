@@ -21,15 +21,15 @@ from typing import cast, List, Optional, Type, TypeVar, Union
 import torch
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -63,8 +63,8 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    validation_loop: EvaluationDataLoaderLoop
-    test_loop: EvaluationDataLoaderLoop
+    validation_loop: EvaluationLoop
+    test_loop: EvaluationLoop
     """
     Accelerator properties
     """
@@ -134,6 +134,10 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.tpu_cores
 
     @property
+    def ipus(self) -> int:
+        return self.accelerator_connector.ipus
+
+    @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
 
@@ -142,7 +146,7 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.parallel_device_ids
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         return self.accelerator.lightning_module
 
     @property
@@ -273,7 +277,7 @@ class TrainerProperties(ABC):
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.lightning_module
-        ref_model = cast(LightningModule, ref_model)
+        ref_model = cast(pl.LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
         pbar_metrics = self.progress_bar_metrics
@@ -485,12 +489,12 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def evaluation_loop(self) -> EvaluationDataLoaderLoop:
+    def evaluation_loop(self) -> EvaluationLoop:
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return self.fit_loop.validation_loop
-        elif self.state.fn == TrainerFn.VALIDATING:
+            return self.fit_loop.val_loop
+        if self.state.fn == TrainerFn.VALIDATING:
             return self.validation_loop
-        elif self.state.fn == TrainerFn.TESTING:
+        if self.state.fn == TrainerFn.TESTING:
             return self.test_loop
         raise RuntimeError("The `Trainer.evaluation_loop` property isn't defined. Accessed outside of scope")
 
@@ -519,10 +523,14 @@ class TrainerProperties(ABC):
         return self.fit_loop.min_steps
 
     @property
-    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
+    def is_last_batch(self) -> bool:
+        return self.fit_loop.epoch_loop.is_last_batch
+
+    @property
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop]]:
         if self.training:
             return self.fit_loop
-        elif self.sanity_checking or self.evaluating:
+        if self.sanity_checking or self.evaluating:
             return self.evaluation_loop
 
     """
