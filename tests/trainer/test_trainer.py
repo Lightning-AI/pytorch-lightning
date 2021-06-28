@@ -1966,6 +1966,3 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     # simulate random failure in training_step on rank 0
     with pytest.raises(DeadlockDetectedException, match="CustomException"):
         trainer.fit(model)
-
-    pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
-    assert pids is None

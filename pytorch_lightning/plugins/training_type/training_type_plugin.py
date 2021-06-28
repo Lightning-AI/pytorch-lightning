@@ -57,6 +57,12 @@ class TrainingTypePlugin(Plugin, ABC):
     def setup(self, model: Module) -> None:
         """Called by the accelerator to finish setup."""
 
+    def reconciliate_processes(self, trace: str):
+        """
+        Function to re-conciliate processes on failure
+        """
+        pass
+
     @property
     @abstractmethod
     def on_gpu(self) -> bool:

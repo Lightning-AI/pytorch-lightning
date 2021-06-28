@@ -998,43 +998,12 @@ class Trainer(
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
             # try syncing remaing processes, kill otherwise
-            self._syncing_processes(traceback.format_exc())
+            self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
             self.state.stage = None
             raise
-
-    def _syncing_processes(self, trace: str):
-        if distributed_available() and isinstance(self.accelerator.training_type_plugin, DDPPlugin):
-            sync_dir = os.getenv("PL_TMPDIR")
-
-            if not os.path.exists(sync_dir):
-                # avoid race condition
-                try:
-                    os.makedirs(sync_dir)
-                except FileExistsError:
-                    pass
-
-            # save a file locally.
-            torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.p"))
-
-            # sleep for a short time
-            time.sleep(3)
-
-            # return if all processes wrote a file in the `sync_dir`.
-            if len(os.listdir(sync_dir)) == self.world_size:
-                return
-
-            # get pids
-            pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
-            if pids:
-                for pid in pids.split(','):
-                    pid = int(pid)
-                    if pid != os.getpid():
-                        os.kill(pid, signal.SIGKILL)
-                del os.environ["PL_INTERACTIVE_DDP_PROCS"]
-                raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

@@ -16,9 +16,11 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
-
+import signal
+import shutil
 import __main__
 import numpy as np
 import torch
@@ -39,7 +41,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException, DeadlockDetectedException
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _HYDRA_AVAILABLE:
@@ -95,6 +97,8 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._pids: Optional[List[int]] = None
+        self._sync_dir: Optional[str] = None
         self.set_world_ranks()
 
     @property
@@ -143,20 +147,25 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
 
         # share ddp pids to all processes
+        self._prepare_to_prevent_deadlock()
+
+    def _prepare_to_prevent_deadlock(self):
         self._share_pids()
 
+        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
+        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+
     def _share_pids(self):
+
         """
         Make all DDP processes aware of all processes pids.
         """
         self.barrier()
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
-        pids = ','.join(str(pid) for pid in pids.cpu().numpy().tolist())
-        os.environ["PL_INTERACTIVE_DDP_PROCS"] = pids
-        self.barrier()
+        pids = pids.cpu().numpy().tolist()
+        self._pids = pids if isinstance(pids, list) else [pids]
 
     def _call_children_scripts(self):
-
         # bookkeeping of spawned processes
         assert self.local_rank == 0
         self._check_can_spawn_children()
@@ -170,8 +179,11 @@ class DDPPlugin(ParallelPlugin):
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
-        # TODO (tchaton) Add support for non-shared filesystem.
-        os.environ["PL_TMPDIR"] = tempfile.mkdtemp()
+        # create a temporary directory used to synchronize processes on deadlock. 
+        self._sync_dir = tempfile.mkdtemp()
+        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir
+        if not os.path.exists(self._sync_dir):
+            os.makedirs(self._sync_dir)
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -398,3 +410,30 @@ class DDPPlugin(ParallelPlugin):
             description="DDP Plugin with `find_unused_parameters` as False",
             find_unused_parameters=False
         )
+
+    def reconciliate_processes(self, trace: str):
+        if self.world_size > 1:
+            sync_dir = self._sync_dir
+
+            if not os.path.exists(sync_dir):
+                # avoid race condition
+                try:
+                    os.makedirs(sync_dir)
+                except FileExistsError:
+                    pass
+
+            # save a file locally.
+            torch.save(trace, os.path.join(sync_dir, f"{self.global_rank}.pl"))
+
+            # sleep for a short time
+            time.sleep(3)
+
+            # return if all processes wrote a file in the `sync_dir`.
+            if len(os.listdir(sync_dir)) == self.world_size:
+                return
+
+            for pid in self._pids:
+                if pid != os.getpid():
+                    os.kill(pid, signal.SIGKILL)
+                shutil.rmtree(sync_dir)
+                raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
