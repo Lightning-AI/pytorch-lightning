@@ -714,7 +714,7 @@ def test_logging_raises(tmpdir):
         trainer.fit(model)
 
 
-def test_sanity_metrics_are_reset_and_dont_appear_in_prog_bar(tmpdir):
+def test_sanity_metrics_are_reset(tmpdir):
 
     class TestModel(BoringModel):
 
