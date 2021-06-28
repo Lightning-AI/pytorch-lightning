@@ -66,8 +66,7 @@ def test_ddp_barrier_non_consecutive_device_ids(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
+        max_steps=1,
         gpus=[1, 3],
         accelerator="ddp",
     )
