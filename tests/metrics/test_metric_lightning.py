@@ -212,7 +212,7 @@ def test_metric_collection_lightning_log(tmpdir):
     assert torch.allclose(torch.tensor(logged["DiffMetric_epoch"]), model.diff)
 
 
-def test_log_metric_attributes_raises(tmpdir):
+def test_log_metric_no_attributes_raises(tmpdir):
 
     class TestModel(BoringModel):
 
@@ -224,6 +224,9 @@ def test_log_metric_attributes_raises(tmpdir):
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="Could not find the `LightningModule` attribute"):
         trainer.fit(model)
+
+
+def test_log_metrics_wrong_attributes_raises(tmpdir):
 
     class TestModel(BoringModel):
 
