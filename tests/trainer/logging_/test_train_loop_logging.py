@@ -743,3 +743,21 @@ def test_sanity_metrics_are_reset(tmpdir):
     trainer.fit(TestModel())
 
     assert "val_loss" not in trainer.progress_bar_metrics
+
+
+@RunIf(min_gpus=2)
+def test_log_gpu_memory_without_logging_on_step(tmpdir):
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        log_gpu_memory='all',
+        log_every_n_steps=1,
+        gpus=[1]
+    )
+    trainer.fit(model)
+
+    assert 'gpu_id: 1/memory.used (MB)' in trainer.logged_metrics
