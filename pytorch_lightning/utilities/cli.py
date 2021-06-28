@@ -297,8 +297,7 @@ class LightningCLI:
 
     def link_optimizers_and_lr_schedulers(self) -> None:
         """Creates argument links for optimizers and lr_schedulers that specified a link_to"""
-        for key in self.parser.optimizers_and_lr_schedulers.keys():
-            class_type, link_to = self.parser.optimizers_and_lr_schedulers[key]
+        for key, (class_type, link_to) in self.parser.optimizers_and_lr_schedulers.items():
             if link_to == 'AUTOMATIC':
                 continue
             if isinstance(class_type, tuple):
