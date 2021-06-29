@@ -223,8 +223,14 @@ class TrainerProperties(ABC):
     def log_dir(self) -> Optional[str]:
         if self.logger is None:
             dirpath = self.default_root_dir
+        elif isinstance(self.logger, TensorBoardLogger):
+            dirpath = getattr(self.logger, 'log_dir')
         else:
-            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
+            dirpath = getattr(self.logger, 'save_dir')
+
+        # e.g. when the logger is a LoggerCollection
+        if(dirpath is None):
+            dirpath = self.default_root_dir
 
         dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
