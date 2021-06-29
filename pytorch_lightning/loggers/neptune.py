@@ -278,15 +278,13 @@ class NeptuneLogger(LightningLoggerBase):
     def name(self) -> str:
         if self.offline_mode:
             return 'offline-name'
-        else:
-            return self.experiment.name
+        return self.experiment.name
 
     @property
     def version(self) -> str:
         if self.offline_mode:
             return 'offline-id-1234'
-        else:
-            return self.experiment.id
+        return self.experiment.id
 
     @rank_zero_only
     def log_metric(

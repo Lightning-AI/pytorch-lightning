@@ -32,7 +32,7 @@ def test_unrepeated_distributed_sampler(shuffle, tmpdir):
     for rank in range(world_size):
         samplers.append(UnrepeatedDistributedSampler(dataset, rank=rank, num_replicas=world_size, shuffle=shuffle))
 
-    indices = [[v for v in s] for s in samplers]
+    indices = [list(s) for s in samplers]
     assert len(indices[0]) == 26
     assert len(indices[1]) == 26
     assert len(indices[2]) == 26

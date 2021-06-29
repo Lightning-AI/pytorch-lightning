@@ -33,10 +33,9 @@ def str_to_bool_or_str(val: str) -> Union[str, bool]:
     lower = val.lower()
     if lower in ('y', 'yes', 't', 'true', 'on', '1'):
         return True
-    elif lower in ('n', 'no', 'f', 'false', 'off', '0'):
+    if lower in ('n', 'no', 'f', 'false', 'off', '0'):
         return False
-    else:
-        return val
+    return val
 
 
 def str_to_bool(val: str) -> bool:
@@ -168,10 +167,9 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         # recursive update
         path_args.append(local_args)
         return collect_init_args(frame.f_back, path_args, inside=True)
-    elif not inside:
+    if not inside:
         return collect_init_args(frame.f_back, path_args, inside)
-    else:
-        return path_args
+    return path_args
 
 
 def flatten_dict(source, result=None):

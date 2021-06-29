@@ -491,10 +491,10 @@ class TrainerProperties(ABC):
     @property
     def evaluation_loop(self) -> EvaluationLoop:
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return self.fit_loop.val_loop
+            return self.fit_loop.epoch_loop.val_loop
         elif self.state.fn == TrainerFn.VALIDATING:
             return self.validation_loop
-        elif self.state.fn == TrainerFn.TESTING:
+        if self.state.fn == TrainerFn.TESTING:
             return self.test_loop
         raise RuntimeError("The `Trainer.evaluation_loop` property isn't defined. Accessed outside of scope")
 
@@ -530,7 +530,7 @@ class TrainerProperties(ABC):
     def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop]]:
         if self.training:
             return self.fit_loop
-        elif self.sanity_checking or self.evaluating:
+        if self.sanity_checking or self.evaluating:
             return self.evaluation_loop
 
     """

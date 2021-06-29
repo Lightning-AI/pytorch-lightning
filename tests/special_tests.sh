@@ -69,7 +69,7 @@ for i in "${!files_arr[@]}"; do
 done
 
 if nvcc --version; then
-    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
 # needs to run outside of `pytest`
