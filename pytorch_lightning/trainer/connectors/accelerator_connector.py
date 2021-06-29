@@ -15,6 +15,7 @@
 import logging
 import os
 from typing import List, Optional, Sequence, Union
+from weakref import proxy
 
 import torch
 
@@ -244,6 +245,8 @@ class AcceleratorConnector(object):
 
     @property
     def cluster_environment(self) -> ClusterEnvironment:
+        if self._cluster_environment is None:
+            self._cluster_environment = self.select_cluster_environment()
         return self._cluster_environment
 
     @property
@@ -496,7 +499,9 @@ class AcceleratorConnector(object):
                 training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
-            training_type.cluster_environment = self.select_cluster_environment()
+            # transfer ownership of the cluster environment to the training type
+            training_type.cluster_environment = self.cluster_environment
+            self._cluster_environment = proxy(self.cluster_environment)
 
         if hasattr(training_type, 'num_nodes'):
             # set num_nodes for training_type from trainer setting
@@ -529,10 +534,15 @@ class AcceleratorConnector(object):
             acc_cls = CPUAccelerator
         # as precision_plugin is dependent on training_type_plugin, make sure
         # that we first select training_type_plugin, then precision_plugin
-        return acc_cls(
+        accelerator = acc_cls(
             training_type_plugin=self.training_type_plugin,
             precision_plugin=self.precision_plugin,
         )
+        # transfer ownership of the plugins to the accelerator
+        self._training_type_plugin = proxy(self.training_type_plugin)
+        self._precision_plugin = proxy(self.precision_plugin)
+
+        return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
