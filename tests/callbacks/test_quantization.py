@@ -178,5 +178,8 @@ def test_non_quantizable(tmpdir):
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
 
+    # Embedding should be normal ``nn`` if qconfig was successfullly turned off
+    assert isinstance(model.embed, torch.nn.Embedding)
+
     # Quant/dequant stubs are in the appropriate place within the converted model
     model(model.example_input_array)
