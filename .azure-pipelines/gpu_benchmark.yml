@@ -1,4 +1,4 @@
-name: Parity testing
+name: GPU Parity testing
 
 on:
   schedule:
