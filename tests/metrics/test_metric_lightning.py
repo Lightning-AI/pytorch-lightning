@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from re import escape
 
 import pytest
 import torch
@@ -223,25 +222,6 @@ def test_log_metric_no_attributes_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="Could not find the `LightningModule` attribute"):
-        trainer.fit(model)
-
-
-def test_log_metrics_wrong_attributes_raises(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-
-            self.a_metric = SumMetric()
-
-        def training_step(self, *args):
-            metric = SumMetric()
-            self.log("foo", metric)
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    model = TestModel()
-    with pytest.raises(MisconfigurationException, match=escape("where `name` is one of ['a_metric']")):
         trainer.fit(model)
 
 
