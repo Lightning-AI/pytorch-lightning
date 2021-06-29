@@ -121,6 +121,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Decoupled device parsing logic from Accelerator connector to Trainer ([#8180](https://github.com/PyTorchLightning/pytorch-lightning/pull/8180))
 
 
+- Added XLA Profiler ([#8014](https://github.com/PyTorchLightning/pytorch-lightning/pull/8014))
+
+
 ### Changed
 
 
@@ -223,6 +226,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Trainer(resume_from_checkpoint=...)` now restores the model directly after `LightningModule.setup()`, which is before `LightningModule.configure_sharded_model()` ([#7652](https://github.com/PyTorchLightning/pytorch-lightning/pull/7652))
 
 
+- Added a mechanism to detect `deadlock` for `DDP` when only 1 process trigger an `Exception`. The mechanism will `kill the processes` when it happens ([#8167](https://github.com/PyTorchLightning/pytorch-lightning/pull/8167))
+
+
 ### Deprecated
 
 
@@ -318,7 +324,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a DDP info message that was never shown ([#8111](https://github.com/PyTorchLightning/pytorch-lightning/pull/8111))
 
 
+- Fixed metrics generated during `validation sanity checking` are cleaned on end ([#8171](https://github.com/PyTorchLightning/pytorch-lightning/pull/8171))
+
+
 - Fixed a bug where an infinite recursion would be triggered when using the `BaseFinetuning` callback on a model that contains a `ModuleDict` ([#8170](https://github.com/PyTorchLightning/pytorch-lightning/pull/8170))
+
+
+- Fixed NCCL error when selecting non-consecutive device ids ([#8165](https://github.com/PyTorchLightning/pytorch-lightning/pull/8165))
+
+
+- Fixed `log_gpu_memory` metrics not being added to `logging` when nothing else is logged ([#8174](https://github.com/PyTorchLightning/pytorch-lightning/pull/8174))
+
 
 ## [1.3.7] - 2021-06-22
 

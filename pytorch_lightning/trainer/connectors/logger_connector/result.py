@@ -536,6 +536,10 @@ class ResultCollection(dict):
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
 
+            # convert metric collection to dict container.
+            if isinstance(value, ResultMetricCollection):
+                value = dict(value.items())
+
             # check if the collection is empty
             has_tensor = False
 
