@@ -100,6 +100,7 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
+        self._has_initialized_ddp: bool = False
         self.set_world_ranks()
 
     @property
@@ -310,7 +311,7 @@ class DDPPlugin(ParallelPlugin):
             torch.distributed.init_process_group(
                 self.torch_distributed_backend, rank=global_rank, world_size=world_size
             )
-
+            self._has_initialized_ddp = True
             # on rank=0 let everyone know training is starting
             rank_zero_info(
                 f"{'-' * 100}\n"
@@ -335,12 +336,12 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch_distrib.is_initialized():
+        if not torch.distributed.is_initialized():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
-            torch_distrib.barrier()
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
@@ -436,7 +437,6 @@ class DDPPlugin(ParallelPlugin):
             raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def __del__(self) -> None:
-        if torch.distributed.is_initialized():
+        if torch.distributed.is_initialized() and self._has_initialized_ddp:
             torch.distributed.destroy_process_group()
-        # `is_initialized` is checked inside and we already set the default device with `set_device(self.root_device)`
         torch.cuda.empty_cache()
