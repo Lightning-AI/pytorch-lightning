@@ -16,6 +16,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.memory import ModelSummary
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 
@@ -79,3 +80,12 @@ def test_v1_4_0_deprecated_hpc_load(tmpdir):
     checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(str(tmpdir))
     with pytest.deprecated_call(match=r"`CheckpointConnector.hpc_load\(\)` was deprecated in v1.4"):
         trainer.checkpoint_connector.hpc_load(checkpoint_path)
+
+
+def test_v1_4_0_deprecated_model_summary_mode(tmpdir):
+    model = BoringModel()
+    with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
+        ModelSummary(model, mode="top")
+
+    with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
+        model.summarize(mode="top")
