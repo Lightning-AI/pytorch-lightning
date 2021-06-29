@@ -59,8 +59,8 @@ def run():
         max_epochs=1,
         weights_summary=None,
     )
-    trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
-    trainer.test(model, test_dataloaders=test_data)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.test(model, dataloaders=test_data)
 
 
 if __name__ == '__main__':
