@@ -113,6 +113,7 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List], should_raise: bool = True)
             An int 8 or string '8' indicate that all 8 cores with multi-processing should be used
             A list of int or a string containing list of comma separated integer
             indicates specific TPU core to use.
+        should_raise: Whether a Misconfiguration should be raised if requested tpu_cores aren't available.
 
     Returns:
         a list of tpu_cores to be used or ``None`` if no TPU cores were requested
