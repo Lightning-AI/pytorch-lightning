@@ -65,7 +65,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]],
             indicates specific GPUs to use.
             An int 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
-        should_raise_exception: Whether a Misconfiguration should be raised if requested gpus aren't available.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised if the requested GPUs aren't available.
 
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
