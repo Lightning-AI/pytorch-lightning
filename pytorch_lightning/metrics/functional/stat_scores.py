@@ -16,10 +16,15 @@ from typing import Optional
 from torch import Tensor
 from torchmetrics.functional import stat_scores as _stat_scores
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import (
+    _TORCHMETRICS_GREATER_EQUAL_0_4,
+    _TORCHMETRICS_LOWER_THAN_0_4,
+    deprecated_metrics,
+)
 
 
-@deprecated_metrics(target=_stat_scores)
+@deprecated_metrics(target=_stat_scores, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_stat_scores, args_mapping={"is_multiclass": None}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def stat_scores(
     preds: Tensor,
     target: Tensor,
