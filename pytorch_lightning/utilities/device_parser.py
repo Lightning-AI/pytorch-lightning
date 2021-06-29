@@ -65,7 +65,8 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]],
             indicates specific GPUs to use.
             An int 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
-        should_raise_exception: Whether a ``MisconfigurationException`` should be raised if the requested GPUs aren't available.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised
+            if the requested GPUs aren't available. Otherwise, a warning will be raised instead.
 
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
@@ -115,7 +116,8 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List],
             An int 8 or string '8' indicate that all 8 cores with multi-processing should be used
             A list of int or a string containing list of comma separated integer
             indicates specific TPU core to use.
-        should_raise_exception: Whether a ``MisconfigurationException`` should be raised if the requested TPU cores aren't available.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised
+            if the requested TPU cores aren't available. Otherwise, a warning will be raised instead.
 
     Returns:
         a list of tpu_cores to be used or ``None`` if no TPU cores were requested
@@ -168,7 +170,8 @@ def _sanitize_gpu_ids(gpus: List[int], should_raise_exception: bool = True) -> L
 
     Args:
         gpus: list of ints corresponding to GPU indices
-        should_raise_exception: Whether a ``MisconfigurationException`` should be raised when your machine does not have the parsed number of GPUs.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised
+            if the requested GPUs aren't available. Otherwise, a warning will be raised instead.
 
     Returns:
         unmodified gpus variable
