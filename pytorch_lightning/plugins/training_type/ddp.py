@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Union
 import __main__
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
+import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
@@ -313,7 +313,9 @@ class DDPPlugin(ParallelPlugin):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch.distributed.init_process_group(
+                self.torch_distributed_backend, rank=global_rank, world_size=world_size
+            )
 
             # on rank=0 let everyone know training is starting
             rank_zero_info(
@@ -342,9 +344,9 @@ class DDPPlugin(ParallelPlugin):
         if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
-            torch_distrib.barrier()
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)

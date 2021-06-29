@@ -22,6 +22,7 @@ from re import escape
 import numpy as np
 import pytest
 import torch
+from torchmetrics import Accuracy
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
@@ -688,6 +689,33 @@ def test_logging_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match='`self.log` with the key `foo/dataloader_idx_0`'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='fix this by setting an attribute for the metric in your'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.bar = Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]"
+    ):
         trainer.fit(model)
 
     class TestModel(BoringModel):
