@@ -14,6 +14,7 @@
 from typing import Sequence, Union
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import explained_variance as _explained_variance
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,10 +22,10 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_explained_variance)
 def explained_variance(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     multioutput: str = 'uniform_average',
-) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
+) -> Union[Tensor, Sequence[Tensor]]:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.explained_variance`. Will be removed in v1.5.0.

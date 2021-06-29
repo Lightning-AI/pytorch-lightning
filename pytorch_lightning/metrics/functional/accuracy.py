@@ -14,6 +14,7 @@
 from typing import Optional
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import accuracy as _accuracy
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,12 +22,12 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_accuracy)
 def accuracy(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.

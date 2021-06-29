@@ -16,12 +16,13 @@ from typing import Any, Optional
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void, _TORCHMETRICS_GREATER_EQUAL_0_4, _TORCHMETRICS_LOWER_THAN_0_4
 
 
 class FBeta(_FBeta):
 
-    @deprecated_metrics(target=_FBeta)
+    @deprecated_metrics(target=_FBeta, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+    @deprecated_metrics(target=_FBeta, args_mapping={"multilabel": None}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
     def __init__(
         self,
         num_classes: int,
@@ -44,7 +45,8 @@ class FBeta(_FBeta):
 
 class F1(_F1):
 
-    @deprecated_metrics(target=_F1)
+    @deprecated_metrics(target=_F1, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+    @deprecated_metrics(target=_F1, args_mapping={"multilabel": None}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
     def __init__(
         self,
         num_classes: int,
@@ -61,4 +63,4 @@ class F1(_F1):
         .. deprecated::
             Use :class:`~torchmetrics.F1`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        void(num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group)

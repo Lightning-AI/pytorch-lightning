@@ -14,17 +14,19 @@
 from typing import Optional
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import precision as _precision
 from torchmetrics.functional import precision_recall as _precision_recall
 from torchmetrics.functional import recall as _recall
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void, _TORCHMETRICS_GREATER_EQUAL_0_4, _TORCHMETRICS_LOWER_THAN_0_4
 
 
-@deprecated_metrics(target=_precision)
+@deprecated_metrics(target=_precision, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_precision, args_mapping={"multilabel": None, "is_multiclass": "multiclass"}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def precision(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
     ignore_index: Optional[int] = None,
@@ -32,17 +34,19 @@ def precision(
     threshold: float = 0.5,
     top_k: Optional[int] = None,
     is_multiclass: Optional[bool] = None,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.precision`. Will be removed in v1.5.0.
     """
+    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k, is_multiclass)
 
 
-@deprecated_metrics(target=_recall)
+@deprecated_metrics(target=_recall, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_recall, args_mapping={"multilabel": None, "is_multiclass": "multiclass"}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def recall(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
     ignore_index: Optional[int] = None,
@@ -50,17 +54,19 @@ def recall(
     threshold: float = 0.5,
     top_k: Optional[int] = None,
     is_multiclass: Optional[bool] = None,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
+    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k, is_multiclass)
 
 
-@deprecated_metrics(target=_precision_recall)
+@deprecated_metrics(target=_precision_recall, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_precision_recall, args_mapping={"multilabel": None, "is_multiclass": "multiclass"}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def precision_recall(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
     ignore_index: Optional[int] = None,
@@ -68,8 +74,9 @@ def precision_recall(
     threshold: float = 0.5,
     top_k: Optional[int] = None,
     is_multiclass: Optional[bool] = None,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.precision_recall`. Will be removed in v1.5.0.
     """
+    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k, is_multiclass)

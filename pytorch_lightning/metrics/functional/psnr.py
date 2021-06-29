@@ -14,6 +14,7 @@
 from typing import Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import psnr as _psnr
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,13 +22,13 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_psnr)
 def psnr(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     data_range: Optional[float] = None,
     base: float = 10.0,
     reduction: str = 'elementwise_mean',
     dim: Optional[Union[int, Tuple[int, ...]]] = None,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.psnr`. Will be removed in v1.5.0.

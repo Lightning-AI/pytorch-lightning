@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import r2score as _r2score
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -20,11 +21,11 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_r2score)
 def r2score(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     adjusted: int = 0,
     multioutput: str = "uniform_average",
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.r2score`. Will be removed in v1.5.0.

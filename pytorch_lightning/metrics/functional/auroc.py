@@ -14,6 +14,7 @@
 from typing import Optional, Sequence
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import auroc as _auroc
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,14 +22,14 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_auroc)
 def auroc(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: Optional[int] = None,
     pos_label: Optional[int] = None,
     average: Optional[str] = 'macro',
     max_fpr: Optional[float] = None,
     sample_weights: Optional[Sequence] = None,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.auroc`. Will be removed in v1.5.0.

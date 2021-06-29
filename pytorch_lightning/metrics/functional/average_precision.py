@@ -14,6 +14,7 @@
 from typing import List, Optional, Sequence, Union
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import average_precision as _average_precision
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,12 +22,12 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_average_precision)
 def average_precision(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: Optional[int] = None,
     pos_label: Optional[int] = None,
     sample_weights: Optional[Sequence] = None,
-) -> Union[List[torch.Tensor], torch.Tensor]:
+) -> Union[List[Tensor], Tensor]:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.average_precision`. Will be removed in v1.5.0.

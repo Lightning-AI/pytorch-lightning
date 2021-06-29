@@ -14,6 +14,7 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import precision_recall_curve as _precision_recall_curve
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,13 +22,13 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_precision_recall_curve)
 def precision_recall_curve(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: Optional[int] = None,
     pos_label: Optional[int] = None,
     sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
-                                                                  List[torch.Tensor]], ]:
+) -> Union[Tuple[Tensor, Tensor, Tensor], Tuple[List[Tensor], List[Tensor],
+                                                                  List[Tensor]], ]:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.

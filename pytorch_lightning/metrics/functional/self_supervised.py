@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from torch import Tensor
 from torchmetrics.functional import embedding_similarity as _embedding_similarity
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -19,11 +20,11 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_embedding_similarity)
 def embedding_similarity(
-    batch: torch.Tensor,
+    batch: Tensor,
     similarity: str = 'cosine',
     reduction: str = 'none',
     zero_diagonal: bool = True
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.embedding_similarity`. Will be removed in v1.5.0.

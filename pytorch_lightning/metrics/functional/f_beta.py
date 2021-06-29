@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Optional
 
-import torch
+from torch import Tensor
 from torchmetrics.functional import f1 as _f1
 from torchmetrics.functional import fbeta as _fbeta
 
@@ -22,29 +22,29 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_fbeta)
 def fbeta(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: int,
     beta: float = 1.0,
     threshold: float = 0.5,
     average: str = "micro",
     multilabel: Optional[bool] = None
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
-        Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
+        Use :func:`torchmetrics.functional.fbeta`. Will be removed in v1.5.0.
     """
 
 
 @deprecated_metrics(target=_f1)
 def f1(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: int,
     threshold: float = 0.5,
     average: str = "micro",
     multilabel: Optional[bool] = None
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.f1`. Will be removed in v1.5.0.

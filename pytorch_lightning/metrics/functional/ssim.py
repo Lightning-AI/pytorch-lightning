@@ -14,6 +14,7 @@
 from typing import Optional, Sequence
 
 import torch
+from torch import Tensor
 from torchmetrics.functional import ssim as _ssim
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,15 +22,15 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_ssim)
 def ssim(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     kernel_size: Sequence[int] = (11, 11),
     sigma: Sequence[float] = (1.5, 1.5),
     reduction: str = "elementwise_mean",
     data_range: Optional[float] = None,
     k1: float = 0.01,
     k2: float = 0.03,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.ssim`. Will be removed in v1.5.0.
