@@ -330,15 +330,17 @@ def test_complex_nested_model():
 
         def __init__(self, in_channels, out_channels):
             super().__init__()
-            self.conv = nn.Conv2d(in_channels, out_channels, 3)
-            self.act = nn.ReLU()
+            self.module_dict = nn.ModuleDict({
+                "conv": nn.Conv2d(in_channels, out_channels, 3),
+                "act": nn.ReLU(),
+            })
             # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
             self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
             self.bn = nn.BatchNorm2d(out_channels)
 
         def forward(self, x):
-            x = self.conv(x)
-            x = self.act(x)
+            x = self.module_dict["conv"](x)
+            x = self.module_dict["act"](x)
             return self.bn(x)
 
     model = nn.Sequential(
@@ -352,7 +354,7 @@ def test_complex_nested_model():
     assert len(BaseFinetuning.flatten_modules(model)) == 10
 
     BaseFinetuning.freeze(model.encoder, train_bn=True)
-    assert not model.encoder[0].conv.weight.requires_grad  # Validate a leaf module parameter is frozen
+    assert not model.encoder[0].module_dict["conv"].weight.requires_grad  # Validate a leaf module parameter is frozen
     assert not model.encoder[0].parent_param.requires_grad  # Validate the parent module parameter is frozen
     assert model.encoder[0].bn.weight.requires_grad
 

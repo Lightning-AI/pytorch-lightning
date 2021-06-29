@@ -20,7 +20,7 @@ import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, ModuleDict
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
@@ -114,6 +114,9 @@ class BaseFinetuning(Callback):
         Returns:
             List of modules
         """
+        if isinstance(modules, ModuleDict):
+            modules = modules.values()
+
         if isinstance(modules, Iterable):
             _modules = []
             for m in modules:
