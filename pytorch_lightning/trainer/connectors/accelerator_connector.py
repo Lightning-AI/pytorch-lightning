@@ -101,9 +101,10 @@ class AcceleratorConnector(object):
         self._distrib_type = None
 
         self.num_processes = num_processes
+        # `gpus` is the input passed to the Trainer, whereas `gpu_ids` is a list of parsed gpu ids.
         self.gpus = gpus
-        self.tpu_cores = tpu_cores
         self.parallel_device_ids = gpu_ids
+        self.tpu_cores = tpu_cores
         self.ipus = ipus
         self.distributed_backend = distributed_backend
         self.num_nodes = num_nodes
