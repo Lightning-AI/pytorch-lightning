@@ -225,8 +225,10 @@ class ModelSummary(object):
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
         else:
-            raise ValueError(f"Invalid value for max_depth encountered. "
-                             f"Expected -1, 0 or >0, but got {self._max_depth}.")
+            raise ValueError(
+                f"Invalid value for max_depth encountered. "
+                f"Expected -1, 0 or >0, but got {self._max_depth}."
+            )
         return list(mods)
 
     @property
