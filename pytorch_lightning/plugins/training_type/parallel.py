@@ -76,6 +76,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    def reconciliate_processes(self, trace: str):
+        """
+        Function to re-conciliate processes on failure
+        """
+
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes """
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
