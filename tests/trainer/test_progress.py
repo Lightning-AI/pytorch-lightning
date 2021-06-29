@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
 import pytest
 import torch
 
@@ -28,6 +30,7 @@ from pytorch_lightning.trainer.progress import (
     TrainingEpochProgress,
 )
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class CustomException(BaseException):
@@ -230,7 +233,7 @@ def test_epoch_loop_progress_serialization():
 
 # todo: (tchaton) Finish `accumulate_grad_batches`
 @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
-@pytest.mark.parametrize("accumulate_grad_batches", [1])
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
     class TestModel(BoringModel):
@@ -308,8 +311,10 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     if accumulate_grad_batches == 2 and use_multiple_optimizers:
         total += 1
 
-    assert optim.optimizer.step.total == Tracker(ready=total, started=total, processed=None, completed=total)
-    assert optim.optimizer.step.current == Tracker(ready=current, started=current, processed=None, completed=current)
+    assert optim.optimizer.step.total == Tracker(ready=total + 1, started=total, processed=None, completed=total)
+    assert optim.optimizer.step.current == Tracker(
+        ready=current + 1, started=current, processed=None, completed=current
+    )
 
     if accumulate_grad_batches == 2:
         # that's weird ! todo (tchaton) investigate this
@@ -424,7 +429,7 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
     assert isinstance(pr, EpochLoopProgress)
     assert isinstance(pr.epoch, EpochProgress)
-    assert isinstance(pr.epoch.batch, EpochProgress)
+    assert isinstance(pr.epoch.batch, BatchProgress)
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=1, completed=1)
     assert pr.epoch.current == Tracker(ready=1, started=1, processed=0, completed=0)
 
@@ -465,3 +470,34 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     assert pr.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
     assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.dataloader_idx == 2
+
+
+@RunIf(min_gpus=2, special=True)
+def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 1 and self.trainer.is_global_zero:
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        gpus=2,
+        accelerator="ddp",
+    )
+
+    # simulate random failure in training_step on rank 0
+    try:
+        trainer.fit(model)
+    except SystemExit:
+        pass
+
+    pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
+    assert pids is None

@@ -147,6 +147,17 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
+        # share ddp pids to all processes
+        self.share_pids()
+
+    def share_pids(self):
+        self.barrier()
+        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        pids = ','.join(str(pid) for pid in pids.cpu().numpy().tolist())
+        os.environ["PL_INTERACTIVE_DDP_PROCS"] = pids
+        print(os.environ["PL_INTERACTIVE_DDP_PROCS"])
+        self.barrier()
+
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         assert self.local_rank == 0
@@ -160,6 +171,7 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+        os.environ["PL_TMPDIR"] = tempfile.mkdtemp()
 
         # create a temporary directory used to synchronize processes on deadlock.
         os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
@@ -307,7 +319,11 @@ class DDPPlugin(ParallelPlugin):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch_distrib.init_process_group(
+                self.torch_distributed_backend,
+                rank=global_rank,
+                world_size=world_size,
+            )
 
             # on rank=0 let everyone know training is starting
             rank_zero_info(

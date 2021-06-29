@@ -126,6 +126,8 @@ class TrainingEpochLoop(loops.Loop):
             # reset tracking
             self.progress.reset_on_epoch()
         else:
+            # todo (tchaton) do we need both ?
+            self.iteration_count = self.current_batch_seen
             self.batches_seen = self.current_batch_seen
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:

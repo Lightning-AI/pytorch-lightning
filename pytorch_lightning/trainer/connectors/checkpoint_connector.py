@@ -156,6 +156,13 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
+        gradients = self._loaded_checkpoint.get("gradients", None)
+        if gradients:
+            for name, param in model.named_parameters():
+                grad = gradients.pop(name, None)
+                if grad is not None:
+                    param.grad = grad
+
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
         checkpoint = self._loaded_checkpoint
@@ -391,6 +398,7 @@ class CheckpointConnector:
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
             'progress_tracking': self.get_process_state_dict(),
             'samplers': self.get_samplers_state_dict(),
+            'gradients': self.get_gradients_state_dict(),
         }
 
         if not weights_only:
@@ -431,17 +439,22 @@ class CheckpointConnector:
 
         return checkpoint
 
+    def get_gradients_state_dict(self):
+        return {n: p.grad for n, p in self.trainer.lightning_module.named_parameters()}
+
     def get_samplers_state_dict(self):
         return {
             TrainerFn.FITTING.value: {
                 RunningStage.TRAINING.value: self._get_samplers_state_dict(self.trainer.train_dataloader.sampler),
-                RunningStage.VALIDATING.value: self._get_samplers_state_dict([
-                    dl.sampler for dl in self.trainer.val_dataloaders
-                ])
+                RunningStage.VALIDATING.value: self._get_samplers_state_dict(
+                    [dl.sampler for dl in self.trainer.val_dataloaders] if self.trainer.val_dataloaders else None
+                )
             }
         }
 
-    def _get_samplers_state_dict(self, samplers: Sampler):
+    def _get_samplers_state_dict(self, samplers: Optional[Sampler]):
+        if not samplers:
+            return []
         if not isinstance(samplers, Sequence):
             samplers = [samplers]
         samplers = [s if isinstance(s, FastForwardSampler) else s.sampler for s in samplers]

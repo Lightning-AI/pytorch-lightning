@@ -311,8 +311,6 @@ class TrainingBatchLoop(Loop):
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
-        self.optimization_progress.optimizer.step.increment_ready()
-
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
@@ -451,6 +449,8 @@ class TrainingBatchLoop(Loop):
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
+        self.optimization_progress.optimizer.step.increment_ready()
+
         # model hook
         model_ref.optimizer_step(
             self.trainer.current_epoch,
@@ -471,11 +471,9 @@ class TrainingBatchLoop(Loop):
         Args:
             optimizer: the current optimizer
         """
-        self.optimization_progress.optimizer.zero_grad.increment_ready()
-
-        self.trainer.call_hook('on_before_zero_grad', optimizer)
-
         self.optimization_progress.optimizer.zero_grad.increment_started()
+        self.trainer.call_hook('on_before_zero_grad', optimizer)
+        self.optimization_progress.optimizer.zero_grad.increment_ready()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Zeroes out all gradients of parameters optimized by the current optimizer.
@@ -485,6 +483,7 @@ class TrainingBatchLoop(Loop):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
+
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
         self.optimization_progress.optimizer.zero_grad.increment_completed()

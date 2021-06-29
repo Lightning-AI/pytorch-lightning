@@ -211,6 +211,7 @@ class LightningOptimizer:
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
         self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+        self._trainer.fit_loop.epoch_loop.batch_loop.optimization_progress.optimizer.step.increment_processed()
         self._total_optimizer_step_calls += 1
 
     def __repr__(self):

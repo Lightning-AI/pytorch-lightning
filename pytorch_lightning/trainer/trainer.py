@@ -13,6 +13,10 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import os
+import signal
+import sys
+import time
 import traceback
 import warnings
 from datetime import timedelta
@@ -990,8 +994,32 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _set_store_timeout(self):
-        pass
+    def _syncing_processes(self):
+        if distributed_available():
+            sync_dir = os.path.join(os.getenv("PL_TMPDIR"), ".sync")
+
+            if not os.path.exists(sync_dir):
+                try:
+                    os.makedirs(sync_dir)
+                except FileExistsError:
+                    pass
+
+            torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.p"))
+
+            time.sleep(1)
+
+            if len(os.listdir(sync_dir)) == self.world_size:
+                return
+
+            pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
+            if pids:
+                print("Detected deadlock, Lightning will terminate the processes.")
+                for pid in pids.split(','):
+                    pid = int(pid)
+                    if pid != os.getpid():
+                        os.kill(pid, signal.SIGKILL)
+                del os.environ["PL_INTERACTIVE_DDP_PROCS"]
+                sys.exit(0)
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
