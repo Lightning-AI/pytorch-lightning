@@ -28,7 +28,7 @@ class _DataclassStateDictMixin:
         return self.__getstate__()
 
     @classmethod
-    def load_state_dict(cls, state_dict: dict) -> "_DataclassStateDictMixin":
+    def from_state_dict(cls, state_dict: dict) -> "_DataclassStateDictMixin":
         obj = cls()
         obj.__setstate__(state_dict)
         return obj

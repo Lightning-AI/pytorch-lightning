@@ -191,7 +191,7 @@ def test_fit_loop_progress_serialization():
         }
     }
     # yapf: enable
-    new_loop = FitLoopProgress.load_state_dict(state_dict)
+    new_loop = FitLoopProgress.from_state_dict(state_dict)
     assert fit_loop == new_loop
 
 
@@ -214,5 +214,5 @@ def test_epoch_loop_progress_serialization():
         }
     }
     # yapf: enable
-    new_loop = EpochLoopProgress.load_state_dict(state_dict)
+    new_loop = EpochLoopProgress.from_state_dict(state_dict)
     assert loop == new_loop
