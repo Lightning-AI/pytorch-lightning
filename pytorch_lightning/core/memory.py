@@ -132,9 +132,17 @@ class ModelSummary(object):
 
     Args:
         model: The model to summarize (also referred to as the root module).
-        mode: deprecated. Please use `max_depth`.
-        max_depth: Maximum depth of modules to show, starting on 0 (for modules connected root),
-            or -1 to show all modules.
+        mode: Can be one of
+
+            - `top` (default): only the top-level modules will be recorded (the children of the root module)
+            - `full`: summarizes all layers and their submodules in the root module
+
+            .. deprecated: v1.4
+                This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
+
+
+        max_depth: Maximum depth of modules to show, starting from 0 (for child modules of the given model),
+            or -1 to show all modules. Defaults to 0.
 
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
@@ -181,7 +189,7 @@ class ModelSummary(object):
         0.530     Total estimated model params size (MB)
     """
 
-    MODES = dict(top=0, full=-1)  # temporary mapping from mode to max_depth
+    MODES = dict(top=0, full=-1)  # TODO: remove in v1.6
 
     def __init__(self, model, mode: Optional[str] = "top", max_depth: Optional[int] = None):
         self._model = model
@@ -191,8 +199,8 @@ class ModelSummary(object):
             if mode in ModelSummary.MODES:
                 from pytorch_lightning.utilities import rank_zero_deprecation
                 rank_zero_deprecation(
-                    "The use of `mode` argument is deprecated in v1.4 "
-                    "and will be removed in v1.5, use `max_depth` argument instead."
+                    "Argument `mode` in `ModelSummary` is deprecated in v1.4"
+                    " and will be removed in v1.5. Use `max_depth` instead."
                 )
                 max_depth = ModelSummary.MODES[mode]
             else:
