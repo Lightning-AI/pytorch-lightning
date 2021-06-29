@@ -40,6 +40,11 @@ class RandomFloatIntDataset(Dataset):
 
 class DoublePrecisionBoringModel(BoringModel):
 
+    def __init__(self):
+        super().__init__()
+
+        self.register_buffer("complex_buffer", torch.complex(torch.rand(10), torch.rand(10)), False)
+
     def training_step(self, batch, batch_idx):
         float_data, int_data = batch
         assert torch.tensor([0.]).dtype == torch.float64
@@ -77,9 +82,11 @@ class DoublePrecisionBoringModel(BoringModel):
 
     def on_fit_start(self):
         assert self.layer.weight.dtype == torch.float64
+        assert self.complex_buffer.dtype == torch.complex64
 
     def on_after_backward(self):
         assert self.layer.weight.grad.dtype == torch.float64
+        assert self.complex_buffer.dtype == torch.complex64
 
     def train_dataloader(self):
         dataset = RandomFloatIntDataset(32, 64)
