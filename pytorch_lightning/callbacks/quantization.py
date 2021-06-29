@@ -213,18 +213,6 @@ class QuantizationAwareTraining(Callback):
                 )
         return True
 
-    def _check_feasible_skip(self, model):
-        if not self.modules_to_skip:
-            return False
-        for m in self.modules_to_skip:
-            if not _recursive_hasattr(model, m):
-                raise MisconfigurationException(f'{m} is not a model attribute, cannot skip quantization')
-            getter = operator.attrgetter(m)
-            module = getter(model)
-            if not isinstance(module, nn.Module):
-                raise MisconfigurationException(f'{m} is not a `nn.Module`, cannot skip quantization')
-        return True
-
     def on_fit_start(self, trainer, pl_module):
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
@@ -254,10 +242,15 @@ class QuantizationAwareTraining(Callback):
             pl_module.qconfig = self._qconfig
 
         # Disable qconfig for any modules the user requested to skip
-        if self._check_feasible_skip(pl_module):
+        if self.modules_to_skip:
             for m in self.modules_to_skip:
                 getter = operator.attrgetter(m)
-                module = getter(pl_module)
+                try:
+                    module = getter(pl_module)
+                except AttributeError:
+                    raise MisconfigurationException(f'{m} is not a model attribute, cannot skip quantization')
+                if not isinstance(module, nn.Module):
+                    raise MisconfigurationException(f'{m} is not a `nn.Module`, cannot skip quantization')
                 module.qconfig = None
 
         if self._check_feasible_fuse(pl_module):
