@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import torch
 from torchmetrics.functional import f1 as _f1
@@ -28,13 +27,12 @@ def fbeta(
     beta: float = 1.0,
     threshold: float = 0.5,
     average: str = "micro",
-    multilabel: Optional[bool] = None
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
-    return void(preds, target, num_classes, beta, threshold, average, multilabel)
+    return void(preds, target, num_classes, beta, threshold, average)
 
 
 @deprecated_metrics(target=_f1)
@@ -44,10 +42,9 @@ def f1(
     num_classes: int,
     threshold: float = 0.5,
     average: str = "micro",
-    multilabel: Optional[bool] = None
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.f1`. Will be removed in v1.5.0.
     """
-    return void(preds, target, num_classes, threshold, average, multilabel)
+    return void(preds, target, num_classes, threshold, average)

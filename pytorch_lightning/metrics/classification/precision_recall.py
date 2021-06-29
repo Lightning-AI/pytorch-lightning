@@ -27,11 +27,9 @@ class Precision(_Precision):
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
         average: str = "micro",
-        multilabel: bool = False,
         mdmc_average: Optional[str] = None,
         ignore_index: Optional[int] = None,
         top_k: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -43,7 +41,7 @@ class Precision(_Precision):
         .. deprecated::
             Use :class:`~torchmetrics.Precision`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass, \
+        _ = num_classes, threshold, average, mdmc_average, ignore_index, top_k, \
             compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
 
 
@@ -55,11 +53,9 @@ class Recall(_Recall):
         num_classes: Optional[int] = None,
         threshold: float = 0.5,
         average: str = "micro",
-        multilabel: bool = False,
         mdmc_average: Optional[str] = None,
         ignore_index: Optional[int] = None,
         top_k: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -72,6 +68,6 @@ class Recall(_Recall):
             Use :class:`~torchmetrics.Recall`. Will be removed in v1.5.0.
         """
         void(
-            num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass,
-            compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+            num_classes, threshold, average, mdmc_average, ignore_index, top_k, compute_on_step, dist_sync_on_step,
+            process_group, dist_sync_fn
         )
