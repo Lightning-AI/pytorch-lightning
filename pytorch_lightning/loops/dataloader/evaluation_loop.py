@@ -72,6 +72,7 @@ class EvaluationLoop(DataLoaderLoop):
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop to everything necessary (like trainer and accelerators)"""
         super().connect(trainer, *args, **kwargs)
+        self.epoch_loop = EvaluationEpochLoop()
         self.epoch_loop.connect(trainer)
 
     @property

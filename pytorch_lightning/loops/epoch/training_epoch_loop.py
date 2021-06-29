@@ -49,8 +49,8 @@ class TrainingEpochLoop(loops.Loop):
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
 
-        self.batch_loop: Optional[TrainingBatchLoop] = TrainingBatchLoop()
-        self.val_loop: Optional[loops.EvaluationLoop] = loops.EvaluationLoop()
+        self.batch_loop = TrainingBatchLoop()
+        self.val_loop = loops.EvaluationLoop()
 
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
