@@ -545,14 +545,24 @@ def test_progress_bar_can_be_pickled():
 @RunIf(min_gpus=2, special=True)
 def test_progress_bar_max_val_check_interval_0(tmpdir):
     _test_progress_bar_max_val_check_interval(
-        tmpdir, total_train_samples=8, train_batch_size=4, total_val_samples=2, val_batch_size=1, val_check_interval=0.2
+        tmpdir,
+        total_train_samples=8,
+        train_batch_size=4,
+        total_val_samples=2,
+        val_batch_size=1,
+        val_check_interval=0.2
     )
 
 
 @RunIf(min_gpus=2, special=True)
 def test_progress_bar_max_val_check_interval_1(tmpdir):
     _test_progress_bar_max_val_check_interval(
-        tmpdir, total_train_samples=8, train_batch_size=4, total_val_samples=2, val_batch_size=1, val_check_interval=0.5
+        tmpdir,
+        total_train_samples=8,
+        train_batch_size=4,
+        total_val_samples=2,
+        val_batch_size=1,
+        val_check_interval=0.5
     )
 
 
