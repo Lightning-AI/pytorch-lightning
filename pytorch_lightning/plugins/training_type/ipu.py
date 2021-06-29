@@ -207,7 +207,7 @@ class IPUPlugin(ParallelPlugin):
                 self.process_dataloader,
             )
             return dataloader
-        elif isinstance(dataloader, list):
+        if isinstance(dataloader, list):
             dataloader = apply_to_collection(dataloader, DataLoader, self.process_dataloader)
             return dataloader
         if not isinstance(dataloader, poptorch.DataLoader):

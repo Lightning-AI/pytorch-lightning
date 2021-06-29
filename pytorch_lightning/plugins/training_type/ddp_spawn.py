@@ -36,7 +36,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -182,13 +182,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
 
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.distributed_backend}")
-            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
-            log.info("-" * 100)
-
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
@@ -269,6 +262,14 @@ class DDPSpawnPlugin(ParallelPlugin):
                 self.torch_distributed_backend, rank=global_rank, world_size=world_size
             )
 
+            # on rank=0 let everyone know training is starting
+            rank_zero_info(
+                f"{'-' * 100}\n"
+                f"distributed_backend={self.torch_distributed_backend}\n"
+                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
+                f"{'-' * 100}\n"
+            )
+
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
             return None
@@ -310,9 +311,13 @@ class DDPSpawnPlugin(ParallelPlugin):
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 
-    def barrier(self, *args, **kwargs):
-        if torch.distributed.is_initialized():
-            torch.distributed.barrier()
+    def barrier(self, *args, **kwargs) -> None:
+        if not torch_distrib.is_initialized():
+            return
+        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+        else:
+            torch_distrib.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)

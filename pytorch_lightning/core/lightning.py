@@ -375,7 +375,7 @@ class LightningModule(
                 # compute once
                 self._metric_attributes = {
                     id(module): name
-                    for name, module in self.named_children() if isinstance(module, Metric)
+                    for name, module in self.named_modules() if isinstance(module, Metric)
                 }
                 if not self._metric_attributes:
                     raise MisconfigurationException(
@@ -383,7 +383,7 @@ class LightningModule(
                         " You can fix this by setting an attribute for the metric in your `LightningModule`."
                     )
             # try to find the passed metric in the LightningModule
-            metric_attribute = self._metric_attributes.get(id(value))
+            metric_attribute = self._metric_attributes.get(id(value), None)
             if metric_attribute is None:
                 raise MisconfigurationException(
                     "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
