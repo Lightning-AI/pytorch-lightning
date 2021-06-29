@@ -17,10 +17,10 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop
+from pytorch_lightning import loops  # import as loops to avoid circular imports
+from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import TrainingLoopProgress
+from pytorch_lightning.trainer.progress import TrainingEpochProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
-class TrainingEpochLoop(Loop):
+class TrainingEpochLoop(loops.Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
     def __init__(self, min_steps: int, max_steps: int):
@@ -49,7 +49,9 @@ class TrainingEpochLoop(Loop):
         self.is_last_batch: Optional[bool] = None
 
         self.batch_loop: Optional[TrainingBatchLoop] = None
-        self._progress: Optional[TrainingLoopProgress] = None
+        self.val_loop: Optional[loops.EvaluationLoop] = None
+
+        self._progress: Optional[TrainingEpochProgress] = None
 
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
@@ -57,23 +59,28 @@ class TrainingEpochLoop(Loop):
         self._results = ResultCollection(training=True)
 
     @property
-    def progress(self) -> TrainingLoopProgress:
+    def progress(self) -> TrainingEpochProgress:
         if not self._progress:
-            self._progress = TrainingLoopProgress()
-            self.batch_loop.progress = self._progress.batch
-            self.batch_loop.progress_optimization = self._progress.epoch
+            self._progress = TrainingEpochProgress(
+                val=self.val_loop.progress, batch=self.batch_loop.progress, optim=self.batch_loop.optimization_progress
+            )
         return self._progress
 
     @progress.setter
-    def progress(self, progress: TrainingLoopProgress) -> None:
+    def progress(self, progress: TrainingEpochProgress) -> None:
         if progress:
+            self.val_loop.progress = progress.val
             self.batch_loop.progress = progress.batch
-            self.batch_loop.progress_optimization = progress.epoch
+            self.batch_loop.optimization_progress = progress.optim
             self._progress = progress
 
     @property
     def results(self) -> ResultCollection:
-        return self._results
+        if self.trainer.training:
+            return self._results
+        elif self.trainer.validating:
+            return self.val_loop.results
+        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
     def batch_idx(self) -> int:
@@ -102,6 +109,8 @@ class TrainingEpochLoop(Loop):
         super().connect(trainer, *args, **kwargs)
         self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
+        self.val_loop = loops.EvaluationLoop()
+        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
@@ -120,14 +129,14 @@ class TrainingEpochLoop(Loop):
             self.batches_seen = self.current_batch_seen
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        self.progress.epoch.increment_ready()
+        self.progress.increment_ready()
 
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
-        self.progress.epoch.increment_started()
+        self.progress.increment_started()
 
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -217,13 +226,6 @@ class TrainingEpochLoop(Loop):
         if self.done:
             raise StopIteration
 
-    def _run_validation(self):
-        # reload dataloaders
-        self.trainer.fit_loop.val_loop.reload_evaluation_dataloaders()
-
-        with torch.no_grad():
-            self.trainer.fit_loop.val_loop.run()
-
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
 
@@ -260,20 +262,27 @@ class TrainingEpochLoop(Loop):
                     'HINT: remove the return statement in training_epoch_end'
                 )
 
-        self.progress.epoch.increment_processed()
+        self.progress.increment_processed()
 
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
 
-        self.progress.epoch.increment_completed()
+        self.progress.increment_completed()
 
         return self._epoch_output
 
     def teardown(self) -> None:
         """Frees memory of tracked epoch outputs."""
         self._epoch_output = None
+
+    def _run_validation(self):
+        # reload dataloaders
+        self.val_loop.reload_evaluation_dataloaders()
+
+        with torch.no_grad():
+            self.val_loop.run()
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""

@@ -15,6 +15,7 @@ from typing import List, Optional
 from weakref import proxy
 
 import pytorch_lightning as pl
+from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -48,7 +49,7 @@ class OptimizerConnector:
         if opt_indices is None:
             opt_indices = []
 
-        progress = self.trainer.fit_loop.epoch_loop.batch_loop.progress_optimization
+        progress: OptimizationProgress = self.trainer.fit_loop.epoch_loop.batch_loop.optimization_progress
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
@@ -85,14 +86,14 @@ class OptimizerConnector:
                 # update LR
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
-                progress.optimization.scheduler.increment_ready()
+                progress.scheduler.increment_ready()
 
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
 
-                progress.optimization.scheduler.increment_completed()
+                progress.scheduler.increment_completed()
 
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 

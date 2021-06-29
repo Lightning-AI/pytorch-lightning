@@ -28,7 +28,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import TrainBatchLoopProgress, TrainingProgress
+from pytorch_lightning.trainer.progress import BatchProgress, OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -55,24 +55,28 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
-        self._progress: Optional[TrainBatchLoopProgress] = None
-        self._progress_optimization: Optional[TrainingProgress] = None
+        self._progress: Optional[BatchProgress] = None
+        self._optimization_progress: Optional[OptimizationProgress] = None
 
     @property
-    def progress(self) -> Optional[TrainBatchLoopProgress]:
+    def progress(self) -> BatchProgress:
+        if not self._progress:
+            self._progress = BatchProgress()
         return self._progress
 
     @progress.setter
-    def progress(self, progress: TrainBatchLoopProgress):
+    def progress(self, progress: BatchProgress):
         self._progress = progress
 
     @property
-    def progress_optimization(self) -> Optional[TrainingProgress]:
-        return self._progress_optimization
+    def optimization_progress(self) -> OptimizationProgress:
+        if not self._optimization_progress:
+            self._optimization_progress = OptimizationProgress()
+        return self._optimization_progress
 
-    @progress_optimization.setter
-    def progress_optimization(self, progress_optimization: TrainingProgress):
-        self._progress_optimization = progress_optimization
+    @optimization_progress.setter
+    def optimization_progress(self, optimization_progress: OptimizationProgress):
+        self._optimization_progress = optimization_progress
 
     @property
     def done(self) -> bool:
@@ -129,7 +133,7 @@ class TrainingBatchLoop(Loop):
 
         if not self.trainer.is_restarting:
             # reset tracking
-            self.progress_optimization.optimization.reset_on_epoch()
+            self.optimization_progress.optimizer.reset_on_epoch()
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits
@@ -176,7 +180,7 @@ class TrainingBatchLoop(Loop):
                         continue
 
                 # track optimizer_idx
-                self.progress.optimizer_idx = opt_idx
+                self.optimization_progress.optimizer_idx = opt_idx
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
@@ -274,7 +278,7 @@ class TrainingBatchLoop(Loop):
 
             # this should be done only if result.loss exists
             if not self.should_accumulate():
-                self.progress_optimization.optimization.optimizer.increment_started()
+                self.optimization_progress.optimizer.step.increment_started()
 
             return return_result.loss
 
@@ -307,7 +311,7 @@ class TrainingBatchLoop(Loop):
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
-        self.progress_optimization.optimization.optimizer.increment_ready()
+        self.optimization_progress.optimizer.step.increment_ready()
 
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
@@ -459,7 +463,7 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-        self.progress_optimization.optimization.optimizer.increment_completed()
+        self.optimization_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
@@ -467,11 +471,11 @@ class TrainingBatchLoop(Loop):
         Args:
             optimizer: the current optimizer
         """
-        self.progress_optimization.optimization.zero_grad.increment_ready()
+        self.optimization_progress.optimizer.zero_grad.increment_ready()
 
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
-        self.progress_optimization.optimization.zero_grad.increment_started()
+        self.optimization_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Zeroes out all gradients of parameters optimized by the current optimizer.
@@ -483,7 +487,7 @@ class TrainingBatchLoop(Loop):
         """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-        self.progress_optimization.optimization.zero_grad.increment_completed()
+        self.optimization_progress.optimizer.zero_grad.increment_completed()
 
     def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.

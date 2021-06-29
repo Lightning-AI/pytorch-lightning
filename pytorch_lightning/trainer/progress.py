@@ -11,14 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import dataclasses
-from dataclasses import dataclass, field
-from functools import partial
+from dataclasses import asdict, dataclass, field
 from typing import Optional
 
 
 @dataclass
-class Tracker:
+class _DataclassStateDictMixin:
+
+    def __getstate__(self) -> dict:
+        return asdict(self)
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+
+    def state_dict(self) -> dict:
+        return self.__getstate__()
+
+    @classmethod
+    def from_state_dict(cls, state_dict: dict) -> "_DataclassStateDictMixin":
+        obj = cls()
+        obj.__setstate__(state_dict)
+        return obj
+
+
+@dataclass
+class Tracker(_DataclassStateDictMixin):
     """
     Track an event's progress.
 
@@ -30,10 +47,11 @@ class Tracker:
 
     Attributes set to ``None`` are treated as unused and are restricted.
     """
-    ready: Optional[int] = field(default_factory=int)
-    started: Optional[int] = field(default_factory=int)
-    processed: Optional[int] = field(default_factory=int)
-    completed: Optional[int] = field(default_factory=int)
+
+    ready: Optional[int] = 0
+    started: Optional[int] = 0
+    processed: Optional[int] = 0
+    completed: Optional[int] = 0
 
     def reset(self) -> None:
         if self.ready is not None:
@@ -45,24 +63,6 @@ class Tracker:
         if self.completed is not None:
             self.completed = 0
 
-    def __setattr__(self, key: str, value: int) -> None:
-        if getattr(self, key, 0) is None:
-            raise AttributeError(f"The '{key}' attribute is meant to be unused")
-        return super().__setattr__(key, value)
-
-    def __repr__(self):
-        # hide `None` fields
-        args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
-        return f"{self.__class__.__name__}({', '.join(args)})"
-
-    def state_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        tracker = cls(**state_dict)
-        return tracker
-
     def reset_on_restart(self):
         if self.ready is not None:
             self.ready = self.completed
@@ -73,9 +73,19 @@ class Tracker:
         if self.processed is not None:
             self.processed = self.completed
 
+    def __setattr__(self, key: str, value: int) -> None:
+        if getattr(self, key, 0) is None:
+            raise AttributeError(f"The '{key}' attribute is meant to be unused")
+        return super().__setattr__(key, value)
+
+    def __repr__(self):
+        # hide `None` fields
+        args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
+        return f"{self.__class__.__name__}({', '.join(args)})"
+
 
 @dataclass
-class Progress:
+class Progress(_DataclassStateDictMixin):
     """
     Track aggregated and current progress.
 
@@ -83,6 +93,7 @@ class Progress:
         total: Intended to track the total progress of an event
         current: Intended to track the current progress of an event
     """
+
     total: Tracker = field(default_factory=Tracker)
     current: Tracker = field(default_factory=Tracker)
 
@@ -111,78 +122,71 @@ class Progress:
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, **kwargs: Optional[int]) -> 'Progress':
+    def from_defaults(cls, **kwargs: Optional[int]) -> "Progress":
         return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
 
-    def state_dict(self):
-        return dataclasses.asdict(self)
+    def __setstate__(self, state: dict) -> None:
+        self.total.__setstate__(state["total"])
+        self.current.__setstate__(state["current"])
 
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        return cls(
-            total=Tracker.load_state_dict(state_dict["total"]),
-            current=Tracker.load_state_dict(state_dict["current"]),
-        )
+
+class BatchProgress(Progress):
+    """
+    Tracks the batch progress
+
+    Args:
+        total: Tracks the total epoch progress
+        current: Tracks the current epoch progress
+    """
+    should_check_val: bool = False
 
 
 @dataclass
-class LoopProgress:
+class EpochProgress(Progress):
     """
-    Track loop progress during execution.
+    Tracks the epoch progress
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        epoch: Tracks epochs progress.
+        total: Tracks the total epoch progress
+        current: Tracks the current epoch progress
         batch: Tracks batch progress.
     """
-    epoch: Progress = field(default_factory=Progress)
-    batch: Progress = field(default_factory=Progress)
 
-    def increment_epoch_completed(self) -> None:
-        self.epoch.increment_completed()
-        self.reset_on_epoch()
+    batch: BatchProgress = field(default_factory=BatchProgress)
 
     def reset_on_epoch(self) -> None:
         self.batch.current.reset()
-        self.epoch.current.reset()
 
-    def state_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        return cls(
-            epoch=Progress.load_state_dict(state_dict["epoch"]),
-            batch=Progress.load_state_dict(state_dict["batch"]),
-        )
+    def __setstate__(self, state: dict) -> None:
+        super().__setstate__(state)
+        self.batch.__setstate__(state["batch"])
 
 
 @dataclass
-class ValLoopProgress(LoopProgress):
+class OptimizerProgress(_DataclassStateDictMixin):
     """
-    Track loop progress during execution.
-    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+    Track optimizer progress.
 
     Args:
-        epoch: Tracks epochs progress.
-        batch: Tracks batch progress.
-        dataloader_idx: Tracks current dataloader index.
+        step: Tracks ``optimizer.step`` calls.
+        zero_grad: Tracks ``optimizer.zero_grad`` calls.
     """
-    dataloader_idx: int = field(default_factory=int)
 
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        epoch = Progress.load_state_dict(state_dict.pop("epoch"))
-        batch = Progress.load_state_dict(state_dict.pop("batch"))
-        return cls(
-            epoch=epoch,
-            batch=batch,
-            **state_dict,
-        )
+    step: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
+    zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
+
+    def reset_on_epoch(self) -> None:
+        self.step.current.reset()
+        self.zero_grad.current.reset()
+
+    def __setstate__(self, state: dict) -> None:
+        self.step.__setstate__(state["step"])
+        self.zero_grad.__setstate__(state["zero_grad"])
 
 
 @dataclass
-class OptimizationProgress:
+class OptimizationProgress(_DataclassStateDictMixin):
     """
     Track optimization progress.
 
@@ -190,121 +194,87 @@ class OptimizationProgress:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
     """
-    optimizer: Progress = field(
-        default_factory=partial(Progress.from_defaults, ready=0, started=0, processed=None, completed=0)
-    )
-    scheduler: Progress = field(
-        default_factory=partial(Progress.from_defaults, ready=0, started=None, processed=None, completed=0)
-    )
-    zero_grad: Progress = field(
-        default_factory=partial(Progress.from_defaults, ready=0, started=0, processed=None, completed=0)
-    )
+
+    # TODO: support for multiple optimizers
+    optimizer_idx: int = 0
+    optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
+    scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
 
     @property
     def optimizer_steps(self) -> int:
-        return self.optimizer.total.completed
+        return self.optimizer.step.total.completed
 
     @property
     def scheduler_steps(self) -> int:
         return self.scheduler.total.completed
 
     def reset_on_epoch(self) -> None:
-        self.optimizer.current.reset()
+        self.optimizer.reset_on_epoch()
         self.scheduler.current.reset()
-        self.zero_grad.current.reset()
 
-    def state_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        return cls(
-            optimizer=Progress.load_state_dict(state_dict["optimizer"]),
-            scheduler=Progress.load_state_dict(state_dict["scheduler"]),
-            zero_grad=Progress.load_state_dict(state_dict["zero_grad"]),
-        )
+    def __setstate__(self, state: dict) -> None:
+        self.optimizer.__setstate__(state["optimizer"])
+        self.scheduler.__setstate__(state["scheduler"])
 
 
 @dataclass
-class TrainingProgress(Progress):
+class EpochLoopProgress(_DataclassStateDictMixin):
     """
-    Extends ``Progress`` with training specific attributes
+    Tracks epoch loop progress.
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        optimization: Tracks optimization progress
+        epoch: Tracks epochs progress.
     """
-    optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
+    dataloader_idx: int = 0
+    epoch: EpochProgress = field(default_factory=EpochProgress)
 
-    def state_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        return cls(
-            total=Tracker.load_state_dict(state_dict["total"]),
-            current=Tracker.load_state_dict(state_dict["current"]),
-            optimization=OptimizationProgress.load_state_dict(state_dict["optimization"]),
-        )
-
-
-@dataclass
-class TrainBatchLoopProgress(Progress):
-    """
-    Extends ``Progress`` with optimization specific attributes
-
-    Args:
-        optimizer_idx: Tracks current batch optimizer_idx
-    """
-    optimizer_idx: Optional[int] = field(default_factory=int)
-    should_check_val: Optional[bool] = field(default_factory=bool)
-
-    def state_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        total = Tracker.load_state_dict(state_dict.pop("total"))
-        current = Tracker.load_state_dict(state_dict.pop("current"))
-        return cls(
-            total=total,
-            current=current,
-            **state_dict,
-        )
-
-
-@dataclass
-class TrainingLoopProgress(LoopProgress):
-
-    epoch: TrainingProgress = field(default_factory=TrainingProgress)
-    batch: TrainBatchLoopProgress = field(default_factory=TrainBatchLoopProgress)
+    def increment_epoch_completed(self) -> None:
+        self.epoch.increment_completed()
+        self.reset_on_epoch()
 
     def reset_on_epoch(self) -> None:
-        # override to avoid resetting `epoch.current`
-        self.batch.current.reset()
-        self.epoch.optimization.reset_on_epoch()
+        self.epoch.reset_on_epoch()
+        self.epoch.current.reset()
 
-    def state_dict(self):
-        return dataclasses.asdict(self)
-
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        return cls(
-            epoch=TrainingProgress.load_state_dict(state_dict["epoch"]),
-            batch=TrainBatchLoopProgress.load_state_dict(state_dict["batch"]),
-        )
+    def __setstate__(self, state: dict) -> None:
+        self.epoch.__setstate__(state["epoch"])
 
 
 @dataclass
-class FitLoopProgress:
-    train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
-    val: ValLoopProgress = field(default_factory=ValLoopProgress)
+class TrainingEpochProgress(EpochProgress):
+    """
+    Extends ``EpochProgress`` with training specific attributes
 
-    def state_dict(self):
-        return dataclasses.asdict(self)
+    Args:
+        total: Tracks the total epoch progress.
+        current: Tracks the current epoch progress.
+        batch: Tracks batch progress.
+        optim: Tracks optimization progress.
+        val: Tracks validation_loop progress.
+    """
 
-    @classmethod
-    def load_state_dict(cls, state_dict):
-        return cls(
-            train=TrainingLoopProgress.load_state_dict(state_dict["train"]),
-            val=ValLoopProgress.load_state_dict(state_dict["val"])
-        )
+    optim: OptimizationProgress = field(default_factory=OptimizationProgress)
+    val: EpochLoopProgress = field(default_factory=EpochLoopProgress)
+
+    def __setstate__(self, state: dict) -> None:
+        super().__setstate__(state)
+        self.optim.__setstate__(state["optim"])
+        self.val.__setstate__(state["val"])
+
+
+@dataclass
+class FitLoopProgress(EpochLoopProgress):
+    """
+    Extends ``EpochLoopProgress`` with fit specific attributes
+
+    Args:
+        epoch: Tracks epochs progress.
+    """
+
+    epoch: TrainingEpochProgress = field(default_factory=TrainingEpochProgress)
+
+    def reset_on_epoch(self) -> None:
+        # do not reset `epoch.current` as it should track the number of epochs this `fit` call
+        self.epoch.reset_on_epoch()
+        self.epoch.optim.reset_on_epoch()

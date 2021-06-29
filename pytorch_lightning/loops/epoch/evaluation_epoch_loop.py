@@ -20,7 +20,7 @@ from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.trainer.progress import EpochProgress
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -40,16 +40,16 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
-        self._progress: Optional[Progress] = None
+        self._progress: Optional[EpochProgress] = None
 
     @property
-    def progress(self) -> Progress:
+    def progress(self) -> EpochProgress:
         if not self._progress:
-            self._progress = Progress()
+            self._progress = EpochProgress()
         return self._progress
 
     @progress.setter
-    def progress(self, progress: Progress) -> None:
+    def progress(self, progress: EpochProgress) -> None:
         self._progress = progress
 
     @property

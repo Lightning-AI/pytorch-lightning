@@ -17,9 +17,8 @@ from contextlib import suppress
 from typing import Any, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import FitLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -53,16 +52,11 @@ class FitLoop(Loop):
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.val_loop = EvaluationLoop()
         self._progress: Optional[FitLoopProgress] = None
 
     @property
     def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self.epoch_loop.results
-        elif self.trainer.validating:
-            return self.val_loop.results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
+        return self.epoch_loop.results
 
     @property
     def current_epoch(self) -> int:
@@ -119,12 +113,12 @@ class FitLoop(Loop):
     @property
     def total_epoch_completed(self) -> int:
         """Returns the total number of epoch completed"""
-        return self.progress.train.epoch.total.completed
+        return self.progress.epoch.total.completed
 
     @property
     def total_optimizer_step_completed(self) -> int:
         """Returns the total number of optimizer step completed"""
-        return self.progress.train.epoch.optimization.optimizer.total.completed
+        return self.progress.epoch.optim.optimizer.step.total.completed
 
     @property
     def running_loss(self) -> TensorRunningAccum:
@@ -178,7 +172,6 @@ class FitLoop(Loop):
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
         self.epoch_loop.connect(trainer)
-        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -186,21 +179,20 @@ class FitLoop(Loop):
     @property
     def progress(self) -> FitLoopProgress:
         if not self._progress:
-            self._progress = FitLoopProgress(train=self.epoch_loop.progress, val=self.val_loop.progress)
+            self._progress = FitLoopProgress(epoch=self.epoch_loop.progress)
         return self._progress
 
     @progress.setter
     def progress(self, progress: FitLoopProgress) -> None:
         if progress:
             self._progress = progress
-            self.epoch_loop.progress = progress.train
-            self.val_loop.progress = progress.val
+            self.epoch_loop.progress = progress.epoch
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
 
         # reset current epoch counter to 0
-        self.progress.train.epoch.current.reset()
+        self.progress.epoch.current.reset()
 
         self.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")

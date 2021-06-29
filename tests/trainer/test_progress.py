@@ -16,7 +16,17 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.progress import FitLoopProgress, LoopProgress, Progress, Tracker, TrainingLoopProgress
+from pytorch_lightning.trainer.progress import (
+    BatchProgress,
+    EpochLoopProgress,
+    EpochProgress,
+    FitLoopProgress,
+    OptimizationProgress,
+    OptimizerProgress,
+    Progress,
+    Tracker,
+    TrainingEpochProgress,
+)
 from tests.helpers import BoringModel
 
 
@@ -68,56 +78,157 @@ def test_base_progress_from_defaults():
     assert actual == expected
 
 
-def test_loop_progress_increment_epoch():
-    p = LoopProgress()
+def test_epoch_loop_progress_increment_epoch():
+    p = EpochLoopProgress()
     p.increment_epoch_completed()
     p.increment_epoch_completed()
     assert p.epoch.total == Tracker(completed=2)
     assert p.epoch.current == Tracker()
-    assert p.batch.current == Tracker()
+    assert p.epoch.batch.current == Tracker()
 
 
-def test_loop_progress_increment_sequence():
-    """ Test sequences for incrementing batches reads and epochs. """
-    p = LoopProgress(batch=Progress(total=Tracker(started=None)))
+def test_epoch_loop_progress_increment_sequence():
+    """Test sequences for incrementing batches reads and epochs."""
+    batch = BatchProgress(total=Tracker(started=None))
+    epoch = EpochProgress(batch=batch)
+    loop = EpochLoopProgress(epoch=epoch)
 
-    p.batch.increment_ready()
-    assert p.batch.total == Tracker(ready=1, started=None)
-    assert p.batch.current == Tracker(ready=1)
+    batch.increment_ready()
+    assert batch.total == Tracker(ready=1, started=None)
+    assert batch.current == Tracker(ready=1)
 
-    p.batch.increment_started()
-    assert p.batch.total == Tracker(ready=1, started=None)
-    assert p.batch.current == Tracker(ready=1)
+    batch.increment_started()
+    assert batch.total == Tracker(ready=1, started=None)
+    assert batch.current == Tracker(ready=1)
 
-    p.batch.increment_processed()
-    assert p.batch.total == Tracker(ready=1, started=None, processed=1)
-    assert p.batch.current == Tracker(ready=1, processed=1)
+    batch.increment_processed()
+    assert batch.total == Tracker(ready=1, started=None, processed=1)
+    assert batch.current == Tracker(ready=1, processed=1)
 
-    p.batch.increment_completed()
-    assert p.batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker(ready=1, processed=1, completed=1)
+    batch.increment_completed()
+    assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
+    assert batch.current == Tracker(ready=1, processed=1, completed=1)
 
-    assert p.epoch.total == Tracker()
-    assert p.epoch.current == Tracker()
-    p.increment_epoch_completed()
-    assert p.batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker()
-    assert p.epoch.total == Tracker(completed=1)
-    assert p.epoch.current == Tracker()
+    assert epoch.total == Tracker()
+    assert epoch.current == Tracker()
+    loop.increment_epoch_completed()
+    assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
+    assert batch.current == Tracker()
+    assert epoch.total == Tracker(completed=1)
+    assert epoch.current == Tracker()
 
-    p.batch.increment_ready()
-    assert p.batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker(ready=1)
-    assert p.epoch.total == Tracker(completed=1)
-    assert p.epoch.current == Tracker()
+    batch.increment_ready()
+    assert batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
+    assert batch.current == Tracker(ready=1)
+    assert epoch.total == Tracker(completed=1)
+    assert epoch.current == Tracker()
 
-    p.reset_on_epoch()
-    assert p.batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker()
-    assert p.epoch.total == Tracker(completed=1)
-    assert p.epoch.current == Tracker()
+    loop.reset_on_epoch()
+    assert batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
+    assert batch.current == Tracker()
+    assert epoch.total == Tracker(completed=1)
+    assert epoch.current == Tracker()
 
 
+def test_optimizer_progress_default_factory():
+    """
+    Ensure that the defaults are created appropiately. If `default_factory` was not used, the default would
+    be shared between instances.
+    """
+    p1 = OptimizerProgress()
+    p2 = OptimizerProgress()
+    p1.step.increment_completed()
+    assert p1.step.total.completed == p1.step.current.completed
+    assert p1.step.total.completed == 1
+    assert p2.step.total.completed == 0
+
+
+def test_fit_loop_progress_serialization():
+    fit_loop = FitLoopProgress()
+    state_dict = fit_loop.state_dict()
+    # yapf: disable
+    assert state_dict == {
+        'epoch': {
+            # number of epochs across `fit` calls
+            'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            # number of epochs this `fit` call
+            'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            'batch': {
+                # number of batches across `fit` calls
+                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                # number of batches this epoch
+                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            },
+            # `fit` optimization progress
+            'optim': {
+                # optimizers progress
+                'optimizer': {
+                    'step': {
+                        # `optimizer.step` calls across `fit` calls
+                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
+                        # `optimizer.step` calls this epoch
+                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
+                    },
+                    'zero_grad': {
+                        # `optimizer.zero_grad` calls across `fit` calls
+                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
+                        # `optimizer.zero_grad` calls this epoch
+                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
+                    },
+                },
+                'scheduler': {
+                    # `scheduler.step` calls across `fit` calls
+                    'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
+                    # `scheduler.step` calls this epoch
+                    'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
+                },
+            },
+            # `fit` validation progress
+            'val': {
+                'epoch': {
+                    # number of `validation` calls across `fit` calls
+                    'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                    # number of `validation` calls this `fit` call
+                    'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                    'batch': {
+                        # number of batches across `fit` `validation` calls
+                        'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                        # number of batches this `fit` `validation` call
+                        'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                    },
+                }
+            },
+        }
+    }
+    # yapf: enable
+    new_loop = FitLoopProgress.from_state_dict(state_dict)
+    assert fit_loop == new_loop
+
+
+def test_epoch_loop_progress_serialization():
+    loop = EpochLoopProgress()
+    state_dict = loop.state_dict()
+    # yapf: disable
+    assert state_dict == {
+        'epoch': {
+            # number of times `validate` has been called
+            'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            # either 0 or 1 as `max_epochs` does not apply to the `validate` loop
+            'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            'batch': {
+                # number of batches across `validate` calls
+                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                # number of batches this `validate` call
+                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            },
+        }
+    }
+    # yapf: enable
+    new_loop = EpochLoopProgress.from_state_dict(state_dict)
+    assert loop == new_loop
+
+
+# todo: (tchaton) Finish `accumulate_grad_batches`
 @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
@@ -169,50 +280,57 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
         pass
 
     assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
-    assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingLoopProgress)
-    assert trainer.fit_loop.epoch_loop.progress is trainer.fit_loop.progress.train
+    assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingEpochProgress)
+    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.progress, BatchProgress)
+    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optimization_progress, OptimizationProgress)
+    assert isinstance(trainer.fit_loop.epoch_loop.val_loop.progress, EpochLoopProgress)
+    assert isinstance(trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress, EpochProgress)
+
+    assert trainer.fit_loop.progress.epoch == trainer.fit_loop.epoch_loop.progress
 
     pr = trainer.fit_loop.epoch_loop.progress
 
-    assert pr.epoch.total == Tracker(ready=2, started=2, processed=1, completed=1)
-    assert pr.epoch.current == Tracker(ready=2, started=2, processed=1, completed=1)
-
-    pr = trainer.fit_loop.epoch_loop.progress
+    assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
+    assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
 
     assert pr.batch.total == Tracker(ready=5, started=5, processed=4, completed=4)
     assert pr.batch.current == Tracker(ready=2, started=2, processed=1, completed=1)
 
     num_optimizers = 3 if use_multiple_optimizers else 1
 
-    for _ in range(num_optimizers):
+    optim = trainer.fit_loop.epoch_loop.batch_loop.optimization_progress
 
-        optimization = pr.epoch.optimization
+    total = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
 
-        total = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
+    # we raised expection on the first optimizer
+    current = (1 if use_multiple_optimizers else 0)
 
-        # we raised expection on the first optimizer
-        current = (1 if use_multiple_optimizers else 0)
+    if accumulate_grad_batches == 2 and use_multiple_optimizers:
+        total += 1
 
-        assert optimization.optimizer.total == Tracker(ready=total, started=total, processed=None, completed=total)
-        assert optimization.optimizer.current == Tracker(
-            ready=current, started=current, processed=None, completed=current
-        )
+    assert optim.optimizer.step.total == Tracker(ready=total, started=total, processed=None, completed=total)
+    assert optim.optimizer.step.current == Tracker(ready=current, started=current, processed=None, completed=current)
 
-        if accumulate_grad_batches == 2:
-            total = 3  # Is it correct ?
+    if accumulate_grad_batches == 2:
+        # that's weird ! todo (tchaton) investigate this
+        total = (9 if use_multiple_optimizers else 3)
+        current = 0  # same there.
 
-        assert optimization.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
-        assert optimization.zero_grad.current == Tracker(
-            ready=current, started=current, processed=None, completed=current
-        )
+    assert optim.optimizer.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
+    assert optim.optimizer.zero_grad.current == Tracker(
+        ready=current, started=current, processed=None, completed=current
+    )
 
-        # for multiple optimizers: 4 batches + 1 on epoch
-        total = (5 if use_multiple_optimizers else 1)
+    # for multiple optimizers: 4 batches + 1 on epoch
+    total = (5 if use_multiple_optimizers else 1) // accumulate_grad_batches
 
-        assert optimization.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
-        assert optimization.scheduler.current == Tracker(ready=0, started=None, processed=None, completed=0)
+    if accumulate_grad_batches == 2:
+        total += 1
 
-    assert pr.batch.optimizer_idx == (1 if use_multiple_optimizers else 0)
+    assert optim.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
+    # assert optim.scheduler.current == Tracker(ready=0, started=None, processed=None, completed=0)
+
+    assert optim.optimizer_idx == (1 if use_multiple_optimizers else 0)
 
     checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
     assert checkpoint["epoch"] == 1
@@ -232,32 +350,37 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     pr = trainer.fit_loop.epoch_loop.progress
 
-    assert pr.epoch.total == Tracker(ready=3, started=3, processed=3, completed=3)
-    assert pr.epoch.current == Tracker(ready=2, started=2, processed=2, completed=2)
+    assert pr.total == Tracker(ready=3, started=3, processed=3, completed=3)
+    assert pr.current == Tracker(ready=2, started=2, processed=2, completed=2)
 
     assert pr.batch.total == Tracker(ready=9, started=9, processed=9, completed=9)
     assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
 
-    optimization = pr.epoch.optimization
+    optim = trainer.fit_loop.epoch_loop.progress.optim
 
-    total = (3 * 3 * (3 if use_multiple_optimizers else 1))
     if accumulate_grad_batches == 2:
-        total = 1 + total // accumulate_grad_batches
+        total = 2 * 3 * (3 if use_multiple_optimizers else 1)
+    else:
+        total = (3 * 3 * (3 if use_multiple_optimizers else 1))
     current = (3 if use_multiple_optimizers else 1)
 
-    assert optimization.optimizer.total == Tracker(ready=total, started=total, processed=None, completed=total)
-    assert optimization.optimizer.current == Tracker(ready=current, started=current, processed=None, completed=current)
+    assert optim.optimizer.step.total == Tracker(ready=total, started=total, processed=None, completed=total)
+    assert optim.optimizer.step.current == Tracker(ready=current, started=current, processed=None, completed=current)
 
-    if accumulate_grad_batches == 2:
-        total += 1  # Is it correct ?
-    assert optimization.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
-    assert optimization.zero_grad.current == Tracker(ready=current, started=current, processed=None, completed=current)
+    assert optim.optimizer.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
+    assert optim.optimizer.zero_grad.current == Tracker(
+        ready=current, started=current, processed=None, completed=current
+    )
 
     # for multiple optimizers: 4 batches + 1 on epoch
-    total = (3 * 3 + 3 if use_multiple_optimizers else 3)
+    if accumulate_grad_batches == 2:
+        total = (2 * 3 + 3 if use_multiple_optimizers else 3)
+    else:
+        total = (3 * 3 + 3 if use_multiple_optimizers else 3)
     current = (2 if use_multiple_optimizers else 1)
-    assert optimization.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
-    assert optimization.scheduler.current == Tracker(ready=current, started=None, processed=None, completed=current)
+
+    assert optim.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
+    # assert optim.scheduler.current == Tracker(ready=current, started=None, processed=None, completed=current)
 
 
 def test_progress_tracking_validation_multiple_datasets(tmpdir):
@@ -297,17 +420,21 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     except CustomException:
         pass
 
-    pr = trainer.fit_loop.val_loop.progress
+    pr = trainer.fit_loop.epoch_loop.val_loop.progress
 
-    assert isinstance(pr, LoopProgress)
+    assert isinstance(pr, EpochLoopProgress)
+    assert isinstance(pr.epoch, EpochProgress)
+    assert isinstance(pr.epoch.batch, EpochProgress)
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=1, completed=1)
     assert pr.epoch.current == Tracker(ready=1, started=1, processed=0, completed=0)
 
     # 3 dataloaders with 3 samples for batch_idx == 1 + first dataloader on batch_idx == 1 + failure on batch_idx = 1
     current = 2
     total = 3 * 3 + 3 + current
-    assert pr.batch.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
-    assert pr.batch.current == Tracker(ready=current, started=current, processed=current - 1, completed=current - 1)
+    assert pr.epoch.batch.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
+    assert pr.epoch.batch.current == Tracker(
+        ready=current, started=current, processed=current - 1, completed=current - 1
+    )
 
     assert pr.dataloader_idx == 1
 

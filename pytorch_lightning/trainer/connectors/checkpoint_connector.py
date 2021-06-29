@@ -308,8 +308,8 @@ class CheckpointConnector:
                 return v
 
             # used to assign progress to sub-loops.
-            progress = FitLoopProgress.load_state_dict(state_dict)
-            progress = apply_to_collection(progress, Tracker, fn)
+            progress = FitLoopProgress.from_state_dict(state_dict)
+            apply_to_collection(progress, Tracker, fn)
             self.trainer.fit_loop.progress = progress
 
         self.trainer.is_restarting = True
