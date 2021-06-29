@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from deprecate import void
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class Loop(ABC):
@@ -47,6 +48,10 @@ class Loop(ABC):
         self.trainer: Optional['pl.Trainer'] = None
 
     @property
+    def is_connected(self) -> bool:
+        return self.trainer is not None
+
+    @property
     @abstractmethod
     def done(self) -> bool:
         """Property indicating when loop is finished"""
@@ -59,6 +64,10 @@ class Loop(ABC):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators."""
         # TODO(@justusschock): Make the trainer a weakref/proxy
+        if not isinstance(trainer, pl.Trainer):
+            raise MisconfigurationException(
+                f"Loop {self.__class__.__name__} should be connected to a :class:`~pytorch_lightning.Trainer` instance."
+            )
         self.trainer = trainer
 
     def on_skip(self) -> Optional[Any]:
@@ -128,3 +137,9 @@ class Loop(ABC):
 
     def teardown(self) -> None:
         """The very last method called inside :meth:`run`. Use to release memory etc."""
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        """Restore the loop state from the provided state_dict."""
+
+    def state_dict(self) -> Dict:
+        """Return the loop current states."""

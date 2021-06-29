@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -28,6 +28,8 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
+
+    name = "val_loop"
 
     def __init__(self):
         super().__init__()
@@ -266,3 +268,9 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
+
+    def state_dict(self) -> Dict:
+        return {}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        raise NotImplementedError

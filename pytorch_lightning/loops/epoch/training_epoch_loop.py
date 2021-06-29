@@ -30,6 +30,8 @@ from pytorch_lightning.utilities.warnings import WarningCache
 class TrainingEpochLoop(loops.Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
+    name = "epoch_loop"
+
     def __init__(self, min_steps: int, max_steps: int):
         super().__init__()
         self.min_steps: int = min_steps
@@ -47,8 +49,8 @@ class TrainingEpochLoop(loops.Loop):
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
 
-        self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.val_loop: Optional[loops.EvaluationLoop] = None
+        self.batch_loop: Optional[TrainingBatchLoop] = TrainingBatchLoop()
+        self.val_loop: Optional[loops.EvaluationLoop] = loops.EvaluationLoop()
 
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
@@ -425,3 +427,10 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def state_dict(self) -> Dict:
+        return {self.batch_loop.name: self.batch_loop.state_dict(), self.val_loop.name: self.val_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.batch_loop.load_state_dict(state_dict[self.batch_loop.name])
+        self.val_loop.load_state_dict(state_dict[self.val_loop.name])

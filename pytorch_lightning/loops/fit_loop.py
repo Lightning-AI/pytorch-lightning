@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
@@ -22,6 +22,7 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +51,9 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        self.epoch_loop: Optional[TrainingEpochLoop] = None
+        self._min_steps = min_steps
+        self._max_steps = max_steps
 
     @property
     def results(self) -> ResultCollection:
@@ -97,6 +100,13 @@ class FitLoop(Loop):
         """Returns the minimum numnber of steps to run"""
         return self.epoch_loop.min_steps
 
+    @min_steps.setter
+    def min_steps(self, value: int) -> None:
+        """Sets the minimum number of steps (forwards to epoch_loop)"""
+        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        self.epoch_loop.min_steps = value
+        self._min_steps = value
+
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run"""
@@ -107,6 +117,7 @@ class FitLoop(Loop):
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         self.epoch_loop.max_steps = value
+        self._max_steps = value
 
     @property
     def running_loss(self) -> TensorRunningAccum:
@@ -159,6 +170,7 @@ class FitLoop(Loop):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
+        self.epoch_loop = TrainingEpochLoop(self._min_steps, self._max_steps)
         self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
@@ -274,3 +286,11 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
+
+    def state_dict(self) -> Dict:
+        if not self.is_connected:
+            raise MisconfigurationException("The Trainer should be connected to loop to retrieve the state_dict.")
+        return {self.epoch_loop.name: self.epoch_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.epoch_loop.load_state_dict(state_dict[self.epoch_loop.name])
