@@ -1648,11 +1648,12 @@ class LightningModule(
         # temporary mapping from mode to max_depth
         if max_depth is None:
             if mode in ModelSummary.MODES:
-                rank_zero_deprecation(
-                    "Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
-                    " and will be removed in v1.5. Use `max_depth` instead."
-                )
                 max_depth = ModelSummary.MODES[mode]
+                rank_zero_deprecation(
+                    f"Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
+                    f" and will be removed in v1.5. Use `max_depth` with a value of {max_depth} "
+                    f"to replicate `mode={mode}` behaviour."
+                )
                 model_summary = ModelSummary(self, max_depth=max_depth)
                 log.info("\n" + str(model_summary))
             elif mode is not None:

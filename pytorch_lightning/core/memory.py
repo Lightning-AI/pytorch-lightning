@@ -191,18 +191,19 @@ class ModelSummary(object):
 
     MODES = dict(top=1, full=-1)  # TODO: remove in v1.6
 
-    def __init__(self, model, mode: Optional[str] = "top", max_depth: Optional[int] = None):
+    def __init__(self, model, mode: Optional[str] = None, max_depth: Optional[int] = 1):
         self._model = model
 
         #  temporary mapping from mode to max_depth
-        if max_depth is None:
+        if max_depth is None or mode is not None:
             if mode in ModelSummary.MODES:
+                max_depth = ModelSummary.MODES[mode]
                 from pytorch_lightning.utilities import rank_zero_deprecation
                 rank_zero_deprecation(
-                    "Argument `mode` in `ModelSummary` is deprecated in v1.4"
-                    " and will be removed in v1.5. Use `max_depth` instead."
+                    f"Argument `mode` in `ModelSummary` is deprecated in v1.4 "
+                    f"and will be removed in v1.5. Use `max_depth` with a value "
+                    f"of {max_depth} to replicate `mode={mode}` behaviour."
                 )
-                max_depth = ModelSummary.MODES[mode]
             else:
                 from pytorch_lightning.utilities.exceptions import MisconfigurationException
                 raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
@@ -275,7 +276,7 @@ class ModelSummary(object):
 
         if self._max_depth >= 1:
             # remove summary entries with depth > max_depth
-            for k in [k for k in summary.keys() if k.count(".") >= self._max_depth]:
+            for k in [k for k in summary if k.count(".") >= self._max_depth]:
                 del summary[k]
 
         return summary

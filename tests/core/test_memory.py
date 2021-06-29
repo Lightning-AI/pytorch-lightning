@@ -386,8 +386,5 @@ def test_max_depth_param(max_depth):
 
 @pytest.mark.parametrize('max_depth', [-99, -2])
 def test_raise_invalid_max_depth_value(max_depth):
-    with pytest.raises(
-        ValueError, match=f"Invalid value for max_depth encountered. "
-        f"Expected -1, 0 or >0, but got {max_depth}."
-    ):
+    with pytest.raises(ValueError, match=f"Invalid value for max_depth encountered"):
         DeepNestedModel().summarize(max_depth=max_depth)
