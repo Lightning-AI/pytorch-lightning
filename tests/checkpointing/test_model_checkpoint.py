@@ -1259,10 +1259,10 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
     for i in range(epochs):
         mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
         trainer = Trainer(
+            default_root_dir=tmpdir,
             max_epochs=epochs,
             limit_train_batches=1,
             limit_val_batches=1,
-            default_root_dir=tmpdir,
             callbacks=[mc],
             logger=False,
             weights_summary=None,
@@ -1291,10 +1291,10 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
     mc.STARTING_VERSION = 9
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=1,
-        default_root_dir=tmpdir,
         callbacks=[mc],
         logger=False,
         weights_summary=None,
@@ -1321,3 +1321,39 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
     with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
         Trainer(checkpoint_callback=mc)
+
+
+@pytest.mark.parametrize("num_sanity_val_steps", [0, 2])
+@pytest.mark.parametrize("every_train_step", [True, False])
+def test_invalid_monitor(tmpdir, every_train_step, num_sanity_val_steps):
+
+    class LoggingModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log("train_monitor", 0.1)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            self.log("val_monitor", 0.2)
+            return super().validation_step(batch, batch_idx)
+
+    mc = ModelCheckpoint(
+        dirpath=tmpdir,
+        monitor="invalid",
+        every_n_train_steps=every_train_step,
+        every_n_val_epochs=(not every_train_step),
+    )
+    model = LoggingModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=False,
+        max_steps=2,
+        num_sanity_val_steps=num_sanity_val_steps,
+        callbacks=[mc],
+    )
+    with pytest.raises(MisconfigurationException, match=r"ModelCheckpoint\(monitor='invalid'\) not found"):
+        trainer.fit(model)
+
+    assert "train_monitor" in trainer.callback_metrics
+    # @tchaton @carmocca why can't we retrieve val_monitor from callback_metrics?
+    # assert "val_monitor" in trainer.callback_metrics
