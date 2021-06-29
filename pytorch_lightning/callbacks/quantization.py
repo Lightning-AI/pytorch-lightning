@@ -17,6 +17,7 @@ Quantization
 
 """
 import functools
+import operator
 from typing import Any, Callable, List, Optional, Sequence, Union
 
 import torch
@@ -70,13 +71,6 @@ def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -
         return data
 
     return wrapper
-
-
-def _recursive_getattr(obj: Any, attribs: str):
-    if '.' in attribs:
-        attrib, attribs = attribs.split('.', 1)
-        return _recursive_getattr(getattr(obj, attrib), attribs)
-    return getattr(obj, attribs)
 
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
@@ -225,7 +219,8 @@ class QuantizationAwareTraining(Callback):
         for m in self.modules_to_skip:
             if not _recursive_hasattr(model, m):
                 raise MisconfigurationException(f'{m} is not a model attribute, cannot skip quantization')
-            module = _recursive_getattr(model, m)
+            getter = operator.attrgetter(m)
+            module = getter(model)
             if not isinstance(module, nn.Module):
                 raise MisconfigurationException(f'{m} is not a `nn.Module`, cannot skip quantization')
         return True
@@ -261,7 +256,8 @@ class QuantizationAwareTraining(Callback):
         # Disable qconfig for any modules the user requested to skip
         if self._check_feasible_skip(pl_module):
             for m in self.modules_to_skip:
-                module = _recursive_getattr(pl_module, m)
+                getter = operator.attrgetter(m)
+                module = getter(pl_module)
                 module.qconfig = None
 
         if self._check_feasible_fuse(pl_module):
