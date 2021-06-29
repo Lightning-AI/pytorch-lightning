@@ -141,8 +141,8 @@ class ModelSummary(object):
                 This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
 
 
-        max_depth: Maximum depth of modules to show, starting from 0 (for child modules of the given model),
-            or -1 to show all modules. Defaults to 0.
+        max_depth: Maximum depth of modules to show. Use -1 to show all modules or 0 to show no
+            summary. Defaults to 1.
 
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
@@ -167,7 +167,7 @@ class ModelSummary(object):
         ...         return self.net(x)
         ...
         >>> model = LitModel()
-        >>> ModelSummary(model, max_depth=0)  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
@@ -189,7 +189,7 @@ class ModelSummary(object):
         0.530     Total estimated model params size (MB)
     """
 
-    MODES = dict(top=0, full=-1)  # TODO: remove in v1.6
+    MODES = dict(top=1, full=-1)  # TODO: remove in v1.6
 
     def __init__(self, model, mode: Optional[str] = "top", max_depth: Optional[int] = None):
         self._model = model
@@ -217,13 +217,16 @@ class ModelSummary(object):
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
         if self._max_depth == 0:
+            mods = []
+        elif self._max_depth == 1:
             # the children are the top-level modules
             mods = self._model.named_children()
-        elif self._max_depth == -1 or self._max_depth > 0:
+        elif self._max_depth == -1 or self._max_depth > 1:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
         else:
-            mods = []
+            raise ValueError(f"Invalid value for max_depth encountered. "
+                             f"Expected -1, 0 or >0, but got {self._max_depth}.")
         return list(mods)
 
     @property
@@ -268,9 +271,9 @@ class ModelSummary(object):
         for layer in summary.values():
             layer.detach_hook()
 
-        if self._max_depth >= 0:
+        if self._max_depth >= 1:
             # remove summary entries with depth > max_depth
-            for k in [k for k in summary.keys() if k.count(".") > self._max_depth]:
+            for k in [k for k in summary.keys() if k.count(".") >= self._max_depth]:
                 del summary[k]
 
         return summary

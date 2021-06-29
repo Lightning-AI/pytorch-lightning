@@ -366,7 +366,7 @@ def test_max_depth_equals_mode_interface():
     model = DeepNestedModel()
 
     summary_top = model.summarize(mode="top")
-    summary_0 = model.summarize(max_depth=0)
+    summary_0 = model.summarize(max_depth=1)
     assert str(summary_top) == str(summary_0)
 
     summary_full = model.summarize(mode="full")
@@ -381,4 +381,12 @@ def test_max_depth_param(max_depth):
     summary = ModelSummary(model, max_depth=max_depth)
     for lname in summary.layer_names:
         if max_depth >= 0:
-            assert lname.count(".") <= max_depth
+            assert lname.count(".") < max_depth
+
+
+@pytest.mark.parametrize('max_depth', [-99, -2])
+def test_raise_invalid_max_depth_value(max_depth):
+    with pytest.raises(ValueError,
+                       match=f"Invalid value for max_depth encountered. "
+                             f"Expected -1, 0 or >0, but got {max_depth}."):
+        model = DeepNestedModel().summarize(max_depth=max_depth)
