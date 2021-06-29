@@ -376,7 +376,7 @@ def test_max_depth_equals_mode_interface():
 
 @pytest.mark.parametrize('max_depth', [-1, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
-    """Check if only modules with desired depth are shown"""
+    """Test that only the modules up to the desired depth are shown"""
     model = DeepNestedModel()
     summary = ModelSummary(model, max_depth=max_depth)
     for lname in summary.layer_names:
