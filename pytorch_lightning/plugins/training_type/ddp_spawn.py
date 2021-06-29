@@ -17,7 +17,7 @@ import re
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
+import torch.distributed
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
@@ -258,7 +258,9 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch.distributed.init_process_group(
+                self.torch_distributed_backend, rank=global_rank, world_size=world_size
+            )
 
             # on rank=0 let everyone know training is starting
             rank_zero_info(
@@ -310,12 +312,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.load_state_dict(ckpt)
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch_distrib.is_initialized():
+        if not torch.distributed.is_initialized():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
-            torch_distrib.barrier()
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
