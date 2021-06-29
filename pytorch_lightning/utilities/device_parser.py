@@ -168,7 +168,7 @@ def _sanitize_gpu_ids(gpus: List[int], should_raise_exception: bool = True) -> L
 
     Args:
         gpus: list of ints corresponding to GPU indices
-        should_raise_exception: Whether a `MisconfigurationException` should be raised.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised when your machine does not have the parsed number of GPUs.
 
     Returns:
         unmodified gpus variable
