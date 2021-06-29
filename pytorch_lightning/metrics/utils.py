@@ -65,13 +65,13 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
     return void(prob_tensor, topk, dim)
 
 
-@deprecated_metrics(target=_to_categorical, args_mapping=dict(tensor='x'))
-def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
+@deprecated_metrics(target=_to_categorical)
+def to_categorical(x: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.utilities.data.to_categorical`. Will be removed in v1.5.0.
     """
-    return void(tensor, argmax_dim)
+    return void(x, argmax_dim)
 
 
 @deprecated_metrics(target=_get_num_classes, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
