@@ -271,8 +271,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 
-    def barrier(self, *args, **kwargs):
-        if torch_distrib.is_initialized():
+    def barrier(self, *args, **kwargs) -> None:
+        if not torch_distrib.is_initialized():
+            return
+        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+        else:
             torch_distrib.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
