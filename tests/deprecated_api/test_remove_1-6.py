@@ -78,12 +78,12 @@ def test_v1_6_0_ddp_sync_batchnorm():
 
 
 def test_v1_6_0_ddp_spawn_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
+    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(num_nodes=1)
 
 
 def test_v1_6_0_ddp_spawn_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
+    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(sync_batchnorm=False)
 
 
