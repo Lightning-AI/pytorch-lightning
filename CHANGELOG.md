@@ -121,6 +121,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added XLA Profiler ([#8014](https://github.com/PyTorchLightning/pytorch-lightning/pull/8014))
 
 
+- Added `state_dict` and `load_state_dict` function to `Loops` ([#8197](https://github.com/PyTorchLightning/pytorch-lightning/pull/8197))
+
 ### Changed
 
 
