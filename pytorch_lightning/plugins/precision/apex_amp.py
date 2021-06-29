@@ -18,7 +18,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.types import _PARAMETERS
@@ -50,7 +49,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         closure_loss: Tensor,
         optimizer: Optimizer,
         opt_idx: int,
@@ -76,7 +75,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         # do backward pass
         # TODO: not entirely sure, why we need this
-        if model is not None and isinstance(model, LightningModule):
+        if model is not None and isinstance(model, pl.LightningModule):
             model.backward(closure_loss, optimizer, opt_idx, **kwargs)
 
             # TODO: avoid dev_debugger and track these calls with mock
@@ -118,7 +117,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: LightningModule,
+        pl_module: 'pl.LightningModule',
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,

@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
@@ -46,3 +49,30 @@ def test_ddp_with_2_gpus():
     assert model.device == torch.device("cpu")
     cuda_memory = torch.cuda.memory_allocated()
     assert cuda_memory < model.start_cuda_memory
+
+
+class BarrierModel(BoringModel):
+
+    def setup(self, stage=None):
+        assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        self.trainer.accelerator.barrier("barrier before model is wrapped")
+
+    def on_train_start(self):
+        assert isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        self.trainer.accelerator.barrier("barrier after model is wrapped")
+
+
+@RunIf(min_gpus=4, special=True)
+@mock.patch("torch.distributed.barrier")
+def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
+    """ Test correct usage of barriers when device ids do not start at 0 or are not consecutive. """
+    model = BoringModel()
+    gpus = [1, 3]
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        gpus=gpus,
+        accelerator="ddp",
+    )
+    trainer.fit(model)
+    barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])

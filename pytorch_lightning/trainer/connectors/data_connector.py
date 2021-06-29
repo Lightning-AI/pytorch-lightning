@@ -64,8 +64,7 @@ class DataConnector:
 
         if self.trainer.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
-        else:
-            return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+        return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 
     def attach_data(
         self,

@@ -91,7 +91,7 @@ def test_prefetch_iterator():
 
     dataset = IterDataset()
     iterator = prefetch_iterator(dataset)
-    assert [item for item in iterator] == [(1, False), (2, False), (3, True)]
+    assert list(iterator) == [(1, False), (2, False), (3, True)]
 
     class EmptyIterDataset(IterableDataset):
 
@@ -100,7 +100,7 @@ def test_prefetch_iterator():
 
     dataset = EmptyIterDataset()
     iterator = prefetch_iterator(dataset)
-    assert [item for item in iterator] == []
+    assert list(iterator) == []
 
 
 @pytest.mark.parametrize(
