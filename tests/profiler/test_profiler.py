@@ -435,7 +435,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
 def test_pytorch_profiler_loggercollection(tmpdir):
     """
-    Tests whether the PyTorch profiler is able to write its trace locally when 
+    Tests whether the PyTorch profiler is able to write its trace locally when
     the Trainer's logger is an instance of LoggerCollection
     """
     model = BoringModel()
@@ -452,7 +452,7 @@ def test_pytorch_profiler_loggercollection(tmpdir):
 
     with warnings.catch_warnings(record=True) as warnings_list:
         trainer.fit(model)
-        msg = "failed to export trace" 
+        msg = "failed to export trace"
         assert all((msg not in str(w.message) for w in warnings_list))
 
 
