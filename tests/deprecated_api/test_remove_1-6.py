@@ -16,7 +16,6 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -247,6 +246,6 @@ def test_v1_6_0_rank_zero_warnings_moved():
 
 
 def test_v1_6_0_ddp_plugin_task_idx():
-    plugin = DeepSpeedPlugin()
-    with pytest.deprecated_call(match='Use `DeepSpeedPlugin.local_rank` instead'):
+    plugin = DDPPlugin()
+    with pytest.deprecated_call(match='Use `DDPPlugin.local_rank` instead'):
         _ = plugin.task_idx
