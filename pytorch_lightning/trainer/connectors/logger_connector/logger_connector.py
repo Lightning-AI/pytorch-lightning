@@ -315,6 +315,6 @@ class LoggerConnector:
 
     def teardown(self):
         self.trainer.fit_loop.epoch_loop._results.cpu()
-        self.trainer.fit_loop.val_loop._results.cpu()
+        self.trainer.fit_loop.epoch_loop.val_loop._results.cpu()
         self.trainer.validation_loop._results.cpu()
         self.trainer.test_loop._results.cpu()

@@ -657,7 +657,7 @@ class ModelCheckpoint(Callback):
                 f" {list(metrics.keys())}. "
                 f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
-            if not trainer.fit_loop.val_loop._has_run:
+            if not trainer.fit_loop.epoch_loop.val_loop._has_run:
                 warning_cache.warn(m)
             else:
                 raise MisconfigurationException(m)
