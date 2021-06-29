@@ -98,7 +98,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]], should_raise: bool
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
 
-    gpus = _sanitize_gpu_ids(gpus)
+    gpus = _sanitize_gpu_ids(gpus, should_raise=should_raise)
 
     return gpus
 
