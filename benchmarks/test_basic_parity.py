@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import gc
+import os
 import time
 
 import numpy as np
@@ -47,7 +48,16 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
     [
         (ParityModuleRNN, 0.05, 0.0, 4, 3),
         (ParityModuleMNIST, 0.25, 0.0, 4, 3),  # todo: lower this thr
-        (ParityModuleCIFAR, 4.0, 0.0002, 2, 2),
+        pytest.param(
+            ParityModuleCIFAR,
+            4.0,
+            0.0002,
+            2,
+            2,
+            marks=pytest.mark.skipif(
+                os.getenv("PL_RUNNING_BENCHMARKS", '0') != '1', reason="Only run during Benchmarking"
+            )
+        ),
     ]
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

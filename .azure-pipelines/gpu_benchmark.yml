@@ -22,5 +22,6 @@ jobs:
 
     steps:
       - bash: |
+          export PL_RUNNING_BENCHMARKS=1
           python -m pytest benchmarks -v --maxfail=2 --durations=0
         displayName: 'Testing: benchmarks'

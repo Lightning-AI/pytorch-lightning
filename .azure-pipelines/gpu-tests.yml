@@ -104,6 +104,10 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
       condition: succeededOrFailed()
 
+    - bash: |
+        python -m pytest benchmarks -v --maxfail=2 --durations=0
+      displayName: 'Testing: benchmarks'
+
     - script: |
         set -e
         python -m pytest pl_examples -v --maxfail=2 --durations=0
