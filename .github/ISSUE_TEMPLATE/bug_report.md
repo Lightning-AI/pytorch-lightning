@@ -41,13 +41,14 @@ wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master
 python collect_env_details.py
 ```
 
- - PyTorch Version (e.g., 1.0):
- - OS (e.g., Linux):
- - How you installed PyTorch (`conda`, `pip`, source):
- - Build command you used (if compiling from source):
+ - PyTorch Lightning Version (e.g., 1.3.0):
+ - PyTorch Version (e.g., 1.0)
  - Python version:
+ - OS (e.g., Linux):
  - CUDA/cuDNN version:
  - GPU models and configuration:
+ - How you installed PyTorch (`conda`, `pip`, source):
+ - Build command you used (if compiling from source):
  - Any other relevant information:
 
 ### Additional context
