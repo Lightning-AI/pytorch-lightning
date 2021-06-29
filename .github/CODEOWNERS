@@ -36,7 +36,6 @@
 
 # Specifics
 /pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
-/pytorch_lightning/trainer/progress.py  @tchaton @awaelchli @carmocca
 
 # Metrics
 /pytorch_lightning/metrics/             @SkafteNicki @ananyahjha93 @justusschock
