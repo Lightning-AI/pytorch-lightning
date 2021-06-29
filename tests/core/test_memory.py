@@ -390,4 +390,4 @@ def test_raise_invalid_max_depth_value(max_depth):
         ValueError, match=f"Invalid value for max_depth encountered. "
         f"Expected -1, 0 or >0, but got {max_depth}."
     ):
-        model = DeepNestedModel().summarize(max_depth=max_depth)
+        DeepNestedModel().summarize(max_depth=max_depth)
