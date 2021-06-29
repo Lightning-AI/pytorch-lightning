@@ -21,7 +21,7 @@ from torchmetrics.functional import recall as _recall
 from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-@deprecated_metrics(target=_precision)
+@deprecated_metrics(target=_precision, args_mapping={"is_multiclass": None})
 def precision(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -31,15 +31,16 @@ def precision(
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.precision`. Will be removed in v1.5.0.
     """
-    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k)
+    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k, is_multiclass)
 
 
-@deprecated_metrics(target=_recall)
+@deprecated_metrics(target=_recall, args_mapping={"is_multiclass": None})
 def recall(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -49,15 +50,16 @@ def recall(
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
-    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k)
+    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k, is_multiclass)
 
 
-@deprecated_metrics(target=_precision_recall)
+@deprecated_metrics(target=_precision_recall, args_mapping={"is_multiclass": None})
 def precision_recall(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -67,9 +69,10 @@ def precision_recall(
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.precision_recall`. Will be removed in v1.5.0.
     """
-    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k)
+    return void(preds, target, average, mdmc_average, ignore_index, num_classes, threshold, top_k, is_multiclass)

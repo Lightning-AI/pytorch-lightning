@@ -20,7 +20,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 class StatScores(_StatScores):
 
-    @deprecated_metrics(target=_StatScores)
+    @deprecated_metrics(target=_StatScores, args_mapping={"is_multiclass": None})
     def __init__(
         self,
         threshold: float = 0.5,
@@ -29,6 +29,7 @@ class StatScores(_StatScores):
         num_classes: Optional[int] = None,
         ignore_index: Optional[int] = None,
         mdmc_reduce: Optional[str] = None,
+        is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -41,6 +42,6 @@ class StatScores(_StatScores):
             Use :class:`~torchmetrics.StatScores`. Will be removed in v1.5.0.
         """
         void(
-            threshold, top_k, reduce, num_classes, ignore_index, mdmc_reduce, compute_on_step, dist_sync_on_step,
-            process_group, dist_sync_fn
+            threshold, top_k, reduce, num_classes, ignore_index, mdmc_reduce, is_multiclass, compute_on_step,
+            dist_sync_on_step, process_group, dist_sync_fn
         )

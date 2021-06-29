@@ -19,7 +19,7 @@ from torchmetrics.functional import fbeta as _fbeta
 from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-@deprecated_metrics(target=_fbeta)
+@deprecated_metrics(target=_fbeta, args_mapping={"multilabel": None})
 def fbeta(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -27,24 +27,26 @@ def fbeta(
     beta: float = 1.0,
     threshold: float = 0.5,
     average: str = "micro",
+    multilabel: Optional[bool] = None
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
-    return void(preds, target, num_classes, beta, threshold, average)
+    return void(preds, target, num_classes, beta, threshold, average, multilabel)
 
 
-@deprecated_metrics(target=_f1)
+@deprecated_metrics(target=_f1, args_mapping={"multilabel": None})
 def f1(
     preds: torch.Tensor,
     target: torch.Tensor,
     num_classes: int,
     threshold: float = 0.5,
     average: str = "micro",
+    multilabel: Optional[bool] = None
 ) -> torch.Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.f1`. Will be removed in v1.5.0.
     """
-    return void(preds, target, num_classes, threshold, average)
+    return void(preds, target, num_classes, threshold, average, multilabel)
