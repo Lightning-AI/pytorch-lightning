@@ -65,7 +65,7 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
     return void(prob_tensor, topk, dim)
 
 
-@deprecated_metrics(target=_to_categorical)
+@deprecated_metrics(target=_to_categorical, args_mapping={"tensor": "x"})
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     """
     .. deprecated::
