@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Callable, Union
 
-import torch
 from torch import Tensor
 from torchmetrics import Metric
 from torchmetrics.metric import CompositionalMetric as _CompositionalMetric

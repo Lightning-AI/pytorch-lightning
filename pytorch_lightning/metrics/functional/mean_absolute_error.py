@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import mean_absolute_error as _mean_absolute_error
 

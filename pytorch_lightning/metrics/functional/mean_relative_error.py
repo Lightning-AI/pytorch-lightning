@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
 from torch import Tensor
 from torchmetrics.functional.regression.mean_relative_error import mean_relative_error as _mean_relative_error
 

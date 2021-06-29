@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import List, Optional, Sequence, Tuple, Union
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import precision_recall_curve as _precision_recall_curve
 
@@ -27,8 +26,7 @@ def precision_recall_curve(
     num_classes: Optional[int] = None,
     pos_label: Optional[int] = None,
     sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[Tensor, Tensor, Tensor], Tuple[List[Tensor], List[Tensor],
-                                                                  List[Tensor]], ]:
+) -> Union[Tuple[Tensor, Tensor, Tensor], Tuple[List[Tensor], List[Tensor], List[Tensor]], ]:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.

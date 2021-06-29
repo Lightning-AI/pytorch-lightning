@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Tuple
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import image_gradients as _image_gradients
 

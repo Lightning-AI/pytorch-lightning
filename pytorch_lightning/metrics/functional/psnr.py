@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Optional, Tuple, Union
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import psnr as _psnr
 

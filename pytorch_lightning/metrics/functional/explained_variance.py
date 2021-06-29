@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Sequence, Union
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import explained_variance as _explained_variance
 

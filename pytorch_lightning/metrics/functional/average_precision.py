@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import List, Optional, Sequence, Union
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import average_precision as _average_precision
 

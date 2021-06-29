@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Optional, Sequence
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import ssim as _ssim
 

@@ -16,7 +16,12 @@ from typing import Any, Optional
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.metrics.utils import deprecated_metrics, void, _TORCHMETRICS_GREATER_EQUAL_0_4, _TORCHMETRICS_LOWER_THAN_0_4
+from pytorch_lightning.metrics.utils import (
+    _TORCHMETRICS_GREATER_EQUAL_0_4,
+    _TORCHMETRICS_LOWER_THAN_0_4,
+    deprecated_metrics,
+    void,
+)
 
 
 class FBeta(_FBeta):

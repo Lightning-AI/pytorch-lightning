@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
 from torch import Tensor
 from torchmetrics.functional import r2score as _r2score
 

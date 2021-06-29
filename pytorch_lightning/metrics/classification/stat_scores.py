@@ -15,13 +15,25 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import StatScores as _StatScores
 
-from pytorch_lightning.metrics.utils import deprecated_metrics, void, _TORCHMETRICS_GREATER_EQUAL_0_4, _TORCHMETRICS_LOWER_THAN_0_4
+from pytorch_lightning.metrics.utils import (
+    _TORCHMETRICS_GREATER_EQUAL_0_4,
+    _TORCHMETRICS_LOWER_THAN_0_4,
+    deprecated_metrics,
+    void,
+)
 
 
 class StatScores(_StatScores):
 
     @deprecated_metrics(target=_StatScores, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
-    @deprecated_metrics(target=_StatScores, args_mapping={"multilabel": None, "is_multiclass": "multiclass"}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
+    @deprecated_metrics(
+        target=_StatScores,
+        args_mapping={
+            "multilabel": None,
+            "is_multiclass": "multiclass"
+        },
+        skip_if=_TORCHMETRICS_LOWER_THAN_0_4
+    )
     def __init__(
         self,
         threshold: float = 0.5,

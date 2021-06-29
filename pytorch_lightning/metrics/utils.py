@@ -27,8 +27,12 @@ from torchmetrics.utilities.distributed import class_reduce as _class_reduce
 from torchmetrics.utilities.distributed import reduce as _reduce
 
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_3, _TORCHMETRICS_LOWER_THAN_0_3, \
-    _TORCHMETRICS_LOWER_THAN_0_4, _TORCHMETRICS_GREATER_EQUAL_0_4
+from pytorch_lightning.utilities.imports import (
+    _TORCHMETRICS_GREATER_EQUAL_0_3,
+    _TORCHMETRICS_GREATER_EQUAL_0_4,
+    _TORCHMETRICS_LOWER_THAN_0_3,
+    _TORCHMETRICS_LOWER_THAN_0_4,
+)
 
 deprecated_metrics = partial(deprecated, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_deprecation)
 
@@ -96,9 +100,7 @@ def reduce(to_reduce: Tensor, reduction: str) -> Tensor:
 
 
 @deprecated_metrics(target=_class_reduce)
-def class_reduce(
-    num: Tensor, denom: Tensor, weights: Tensor, class_reduction: str = "none"
-) -> Tensor:
+def class_reduce(num: Tensor, denom: Tensor, weights: Tensor, class_reduction: str = "none") -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.utilities.class_reduce`. Will be removed in v1.5.0.
