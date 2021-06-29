@@ -15,6 +15,7 @@ import logging
 import os
 import platform
 import time
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -25,6 +26,7 @@ from packaging.version import Version
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel
@@ -430,6 +432,25 @@ def test_pytorch_profiler_nested(tmpdir):
 
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
+def test_pytorch_profiler_loggercollection(tmpdir):
+    model = BoringModel()
+
+    # Wrap the logger in a list so it becomes a LoggerCollection
+    logger = [
+        TensorBoardLogger(save_dir=tmpdir)
+    ]
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        profiler="pytorch",
+        logger=logger,
+        limit_train_batches=5, # it takes a while for the warning to appear
+        max_epochs=1,
+    )
+
+    with warnings.catch_warnings(record=True) as l:
+        trainer.fit(model)
+        msg = "failed to export trace" 
+        assert all([msg not in str(w.message) for w in l])
 
 @RunIf(min_gpus=1, special=True)
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
