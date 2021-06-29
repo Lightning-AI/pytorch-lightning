@@ -103,7 +103,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]], should_raise: bool
     return gpus
 
 
-def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int], int]]:
+def parse_tpu_cores(tpu_cores: Union[int, str, List], should_raise: bool = True) -> Optional[Union[List[int], int]]:
     """
     Parses the tpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -130,7 +130,11 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
     if tpu_cores is not None and not _TPU_AVAILABLE:
-        raise MisconfigurationException('No TPU devices were found.')
+        msg = 'No TPU devices were found.'
+        if should_raise:
+            raise MisconfigurationException(msg)
+        else:
+            warning_cache.warn(msg)
 
     return tpu_cores
 
