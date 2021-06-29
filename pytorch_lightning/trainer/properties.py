@@ -229,7 +229,7 @@ class TrainerProperties(ABC):
             dirpath = getattr(self.logger, 'save_dir')
 
         # e.g. when the logger is a LoggerCollection
-        if(dirpath is None):
+        if (dirpath is None):
             dirpath = self.default_root_dir
 
         dirpath = self.accelerator.broadcast(dirpath)
