@@ -9,4 +9,4 @@ fsspec[http]>=2021.05.0, !=2021.06.0
 tensorboard>=2.2.0, !=2.5.0  # 2.5.0 GPU CI error: 'Couldn't build proto file into descriptor pool!'
 torchmetrics>=0.2.0
 pyDeprecate==0.3.0
-packaging
+packaging>=17.0
