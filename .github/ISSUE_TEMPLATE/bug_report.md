@@ -48,7 +48,7 @@ python collect_env_details.py
  - CUDA/cuDNN version:
  - GPU models and configuration:
  - How you installed PyTorch (`conda`, `pip`, source):
- - Build command you used (if compiling from source):
+ - If compiling from source, the output of `torch.__config__.show()`:
  - Any other relevant information:
 
 ### Additional context
