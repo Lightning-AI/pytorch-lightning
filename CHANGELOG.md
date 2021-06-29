@@ -121,7 +121,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added XLA Profiler ([#8014](https://github.com/PyTorchLightning/pytorch-lightning/pull/8014))
 
 
-- Added `should_raise_exception` to `parse_gpu_ids` and `_sanitize_gpu_ids` utilities functions ([#8194](https://github.com/PyTorchLightning/pytorch-lightning/pull/8194))
+- Added `should_raise_exception` parameter to `parse_gpu_ids` and `_sanitize_gpu_ids` utilities functions ([#8194](https://github.com/PyTorchLightning/pytorch-lightning/pull/8194))
 
 
 ### Changed
