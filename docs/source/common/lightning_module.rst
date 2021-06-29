@@ -280,9 +280,9 @@ In this case, implement the `training_step_end` method
 
      def training_step_end(self, batch_parts):
          # predictions from each GPU
-         predictions = batch_parts['pred]
+         predictions = batch_parts['pred']
          # losses from each GPU
-         losses = batch_parts['loss]
+         losses = batch_parts['loss']
 
          gpu_0_prediction = predictions[0]
          gpu_1_prediction = predictions[1]
@@ -389,9 +389,9 @@ In this case, implement the `validation_step_end` method
 
      def validation_step_end(self, batch_parts):
          # predictions from each GPU
-         predictions = batch_parts['pred]
+         predictions = batch_parts['pred']
          # losses from each GPU
-         losses = batch_parts['loss]
+         losses = batch_parts['loss']
 
          gpu_0_prediction = predictions[0]
          gpu_1_prediction = predictions[1]
