@@ -205,8 +205,8 @@ class ModelIO(object):
         keys = model.load_state_dict(checkpoint['state_dict'], strict=strict)
 
         if not strict:
-            log.warn("Missing Keys: " + keys.missing_keys)
-            log.warn("Unexpected Keys: " + keys.unexpected_keys)
+            rank_zero_warn(f"Missing Keys: {keys.missing_keys}")
+            rank_zero_warn(f"Unexpected Keys: {keys.unexpected_keys}")
 
         return model
 
