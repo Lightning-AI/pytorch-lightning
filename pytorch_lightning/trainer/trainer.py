@@ -457,20 +457,6 @@ class Trainer(
         self.num_predict_batches = []
         self.predicted_ckpt_path = None
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
-        # clean hparams
-        if hasattr(model, "hparams"):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
-
-        # attach model log function to callback
-        self.callback_connector.attach_model_logging_functions(model)
-
     def fit(
         self,
         model: 'pl.LightningModule',
