@@ -108,10 +108,10 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
     trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
-        assert trainer.train_loop.batch_idx == trainer.num_training_batches - 1
+        assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
         assert trainer.global_step == trainer.num_training_batches * max_epochs
     else:
-        assert trainer.train_loop.batch_idx == batch_idx_
+        assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
 
 

@@ -64,8 +64,7 @@ class DataConnector:
 
         if self.trainer.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
-        else:
-            return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+        return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 
     def attach_data(
         self,
@@ -113,30 +112,28 @@ class DataConnector:
     def attach_datamodule(
         self, model: 'pl.LightningModule', datamodule: Optional['pl.LightningDataModule'] = None
     ) -> None:
-        # We use datamodule if it's been provided, otherwise we check model for it
-        datamodule = datamodule or getattr(model, 'datamodule', None)
-
         # If we have a datamodule, attach necessary hooks + dataloaders
-        if datamodule:
+        if datamodule is None:
+            return
 
-            # Override loader hooks
-            dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
-            for method in dl_methods:
-                if is_overridden(method, datamodule):
-                    setattr(model, method, getattr(datamodule, method))
+        # Override loader hooks
+        dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
+        for method in dl_methods:
+            if is_overridden(method, datamodule):
+                setattr(model, method, getattr(datamodule, method))
 
-            # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-            batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
-            for hook in batch_transfer_hooks:
-                if is_overridden(hook, datamodule):
-                    setattr(model, hook, getattr(datamodule, hook))
+        # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
+        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        for hook in batch_transfer_hooks:
+            if is_overridden(hook, datamodule):
+                setattr(model, hook, getattr(datamodule, hook))
 
-            self.trainer.datamodule = datamodule
-            datamodule.trainer = self.trainer
+        self.trainer.datamodule = datamodule
+        datamodule.trainer = self.trainer
 
-            # experimental feature for Flash
-            if hasattr(datamodule, "data_pipeline"):
-                model.data_pipeline = datamodule.data_pipeline
+        # experimental feature for Flash
+        if hasattr(datamodule, "data_pipeline"):
+            model.data_pipeline = datamodule.data_pipeline
 
 
 class _PatchDataLoader:

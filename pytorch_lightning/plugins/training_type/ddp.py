@@ -13,11 +13,16 @@
 # limitations under the License.
 import logging
 import os
+import shutil
+import signal
 import subprocess
 import sys
+import tempfile
+import time
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
+import __main__
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
@@ -36,8 +41,8 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _HYDRA_AVAILABLE:
@@ -93,6 +98,8 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._pids: Optional[List[int]] = None
+        self._sync_dir: Optional[str] = None
         self.set_world_ranks()
 
     @property
@@ -141,7 +148,6 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
 
     def _call_children_scripts(self):
-
         # bookkeeping of spawned processes
         assert self.local_rank == 0
         self._check_can_spawn_children()
@@ -155,19 +161,28 @@ class DDPPlugin(ParallelPlugin):
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
-        # when user is using hydra find the absolute path
-        path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
+        # create a temporary directory used to synchronize processes on deadlock.
+        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
 
-        # pull out the commands used to run the script and resolve the abs file path
-        command = sys.argv
-        try:
-            full_path = path_lib(command[0])
-        except Exception:
-            full_path = os.path.abspath(command[0])
+        # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
+        # See https://docs.python.org/3/reference/import.html#main-spec
+        if __main__.__spec__ is None:  # pragma: no-cover
+            # Script called as `python a/b/c.py`
+            # when user is using hydra find the absolute path
+            path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
 
-        command[0] = full_path
-        # use the same python interpreter and actually running
-        command = [sys.executable] + command
+            # pull out the commands used to run the script and resolve the abs file path
+            command = sys.argv
+            try:
+                full_path = path_lib(command[0])
+            except Exception:
+                full_path = os.path.abspath(command[0])
+
+            command[0] = full_path
+            # use the same python interpreter and actually running
+            command = [sys.executable] + command
+        else:  # Script called as `python -m a.b.c`
+            command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
         # the visible devices tell us how many GPUs we want to use.
         # when the trainer script was called the device has already been scoped by the time
@@ -225,13 +240,6 @@ class DDPPlugin(ParallelPlugin):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         self.init_ddp_connection()
-
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.distributed_backend}")
-            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
-            log.info("-" * 100)
 
         # set the ranks and devices
         self.dist.rank = self.global_rank
@@ -301,6 +309,14 @@ class DDPPlugin(ParallelPlugin):
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
+            # on rank=0 let everyone know training is starting
+            rank_zero_info(
+                f"{'-' * 100}\n"
+                f"distributed_backend={self.torch_distributed_backend}\n"
+                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
+                f"{'-' * 100}\n"
+            )
+
     def pre_dispatch(self):
         # move the model to the correct device
         self.model_to_device()
@@ -310,13 +326,18 @@ class DDPPlugin(ParallelPlugin):
 
         self.configure_ddp()
 
-        self.barrier()
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
 
-    def barrier(self, *args, **kwargs):
-        if torch_distrib.is_available() and torch_distrib.is_initialized():
+    def barrier(self, *args, **kwargs) -> None:
+        if not torch_distrib.is_initialized():
+            return
+        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+        else:
             torch_distrib.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
@@ -373,3 +394,41 @@ class DDPPlugin(ParallelPlugin):
             description="DDP Plugin with `find_unused_parameters` as False",
             find_unused_parameters=False
         )
+
+    def _share_information_to_prevent_deadlock(self):
+        self._share_pids()
+
+        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
+        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+
+    def _share_pids(self):
+        """
+        Make all DDP processes aware of all processes pids.
+        """
+        self.barrier()
+        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
+        pids = pids.cpu().numpy().tolist()
+        self._pids = pids if isinstance(pids, list) else [pids]
+
+    def reconciliate_processes(self, trace: str):
+        if self.world_size < 2:
+            return
+
+        sync_dir = self._sync_dir
+
+        # save a file locally.
+        torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
+
+        # sleep for a short time
+        time.sleep(3)
+
+        # return if all processes wrote a file in the `sync_dir`.
+        # todo (tchaton) Add support for non-shared file-system which will fail.
+        if len(os.listdir(sync_dir)) == self.world_size:
+            return
+
+        for pid in self._pids:
+            if pid != os.getpid():
+                os.kill(pid, signal.SIGKILL)
+            shutil.rmtree(sync_dir)
+            raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
