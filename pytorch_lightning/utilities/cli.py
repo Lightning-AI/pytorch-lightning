@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -116,7 +116,7 @@ class SaveConfigCallback(Callback):
             get_filesystem(log_dir).makedir(log_dir, exist_ok=True)
             self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite)
 
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple[Type['SaveConfigCallback'], Tuple, Dict]:
         # `ArgumentParser` is un-pickleable. Drop it
         return (
             self.__class__,
