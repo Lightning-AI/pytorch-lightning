@@ -143,9 +143,9 @@ def test_logdir_custom_logger(tmpdir):
 
 
 def test_logdir_loggercollection(tmpdir):
-    """ 
-    Tests that the logdir equals the default_root_dir when the logger is a 
-    LoggerCollection 
+    """
+    Tests that the logdir equals the default_root_dir when the logger is a
+    LoggerCollection
     """
     expected = tmpdir
     model = TestModel(expected)
@@ -160,4 +160,3 @@ def test_logdir_loggercollection(tmpdir):
     assert trainer.log_dir == expected
     trainer.fit(model)
     assert trainer.log_dir == expected
-

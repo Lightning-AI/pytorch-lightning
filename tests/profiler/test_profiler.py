@@ -438,6 +438,7 @@ def test_pytorch_profiler_loggercollection(tmpdir):
     Tests whether the PyTorch profiler is able to write its trace locally when
     the Trainer's logger is an instance of LoggerCollection. See issue #8157.
     """
+
     def look_for_trace(dir):
         """ Determines if a directory contains a PyTorch trace """
         return any(("trace.json" in filename for filename in os.listdir(dir)))
@@ -458,7 +459,7 @@ def test_pytorch_profiler_loggercollection(tmpdir):
     )
 
     trainer.fit(model)
-    
+
     assert look_for_trace(tmpdir)
 
 
