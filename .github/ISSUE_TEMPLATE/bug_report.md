@@ -42,7 +42,7 @@ python collect_env_details.py
 ```
 
  - PyTorch Lightning Version (e.g., 1.3.0):
- - PyTorch Version (e.g., 1.0)
+ - PyTorch Version (e.g., 1.8)
  - Python version:
  - OS (e.g., Linux):
  - CUDA/cuDNN version:
