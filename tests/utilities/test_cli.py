@@ -628,9 +628,14 @@ def test_lightning_cli_optimizer(tmpdir):
         '--trainer.max_epochs=1',
     ]
 
-    with mock.patch('sys.argv', ['any.py'] + cli_args):
+    match = (
+        'BoringModel.configure_optimizers` will be overridden by '
+        '`MyLightningCLI.add_configure_optimizers_method_to_model`'
+    )
+    with mock.patch('sys.argv', ['any.py'] + cli_args), pytest.warns(UserWarning, match=match):
         cli = MyLightningCLI(BoringModel)
 
+    assert cli.model.configure_optimizers is not BoringModel.configure_optimizers
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
     assert len(cli.trainer.lr_schedulers) == 0
@@ -653,6 +658,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     with mock.patch('sys.argv', ['any.py'] + cli_args):
         cli = MyLightningCLI(BoringModel)
 
+    assert cli.model.configure_optimizers is not BoringModel.configure_optimizers
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
     assert len(cli.trainer.lr_schedulers) == 1
