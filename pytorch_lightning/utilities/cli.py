@@ -122,7 +122,7 @@ class LightningArgumentParser(ArgumentParser):
         Adds arguments from a learning rate scheduler class to a nested key of the parser
 
         Args:
-            lr_scheduler_class: Any subclass of torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}.
+            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
@@ -339,7 +339,8 @@ class LightningCLI:
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
     def add_configure_optimizers_method_to_model(self) -> None:
-        """Adds to the model an automatically generated configure_optimizers method
+        """
+        Adds to the model an automatically generated configure_optimizers method
 
         If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC',
         then a `configure_optimizers` method is automatically implemented in the model class.
