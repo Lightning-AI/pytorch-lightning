@@ -121,7 +121,7 @@ class SaveConfigCallback(Callback):
         return (
             self.__class__,
             (None, self.config, self.config_filename),
-            dict(),
+            {},
         )
 
 
