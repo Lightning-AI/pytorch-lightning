@@ -80,8 +80,8 @@ class TrainingEpochLoop(loops.Loop):
     def connect(self, trainer: 'pl.Trainer', batch_loop, val_loop) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
         super().connect(trainer)
-        self.batch_loop = batch_loop#  or TrainingBatchLoop()
-        self.val_loop = val_loop #or loops.EvaluationLoop()
+        self.batch_loop = batch_loop  #  or TrainingBatchLoop()
+        self.val_loop = val_loop  #or loops.EvaluationLoop()
         # self.val_loop.connect(trainer)
 
     def reset(self) -> None:

@@ -28,7 +28,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import TrainingEpochLoop, TrainingBatchLoop
+from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
