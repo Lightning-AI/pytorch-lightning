@@ -302,7 +302,7 @@ class AcceleratorConnector(object):
 
     @property
     def use_cpu(self) -> bool:
-        return self._device_type == DeviceType.CPU
+        return self._accelerator_type == DeviceType.CPU
 
     @property
     def has_gpu(self) -> bool:
