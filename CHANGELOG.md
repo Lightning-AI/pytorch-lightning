@@ -126,9 +126,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `max_depth` parameter in `ModelSummary` ([#8062](https://github.com/PyTorchLightning/pytorch-lightning/pull/8062))
 
 
-- Added `should_raise_exception` parameter to `parse_gpu_ids`, `parse_tpu_cores` and `_sanitize_gpu_ids` utility functions ([#8194](https://github.com/PyTorchLightning/pytorch-lightning/pull/8194))
-
-
 ### Changed
 
 
