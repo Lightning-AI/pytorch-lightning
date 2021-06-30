@@ -41,7 +41,13 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    distributed_available,
+    rank_zero_info,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -94,7 +100,7 @@ class DDPPlugin(ParallelPlugin):
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
-        self.task_idx = None
+        self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -127,6 +133,18 @@ class DDPPlugin(ParallelPlugin):
     @sync_batchnorm.setter
     def sync_batchnorm(self, sync_batchnorm: bool) -> None:
         self._sync_batchnorm = sync_batchnorm
+
+    @property
+    def task_idx(self) -> Optional[int]:
+        rank_zero_deprecation(
+            f'`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use '
+            f'`{self.__class__.__name__}.local_rank` instead.'
+        )
+        return self._task_idx
+
+    @task_idx.setter
+    def task_idx(self, task_idx: int) -> None:
+        self._task_idx = task_idx
 
     @property
     def distributed_sampler_kwargs(self):
@@ -333,7 +351,7 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch.distributed.is_initialized():
+        if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())

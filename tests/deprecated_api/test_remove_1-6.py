@@ -243,3 +243,9 @@ def test_v1_6_0_rank_zero_warnings_moved():
         rank_zero_warn('test')
     with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
         rank_zero_deprecation('test')
+
+
+def test_v1_6_0_ddp_plugin_task_idx():
+    plugin = DDPPlugin()
+    with pytest.deprecated_call(match='Use `DDPPlugin.local_rank` instead'):
+        _ = plugin.task_idx
