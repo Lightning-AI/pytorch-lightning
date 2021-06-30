@@ -1654,13 +1654,12 @@ class LightningModule(
                     f" and will be removed in v1.6. Use `{max_depth=}` to replicate the `{mode=}` behavior."
                 )
                 model_summary = ModelSummary(self, max_depth=max_depth)
-                log.info("\n" + str(model_summary))
             elif mode is not None:
                 raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
         else:
             model_summary = ModelSummary(self, max_depth=max_depth)
-            log.info("\n" + str(model_summary))
 
+        log.info("\n" + str(model_summary))
         return model_summary
 
     def freeze(self) -> None:
