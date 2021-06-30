@@ -227,7 +227,7 @@ class TrainerProperties(ABC):
         elif isinstance(self.logger, TensorBoardLogger):
             dirpath = self.logger.log_dir
         else:
-            dirpath = getattr(self.logger, 'save_dir')
+            dirpath = self.logger.save_dir
 
         # e.g. when the logger is a LoggerCollection
         if (dirpath is None):
