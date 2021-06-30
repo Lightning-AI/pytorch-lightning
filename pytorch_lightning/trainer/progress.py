@@ -152,7 +152,7 @@ class EpochProgress(Progress):
         current: Tracks the current epoch progress
         batch: Tracks batch progress.
     """
-
+    dataloader_idx: int = 0
     batch: BatchProgress = field(default_factory=BatchProgress)
 
     def reset_on_epoch(self) -> None:
@@ -161,6 +161,7 @@ class EpochProgress(Progress):
     def __setstate__(self, state: dict) -> None:
         super().__setstate__(state)
         self.batch.__setstate__(state["batch"])
+        self.dataloader_idx = state["dataloader_idx"]
 
 
 @dataclass
@@ -226,7 +227,6 @@ class EpochLoopProgress(_DataclassStateDictMixin):
     Args:
         epoch: Tracks epochs progress.
     """
-    dataloader_idx: int = 0
     epoch: EpochProgress = field(default_factory=EpochProgress)
 
     def increment_epoch_completed(self) -> None:
@@ -239,6 +239,16 @@ class EpochLoopProgress(_DataclassStateDictMixin):
 
     def __setstate__(self, state: dict) -> None:
         self.epoch.__setstate__(state["epoch"])
+
+
+@dataclass
+class EvaluationEpochLoopProgress(EpochLoopProgress):
+
+    should_check_val: bool = False
+
+    def __setstate__(self, state: dict) -> None:
+        self.epoch.__setstate__(state["epoch"])
+        self.should_check_val = state["should_check_val"]
 
 
 @dataclass
@@ -255,7 +265,7 @@ class TrainingEpochProgress(EpochProgress):
     """
 
     optim: OptimizationProgress = field(default_factory=OptimizationProgress)
-    val: EpochLoopProgress = field(default_factory=EpochLoopProgress)
+    val: EvaluationEpochLoopProgress = field(default_factory=EvaluationEpochLoopProgress)
 
     def __setstate__(self, state: dict) -> None:
         super().__setstate__(state)

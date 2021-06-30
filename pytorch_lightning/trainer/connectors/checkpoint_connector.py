@@ -443,12 +443,20 @@ class CheckpointConnector:
         return {n: p.grad for n, p in self.trainer.lightning_module.named_parameters()}
 
     def get_samplers_state_dict(self):
+
+        if self.trainer.train_dataloader is None:
+            self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+
+        if self.trainer.val_dataloaders:
+            self.trainer.reset_val_dataloader(self.trainer.lightning_module)
+
+        train_sampler = self.trainer.train_dataloader.sampler
+        val_samplers = [dl.sampler for dl in self.trainer.val_dataloaders]
+
         return {
             TrainerFn.FITTING.value: {
-                RunningStage.TRAINING.value: self._get_samplers_state_dict(self.trainer.train_dataloader.sampler),
-                RunningStage.VALIDATING.value: self._get_samplers_state_dict(
-                    [dl.sampler for dl in self.trainer.val_dataloaders] if self.trainer.val_dataloaders else None
-                )
+                RunningStage.TRAINING.value: self._get_samplers_state_dict(train_sampler),
+                RunningStage.VALIDATING.value: self._get_samplers_state_dict(val_samplers)
             }
         }
 

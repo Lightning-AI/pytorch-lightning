@@ -89,7 +89,7 @@ class TrainingEpochLoop(loops.Loop):
 
     @property
     def total_optimizer_step(self) -> int:
-        return self.progress.epoch.optimization.optimizer.total.completed
+        return self.progress.optim.optimizer.step.completed
 
     @property
     def current_batch_seen(self) -> int:
@@ -199,9 +199,9 @@ class TrainingEpochLoop(loops.Loop):
         should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
 
         if self.trainer.is_restarting:
-            should_check_val = self.trainer.fit_loop.epoch_loop.progress.batch.should_check_val
+            should_check_val = self.progress.val.should_check_val
         else:
-            self.trainer.fit_loop.epoch_loop.progress.batch.should_check_val = should_check_val
+            self.progress.val.should_check_val = should_check_val
 
         if should_check_val:
             self.trainer.validating = True

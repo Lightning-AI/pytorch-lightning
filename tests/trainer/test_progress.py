@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import pytest
 import torch
 
@@ -30,7 +28,6 @@ from pytorch_lightning.trainer.progress import (
     TrainingEpochProgress,
 )
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 class CustomException(BaseException):
@@ -150,7 +147,7 @@ def test_fit_loop_progress_serialization():
     fit_loop = FitLoopProgress()
     state_dict = fit_loop.state_dict()
     # yapf: disable
-    assert state_dict == {
+    expected = {
         'epoch': {
             # number of epochs across `fit` calls
             'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
@@ -162,6 +159,7 @@ def test_fit_loop_progress_serialization():
                 # number of batches this epoch
                 'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
             },
+            'dataloader_idx': 0,
             # `fit` optimization progress
             'optim': {
                 # optimizers progress
@@ -185,6 +183,7 @@ def test_fit_loop_progress_serialization():
                     # `scheduler.step` calls this epoch
                     'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
                 },
+                "optimizer_idx": 0,
             },
             # `fit` validation progress
             'val': {
@@ -199,10 +198,13 @@ def test_fit_loop_progress_serialization():
                         # number of batches this `fit` `validation` call
                         'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
                     },
-                }
+                    'dataloader_idx': 0
+                },
+                'should_check_val': False,
             },
         }
     }
+    assert expected == state_dict
     # yapf: enable
     new_loop = FitLoopProgress.from_state_dict(state_dict)
     assert fit_loop == new_loop
@@ -224,6 +226,7 @@ def test_epoch_loop_progress_serialization():
                 # number of batches this `validate` call
                 'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
             },
+            'dataloader_idx': 0,
         }
     }
     # yapf: enable
@@ -231,7 +234,6 @@ def test_epoch_loop_progress_serialization():
     assert loop == new_loop
 
 
-# todo: (tchaton) Finish `accumulate_grad_batches`
 @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
@@ -441,7 +443,7 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
         ready=current, started=current, processed=current - 1, completed=current - 1
     )
 
-    assert pr.dataloader_idx == 1
+    assert pr.epoch.dataloader_idx == 1
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -454,50 +456,23 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
         num_sanity_val_steps=0,  # TODO (tchaton) This fails when increasing to 1
     )
 
+    print()
+    print("RESTARTING")
+    print()
+
     trainer.fit(model)
 
     pr = trainer.fit_loop.epoch_loop.progress
 
-    assert pr.epoch.total == Tracker(ready=1, started=1, processed=1, completed=1)
-    assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.total == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
-    pr = trainer.fit_loop.val_loop.progress
+    pr = trainer.fit_loop.epoch_loop.val_loop.progress
 
     assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
     assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
     # total = 3 (num validation samples) * 3 (num dataloaders) * 2 (num validation)
-    assert pr.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
-    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
-    assert pr.dataloader_idx == 2
-
-
-@RunIf(min_gpus=2, special=True)
-def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def training_step(self, batch, batch_idx):
-            if batch_idx == 1 and self.trainer.is_global_zero:
-                raise CustomException
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        num_sanity_val_steps=0,
-        gpus=2,
-        accelerator="ddp",
-    )
-
-    # simulate random failure in training_step on rank 0
-    try:
-        trainer.fit(model)
-    except SystemExit:
-        pass
-
-    pids = os.getenv("PL_INTERACTIVE_DDP_PROCS", None)
-    assert pids is None
+    assert pr.epoch.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
+    assert pr.epoch.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
+    assert pr.epoch.dataloader_idx == 2

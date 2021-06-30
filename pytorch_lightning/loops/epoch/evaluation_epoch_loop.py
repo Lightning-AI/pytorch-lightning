@@ -67,9 +67,9 @@ class EvaluationEpochLoop(Loop):
         self.outputs = []
 
         if not self.trainer.is_restarting:
-            self.progress.current.reset()
+            self.progress.batch.current.reset()
         else:
-            self.iteration_count = self.progress.current.completed
+            self.iteration_count = self.progress.batch.current.completed
             self.trainer.is_restarting = False
 
     def on_run_start(
@@ -92,6 +92,7 @@ class EvaluationEpochLoop(Loop):
         self.dl_max_batches = dl_max_batches
         self.dataloader_idx = dataloader_idx
         self.num_dataloaders = num_dataloaders
+        self.progress.dataloader_idx = dataloader_idx
 
     def advance(
         self,
@@ -116,24 +117,30 @@ class EvaluationEpochLoop(Loop):
         batch_idx, batch = next(dataloader_iter)
 
         print()
-        print("batch_idx", batch_idx)
+        print(
+            self.trainer.current_epoch,
+            self.trainer.fit_loop.batch_idx,
+            dataloader_idx,
+            batch_idx,
+        )
+        print()
 
         if batch is None:
             raise StopIteration
 
-        self.progress.increment_started()
+        self.progress.batch.increment_started()
 
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
-        self.progress.increment_ready()
+        self.progress.batch.increment_ready()
 
         # lightning module methods
         with self.trainer.profiler.profile("evaluation_step_and_end"):
             output = self.evaluation_step(batch, batch_idx, dataloader_idx)
             output = self.evaluation_step_end(output)
 
-        self.progress.increment_processed()
+        self.progress.batch.increment_processed()
 
         # hook + store predictions
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
@@ -144,7 +151,7 @@ class EvaluationEpochLoop(Loop):
         # track epoch level outputs
         self.outputs = self._track_output_for_epoch_end(self.outputs, output)
 
-        self.progress.increment_completed()
+        self.progress.batch.increment_completed()
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""

@@ -21,7 +21,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EpochLoopProgress
+from pytorch_lightning.trainer.progress import EvaluationEpochLoopProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -35,7 +35,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
         self.epoch_loop = EvaluationEpochLoop()
-        self._progress: Optional[EpochLoopProgress] = None
+        self._progress: Optional[EvaluationEpochLoopProgress] = None
         self._has_run: bool = False
         self._results = ResultCollection(training=False)
 
@@ -53,13 +53,13 @@ class EvaluationLoop(DataLoaderLoop):
         return length
 
     @property
-    def progress(self) -> EpochLoopProgress:
+    def progress(self) -> EvaluationEpochLoopProgress:
         if not self._progress:
-            self._progress = EpochLoopProgress(epoch=self.epoch_loop.progress)
+            self._progress = EvaluationEpochLoopProgress(epoch=self.epoch_loop.progress)
         return self._progress
 
     @progress.setter
-    def progress(self, progress: EpochLoopProgress):
+    def progress(self, progress: EvaluationEpochLoopProgress):
         self._progress = progress
         self.epoch_loop.progress = progress.epoch
 
@@ -110,7 +110,7 @@ class EvaluationLoop(DataLoaderLoop):
             # reset batch / epoch progress tracking
             self.progress.reset_on_epoch()
         else:
-            self.iteration_count = self.progress.dataloader_idx
+            self.iteration_count = self.progress.epoch.dataloader_idx
 
     def on_skip(self) -> List:
         return []
@@ -134,8 +134,6 @@ class EvaluationLoop(DataLoaderLoop):
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
-
-        self.progress.dataloader_idx = self.current_dataloader_idx
 
         dl_outputs = self.epoch_loop.run(
             dataloader_iter,
