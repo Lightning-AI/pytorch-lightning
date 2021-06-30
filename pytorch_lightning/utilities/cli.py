@@ -20,6 +20,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.seed import seed_everything
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
@@ -97,6 +98,8 @@ class SaveConfigCallback(Callback):
         self.overwrite = overwrite
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        # save the config in `setup` because (1) we want it to save regardless of the trainer function run
+        # and we want to save before processes are spawned
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
         if not self.overwrite and os.path.isfile(config_path):
@@ -106,10 +109,15 @@ class SaveConfigCallback(Callback):
                 ' set `LightningCLI(save_config_callback=None)` to disable config saving,'
                 ' or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file.'
             )
-        self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite)
+        if trainer.is_global_zero:
+            # save only on rank zero to avoid race conditions on DDP.
+            # the `log_dir` needs to be created as we rely on the logger to do it usually
+            # but it hasn't logged anything at this point
+            get_filesystem(log_dir).makedir(log_dir, exist_ok=True)
+            self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite)
 
     def __reduce__(self):
-        # the `ArgumentParser` is un-pickleable
+        # `ArgumentParser` is un-pickleable. Drop it
         return (
             self.__class__,
             (None, self.config, self.config_filename),

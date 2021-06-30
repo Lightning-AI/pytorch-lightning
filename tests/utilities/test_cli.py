@@ -35,6 +35,7 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.runif import RunIf
 
 torchvision_version = version.parse('0')
 if _TORCHVISION_AVAILABLE:
@@ -606,20 +607,26 @@ def test_lightning_cli_link_arguments(tmpdir):
 
 
 @pytest.mark.parametrize('logger', (False, True))
-def test_cli_ddp_spawn_save_config_callback(tmpdir, logger):
-    # test ddp (cpu) spawn, with and without logger.
+@pytest.mark.parametrize('accelerator', ('ddp_cpu', pytest.param('ddp', marks=RunIf(min_gpus=1))))
+def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, accelerator):
     with mock.patch('sys.argv', ['any.py']):
         LightningCLI(
             BoringModel,
             trainer_defaults={
                 'default_root_dir': str(tmpdir),
                 'logger': logger,
-                'accelerator': 'ddp_cpu',
+                'accelerator': accelerator,
                 'max_steps': 1,
                 'max_epochs': 1
             }
         )
-    config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml' if logger else tmpdir / 'config.yaml'
+    if logger:
+        config_dir = tmpdir / 'lightning_logs'
+        # no more version dirs should get created
+        assert os.listdir(config_dir) == ['version_0']
+        config_path = config_dir / 'version_0' / 'config.yaml'
+    else:
+        config_path = tmpdir / 'config.yaml'
     assert os.path.isfile(config_path)
 
 
