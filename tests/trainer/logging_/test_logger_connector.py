@@ -21,6 +21,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torch.distributed
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
 
@@ -607,6 +608,8 @@ def test_logged_metrics_steps(tmpdir):
 
 def test_metrics_reset(tmpdir):
     """Tests that metrics are reset correctly after the end of the train/val/test epoch."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
 
     class TestModel(LightningModule):
 
