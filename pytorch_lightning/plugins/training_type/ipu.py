@@ -211,7 +211,7 @@ class IPUPlugin(ParallelPlugin):
             dataloader = apply_to_collection(dataloader, DataLoader, self.process_dataloader)
             return dataloader
         if not isinstance(dataloader, poptorch.DataLoader):
-            is_training = self.lightning_module.trainer.state.stage is RunningStage.TRAINING
+            is_training = self.lightning_module.trainer.training
             opts = self.training_opts if is_training else self.inference_opts
             dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader
