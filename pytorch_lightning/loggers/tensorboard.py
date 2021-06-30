@@ -112,8 +112,7 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         if self.name is None or len(self.name) == 0:
             return self.save_dir
-        else:
-            return os.path.join(self.save_dir, self.name)
+        return os.path.join(self.save_dir, self.name)
 
     @property
     def log_dir(self) -> str:

@@ -20,6 +20,9 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
@@ -50,7 +53,8 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     return root_gpu
 
 
-def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
+def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]],
+                  should_raise_exception: bool = True) -> Optional[List[int]]:
     """
     Parses the GPU ids given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -61,6 +65,8 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
             indicates specific GPUs to use.
             An int 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised
+            if the requested GPUs aren't available. Otherwise, a warning will be raised instead.
 
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
@@ -84,18 +90,23 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
-        raise MisconfigurationException("GPUs requested but none are available.")
+        msg = "GPUs requested but none are available."
+        if should_raise_exception:
+            raise MisconfigurationException(msg)
+        else:
+            warning_cache.warn(msg)
 
     if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
 
-    gpus = _sanitize_gpu_ids(gpus)
+    gpus = _sanitize_gpu_ids(gpus, should_raise_exception=should_raise_exception)
 
     return gpus
 
 
-def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int], int]]:
+def parse_tpu_cores(tpu_cores: Union[int, str, List],
+                    should_raise_exception: bool = True) -> Optional[Union[List[int], int]]:
     """
     Parses the tpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -105,6 +116,8 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
             An int 8 or string '8' indicate that all 8 cores with multi-processing should be used
             A list of int or a string containing list of comma separated integer
             indicates specific TPU core to use.
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised
+            if the requested TPU cores aren't available. Otherwise, a warning will be raised instead.
 
     Returns:
         a list of tpu_cores to be used or ``None`` if no TPU cores were requested
@@ -122,7 +135,11 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
     if tpu_cores is not None and not _TPU_AVAILABLE:
-        raise MisconfigurationException('No TPU devices were found.')
+        msg = 'No TPU devices were found.'
+        if should_raise_exception:
+            raise MisconfigurationException(msg)
+        else:
+            warning_cache.warn(msg)
 
     return tpu_cores
 
@@ -132,28 +149,29 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         return s
     if s == '-1':
         return -1
-    elif ',' in s:
+    if ',' in s:
         return [int(x.strip()) for x in s.split(',') if len(x) > 0]
-    else:
-        num_gpus = int(s.strip())
-        if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-            rank_zero_deprecation(
-                f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-                " In the current version of Lightning, this will select"
-                f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-                f" {list(range(num_gpus))} (same as gpus={s} (int)).",
-            )
-            return [num_gpus]
-        return num_gpus
+    num_gpus = int(s.strip())
+    if _compare_version("pytorch_lightning", operator.lt, "1.5"):
+        rank_zero_deprecation(
+            f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
+            " In the current version of Lightning, this will select"
+            f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
+            f" {list(range(num_gpus))} (same as gpus={s} (int)).",
+        )
+        return [num_gpus]
+    return num_gpus
 
 
-def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
+def _sanitize_gpu_ids(gpus: List[int], should_raise_exception: bool = True) -> List[int]:
     """
     Checks that each of the GPUs in the list is actually available.
     Raises a MisconfigurationException if any of the GPUs is not available.
 
     Args:
         gpus: list of ints corresponding to GPU indices
+        should_raise_exception: Whether a ``MisconfigurationException`` should be raised
+            if the requested GPUs aren't available. Otherwise, a warning will be raised instead.
 
     Returns:
         unmodified gpus variable
@@ -165,9 +183,11 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     all_available_gpus = _get_all_available_gpus()
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            raise MisconfigurationException(
-                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
-            )
+            msg = f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
+            if should_raise_exception:
+                raise MisconfigurationException(msg)
+            else:
+                warning_cache.warn(msg)
     return gpus
 
 

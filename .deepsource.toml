@@ -1,5 +1,7 @@
 version = 1
 
+test_patterns = ["tests/**", "benchmarks/**"]
+
 [[analyzers]]
 name = "secrets"
 enabled = true
