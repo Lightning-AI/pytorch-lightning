@@ -33,7 +33,7 @@ def test_loops_state_dict_structure():
 
 def test_loops_state_dict_structure_with_trainer():
     trainer = Trainer()
-    state_dict = trainer.get_loops_state_dict()
+    state_dict = trainer.loops_state_dict()
     expected = {
         "fit_loop": {
             'epoch_loop': {

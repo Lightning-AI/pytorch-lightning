@@ -484,6 +484,13 @@ class TrainerProperties(ABC):
         elif self.sanity_checking:
             self.state.stage = None
 
+    def loops_state_dict(self) -> Dict[str, Any]:
+        return {
+            "fit_loop": self.fit_loop.state_dict(),
+            "validate_loop": self.validate_loop.state_dict(),
+            "test_loop": self.test_loop.state_dict(),
+        }
+
     """
     Loop properties
     """
@@ -567,13 +574,6 @@ class TrainerProperties(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    def get_loops_state_dict(self) -> Dict[str, Any]:
-        return {
-            "fit_loop": self.fit_loop.state_dict(),
-            "validate_loop": self.validate_loop.state_dict(),
-            "test_loop": self.test_loop.state_dict(),
-        }
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
