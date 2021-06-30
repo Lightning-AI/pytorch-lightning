@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
@@ -21,10 +22,10 @@ from weakref import proxy
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops import TrainingEpochLoop, TrainingBatchLoop
@@ -39,6 +40,7 @@ from pytorch_lightning.profiler import (
     PassThroughProfiler,
     PyTorchProfiler,
     SimpleProfiler,
+    XLAProfiler,
 )
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -73,6 +75,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -471,23 +474,9 @@ class Trainer(
         self.num_predict_batches = []
         self.predicted_ckpt_path = None
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
-        # clean hparams
-        if hasattr(model, "hparams"):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
-
-        # attach model log function to callback
-        self.callback_connector.attach_model_logging_functions(model)
-
     def fit(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -543,7 +532,7 @@ class Trainer(
 
     def validate(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
@@ -619,7 +608,7 @@ class Trainer(
 
     def test(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
@@ -694,7 +683,7 @@ class Trainer(
 
     def predict(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
@@ -764,7 +753,7 @@ class Trainer(
 
     def tune(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -824,7 +813,7 @@ class Trainer(
 
         return result
 
-    def _run(self, model: LightningModule) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -1009,6 +998,9 @@ class Trainer(
                 self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
@@ -1107,7 +1099,7 @@ class Trainer(
         self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
-    def _call_setup_hook(self, model: LightningModule) -> None:
+    def _call_setup_hook(self, model: 'pl.LightningModule') -> None:
         fn = self.state.fn._setup_fn
 
         self.accelerator.barrier("pre_setup")
@@ -1119,7 +1111,7 @@ class Trainer(
 
         self.accelerator.barrier("post_setup")
 
-    def _call_configure_sharded_model(self, model: LightningModule) -> None:
+    def _call_configure_sharded_model(self, model: 'pl.LightningModule') -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
 
@@ -1132,7 +1124,7 @@ class Trainer(
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
-    def _call_teardown_hook(self, model: LightningModule) -> None:
+    def _call_teardown_hook(self, model: 'pl.LightningModule') -> None:
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
@@ -1143,6 +1135,8 @@ class Trainer(
 
         model._current_fx_name = None
         model._current_dataloader_idx = None
+        # these could have become stale if metrics are defined in `setup`
+        model._metric_attributes = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
@@ -1193,6 +1187,7 @@ class Trainer(
                 "simple": SimpleProfiler,
                 "advanced": AdvancedProfiler,
                 "pytorch": PyTorchProfiler,
+                "xla": XLAProfiler,
             }
             profiler = profiler.lower()
             if profiler not in PROFILERS:

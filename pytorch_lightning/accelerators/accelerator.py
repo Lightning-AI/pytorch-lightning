@@ -382,7 +382,7 @@ class Accelerator:
     def amp_backend(self) -> Optional[LightningEnum]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
-        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
         return None
 
@@ -393,10 +393,6 @@ class Accelerator:
     @property
     def scaler(self) -> Optional['GradScaler']:
         return getattr(self.precision_plugin, 'scaler', None)
-
-    @property
-    def rpc_enabled(self) -> bool:
-        return self.training_type_plugin.rpc_enabled
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """

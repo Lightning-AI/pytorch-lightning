@@ -18,8 +18,8 @@ from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop
+from pytorch_lightning.loops.dataloader import DataLoaderLoop
+from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -34,7 +34,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
         self.epoch_loop = EvaluationEpochLoop()
-
+        self._has_run: bool = False
         self._results = ResultCollection(training=False)
 
     @property
@@ -122,6 +122,10 @@ class EvaluationLoop(DataLoaderLoop):
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
             self.outputs.append(dl_outputs)
+
+        if not self.trainer.sanity_checking:
+            # indicate the loop has run
+            self._has_run = True
 
     def on_run_end(self) -> Any:
         """Runs the ``on_evaluation_epoch_end`` hook"""
@@ -233,8 +237,7 @@ class EvaluationLoop(DataLoaderLoop):
         model = self.trainer.lightning_module
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
-        else:
-            return is_overridden("validation_epoch_end", model)
+        return is_overridden("validation_epoch_end", model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Runs ``{validation/test}_epoch_end``"""

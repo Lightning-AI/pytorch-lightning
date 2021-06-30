@@ -31,7 +31,7 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
             # parse only the argument names
             cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
             # convert args to kwargs
-            kwargs.update({k: v for k, v in zip(cls_arg_names, args)})
+            kwargs.update(dict(zip(cls_arg_names, args)))
         env_variables = vars(parse_env_variables(cls))
         # update the kwargs by env variables
         kwargs = dict(list(env_variables.items()) + list(kwargs.items()))

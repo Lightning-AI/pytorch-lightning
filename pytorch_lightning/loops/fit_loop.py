@@ -17,9 +17,8 @@ from contextlib import suppress
 from typing import Any, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
@@ -42,18 +41,13 @@ class FitLoop(Loop):
     # FIXME: update the note above
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
-        self.min_epochs = min_epochs
-        self.max_epochs = max_epochs
-        self.epoch_loop: Optional[TrainingEpochLoop] = None
-        self.validation_loop: Optional[EvaluationLoop] = None
+        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
+        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
+        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
     def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self.epoch_loop.results
-        elif self.trainer.validating:
-            return self.validation_loop.results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
+        return self.epoch_loop.results
 
     @property
     def current_epoch(self) -> int:
@@ -155,11 +149,10 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, trainer: 'pl.Trainer', epoch_loop: TrainingEpochLoop, validation_loop: EvaluationLoop) -> None:
-        """Connects the loop with a trainer and two other loops: a training epoch loop and a validation loop."""
-        super().connect(trainer)
-        self.epoch_loop = epoch_loop
-        self.validation_loop = validation_loop
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
+        super().connect(trainer, *args, **kwargs)
+        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""

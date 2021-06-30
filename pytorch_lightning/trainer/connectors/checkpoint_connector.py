@@ -19,15 +19,8 @@ from typing import Optional, Union
 
 import torch
 
-import pytorch_lightning
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _OMEGACONF_AVAILABLE,
-    DeviceType,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+import pytorch_lightning as pl
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
@@ -69,8 +62,7 @@ class CheckpointConnector:
             return
 
         # clear cache before restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
@@ -88,8 +80,7 @@ class CheckpointConnector:
         self._loaded_checkpoint = dict()
 
         # clear cache after restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
@@ -292,8 +283,8 @@ class CheckpointConnector:
         try:
             atomic_save(checkpoint, filepath)
         except AttributeError as err:
-            if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+            if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
                 'warning, `hyper_parameters` dropped from checkpoint.'
                 f' An attribute is not picklable {err}'
@@ -339,7 +330,7 @@ class CheckpointConnector:
         checkpoint = {
             'epoch': current_epoch,
             'global_step': global_step,
-            'pytorch-lightning_version': pytorch_lightning.__version__,
+            'pytorch-lightning_version': pl.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
@@ -366,13 +357,13 @@ class CheckpointConnector:
         # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
             if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
         # give the model a chance to dump a few things
         model.on_save_checkpoint(checkpoint)
