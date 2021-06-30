@@ -1110,9 +1110,13 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-        self.profiler.teardown(stage=fn)
+
         self.teardown(stage=fn)
         model.teardown(stage=fn)
+
+        # summarize profile results
+        self.profiler.describe()
+        self.profiler.teardown(stage=fn)
 
         model._current_fx_name = None
         model._current_dataloader_idx = None

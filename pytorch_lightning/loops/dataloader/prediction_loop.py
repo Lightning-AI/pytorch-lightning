@@ -124,8 +124,6 @@ class PredictionLoop(DataLoaderLoop):
         Returns:
             the results for all dataloaders
         """
-        self.trainer.profiler.describe()
-
         results = self.predictions
 
         self.trainer.call_hook("on_predict_epoch_end", results)
