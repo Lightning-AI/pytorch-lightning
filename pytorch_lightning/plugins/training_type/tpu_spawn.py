@@ -31,7 +31,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -126,7 +126,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def is_distributed(self) -> bool:
-        return self.world_size != 1
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
@@ -177,8 +178,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
-        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
+        if self.is_distributed:
             rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
@@ -211,6 +211,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
+        if not self.is_distributed:
+            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())

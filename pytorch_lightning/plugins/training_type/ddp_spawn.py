@@ -326,6 +326,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
+        if not distributed_available():
+            return obj
         return self.dist.broadcast(obj)
 
     def model_to_device(self):
