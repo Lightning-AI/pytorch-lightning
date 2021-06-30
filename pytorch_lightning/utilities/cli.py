@@ -24,6 +24,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
@@ -362,9 +363,12 @@ class LightningCLI:
             return
 
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
-            raise RuntimeError(
+            raise MisconfigurationException(
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
-                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}."
+                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}. In this case the user "
+                "is expected to link the argument groups and implement `configure_optimizers`, see "
+                "https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_cli.html"
+                "#optimizers-and-learning-rate-schedulers"
             )
 
         if is_overridden('configure_optimizers', self.model):
