@@ -314,7 +314,6 @@ class CheckpointConnector:
                 if logger_state is not None:
                     checkpoint['logger_state'] = logger_state
 
-
         # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
