@@ -36,7 +36,13 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    distributed_available,
+    rank_zero_info,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -312,7 +318,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.load_state_dict(ckpt)
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch.distributed.is_initialized():
+        if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
