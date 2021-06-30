@@ -15,7 +15,6 @@ import logging
 import os
 import platform
 import time
-import warnings
 from copy import deepcopy
 
 import numpy as np
