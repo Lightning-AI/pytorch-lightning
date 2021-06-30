@@ -239,7 +239,7 @@ class TrainingEpochProgress(EpochProgress):
         current: Tracks the current epoch progress.
         batch: Tracks batch progress.
         optim: Tracks optimization progress.
-        val: Tracks validation_loop progress.
+        val: Tracks val_loop progress.
     """
 
     optim: OptimizationProgress = field(default_factory=OptimizationProgress)
