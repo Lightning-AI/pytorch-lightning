@@ -34,8 +34,24 @@ def test_loops_state_dict_structure():
         fit_loop.connect(object())
     fit_loop.connect(Trainer())
     state_dict = fit_loop.state_dict()
-    expected = {'epoch_loop': {'batch_loop': ANY, 'val_loop': ANY}}
+    expected = {'epoch_loop': {'batch_loop': ANY, 'validation_loop': ANY}}
     assert state_dict == expected
 
-    with pytest.raises(NotImplementedError):
-        fit_loop.load_state_dict(state_dict)
+    fit_loop.load_state_dict(state_dict)
+
+
+def test_loops_state_dict_structure_with_trainer():
+
+    trainer = Trainer()
+    state_dict = trainer.get_loops_state_dict()
+    expected = {
+        "fit_loop": {
+            'epoch_loop': {
+                'batch_loop': ANY,
+                'validation_loop': ANY
+            }
+        },
+        "validate_loop": ANY,
+        "test_loop": ANY
+    }
+    assert state_dict == expected

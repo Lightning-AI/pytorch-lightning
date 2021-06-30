@@ -29,8 +29,6 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
-    name = "val_loop"
-
     def __init__(self):
         super().__init__()
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
@@ -274,4 +272,4 @@ class EvaluationLoop(DataLoaderLoop):
         return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:
-        raise NotImplementedError
+        pass

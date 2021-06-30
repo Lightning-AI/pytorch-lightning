@@ -16,7 +16,7 @@ import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import cast, List, Optional, Type, TypeVar, Union
+from typing import Any, cast, Dict, List, Optional, Type, TypeVar, Union
 
 import torch
 from torch.optim import Optimizer
@@ -554,6 +554,13 @@ class TrainerProperties(ABC):
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop.results
+
+    def get_loops_state_dict(self) -> Dict[str, Any]:
+        return {
+            "fit_loop": self.fit_loop.state_dict(),
+            "validate_loop": self.validation_loop.state_dict(),
+            "test_loop": self.test_loop.state_dict(),
+        }
 
     """
     Other

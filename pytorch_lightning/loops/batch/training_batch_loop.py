@@ -40,8 +40,6 @@ from pytorch_lightning.utilities.warnings import WarningCache
 class TrainingBatchLoop(Loop):
     """ Runs over a single batch of data. """
 
-    name = "batch_loop"
-
     def __init__(self) -> None:
         super().__init__()
         self.accumulated_loss: Optional[Tensor] = None
@@ -681,4 +679,4 @@ class TrainingBatchLoop(Loop):
         return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:
-        raise NotImplementedError
+        pass

@@ -51,7 +51,7 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.epoch_loop: Optional[TrainingEpochLoop] = TrainingEpochLoop(min_steps, max_steps)
+        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
     def results(self) -> ResultCollection:
@@ -286,7 +286,7 @@ class FitLoop(Loop):
     def state_dict(self) -> Dict:
         if not self.is_connected:
             raise MisconfigurationException("The Trainer should be connected to loop to retrieve the state_dict.")
-        return {self.epoch_loop.name: self.epoch_loop.state_dict()}
+        return {"epoch_loop": self.epoch_loop.state_dict()}
 
     def load_state_dict(self, state_dict: Dict) -> None:
-        self.epoch_loop.load_state_dict(state_dict[self.epoch_loop.name])
+        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
