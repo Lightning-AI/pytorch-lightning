@@ -302,7 +302,7 @@ class AcceleratorConnector(object):
     @property
     def use_tpu(self) -> bool:
         return self._accelerator_type == DeviceType.TPU and self.on_tpu
-    
+
     @property
     def on_ipu(self) -> bool:
         return self.ipus is not None
