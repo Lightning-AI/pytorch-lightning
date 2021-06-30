@@ -606,19 +606,32 @@ def test_lightning_cli_link_arguments(tmpdir):
     assert cli.model.num_classes == 5
 
 
+class EarlyExitTestModel(BoringModel):
+
+    def on_fit_start(self):
+        raise KeyboardInterrupt()
+
+
 @pytest.mark.parametrize('logger', (False, True))
-@pytest.mark.parametrize('accelerator', ('ddp_cpu', pytest.param('ddp', marks=RunIf(min_gpus=1))))
-def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, accelerator):
-    with mock.patch('sys.argv', ['any.py']):
+@pytest.mark.parametrize(
+    'trainer_kwargs', (
+        {
+            'accelerator': 'ddp_cpu'
+        },
+        pytest.param({'accelerator': 'ddp'}, marks=RunIf(min_gpus=1)),
+        pytest.param({'tpu_cores': 1}, marks=RunIf(tpu=True)),
+    )
+)
+def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, trainer_kwargs):
+    with mock.patch('sys.argv', ['any.py']), pytest.raises(KeyboardInterrupt):
         LightningCLI(
-            BoringModel,
+            EarlyExitTestModel,
             trainer_defaults={
                 'default_root_dir': str(tmpdir),
                 'logger': logger,
-                'accelerator': accelerator,
                 'max_steps': 1,
                 'max_epochs': 1
-            }
+            } | trainer_kwargs
         )
     if logger:
         config_dir = tmpdir / 'lightning_logs'
