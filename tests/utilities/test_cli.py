@@ -630,8 +630,9 @@ def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, trainer_kwargs):
                 'default_root_dir': str(tmpdir),
                 'logger': logger,
                 'max_steps': 1,
-                'max_epochs': 1
-            } | trainer_kwargs
+                'max_epochs': 1,
+                **trainer_kwargs,
+            }
         )
     if logger:
         config_dir = tmpdir / 'lightning_logs'
