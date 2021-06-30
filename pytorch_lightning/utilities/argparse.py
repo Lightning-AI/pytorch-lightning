@@ -139,9 +139,8 @@ def _get_abbrev_qualified_cls_name(cls):
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
         return f"pl.{cls.__name__}"
-    else:
-        # Fully qualified.
-        return f"{cls.__module__}.{cls.__qualname__}"
+    # Fully qualified.
+    return f"{cls.__module__}.{cls.__qualname__}"
 
 
 def add_argparse_args(
@@ -168,6 +167,10 @@ def add_argparse_args(
 
     Only arguments of the allowed types (str, float, int, bool) will
     extend the ``parent_parser``.
+
+    Raises:
+        RuntimeError:
+            If ``parent_parser`` is not an ``ArgumentParser`` instance
 
     Examples:
 
@@ -254,8 +257,7 @@ def add_argparse_args(
 
     if use_argument_group:
         return parent_parser
-    else:
-        return parser
+    return parser
 
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
@@ -284,8 +286,7 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
 def _gpus_allowed_type(x) -> Union[int, str]:
     if ',' in x:
         return str(x)
-    else:
-        return int(x)
+    return int(x)
 
 
 def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
@@ -298,5 +299,4 @@ def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
 def _int_or_float_type(x) -> Union[int, float]:
     if '.' in str(x):
         return float(x)
-    else:
-        return int(x)
+    return int(x)

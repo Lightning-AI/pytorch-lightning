@@ -279,11 +279,16 @@ In this case, implement the `training_step_end` method
          return {'loss': loss, 'pred': pred}
 
      def training_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts[0]['pred']
-         gpu_1_prediction = batch_parts[1]['pred']
+         # predictions from each GPU
+         predictions = batch_parts['pred']
+         # losses from each GPU
+         losses = batch_parts['loss']
+
+         gpu_0_prediction = predictions[0]
+         gpu_1_prediction = predictions[1]
 
          # do something with both outputs
-         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
+         return (losses[0] + losses[1]) / 2
 
      def training_epoch_end(self, training_step_outputs):
         for out in training_step_outputs:
@@ -383,11 +388,16 @@ In this case, implement the `validation_step_end` method
          return {'loss': loss, 'pred': pred}
 
      def validation_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts.pred[0]['pred']
-         gpu_1_prediction = batch_parts.pred[1]['pred']
+         # predictions from each GPU
+         predictions = batch_parts['pred']
+         # losses from each GPU
+         losses = batch_parts['loss']
+
+         gpu_0_prediction = predictions[0]
+         gpu_1_prediction = predictions[1]
 
          # do something with both outputs
-         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
+         return (losses[0] + losses[1]) / 2
 
      def validation_epoch_end(self, validation_step_outputs):
         for out in validation_step_outputs:
@@ -1483,4 +1493,16 @@ on_after_batch_transfer
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.DataHooks.on_after_batch_transfer
+    :noindex:
+
+add_to_queue
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.add_to_queue
+    :noindex:
+
+get_from_queue
+~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_from_queue
     :noindex:

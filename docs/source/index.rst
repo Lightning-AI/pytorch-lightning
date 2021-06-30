@@ -61,6 +61,8 @@ PyTorch Lightning Documentation
    notebooks/lightning_examples/datamodules.ipynb
    notebooks/lightning_examples/cifar10-baseline.ipynb
    notebooks/lightning_examples/basic-gan.ipynb
+   notebooks/lightning_examples/text-transformers.ipynb
+   notebooks/lightning_examples/reinforce-learning-DQN.ipynb
    notebooks/lightning_examples/augmentation_kornia.ipynb
 
 .. toctree::

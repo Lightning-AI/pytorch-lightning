@@ -19,8 +19,7 @@ from typing import Optional, Union
 
 import torch
 
-import pytorch_lightning
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     DeviceType,
@@ -198,8 +197,8 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.train_loop.global_step = self._loaded_checkpoint['global_step']
-        self.trainer.train_loop.current_epoch = self._loaded_checkpoint['epoch']
+        self.trainer.fit_loop.global_step = self._loaded_checkpoint['global_step']
+        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -292,8 +291,8 @@ class CheckpointConnector:
         try:
             atomic_save(checkpoint, filepath)
         except AttributeError as err:
-            if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+            if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
                 'warning, `hyper_parameters` dropped from checkpoint.'
                 f' An attribute is not picklable {err}'
@@ -339,7 +338,7 @@ class CheckpointConnector:
         checkpoint = {
             'epoch': current_epoch,
             'global_step': global_step,
-            'pytorch-lightning_version': pytorch_lightning.__version__,
+            'pytorch-lightning_version': pl.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
@@ -366,13 +365,13 @@ class CheckpointConnector:
         # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
             if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:
-                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
         # give the model a chance to dump a few things
         model.on_save_checkpoint(checkpoint)
