@@ -95,12 +95,12 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]],
             raise MisconfigurationException(msg)
         else:
             warning_cache.warn(msg)
+    else:
+        if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+            # omit sanity check on torchelastic as by default shows one visible GPU per process
+            return gpus
 
-    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
-        # omit sanity check on torchelastic as by default shows one visible GPU per process
-        return gpus
-
-    gpus = _sanitize_gpu_ids(gpus, should_raise_exception=should_raise_exception)
+        gpus = _sanitize_gpu_ids(gpus, should_raise_exception=should_raise_exception)
 
     return gpus
 
@@ -133,17 +133,15 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List],
 
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
-    else:  # need to inform mypy `tpu_cores` has now a right type
-        tpu_cores_parsed: Optional[Union[int, List[int]]] = tpu_cores
 
-    if tpu_cores_parsed is not None and not _TPU_AVAILABLE:
+    if tpu_cores is not None and not _TPU_AVAILABLE:
         msg = 'No TPU devices were found.'
         if should_raise_exception:
             raise MisconfigurationException(msg)
         else:
             warning_cache.warn(msg)
 
-    return tpu_cores_parsed
+    return tpu_cores
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
@@ -240,7 +238,7 @@ def _tpu_cores_valid(tpu_cores: Any) -> bool:
     # allow picking 1 of 8 indexes
     if isinstance(tpu_cores, (list, tuple, set)):
         has_1_tpu_idx = len(tpu_cores) == 1
-        is_valid_tpu_idx = list(tpu_cores)[0] in range(1, 9)
+        is_valid_tpu_idx = 1 <= list(tpu_cores)[0] <= 8
 
         is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
         return is_valid_tpu_core_choice
@@ -250,7 +248,5 @@ def _tpu_cores_valid(tpu_cores: Any) -> bool:
 
 def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ('1', '8'):
-        tpu_cores_int: Union[int, List[int]] = int(tpu_cores)
-    else:
-        tpu_cores_int = [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
-    return tpu_cores_int
+        return int(tpu_cores)
+    return [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
