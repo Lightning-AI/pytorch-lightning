@@ -23,7 +23,7 @@ from weakref import proxy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -1207,7 +1207,7 @@ class Trainer(
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
