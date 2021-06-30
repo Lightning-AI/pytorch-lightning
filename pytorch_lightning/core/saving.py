@@ -206,9 +206,9 @@ class ModelIO(object):
 
         if not strict:
             if keys.missing_keys:
-                rank_zero_warn(f"Found keys that are in model state dict but not in checkpoint: {keys.missing_keys}")
+                rank_zero_warn(f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}")
             if keys.unexpected_keys:
-                rank_zero_warn(f"Found keys that are not in model state dict but in checkpoint: {keys.unexpected_keys}")
+                rank_zero_warn(f"Found keys that are not in the model state dict but in the checkpoint: {keys.unexpected_keys}")
 
         return model
 
