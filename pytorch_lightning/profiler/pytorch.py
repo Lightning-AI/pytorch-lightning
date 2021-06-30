@@ -195,17 +195,13 @@ class PyTorchProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
-    RECORD_FUNCTIONS_PREFIXES = {
-        "optimizer_step_and_closure_"
-    }
+    RECORD_FUNCTIONS_PREFIXES = {"optimizer_step_and_closure_"}
     STEP_FUNCTIONS = {
         "validation_step",
         "test_step",
         "predict_step",
     }
-    STEP_FUNCTIONS_PREFIXES = {
-        "optimizer_step_and_closure_"
-    }
+    STEP_FUNCTIONS_PREFIXES = {"optimizer_step_and_closure_"}
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -411,7 +407,7 @@ class PyTorchProfiler(BaseProfiler):
         is_prefix = False
         for func_prefix in self.RECORD_FUNCTIONS_PREFIXES:
             if action_name.startswith(func_prefix):
-                is_prefix=True
+                is_prefix = True
                 break
         if (
             self.profiler is not None and (action_name in self._record_functions or is_prefix)
@@ -432,7 +428,7 @@ class PyTorchProfiler(BaseProfiler):
         is_prefix = False
         for func_prefix in self.STEP_FUNCTIONS_PREFIXES:
             if action_name.startswith(func_prefix):
-                is_prefix=True
+                is_prefix = True
                 break
 
         if self.profiler is not None and (action_name in self.STEP_FUNCTIONS or is_prefix):
