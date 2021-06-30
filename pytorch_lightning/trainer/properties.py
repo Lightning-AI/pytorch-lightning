@@ -63,7 +63,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    validation_loop: EvaluationLoop
+    validate_loop: EvaluationLoop
     test_loop: EvaluationLoop
     """
     Accelerator properties
@@ -555,13 +555,6 @@ class TrainerProperties(ABC):
         if active_loop is not None:
             return active_loop.results
 
-    def get_loops_state_dict(self) -> Dict[str, Any]:
-        return {
-            "fit_loop": self.fit_loop.state_dict(),
-            "validate_loop": self.validation_loop.state_dict(),
-            "test_loop": self.test_loop.state_dict(),
-        }
-
     """
     Other
     """
@@ -574,6 +567,13 @@ class TrainerProperties(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    def get_loops_state_dict(self) -> Dict[str, Any]:
+        return {
+            "fit_loop": self.fit_loop.state_dict(),
+            "validate_loop": self.validate_loop.state_dict(),
+            "test_loop": self.test_loop.state_dict(),
+        }
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

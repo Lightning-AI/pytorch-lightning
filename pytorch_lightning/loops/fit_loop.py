@@ -22,7 +22,6 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -166,7 +165,6 @@ class FitLoop(Loop):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.epoch_loop = TrainingEpochLoop(self.min_steps, self.max_steps)
         self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
@@ -284,8 +282,6 @@ class FitLoop(Loop):
                 cb.on_validation_end(self.trainer, model)
 
     def state_dict(self) -> Dict:
-        if not self.is_connected:
-            raise MisconfigurationException("The Trainer should be connected to loop to retrieve the state_dict.")
         return {"epoch_loop": self.epoch_loop.state_dict()}
 
     def load_state_dict(self, state_dict: Dict) -> None:

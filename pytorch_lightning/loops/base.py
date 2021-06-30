@@ -48,10 +48,6 @@ class Loop(ABC):
         self.trainer: Optional['pl.Trainer'] = None
 
     @property
-    def is_connected(self) -> bool:
-        return self.trainer is not None
-
-    @property
     @abstractmethod
     def done(self) -> bool:
         """Property indicating when loop is finished"""
@@ -66,7 +62,7 @@ class Loop(ABC):
         # TODO(@justusschock): Make the trainer a weakref/proxy
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
-                f"Loop {self.__class__.__name__} should be connected to a :class:`~pytorch_lightning.Trainer` instance."
+                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
             )
         self.trainer = trainer
 
@@ -143,3 +139,4 @@ class Loop(ABC):
 
     def state_dict(self) -> Dict:
         """Return the loop current states."""
+        return {}

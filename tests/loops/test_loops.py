@@ -23,18 +23,12 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 def test_loops_state_dict_structure():
 
     fit_loop = FitLoop()
-    with pytest.raises(
-        MisconfigurationException, match="The Trainer should be connected to loop to retrieve the state_dict."
-    ):
-        state_dict = fit_loop.state_dict()
-    with pytest.raises(
-        MisconfigurationException,
-        match="Loop FitLoop should be connected to a :class:`~pytorch_lightning.Trainer` instance."
-    ):
+    state_dict = fit_loop.state_dict()
+    with pytest.raises(MisconfigurationException, match="Loop FitLoop should be connected to a"):
         fit_loop.connect(object())
     fit_loop.connect(Trainer())
     state_dict = fit_loop.state_dict()
-    expected = {'epoch_loop': {'batch_loop': ANY, 'validation_loop': ANY}}
+    expected = {'epoch_loop': {'batch_loop': ANY, 'val_loop': ANY}}
     assert state_dict == expected
 
     fit_loop.load_state_dict(state_dict)
@@ -48,7 +42,7 @@ def test_loops_state_dict_structure_with_trainer():
         "fit_loop": {
             'epoch_loop': {
                 'batch_loop': ANY,
-                'validation_loop': ANY
+                'val_loop': ANY
             }
         },
         "validate_loop": ANY,

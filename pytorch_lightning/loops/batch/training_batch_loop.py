@@ -674,9 +674,3 @@ class TrainingBatchLoop(Loop):
         if lightning_module.truncated_bptt_steps > 0:
             return lightning_module.truncated_bptt_steps
         return self.trainer.truncated_bptt_steps or 0
-
-    def state_dict(self) -> Dict:
-        return {}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        pass
