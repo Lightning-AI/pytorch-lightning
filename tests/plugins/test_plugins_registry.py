@@ -14,7 +14,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DeepSpeedPlugin, TrainingTypePluginsRegistry
+from pytorch_lightning.plugins import DDPPlugin, DeepSpeedPlugin, TPUSpawnPlugin, TrainingTypePluginsRegistry
 from tests.helpers.runif import RunIf
 
 
@@ -54,14 +54,15 @@ def test_training_type_plugins_registry_with_new_plugin():
         }),
         ("deepspeed_stage_2_offload", {
             "stage": 2,
-            "cpu_offload": True
+            "offload_optimizer": True
         }),
         ("deepspeed_stage_3", {
             "stage": 3
         }),
         ("deepspeed_stage_3_offload", {
             "stage": 3,
-            "cpu_offload": True
+            "offload_parameters": True,
+            "offload_optimizer": True
         }),
     ],
 )
@@ -93,3 +94,16 @@ def test_ddp_training_type_plugins_registry_with_trainer(tmpdir):
     )
 
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
+
+
+def test_tpu_spawn_debug_plugins_registry(tmpdir):
+
+    plugin = "tpu_spawn_debug"
+
+    assert plugin in TrainingTypePluginsRegistry
+    assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
+    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnPlugin
+
+    trainer = Trainer(plugins=plugin)
+
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)

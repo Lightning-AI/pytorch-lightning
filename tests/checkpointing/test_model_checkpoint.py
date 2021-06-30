@@ -162,10 +162,9 @@ def test_model_checkpoint_score_and_ckpt(
         if not reduce_lr_on_plateau:
             actual_step_count = chk['lr_schedulers'][0]['_step_count']
             actual_lr = chk['lr_schedulers'][0]['_last_lr'][0]
-            # if validation_step_none, the checkpoint gets saved after the learning rate update
-            # so we need to increase the count by one
-            assert actual_step_count == epoch + 1 + validation_step_none
-            assert actual_lr == lr * gamma**(epoch + validation_step_none)
+            # checkpoint is saved after updating lr_scheduler states
+            assert actual_step_count == epoch + 2  # step_count starts at 1
+            assert actual_lr == lr * gamma**(epoch + 1)
 
         assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
         assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)
@@ -262,6 +261,11 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         global_ix = ix + per_epoch_val_checks * epoch
         duplicated = bool(version)
 
+        # checkpoint saved at the end of training epoch will have updated lr_scheduler states
+        epoch_end_checkpoint = duplicated
+        if epoch_aligned:
+            epoch_end_checkpoint = ix == (per_epoch_val_checks - 1)
+
         score = model.scores[global_ix]
         expected_score = getattr(model, f'{monitor}s')[global_ix].mean().item()
         expected_filename = f'{monitor}={score:.4f}-epoch={epoch}{version}.ckpt'
@@ -281,8 +285,8 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         if not reduce_lr_on_plateau:
             actual_step_count = chk['lr_schedulers'][0]['_step_count']
             actual_lr = chk['lr_schedulers'][0]['_last_lr'][0]
-            assert actual_step_count == epoch + 1 + duplicated
-            assert actual_lr == lr * gamma**(epoch + duplicated)
+            assert actual_step_count == epoch + 1 + epoch_end_checkpoint
+            assert actual_lr == lr * gamma**(epoch + epoch_end_checkpoint)
 
         return score
 
@@ -336,7 +340,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     path_yaml = os.path.join(tmpdir, 'best_k_models.yaml')
     checkpoint.to_yaml(path_yaml)
     d = yaml.full_load(open(path_yaml, 'r'))
-    best_k = {k: v for k, v in checkpoint.best_k_models.items()}
+    best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
 
@@ -819,7 +823,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     assert checkpoint_callback.best_model_path == tmpdir / "epoch=2.ckpt"
     assert checkpoint_callback.best_model_score == epochs - 1
     assert len(os.listdir(tmpdir)) == len(checkpoint_callback.best_k_models) == epochs
-    assert set(checkpoint_callback.best_k_models.keys()) == set(str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs))
+    assert set(checkpoint_callback.best_k_models.keys()) == {str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs)}
     assert checkpoint_callback.kth_best_model_path == tmpdir / 'epoch=0.ckpt'
 
 
@@ -1268,10 +1272,11 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
 
         # check best_k_models state
         expected = {"epoch=0-v1.ckpt", "epoch=1-v1.ckpt"} if i else {"epoch=0.ckpt", "epoch=1.ckpt"}
-        assert {Path(f).name for f in mc.best_k_models.keys()} == expected
+        assert {Path(f).name for f in mc.best_k_models} == expected
 
     # check created ckpts
-    assert set(f.basename for f in tmpdir.listdir()) == {
+    actual = {f.basename for f in tmpdir.listdir()}
+    assert actual == {
         "epoch=0.ckpt",
         "epoch=1.ckpt",
         "epoch=0-v1.ckpt",
@@ -1297,13 +1302,13 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
         progress_bar_refresh_rate=0,
     )
     trainer.fit(BoringModel())
-    trainer.train_loop.max_epochs = 4
+    trainer.fit_loop.max_epochs = 4
     trainer.fit(BoringModel())
 
     ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
     expected = {'test.ckpt', *[f"test-v{i}.ckpt" for i in ckpt_range]}
     # check best_k_models state
-    assert {Path(f).name for f in mc.best_k_models.keys()} == expected
+    assert {Path(f).name for f in mc.best_k_models} == expected
     # check created ckpts
     assert set(os.listdir(tmpdir)) == expected
 

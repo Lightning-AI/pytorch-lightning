@@ -283,6 +283,77 @@ def test_lr_monitor_custom_name(tmpdir):
     assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['my_logging_name']
 
 
+def test_lr_monitor_custom_pg_name(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD([{'params': list(self.layer.parameters()), 'name': 'linear'}], lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=2,
+        limit_train_batches=2,
+        callbacks=[lr_monitor],
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    trainer.fit(TestModel())
+    assert lr_monitor.lr_sch_names == ['lr-SGD']
+    assert list(lr_monitor.lrs) == ['lr-SGD/linear']
+
+
+def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
+    tutils.reset_seed()
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.linear_a = torch.nn.Linear(32, 16)
+            self.linear_b = torch.nn.Linear(16, 2)
+
+        def forward(self, x):
+            x = self.linear_a(x)
+            x = self.linear_b(x)
+            return x
+
+        def configure_optimizers(self):
+            param_groups = [
+                {
+                    'params': list(self.linear_a.parameters()),
+                    'name': 'linear'
+                },
+                {
+                    'params': list(self.linear_b.parameters()),
+                    'name': 'linear'
+                },
+            ]
+            optimizer = torch.optim.SGD(param_groups, lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=2,
+        limit_train_batches=2,
+        callbacks=[lr_monitor],
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+
+    with pytest.raises(
+        MisconfigurationException, match='A single `Optimizer` cannot have multiple parameter groups with identical'
+    ):
+        trainer.fit(TestModel())
+
+
 def test_multiple_optimizers_basefinetuning(tmpdir):
 
     class TestModel(BoringModel):

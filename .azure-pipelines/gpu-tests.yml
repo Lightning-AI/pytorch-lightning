@@ -25,20 +25,14 @@ jobs:
 
     pool: gridai-spot-pool
 
-    #strategy:
-    #  matrix:
-    #    PT16:
-    #      torch.version: '1.6'
-    #      python.version: '3.7'
-
     # ToDo: this need to have installed docker in the base image...
-    #container: pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
-    #container: "pytorchlightning/pytorch_lightning:base-cuda-py$[ variables['python.version'] ]-torch1.6"
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.8-torch1.6"
-      #endpoint: azureContainerRegistryConnection
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all"
+      # run on torch 1.8 as it's the LTS version
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
+      # default shm size is 64m. Increase it to avoid:
+      # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=256m"
 
     workspace:
       clean: all
@@ -57,6 +51,7 @@ jobs:
     - bash: |
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale>=0.3.4
+        pip install deepspeed>=0.4.0 -U
         pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'

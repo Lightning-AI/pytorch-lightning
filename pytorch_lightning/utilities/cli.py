@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -33,7 +33,7 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(self, *args, parse_as_dict: bool = True, **kwargs) -> None:
+    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -48,44 +48,65 @@ class LightningArgumentParser(ArgumentParser):
         self.add_argument(
             '--config', action=ActionConfigFile, help='Path to a configuration file in json or yaml format.'
         )
+        self.callback_keys: List[str] = []
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule]],
+        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
         nested_key: str,
         subclass_mode: bool = False
-    ) -> None:
+    ) -> List[str]:
         """
         Adds arguments from a lightning class to a nested key of the parser
 
         Args:
-            lightning_class: Any subclass of {Trainer,LightningModule,LightningDataModule}.
+            lightning_class: Any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
+        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback))
+        if issubclass(lightning_class, Callback):
+            self.callback_keys.append(nested_key)
         if subclass_mode:
             return self.add_subclass_arguments(lightning_class, nested_key, required=True)
-        return self.add_class_arguments(lightning_class, nested_key, fail_untyped=False)
+        return self.add_class_arguments(
+            lightning_class,
+            nested_key,
+            fail_untyped=False,
+            instantiate=not issubclass(lightning_class, Trainer),
+        )
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts"""
+    """Saves a LightningCLI config to the log_dir when training starts
+
+    Raises:
+        RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
+    """
 
     def __init__(
         self,
         parser: LightningArgumentParser,
         config: Union[Namespace, Dict[str, Any]],
         config_filename: str,
+        overwrite: bool = False,
     ) -> None:
         self.parser = parser
         self.config = config
         self.config_filename = config_filename
+        self.overwrite = overwrite
 
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
-        self.parser.save(self.config, config_path, skip_none=False)
+        if not self.overwrite and os.path.isfile(config_path):
+            raise RuntimeError(
+                f'{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting'
+                ' results of a previous run. You can delete the previous config file,'
+                ' set `LightningCLI(save_config_callback=None)` to disable config saving,'
+                ' or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file.'
+            )
+        self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite)
 
 
 class LightningCLI:
@@ -95,8 +116,9 @@ class LightningCLI:
         self,
         model_class: Type[LightningModule],
         datamodule_class: Type[LightningDataModule] = None,
-        save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
+        save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = 'config.yaml',
+        save_config_overwrite: bool = False,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
@@ -133,6 +155,8 @@ class LightningCLI:
             model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on.
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class.
             save_config_callback: A callback class to save the training config.
+            save_config_filename: Filename for the config file.
+            save_config_overwrite: Whether to overwrite an existing config file.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
@@ -156,6 +180,7 @@ class LightningCLI:
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
         self.save_config_filename = save_config_filename
+        self.save_config_overwrite = save_config_overwrite
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
         self.seed_everything_default = seed_everything_default
@@ -212,38 +237,26 @@ class LightningCLI:
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
-        self.config_init = self.parser.instantiate_subclasses(self.config)
-        self.instantiate_datamodule()
-        self.instantiate_model()
+        self.config_init = self.parser.instantiate_classes(self.config)
+        self.datamodule = self.config_init.get('data')
+        self.model = self.config_init['model']
         self.instantiate_trainer()
-
-    def instantiate_datamodule(self) -> None:
-        """Instantiates the datamodule using self.config_init['data'] if given"""
-        if self.datamodule_class is None:
-            self.datamodule = None
-        elif self.subclass_mode_data:
-            self.datamodule = self.config_init['data']
-        else:
-            self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
-
-    def instantiate_model(self) -> None:
-        """Instantiates the model using self.config_init['model']"""
-        if self.subclass_mode_model:
-            self.model = self.config_init['model']
-        else:
-            self.model = self.model_class(**self.config_init.get('model', {}))
 
     def instantiate_trainer(self) -> None:
         """Instantiates the trainer using self.config_init['trainer']"""
         if self.config_init['trainer'].get('callbacks') is None:
             self.config_init['trainer']['callbacks'] = []
+        callbacks = [self.config_init[c] for c in self.parser.callback_keys]
+        self.config_init['trainer']['callbacks'].extend(callbacks)
         if 'callbacks' in self.trainer_defaults:
             if isinstance(self.trainer_defaults['callbacks'], list):
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
-        if self.save_config_callback is not None:
-            config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
+        if self.save_config_callback and not self.config_init['trainer']['fast_dev_run']:
+            config_callback = self.save_config_callback(
+                self.parser, self.config, self.save_config_filename, overwrite=self.save_config_overwrite
+            )
             self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 

@@ -24,7 +24,7 @@ from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.base import BaseProfiler
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
@@ -132,14 +132,13 @@ class ScheduleWrapper:
     def num_step(self) -> int:
         if self._current_action == "training_step_and_backward":
             return self._num_training_step_and_backward
-        elif self._current_action == "validation_step":
+        if self._current_action == "validation_step":
             return self._num_validation_step
-        elif self._current_action == "test_step":
+        if self._current_action == "test_step":
             return self._num_test_step
-        elif self._current_action == "predict_step":
+        if self._current_action == "predict_step":
             return self._num_predict_step
-        else:
-            return 0
+        return 0
 
     def _step(self) -> None:
         if self._current_action == "training_step_and_backward":
@@ -159,11 +158,11 @@ class ScheduleWrapper:
     def has_finished(self) -> bool:
         if self._current_action == "training_step_and_backward":
             return self._training_step_and_backward_reached_end
-        elif self._current_action == "validation_step":
+        if self._current_action == "validation_step":
             return self._validation_step_reached_end
-        elif self._current_action == "test_step":
+        if self._current_action == "test_step":
             return self._test_step_reached_end
-        elif self._current_action == "predict_step":
+        if self._current_action == "predict_step":
             return self._predict_step_reached_end
         return False
 
@@ -349,9 +348,9 @@ class PyTorchProfiler(BaseProfiler):
             record_functions = set()
 
         if profiled_functions is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
-                " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
+                " `record_functions` in v1.3 and will be removed in v1.5"
             )
             if not record_functions:
                 record_functions |= set(profiled_functions)
@@ -427,11 +426,15 @@ class PyTorchProfiler(BaseProfiler):
             def on_trace_ready(profiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
-                        handler = tensorboard_trace_handler(self.dirpath, self._prepare_filename(extension=""))
+                        handler = tensorboard_trace_handler(
+                            self.dirpath, self._prepare_filename(action_name=action_name, extension="")
+                        )
                         handler(profiler)
 
                     if self._export_to_flame_graph:
-                        path = os.path.join(self.dirpath, self._prepare_filename(extension=".stack"))
+                        path = os.path.join(
+                            self.dirpath, self._prepare_filename(action_name=action_name, extension=".stack")
+                        )
                         profiler.export_stacks(path, metric=self._metric)
                 else:
                     rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")

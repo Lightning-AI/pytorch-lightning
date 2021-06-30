@@ -38,6 +38,7 @@ class LoggerConnector:
         self._progress_bar_metrics: Dict[str, float] = {}
         self._logged_metrics: Dict[str, _METRIC] = {}
         self._callback_metrics: Dict[str, _METRIC] = {}
+        self._gpus_metrics: Dict[str, str] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
@@ -91,29 +92,25 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
-        # add gpu memory
-        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            metrics.update(mem_map)
+        if self.trainer.logger is None or not metrics:
+            return
 
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
 
-        if "step" in scalar_metrics and step is None:
-            step = scalar_metrics.pop("step")
-
-        elif step is None:
-            # added metrics by Lightning for convenience
-            scalar_metrics['epoch'] = self.trainer.current_epoch
+        if step is None:
+            step = scalar_metrics.pop("step", None)
+        if step is None:
+            # added metrics for convenience
+            scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
             step = self.trainer.global_step
 
         # log actual metrics
-        if self.trainer.logger is not None:
-            if self.trainer.is_global_zero:
-                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-                self.trainer.logger.save()
+        if self.trainer.is_global_zero:
+            self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+            self.trainer.logger.save()
 
-            self._logged_metrics.update(scalar_metrics)
+        self._logged_metrics.update(scalar_metrics)
 
     """
     Evaluation metric updates
@@ -123,10 +120,9 @@ class LoggerConnector:
     def _eval_log_step(self) -> Optional[int]:
         if self.trainer.state.stage is RunningStage.VALIDATING:
             return self._val_log_step
-        elif self.trainer.state.stage is RunningStage.TESTING:
+        if self.trainer.state.stage is RunningStage.TESTING:
             return self._test_log_step
-        else:
-            return None
+        return None
 
     def _increment_eval_log_step(self) -> None:
         if self.trainer.state.stage is RunningStage.VALIDATING:
@@ -149,9 +145,7 @@ class LoggerConnector:
 
         # logs user requested information to logger
         assert not self._epoch_end_reached
-        metrics = self.metrics[MetricSource.LOG]
-        if metrics:
-            self.log_metrics(metrics, step=self._eval_log_step)
+        self.log_metrics(self.metrics[MetricSource.LOG], step=self._eval_log_step)
 
         # increment the step even if nothing was logged
         self._increment_eval_log_step()
@@ -179,9 +173,7 @@ class LoggerConnector:
 
         if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
-            log_metrics = metrics[MetricSource.LOG]
-            if log_metrics:
-                self.log_metrics(log_metrics)
+            self.log_metrics(metrics[MetricSource.LOG])
 
         self._prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
 
@@ -214,24 +206,29 @@ class LoggerConnector:
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
-        if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
+        if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
+
+        self._log_gpus_metrics()
 
         # when metrics should be logged
         assert not self._epoch_end_reached
-        metrics = self.metrics[MetricSource.LOG]
-        if self.should_update_logs or self.trainer.fast_dev_run is True and metrics:
-            self.log_metrics(metrics)
+        if self.should_update_logs or self.trainer.fast_dev_run:
+            self.log_metrics(self.metrics[MetricSource.LOG])
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
         assert self._epoch_end_reached
-        metrics = self.metrics[MetricSource.LOG]
-        if metrics:
-            self.log_metrics(metrics)
+        self.log_metrics(self.metrics[MetricSource.LOG])
 
         # reset result collection for next epoch
         self.trainer._results.reset(metrics=True)
+
+    def _log_gpus_metrics(self):
+        for key, mem in self.gpus_metrics.items():
+            gpu_id = int(key.split('/')[0].split(':')[1])
+            if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
     """
     Utilities and properties
@@ -272,6 +269,11 @@ class LoggerConnector:
         return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
+        if self.trainer.sanity_checking:
+            # reset metrics
+            self._progress_bar_metrics = {}
+            self._logged_metrics = {}
+            self._callback_metrics = {}
         self.trainer._results.reset(metrics=metrics)
         self._batch_idx = None
         self._split_idx = None
@@ -282,6 +284,13 @@ class LoggerConnector:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
         return self.trainer._results.metrics(on_step)
+
+    @property
+    def gpus_metrics(self) -> Dict[str, str]:
+        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
+            self._gpus_metrics.update(mem_map)
+        return self._gpus_metrics
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
@@ -305,7 +314,7 @@ class LoggerConnector:
         return self._progress_bar_metrics
 
     def teardown(self):
-        # TODO(@awaelchli): This should be handled by the loops themselves
-        self.trainer.train_loop.results.cpu()
-        self.trainer.evaluation_loop._val_results.cpu()
-        self.trainer.evaluation_loop._test_results.cpu()
+        self.trainer.fit_loop.epoch_loop._results.cpu()
+        self.trainer.fit_loop.epoch_loop.val_loop._results.cpu()
+        self.trainer.validation_loop._results.cpu()
+        self.trainer.test_loop._results.cpu()

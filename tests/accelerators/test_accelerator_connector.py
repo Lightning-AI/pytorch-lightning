@@ -453,8 +453,9 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class TrainTypePlugin(SingleDevicePlugin):
         pass
 
+    ttp = TrainTypePlugin(device=torch.device("cpu"))
     accelerator = Accel(
-        training_type_plugin=TrainTypePlugin(device=torch.device("cpu")),
+        training_type_plugin=ttp,
         precision_plugin=Prec(),
     )
     trainer = Trainer(
@@ -465,6 +466,25 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
     assert isinstance(trainer.precision_plugin, Prec)
+    assert trainer.accelerator_connector.training_type_plugin is ttp
+
+    class DistributedPlugin(DDPPlugin):
+        pass
+
+    ttp = DistributedPlugin()
+    accelerator = Accel(
+        training_type_plugin=ttp,
+        precision_plugin=Prec(),
+    )
+    trainer = Trainer(
+        accelerator=accelerator,
+        fast_dev_run=True,
+        num_processes=2,
+    )
+    assert isinstance(trainer.accelerator, Accel)
+    assert isinstance(trainer.training_type_plugin, DistributedPlugin)
+    assert isinstance(trainer.precision_plugin, Prec)
+    assert trainer.accelerator_connector.training_type_plugin is ttp
 
 
 @mock.patch.dict(

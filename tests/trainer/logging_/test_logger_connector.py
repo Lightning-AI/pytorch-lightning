@@ -23,7 +23,6 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -293,48 +292,63 @@ def test_metrics_reset(tmpdir):
             super().__init__()
             self.layer = torch.nn.Linear(32, 1)
 
-            for stage in ['train', 'val', 'test']:
-                acc = Accuracy()
-                acc.reset = mock.Mock(side_effect=acc.reset)
-                ap = AveragePrecision(num_classes=1, pos_label=1)
-                ap.reset = mock.Mock(side_effect=ap.reset)
-                self.add_module(f"acc_{stage}", acc)
-                self.add_module(f"ap_{stage}", ap)
+        def _create_metrics(self):
+            acc = Accuracy()
+            acc.reset = mock.Mock(side_effect=acc.reset)
+            ap = AveragePrecision(num_classes=1, pos_label=1)
+            ap.reset = mock.Mock(side_effect=ap.reset)
+            return acc, ap
+
+        def setup(self, stage):
+            fn = stage
+            if fn == 'fit':
+                for stage in ('train', 'validate'):
+                    acc, ap = self._create_metrics()
+                    self.add_module(f"acc_{fn}_{stage}", acc)
+                    self.add_module(f"ap_{fn}_{stage}", ap)
+            else:
+                acc, ap = self._create_metrics()
+                stage = self.trainer.state.stage
+                self.add_module(f"acc_{fn}_{stage}", acc)
+                self.add_module(f"ap_{fn}_{stage}", ap)
 
         def forward(self, x):
             return self.layer(x)
 
-        def _step(self, stage, batch):
-            labels = (batch.detach().sum(1) > 0).float()  # Fake some targets
-            logits = self.forward(batch)
-            loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels.unsqueeze(1))
-            probs = torch.sigmoid(logits.detach())
-            self.log(f"loss/{stage}", loss)
+        def _step(self, batch):
+            fn, stage = self.trainer.state.fn, self.trainer.state.stage
 
-            acc = self._modules[f"acc_{stage}"]
-            ap = self._modules[f"ap_{stage}"]
+            logits = self(batch)
+            loss = logits.sum()
+            self.log(f"loss/{fn}_{stage}", loss)
 
-            labels_int = labels.to(torch.long)
-            acc(probs.flatten(), labels_int)
-            ap(probs.flatten(), labels_int)
+            acc = self._modules[f"acc_{fn}_{stage}"]
+            ap = self._modules[f"ap_{fn}_{stage}"]
+
+            preds = torch.rand(len(batch))  # Fake preds
+            labels = torch.randint(0, 1, [len(batch)])  # Fake targets
+            acc(preds, labels)
+            ap(preds, labels)
 
             # Metric.forward calls reset so reset the mocks here
             acc.reset.reset_mock()
             ap.reset.reset_mock()
 
-            self.log(f"{stage}/accuracy", acc)
-            self.log(f"{stage}/ap", ap)
+            self.log(f"acc/{fn}_{stage}", acc)
+            self.log(f"ap/{fn}_{stage}", ap)
 
             return loss
 
         def training_step(self, batch, batch_idx, *args, **kwargs):
-            return self._step('train', batch)
+            return self._step(batch)
 
         def validation_step(self, batch, batch_idx, *args, **kwargs):
-            return self._step('val', batch)
+            if self.trainer.sanity_checking:
+                return
+            return self._step(batch)
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
-            return self._step('test', batch)
+            return self._step(batch)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -350,33 +364,11 @@ def test_metrics_reset(tmpdir):
         def test_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
 
-        def _assert_epoch_end(self, stage):
-            acc = self._modules[f"acc_{stage}"]
-            ap = self._modules[f"ap_{stage}"]
-
-            acc.reset.assert_called_once()
-            ap.reset.assert_called_once()
-
-        def teardown(self, stage):
-            if stage == TrainerFn.FITTING:
-                self._assert_epoch_end('train')
-                self._assert_epoch_end('val')
-
-            elif stage == TrainerFn.VALIDATING:
-                self._assert_epoch_end('val')
-
-            elif stage == TrainerFn.TESTING:
-                self._assert_epoch_end('test')
-
-    def _assert_called(model, stage):
-        acc = model._modules[f"acc_{stage}"]
-        ap = model._modules[f"ap_{stage}"]
-
-        assert acc.reset.call_count == 1
-        acc.reset.reset_mock()
-
-        assert ap.reset.call_count == 1
-        ap.reset.reset_mock()
+    def _assert_called(model, fn, stage):
+        acc = model._modules[f"acc_{fn}_{stage}"]
+        ap = model._modules[f"ap_{fn}_{stage}"]
+        acc.reset.assert_called_once()
+        ap.reset.assert_called_once()
 
     model = TestModel()
     trainer = Trainer(
@@ -387,17 +379,18 @@ def test_metrics_reset(tmpdir):
         max_epochs=1,
         progress_bar_refresh_rate=0,
         num_sanity_val_steps=2,
+        checkpoint_callback=False,
     )
 
     trainer.fit(model)
-    _assert_called(model, 'train')
-    _assert_called(model, 'val')
+    _assert_called(model, 'fit', 'train')
+    _assert_called(model, 'fit', 'validate')
 
     trainer.validate(model)
-    _assert_called(model, 'val')
+    _assert_called(model, 'validate', 'validate')
 
     trainer.test(model)
-    _assert_called(model, 'test')
+    _assert_called(model, 'test', 'test')
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
@@ -492,3 +485,19 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_on_step_on_epoch_prog_bar_logger': mean,
         'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
     }
+
+
+def test_logged_metrics_has_logged_epoch_value(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('epoch', -batch_idx, logger=True)
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer.fit(model)
+
+    # should not get overridden if logged manually
+    assert trainer.logged_metrics == {'epoch': -1}
