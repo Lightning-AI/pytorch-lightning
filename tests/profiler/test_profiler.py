@@ -436,8 +436,15 @@ def test_pytorch_profiler_nested(tmpdir):
 def test_pytorch_profiler_loggercollection(tmpdir):
     """
     Tests whether the PyTorch profiler is able to write its trace locally when
-    the Trainer's logger is an instance of LoggerCollection
+    the Trainer's logger is an instance of LoggerCollection. See issue #8157.
     """
+    def look_for_trace(dir):
+        """ Determines if a directory contains a PyTorch trace """
+        return any(("trace.json" in filename for filename in os.listdir(dir)))
+
+    # Sanity check
+    assert not look_for_trace(tmpdir)
+
     model = BoringModel()
 
     # Wrap the logger in a list so it becomes a LoggerCollection
@@ -450,10 +457,9 @@ def test_pytorch_profiler_loggercollection(tmpdir):
         max_epochs=1,
     )
 
-    with warnings.catch_warnings(record=True) as warnings_list:
-        trainer.fit(model)
-        msg = "failed to export trace"
-        assert all((msg not in str(w.message) for w in warnings_list))
+    trainer.fit(model)
+    
+    assert look_for_trace(tmpdir)
 
 
 @RunIf(min_gpus=1, special=True)
