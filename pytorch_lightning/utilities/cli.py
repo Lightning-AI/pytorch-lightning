@@ -113,7 +113,7 @@ class SaveConfigCallback(Callback):
             # save only on rank zero to avoid race conditions on DDP.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
-            get_filesystem(log_dir).makedir(log_dir, exist_ok=True)
+            get_filesystem(log_dir).makedirs(log_dir, exist_ok=True)
             self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite)
 
     def __reduce__(self) -> Tuple[Type['SaveConfigCallback'], Tuple, Dict]:
