@@ -123,9 +123,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added XLA Profiler ([#8014](https://github.com/PyTorchLightning/pytorch-lightning/pull/8014))
 
 
-- Added `should_raise_exception` parameter to `parse_gpu_ids`, `parse_tpu_cores` and `_sanitize_gpu_ids` utility functions ([#8194](https://github.com/PyTorchLightning/pytorch-lightning/pull/8194))
-
-
 ### Changed
 
 
@@ -344,6 +341,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed a bug where calling `log` with a `Metric` instance would raise an error if it was a nested attribute of the model ([#8181](https://github.com/PyTorchLightning/pytorch-lightning/pull/8181))
+
+
+- Fixed a bug where using `precision=64` would cause buffers with complex dtype to be cast to real ([#8208](https://github.com/PyTorchLightning/pytorch-lightning/pull/8208))
 
 ## [1.3.7] - 2021-06-22
 
