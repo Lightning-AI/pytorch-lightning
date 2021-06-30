@@ -61,6 +61,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -177,6 +178,8 @@ class AcceleratorConnector(object):
         if self.distributed_backend == "auto":
             if self.has_tpu:
                 self._accelerator_type = DeviceType.TPU
+            if self.has_ipu:
+                self._accelerator_type = DeviceType.IPU
             elif self.has_gpu:
                 self._accelerator_type = DeviceType.GPU
             else:
@@ -186,6 +189,11 @@ class AcceleratorConnector(object):
                 msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}")
             self._accelerator_type = DeviceType.TPU
+        elif self.distributed_backend == DeviceType.IPU:
+            if not self.has_ipu:
+                msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `ipus` to `Trainer`"
+                raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}")
+            self._accelerator_type = DeviceType.IPU
         elif self.distributed_backend == DeviceType.GPU:
             if not self.has_gpu:
                 msg = "GPUs are not available" if not torch.cuda.is_available(
@@ -298,6 +306,8 @@ class AcceleratorConnector(object):
 
     @property
     def has_gpu(self) -> bool:
+        # Here, we are not checking for GPU availability, but instead if User has passed
+        # `gpus` to Trainer for training.
         gpus = self.parallel_device_ids
         return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
 
@@ -307,7 +317,7 @@ class AcceleratorConnector(object):
 
     @property
     def has_tpu(self) -> bool:
-        # We are not checking for TPU availability, but instead if User has passed
+        # Here, we are not checking for TPU availability, but instead if User has passed
         # `tpu_cores` to Trainer for training.
         return self.tpu_cores is not None
 
@@ -316,14 +326,20 @@ class AcceleratorConnector(object):
         return self._accelerator_type == DeviceType.TPU and self.has_tpu
 
     @property
-    def on_ipu(self) -> bool:
-        return self.ipus is not None
-
-    @property
     def tpu_id(self) -> Optional[int]:
         if self.use_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
         return None
+
+    @property
+    def has_ipu(self) -> bool:
+        # Here, we are not checking for IPU availability, but instead if User has passed
+        # `ipus` to Trainer for training.
+        return self.ipus is not None
+
+    @property
+    def use_ipu(self) -> bool:
+        return self._accelerator_type == DeviceType.IPU and self.has_ipu
 
     @property
     def use_dp(self) -> bool:
@@ -388,7 +404,7 @@ class AcceleratorConnector(object):
             # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
-        elif self.on_ipu:
+        elif self.use_ipu:
             if isinstance(self.ipus, int):
                 devices = list(range(self.ipus))
         else:
@@ -423,7 +439,7 @@ class AcceleratorConnector(object):
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
 
-        if self.on_ipu:
+        if self.use_ipu:
             return IPUPrecisionPlugin(self.precision)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
@@ -536,7 +552,7 @@ class AcceleratorConnector(object):
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
-        elif self.on_ipu:
+        elif self.use_ipu:
             plugin = IPUPlugin(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
@@ -580,7 +596,7 @@ class AcceleratorConnector(object):
             acc_cls = GPUAccelerator
         elif self.use_tpu:
             acc_cls = TPUAccelerator
-        elif self.on_ipu:
+        elif self.use_ipu:
             acc_cls = IPUAccelerator
         else:
             acc_cls = CPUAccelerator
