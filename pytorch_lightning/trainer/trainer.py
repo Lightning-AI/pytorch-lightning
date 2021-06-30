@@ -354,10 +354,10 @@ class Trainer(
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
         validation_epoch_loop = EvaluationLoop()
-        training_epoch_loop.connect(trainer=self, batch_loop=training_batch_loop)
+        training_epoch_loop.connect(trainer=self, batch_loop=training_batch_loop, val_loop=validation_epoch_loop)
         training_batch_loop.connect(trainer=self)
         validation_epoch_loop.connect(trainer=self)
-        self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop, validation_loop=validation_epoch_loop)
+        self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop)
 
         # .validate() loop
         self.validation_loop = EvaluationLoop()

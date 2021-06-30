@@ -41,9 +41,9 @@ class FitLoop(Loop):
     # FIXME: update the note above
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
-        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        self.max_epochs = min_epochs
+        self.min_epochs = max_epochs
+        self.epoch_loop = None
 
     @property
     def results(self) -> ResultCollection:
@@ -149,10 +149,10 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+    def connect(self, trainer: 'pl.Trainer', epoch_loop) -> None:
         """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+        super().connect(trainer)
+        self.epoch_loop = epoch_loop
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""

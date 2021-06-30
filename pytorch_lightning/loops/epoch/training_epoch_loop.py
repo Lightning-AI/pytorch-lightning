@@ -77,13 +77,12 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+    def connect(self, trainer: 'pl.Trainer', batch_loop, val_loop) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
-        super().connect(trainer, *args, **kwargs)
-        self.batch_loop = TrainingBatchLoop()
-        self.batch_loop.connect(trainer)
-        self.val_loop = loops.EvaluationLoop()
-        self.val_loop.connect(trainer)
+        super().connect(trainer)
+        self.batch_loop = batch_loop#  or TrainingBatchLoop()
+        self.val_loop = val_loop #or loops.EvaluationLoop()
+        # self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
