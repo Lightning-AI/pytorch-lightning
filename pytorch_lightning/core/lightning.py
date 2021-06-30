@@ -1660,6 +1660,7 @@ class LightningModule(
                 raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
         else:
             model_summary = ModelSummary(self, max_depth=max_depth)
+            log.info("\n" + str(model_summary))
 
         return model_summary
 
