@@ -24,7 +24,7 @@ jobs:
       clean: all
 
     steps:
-    - script: mount -o remount,size=1G /dev/shm
+    - script: sudo mount -o remount,size=1G /dev/shm
       displayName: "Increase shared memory"
 
     - script: tar -xvzf /opt/poplar/${{ variables.poplar_sdk }}.tar.gz
