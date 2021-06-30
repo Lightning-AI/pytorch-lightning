@@ -19,7 +19,7 @@ from torchmetrics.functional import stat_scores as _stat_scores
 from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-@deprecated_metrics(target=_stat_scores)
+@deprecated_metrics(target=_stat_scores, args_mapping={"is_multiclass": None})
 def stat_scores(
     preds: torch.Tensor,
     target: torch.Tensor,
