@@ -106,6 +106,23 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         # Add sync_dist=True to sync logging across all GPU workers
         self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
 
+It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
+
+.. testcode::
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        tensors = self(x)
+        return tensors
+
+    def test_epoch_end(self, outputs):
+        mean = torch.mean(self.all_gather(outputs))
+
+        # When logging only on rank 0, don't forget to add
+        # ``rank_zero_only=True`` to avoid deadlocks on synchronization.
+        if self.trainer.is_global_zero:
+            self.log("my_reduced_metric", mean, rank_zero_only=True)
+
 
 Make models pickleable
 ^^^^^^^^^^^^^^^^^^^^^^
