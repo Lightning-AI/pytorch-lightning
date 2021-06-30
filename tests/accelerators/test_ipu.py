@@ -475,7 +475,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
 
     training_opts = poptorch.Options()
     training_opts.deviceIterations(8)
-    inference_opts.replicationFactor(2)
+    training_opts.replicationFactor(2)
     training_opts.Training.gradientAccumulation(2)
 
     trainer = Trainer(
