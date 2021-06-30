@@ -13,16 +13,21 @@
 # limitations under the License.
 from typing import Optional
 
-import torch
+from torch import Tensor
 from torchmetrics.functional import stat_scores as _stat_scores
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import (
+    _TORCHMETRICS_GREATER_EQUAL_0_4,
+    _TORCHMETRICS_LOWER_THAN_0_4,
+    deprecated_metrics,
+)
 
 
-@deprecated_metrics(target=_stat_scores)
+@deprecated_metrics(target=_stat_scores, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_stat_scores, args_mapping={"is_multiclass": None}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def stat_scores(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     reduce: str = "micro",
     mdmc_reduce: Optional[str] = None,
     num_classes: Optional[int] = None,
@@ -30,7 +35,7 @@ def stat_scores(
     threshold: float = 0.5,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.stat_scores`. Will be removed in v1.5.0.

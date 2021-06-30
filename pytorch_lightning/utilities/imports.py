@@ -89,6 +89,8 @@ _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.3.0")
 _TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
+_TORCHMETRICS_LOWER_THAN_0_4 = _compare_version("torchmetrics", operator.lt, "0.4.0")
+_TORCHMETRICS_GREATER_EQUAL_0_4 = _compare_version("torchmetrics", operator.ge, "0.4.0")
 _XLA_AVAILABLE = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402

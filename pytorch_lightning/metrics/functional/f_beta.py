@@ -13,38 +13,44 @@
 # limitations under the License.
 from typing import Optional
 
-import torch
+from torch import Tensor
 from torchmetrics.functional import f1 as _f1
 from torchmetrics.functional import fbeta as _fbeta
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import (
+    _TORCHMETRICS_GREATER_EQUAL_0_4,
+    _TORCHMETRICS_LOWER_THAN_0_4,
+    deprecated_metrics,
+)
 
 
-@deprecated_metrics(target=_fbeta)
+@deprecated_metrics(target=_fbeta, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_fbeta, args_mapping={"multilabel": None}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def fbeta(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: int,
     beta: float = 1.0,
     threshold: float = 0.5,
     average: str = "micro",
     multilabel: Optional[bool] = None
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
-        Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
+        Use :func:`torchmetrics.functional.fbeta`. Will be removed in v1.5.0.
     """
 
 
-@deprecated_metrics(target=_f1)
+@deprecated_metrics(target=_f1, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_4)
+@deprecated_metrics(target=_f1, args_mapping={"multilabel": None}, skip_if=_TORCHMETRICS_LOWER_THAN_0_4)
 def f1(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: int,
     threshold: float = 0.5,
     average: str = "micro",
     multilabel: Optional[bool] = None
-) -> torch.Tensor:
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.f1`. Will be removed in v1.5.0.

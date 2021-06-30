@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Optional
 
-import torch
+from torch import Tensor
 from torchmetrics.functional import confusion_matrix as _confusion_matrix
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -21,12 +21,8 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_confusion_matrix)
 def confusion_matrix(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    num_classes: int,
-    normalize: Optional[str] = None,
-    threshold: float = 0.5
-) -> torch.Tensor:
+    preds: Tensor, target: Tensor, num_classes: int, normalize: Optional[str] = None, threshold: float = 0.5
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.confusion_matrix`. Will be removed in v1.5.0.

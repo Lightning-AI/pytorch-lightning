@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Callable, Union
 
-import torch
+from torch import Tensor
 from torchmetrics import Metric
 from torchmetrics.metric import CompositionalMetric as _CompositionalMetric
 
@@ -26,8 +26,8 @@ class CompositionalMetric(_CompositionalMetric):
     def __init__(
         self,
         operator: Callable,
-        metric_a: Union[Metric, int, float, torch.Tensor],
-        metric_b: Union[Metric, int, float, torch.Tensor, None],
+        metric_a: Union[Metric, int, float, Tensor],
+        metric_b: Union[Metric, int, float, Tensor, None],
     ):
         """
         .. deprecated::

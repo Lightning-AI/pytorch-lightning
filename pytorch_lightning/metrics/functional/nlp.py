@@ -18,7 +18,7 @@
 # Link: https://pytorch.org/text/_modules/torchtext/data/metrics.html#bleu_score
 from typing import Sequence
 
-import torch
+from torch import Tensor
 from torchmetrics.functional import bleu_score as _bleu_score
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -26,11 +26,8 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_bleu_score)
 def bleu_score(
-    translate_corpus: Sequence[str],
-    reference_corpus: Sequence[str],
-    n_gram: int = 4,
-    smooth: bool = False
-) -> torch.Tensor:
+    translate_corpus: Sequence[str], reference_corpus: Sequence[str], n_gram: int = 4, smooth: bool = False
+) -> Tensor:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.bleu_score`. Will be removed in v1.5.0.

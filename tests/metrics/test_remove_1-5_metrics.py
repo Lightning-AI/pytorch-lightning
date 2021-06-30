@@ -215,7 +215,8 @@ def test_v1_5_metric_classif_mix():
     preds = torch.tensor([0, 1, 0, 0])
     confusion_matrix._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert torch.equal(confusion_matrix(preds, target, num_classes=2), torch.tensor([[2., 0.], [1., 1.]]))
+        cm = confusion_matrix(preds, target, num_classes=2)
+        assert torch.equal(cm.to(int), torch.tensor([[2, 0], [1, 1]]))
 
     target = torch.tensor([0, 1, 2, 0, 1, 2])
     preds = torch.tensor([0, 2, 1, 0, 0, 1])
