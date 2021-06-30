@@ -142,7 +142,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         DoublePrecisionBoringModelNoForward,
         pytest.param(
             DoublePrecisionBoringModelComplexBuffer,
-            marks=pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_7, reason="`torch.complex` not available")
+            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="torch.complex not available")
         ),
     ]
 )
