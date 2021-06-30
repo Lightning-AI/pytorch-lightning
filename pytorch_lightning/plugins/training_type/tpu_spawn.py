@@ -186,6 +186,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
+        # requires to compute the state_dict on all processes in case Metrics are present
+        state_dict = self.lightning_module.state_dict()
+
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
 
@@ -196,7 +199,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.save(self.lightning_module.state_dict(), last_path)
+                self.save(state_dict, last_path)
 
             if self.global_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
