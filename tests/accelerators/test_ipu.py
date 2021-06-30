@@ -113,8 +113,16 @@ def test_accelerator_selected(tmpdir):
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize('ipus', [1, 4])
-def test_all_stages(tmpdir, ipus):
+def test_all_stages_0(tmpdir):
+    _test_all_stages(tmpdir, ipus=1)
+
+
+@RunIf(ipu=True)
+def test_all_stages_1(tmpdir):
+    _test_all_stages(tmpdir, ipus=4)
+
+
+def _test_all_stages(tmpdir, ipus):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.fit(model)
@@ -124,8 +132,16 @@ def test_all_stages(tmpdir, ipus):
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize('ipus', [1, 4])
-def test_inference_only(tmpdir, ipus):
+def test_inference_only_0(tmpdir):
+    _test_inference_only(tmpdir, ipus=1)
+
+
+@RunIf(ipu=True)
+def test_inference_only_1(tmpdir):
+    _test_inference_only(tmpdir, ipus=4)
+
+
+def _test_inference_only(tmpdir, ipus):
     model = IPUModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
