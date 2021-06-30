@@ -46,7 +46,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
 
     # we only want to pass in valid Trainer args, the rest may be user specific
     valid_kwargs = inspect.signature(cls.__init__).parameters
-    trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+    trainer_kwargs = {name: params[name] for name in valid_kwargs if name in params}
     trainer_kwargs.update(**kwargs)
 
     return cls(**trainer_kwargs)
