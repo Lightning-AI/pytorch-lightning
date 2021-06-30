@@ -62,6 +62,7 @@ from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
@@ -150,7 +151,7 @@ class AcceleratorConnector(object):
         self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
-        if self.on_tpu:
+        if self.use_tpu:
             self.distributed_backend = "tpu"
 
         # init flags for SLURM+DDP to work
@@ -174,19 +175,19 @@ class AcceleratorConnector(object):
 
     def select_accelerator_type(self) -> None:
         if self.distributed_backend == "auto":
-            if self.on_tpu:
+            if self.has_tpu:
                 self._accelerator_type = DeviceType.TPU
-            elif self.on_gpu:
+            elif self.has_gpu:
                 self._accelerator_type = DeviceType.GPU
             else:
                 self._accelerator_type = DeviceType.CPU
         elif self.distributed_backend == DeviceType.TPU:
-            if not self.on_tpu:
+            if not self.has_tpu:
                 msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}")
             self._accelerator_type = DeviceType.TPU
         elif self.distributed_backend == DeviceType.GPU:
-            if not self.on_gpu:
+            if not self.has_gpu:
                 msg = "GPUs are not available" if not torch.cuda.is_available(
                 ) else "you didn't pass `gpus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}")
@@ -288,20 +289,31 @@ class AcceleratorConnector(object):
         return self._cluster_environment
 
     @property
-    def on_cpu(self) -> bool:
-        return self._device_type == DeviceType.CPU
+    def has_cpu(self) -> bool:
+        return True
 
     @property
     def use_cpu(self) -> bool:
-        return self.on_cpu
+        return self._device_type == DeviceType.CPU
 
     @property
-    def on_tpu(self) -> bool:
+    def has_gpu(self) -> bool:
+        gpus = self.parallel_device_ids
+        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
+
+    @property
+    def use_gpu(self) -> bool:
+        return self._accelerator_type == DeviceType.GPU and self.has_gpu
+
+    @property
+    def has_tpu(self) -> bool:
+        # We are not checking for TPU availability, but instead if User has passed
+        # `tpu_cores` to Trainer for training.
         return self.tpu_cores is not None
 
     @property
     def use_tpu(self) -> bool:
-        return self._accelerator_type == DeviceType.TPU and self.on_tpu
+        return self._accelerator_type == DeviceType.TPU and self.has_tpu
 
     @property
     def on_ipu(self) -> bool:
@@ -309,18 +321,9 @@ class AcceleratorConnector(object):
 
     @property
     def tpu_id(self) -> Optional[int]:
-        if self.on_tpu and isinstance(self.tpu_cores, list):
+        if self.use_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
         return None
-
-    @property
-    def on_gpu(self) -> bool:
-        gpus = self.parallel_device_ids
-        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
-
-    @property
-    def use_gpu(self) -> bool:
-        return self._accelerator_type == DeviceType.GPU and self.on_gpu
 
     @property
     def use_dp(self) -> bool:
@@ -362,7 +365,7 @@ class AcceleratorConnector(object):
     def is_distributed(self) -> bool:
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
-        if hasattr(self.training_type_plugin, 'is_distributed') and not self.on_tpu:
+        if hasattr(self.training_type_plugin, 'is_distributed') and not self.use_tpu:
             return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.use_tpu:
@@ -431,11 +434,11 @@ class AcceleratorConnector(object):
         if self.precision == 64:
             return DoublePrecisionPlugin()
         if self.precision == 16:
-            if self.on_tpu:
+            if self.use_tpu:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
-                if self.on_cpu:
+                if self.use_cpu:
                     raise MisconfigurationException(
                         "You have asked for native AMP on CPU, but AMP is only available on GPU."
                     )
@@ -491,8 +494,8 @@ class AcceleratorConnector(object):
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
-            use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
-            use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
+            use_ddp_cpu_spawn = self.use_ddp and self.use_cpu
+            use_tpu_spawn = self.use_tpu and self._distrib_type == DistributedType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
@@ -531,13 +534,13 @@ class AcceleratorConnector(object):
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
-        elif self.on_tpu and isinstance(self.tpu_cores, list):
+        elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.on_ipu:
             plugin = IPUPlugin(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
+            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
@@ -702,7 +705,7 @@ class AcceleratorConnector(object):
 
         # Initialize Horovod to get rank / size info
         hvd.init()
-        if self.on_gpu:
+        if self.use_gpu:
             # Horovod assigns one local GPU per process
             self.parallel_device_ids = list(range(hvd.local_size()))
         else:
