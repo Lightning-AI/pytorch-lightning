@@ -136,7 +136,7 @@ class IPUPlugin(ParallelPlugin):
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
-        gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
+        gradient_accumulation = self.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
 
         if os.environ.get("PL_GLOBAL_SEED"):
