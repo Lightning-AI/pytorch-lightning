@@ -201,8 +201,7 @@ class ModelSummary(object):
                 from pytorch_lightning.utilities import rank_zero_deprecation
                 rank_zero_deprecation(
                     f"Argument `mode` in `ModelSummary` is deprecated in v1.4 "
-                    f"and will be removed in v1.5. Use `max_depth` with a value "
-                    f"of {max_depth} to replicate `mode={mode}` behaviour."
+                    f" and will be removed in v1.6. Use `{max_depth=}` to replicate the `{mode=}` behavior."
                 )
             else:
                 from pytorch_lightning.utilities.exceptions import MisconfigurationException
