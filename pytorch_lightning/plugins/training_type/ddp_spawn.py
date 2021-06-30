@@ -239,6 +239,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
+        # requires to compute the state_dict on all processes in case Metrics are present
+        state_dict = self.lightning_module.state_dict()
+
         if self.global_rank == 0 and self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
 
@@ -249,7 +252,7 @@ class DDPSpawnPlugin(ParallelPlugin):
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
+                atomic_save(self.on_save(state_dict), last_path)
 
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)
