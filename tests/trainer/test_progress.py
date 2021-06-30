@@ -145,6 +145,10 @@ def test_optimizer_progress_default_factory():
 
 def test_fit_loop_progress_serialization():
     fit_loop = FitLoopProgress()
+    fit_loop.epoch.optim.optimizer_idx = 1
+    fit_loop.epoch.dataloader_idx = 2
+    fit_loop.epoch.val.should_check_val = True
+
     state_dict = fit_loop.state_dict()
     # yapf: disable
     expected = {
@@ -159,7 +163,7 @@ def test_fit_loop_progress_serialization():
                 # number of batches this epoch
                 'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
             },
-            'dataloader_idx': 0,
+            'dataloader_idx': 2,
             # `fit` optimization progress
             'optim': {
                 # optimizers progress
@@ -183,7 +187,7 @@ def test_fit_loop_progress_serialization():
                     # `scheduler.step` calls this epoch
                     'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
                 },
-                "optimizer_idx": 0,
+                "optimizer_idx": 1,
             },
             # `fit` validation progress
             'val': {
@@ -200,7 +204,7 @@ def test_fit_loop_progress_serialization():
                     },
                     'dataloader_idx': 0
                 },
-                'should_check_val': False,
+                'should_check_val': True,
             },
         }
     }

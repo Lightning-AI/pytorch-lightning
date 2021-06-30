@@ -216,6 +216,7 @@ class OptimizationProgress(_DataclassStateDictMixin):
     def __setstate__(self, state: dict) -> None:
         self.optimizer.__setstate__(state["optimizer"])
         self.scheduler.__setstate__(state["scheduler"])
+        self.optimizer_idx = state["optimizer_idx"]
 
 
 @dataclass
