@@ -96,7 +96,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
         `lr_schedulers`.
         """
-        model = cast(pl.LightningModule, model.to(dtype=torch.float64))
+        model = cast(pl.LightningModule, model.double())
         model = LightningDoublePrecisionModule(model)
 
         return super().connect(model, optimizers, lr_schedulers)
