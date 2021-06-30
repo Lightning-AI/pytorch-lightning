@@ -484,6 +484,13 @@ class TrainerProperties(ABC):
         elif self.sanity_checking:
             self.state.stage = None
 
+    def loops_state_dict(self) -> Dict[str, Any]:
+        return {
+            "fit_loop": self.fit_loop.state_dict(),
+            "validate_loop": self.validate_loop.state_dict(),
+            "test_loop": self.test_loop.state_dict(),
+        }
+
     """
     Loop properties
     """
@@ -493,7 +500,7 @@ class TrainerProperties(ABC):
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             return self.fit_loop.epoch_loop.val_loop
         elif self.state.fn == TrainerFn.VALIDATING:
-            return self.validation_loop
+            return self.validate_loop
         if self.state.fn == TrainerFn.TESTING:
             return self.test_loop
         raise RuntimeError("The `Trainer.evaluation_loop` property isn't defined. Accessed outside of scope")
@@ -567,13 +574,6 @@ class TrainerProperties(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    def get_loops_state_dict(self) -> Dict[str, Any]:
-        return {
-            "fit_loop": self.fit_loop.state_dict(),
-            "validate_loop": self.validate_loop.state_dict(),
-            "test_loop": self.test_loop.state_dict(),
-        }
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
