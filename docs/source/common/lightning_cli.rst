@@ -510,6 +510,12 @@ and :code:`lr_scheduler` groups would accept all of the options for the given cl
     trainer:
       ...
 
+And any of these arguments could be passed directly through command line. For example:
+
+.. code-block:: bash
+
+    $ python train.py --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
+
 There is also the possibility of selecting among multiple classes by giving them as a tuple. For example:
 
 .. testcode::
@@ -533,6 +539,12 @@ A corresponding example of the config file would be:
       ...
     trainer:
       ...
+
+And the same through command line:
+
+.. code-block:: bash
+
+    $ python train.py --optimizer='{class_path: torch.optim.Adam, init_args: {lr: 0.01}}'
 
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
 example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
