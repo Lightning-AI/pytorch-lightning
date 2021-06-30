@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import IPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
@@ -506,3 +506,31 @@ def test_precision_plugin(tmpdir):
 
     plugin = IPUPrecisionPlugin(precision=16)
     assert plugin.precision == 16
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=1)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `ipus` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="ipu")
+
+    trainer = Trainer(accelerator="auto", ipus=8)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_cpu_with_ipus_flag():
+
+    trainer = Trainer(accelerator="cpu", ipus=1)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
