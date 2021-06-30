@@ -15,7 +15,7 @@ from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
+import torch.distributed
 from torch.optim.lr_scheduler import _LRScheduler, Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -125,7 +125,7 @@ class HorovodPlugin(ParallelPlugin):
         self.join()
 
     def barrier(self, *args, **kwargs):
-        if torch_distrib.is_initialized():
+        if torch.distributed.is_initialized():
             self.join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:

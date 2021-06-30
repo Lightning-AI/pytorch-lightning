@@ -222,7 +222,8 @@ class StochasticWeightAveraging(Callback):
             trainer.num_training_batches += 1
             trainer.fit_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
-            trainer.accumulate_grad_batches = len(trainer.train_dataloader)
+
+            trainer.accumulate_grad_batches = trainer.num_training_batches
 
     def on_train_epoch_end(self, trainer: 'pl.Trainer', *args):
         trainer.fit_loop._skip_backward = False
@@ -265,7 +266,7 @@ class StochasticWeightAveraging(Callback):
         """
         Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165
         """
-        for bn_module in self.momenta.keys():
+        for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
 
     @staticmethod
