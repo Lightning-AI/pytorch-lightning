@@ -480,9 +480,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        ipus=2,
         fast_dev_run=True,
-        accumulate_grad_batches=2,
         plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
     )
     trainer.fit(model)
