@@ -229,10 +229,6 @@ class TrainerProperties(ABC):
         else:
             dirpath = self.logger.save_dir
 
-        # e.g. when the logger is a LoggerCollection
-        if (dirpath is None):
-            dirpath = self.default_root_dir
-
         if isinstance(self.logger, LoggerCollection) and dirpath is None:
             dirpath = self.default_root_dir
 
