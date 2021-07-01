@@ -385,7 +385,10 @@ def test_tbptt_cpu_model(tmpdir, n_hidden_states):
             )
 
     model = BpttTestModel(
-        batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=n_hidden_states
+        batch_size=batch_size,
+        in_features=truncated_bptt_steps,
+        out_features=truncated_bptt_steps,
+        n_hidden_states=n_hidden_states
     )
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
