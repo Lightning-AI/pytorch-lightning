@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pytorch_lightning.core.saving import update_hparams
 from pytorch_lightning.metrics.metric import Metric
 import pytest
 import torch
@@ -272,7 +273,7 @@ def test_log_metric_dict(tmpdir):
 class LossMetric(Metric):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(compute_on_step=False, dist_sync_on_step=False)
 
         self.add_state("loss", torch.tensor(0.), dist_reduce_fx=torch.sum)
         self.add_state("counter", torch.tensor(0.), dist_reduce_fx=torch.sum)
@@ -295,9 +296,15 @@ class TestModelSyncMetric(BoringModel):
         loss =  super().training_step(batch, batch_idx)
         self.log("loss_tensor", loss["loss"])
 
-        self.loss_metric(loss["loss"])
-        self.loss_metric.sync()
-        self.log("loss_metric", self.loss_metric)
+        value = self.trainer.global_rank + 1
+        
+        # pure computation + cache current states + reduction on total states
+        self.loss_metric(value)
+
+        self.loss_metric.compute(compute_on_step=True, dist_sync=True) # forward cache
+        self.loss_metric.compute(compute_on_step=False) # global accumulation accross all processes
+
+        self.log("loss_metric", self.loss_metric(value, compute_on_step=False, dist_sync=False))
 
         return loss
 

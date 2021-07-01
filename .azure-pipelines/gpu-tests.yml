@@ -53,7 +53,7 @@ jobs:
         pip install fairscale>=0.3.4
         pip install deepspeed>=0.4.0 -U
         pip install . --requirement requirements/devel.txt
-        pip install git+https://github.com/PyTorchLightning/metrics.git@fix_ddp 
+        pip install git+https://github.com/PyTorchLightning/metrics.git@fix_ddp
         pip list
       displayName: 'Install dependencies'
 
