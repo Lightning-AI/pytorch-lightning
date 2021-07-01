@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.3.8] - 2021-06-30
+
+- Fixed a sync deadlock when checkpointing a `LightningModule` that uses a torchmetrics 0.4 `Metric` ([#8218](https://github.com/PyTorchLightning/pytorch-lightning/pull/8218))
+- Fixed compatibility TorchMetrics v0.4 ([#8206](https://github.com/PyTorchLightning/pytorch-lightning/pull/8206))
+- Added torchelastic check when sanitizing GPUs ([#8095](https://github.com/PyTorchLightning/pytorch-lightning/pull/8095))
+- Fixed a DDP info message that was never shown ([#8111](https://github.com/PyTorchLightning/pytorch-lightning/pull/8111))
+- Fixed metrics deprecation message at module import level ([#8163](https://github.com/PyTorchLightning/pytorch-lightning/pull/8163))
+- Fixed a bug where an infinite recursion would be triggered when using the `BaseFinetuning` callback on a model that contains a `ModuleDict` ([#8170](https://github.com/PyTorchLightning/pytorch-lightning/pull/8170))
+- Added a mechanism to detect `deadlock` for `DDP` when only 1 process trigger an `Exception`. The mechanism will `kill the processes` when it happens ([#8167](https://github.com/PyTorchLightning/pytorch-lightning/pull/8167))
+- Fixed NCCL error when selecting non-consecutive device ids ([#8165](https://github.com/PyTorchLightning/pytorch-lightning/pull/8165))
+- Fixed SWA to also work with `IterableDataset` ([#8172](https://github.com/PyTorchLightning/pytorch-lightning/pull/8172))
+
+
 ## [1.3.7] - 2021-06-22
 
 - Fixed a bug where skipping an optimizer while using amp causes amp to trigger an assertion error ([#7975](https://github.com/PyTorchLightning/pytorch-lightning/pull/7975))
@@ -23,10 +36,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `DataModule.prepare_data` could only be called on the global rank 0 process ([#7945](https://github.com/PyTorchLightning/pytorch-lightning/pull/7945))
 - Fixed setting `worker_init_fn` to seed dataloaders correctly when using DDP ([#7942](https://github.com/PyTorchLightning/pytorch-lightning/pull/7942))
 - Fixed `BaseFinetuning` callback to properly handle parent modules w/ parameters ([#7931](https://github.com/PyTorchLightning/pytorch-lightning/pull/7931))
-
-## [1.3.6] - 2021-06-DD
-
-- Fix compatibility TorchMetrics v0.4 ([#8206](https://github.com/PyTorchLightning/pytorch-lightning/pull/8206))
 
 
 ## [1.3.5] - 2021-06-08

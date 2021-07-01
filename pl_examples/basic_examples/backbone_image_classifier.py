@@ -128,7 +128,7 @@ class MyDataModule(pl.LightningDataModule):
 
 
 def cli_main():
-    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_callback=None)
     result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
     print(result)
 

@@ -10,3 +10,4 @@ tensorboard>=2.2.0, !=2.5.0  # 2.5.0 GPU CI error: 'Couldn't build proto file in
 torchmetrics>=0.2.0
 pyDeprecate==0.3.0
 packaging>=17.0
+pillow!=8.3.0  # TODO: Delete line after https://github.com/python-pillow/Pillow/issues/5571
