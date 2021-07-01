@@ -54,14 +54,6 @@ class FitLoop(Loop):
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
-    def _results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self.epoch_loop._results
-        elif self.trainer.validating:
-            return self.epoch_loop.val_loop._results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
-
-    @property
     def current_epoch(self) -> int:
         """Return the current epoch"""
         return self.iteration_count
@@ -133,6 +125,14 @@ class FitLoop(Loop):
     def _skip_backward(self, value: bool) -> None:
         """ Determines whether the loop will skip backward during automatic optimization. """
         self.epoch_loop.batch_loop._skip_backward = value
+
+    @property
+    def _results(self) -> ResultCollection:
+        if self.trainer.training:
+            return self.epoch_loop._results
+        elif self.trainer.validating:
+            return self.epoch_loop.val_loop._results
+        raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
     def done(self) -> bool:
