@@ -1065,7 +1065,7 @@ truncated_bptt_steps
 Truncated back prop breaks performs backprop every k steps of
 a much longer sequence. This is made possible by passing training batches
 splitted along the time-dimensions into splits of size k to the
-`training_step`. In order to keep the same forward propagation behavior, all
+``training_step``. In order to keep the same forward propagation behavior, all
 hidden states should be kept in-between each time-dimension split.
 
 
@@ -1115,9 +1115,9 @@ recurrent network trajectories."
                 "hiddens": hiddens
             }
 
-Lightning takes care to split your batch along the time-dimension. It is
+Lightning takes care of splitting your batch along the time-dimension. It is
 assumed to be the second dimension of your batches. Therefore, in the
-example above we have set `batch_first=True`.
+example above we have set ``batch_first=True``.
 
 .. code-block:: python
 
