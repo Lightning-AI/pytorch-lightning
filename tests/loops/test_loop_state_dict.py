@@ -19,7 +19,7 @@ from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def test_loops_state_dict_structure():
+def test_loops_state_dict():
     fit_loop = FitLoop()
     with pytest.raises(MisconfigurationException, match="Loop FitLoop should be connected to a"):
         fit_loop.connect(object())  # noqa
@@ -31,9 +31,15 @@ def test_loops_state_dict_structure():
     assert fit_loop.state_dict() == new_fit_loop.state_dict()
 
 
-def test_loops_state_dict_structure_with_trainer():
+def test_loops_state_dict_structure():
     trainer = Trainer()
-    state_dict = trainer.loops_state_dict()
+    # structure saved by the checkpoint connector
+    state_dict = {
+        "fit_loop": trainer.fit_loop.state_dict(),
+        "validate_loop": trainer.validate_loop.state_dict(),
+        "test_loop": trainer.test_loop.state_dict(),
+        "predict_loop": trainer.predict_loop.state_dict(),
+    }
     expected = {
         "fit_loop": {
             'epoch_loop': {
@@ -43,5 +49,6 @@ def test_loops_state_dict_structure_with_trainer():
         },
         "validate_loop": {},
         "test_loop": {},
+        "predict_loop": {},
     }
     assert state_dict == expected
