@@ -659,7 +659,7 @@ To launch a fault-tolerant job, run the following on all nodes.
             --rdzv_endpoint=HOST_NODE_ADDR
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
 
-To launch an elastic job, run the following on at least MIN_SIZE nodes and at most MAX_SIZE nodes.
+To launch an elastic job, run the following on at least ``MIN_SIZE`` nodes and at most ``MAX_SIZE`` nodes.
 
 .. code-block:: bash
 
