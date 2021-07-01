@@ -414,40 +414,40 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
     trainer.fit(model)
 
-
-@mock.patch.dict(
-    os.environ, {
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_PROCID": "0",
-        "SLURM_LOCALID": "0",
-    }
-)
-@mock.patch('torch.cuda.device_count', return_value=0)
-def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
-    """ Test that we choose the custom cluster even when SLURM or TE flags are around """
-
-    class CustomCluster(LightningEnvironment):
-
-        def master_address(self):
-            return 'asdf'
-
-        def creates_children(self) -> bool:
-            return True
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins=[CustomCluster()],
-        fast_dev_run=True,
-        accelerator='ddp_cpu',
-        num_processes=2,
-    )
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
-    assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
-
+#
+# @mock.patch.dict(
+#     os.environ, {
+#         "SLURM_NTASKS": "2",
+#         "SLURM_JOB_NAME": "SOME_NAME",
+#         "SLURM_NODEID": "0",
+#         "LOCAL_RANK": "0",
+#         "SLURM_PROCID": "0",
+#         "SLURM_LOCALID": "0",
+#     }
+# )
+# @mock.patch('torch.cuda.device_count', return_value=0)
+# def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
+#     """ Test that we choose the custom cluster even when SLURM or TE flags are around """
+#
+#     class CustomCluster(LightningEnvironment):
+#
+#         def master_address(self):
+#             return 'asdf'
+#
+#         def creates_children(self) -> bool:
+#             return True
+#
+#     trainer = Trainer(
+#         default_root_dir=tmpdir,
+#         plugins=[CustomCluster()],
+#         fast_dev_run=True,
+#         accelerator='ddp_cpu',
+#         num_processes=2,
+#     )
+#     assert isinstance(trainer.accelerator, CPUAccelerator)
+#     assert isinstance(trainer.training_type_plugin, DDPPlugin)
+#     assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
+#
 
 @mock.patch.dict(
     os.environ, {
