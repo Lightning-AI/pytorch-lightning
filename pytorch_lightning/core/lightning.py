@@ -81,6 +81,7 @@ class LightningModule(
         "model_size",
         "automatic_optimization",
         "truncated_bptt_steps",
+        "loaded_optimizer_states_dict",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -90,7 +91,7 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self.loaded_optimizer_states_dict = {}
+        self._loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
         self.trainer = None
@@ -177,6 +178,24 @@ class LightningModule(
             stacklevel=6,
         )
         return self._datamodule
+
+    @property
+    def loaded_optimizer_states_dict(self) -> dict:
+        warning_cache.deprecation(
+            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
+            " and will be removed in v1.6.",
+            stacklevel=6,
+        )
+        return self._loaded_optimizer_states_dict
+
+    @loaded_optimizer_states_dict.setter
+    def loaded_optimizer_states_dict(self, val: dict) -> None:
+        warning_cache.deprecation(
+            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
+            " and will be removed in v1.6.",
+            stacklevel=6,
+        )
+        self._loaded_optimizer_states_dict = val
 
     @datamodule.setter
     def datamodule(self, datamodule: Any) -> None:
