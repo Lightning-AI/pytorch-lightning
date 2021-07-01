@@ -286,3 +286,6 @@ class FitLoop(Loop):
 
     def load_state_dict(self, state_dict: Dict) -> None:
         self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
+
+    def teardown(self) -> None:
+        self.epoch_loop.teardown()

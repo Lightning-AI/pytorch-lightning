@@ -222,7 +222,10 @@ class TrainingEpochLoop(loops.Loop):
 
     def teardown(self) -> None:
         """Frees memory of tracked epoch outputs."""
-        self.epoch_output = None
+        self._epoch_output = None
+        self._results.cpu()
+        self.batch_loop.teardown()
+        self.val_loop.teardown()
 
     def _run_validation(self):
         # reload dataloaders
