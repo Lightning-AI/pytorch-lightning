@@ -227,7 +227,7 @@ class TrainingEpochLoop(Loop):
 
     def teardown(self) -> None:
         """Frees memory of tracked epoch outputs."""
-        self.epoch_output = None
+        self._epoch_output = None
 
     def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
         """Runs ``on_train_epoch_end hook``."""
