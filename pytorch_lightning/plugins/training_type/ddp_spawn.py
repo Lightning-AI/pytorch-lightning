@@ -201,7 +201,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-        trainer._call_teardown_hook()
+        trainer._call_teardown_hook(self.lightning_module)
 
     def post_dispatch(self):
         # restore main state with best weights
