@@ -206,6 +206,9 @@ class ModelSummary(object):
                 from pytorch_lightning.utilities.exceptions import MisconfigurationException
                 raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
 
+        if not isinstance(max_depth, int) or max_depth < -1:
+            raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
+
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
@@ -220,14 +223,9 @@ class ModelSummary(object):
         elif self._max_depth == 1:
             # the children are the top-level modules
             mods = self._model.named_children()
-        elif self._max_depth == -1 or self._max_depth > 1:
+        else:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
-        else:
-            raise ValueError(
-                f"Invalid value for max_depth encountered. "
-                f"Expected -1, 0 or >0, but got {self._max_depth}."
-            )
         return list(mods)
 
     @property
