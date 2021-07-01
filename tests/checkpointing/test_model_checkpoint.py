@@ -823,7 +823,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     assert checkpoint_callback.best_model_path == tmpdir / "epoch=2.ckpt"
     assert checkpoint_callback.best_model_score == epochs - 1
     assert len(os.listdir(tmpdir)) == len(checkpoint_callback.best_k_models) == epochs
-    assert set(checkpoint_callback.best_k_models.keys()) == set(str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs))
+    assert set(checkpoint_callback.best_k_models.keys()) == {str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs)}
     assert checkpoint_callback.kth_best_model_path == tmpdir / 'epoch=0.ckpt'
 
 
@@ -1275,7 +1275,8 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
         assert {Path(f).name for f in mc.best_k_models} == expected
 
     # check created ckpts
-    assert set(f.basename for f in tmpdir.listdir()) == {
+    actual = {f.basename for f in tmpdir.listdir()}
+    assert actual == {
         "epoch=0.ckpt",
         "epoch=1.ckpt",
         "epoch=0-v1.ckpt",
