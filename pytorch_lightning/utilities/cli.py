@@ -193,7 +193,8 @@ class LightningCLI:
         env_parse: bool = False,
         parser_kwargs: Dict[str, Any] = None,
         subclass_mode_model: bool = False,
-        subclass_mode_data: bool = False
+        subclass_mode_data: bool = False,
+        skip_fit: bool = False,
     ) -> None:
         """
         Receives as input pytorch-lightning classes, which are instantiated
@@ -237,6 +238,7 @@ class LightningCLI:
             subclass_mode_data: Whether datamodule can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
+            skip_fit: Allow skip Trainer.fit(...), fr example if you want perform more custom flow
         """
         assert issubclass(trainer_class, Trainer)
         assert issubclass(model_class, LightningModule)
@@ -266,6 +268,9 @@ class LightningCLI:
         self.instantiate_classes()
         self.add_configure_optimizers_method_to_model()
         self.prepare_fit_kwargs()
+
+        if skip_fit:
+            return
         self.before_fit()
         self.fit()
         self.after_fit()
