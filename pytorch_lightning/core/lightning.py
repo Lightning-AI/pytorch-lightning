@@ -81,6 +81,7 @@ class LightningModule(
         "model_size",
         "automatic_optimization",
         "truncated_bptt_steps",
+        "loaded_optimizer_states_dict",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
