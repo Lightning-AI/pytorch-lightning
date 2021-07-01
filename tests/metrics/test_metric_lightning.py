@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pytorch_lightning.metrics.metric import Metric
 import pytest
 import torch
 from torch import nn
@@ -22,6 +23,7 @@ from pytorch_lightning.metrics import Metric as PLMetric
 from pytorch_lightning.metrics import MetricCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class SumMetric(TMetric):
@@ -265,3 +267,54 @@ def test_log_metric_dict(tmpdir):
     logged = trainer.logged_metrics
     assert torch.allclose(torch.tensor(logged["sum_epoch"]), model.sum)
     assert torch.allclose(torch.tensor(logged["diff_epoch"]), model.diff)
+
+
+class LossMetric(Metric):
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_state("loss", torch.tensor(0.), dist_reduce_fx=torch.sum)
+        self.add_state("counter", torch.tensor(0.), dist_reduce_fx=torch.sum)
+
+    def update(self, loss) -> None:
+        self.loss += loss
+        self.counter += 1
+
+    def compute(self):
+        return self.loss / self.counter
+
+
+class TestModelSyncMetric(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.loss_metric = LossMetric()
+
+    def training_step(self, batch, batch_idx):
+        loss =  super().training_step(batch, batch_idx)
+        self.log("loss_tensor", loss["loss"])
+
+        self.loss_metric(loss["loss"])
+        self.loss_metric.sync()
+        self.log("loss_metric", self.loss_metric)
+
+        return loss
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.skipif(True, reason="wip")
+def test_metric_sync_api(tmpdir):
+
+    model = TestModelSyncMetric()
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=1,
+        accelerator="ddp_spawn",
+        gpus=2
+    )
+    trainer.fit(model)

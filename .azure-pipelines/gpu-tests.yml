@@ -49,11 +49,11 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
-        pip install git+https://github.com/PyTorchLightning/metrics.git@fix_ddp 
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale>=0.3.4
         pip install deepspeed>=0.4.0 -U
         pip install . --requirement requirements/devel.txt
+        pip install git+https://github.com/PyTorchLightning/metrics.git@fix_ddp 
         pip list
       displayName: 'Install dependencies'
 
