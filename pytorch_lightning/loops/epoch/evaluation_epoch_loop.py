@@ -100,9 +100,6 @@ class EvaluationEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        assert self.num_dataloaders is not None
-        self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
-
         with self.trainer.profiler.profile("evaluation_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
@@ -174,6 +171,9 @@ class EvaluationEpochLoop(Loop):
             AssertionError: If the number of dataloaders is None (has not yet been set).
         """
         self.trainer.logger_connector.on_batch_start()
+
+        assert self.num_dataloaders is not None
+        self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:
             self.trainer.call_hook("on_test_batch_start", batch, batch_idx, dataloader_idx)
