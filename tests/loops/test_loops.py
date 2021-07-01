@@ -72,4 +72,5 @@ def test_loop_restore():
     loop.is_restarting = True
     loop.run()
 
+    assert not loop.is_restarting
     assert loop.outputs == list(range(10))
