@@ -105,6 +105,10 @@ def rank_zero_info(*args, stacklevel: int = 4, **kwargs):
     _info(*args, stacklevel=stacklevel, **kwargs)
 
 
+def distributed_available() -> bool:
+    return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+
+
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
     """
     Function to gather all tensors from several ddp processes onto a list that

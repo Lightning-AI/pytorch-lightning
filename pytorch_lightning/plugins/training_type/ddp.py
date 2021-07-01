@@ -296,7 +296,7 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch_distrib.is_initialized():
+        if not (torch_distrib.is_available() and torch_distrib.is_initialized()):
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
             torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
