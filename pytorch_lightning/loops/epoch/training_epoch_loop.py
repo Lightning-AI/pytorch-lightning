@@ -218,11 +218,13 @@ class TrainingEpochLoop(loops.Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
-        return self._epoch_output
+
+        epoch_output = self._epoch_output
+        # free memory
+        self._epoch_output = None
+        return epoch_output
 
     def teardown(self) -> None:
-        """Frees memory of tracked epoch outputs."""
-        self._epoch_output = None
         self._results.cpu()
         self.batch_loop.teardown()
         self.val_loop.teardown()
