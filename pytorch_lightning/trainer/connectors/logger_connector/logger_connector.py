@@ -154,9 +154,9 @@ class LoggerConnector:
         if self.trainer.sanity_checking:
             return
 
-        num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
+        num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
+        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
             callback_metrics = {
                 k: v

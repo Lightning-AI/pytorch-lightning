@@ -33,9 +33,11 @@ class EvaluationLoop(DataLoaderLoop):
         super().__init__()
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
+
         self.epoch_loop = EvaluationEpochLoop()
-        self._has_run: bool = False
+
         self._results = ResultCollection(training=False)
+        self._has_run: bool = False
 
     @property
     def num_dataloaders(self) -> int:
@@ -56,11 +58,6 @@ class EvaluationLoop(DataLoaderLoop):
         if self.trainer.testing:
             return self.trainer.test_dataloaders
         return self.trainer.val_dataloaders
-
-    @property
-    def results(self) -> ResultCollection:
-        """Returns the current results"""
-        return self._results
 
     @property
     def predictions(self):
@@ -184,8 +181,8 @@ class EvaluationLoop(DataLoaderLoop):
         """Runs ``on_{validation/test}_start`` hooks"""
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        assert self.results is not None
-        self.results.to(device=self.trainer.lightning_module.device)
+        assert self._results is not None
+        self._results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
             self.trainer.call_hook("on_test_start", *args, **kwargs)
