@@ -1074,21 +1074,21 @@ recurrent network trajectories."
 
     class MyModel(LightningModule):
 
-        def __init__(self, input_size, hidden_size, num_layers, output_size,
-                     truncated_bptt_steps, criterion):
+        def __init__(self, input_size, hidden_size, num_layers):
             super().__init__()
+            # batch_first has to be set to True
             self.lstm = nn.LSTM(
                 input_size=input_size,
                 hidden_size=hidden_size,
                 num_layers=num_layers,
                 batch_first=True,
             )
-            self.linear = nn.Linear(hidden_size, outpur_size)
-            self.criterion = criterion
+
+            ...
 
             # Important: This property activates truncated backpropagation through time
             # Setting this value to 2 splits the batch into sequences of size 2
-            self.truncated_bptt_steps = truncated_bptt_steps
+            self.truncated_bptt_steps = 2
 
         # Truncated back-propagation through time
         def training_step(self, batch, batch_idx, hiddens):
@@ -1098,11 +1098,10 @@ recurrent network trajectories."
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(x, hiddens)
 
-            y_hat = self.linear(out[:, -1])
-            loss = self.criterion(y_hat, y)
+            ...
 
             return {
-                "loss": loss,
+                "loss": ...,
                 "hiddens": hiddens
             }
 
