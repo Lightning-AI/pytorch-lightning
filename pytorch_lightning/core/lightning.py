@@ -375,7 +375,7 @@ class LightningModule(
                 # compute once
                 self._metric_attributes = {
                     id(module): name
-                    for name, module in self.named_children() if isinstance(module, Metric)
+                    for name, module in self.named_modules() if isinstance(module, Metric)
                 }
                 if not self._metric_attributes:
                     raise MisconfigurationException(
@@ -383,7 +383,7 @@ class LightningModule(
                         " You can fix this by setting an attribute for the metric in your `LightningModule`."
                     )
             # try to find the passed metric in the LightningModule
-            metric_attribute = self._metric_attributes.get(id(value))
+            metric_attribute = self._metric_attributes.get(id(value), None)
             if metric_attribute is None:
                 raise MisconfigurationException(
                     "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
@@ -1642,15 +1642,24 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+    def summarize(self, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
         model_summary = None
 
-        if mode in ModelSummary.MODES:
-            model_summary = ModelSummary(self, mode=mode)
-            log.info("\n" + str(model_summary))
-        elif mode is not None:
-            raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        # temporary mapping from mode to max_depth
+        if max_depth is None:
+            if mode in ModelSummary.MODES:
+                max_depth = ModelSummary.MODES[mode]
+                rank_zero_deprecation(
+                    f"Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
+                    f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
+                )
+                model_summary = ModelSummary(self, max_depth=max_depth)
+            elif mode is not None:
+                raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        else:
+            model_summary = ModelSummary(self, max_depth=max_depth)
 
+        log.info("\n" + str(model_summary))
         return model_summary
 
     def freeze(self) -> None:

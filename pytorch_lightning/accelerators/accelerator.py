@@ -382,7 +382,7 @@ class Accelerator:
     def amp_backend(self) -> Optional[LightningEnum]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
-        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
         return None
 
