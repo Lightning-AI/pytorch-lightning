@@ -543,7 +543,7 @@ class LightningModule(
             ' and will be removed in v1.5.'
         )
 
-        self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
+        self.trainer._evaluation_loop.predictions._add_prediction(name, value, filename)
 
     def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
         """
