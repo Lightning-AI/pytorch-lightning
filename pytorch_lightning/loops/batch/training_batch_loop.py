@@ -349,7 +349,7 @@ class TrainingBatchLoop(Loop):
 
             # handle cases of hiddens being a Tensor or a tuple of Tensors
             def detach(tensor):
-                return tensor.detatch()
+                return tensor.detach()
 
             hiddens = apply_to_collection(hiddens, dtype=Tensor, function=detach)
 
