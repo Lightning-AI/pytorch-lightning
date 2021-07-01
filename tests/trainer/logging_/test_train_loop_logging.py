@@ -262,7 +262,6 @@ def test_tbptt_log(tmpdir):
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             if hiddens is not None:
-
                 assert hiddens.grad_fn is None
             self.test_hidden = torch.tensor(2., requires_grad=True).pow(2)
 
