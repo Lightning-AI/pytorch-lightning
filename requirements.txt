@@ -1,5 +1,6 @@
 # the default package dependencies
 
+pillow!=8.3.0  # TODO: Delete line after https://github.com/python-pillow/Pillow/issues/5571
 numpy>=1.17.2
 torch>=1.4
 future>=0.17.1  # required for builtins in setup.py
