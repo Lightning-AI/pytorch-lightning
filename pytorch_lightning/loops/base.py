@@ -92,7 +92,6 @@ class Loop(ABC):
                 self.on_advance_end()
                 self.iteration_count += 1
             except StopIteration:
-                self.teardown()
                 break
 
         output = self.on_run_end()
