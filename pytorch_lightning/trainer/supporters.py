@@ -102,8 +102,7 @@ class TensorRunningAccum(object):
         if self.last_idx is not None:
             if self.rotated:
                 return getattr(self.memory, how)()
-            else:
-                return getattr(self.memory[:self.current_idx], how)()
+            return getattr(self.memory[:self.current_idx], how)()
 
 
 class PredictionCollection(object):
@@ -158,7 +157,7 @@ class PredictionCollection(object):
             # Switch predictions so each entry has its own dict
             outputs = []
             for values in zip(*predictions.values()):
-                output_element = {k: v for k, v in zip(predictions.keys(), values)}
+                output_element = dict(zip(predictions.keys(), values))
                 outputs.append(output_element)
 
             # Write predictions for current file to disk
@@ -295,10 +294,10 @@ class CombinedDataset(object):
         if isinstance(data, Dataset):
             return len(data)
 
-        elif isinstance(data, (float, int)):
+        if isinstance(data, (float, int)):
             return data
 
-        elif isinstance(data, Mapping):
+        if isinstance(data, Mapping):
             if any(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data.values()):
                 return {k: self._get_len_recursive(v) for k, v in data.items()}
         elif isinstance(data, Sequence):
@@ -417,9 +416,7 @@ class CombinedLoader(object):
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
-
-        else:
-            return _nested_calc_num_data(all_lengths, min)
+        return _nested_calc_num_data(all_lengths, min)
 
     def __len__(self) -> int:
         return self._calc_num_batches(self.loaders)
