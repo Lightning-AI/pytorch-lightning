@@ -110,11 +110,13 @@ class TrainingEpochLoop(Loop):
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
         with self.trainer.profiler.profile("training_batch_to_device"):
+            print("before run", self.iteration_count, torch.cuda.memory_allocated())
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
 
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
             self.batches_seen += 1
+            print("after run", self.iteration_count, torch.cuda.memory_allocated())
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -150,6 +152,7 @@ class TrainingEpochLoop(Loop):
         Raises:
             StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
         """
+        print("advance end", self.iteration_count, torch.cuda.memory_allocated())
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
