@@ -48,8 +48,8 @@ class TrainingEpochLoop(loops.Loop):
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
 
-        self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.val_loop: Optional[loops.EvaluationLoop] = None
+        self.batch_loop = TrainingBatchLoop()
+        self.val_loop = loops.EvaluationLoop()
 
         self._progress: Optional[TrainingEpochProgress] = None
 
@@ -107,9 +107,7 @@ class TrainingEpochLoop(loops.Loop):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
         super().connect(trainer, *args, **kwargs)
-        self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
-        self.val_loop = loops.EvaluationLoop()
         self.val_loop.connect(trainer)
 
     def reset(self) -> None:
@@ -478,3 +476,10 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def state_dict(self) -> Dict:
+        return {"batch_loop": self.batch_loop.state_dict(), "val_loop": self.val_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.batch_loop.load_state_dict(state_dict["batch_loop"])
+        self.val_loop.load_state_dict(state_dict["val_loop"])
