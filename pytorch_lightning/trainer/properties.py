@@ -63,7 +63,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    validation_loop: EvaluationLoop
+    validate_loop: EvaluationLoop
     test_loop: EvaluationLoop
     """
     Accelerator properties
@@ -493,7 +493,7 @@ class TrainerProperties(ABC):
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             return self.fit_loop.epoch_loop.val_loop
         elif self.state.fn == TrainerFn.VALIDATING:
-            return self.validation_loop
+            return self.validate_loop
         if self.state.fn == TrainerFn.TESTING:
             return self.test_loop
         raise RuntimeError("The `Trainer.evaluation_loop` property isn't defined. Accessed outside of scope")

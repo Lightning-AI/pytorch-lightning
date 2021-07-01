@@ -344,11 +344,11 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.validation_loop = EvaluationLoop()
+        self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
         self.fit_loop.connect(self)
-        self.validation_loop.connect(self)
+        self.validate_loop.connect(self)
         self.test_loop.connect(self)
         self.predict_loop.connect(self)
 
@@ -941,7 +941,8 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            ref_model.summarize(mode=self.weights_summary)
+            max_depth = ModelSummary.MODES[self.weights_summary]
+            ref_model.summarize(max_depth=max_depth)
 
         # on pretrain routine end
         self.on_pretrain_routine_end()

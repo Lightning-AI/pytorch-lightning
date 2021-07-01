@@ -81,6 +81,7 @@ class LightningModule(
         "model_size",
         "automatic_optimization",
         "truncated_bptt_steps",
+        "loaded_optimizer_states_dict",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -90,7 +91,7 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self.loaded_optimizer_states_dict = {}
+        self._loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
         self.trainer = None
@@ -177,6 +178,24 @@ class LightningModule(
             stacklevel=6,
         )
         return self._datamodule
+
+    @property
+    def loaded_optimizer_states_dict(self) -> dict:
+        warning_cache.deprecation(
+            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
+            " and will be removed in v1.6.",
+            stacklevel=6,
+        )
+        return self._loaded_optimizer_states_dict
+
+    @loaded_optimizer_states_dict.setter
+    def loaded_optimizer_states_dict(self, val: dict) -> None:
+        warning_cache.deprecation(
+            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
+            " and will be removed in v1.6.",
+            stacklevel=6,
+        )
+        self._loaded_optimizer_states_dict = val
 
     @datamodule.setter
     def datamodule(self, datamodule: Any) -> None:
@@ -1642,15 +1661,24 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+    def summarize(self, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
         model_summary = None
 
-        if mode in ModelSummary.MODES:
-            model_summary = ModelSummary(self, mode=mode)
-            log.info("\n" + str(model_summary))
-        elif mode is not None:
-            raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        # temporary mapping from mode to max_depth
+        if max_depth is None:
+            if mode in ModelSummary.MODES:
+                max_depth = ModelSummary.MODES[mode]
+                rank_zero_deprecation(
+                    f"Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
+                    f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
+                )
+                model_summary = ModelSummary(self, max_depth=max_depth)
+            elif mode is not None:
+                raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        else:
+            model_summary = ModelSummary(self, max_depth=max_depth)
 
+        log.info("\n" + str(model_summary))
         return model_summary
 
     def freeze(self) -> None:
