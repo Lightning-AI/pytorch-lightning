@@ -137,9 +137,8 @@ class ModelSummary(object):
             - `top` (default): only the top-level modules will be recorded (the children of the root module)
             - `full`: summarizes all layers and their submodules in the root module
 
-            .. deprecated: v1.4
+            .. deprecated:: v1.4
                 This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
-
 
         max_depth: Maximum depth of modules to show. Use -1 to show all modules or 0 to show no
             summary. Defaults to 1.
