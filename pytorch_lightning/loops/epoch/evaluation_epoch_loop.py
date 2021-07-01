@@ -41,7 +41,6 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
-
         self.progress = EpochProgress()
 
     def connect(

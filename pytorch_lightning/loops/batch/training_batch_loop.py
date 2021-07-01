@@ -49,7 +49,6 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-
         self.progress = BatchProgress()
         self.optim_progress = OptimizationProgress()
 

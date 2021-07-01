@@ -33,8 +33,8 @@ class EvaluationLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.outputs = []
-
         self.progress = EpochLoopProgress()
+
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)

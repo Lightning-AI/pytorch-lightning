@@ -19,10 +19,9 @@ class PredictionLoop(DataLoaderLoop):
         super().__init__()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
+        self.progress = EpochLoopProgress()
 
         self.epoch_loop = PredictionEpochLoop()
-
-        self.progress = EpochLoopProgress()
 
         self._return_predictions: bool = False
 

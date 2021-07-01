@@ -18,7 +18,6 @@ class PredictionEpochLoop(Loop):
         self.return_predictions: bool = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
-
         self.progress = EpochProgress()
 
         self._dl_max_batches: Optional[int] = None
