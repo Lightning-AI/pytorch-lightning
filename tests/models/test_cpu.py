@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 
+import pytest
 import torch
 
 import tests.helpers.pipelines as tpipes
@@ -322,7 +323,8 @@ def test_all_features_cpu_model(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.01)
 
 
-def test_tbptt_cpu_model(tmpdir):
+@pytest.mark.parametrize("n_hidden_states", [1, 2])
+def test_tbptt_cpu_model(tmpdir, n_hidden_states):
     """Test truncated back propagation through time works."""
     truncated_bptt_steps = 2
     sequence_size = 30
@@ -383,7 +385,10 @@ def test_tbptt_cpu_model(tmpdir):
             )
 
     model = BpttTestModel(
-        batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=1
+        batch_size=batch_size,
+        in_features=truncated_bptt_steps,
+        out_features=truncated_bptt_steps,
+        n_hidden_states=n_hidden_states
     )
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
@@ -396,22 +401,4 @@ def test_tbptt_cpu_model(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
-
-    assert trainer.state.finished, f"Training model with `1` hidden state failed with {trainer.state}"
-
-    model = BpttTestModel(
-        batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=2
-    )
-    model.example_input_array = torch.randn(5, truncated_bptt_steps)
-
-    # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        truncated_bptt_steps=truncated_bptt_steps,
-        limit_val_batches=0,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.state.finished, f"Training model with `2` hidden states failed with {trainer.state}"
+    assert trainer.state.finished, f"Training model with `{n_hidden_states}` hidden state failed with {trainer.state}"
