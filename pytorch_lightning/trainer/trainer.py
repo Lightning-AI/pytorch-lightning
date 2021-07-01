@@ -901,8 +901,10 @@ class Trainer(
 
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
+        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
+        # which need to happen before.
         self.accelerator.teardown()
-        self.logger_connector.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -997,10 +999,10 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self.evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop.reload_evaluation_dataloaders()
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
-            eval_loop_results = self.evaluation_loop.run()
+            eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1030,11 +1032,11 @@ class Trainer(
             self.on_sanity_check_start()
 
             # reload dataloaders
-            self.evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop.reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self.evaluation_loop.run()
+                self._evaluation_loop.run()
 
             self.on_sanity_check_end()
 

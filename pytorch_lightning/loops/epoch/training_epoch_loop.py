@@ -56,14 +56,6 @@ class TrainingEpochLoop(loops.Loop):
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
     @property
-    def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self._results
-        elif self.trainer.validating:
-            return self.val_loop._results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
-
-    @property
     def batch_idx(self) -> int:
         """Returns the current batch index (within this epoch)"""
         return self.iteration_count
@@ -226,11 +218,16 @@ class TrainingEpochLoop(loops.Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
-        return self._epoch_output
+
+        epoch_output = self._epoch_output
+        # free memory
+        self._epoch_output = None
+        return epoch_output
 
     def teardown(self) -> None:
-        """Frees memory of tracked epoch outputs."""
-        self.epoch_output = None
+        self._results.cpu()
+        self.batch_loop.teardown()
+        self.val_loop.teardown()
 
     def _run_validation(self):
         # reload dataloaders

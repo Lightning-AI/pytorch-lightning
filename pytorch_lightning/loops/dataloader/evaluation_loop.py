@@ -269,3 +269,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
+
+    def teardown(self) -> None:
+        self._results.cpu()
+        self.epoch_loop.teardown()

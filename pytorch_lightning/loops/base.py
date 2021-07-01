@@ -100,7 +100,6 @@ class Loop(ABC):
                 break
 
         output = self.on_run_end()
-        self.teardown()
         return output
 
     @abstractmethod
@@ -132,7 +131,7 @@ class Loop(ABC):
         """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`."""
 
     def teardown(self) -> None:
-        """The very last method called inside :meth:`run`. Use to release memory etc."""
+        """Use to release memory etc."""
 
     def load_state_dict(self, state_dict: Dict) -> None:
         """Restore the loop state from the provided state_dict."""
