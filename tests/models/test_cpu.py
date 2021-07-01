@@ -383,7 +383,8 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=1)
+    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps,
+                          out_features=truncated_bptt_steps, n_hidden_states=1)
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model
@@ -398,7 +399,8 @@ def test_tbptt_cpu_model(tmpdir):
 
     assert trainer.state.finished, f"Training model with `1` hidden state failed with {trainer.state}"
 
-    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=2)
+    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps,
+                          out_features=truncated_bptt_steps, n_hidden_states=2)
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model
