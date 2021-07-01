@@ -20,6 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import TrainingEpochProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -34,9 +35,7 @@ class TrainingEpochLoop(loops.Loop):
         super().__init__()
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
-
         self.global_step: int = 0
-
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
         # the current batch index in the loop that runs over the dataloader(s)
@@ -50,10 +49,12 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
 
+        self._results = ResultCollection(training=True)
+        self.progress = TrainingEpochProgress()
+
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
-        self._results = ResultCollection(training=True)
 
     @property
     def results(self) -> ResultCollection:
@@ -77,11 +78,19 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with all necessary parts like trainer and accelerators"""
+    def connect(
+        self,
+        trainer: 'pl.Trainer',
+        *args: Any,
+        progress: Optional[TrainingEpochProgress] = None,
+        **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.batch_loop.connect(trainer)
-        self.val_loop.connect(trainer)
+        if progress is not None:
+            self.progress = progress
+        self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
+        self.val_loop.connect(trainer, progress=self.progress.val)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
