@@ -14,8 +14,10 @@
 from collections.abc import Iterable
 
 import pytest
+import torch
 from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.overrides.distributed import (
@@ -160,9 +162,36 @@ def test_fast_forward_on_random_sampler():
     assert has_raised
 
 
+class VerboseRandomDataset(RandomDataset):
+
+    def __init__(self, size, length):
+        self.len = length
+        self.data = torch.randn(length, size)
+
+    def __getitem__(self, index):
+        torch.randn(1, 1)
+        return self.data[index]
+
+    def __len__(self):
+        return self.len
+
+
+class WrapperDataset(Dataset):
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, index):
+        data = self.dataset[index]
+        return {"data": data, "rng_state": torch.random.get_rng_state()}
+
+    def __len__(self):
+        return len(self.dataset)
+
+
 def test_fast_forward_sampler_replacement(tmpdir):
 
-    seed_everything(42)
+    seed_everything(42, workers=True)
 
     class CustomBatchSampler(BatchSampler):
         pass
@@ -188,10 +217,10 @@ def test_fast_forward_sampler_replacement(tmpdir):
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            print(batch.shape)
+            breakpoint()
             return super().training_step(batch, batch_idx)
 
-    train_dataloader = DataLoader(RandomDataset(32, 64), batch_size=3)
+    # train_dataloader = DataLoader(VerboseRandomDataset(32, 64), batch_size=3)
 
     trainer_kwargs = dict(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=3, num_sanity_val_steps=0)
     model = TestModel()
@@ -200,11 +229,14 @@ def test_fast_forward_sampler_replacement(tmpdir):
     trainer.fit(model, train_dataloader=train_dataloader)
     """
 
+    dataset = WrapperDataset(VerboseRandomDataset(32, 64))
+
     train_dataloader = DataLoader(
-        RandomDataset(32, 64),
-        batch_sampler=CustomBatchSampler(batch_size=8, sampler=SequentialSampler(train_dataloader), drop_last=True),
+        dataset,
+        batch_sampler=CustomBatchSampler(batch_size=8, sampler=SequentialSampler(dataset), drop_last=True),
         prefetch_factor=2,
         num_workers=2,
     )
+
     trainer = Trainer(**trainer_kwargs, callbacks=CheckFastForwardSamplerInjection())
     trainer.fit(model, train_dataloader=train_dataloader)

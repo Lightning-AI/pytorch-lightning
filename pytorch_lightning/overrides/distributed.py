@@ -168,6 +168,7 @@ class FastForwardSampler:
                 if self.current_iteration == 0:
                     self.restarted = False
             else:
+                self.current_iteration += 1
                 yield batch
         self.rng_state = None
         self.current_iteration = 0
