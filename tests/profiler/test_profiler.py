@@ -432,7 +432,7 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
-def test_pytorch_profiler_loggercollection(tmpdir):
+def test_pytorch_profiler_logger_collection(tmpdir):
     """
     Tests whether the PyTorch profiler is able to write its trace locally when
     the Trainer's logger is an instance of LoggerCollection. See issue #8157.
@@ -456,6 +456,8 @@ def test_pytorch_profiler_loggercollection(tmpdir):
         limit_train_batches=5,  # it takes a while for the warning to appear
         max_epochs=1,
     )
+
+    assert isinstance(trainer.logger, LoggerCollection)
 
     trainer.fit(model)
 
