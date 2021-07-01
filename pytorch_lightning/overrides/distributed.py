@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -149,3 +149,53 @@ class IndexBatchSamplerWrapper:
     @property
     def sampler(self) -> Sampler:
         return self._sampler.sampler
+
+
+class FastForwardSampler:
+    """This class is used to wrap a :class:`torch.utils.data.Sampler` and fast forward it"""
+
+    def __init__(self, sampler: Union[Sampler, BatchSampler]) -> None:
+        self._sampler = sampler
+        self.current_iteration = 0
+        self.restarted = False
+        self.rng_state: Optional[torch.Tensor] = None
+
+    def __iter__(self) -> Iterator[List[int]]:
+        self.rng_state = torch.random.get_rng_state()
+        for batch in self._sampler:
+            if self.restarted and self.current_iteration > 0:
+                self.current_iteration -= 1
+                if self.current_iteration == 0:
+                    self.restarted = False
+            else:
+                yield batch
+        self.rng_state = None
+        self.current_iteration = 0
+
+    def __len__(self) -> int:
+        return len(self._sampler)
+
+    @property
+    def drop_last(self) -> bool:
+        return self._sampler.drop_last
+
+    @property
+    def batch_size(self) -> int:
+        return self._sampler.batch_size
+
+    @property
+    def sampler(self) -> Sampler:
+        return self._sampler
+
+    @property
+    def batch_indices(self) -> Optional[List[int]]:
+        return self._sampler.batch_indices
+
+    def state_dict(self) -> Dict[str, Any]:
+        return {"current_iteration": self.current_iteration, "rng_state": self.rng_state}
+
+    def load_state_dict(self, state_dict):
+        self.current_iteration = state_dict["current_iteration"]
+        if state_dict["rng_state"] is not None:
+            torch.random.set_rng_state(state_dict["rng_state"])
+        self.restarted = True
