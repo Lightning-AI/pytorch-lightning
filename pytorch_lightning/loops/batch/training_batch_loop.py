@@ -347,12 +347,6 @@ class TrainingBatchLoop(Loop):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
 
-            # handle cases of hiddens being a Tensor or a tuple of Tensors
-            def detach(tensor):
-                return tensor.detatch()
-
-            hiddens = apply_to_collection(hiddens, dtype=Tensor, function=detach)
-
             results.extra = training_step_output
 
         # handle scalar return
