@@ -303,11 +303,11 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        progress_tracking = self._loaded_checkpoint.get('progress_tracking', None)
-        if not progress_tracking:
+        progress = self._loaded_checkpoint.get('progress')
+        if not progress:
             return
 
-        state_dict = progress_tracking.get(TrainerFn.FITTING.value, None)
+        state_dict = progress.get(TrainerFn.FITTING.value)
         if state_dict:
 
             def fn(v: Tracker) -> Tracker:
@@ -396,7 +396,7 @@ class CheckpointConnector:
             'global_step': global_step,
             'pytorch-lightning_version': pl.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
-            'progress_tracking': self.get_process_state_dict(),
+            'progress': self.get_progress_state_dict(),
             'samplers': self.get_samplers_state_dict(),
             'gradients': self.get_gradients_state_dict(),
         }
@@ -468,7 +468,7 @@ class CheckpointConnector:
         samplers = [s if isinstance(s, FastForwardSampler) else s.sampler for s in samplers]
         return [s.state_dict() for s in samplers]
 
-    def get_process_state_dict(self):
+    def get_progress_state_dict(self):
         return {TrainerFn.FITTING.value: self.trainer.fit_loop.progress.state_dict()}
 
     def hpc_load(self, checkpoint_path: str) -> None:
