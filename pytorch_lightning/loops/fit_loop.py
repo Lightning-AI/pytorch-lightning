@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
@@ -96,6 +96,12 @@ class FitLoop(Loop):
         # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum numnber of steps to run"""
         return self.epoch_loop.min_steps
+
+    @min_steps.setter
+    def min_steps(self, value: int) -> None:
+        """Sets the minimum number of steps (forwards to epoch_loop)"""
+        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        self.epoch_loop.min_steps = value
 
     @property
     def max_steps(self) -> int:
@@ -274,3 +280,9 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
+
+    def state_dict(self) -> Dict:
+        return {"epoch_loop": self.epoch_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
