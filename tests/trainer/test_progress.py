@@ -309,6 +309,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     optim = trainer.fit_loop.epoch_loop.batch_loop.optimization_progress
 
+    # 4 optimizer steps because breaking on the second batch of the second epoch (3 + 1)
     total = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
 
     # we raised expection on the first optimizer

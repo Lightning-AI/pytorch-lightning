@@ -64,14 +64,16 @@ class Tracker(_DataclassStateDictMixin):
             self.completed = 0
 
     def reset_on_restart(self):
+        value = self.completed if self.processed is None else self.processed
+
         if self.ready is not None:
-            self.ready = self.completed
-
+            self.ready = value
         if self.started is not None:
-            self.started = self.completed
-
+            self.started = value
         if self.processed is not None:
-            self.processed = self.completed
+            self.processed = value
+        if self.completed is not None:
+            self.completed = value
 
     def __setattr__(self, key: str, value: int) -> None:
         if getattr(self, key, 0) is None:
