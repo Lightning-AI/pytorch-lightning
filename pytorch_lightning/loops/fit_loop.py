@@ -14,12 +14,11 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
@@ -52,15 +51,10 @@ class FitLoop(Loop):
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.val_loop = EvaluationLoop()
 
     @property
     def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self.epoch_loop.results
-        elif self.trainer.validating:
-            return self.val_loop.results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
+        return self.epoch_loop.results
 
     @property
     def current_epoch(self) -> int:
@@ -102,6 +96,12 @@ class FitLoop(Loop):
         # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum numnber of steps to run"""
         return self.epoch_loop.min_steps
+
+    @min_steps.setter
+    def min_steps(self, value: int) -> None:
+        """Sets the minimum number of steps (forwards to epoch_loop)"""
+        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        self.epoch_loop.min_steps = value
 
     @property
     def max_steps(self) -> int:
@@ -166,7 +166,6 @@ class FitLoop(Loop):
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
         self.epoch_loop.connect(trainer)
-        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -281,3 +280,9 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
+
+    def state_dict(self) -> Dict:
+        return {"epoch_loop": self.epoch_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])

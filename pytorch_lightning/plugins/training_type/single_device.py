@@ -85,5 +85,4 @@ class SingleDevicePlugin(TrainingTypePlugin):
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
-            with torch.cuda.device(self.root_device):
-                torch.cuda.empty_cache()
+            torch.cuda.empty_cache()

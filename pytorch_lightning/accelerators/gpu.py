@@ -40,10 +40,7 @@ class GPUAccelerator(Accelerator):
 
     def on_train_start(self) -> None:
         # clear cache before training
-        # use context because of:
-        # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
