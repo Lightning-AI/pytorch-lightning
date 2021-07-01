@@ -29,6 +29,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loops import PredictionLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
@@ -65,6 +66,7 @@ class TrainerProperties(ABC):
     fit_loop: FitLoop
     validate_loop: EvaluationLoop
     test_loop: EvaluationLoop
+    predict_loop: PredictionLoop
     """
     Accelerator properties
     """
@@ -527,11 +529,13 @@ class TrainerProperties(ABC):
         return self.fit_loop.epoch_loop.is_last_batch
 
     @property
-    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop]]:
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop, PredictionLoop]]:
         if self.training:
             return self.fit_loop
         if self.sanity_checking or self.evaluating:
             return self.evaluation_loop
+        if self.predicting:
+            return self.predict_loop
 
     """
     Logging properties
@@ -553,7 +557,7 @@ class TrainerProperties(ABC):
     def _results(self) -> Optional[ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
-            return active_loop.results
+            return active_loop._results
 
     """
     Other

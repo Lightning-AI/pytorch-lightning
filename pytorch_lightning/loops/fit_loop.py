@@ -56,10 +56,6 @@ class FitLoop(Loop):
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
-    def results(self) -> ResultCollection:
-        return self.epoch_loop.results
-
-    @property
     def current_epoch(self) -> int:
         """Return the current epoch"""
         return self.iteration_count
@@ -133,6 +129,10 @@ class FitLoop(Loop):
         self.epoch_loop.batch_loop._skip_backward = value
 
     @property
+    def _results(self) -> ResultCollection:
+        return self.epoch_loop.results
+
+    @property
     def done(self) -> bool:
         """Evaluates when to leave the loop.
 
@@ -179,7 +179,7 @@ class FitLoop(Loop):
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
-        self.results.to(device=self.trainer.lightning_module.device)
+        self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self) -> None:

@@ -23,6 +23,7 @@ class PredictionLoop(DataLoaderLoop):
 
         self.epoch_loop = PredictionEpochLoop()
 
+        self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
 
     @property

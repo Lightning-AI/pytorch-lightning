@@ -60,7 +60,7 @@ class TrainingEpochLoop(loops.Loop):
         if self.trainer.training:
             return self._results
         elif self.trainer.validating:
-            return self.val_loop.results
+            return self.val_loop._results
         raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
