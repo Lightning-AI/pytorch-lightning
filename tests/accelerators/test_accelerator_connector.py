@@ -386,33 +386,33 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
-@RunIf(special=True)
-def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
-    """ Test that accelerator="ddp_cpu" can work together an instance of DDPPlugin. """
-    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
-
-
-@RunIf(special=True)
-def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
-    """ Test that accelerator="ddp_cpu" can work together an instance of DDPPSpawnPlugin. """
-    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
-
-
-def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins=[ddp_plugin_class(find_unused_parameters=True)],
-        fast_dev_run=True,
-        accelerator='ddp_cpu',
-        num_processes=2,
-    )
-    assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert trainer.training_type_plugin.num_processes == 2
-    assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
-    trainer.fit(model)
+# @RunIf(special=True)
+# def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
+#     """ Test that accelerator="ddp_cpu" can work together an instance of DDPPlugin. """
+#     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
+#
+#
+# @RunIf(special=True)
+# def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
+#     """ Test that accelerator="ddp_cpu" can work together an instance of DDPPSpawnPlugin. """
+#     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
+#
+#
+# def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
+#
+#     model = BoringModel()
+#     trainer = Trainer(
+#         default_root_dir=tmpdir,
+#         plugins=[ddp_plugin_class(find_unused_parameters=True)],
+#         fast_dev_run=True,
+#         accelerator='ddp_cpu',
+#         num_processes=2,
+#     )
+#     assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
+#     assert isinstance(trainer.accelerator, CPUAccelerator)
+#     assert trainer.training_type_plugin.num_processes == 2
+#     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
+#     trainer.fit(model)
 
 
 #
