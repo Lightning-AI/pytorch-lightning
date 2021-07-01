@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.metrics.metric import Metric
 import pytest
 import torch
 from torch import nn
@@ -297,12 +296,12 @@ class TestModelSyncMetric(BoringModel):
         self.log("loss_tensor", loss["loss"])
 
         value = self.trainer.global_rank + 1
-        
+
         # pure computation + cache current states + reduction on total states
         self.loss_metric(value)
 
-        self.loss_metric.compute(compute_on_step=True, dist_sync=True) # forward cache
-        self.loss_metric.compute(compute_on_step=False) # global accumulation accross all processes
+        self.loss_metric.compute(compute_on_step=True, dist_sync=True)  # forward cache
+        self.loss_metric.compute(compute_on_step=False)  # global accumulation accross all processes
 
         self.log("loss_metric", self.loss_metric(value, compute_on_step=False, dist_sync=False))
 
