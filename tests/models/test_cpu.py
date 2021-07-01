@@ -341,15 +341,20 @@ def test_tbptt_cpu_model(tmpdir):
 
     class BpttTestModel(BoringModel):
 
-        def __init__(self, batch_size, in_features, out_features, *args, **kwargs):
+        def __init__(self, batch_size, in_features, out_features, n_hidden_states,
+                     *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
             self.batch_size = batch_size
             self.layer = torch.nn.Linear(in_features, out_features)
+            self.n_hidden_states = n_hidden_states
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
+            if self.n_hidden_states == 1:
+                self.test_hidden = torch.rand(1)
+            else:
+                self.test_hidden = tuple([torch.rand(1)] * self.n_hidden_states)
 
             x_tensor, y_list = batch
             assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
@@ -378,7 +383,7 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
+    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=1)
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model
@@ -391,4 +396,19 @@ def test_tbptt_cpu_model(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training model with `1` hidden state failed with {trainer.state}"
+
+    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps, n_hidden_states=2)
+    model.example_input_array = torch.randn(5, truncated_bptt_steps)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        truncated_bptt_steps=truncated_bptt_steps,
+        limit_val_batches=0,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training model with `1` hidden state failed with {trainer.state}"
