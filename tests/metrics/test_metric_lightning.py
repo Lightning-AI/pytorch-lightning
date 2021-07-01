@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.metrics.metric import Metric
 import pytest
 import torch
 from torch import nn
@@ -21,6 +20,7 @@ from torchmetrics import Metric as TMetric
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics import Metric as PLMetric
 from pytorch_lightning.metrics import MetricCollection
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -292,7 +292,7 @@ class TestModelSyncMetric(BoringModel):
         self.loss_metric = LossMetric()
 
     def training_step(self, batch, batch_idx):
-        loss =  super().training_step(batch, batch_idx)
+        loss = super().training_step(batch, batch_idx)
         self.log("loss_tensor", loss["loss"])
 
         self.loss_metric(loss["loss"])
