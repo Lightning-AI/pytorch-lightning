@@ -165,6 +165,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
+        trainer._call_teardown_hook()
+
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
 
