@@ -414,6 +414,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
     trainer.fit(model)
 
+
 #
 # @mock.patch.dict(
 #     os.environ, {
@@ -448,6 +449,7 @@ def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
 #     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 #     assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
 #
+
 
 @mock.patch.dict(
     os.environ, {
