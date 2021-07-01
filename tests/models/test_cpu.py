@@ -413,4 +413,4 @@ def test_tbptt_cpu_model(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state.finished, f"Training model with `1` hidden state failed with {trainer.state}"
+    assert trainer.state.finished, f"Training model with `2` hidden states failed with {trainer.state}"
