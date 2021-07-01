@@ -484,13 +484,6 @@ class TrainerProperties(ABC):
         elif self.sanity_checking:
             self.state.stage = None
 
-    def loops_state_dict(self) -> Dict[str, Any]:
-        return {
-            "fit_loop": self.fit_loop.state_dict(),
-            "validate_loop": self.validate_loop.state_dict(),
-            "test_loop": self.test_loop.state_dict(),
-        }
-
     """
     Loop properties
     """
