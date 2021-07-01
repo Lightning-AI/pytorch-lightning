@@ -34,11 +34,10 @@ class EvaluationLoop(DataLoaderLoop):
         super().__init__()
         self.outputs = []
 
+        self.progress = EpochLoopProgress()
         self.epoch_loop = EvaluationEpochLoop()
 
-        self.results = ResultCollection(training=False)
-        self.progress = EpochLoopProgress()
-
+        self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
 

@@ -45,13 +45,12 @@ class TrainingEpochLoop(loops.Loop):
         # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
+        self.progress = TrainingEpochProgress()
 
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
 
         self._results = ResultCollection(training=True)
-        self.progress = TrainingEpochProgress()
-
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
