@@ -33,17 +33,34 @@ class XLAStatsMonitor(Callback):
     Automatically monitors and logs XLA stats during training stage. ``XLAStatsMonitor``
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
 
+    Args:
+        should_print_info: Set to ``True`` to print average peak and free memory, and epoch time
+            every epoch.
+
     Raises:
         MisconfigurationException:
             If not running on TPUs, or ``Trainer`` has no logger.
+
+    Example::
+
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.callbacks import XLAStatsMonitor
+        >>> xla_stats = XLAStatsMonitor() # doctest: +SKIP
+        >>> trainer = Trainer(callbacks=[xla_stats]) # doctest: +SKIP
+
     """
+
+    def __init__(self, should_print_info: bool = True) -> None:
+        super().__init__()
+
+        if not _TPU_AVAILABLE:
+            raise MisconfigurationException('Cannot use XLAStatsMonitor with TPUs are not available')
+
+        self._should_print_info = should_print_info
 
     def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
             raise MisconfigurationException('Cannot use XLAStatsMonitor callback with Trainer that has no logger.')
-
-        if not _TPU_AVAILABLE:
-            raise MisconfigurationException('You are using XLAStatsMonitor, but TPUs are not available')
 
         if trainer._device_type != DeviceType.TPU:
             raise MisconfigurationException(
@@ -74,6 +91,7 @@ class XLAStatsMonitor(Callback):
         logs["avg. peak memory (MB)"] = peak_memory
         trainer.logger.log_metrics(logs, step=trainer.current_epoch)
 
-        rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")
-        rank_zero_info(f"Average Peak memory: {peak_memory:.2f} MB")
-        rank_zero_info(f"Average Free memory: {free_memory:.2f} MB")
+        if self._should_print_info:
+            rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")
+            rank_zero_info(f"Average Peak memory: {peak_memory:.2f} MB")
+            rank_zero_info(f"Average Free memory: {free_memory:.2f} MB")
