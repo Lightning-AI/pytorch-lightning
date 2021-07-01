@@ -73,6 +73,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -1106,6 +1107,12 @@ class Trainer(
             self.accelerator.call_configure_sharded_model_hook = False
 
     def _call_teardown_hook(self, model: 'pl.LightningModule') -> None:
+        # testing what breaks
+        if self._distrib_type in (
+            DistributedType.DDP_SPAWN, DistributedType.TPU_SPAWN, DistributedType.DDP_SHARDED_SPAWN
+        ):
+            return
+
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
