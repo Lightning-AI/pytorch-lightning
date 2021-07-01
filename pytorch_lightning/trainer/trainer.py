@@ -901,6 +901,7 @@ class Trainer(
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
