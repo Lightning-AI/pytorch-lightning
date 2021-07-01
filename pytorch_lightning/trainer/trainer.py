@@ -945,7 +945,8 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            ref_model.summarize(mode=self.weights_summary)
+            max_depth = ModelSummary.MODES[self.weights_summary]
+            ref_model.summarize(max_depth=max_depth)
 
         # on pretrain routine end
         self.on_pretrain_routine_end()

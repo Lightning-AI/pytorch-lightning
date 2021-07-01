@@ -24,13 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import FastForwardSampler
 from pytorch_lightning.trainer.progress import FitLoopProgress, Tracker
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import (
-    _OMEGACONF_AVAILABLE,
-    DeviceType,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -73,8 +67,7 @@ class CheckpointConnector:
             return
 
         # clear cache before restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
@@ -92,8 +85,7 @@ class CheckpointConnector:
         self._loaded_checkpoint = dict()
 
         # clear cache after restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
