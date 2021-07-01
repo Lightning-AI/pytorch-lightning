@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -156,22 +156,24 @@ class FastForwardSampler:
 
     def __init__(self, sampler: Union[Sampler, BatchSampler]) -> None:
         self._sampler = sampler
-        self.current_iteration = 0
-        self.restarted = False
+        self._current_iteration = 0
         self.rng_state: Optional[torch.Tensor] = None
 
     def __iter__(self) -> Iterator[List[int]]:
         self.rng_state = torch.random.get_rng_state()
         for batch in self._sampler:
-            if self.restarted and self.current_iteration > 0:
-                self.current_iteration -= 1
-                if self.current_iteration == 0:
-                    self.restarted = False
+            if self._current_iteration > 0:
+                self._current_iteration -= 1
             else:
-                self.current_iteration += 1
                 yield batch
-        self.rng_state = None
-        self.current_iteration = 0
+
+    @property
+    def current_iteration(self) -> int:
+        return self._current_iteration
+
+    @current_iteration.setter
+    def current_iteration(self, current_iteration: int) -> None:
+        self._current_iteration = current_iteration
 
     def __len__(self) -> int:
         return len(self._sampler)
@@ -191,12 +193,3 @@ class FastForwardSampler:
     @property
     def batch_indices(self) -> Optional[List[int]]:
         return self._sampler.batch_indices
-
-    def state_dict(self) -> Dict[str, Any]:
-        return {"current_iteration": self.current_iteration, "rng_state": self.rng_state}
-
-    def load_state_dict(self, state_dict):
-        self.current_iteration = state_dict["current_iteration"]
-        if state_dict["rng_state"] is not None:
-            torch.random.set_rng_state(state_dict["rng_state"])
-        self.restarted = True

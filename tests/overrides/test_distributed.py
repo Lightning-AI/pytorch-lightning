@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import random
 from collections.abc import Iterable
+from typing import Optional
 
 import pytest
 import torch
+from torch.functional import Tensor
 from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataloader import DataLoader, get_worker_info
 from torch.utils.data.dataset import Dataset
 
 from pytorch_lightning import Callback, seed_everything, Trainer
@@ -169,7 +172,6 @@ class VerboseRandomDataset(RandomDataset):
         self.data = torch.randn(length, size)
 
     def __getitem__(self, index):
-        torch.randn(1, 1)
         return self.data[index]
 
     def __len__(self):
@@ -178,12 +180,21 @@ class VerboseRandomDataset(RandomDataset):
 
 class WrapperDataset(Dataset):
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, seeds: Optional[Tensor] = None):
         self.dataset = dataset
+        self.seeds = seeds
 
     def __getitem__(self, index):
+        worker_info = get_worker_info()
+        if self.seeds:
+            seed = int(self.seeds[worker_info.id])
+            random.seed(seed)
+            torch.random.set_rng_state(torch.manual_seed(seed).get_state())
+            self.seeds = None
         data = self.dataset[index]
-        return {"data": data, "rng_state": torch.random.get_rng_state()}
+        seed = str(torch.random.seed())
+        print("current_seed", worker_info.id, seed)
+        return {"data": data, "seed": seed}
 
     def __len__(self):
         return len(self.dataset)
@@ -191,7 +202,7 @@ class WrapperDataset(Dataset):
 
 def test_fast_forward_sampler_replacement(tmpdir):
 
-    seed_everything(42, workers=True)
+    seed_everything(42)
 
     class CustomBatchSampler(BatchSampler):
         pass
@@ -205,7 +216,6 @@ def test_fast_forward_sampler_replacement(tmpdir):
             if self.using_batch_sampler:
                 sampler = trainer.train_dataloader.loaders.batch_sampler
                 assert isinstance(sampler, FastForwardSampler)
-                current_iteration = 2
             else:
                 sampler = trainer.train_dataloader.sampler
                 assert isinstance(sampler, FastForwardSampler)
@@ -220,16 +230,14 @@ def test_fast_forward_sampler_replacement(tmpdir):
             breakpoint()
             return super().training_step(batch, batch_idx)
 
-    # train_dataloader = DataLoader(VerboseRandomDataset(32, 64), batch_size=3)
+    dataset = RandomDataset(32, 64)
+
+    train_dataloader = DataLoader(dataset, batch_size=3)
 
     trainer_kwargs = dict(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=3, num_sanity_val_steps=0)
     model = TestModel()
-    """
     trainer = Trainer(**trainer_kwargs, callbacks=CheckFastForwardSamplerInjection(using_batch_sampler=False))
     trainer.fit(model, train_dataloader=train_dataloader)
-    """
-
-    dataset = WrapperDataset(VerboseRandomDataset(32, 64))
 
     train_dataloader = DataLoader(
         dataset,
@@ -238,5 +246,59 @@ def test_fast_forward_sampler_replacement(tmpdir):
         num_workers=2,
     )
 
-    trainer = Trainer(**trainer_kwargs, callbacks=CheckFastForwardSamplerInjection())
-    trainer.fit(model, train_dataloader=train_dataloader)
+
+def test_generator(tmpdir):
+
+    class CustomBatchSampler(BatchSampler):
+        pass
+
+    dataset = WrapperDataset(VerboseRandomDataset(2, 64))
+
+    generator = torch.Generator()
+    initial_state = generator.get_state()
+
+    train_dataloader = DataLoader(
+        dataset,
+        batch_sampler=CustomBatchSampler(batch_size=8, sampler=SequentialSampler(dataset), drop_last=True),
+        prefetch_factor=2,
+        num_workers=2,
+        generator=generator
+    )
+
+    iter_train_dataloader = iter(train_dataloader)
+    batches = []
+    for _ in range(4):
+        batches.append(next(iter_train_dataloader))
+
+    all_seeds = [int(s) for b in batches for s in b["seed"]]
+
+    assert iter_train_dataloader._num_yielded == 4
+    base_seed = iter_train_dataloader._base_seed
+
+    seeds = {0: batches[0]["seed"][-1], 1: batches[1]["seed"][-1]}
+
+    dataset = WrapperDataset(VerboseRandomDataset(2, 64), seeds=seeds)
+
+    generator.set_state(initial_state)
+
+    train_dataloader = DataLoader(
+        dataset,
+        batch_sampler=CustomBatchSampler(batch_size=8, sampler=SequentialSampler(dataset), drop_last=True),
+        prefetch_factor=2,
+        num_workers=2,
+        generator=generator
+    )
+
+    iter_train_dataloader = iter(train_dataloader)
+    assert base_seed == iter_train_dataloader._base_seed
+
+    batches_restart = []
+    for _ in range(2):
+        batches_restart.append(next(iter_train_dataloader))
+
+    all_restart_seeds = [int(s) for b in batches_restart for s in b["seed"]]
+
+    [(sr, s) for sr in all_restart_seeds for s in all_seeds]
+
+    for bf, ba in zip(batches[2:], batches_restart):
+        assert torch.equal(ba["data"], bf["data"])
