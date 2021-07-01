@@ -55,10 +55,11 @@ class XLAStatsMonitor(Callback):
         total_memory = trainer.training_type_plugin.reduce(memory_info["kb_total"]) * 0.001
         rank_zero_info(f"Average Total memory: {total_memory:.2f} MB")
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module) -> None:
         self._start_time = time.time()
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
+    def on_train_epoch_end(self, trainer, pl_module) -> None:
+        logs = {}
         memory_info = xm.get_memory_info(pl_module.device)
         epoch_time = time.time() - self._start_time
 
@@ -68,6 +69,10 @@ class XLAStatsMonitor(Callback):
         free_memory = trainer.training_type_plugin.reduce(free_memory) * 0.001
         peak_memory = trainer.training_type_plugin.reduce(peak_memory) * 0.001
         epoch_time = trainer.training_type_plugin.reduce(epoch_time)
+
+        logs["avg. free memory (MB)"] = free_memory
+        logs["avg. peak memory (MB)"] = peak_memory
+        trainer.logger.log_metrics(logs, step=trainer.current_epoch)
 
         rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")
         rank_zero_info(f"Average Peak memory: {peak_memory:.2f} MB")
