@@ -33,6 +33,12 @@ class Loop(ABC):
 
     .. codeblock:: python
 
+        if is_restarting:
+            restore()
+            is_restarting = False
+        else:
+            reset()
+
         on_run_start()
 
         while not done:
@@ -46,6 +52,15 @@ class Loop(ABC):
     def __init__(self) -> None:
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
+        self._is_restarting = False
+
+    @property
+    def is_restarting(self) -> bool:
+        return self._is_restarting
+
+    @is_restarting.setter
+    def is_restarting(self, is_restarting: bool) -> None:
+        self._is_restarting = is_restarting
 
     @property
     @abstractmethod
@@ -87,7 +102,12 @@ class Loop(ABC):
         if self.skip:
             return self.on_skip()
 
-        self.reset()
+        if self.is_restarting:
+            self.restore()
+            self.is_restarting = False
+        else:
+            self.reset()
+
         self.on_run_start(*args, **kwargs)
 
         while not self.done:
@@ -102,6 +122,9 @@ class Loop(ABC):
         output = self.on_run_end()
         self.teardown()
         return output
+
+    def restore(self) -> None:
+        """Restore the internal state of the loop the beginning of run if restarting is ``True``."""
 
     @abstractmethod
     def reset(self) -> None:
