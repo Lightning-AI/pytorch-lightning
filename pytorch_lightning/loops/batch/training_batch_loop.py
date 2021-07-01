@@ -73,7 +73,6 @@ class TrainingBatchLoop(Loop):
             self.progress = progress
         if optim_progress:
             self.optim_progress = optim_progress
-        self.trainer = trainer
 
     @property
     def done(self) -> bool:
