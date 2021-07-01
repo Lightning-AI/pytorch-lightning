@@ -414,7 +414,6 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
 #     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
 #     trainer.fit(model)
 
-
 #
 # @mock.patch.dict(
 #     os.environ, {
