@@ -285,6 +285,21 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
+    def training_step_end(self, output):
+        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print(' ', end='', flush=True)
+        return output
+
+    def validation_step_end(self, output):
+        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print(' ', end='', flush=True)
+        return output
+
+    def test_step_end(self, output):
+        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print(' ', end='', flush=True)
+        return output
+
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
