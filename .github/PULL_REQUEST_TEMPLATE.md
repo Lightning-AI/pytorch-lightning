@@ -11,7 +11,9 @@ The following links the related issue to the PR (https://docs.github.com/en/free
 -->
 Fixes #<issue_number>
 
-## Does your PR introduce any breaking changes ? If yes, please list them.
+### Does your PR introduce any breaking changes ? If yes, please list them.
+
+<!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 
 ## Before submitting
 - [ ] Was this discussed/approved via a GitHub issue? (not for typos and docs)
@@ -37,6 +39,7 @@ Before you start reviewing make sure you have read [Review guidelines](https://g
 ## Did you have fun?
 Make sure you had fun coding 🙃
 
+<!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 
 ### :star: If you liked [PyTorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning), you might also like :star:
 
