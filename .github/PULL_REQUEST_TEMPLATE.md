@@ -23,7 +23,7 @@ Fixes #<issue_number>
 - [ ] Did you write any new necessary tests? (not for typos and docs)
 - [ ] Did you verify new and existing tests pass locally with your changes?
 - [ ] Did you update the [CHANGELOG](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/CHANGELOG.md)? (not for typos, docs, test updates, or internal minor changes/refactorings)
-- [ ] Did you list all the breaking changes introduce by this pull request ?
+- [ ] Did you list all the breaking changes introduced by this pull request?
 
 <!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 
