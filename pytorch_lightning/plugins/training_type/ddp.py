@@ -106,7 +106,7 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
-        self._has_initialized_ddp: bool = False
+        self._has_initialized_ddp = False
         self.set_world_ranks()
 
     @property
