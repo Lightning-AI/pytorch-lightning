@@ -27,7 +27,7 @@ assignees: ''
 <!-- Add any other context or screenshots about the feature request here. -->
 
 
-#### If you enjoyed contributing to PL, you might enjoy our other projects:
+#### If you enjoy PL, check out our other projects:
 
 - [Flash](https://github.com/PyTorchLightning/lightning-flash): Collection of tasks for fast prototyping, baselining, finetuning and solving problems with deep learning
 - [Bolts](https://github.com/PyTorchLightning/lightning-bolts): Pretrained SOTA Deep Learning models, callbacks and more for research and production with PyTorch Lightning and PyTorch

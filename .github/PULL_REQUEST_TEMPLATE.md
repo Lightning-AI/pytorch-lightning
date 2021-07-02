@@ -41,7 +41,7 @@ Make sure you had fun coding 🙃
 
 <!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 
-#### If you enjoyed contributing to PL, you might enjoy our other projects:
+#### If you enjoyed contributing to PL, you might enjoy contributing to our other projects:
 
 - [Flash](https://github.com/PyTorchLightning/lightning-flash): Collection of tasks for fast prototyping, baselining, finetuning and solving problems with deep learning
 - [Bolts](https://github.com/PyTorchLightning/lightning-bolts): Pretrained SOTA Deep Learning models, callbacks and more for research and production with PyTorch Lightning and PyTorch
