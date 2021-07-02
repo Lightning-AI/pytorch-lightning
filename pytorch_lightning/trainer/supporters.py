@@ -398,7 +398,8 @@ class CombinedLoader(object):
         """
         Create and return an iterator, `CombinedLoaderIterator`, for the combined loader.
         """
-        return CombinedLoaderIterator(self.loaders)
+        self._iterator = CombinedLoaderIterator(self.loaders)
+        return self._iterator
 
     @staticmethod
     def _calc_num_batches(loaders: Any) -> Union[int, float]:
