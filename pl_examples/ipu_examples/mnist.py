@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import poptorch
 import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.plugins import IPUPlugin
 
 
 class LitClassifier(pl.LightningModule):
@@ -81,20 +79,11 @@ class LitClassifier(pl.LightningModule):
 
 
 if __name__ == '__main__':
-    dm = MNISTDataModule(batch_size=64)
+    dm = MNISTDataModule(batch_size=32)
 
     model = LitClassifier()
-    inference_opts = poptorch.Options()
-    inference_opts.replicationFactor(4)
-    inference_opts.deviceIterations(2)
-    inference_opts.Training.gradientAccumulation(1)
 
-    training_opts = poptorch.Options()
-    training_opts.replicationFactor(4)
-    training_opts.deviceIterations(2)
-    training_opts.Training.gradientAccumulation(2)
-
-    trainer = pl.Trainer(max_epochs=2, plugins=IPUPlugin(training_opts=training_opts, inference_opts=inference_opts))
+    trainer = pl.Trainer(max_epochs=2, ipus=8)
 
     trainer.fit(model, datamodule=dm)
     trainer.test(model, datamodule=dm)
