@@ -237,9 +237,6 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
 
     seed_everything(42)
 
-    class CustomBatchSampler(BatchSampler):
-        pass
-
     class CheckFastForwardSamplerInjection(Callback):
 
         def __init__(self):
