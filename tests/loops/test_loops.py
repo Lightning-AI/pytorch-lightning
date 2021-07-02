@@ -44,7 +44,6 @@ def test_loop_restore():
 
         def advance(self) -> None:
             value = next(self.iter_dataset)
-            print(value, self.iteration_count)
 
             if self.iteration_count == 5:
                 raise CustomExpection
@@ -58,19 +57,18 @@ def test_loop_restore():
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
 
-    state_dict = {}
-
     data = range(10)
     loop = Simple(data)
     try:
         loop.run()
+        state_dict = {}
     except CustomExpection:
         state_dict = loop.state_dict()
 
     loop = Simple(data)
     loop.load_state_dict(state_dict)
-    loop.is_restarting = True
+    loop.restarting = True
     loop.run()
 
-    assert not loop.is_restarting
+    assert not loop.restarting
     assert loop.outputs == list(range(10))
