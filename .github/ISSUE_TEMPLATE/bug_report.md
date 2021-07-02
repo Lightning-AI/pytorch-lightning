@@ -54,3 +54,11 @@ python collect_env_details.py
 ### Additional context
 
 <!-- Add any other context about the problem here. -->
+
+
+### :star: If you liked PyTorch Lightning, you might also like :star:
+
+- [Flash](https://github.com/PyTorchLightning/lightning-flash): Collection of tasks for fast prototyping, baselining, finetuning and solving problems with deep learning
+- [Bolts](https://github.com/PyTorchLightning/lightning-bolts): Pretrained SOTA Deep Learning models, callbacks and more for research and production with PyTorch Lightning and PyTorch
+- [Metrics](https://github.com/PyTorchLightning/metrics): Machine learning metrics for distributed, scalable PyTorch applications.
+- [Lightning Transformers](https://github.com/PyTorchLightning/lightning-transformers): Flexible interface for high performance research using SOTA Transformers leveraging Pytorch Lightning, Transformers, and Hydra.
