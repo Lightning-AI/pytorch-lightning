@@ -91,9 +91,6 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        # deprecated, will be removed in 1.6
-        self._loaded_optimizer_states_dict = {}
-
         #: Pointer to the trainer object
         self.trainer = None
 
@@ -112,6 +109,9 @@ class LightningModule(
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
         self._metric_attributes: Optional[Dict[int, str]] = None
+
+        # deprecated, will be removed in 1.6
+        self._loaded_optimizer_states_dict = {}
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
