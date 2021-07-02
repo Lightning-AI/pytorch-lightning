@@ -252,7 +252,7 @@ class IPUPlugin(ParallelPlugin):
             self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
             if not isinstance(self._original_accumulate_grad_batches, int):
                 raise MisconfigurationException(
-                    f"IPUs currently only support accumulate_grad_batches being an integer value. "
+                    "IPUs currently only support accumulate_grad_batches being an integer value. "
                     f"Received {self.accumulate_grad_batches}"
                 )
         return self._original_accumulate_grad_batches
