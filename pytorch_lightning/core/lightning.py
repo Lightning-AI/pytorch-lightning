@@ -91,6 +91,7 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
+        # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
