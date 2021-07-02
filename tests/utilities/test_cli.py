@@ -616,7 +616,7 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize(
     'trainer_kwargs', (
         dict(accelerator='ddp_cpu'),
-        pytest.param({'accelerator': 'ddp'}, marks=RunIf(min_gpus=1)),
+        dict(accelerator='ddp_cpu', plugins="ddp_find_unused_parameters_false"),
         pytest.param({'tpu_cores': 1}, marks=RunIf(tpu=True)),
     )
 )
