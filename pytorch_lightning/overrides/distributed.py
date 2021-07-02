@@ -16,10 +16,13 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, DistributedSampler, get_worker_info, Sampler
+from torch.utils.data.dataloader import DataLoader, IterableDataset
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities.enums import BatchKeys
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
@@ -156,22 +159,56 @@ class FastForwardSampler:
 
     def __init__(self, sampler: Union[Sampler, BatchSampler]) -> None:
         self._sampler = sampler
-        self.current_iteration = 0
-        self.restarted = False
+        self._current_iteration = 0
         self.rng_state: Optional[torch.Tensor] = None
+        self._num_workers: Optional[int] = None
+        self.restarting: bool = False
+        self.inside_workers: Optional[bool] = None
+        self._state_dict: Optional[Dict[str, Any]] = None
+
+    def setup(self, num_workers: int, batch_size: int, inside_workers: bool) -> None:
+        self._num_workers = num_workers
+        self.current_batch_size = batch_size
+        self.inside_workers = inside_workers
 
     def __iter__(self) -> Iterator[List[int]]:
+        if self._num_workers is None:
+            raise Exception(
+                f"The {self.__class__.__name__} hasn't been properly setup. Please, open an issue on PyTorch Lightning."
+            )
         self.rng_state = torch.random.get_rng_state()
         for batch in self._sampler:
-            if self.restarted and self.current_iteration > 0:
-                self.current_iteration -= 1
-                if self.current_iteration == 0:
-                    self.restarted = False
+            if self.restarting and self._current_iteration > 0:
+                self._current_iteration -= 1
+                if self._current_iteration == 0:
+                    self.restarting = False
             else:
-                self.current_iteration += 1
+                if self.no_worker or self.inside_workers:
+                    self._current_iteration += 1
                 yield batch
         self.rng_state = None
-        self.current_iteration = 0
+        if self.no_worker or self.inside_workers:
+            self._current_iteration = 0
+
+    @property
+    def no_worker(self):
+        return self.num_workers == 0
+
+    @property
+    def num_workers(self) -> int:
+        return self._num_workers
+
+    @num_workers.setter
+    def num_workers(self, num_workers: int) -> None:
+        self._num_workers = num_workers
+
+    @property
+    def current_iteration(self) -> int:
+        return self._current_iteration
+
+    @current_iteration.setter
+    def current_iteration(self, current_iteration: int) -> None:
+        self._current_iteration = current_iteration
 
     def __len__(self) -> int:
         return len(self._sampler)
@@ -192,11 +229,67 @@ class FastForwardSampler:
     def batch_indices(self) -> Optional[List[int]]:
         return self._sampler.batch_indices
 
-    def state_dict(self) -> Dict[str, Any]:
-        return {"current_iteration": self.current_iteration, "rng_state": self.rng_state}
+    def _compute_current_iteration(self, number_batch_processed: Optional[int] = None) -> int:
+        if not (self.no_worker or self.inside_workers) and number_batch_processed is None:
+            raise Exception("``number_batch_processed`` should be provided")
 
-    def load_state_dict(self, state_dict):
+        if self.no_worker or self.inside_workers:
+            current_iteration = self.current_iteration
+        else:
+            current_iteration = number_batch_processed
+
+        current_iteration *= self.current_batch_size
+
+        return current_iteration
+
+    def state_dict(self, number_batch_processed: Optional[int] = None):
+        rng_stage = self.rng_state
+        if self.inside_workers and self.rng_state is None:
+            rng_stage = torch.random.get_rng_state()
+        return {"rng_state": rng_stage, "current_iteration": self._compute_current_iteration(number_batch_processed)}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]):
+        if all(isinstance(k, int) for k in state_dict.keys()):
+            self._state_dict = state_dict
+            self.restarting = True
+            return
         self.current_iteration = state_dict["current_iteration"]
         if state_dict["rng_state"] is not None:
             torch.random.set_rng_state(state_dict["rng_state"])
-        self.restarted = True
+        self.restarting = True
+
+
+class CaptureIterativeDataset(IterableDataset):
+
+    def __init__(self, dataset: IterableDataset):
+        self.dataset = dataset
+        self.samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, FastForwardSampler)}
+
+    @property
+    def sampler(self) -> Sampler:
+        return self.dataset.sampler
+
+    def __iter__(self) -> Iterator:
+        self.iter_data = iter(self.dataset)
+        return self
+
+    def __next__(self):
+        worker_info = get_worker_info()
+        state_dicts = {}
+        for k, v in self.samplers.items():
+            state_dicts[k] = v.state_dict()
+            if worker_info:
+                state_dicts["id"] = worker_info.id
+        print(state_dicts)
+        return {"data": next(self.iter_data), BatchKeys.PL_SAMPLERS: state_dicts}
+
+
+def _find_fast_forward_samplers(dataloader: Union[DataLoader, CombinedLoader]):
+    if isinstance(dataloader, CombinedLoader):
+        dataloader = dataloader.loaders
+    dataset = dataloader.dataset
+    if isinstance(dataset, CaptureIterativeDataset):
+        return {k: v for k, v in dataset.__dict__["samplers"].items() if isinstance(v, FastForwardSampler)}
+    else:
+        sampler = dataloader.sampler
+        return sampler if isinstance(sampler, FastForwardSampler) else dataloader.batch_sampler

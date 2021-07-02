@@ -11,19 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from collections.abc import Iterable
+from unittest import mock
 
 import pytest
-from torch.utils.data import BatchSampler, SequentialSampler
-from torch.utils.data.sampler import RandomSampler
+import torch
+from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
+from torch.utils.data.dataloader import _InfiniteConstantSampler, DataLoader
+from torch.utils.data.dataset import IterableDataset
 
-from pytorch_lightning import seed_everything
+from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.overrides.distributed import (
+    CaptureIterativeDataset,
     FastForwardSampler,
     IndexBatchSamplerWrapper,
     UnrepeatedDistributedSampler,
 )
 from pytorch_lightning.utilities.data import has_len
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 @pytest.mark.parametrize("shuffle", [False, True])
@@ -79,6 +86,7 @@ def test_fast_forward_on_batch_sampler():
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = FastForwardSampler(batch_sampler)
+    index_batch_sampler.setup(1, 1, False)
 
     assert isinstance(index_batch_sampler, Iterable)
     assert has_len(index_batch_sampler)
@@ -88,13 +96,13 @@ def test_fast_forward_on_batch_sampler():
     assert next(index_batch_sampler_iter) == [0, 1, 2]
     assert next(index_batch_sampler_iter) == [3, 4, 5]
 
-    state_dict = index_batch_sampler.state_dict()
-    assert state_dict["current_iteration"] == 2
+    state_dict = index_batch_sampler.state_dict(2)
 
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = FastForwardSampler(batch_sampler)
+    index_batch_sampler.setup(1, 1, False)
     index_batch_sampler.load_state_dict(state_dict)
 
     index_batch_sampler_iter = iter(index_batch_sampler)
@@ -104,6 +112,7 @@ def test_fast_forward_on_batch_sampler():
 def test_fast_forward_on_sequential_sampler():
     dataset = range(15)
     sampler = FastForwardSampler(SequentialSampler(dataset))
+    sampler.setup(1, 3, False)
     batch_sampler = BatchSampler(sampler, 3, False)
 
     batch_sampler_iter = iter(batch_sampler)
@@ -111,11 +120,12 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [0, 1, 2]
     assert next(batch_sampler_iter) == [3, 4, 5]
 
-    state_dict = sampler.state_dict()
+    state_dict = sampler.state_dict(2)
     assert state_dict["current_iteration"] == 6
 
     dataset = range(15)
     sampler = FastForwardSampler(SequentialSampler(dataset))
+    sampler.setup(1, 3, False)
     batch_sampler = BatchSampler(sampler, 3, False)
     sampler.load_state_dict(state_dict)
 
@@ -128,6 +138,7 @@ def test_fast_forward_on_random_sampler():
 
     dataset = range(15)
     sampler = FastForwardSampler(RandomSampler(dataset))
+    sampler.setup(1, 3, False)
     batch_sampler = BatchSampler(sampler, 3, False)
 
     batch_sampler_iter = iter(batch_sampler)
@@ -136,12 +147,13 @@ def test_fast_forward_on_random_sampler():
     assert next(batch_sampler_iter) == [7, 11, 3]
     assert next(batch_sampler_iter) == [12, 8, 2]
 
-    state_dict = sampler.state_dict()
+    state_dict = sampler.state_dict(3)
     assert state_dict["current_iteration"] == 9
     state_dict["current_iteration"] = 6
 
     dataset = range(15)
     sampler = FastForwardSampler(RandomSampler(dataset))
+    sampler.setup(1, 3, False)
     batch_sampler = BatchSampler(sampler, 3, False)
     sampler.load_state_dict(state_dict)
 
@@ -155,5 +167,106 @@ def test_fast_forward_on_random_sampler():
         has_raised = True
         assert sampler.rng_state is None
         assert sampler.current_iteration == 0
-        sampler.load_state_dict(sampler.state_dict())
+        sampler.load_state_dict(sampler.state_dict(0))
     assert has_raised
+
+
+def test_fast_forward_sampler_replacement(tmpdir):
+
+    seed_everything(42)
+
+    class CustomBatchSampler(BatchSampler):
+        pass
+
+    class CheckFastForwardSamplerInjection(Callback):
+
+        def __init__(self):
+            self.has_called = False
+
+        def on_train_batch_end(self, trainer, *args) -> None:
+            sampler = trainer.train_dataloader.loaders.fast_forward_sampler
+            wrapping_batch_sampler = isinstance(sampler.sampler, BatchSampler)
+
+            num_batches = 2
+
+            if wrapping_batch_sampler:
+                assert isinstance(sampler, FastForwardSampler)
+                current_iteration = num_batches
+            else:
+                assert isinstance(sampler, FastForwardSampler)
+                current_iteration = 2 * 3
+
+            if trainer.fit_loop.batch_idx == 1:
+                assert sampler.state_dict(num_batches)["current_iteration"] == current_iteration
+                self.has_called = True
+
+    dataset = RandomDataset(32, 64)
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=1)
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, num_sanity_val_steps=0, limit_val_batches=0
+    )
+    model = BoringModel()
+    callback = CheckFastForwardSamplerInjection()
+    trainer = Trainer(**trainer_kwargs, callbacks=callback)
+    trainer.fit(model, train_dataloader=train_dataloader)
+
+    train_dataloader = DataLoader(
+        dataset,
+        batch_sampler=CustomBatchSampler(batch_size=8, sampler=SequentialSampler(dataset), drop_last=True),
+        num_workers=2,
+    )
+
+    trainer = Trainer(**trainer_kwargs, callbacks=callback)
+    trainer.fit(model, train_dataloader=train_dataloader)
+
+
+class IterativeRandomDataset(IterableDataset):
+
+    def __init__(self, size, length):
+        self.len = length
+        self.data = torch.randn(length, size)
+        self.sampler = RandomSampler(self.data)
+
+    def __iter__(self):
+        self.index = 0
+        self.iter_sampler = iter(self.sampler)
+        return self
+
+    def __next__(self):
+        return self.data[next(self.iter_sampler)]
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_fast_forward_sampler_iterative_dataset(tmpdir):
+
+    seed_everything(42)
+
+    class CheckFastForwardSamplerInjection(Callback):
+
+        def __init__(self):
+            self.has_called = False
+
+        def on_train_batch_end(self, trainer, *args) -> None:
+            assert isinstance(trainer.train_dataloader.loaders.sampler, _InfiniteConstantSampler)
+            assert isinstance(trainer.train_dataloader.loaders.dataset, CaptureIterativeDataset)
+            sampler = trainer.train_dataloader.loaders.dataset.sampler
+            assert isinstance(sampler, FastForwardSampler)
+
+    model = BoringModel()
+    model.training_epoch_end = None
+
+    dataset = IterativeRandomDataset(32, 20)
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=2)
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, num_sanity_val_steps=0, limit_val_batches=0
+    )
+    ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    callbacks = [CheckFastForwardSamplerInjection(), ck]
+    trainer = Trainer(**trainer_kwargs, callbacks=callbacks)
+    trainer.fit(model, train_dataloader=train_dataloader)
+
+    dataset = IterativeRandomDataset(32, 20)
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=0)
+    trainer_kwargs["max_epochs"] = 4
+    trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=ck.last_model_path, callbacks=callbacks)
+    trainer.fit(model, train_dataloader=train_dataloader)

@@ -21,10 +21,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import Sampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.distributed import (
+    CaptureIterativeDataset,
     FastForwardSampler,
     IndexBatchSamplerWrapper,
     UnrepeatedDistributedSampler,
@@ -115,6 +117,43 @@ class TrainerDataLoadingMixin(ABC):
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
+    def add_samplers_to_iterable_dataset(self, dataloader: DataLoader):
+        batch_size = dataloader.batch_size
+        num_workers = dataloader.num_workers
+        dl_dict = dataloader.dataset.__dict__
+        for k, v in dl_dict.items():
+            if isinstance(v, (Sampler, BatchSampler)):
+                dl_dict[k] = FastForwardSampler(v)
+                dl_dict[k].setup(num_workers, batch_size, True)
+
+        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
+
+        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+
+        params = set(inspect.signature(dataloader.__init__).parameters)
+        contains_dataset = True
+
+        if type(dataloader) is not DataLoader:
+            contains_dataset = "dataset" in params
+            params.update(inspect.signature(DataLoader.__init__).parameters)
+
+        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
+
+        multiprocessing_context = dataloader.multiprocessing_context
+        dl_args['multiprocessing_context'] = multiprocessing_context
+
+        # missing_kwargs = params.difference(skip_signature_keys).difference(dl_args)
+
+        if not contains_dataset:
+            dl_args.pop('dataset')
+
+        if 'dataset' in dl_args:
+            dl_args["dataset"] = CaptureIterativeDataset(dl_args["dataset"])
+
+        dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
+        return dataloader
+
     def auto_add_sampler(
         self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
     ) -> DataLoader:
@@ -127,7 +166,10 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
             return dataloader
 
-        if not is_dataloader or is_iterable_ds:
+        if is_iterable_ds:
+            return self.add_samplers_to_iterable_dataset(dataloader)
+
+        if not is_dataloader:
             return dataloader
 
         need_dist_sampler = self.accelerator_connector.is_distributed and not isinstance(
@@ -165,17 +207,23 @@ class TrainerDataLoadingMixin(ABC):
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-            dl_args['batch_sampler'] = FastForwardSampler(batch_sampler)
+            fast_forward_sampler = FastForwardSampler(batch_sampler)
+            dl_args['batch_sampler'] = fast_forward_sampler
             dl_args['batch_size'] = 1
             dl_args['shuffle'] = False
             dl_args['sampler'] = None
             dl_args['drop_last'] = False
         else:
-            dl_args['sampler'] = FastForwardSampler(sampler)
+            fast_forward_sampler = FastForwardSampler(sampler)
+            dl_args['sampler'] = fast_forward_sampler
             dl_args['shuffle'] = False
             dl_args['batch_sampler'] = None
 
-        return dl_args
+        batch_size = dl_args["batch_size"]
+
+        fast_forward_sampler.setup(getattr(dataloader, "num_workers"), batch_size, False)
+
+        return dl_args, fast_forward_sampler
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
@@ -192,7 +240,7 @@ class TrainerDataLoadingMixin(ABC):
 
         dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
 
-        dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler, mode=mode)
+        dl_args, fast_forward_sampler = self._resolve_batch_sampler(dl_args, dataloader, sampler, mode=mode)
 
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
@@ -221,6 +269,7 @@ class TrainerDataLoadingMixin(ABC):
 
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context
+        dataloader.fast_forward_sampler = fast_forward_sampler
         return dataloader
 
     def _get_distributed_sampler(

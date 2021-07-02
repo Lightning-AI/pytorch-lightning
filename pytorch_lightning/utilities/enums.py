@@ -111,3 +111,8 @@ class GradClipAlgorithmType(LightningEnum):
     """
     VALUE = 'value'
     NORM = 'norm'
+
+
+class BatchKeys(LightningEnum):
+
+    PL_SAMPLERS = "pl_samplers"

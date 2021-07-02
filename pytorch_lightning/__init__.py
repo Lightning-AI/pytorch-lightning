@@ -16,6 +16,7 @@ if not _root_logger.hasHandlers():
 
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
+_PL_FAULT_TOLERANT_TRAINING = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
 
 from pytorch_lightning import metrics  # noqa: E402
 from pytorch_lightning.callbacks import Callback  # noqa: E402
