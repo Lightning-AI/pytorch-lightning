@@ -453,6 +453,6 @@ class DDPPlugin(ParallelPlugin):
             raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def __del__(self) -> None:
-        if torch.distributed.is_initialized() and self._has_initialized_ddp:
+        if distributed_available() and self._has_initialized_ddp:
             torch.distributed.destroy_process_group()
         torch.cuda.empty_cache()
