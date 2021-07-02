@@ -116,6 +116,40 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
 
 
 def test_gpu_stats_monitor_parse_gpu_stats():
-    logs = GPUStatsMonitor._parse_gpu_stats('1,2', [[3, 4, 5], [6, 7]], [('gpu', 'a'), ('memory', 'b')])
-    expected = {'gpu_id: 1/gpu (a)': 3, 'gpu_id: 1/memory (b)': 4, 'gpu_id: 2/gpu (a)': 6, 'gpu_id: 2/memory (b)': 7}
+    logs = GPUStatsMonitor._parse_gpu_stats([1, 2], [[3, 4, 5], [6, 7]], [('gpu', 'a'), ('memory', 'b')])
+    expected = {
+        'device_id: 1/gpu (a)': 3,
+        'device_id: 1/memory (b)': 4,
+        'device_id: 2/gpu (a)': 6,
+        'device_id: 2/memory (b)': 7
+    }
     assert logs == expected
+
+
+@RunIf(min_gpus=2)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset():
+    # `CUDA_VISIBLE_DEVICES` unset
+    try:
+        del os.environ['CUDA_VISIBLE_DEVICES']
+    except KeyError:
+        pass
+
+    gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 0])
+    expected = ['1', '0']
+    assert gpu_ids == expected
+
+
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_set():
+    # `CUDA_VISIBLE_DEVICES` set (integers)
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2,3,4'
+
+    gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
+    expected = ['3', '4']
+    assert gpu_ids == expected
+
+    # `CUDA_VISIBLE_DEVICES` set (UUID strings)
+    os.environ['CUDA_VISIBLE_DEVICES'] = 'GPU-01a23b4c,GPU-56d78e9f,GPU-02a46c8e'
+
+    gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
+    expected = ['GPU-56d78e9f', 'GPU-02a46c8e']
+    assert gpu_ids == expected
