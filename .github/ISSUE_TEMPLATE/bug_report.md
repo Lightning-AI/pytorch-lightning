@@ -57,7 +57,7 @@ python collect_env_details.py
 
 
 
-### If you liked [PyTorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning), you might also like:
+### Learn more about our other projects:
 
 - [Flash](https://github.com/PyTorchLightning/lightning-flash): Collection of tasks for fast prototyping, baselining, finetuning and solving problems with deep learning
 - [Bolts](https://github.com/PyTorchLightning/lightning-bolts): Pretrained SOTA Deep Learning models, callbacks and more for research and production with PyTorch Lightning and PyTorch
