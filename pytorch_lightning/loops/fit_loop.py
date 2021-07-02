@@ -236,7 +236,7 @@ class FitLoop(Loop):
             self.global_step += 1
 
     def on_run_end(self) -> None:
-        """Runs teardown logic and calls the ``on_train_end`` hook"""
+        """Calls the ``on_train_end`` hook"""
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
@@ -265,9 +265,6 @@ class FitLoop(Loop):
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
-        # reset bookkeeping
-        self.trainer._running_stage = None
-
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
         return self.epoch_loop.batch_loop.should_accumulate()
@@ -291,3 +288,6 @@ class FitLoop(Loop):
 
     def load_state_dict(self, state_dict: Dict) -> None:
         self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
+
+    def teardown(self) -> None:
+        self.epoch_loop.teardown()

@@ -900,8 +900,10 @@ class Trainer(
 
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
+        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
+        # which need to happen before.
         self.accelerator.teardown()
-        self.logger_connector.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -977,7 +979,6 @@ class Trainer(
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
