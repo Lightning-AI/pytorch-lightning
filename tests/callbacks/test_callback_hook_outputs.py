@@ -70,7 +70,7 @@ def test_free_memory_on_eval_outputs(tmpdir):
     class CB(Callback):
 
         def on_epoch_end(self, trainer, pl_module):
-            assert len(trainer.evaluation_loop.outputs) == 0
+            assert len(trainer._evaluation_loop.outputs) == 0
 
     model = BoringModel()
 

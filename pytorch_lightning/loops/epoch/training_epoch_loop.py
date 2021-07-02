@@ -34,9 +34,7 @@ class TrainingEpochLoop(loops.Loop):
         super().__init__()
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
-
         self.global_step: int = 0
-
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
         # the current batch index in the loop that runs over the dataloader(s)
@@ -50,18 +48,10 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
 
+        self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
-        self._results = ResultCollection(training=True)
-
-    @property
-    def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self._results
-        elif self.trainer.validating:
-            return self.val_loop.results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
     def batch_idx(self) -> int:

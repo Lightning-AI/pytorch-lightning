@@ -47,7 +47,7 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self.warning_cache: WarningCache = WarningCache()
+        self._warning_cache: WarningCache = WarningCache()
 
         self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
@@ -75,7 +75,7 @@ class TrainingBatchLoop(Loop):
             dataloader_idx: the index of the dataloader producing the current batch
         """
         if batch is None:
-            self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
         # hook
@@ -542,7 +542,7 @@ class TrainingBatchLoop(Loop):
                         self._check_finite(result.loss)
 
                 else:
-                    self.warning_cache.warn(
+                    self._warning_cache.warn(
                         "training_step returned None. If this was on purpose, ignore this warning..."
                     )
 
@@ -644,7 +644,7 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self.warning_cache.deprecation(
+                    self._warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5"
