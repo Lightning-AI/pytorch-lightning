@@ -238,7 +238,7 @@ class LightningCLI:
             subclass_mode_data: Whether datamodule can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
-            skip_fit: Allow skip Trainer.fit(...), fr example if you want perform more custom flow
+            skip_fit: If ``True``, the CLI won't automatically call ``Trainer.fit(...)``.
         """
         assert issubclass(trainer_class, Trainer)
         assert issubclass(model_class, LightningModule)
