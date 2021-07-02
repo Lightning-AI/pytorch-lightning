@@ -16,9 +16,12 @@ class PredictionLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
-        self.epoch_loop: PredictionEpochLoop = PredictionEpochLoop()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
+
+        self.epoch_loop: PredictionEpochLoop = PredictionEpochLoop()
+
+        self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
 
     @property

@@ -29,6 +29,7 @@ from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -47,7 +48,7 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self.warning_cache: WarningCache = WarningCache()
+        self._warning_cache: WarningCache = WarningCache()
 
         self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
@@ -75,7 +76,7 @@ class TrainingBatchLoop(Loop):
             dataloader_idx: the index of the dataloader producing the current batch
         """
         if batch is None:
-            self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
         # hook
@@ -345,8 +346,8 @@ class TrainingBatchLoop(Loop):
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
-            if hiddens is not None:
-                hiddens = hiddens.detach()
+            # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+            hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
             results.extra = training_step_output
 
         # handle scalar return
@@ -543,7 +544,7 @@ class TrainingBatchLoop(Loop):
                         self._check_finite(result.loss)
 
                 else:
-                    self.warning_cache.warn(
+                    self._warning_cache.warn(
                         "training_step returned None. If this was on purpose, ignore this warning..."
                     )
 
@@ -645,7 +646,7 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self.warning_cache.deprecation(
+                    self._warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5"
