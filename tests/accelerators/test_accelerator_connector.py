@@ -394,7 +394,7 @@ def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
 
 @RunIf(special=True)
 def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
-    """ Test that accelerator="ddp_cpu" can work together an instance of DDPPSpawnPlugin. """
+    """ Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin. """
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
 
 
