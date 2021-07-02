@@ -31,6 +31,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.trainer.progress import BatchProgress, OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -364,7 +365,8 @@ class TrainingBatchLoop(Loop):
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
-
+            # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+            hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
             results.extra = training_step_output
 
         # handle scalar return

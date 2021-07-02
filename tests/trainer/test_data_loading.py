@@ -98,9 +98,13 @@ def check_replace_distributed_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("mode", [1, 2])
-def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
-    check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode)
+def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler_0(tmpdir):
+    check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode=1)
+
+
+@RunIf(min_gpus=2, special=True)
+def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler_1(tmpdir):
+    check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode=2)
 
 
 @pytest.mark.parametrize("num_workers", [0, 1])

@@ -46,6 +46,15 @@ class Loop(ABC):
     def __init__(self) -> None:
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
+        self._restarting = False
+
+    @property
+    def restarting(self) -> bool:
+        return self._restarting
+
+    @restarting.setter
+    def restarting(self, restarting: bool) -> None:
+        self._restarting = restarting
 
     @property
     @abstractmethod
@@ -87,7 +96,12 @@ class Loop(ABC):
         if self.skip:
             return self.on_skip()
 
-        self.reset()
+        if self.restarting:
+            self.restore()
+            self.restarting = False
+        else:
+            self.reset()
+
         self.on_run_start(*args, **kwargs)
 
         while not self.done:
@@ -101,6 +115,9 @@ class Loop(ABC):
 
         output = self.on_run_end()
         return output
+
+    def restore(self) -> None:
+        """Restore the internal state of the loop the beginning of run if restarting is ``True``."""
 
     @abstractmethod
     def reset(self) -> None:
