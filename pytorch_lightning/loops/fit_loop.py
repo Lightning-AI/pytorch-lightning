@@ -50,11 +50,8 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
-    @property
-    def results(self) -> ResultCollection:
-        return self.epoch_loop.results
+        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
     def current_epoch(self) -> int:
@@ -130,6 +127,14 @@ class FitLoop(Loop):
         self.epoch_loop.batch_loop._skip_backward = value
 
     @property
+    def _results(self) -> ResultCollection:
+        if self.trainer.training:
+            return self.epoch_loop._results
+        if self.trainer.validating:
+            return self.epoch_loop.val_loop._results
+        raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
+
+    @property
     def done(self) -> bool:
         """Evaluates when to leave the loop.
 
@@ -172,7 +177,7 @@ class FitLoop(Loop):
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
-        self.results.to(device=self.trainer.lightning_module.device)
+        self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self) -> None:
@@ -224,14 +229,14 @@ class FitLoop(Loop):
 
         self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
-        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.skip
+        did_train_only = self.trainer.disable_validation or self.epoch_loop.val_loop.skip
         if did_train_only:
             self.global_step -= 1
             self._check_checkpoint_callback(True)
             self.global_step += 1
 
     def on_run_end(self) -> None:
-        """Runs teardown logic and calls the ``on_train_end`` hook"""
+        """Calls the ``on_train_end`` hook"""
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
@@ -260,9 +265,6 @@ class FitLoop(Loop):
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
-        # reset bookkeeping
-        self.trainer._running_stage = None
-
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
         return self.epoch_loop.batch_loop.should_accumulate()
@@ -286,3 +288,6 @@ class FitLoop(Loop):
 
     def load_state_dict(self, state_dict: Dict) -> None:
         self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
+
+    def teardown(self) -> None:
+        self.epoch_loop.teardown()

@@ -102,7 +102,7 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         every_n_train_steps: Number of training steps between checkpoints.
-            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training
+            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``train_time_interval`` and ``every_n_val_epochs``.
         train_time_interval: Checkpoints are monitored at the specified time interval.
@@ -111,7 +111,7 @@ class ModelCheckpoint(Callback):
             guaranteed to execute at the exact time specified, but should be close.
             This must be mutually exclusive with ``every_n_train_steps`` and ``every_n_val_epochs``.
         every_n_val_epochs: Number of validation epochs between checkpoints.
-            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end
+            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end.
             To disable, set ``every_n_val_epochs = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``every_n_train_steps`` and ``train_time_interval``.
             Setting both ``ModelCheckpoint(..., every_n_val_epochs=V)`` and
