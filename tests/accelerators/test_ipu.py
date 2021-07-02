@@ -461,6 +461,45 @@ def test_manual_poptorch_opts_train_grad_accum(tmpdir):
 
 
 @RunIf(ipu=True)
+def test_manual_poptorch_opts_custom(tmpdir):
+    """
+    Ensure if the user passes manual poptorch Options with custom parameters set,
+    we respect them in our poptorch options.
+    """
+
+    model = IPUModel()
+    inference_opts = poptorch.Options()
+    inference_opts.deviceIterations(16)
+    inference_opts.replicationFactor(2)
+    inference_opts.Training.gradientAccumulation(1)
+
+    training_opts = poptorch.Options()
+    training_opts.deviceIterations(8)
+    training_opts.replicationFactor(2)
+    training_opts.Training.gradientAccumulation(2)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        ipus=2,
+        fast_dev_run=True,
+        accumulate_grad_batches=2,
+        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    )
+    trainer.fit(model)
+    plugin = trainer.accelerator.training_type_plugin
+    assert isinstance(plugin, IPUPlugin)
+    inference_opts = plugin.inference_opts
+    training_opts = plugin.training_opts
+    assert inference_opts.device_iterations == 16
+    assert inference_opts.replication_factor == 2
+    assert inference_opts.Training.gradient_accumulation == 1
+
+    assert training_opts.device_iterations == 8
+    assert training_opts.replication_factor == 2
+    assert training_opts.Training.gradient_accumulation == 2
+
+
+@RunIf(ipu=True)
 def test_default_opts(tmpdir):
     """
     Ensure default opts are set correctly in the IPUPlugin.

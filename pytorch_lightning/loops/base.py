@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from deprecate import void
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class Loop(ABC):
@@ -45,6 +46,15 @@ class Loop(ABC):
     def __init__(self) -> None:
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
+        self._restarting = False
+
+    @property
+    def restarting(self) -> bool:
+        return self._restarting
+
+    @restarting.setter
+    def restarting(self, restarting: bool) -> None:
+        self._restarting = restarting
 
     @property
     @abstractmethod
@@ -59,6 +69,10 @@ class Loop(ABC):
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators."""
         # TODO(@justusschock): Make the trainer a weakref/proxy
+        if not isinstance(trainer, pl.Trainer):
+            raise MisconfigurationException(
+                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
+            )
         self.trainer = trainer
 
     def on_skip(self) -> Optional[Any]:
@@ -82,7 +96,12 @@ class Loop(ABC):
         if self.skip:
             return self.on_skip()
 
-        self.reset()
+        if self.restarting:
+            self.restore()
+            self.restarting = False
+        else:
+            self.reset()
+
         self.on_run_start(*args, **kwargs)
 
         while not self.done:
@@ -95,8 +114,10 @@ class Loop(ABC):
                 break
 
         output = self.on_run_end()
-        self.teardown()
         return output
+
+    def restore(self) -> None:
+        """Restore the internal state of the loop the beginning of run if restarting is ``True``."""
 
     @abstractmethod
     def reset(self) -> None:
@@ -127,4 +148,11 @@ class Loop(ABC):
         """Hook to be called at the end of the run. Its return argument is returned from :attr:`run`."""
 
     def teardown(self) -> None:
-        """The very last method called inside :meth:`run`. Use to release memory etc."""
+        """Use to release memory etc."""
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        """Restore the loop state from the provided state_dict."""
+
+    def state_dict(self) -> Dict:
+        """Return the loop current states."""
+        return {}

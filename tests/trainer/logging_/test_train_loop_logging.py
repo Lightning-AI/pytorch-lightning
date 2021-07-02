@@ -22,6 +22,7 @@ from re import escape
 import numpy as np
 import pytest
 import torch
+from torchmetrics import Accuracy
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
@@ -260,7 +261,9 @@ def test_tbptt_log(tmpdir):
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
+            if hiddens is not None:
+                assert hiddens.grad_fn is None
+            self.test_hidden = torch.tensor(2., requires_grad=True).pow(2)
 
             x_tensor, y_list = batch
             assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
@@ -688,6 +691,33 @@ def test_logging_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match='`self.log` with the key `foo/dataloader_idx_0`'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='fix this by setting an attribute for the metric in your'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.bar = Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]"
+    ):
         trainer.fit(model)
 
     class TestModel(BoringModel):

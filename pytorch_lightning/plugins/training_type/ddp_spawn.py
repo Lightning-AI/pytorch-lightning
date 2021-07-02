@@ -36,7 +36,13 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    distributed_available,
+    rank_zero_info,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -67,13 +73,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         if num_nodes is not None:
             rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6. "
+                "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
                 "Notice that it will be overriden by the trainer setting."
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
             rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6. "
+                "Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
                 "Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
@@ -312,12 +318,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.load_state_dict(ckpt)
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch_distrib.is_initialized():
+        if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
-            torch_distrib.barrier()
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
