@@ -41,7 +41,7 @@ Make sure you had fun coding 🙃
 
 <!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 
-### :star: If you liked [PyTorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning), you might also like :star:
+### If you liked [PyTorch Lightning](https://github.com/PyTorchLightning/pytorch-lightning), you might also like:
 
 - [Flash](https://github.com/PyTorchLightning/lightning-flash): Collection of tasks for fast prototyping, baselining, finetuning and solving problems with deep learning
 - [Bolts](https://github.com/PyTorchLightning/lightning-bolts): Pretrained SOTA Deep Learning models, callbacks and more for research and production with PyTorch Lightning and PyTorch
