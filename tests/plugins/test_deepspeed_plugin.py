@@ -639,6 +639,16 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
 
 
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
+
+
 def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
@@ -667,16 +677,6 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
         callbacks=[VerificationCallback()]
     )
     trainer.fit(model, datamodule=dm)
-
-
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
-    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
-
-
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
-    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
