@@ -685,16 +685,6 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
-    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
-
-
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
-    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
-
-
-@RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
     """
     Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3.
