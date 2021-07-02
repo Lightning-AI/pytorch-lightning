@@ -152,6 +152,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
+        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print(' ', end='', flush=True)
+
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
 
