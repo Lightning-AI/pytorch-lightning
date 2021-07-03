@@ -47,8 +47,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.6, 3.7]
-        xla_version: [1.6, 1.7] # todo: , "nightly"
+        python_version: [3.7]
+        xla_version: [1.6, 1.7, 1.8] # todo: , "nightly"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -80,7 +80,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.6, 3.7, 3.8]
-        pytorch_version: [1.4, 1.5, 1.6, 1.7, 1.8]
+        pytorch_version: [1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
 
     steps:
       - name: Checkout
@@ -102,6 +102,7 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
+        if: matrix.pytorch_version <= 1.8
         # publish master/release
         uses: docker/build-push-action@v2
         with:
@@ -127,25 +128,73 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
-#  docker-nvidia:
-#    runs-on: ubuntu-20.04
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v2
-#
-#      # https://github.com/docker/setup-buildx-action
-#      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-#      - uses: docker/setup-buildx-action@v1
-#      - name: Login to DockerHub
-#        uses: docker/login-action@v1
-#        with:
-#          username: ${{ secrets.DOCKER_USERNAME }}
-#          password: ${{ secrets.DOCKER_PASSWORD }}
-#
-#      - name: Publish NVIDIA to Docker Hub
-#        uses: docker/build-push-action@v2
-#        with:
-#          file: dockers/nvidia/Dockerfile
-#          push: true
-#          tags: nvcr.io/pytorchlightning/pytorch_lightning:nvidia
-#        timeout-minutes: 55
+  docker-nvidia:
+    runs-on: ubuntu-20.04
+    # todo: temporarily skip as the base container does not fit to agent
+    if: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Publish NVIDIA to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          file: dockers/nvidia/Dockerfile
+          push: true
+          tags: nvcr.io/pytorchlightning/pytorch_lightning:nvidia
+        timeout-minutes: 55
+
+  docker-ipu:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python_version: 3.8
+            pytorch_version: 1.7
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Publish IPU base to Docker Hub
+        # publish master/release
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/base-ipu/Dockerfile
+          push: true
+          tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+        timeout-minutes: 55
+
+      - name: Publish IPU CI runner to Docker Hub
+        # publish master/release
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/ipu-ci-runner/Dockerfile
+          push: true
+          tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
+        timeout-minutes: 55

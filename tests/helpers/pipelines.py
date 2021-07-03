@@ -15,7 +15,6 @@ import torch
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
 from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
@@ -31,7 +30,7 @@ def run_model_test_without_loggers(
     trainer.fit(model, datamodule=data)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     model2 = load_model_from_checkpoint(trainer.logger, trainer.checkpoint_callback.best_model_path, type(model))
 
@@ -65,7 +64,7 @@ def run_model_test(
     trainer.fit(model, datamodule=data)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
     assert change_ratio > 0.1, f"the model is changed of {change_ratio}"
@@ -92,11 +91,12 @@ def run_model_test(
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
         checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
-        trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
+        trainer.checkpoint_connector.restore(checkpoint_path)
 
 
 @torch.no_grad()
 def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
+    orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()
     trained_model.eval()
@@ -109,3 +109,4 @@ def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
     acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
+    trained_model.to(orig_device)

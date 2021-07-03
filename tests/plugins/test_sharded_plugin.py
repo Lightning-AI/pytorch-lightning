@@ -278,3 +278,44 @@ def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
 
     trainer.validate(model)
     trainer.test(model)
+
+
+class ManualBoringModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        opt.zero_grad()
+        output = self(batch)
+        loss = self.loss(batch, output)
+        self.manual_backward(loss)
+        opt.step()
+        return {"loss": loss}
+
+
+@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
+    # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
+    model = ManualBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator='ddp_sharded_spawn',
+        fast_dev_run=2,
+        gpus=2,
+    )
+    trainer.fit(model)
+
+
+@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+def test_ddp_sharded_plugin_manual_optimization(tmpdir):
+    model = ManualBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator='ddp_sharded',
+        fast_dev_run=2,
+        gpus=2,
+    )
+    trainer.fit(model)

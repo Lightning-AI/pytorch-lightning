@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
+import torch
 from torch.utils.data import DataLoader
 
 import tests.helpers.pipelines as tpipes
@@ -24,7 +25,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -210,9 +211,29 @@ def test_tpu_grad_norm(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=4,
         tpu_cores=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
         gradient_clip_val=0.5,
+    )
+
+    model = BoringModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_clip_grad_by_value(tmpdir):
+    """Test if clip_gradients by value works on TPU"""
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gradient_clip_val=0.5,
+        gradient_clip_algorithm='value'
     )
 
     model = BoringModel()
@@ -236,7 +257,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
         train_dataloader=model.train_dataloader(),
         val_dataloaders=model.val_dataloader(),
     )
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(
@@ -360,7 +381,7 @@ def test_tpu_reduce():
 @RunIf(tpu=True)
 @pl_multi_process_test
 @pytest.mark.parametrize("clip_val", [10])
-@mock.patch("pytorch_lightning.accelerators.tpu.xla_clip_grad_norm_")
+@mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     """
     Ensure that clip gradients is only called if the value is greater than 0.
@@ -395,4 +416,73 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
     model = BoringModel()
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_sync_dist():
+    """Test tpu spawn sync dist operation """
+
+    def test_sync_dist(_):
+        sync = _Sync(TPUSpawnPlugin().reduce, should=True, op=torch.distributed.ReduceOp.SUM)
+        value = torch.tensor([1.0])
+        value = sync(value),
+        assert value.item() == 8
+
+    xmp.spawn(test_sync_dist, nprocs=8, start_method='fork')
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_debug_mode(tmpdir):
+    """Test if debug mode works on TPU."""
+
+    class DebugModel(BoringModel):
+
+        def on_train_start(self):
+            assert os.environ.get("PT_XLA_DEBUG") == str(1), "PT_XLA_DEBUG was not set in environment variables"
+
+        def teardown(self, stage):
+            assert "PT_XLA_DEBUG" not in os.environ
+
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+        plugins=TPUSpawnPlugin(debug=True),
+    )
+
+    model = DebugModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_host_world_size(tmpdir):
+    """Test Host World size env setup on TPU."""
+
+    class DebugModel(BoringModel):
+
+        def on_train_start(self):
+            assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
+
+        def teardown(self, stage):
+            assert "XRT_HOST_WORLD_SIZE" not in os.environ
+
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+    )
+
+    model = DebugModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)

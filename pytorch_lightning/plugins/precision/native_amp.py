@@ -12,24 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, TYPE_CHECKING
+from typing import Any, Callable, Dict, Generator
 
 import torch
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core import LightningModule
-
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
 
     def __init__(self) -> None:
+        super().__init__()
         if not _NATIVE_AMP_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for native AMP but your PyTorch version does not support it."
@@ -41,9 +39,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: 'LightningModule',
+        model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -71,8 +69,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -85,18 +83,20 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-        lambda_closure()
 
         if not pl_module.automatic_optimization:
             self.scaler.unscale_(optimizer)
             pl_module.trainer.call_hook("on_after_backward")
+            self.scaler.step(optimizer)
+            self.scaler.update()
+        else:
+            result = lambda_closure()
+            # lambda_closure returning None indicates that backward has been skipped
+            if result is not None:
+                self.scaler.step(optimizer)
+                self.scaler.update()
 
         return False
-
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
-        """Updates the GradScaler"""
-        self.scaler.step(optimizer)
-        self.scaler.update()
 
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
@@ -117,7 +117,14 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             yield
 
     @contextmanager
-    def predict_context(self) -> Generator[None, None, None]:
+    def predict_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
         with torch.cuda.amp.autocast():
             yield
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if "native_amp_scaling_state" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()

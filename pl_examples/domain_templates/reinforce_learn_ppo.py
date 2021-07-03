@@ -28,7 +28,7 @@ References
 [3] https://github.com/sid-sundrani/ppo_lightning
 """
 import argparse
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Iterator, List, Tuple
 
 import gym
 import torch
@@ -135,7 +135,7 @@ class ActorContinous(nn.Module):
 class ExperienceSourceDataset(IterableDataset):
     """
     Implementation from PyTorch Lightning Bolts:
-    https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/datamodules/experience_source.py
+    https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/datamodules/experience_source.py
 
     Basic experience source dataset. Takes a generate_batch function that returns an iterator.
     The logic for the experience source and how the batch is generated is defined the Lightning model itself
@@ -144,7 +144,7 @@ class ExperienceSourceDataset(IterableDataset):
     def __init__(self, generate_batch: Callable):
         self.generate_batch = generate_batch
 
-    def __iter__(self) -> Iterable:
+    def __iter__(self) -> Iterator:
         iterator = self.generate_batch()
         return iterator
 
@@ -413,7 +413,7 @@ class PPOLightning(pl.LightningModule):
 
             return loss_actor
 
-        elif optimizer_idx == 1:
+        if optimizer_idx == 1:
             loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
             self.log('loss_critic', loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 

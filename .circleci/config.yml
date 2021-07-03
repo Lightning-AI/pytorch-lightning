@@ -36,11 +36,11 @@ references:
   build_push_docker: &build_push_docker
     run:
       name: Build and push Docker image
+      environment:
+        - PYTHON_VER: 3.7
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
-        export PYTHON_VER=$(python -c "import random ; print('3.6' if random.random() > 0.5 else '3.7')" 2>&1)
-        echo $PYTHON_VER
         docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
@@ -91,7 +91,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.7
+      - XLA_VER: 1.8
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -119,6 +119,10 @@ jobs:
       - image: readthedocs/build:latest
     steps:
       - checkout
+      - run:
+          command: |
+            git submodule update --init --recursive
+          name: Init git submodule
       - *make_docs
       - store_artifacts:
           # allows us to preview the generated html pages
@@ -127,7 +131,7 @@ jobs:
 
 workflows:
   version: 2
-  tpu-tests:
+  ci-tests:
     jobs:
       - build-Docs
       - TPU-tests

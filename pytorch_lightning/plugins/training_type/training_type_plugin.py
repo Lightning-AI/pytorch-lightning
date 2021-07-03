@@ -13,33 +13,37 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TYPE_CHECKING, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, TypeVar, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
+TBroadcast = TypeVar("T")
 
 
 class TrainingTypePlugin(Plugin, ABC):
-    """A Plugin to change the behaviour of the training, validation and test-loop."""
+    """
+    Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
+    """
 
     def __init__(self) -> None:
         self._model = None
-        self._results = None
+        self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
 
-    def connect(self, model: 'Module') -> None:
+    def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
         self.model = model
 
@@ -50,18 +54,26 @@ class TrainingTypePlugin(Plugin, ABC):
         which allows the user to access the accelerator environment before setup is complete.
         """
 
-    def setup(self, model: 'Module') -> None:
+    def setup(self, model: Module) -> None:
         """Called by the accelerator to finish setup."""
 
     @property
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU"""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def on_tpu(self) -> bool:
+        """Returns whether the current process is done on TPU"""
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
+        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -88,7 +100,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """Forces all possibly joined processes to wait for each other"""
 
     @abstractmethod
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Broadcasts an object to all processes"""
 
     @abstractmethod
@@ -118,49 +130,58 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
     @property
-    def results(self) -> Any:
+    def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         """
-        The results of the last training/testing run will be cached here.
-        In distributed training, we make sure to transfer the results to the appropriate master process.
+        Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run. The result is
+        cached instead of returned directly, because some plugins require transmitting the results from one
+        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
+        start-method send the result to the master process through a
+        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
-        # TODO: improve these docs
         return self._results
 
-    @property
-    def rpc_enabled(self) -> bool:
-        return False
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        optimizer_states = checkpoint["optimizer_states"]
+        for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
+            optimizer.load_state_dict(opt_state)
+
+    def start_training(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
 
-    def start_evaluating(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_stage()
 
-    def start_predicting(self, trainer: 'Trainer') -> None:
+    def start_predicting(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the predicting loop
         self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -182,7 +203,23 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return dataloader
 
-    def init_optimizers(self, trainer: "Trainer", model: LightningModule):
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the train dataloader."""
+        return dataloader
+
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the val dataloader."""
+        return dataloader
+
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the test dataloader."""
+        return dataloader
+
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the predict dataloader."""
+        return dataloader
+
+    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
@@ -198,33 +235,6 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return False
 
-    def restore_model_state_from_ckpt_path(
-        self,
-        ckpt_path: str,
-        map_location: Callable = lambda storage, loc: storage,
-    ) -> Tuple[Dict, bool]:
-        """
-        This function is used to load and restore the model state.
-
-        Args:
-            ckpt_path: Path to a checkpoint
-            map_location: lambda function to map checkpoint location
-
-        Return
-            checkpoint: Return loaded checkpoint
-            bool: Wether to load optimizer / lr_schedulers states from checkpoint
-
-        """
-        ckpt = pl_load(ckpt_path, map_location=map_location)
-        # restore datamodule states
-        if self.lightning_module.trainer.datamodule is not None:
-            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
-
-        # hook: give user access to checkpoint if needed.
-        self.lightning_module.on_load_checkpoint(ckpt)
-        self.lightning_module.load_state_dict(ckpt['state_dict'])
-        return ckpt, True
-
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
         Provide a hook to count optimizer step calls.
@@ -237,6 +247,11 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return current_global_step + 1
 
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """Returns model state."""
+        model = self.lightning_module
+        return model.state_dict()
+
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -245,18 +260,15 @@ class TrainingTypePlugin(Plugin, ABC):
             filepath: write-target file's path
         """
         # dump states as a checkpoint dictionary object
+        checkpoint = self.on_save(checkpoint)
         if self.is_global_zero:
-            checkpoint = self.on_save(checkpoint)
             try:
                 # write the checkpoint dictionary on the file
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
-                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-                rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.'
-                    f' An attribute is not picklable {err}'
-                )
+                key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
+                checkpoint.pop(key, None)
+                rank_zero_warn(f'Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}')
                 atomic_save(checkpoint, filepath)
 
     @contextlib.contextmanager
@@ -282,3 +294,58 @@ class TrainingTypePlugin(Plugin, ABC):
     @call_configure_sharded_model_hook.setter
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
+
+    @abstractmethod
+    def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other resources.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def register_plugins(cls, plugin_registry):
+        pass
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        """Returns whether the checkpoint should be saved (rank based)"""
+        return self.is_global_zero
+
+    def on_train_start(self) -> None:
+        """Called when train begins."""
+        pass
+
+    def on_validation_start(self) -> None:
+        """Called when validation begins."""
+        pass
+
+    def on_test_start(self) -> None:
+        """Called when test begins."""
+        pass
+
+    def on_predict_start(self) -> None:
+        """Called when predict begins."""
+        pass
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        pass
+
+    def on_validation_end(self) -> None:
+        """Called when validation ends."""
+        pass
+
+    def on_test_end(self) -> None:
+        """Called when test end."""
+        pass
+
+    def on_predict_end(self):
+        """Called when predict ends."""
+        pass
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+        """
+        pass

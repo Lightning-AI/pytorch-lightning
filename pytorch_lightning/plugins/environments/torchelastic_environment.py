@@ -23,9 +23,13 @@ log = logging.getLogger(__name__)
 
 
 class TorchElasticEnvironment(ClusterEnvironment):
+    """ Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_ """
 
-    def __init__(self):
-        super().__init__()
+    @staticmethod
+    def is_using_torchelastic() -> bool:
+        """ Returns ``True`` if the current process was launched using the torchelastic command. """
+        required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
+        return all(v in os.environ for v in required_env_vars)
 
     def creates_children(self) -> bool:
         return True
@@ -50,6 +54,17 @@ class TorchElasticEnvironment(ClusterEnvironment):
     def world_size(self) -> Optional[int]:
         world_size = os.environ.get('WORLD_SIZE')
         return int(world_size) if world_size is not None else world_size
+
+    def set_world_size(self, size: int) -> None:
+        log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+
+    def global_rank(self) -> int:
+        return int(os.environ["RANK"])
+
+    def set_global_rank(self, rank: int) -> None:
+        log.debug(
+            "TorchElasticEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
+        )
 
     def local_rank(self) -> int:
         return int(os.environ['LOCAL_RANK'])

@@ -15,7 +15,7 @@ from typing import Any, Optional, Tuple, Union
 
 from torchmetrics import PSNR as _PSNR
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class PSNR(_PSNR):
@@ -37,3 +37,4 @@ class PSNR(_PSNR):
         .. deprecated::
             Use :class:`~torchmetrics.PSNR`. Will be removed in v1.5.0.
         """
+        void(data_range, base, reduction, dim, compute_on_step, dist_sync_on_step, process_group)

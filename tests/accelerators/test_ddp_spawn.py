@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -83,4 +81,4 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         accelerator='ddp_spawn',
     )
     trainer.fit(model, **fit_options)
-    assert trainer.state == TrainerState.FINISHED, "DDP doesn't work with dataloaders passed to fit()."
+    assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."

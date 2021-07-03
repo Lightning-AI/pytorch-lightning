@@ -22,24 +22,24 @@ import torch
 from pl_examples import _DALI_AVAILABLE
 
 ARGS_DEFAULT = """
---default_root_dir %(tmpdir)s \
---max_epochs 1 \
---batch_size 32 \
---limit_train_batches 2 \
---limit_val_batches 2 \
+--trainer.default_root_dir %(tmpdir)s \
+--trainer.max_epochs 1 \
+--trainer.limit_train_batches 2 \
+--trainer.limit_val_batches 2 \
+--data.batch_size 32 \
 """
 
 ARGS_GPU = ARGS_DEFAULT + """
---gpus 1 \
+--trainer.gpus 1 \
 """
 
 ARGS_DP = ARGS_DEFAULT + """
---gpus 2 \
---accelerator dp \
+--trainer.gpus 2 \
+--trainer.accelerator dp \
 """
 
 ARGS_AMP = """
---precision 16 \
+--trainer.precision 16 \
 """
 
 

@@ -11,8 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+MNIST autoencoder example.
 
-from argparse import ArgumentParser
+To run:
+python autoencoder.py --trainer.max_epochs=50
+"""
 
 import torch
 import torch.nn.functional as F
@@ -20,7 +24,9 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
@@ -81,50 +87,47 @@ class LitAutoEncoder(pl.LightningModule):
         loss = F.mse_loss(x_hat, x)
         self.log('test_loss', loss, on_step=True)
 
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        z = self.encoder(x)
+        return self.decoder(z)
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
 
+class MyDataModule(pl.LightningDataModule):
+
+    def __init__(
+        self,
+        batch_size: int = 32,
+    ):
+        super().__init__()
+        dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+        self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+        self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
+        self.batch_size = batch_size
+
+    def train_dataloader(self):
+        return DataLoader(self.mnist_train, batch_size=self.batch_size)
+
+    def val_dataloader(self):
+        return DataLoader(self.mnist_val, batch_size=self.batch_size)
+
+    def test_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+    def predict_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+
 def cli_main():
-    pl.seed_everything(1234)
-
-    # ------------
-    # args
-    # ------------
-    parser = ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--hidden_dim', type=int, default=64)
-    parser = pl.Trainer.add_argparse_args(parser)
-    args = parser.parse_args()
-
-    # ------------
-    # data
-    # ------------
-    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
-    mnist_train, mnist_val = random_split(dataset, [55000, 5000])
-
-    train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
-    val_loader = DataLoader(mnist_val, batch_size=args.batch_size)
-    test_loader = DataLoader(mnist_test, batch_size=args.batch_size)
-
-    # ------------
-    # model
-    # ------------
-    model = LitAutoEncoder(args.hidden_dim)
-
-    # ------------
-    # training
-    # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
-    trainer.fit(model, train_loader, val_loader)
-
-    # ------------
-    # testing
-    # ------------
-    result = trainer.test(test_dataloaders=test_loader)
-    print(result)
+    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
+    print(predictions[0])
 
 
 if __name__ == '__main__':

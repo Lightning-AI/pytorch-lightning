@@ -1,29 +1,42 @@
-################
-AWS/GCP training
-################
-Lightning has a native solution for training on AWS/GCP at scale (Lightning-Grid).
-Grid is in private early-access now but you can request access at `grid.ai <https://www.grid.ai/>`_.
+.. _grid:
 
-We've designed Grid to work for Lightning users without needing to make ANY changes to their code.
+##############
+Cloud Training
+##############
 
-To use grid, take your regular command:
+Lightning has a native solution for training on AWS/GCP at scale.
+Go to `grid.ai <https://www.grid.ai/>`_ to create an account.
+
+We've designed Grid to work seamlessly with Lightning, without needing to make ANY code changes.
+
+To use Grid, replace ``python`` in your regular command:
 
 .. code-block:: bash
 
     python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
 
-And change it to use the grid train command:
+To use the ``grid run`` command:
 
 .. code-block:: bash
 
-    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+    grid run --gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
 
-The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
+The above command will launch (20 * 4) experiments, each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
 your code.
 
-The `uniform` command is part of our new expressive syntax which lets you construct hyperparameter combinations
+The ``uniform`` command is part of our new expressive syntax which lets you construct hyperparameter combinations
 using over 20+ distributions, lists, etc. Of course, you can also configure all of this using yamls which
 can be dynamically assembled at runtime.
 
+***************
+Grid Highlights
+***************
 
-.. hint:: Grid supports the search strategy of your choice! (and much more than just sweeps)
+* Run any public or private repository with Grid, or use an interactive session.
+* Grid allocates all the machines and GPUs you need on demand, so you only pay for what you need when you need it.
+* Grid handles all the other parts of developing and training at scale: artifacts, logs, metrics, etc.
+* Grid works with the experiment manager of your choice, no code changes needed.
+* Use Grid Datastores- high-performance, low-latency, versioned datasets.
+* Attach Datastores to a Run so you don't have to keep downloading datasets
+* Use Grid Sessions for fast prototyping on a cloud machine of your choice
+* For more information check the `grid documentation <https://docs.grid.ai/>`_

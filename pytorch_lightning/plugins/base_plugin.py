@@ -15,12 +15,17 @@ import contextlib
 from abc import ABC
 from typing import Generator
 
+import pytorch_lightning as pl
+
 
 class Plugin(ABC):
-    """Basic Plugin class to derive precision and training type plugins from."""
+    """Basic class for all precision- and training type plugins."""
 
     def pre_dispatch(self) -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something at trainer run_stage starts."""
 
     def post_dispatch(self) -> None:
         """Hook to do something after the training/evaluation/prediction finishes."""
@@ -41,6 +46,6 @@ class Plugin(ABC):
         yield
 
     @contextlib.contextmanager
-    def predict_context(self) -> Generator:
+    def predict_step_context(self) -> Generator:
         """A contextmanager for the predict step"""
         yield

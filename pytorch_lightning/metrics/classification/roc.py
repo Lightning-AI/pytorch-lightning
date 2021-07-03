@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 from torchmetrics import ROC as _ROC
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class ROC(_ROC):
@@ -35,3 +35,4 @@ class ROC(_ROC):
         .. deprecated::
             Use :class:`~torchmetrics.ROC`. Will be removed in v1.5.0.
         """
+        void(num_classes, pos_label, compute_on_step, dist_sync_on_step, process_group)

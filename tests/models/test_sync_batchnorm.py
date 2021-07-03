@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import pytest
 import torch
 import torch.nn as nn
@@ -20,7 +19,6 @@ import torch.nn.functional as F
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
@@ -127,4 +125,4 @@ def test_sync_batchnorm_ddp(tmpdir):
     )
 
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Sync batchnorm failing with DDP"
+    assert trainer.state.finished, "Sync batchnorm failing with DDP"

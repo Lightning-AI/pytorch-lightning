@@ -29,7 +29,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
@@ -49,9 +48,9 @@ def _run_horovod(trainer_options, on_gpu=False):
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
-    # todo: Find why coverage breaks CI.
-    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
-    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
+    # TODO: Find out why coverage breaks CI.
+    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
+    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
     cmdline = [
         'horovodrun', '-np',
         str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
@@ -70,6 +69,24 @@ def test_horovod_cpu(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        accelerator='horovod',
+        deterministic=True,
+    )
+    _run_horovod(trainer_options)
+
+
+@RunIf(skip_windows=True, horovod=True)
+def test_horovod_cpu_clip_grad_by_value(tmpdir):
+    """Test Horovod running multi-process on CPU."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        gradient_clip_algorithm='value',
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
@@ -114,9 +131,29 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_multi_gpu_grad_by_value(tmpdir):
+    """Test Horovod with multi-GPU support."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        gradient_clip_algorithm='value',
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
+        deterministic=True,
+        accelerator='horovod',
+    )
+    _run_horovod(trainer_options, on_gpu=True)
+
+
+# todo: need to be fixed :]
 # https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
 # Check with (tgaddair) on Horovod issues if this feature is needed
-@pytest.mark.skip(reason="Horovod currently doesn't work with Apex")  # todo
+@pytest.mark.skip(reason="TODO: Horovod currently doesn't work with Apex")
 @RunIf(min_gpus=2, skip_windows=True, amp_apex=True, horovod_nccl=True)
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
@@ -203,6 +240,8 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
+# todo: need to be fixed :]
+@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
@@ -218,14 +257,14 @@ def test_horovod_multi_optimizer(tmpdir):
         accelerator='horovod',
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):
         assert hasattr(optimizer, 'synchronize'), 'optimizer has not been wrapped into DistributedOptimizer'
 
     def get_model_params(model):
-        return set([p for p in model.parameters()])
+        return set(list(model.parameters()))
 
     def get_optimizer_params(optimizer):
         return set([p for group in optimizer.param_groups for p in group.get('params', [])])
@@ -235,7 +274,8 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-@pytest.mark.skipif(reason="CI agent.jobstatus=Succeeded: Permission denied")
+# todo: need to be fixed :]
+@pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True)
 def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
@@ -256,7 +296,7 @@ def test_result_reduce_horovod(tmpdir):
                 self.training_step_called = True
 
                 tensor = torch.tensor([1.0])
-                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum', on_step=True, on_epoch=True)
+                self.log("test_tensor", tensor, sync_dist=True, reduce_fx='sum', on_step=True, on_epoch=True)
 
                 res = self._results
 
@@ -285,7 +325,8 @@ def test_result_reduce_horovod(tmpdir):
     horovod.run(hvd_test_fn, np=2)
 
 
-@pytest.mark.skipif(reason="CI agent.jobstatus=Succeeded: Permission denied")
+# todo: need to be fixed :]
+@pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True, num_gpus=2)
 def test_accuracy_metric_horovod():
     num_batches = 10
@@ -334,6 +375,8 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
+# todo: need to be fixed :]
+@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 
@@ -365,8 +408,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
             limit_train_batches=0.2,
             accelerator='horovod'
         )
-        results = trainer.fit(model)
-        assert results == 1
+        trainer.fit(model)
 
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]

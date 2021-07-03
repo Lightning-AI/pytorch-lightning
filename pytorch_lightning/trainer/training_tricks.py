@@ -18,36 +18,41 @@ from abc import ABC
 import torch
 from torch import Tensor
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.finite_checks import detect_nan_parameters, print_nan_gradients
 
-EPSILON = 1e-6
-EPSILON_FP16 = 1e-5
 log = logging.getLogger(__name__)
 
 
 class TrainerTrainingTricksMixin(ABC):
+    """
+    TODO: Remove this class in v1.5.
+
+    Use the NaN utilities from ``pytorch_lightning.utilities.finite_checks`` instead.
+    """
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    lightning_module: LightningModule
+    lightning_module: 'pl.LightningModule'
 
     def print_nan_gradients(self) -> None:
+        rank_zero_deprecation(
+            "Internal: TrainerTrainingTricksMixin.print_nan_gradients is deprecated in v1.3"
+            " and will be removed in v1.5."
+            " Use `pytorch_lightning.utilities.finite_checks.print_nan_gradients` instead."
+        )
         model = self.lightning_module
-        for param in model.parameters():
-            if (param.grad is not None) and torch.isnan(param.grad.float()).any():
-                log.info(param, param.grad)
+        print_nan_gradients(model)
 
     def detect_nan_tensors(self, loss: Tensor) -> None:
-        model = self.lightning_module
-
+        rank_zero_deprecation(
+            "Internal: TrainerTrainingTricksMixin.detect_nan_tensors is deprecated in v1.3"
+            " and will be removed in v1.5."
+            " Use `pytorch_lightning.utilities.finite_checks.detect_nan_parameters` instead."
+        )
         # check if loss is nan
         if not torch.isfinite(loss).all():
             raise ValueError('The loss returned in `training_step` is nan or inf.')
-        # check if a network weight is nan
-        for name, param in model.named_parameters():
-            if not torch.isfinite(param).all():
-                self.print_nan_gradients()
-                raise ValueError(
-                    f'Detected nan and/or inf values in `{name}`.'
-                    ' Check your forward pass for numerically unstable operations.'
-                )
+        model = self.lightning_module
+        detect_nan_parameters(model)

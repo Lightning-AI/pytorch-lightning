@@ -13,14 +13,14 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-import pytest
+import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_property_current_epoch():
@@ -72,27 +72,6 @@ def test_property_logger(tmpdir):
     trainer = Mock(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
-
-
-def test_automatic_optimization_raises(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def optimizer_step(self, *_, **__):
-            pass
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        accumulate_grad_batches=2,
-    )
-
-    with pytest.raises(
-        MisconfigurationException, match='overriding .* optimizer_step .* `accumulate_grad_batches` .* should be 1'
-    ):
-        trainer.fit(model)
 
 
 def test_params_groups_and_state_are_accessible(tmpdir):
@@ -221,9 +200,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
         accumulate_grad_batches=1,
         limit_val_batches=0,
     )
-
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
 
 
 def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
@@ -358,3 +335,24 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     )
 
     trainer.fit(model)
+
+
+@RunIf(min_gpus=1)
+def test_device_placement(tmpdir):
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer.fit(model)
+
+    def assert_device(device: torch.device) -> None:
+        assert model.device == device
+        for p in model.parameters():
+            assert p.device == device
+
+    assert_device(torch.device("cpu"))
+    model.to(torch.device("cuda:0"))
+    assert_device(torch.device("cuda:0"))
+    trainer.test(model)
+    assert_device(torch.device("cpu"))
+    trainer.predict(model, dataloaders=model.train_dataloader())
+    assert_device(torch.device("cpu"))

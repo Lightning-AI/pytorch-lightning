@@ -123,7 +123,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        accumulate_grad_batches=999,  # does not do anything if manual optimization
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, \
@@ -243,7 +242,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
             ...
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
-            assert optimizer_closure.__name__ == "train_step_and_backward_closure"
+            assert optimizer_closure.__name__ == "_training_step_and_backward_closure"
             # not passing the closure to the optimizer because step is mocked
             # zero_grad is called inside the closure
             if isinstance(optimizer, SGD) and batch_idx % 2 == 0:

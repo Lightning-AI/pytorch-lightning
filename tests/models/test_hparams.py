@@ -15,6 +15,7 @@ import functools
 import os
 import pickle
 from argparse import Namespace
+from dataclasses import dataclass
 
 import cloudpickle
 import pytest
@@ -515,7 +516,7 @@ class NoArgsSubClassBoringModel(CustomBoringModel):
     NoArgsSubClassBoringModel,
 ])
 def test_model_nohparams_train_test(tmpdir, cls):
-    """Test models that do not tae any argument in init."""
+    """Test models that do not take any argument in init."""
 
     model = cls()
     trainer = Trainer(
@@ -562,7 +563,7 @@ class SuperClassPositionalArgs(BoringModel):
 class SubClassVarArgs(SuperClassPositionalArgs):
     """ Loading this model should accept hparams and init in the super class """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
 
@@ -697,3 +698,43 @@ def test_ignore_args_list_hparams(tmpdir, ignore):
     assert model.hparams.arg1 == 14
     for arg in ignore:
         assert arg not in model.hparams
+
+
+class HparamsKwargsContainerModel(BoringModel):
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.save_hyperparameters(kwargs)
+
+
+class HparamsNamespaceContainerModel(BoringModel):
+
+    def __init__(self, config):
+        super().__init__()
+        self.save_hyperparameters(config)
+
+
+def test_empty_hparams_container(tmpdir):
+    """ Test that save_hyperparameters() is a no-op when saving an empty hparams container. """
+    model = HparamsKwargsContainerModel()
+    assert not model.hparams
+    model = HparamsNamespaceContainerModel(Namespace())
+    assert not model.hparams
+
+
+@dataclass
+class DataClassModel(BoringModel):
+
+    mandatory: int
+    optional: str = "optional"
+    ignore_me: bool = False
+
+    def __post_init__(self):
+        super().__init__()
+        self.save_hyperparameters(ignore=("ignore_me", ))
+
+
+def test_dataclass_lightning_module(tmpdir):
+    """ Test that save_hyperparameters() works with a LightningModule as a dataclass. """
+    model = DataClassModel(33, optional="cocofruit")
+    assert model.hparams == dict(mandatory=33, optional="cocofruit")

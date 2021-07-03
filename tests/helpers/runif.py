@@ -13,21 +13,21 @@
 # limitations under the License.
 import os
 import sys
-from distutils.version import LooseVersion
 from typing import Optional
 
 import pytest
 import torch
+from packaging.version import Version
 from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
+    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
-    _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -62,13 +62,13 @@ class RunIf:
         amp_apex: bool = False,
         amp_native: bool = False,
         tpu: bool = False,
+        ipu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
         special: bool = False,
-        rpc: bool = False,
         fairscale: bool = False,
-        fairscale_pipe: bool = False,
+        fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         **kwargs
     ):
@@ -83,12 +83,13 @@ class RunIf:
             amp_apex: NVIDIA Apex is installed
             amp_native: if native PyTorch native AMP is supported
             tpu: if TPU is available
+            ipu: if IPU is available
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
             special: running in special mode, outside pytest suit
-            rpc: requires Remote Procedure Call (RPC)
             fairscale: if `fairscale` module is required to run the test
+            fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
@@ -100,18 +101,18 @@ class RunIf:
             reasons.append(f"GPUs>={min_gpus}")
 
         if min_torch:
-            torch_version = LooseVersion(get_distribution("torch").version)
-            conditions.append(torch_version < LooseVersion(min_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) < Version(min_torch))
             reasons.append(f"torch>={min_torch}")
 
         if max_torch:
-            torch_version = LooseVersion(get_distribution("torch").version)
-            conditions.append(torch_version >= LooseVersion(max_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) >= Version(max_torch))
             reasons.append(f"torch<{max_torch}")
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-            conditions.append(py_version < LooseVersion(min_python))
+            conditions.append(Version(py_version) < Version(min_python))
             reasons.append(f"python>={min_python}")
 
         if quantization:
@@ -135,6 +136,10 @@ class RunIf:
             conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
 
+        if ipu:
+            conditions.append(not _IPU_AVAILABLE)
+            reasons.append("IPU")
+
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
             reasons.append("Horovod")
@@ -148,17 +153,13 @@ class RunIf:
             conditions.append(env_flag != '1')
             reasons.append("Special execution")
 
-        if rpc:
-            conditions.append(not _RPC_AVAILABLE)
-            reasons.append("RPC")
-
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
 
-        if fairscale_pipe:
-            conditions.append(not _FAIRSCALE_PIPE_AVAILABLE)
-            reasons.append("Fairscale Pipe")
+        if fairscale_fully_sharded:
+            conditions.append(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE)
+            reasons.append("Fairscale Fully Sharded")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)

@@ -16,12 +16,12 @@ from typing import Any, Callable, Optional
 from torchmetrics import Precision as _Precision
 from torchmetrics import Recall as _Recall
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class Precision(_Precision):
 
-    @deprecated_metrics(target=_Precision)
+    @deprecated_metrics(target=_Precision, args_mapping={"multilabel": None, "is_multiclass": None})
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -43,11 +43,13 @@ class Precision(_Precision):
         .. deprecated::
             Use :class:`~torchmetrics.Precision`. Will be removed in v1.5.0.
         """
+        _ = num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass, \
+            compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
 
 
 class Recall(_Recall):
 
-    @deprecated_metrics(target=_Recall)
+    @deprecated_metrics(target=_Recall, args_mapping={"multilabel": None, "is_multiclass": None})
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -69,3 +71,7 @@ class Recall(_Recall):
         .. deprecated::
             Use :class:`~torchmetrics.Recall`. Will be removed in v1.5.0.
         """
+        void(
+            num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass,
+            compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        )
