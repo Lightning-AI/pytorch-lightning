@@ -408,18 +408,18 @@ class HookedModel(BoringModel):
         pytest.param(dict(gpus=1, precision=16, amp_backend='apex'), marks=RunIf(amp_apex=True, min_gpus=1)),
     ]
 )
-@pytest.mark.parametrize('auto_opt', (True, False))
-def test_trainer_model_hook_system_fit(tmpdir, kwargs, auto_opt):
+@pytest.mark.parametrize('automatic_optimization', (True, False))
+def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     called = []
 
     class TestModel(HookedModel):
 
         def __init__(self, *args):
             super().__init__(*args)
-            self.automatic_optimization = auto_opt
+            self.automatic_optimization = automatic_optimization
 
         def training_step(self, batch, batch_idx):
-            if auto_opt:
+            if self.automatic_optimization:
                 return super().training_step(batch, batch_idx)
             # FIXME: why does deepspeed need this?
             if kwargs.get('plugins') == 'deepspeed':
