@@ -475,17 +475,18 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, auto_opt):
         dict(name='prepare_data'),
         dict(name='configure_callbacks'),
         dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
-        # FIXME
+        # DeepSpeed needs the batch size to figure out throughput logging
         *([dict(name='train_dataloader')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage='fit')),
         dict(name='setup', kwargs=dict(stage='fit')),
         dict(name='configure_sharded_model'),
         dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
-        # FIXME
+        # DeepSpeed skips initializing optimizers here as they are handled via config
         *([dict(name='configure_optimizers')] if kwargs.get('plugins') != 'deepspeed' else []),
         dict(name='Callback.on_fit_start', args=(trainer, model)),
         dict(name='on_fit_start'),
-        # FIXME
+        # TODO: explore whether DeepSpeed can have the same flow for optimizers
+        # DeepSpeed did not find any optimizer in the config so they are loaded here
         *([dict(name='configure_optimizers')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.on_pretrain_routine_start', args=(trainer, model)),
         dict(name='on_pretrain_routine_start'),
@@ -615,7 +616,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name='on_pretrain_routine_start'),
         dict(name='Callback.on_pretrain_routine_end', args=(trainer, model)),
         dict(name='on_pretrain_routine_end'),
-        dict(name='train'),
+        dict(name='train', args=(True, )),
         dict(name='on_train_dataloader'),
         dict(name='train_dataloader'),
         # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
