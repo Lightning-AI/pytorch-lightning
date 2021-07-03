@@ -1,4 +1,3 @@
-import gc
 import json
 import os
 from typing import Any, Dict
@@ -266,10 +265,6 @@ def test_warn_deepspeed_override_backward(tmpdir):
                                                     (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
 def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
-    # the previous parametrization can impact the current one as it's not guaranteed that resources will be released
-    # between parametrizations. This is important as we call `destroy_process_group` in `DDPPlugin.__del__`.
-    # Another option would be to not use `parametrize`: https://github.com/pytest-dev/pytest/discussions/8153
-    gc.collect()
 
     class TestModel(BoringModel):
 
