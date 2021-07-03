@@ -75,7 +75,15 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = scaled_loss.__enter__()
 
         # do backward pass
-        closure_loss.backward(*args, **kwargs)
+        # TODO: not entirely sure, why we need this
+        if model is not None and isinstance(model, LightningModule):
+            model.backward(closure_loss, optimizer, opt_idx, **kwargs)
+
+            # TODO: avoid dev_debugger and track these calls with mock
+            model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
+
+        else:
+            closure_loss.backward(*args, **kwargs)
 
         # exit amp context
         error = scaled_loss.__exit__(None, None, None)
@@ -121,6 +129,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """
         # apex amp does not support closures.
         lambda_closure()
+
+        if not pl_module.automatic_optimization:
+            pl_module.trainer.call_hook("on_after_backward")
+
         optimizer.step(**kwargs)
         return False
 

@@ -86,6 +86,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         if not pl_module.automatic_optimization:
             self.scaler.unscale_(optimizer)
+            pl_module.trainer.call_hook("on_after_backward")
             self.scaler.step(optimizer)
             self.scaler.update()
         else:

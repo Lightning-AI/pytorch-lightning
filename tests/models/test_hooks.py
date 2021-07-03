@@ -288,6 +288,8 @@ class HookedModel(BoringModel):
 
     def _train_batch(self, trainer, model, batches, device=torch.device('cpu'), **kwargs):
         using_native_amp = kwargs.get('amp_backend') == 'native'
+        using_apex = kwargs.get('amp_backend') == 'apex'
+        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
             expected = [
@@ -300,7 +302,19 @@ class HookedModel(BoringModel):
                 dict(name='on_after_batch_transfer', args=(ANY, None)),
                 *([dict(name='optimizers')] if not self.automatic_optimization else []),
                 dict(name='forward', args=(ANY, )),
-                *([dict(name='manual_backward', args=(ANY, ANY))] if not self.automatic_optimization else []),
+            ]
+            if not self.automatic_optimization:
+                # FIXME: can be simplified?
+                expected += [
+                    # FIXME: None, None?
+                    *([dict(name='backward', args=(ANY, None, None))] if using_apex else []),
+                    dict(name='manual_backward', args=(ANY, ANY)),
+                    *([
+                        dict(name='Callback.on_after_backward', args=(trainer, model)),
+                        dict(name='on_after_backward'),
+                    ] if using_native_amp or using_apex or using_deepspeed else []),
+                ]
+            expected += [
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
             ]
