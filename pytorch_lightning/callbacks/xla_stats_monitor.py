@@ -34,7 +34,7 @@ class XLAStatsMonitor(Callback):
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
 
     Args:
-        should_print_info: Set to ``True`` to print average peak and free memory, and epoch time
+        verbose: Set to ``True`` to print average peak and free memory, and epoch time
             every epoch.
 
     Raises:
@@ -50,13 +50,13 @@ class XLAStatsMonitor(Callback):
 
     """
 
-    def __init__(self, should_print_info: bool = True) -> None:
+    def __init__(self, verbose: bool = True) -> None:
         super().__init__()
 
         if not _TPU_AVAILABLE:
             raise MisconfigurationException('Cannot use XLAStatsMonitor with TPUs are not available')
 
-        self._should_print_info = should_print_info
+        self._verbose = verbose
 
     def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
@@ -91,7 +91,7 @@ class XLAStatsMonitor(Callback):
         logs["avg. peak memory (MB)"] = peak_memory
         trainer.logger.log_metrics(logs, step=trainer.current_epoch)
 
-        if self._should_print_info:
+        if self._verbose:
             rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")
             rank_zero_info(f"Average Peak memory: {peak_memory:.2f} MB")
             rank_zero_info(f"Average Free memory: {free_memory:.2f} MB")
