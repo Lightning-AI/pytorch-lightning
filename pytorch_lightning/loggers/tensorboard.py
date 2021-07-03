@@ -25,7 +25,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
@@ -112,8 +112,7 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         if self.name is None or len(self.name) == 0:
             return self.save_dir
-        else:
-            return os.path.join(self.save_dir, self.name)
+        return os.path.join(self.save_dir, self.name)
 
     @property
     def log_dir(self) -> str:
@@ -223,7 +222,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule, input_array=None):
+    def log_graph(self, model: 'pl.LightningModule', input_array=None):
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array

@@ -88,12 +88,12 @@ class PredictionEpochLoop(Loop):
 
     def on_run_end(self) -> Tuple[Any, Any]:
         """Returns the predictions and the corresponding batch indices"""
-        return self.predictions, self._all_batch_indices
-
-    def teardown(self) -> None:
-        """Frees memory of collected predictions."""
+        predictions = self.predictions
+        all_batch_indices = self._all_batch_indices
+        # free memory
         self.predictions = []
         self._all_batch_indices = []
+        return predictions, all_batch_indices
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual predict step together with all the
