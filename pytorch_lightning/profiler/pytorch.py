@@ -195,13 +195,13 @@ class PyTorchProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
-    RECORD_FUNCTIONS_PREFIXES = {"optimizer_step_and_closure_"}
+    RECORD_FUNCTION_PREFIXE = "optimizer_step_and_closure_"
     STEP_FUNCTIONS = {
         "validation_step",
         "test_step",
         "predict_step",
     }
-    STEP_FUNCTIONS_PREFIXES = {"optimizer_step_and_closure_"}
+    STEP_FUNCTION_PREFIXE = "optimizer_step_and_closure_"
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -404,13 +404,9 @@ class PyTorchProfiler(BaseProfiler):
             if self._register is not None:
                 self._register.__enter__()
 
-        is_prefix = False
-        for func_prefix in self.RECORD_FUNCTIONS_PREFIXES:
-            if action_name.startswith(func_prefix):
-                is_prefix = True
-                break
         if (
-            self.profiler is not None and (action_name in self._record_functions or is_prefix)
+            self.profiler is not None
+            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIXE))
             and action_name not in self._recording_map
         ):
             recording = record_function(action_name)
@@ -425,13 +421,8 @@ class PyTorchProfiler(BaseProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
-        is_prefix = False
-        for func_prefix in self.STEP_FUNCTIONS_PREFIXES:
-            if action_name.startswith(func_prefix):
-                is_prefix = True
-                break
-
-        if self.profiler is not None and (action_name in self.STEP_FUNCTIONS or is_prefix):
+        if self.profiler is not None \
+                and (action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIXE)):
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
