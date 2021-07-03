@@ -20,7 +20,7 @@ import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, ModuleDict
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
@@ -63,7 +63,7 @@ class BaseFinetuning(Callback):
 
         class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
 
-            def __init__(self, unfreeze_at_epoch=10)
+            def __init__(self, unfreeze_at_epoch=10):
                 self._unfreeze_at_epoch = unfreeze_at_epoch
 
             def freeze_before_training(self, pl_module):
@@ -114,6 +114,9 @@ class BaseFinetuning(Callback):
         Returns:
             List of modules
         """
+        if isinstance(modules, ModuleDict):
+            modules = modules.values()
+
         if isinstance(modules, Iterable):
             _modules = []
             for m in modules:
@@ -285,7 +288,7 @@ class BaseFinetuning(Callback):
 
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
-        for opt_idx, optimizer in trainer.train_loop.get_active_optimizers():
+        for opt_idx, optimizer in trainer.fit_loop.epoch_loop.batch_loop.get_active_optimizers():
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
             current_param_groups = optimizer.param_groups

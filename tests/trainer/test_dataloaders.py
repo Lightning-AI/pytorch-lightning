@@ -813,11 +813,11 @@ def test_missing_worker_init_fn():
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat([batch for batch in dataloader])
+    batches0 = torch.cat(list(dataloader))
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat([batch for batch in dataloader])
+    batches1 = torch.cat(list(dataloader))
 
     is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
     is_deterministic = torch.eq(batches0, batches1).all()

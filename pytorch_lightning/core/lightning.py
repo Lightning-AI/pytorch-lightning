@@ -27,6 +27,7 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
@@ -38,11 +39,12 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -79,6 +81,7 @@ class LightningModule(
         "model_size",
         "automatic_optimization",
         "truncated_bptt_steps",
+        "loaded_optimizer_states_dict",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -88,7 +91,7 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self.loaded_optimizer_states_dict = {}
+        self._loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
         self.trainer = None
@@ -111,6 +114,7 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
+        self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -174,6 +178,24 @@ class LightningModule(
             stacklevel=6,
         )
         return self._datamodule
+
+    @property
+    def loaded_optimizer_states_dict(self) -> dict:
+        warning_cache.deprecation(
+            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
+            " and will be removed in v1.6.",
+            stacklevel=6,
+        )
+        return self._loaded_optimizer_states_dict
+
+    @loaded_optimizer_states_dict.setter
+    def loaded_optimizer_states_dict(self, val: dict) -> None:
+        warning_cache.deprecation(
+            "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4"
+            " and will be removed in v1.6.",
+            stacklevel=6,
+        )
+        self._loaded_optimizer_states_dict = val
 
     @datamodule.setter
     def datamodule(self, datamodule: Any) -> None:
@@ -272,6 +294,8 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
+        metric_attribute: Optional[str] = None,
+        rank_zero_only: Optional[bool] = None,
     ) -> None:
         """
         Log a key, value
@@ -309,6 +333,10 @@ class LightningModule(
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
+            metric_attribute: To restore the metric state, Lightning requires the reference of the
+                :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
+            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
+                would produce a deadlock as not all processes would perform this log call.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -345,7 +373,7 @@ class LightningModule(
         results = self.trainer._results
         assert results is not None
         assert self._current_fx_name is not None
-        results.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
@@ -361,6 +389,27 @@ class LightningModule(
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
+        if metric_attribute is None and isinstance(value, Metric):
+            if self._metric_attributes is None:
+                # compute once
+                self._metric_attributes = {
+                    id(module): name
+                    for name, module in self.named_modules() if isinstance(module, Metric)
+                }
+                if not self._metric_attributes:
+                    raise MisconfigurationException(
+                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                        " You can fix this by setting an attribute for the metric in your `LightningModule`."
+                    )
+            # try to find the passed metric in the LightningModule
+            metric_attribute = self._metric_attributes.get(id(value), None)
+            if metric_attribute is None:
+                raise MisconfigurationException(
+                    "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                    f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
+                    f" of {list(self._metric_attributes.values())}"
+                )
+
         results.log(
             self._current_fx_name,
             name,
@@ -373,9 +422,11 @@ class LightningModule(
             enable_graph=enable_graph,
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
-            sync_dist=sync_dist,
-            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
+            sync_dist=sync_dist and distributed_available(),
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
             sync_dist_group=sync_dist_group,
+            metric_attribute=metric_attribute,
+            rank_zero_only=rank_zero_only,
         )
 
         self.trainer.logger_connector._current_fx = self._current_fx_name
@@ -388,11 +439,11 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
+        tbptt_reduce_fx: Optional[Any] = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional[Any] = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
+        sync_dist_op: Optional[Any] = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
     ) -> None:
@@ -492,7 +543,7 @@ class LightningModule(
             ' and will be removed in v1.5.'
         )
 
-        self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
+        self.trainer._evaluation_loop.predictions._add_prediction(name, value, filename)
 
     def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
         """
@@ -1370,7 +1421,7 @@ class LightningModule(
 
         # backward
         self._running_manual_backward = True
-        self.trainer.fit_loop.training_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
+        self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1470,7 +1521,7 @@ class LightningModule(
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
             ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
-            :meth:`~pytorch_lightning.trainer.fit_loop.training_loop.batch_loop.TrainingBatchLoop.advance`.
+            :meth:`~pytorch_lightning.loops.training_batch_loop.TrainingBatchLoop.advance`.
 
         Args:
             epoch: Current epoch
@@ -1610,15 +1661,24 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
+    def summarize(self, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
         model_summary = None
 
-        if mode in ModelSummary.MODES:
-            model_summary = ModelSummary(self, mode=mode)
-            log.info("\n" + str(model_summary))
-        elif mode is not None:
-            raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        # temporary mapping from mode to max_depth
+        if max_depth is None:
+            if mode in ModelSummary.MODES:
+                max_depth = ModelSummary.MODES[mode]
+                rank_zero_deprecation(
+                    f"Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
+                    f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
+                )
+                model_summary = ModelSummary(self, max_depth=max_depth)
+            elif mode is not None:
+                raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
+        else:
+            model_summary = ModelSummary(self, max_depth=max_depth)
 
+        log.info("\n" + str(model_summary))
         return model_summary
 
     def freeze(self) -> None:
@@ -1675,7 +1735,7 @@ class LightningModule(
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.train_loop.running_loss.mean()
+        running_train_loss = self.trainer.fit_loop.running_loss.mean()
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
@@ -1689,7 +1749,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
+            tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
@@ -1973,3 +2033,30 @@ class LightningModule(
         size_mb = os.path.getsize(tmp_name) / 1e6
         os.remove(tmp_name)
         return size_mb
+
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
+
+        To avoid issues with memory sharing, we cast the data to numpy.
+
+        Args:
+            queue: the instance of the queue to append the data.
+        """
+        callback_metrics: dict = apply_to_collection(
+            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+        )  # send as numpy to avoid issues with memory sharing
+        queue.put(callback_metrics)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
+
+        To preserve consistency, we cast back the data to ``torch.Tensor``.
+
+        Args:
+            queue: the instance of the queue from where to get the data.
+        """
+        # NOTE: `add_to_queue` needs to be called before
+        callback_metrics: dict = queue.get()
+        self.trainer.callback_metrics.update(
+            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
+        )
