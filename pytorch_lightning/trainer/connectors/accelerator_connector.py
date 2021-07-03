@@ -306,7 +306,7 @@ class AcceleratorConnector(object):
     @property
     def use_smdistributed(self) -> bool:
         return self.distributed_backend == DistributedType.DDP_SM
-      
+
     @property
     def _is_sharded_training_type(self) -> bool:
         return isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
