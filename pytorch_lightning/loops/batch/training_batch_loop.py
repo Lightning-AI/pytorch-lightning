@@ -71,7 +71,7 @@ class TrainingBatchLoop(Loop):
         super().connect(trainer, *args, **kwargs)
         if progress is not None:
             self.progress = progress
-        if optim_progress:
+        if optim_progress is not None:
             self.optim_progress = optim_progress
 
     @property
