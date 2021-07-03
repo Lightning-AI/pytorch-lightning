@@ -344,11 +344,11 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.validation_loop = EvaluationLoop()
+        self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
         self.fit_loop.connect(self)
-        self.validation_loop.connect(self)
+        self.validate_loop.connect(self)
         self.test_loop.connect(self)
         self.predict_loop.connect(self)
 
@@ -900,8 +900,10 @@ class Trainer(
 
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
+        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
+        # which need to happen before.
         self.accelerator.teardown()
-        self.logger_connector.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -977,7 +979,6 @@ class Trainer(
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
@@ -996,10 +997,10 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self.evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop.reload_evaluation_dataloaders()
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
-            eval_loop_results = self.evaluation_loop.run()
+            eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1029,11 +1030,11 @@ class Trainer(
             self.on_sanity_check_start()
 
             # reload dataloaders
-            self.evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop.reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self.evaluation_loop.run()
+                self._evaluation_loop.run()
 
             self.on_sanity_check_end()
 
