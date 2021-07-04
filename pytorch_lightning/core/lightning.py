@@ -233,7 +233,7 @@ class LightningModule(
     @property
     def on_gpu(self):
         """
-        True if your model is currently running on GPUs.
+        Returns ``True`` if this model is currently located on a GPU.
         Useful to set flags around the LightningModule for different CPU vs GPU behavior.
         """
         return self.device.type == "cuda"
