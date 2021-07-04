@@ -21,7 +21,6 @@ from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_info
 
 log = logging.getLogger(__name__)
 
@@ -229,12 +228,6 @@ class FitLoop(Loop):
 
         self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
-        did_train_only = self.trainer.disable_validation or self.epoch_loop.val_loop.skip
-        if did_train_only:
-            self.global_step -= 1
-            self._check_checkpoint_callback(True)
-            self.global_step += 1
-
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
         # NOTE: the iteration_count/current_epoch is already incremented
@@ -242,13 +235,6 @@ class FitLoop(Loop):
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
         self.current_epoch -= 1
-
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.epoch_loop.global_step -= 1
-        # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
-        self._check_checkpoint_callback(should_update=True, is_last=True)
-        self.epoch_loop.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -268,20 +254,6 @@ class FitLoop(Loop):
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
         return self.epoch_loop.batch_loop.should_accumulate()
-
-    def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
-        """Checks if checkpointing needs to be done"""
-        # TODO: bake this logic into the ModelCheckpoint callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = self.trainer.checkpoint_callbacks
-
-            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
-                rank_zero_info("Saving latest checkpoint...")
-
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
 
     def state_dict(self) -> Dict:
         return {"epoch_loop": self.epoch_loop.state_dict()}
