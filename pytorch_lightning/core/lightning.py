@@ -2040,12 +2040,20 @@ class LightningModule(
 
     @property
     def hparams(self) -> Union[AttributeDict, dict, Namespace]:
+        """
+        The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
+        For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
+        """
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
 
     @property
     def hparams_initial(self) -> AttributeDict:
+        """
+        The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only.
+        Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`.
+        """
         if not hasattr(self, "_hparams_initial"):
             return AttributeDict()
         # prevent any change
