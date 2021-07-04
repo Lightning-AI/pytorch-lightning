@@ -122,7 +122,7 @@ class LightningModule(
 
         Args:
             use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
-                :class:`~pytorch_lighting.core.optimizer.LightningOptimizer` for automatic handling of precision and
+                :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` for automatic handling of precision and
                 profiling.
 
         Returns:
