@@ -205,7 +205,7 @@ class ModelCheckpoint(Callback):
         train_time_interval: Optional[timedelta] = None,
         every_n_val_epochs: Optional[int] = None,
         period: Optional[int] = None,
-        save_on_train_epoch_end: bool = True,
+        save_on_train_epoch_end: Optional[bool] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -236,6 +236,10 @@ class ModelCheckpoint(Callback):
         """
         self.__resolve_ckpt_dir(trainer)
         self._save_function = trainer.save_checkpoint
+        if self._save_on_train_epoch_end is None:
+            # if the user runs validation before multiple times per training epoch, we try to save checkpoint after
+            # validation instead of on train epoch end
+            self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
 
     def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._last_time_checked = time.monotonic()
@@ -311,7 +315,9 @@ class ModelCheckpoint(Callback):
             rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
+        trainer.train_loop.global_step -= 1
         self._save_last_checkpoint(trainer, monitor_candidates)
+        trainer.train_loop.global_step += 1
 
     def on_save_checkpoint(
         self,
@@ -452,8 +458,11 @@ class ModelCheckpoint(Callback):
         self.kth_value, self.mode = mode_dict[mode]
 
     def __init_triggers(
-        self, every_n_train_steps: Optional[int], every_n_val_epochs: Optional[int],
-        train_time_interval: Optional[timedelta], period: Optional[int]
+        self,
+        every_n_train_steps: Optional[int],
+        every_n_val_epochs: Optional[int],
+        train_time_interval: Optional[timedelta],
+        period: Optional[int],
     ) -> None:
 
         # Default to running once after each validation epoch if neither
@@ -477,7 +486,6 @@ class ModelCheckpoint(Callback):
                 ' Please use `every_n_val_epochs` instead.'
             )
             self._every_n_val_epochs = period
-
         self._period = self._every_n_val_epochs
 
     @property
