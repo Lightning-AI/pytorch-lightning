@@ -294,6 +294,78 @@ has more detailed information on how PyTorch code can be optimized for TPU. In p
 `metrics report <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
 one to identify operations that lead to context switching.
 
+-------------
+
+Troubleshooting
+---------------
+
+- **Missing XLA configuration**
+
+.. code-block::
+
+    File "/usr/local/lib/python3.8/dist-packages/torch_xla/core/xla_model.py", line 18, in <lambda>
+        _DEVICES = xu.LazyProperty(lambda: torch_xla._XLAC._xla_get_devices())
+    RuntimeError: tensorflow/compiler/xla/xla_client/computation_client.cc:273 : Missing XLA configuration
+    Traceback (most recent call last):
+    ...
+    File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
+        raise MisconfigurationException('No TPU devices were found.')
+    pytorch_lightning.utilities.exceptions.MisconfigurationException: No TPU devices were found.
+
+This means the system is missing XLA configuration. You would need to set up XRT TPU device configuration.
+
+For TPUVM architecture, you could set it in your terminal by:
+
+.. code-block:: bash
+
+    export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+
+And for the old TPU + 2VM architecture, you could set it by:
+
+.. code-block:: bash
+
+    export TPU_IP_ADDRESS=10.39.209.42  # You could get the IP Address on GCP TPUs section
+    export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
+
+- **How to clear up the programs using TPUs in the background**
+
+.. code-block:: bash
+
+    lsof -w /lib/libtpu.so | grep "python" |  awk '{print $2}' | xargs -r kill -9
+
+Sometimes, there would still be old processes running on the TPUs, which would make the TPUs unavailable to use. You could use the above command in the terminal to clear up the running programs.
+
+- **Replication issue**
+
+.. code-block::
+
+    File "/usr/local/lib/python3.6/dist-packages/torch_xla/core/xla_model.py", line 200, in set_replication
+        replication_devices = xla_replication_devices(devices)
+    File "/usr/local/lib/python3.6/dist-packages/torch_xla/core/xla_model.py", line 187, in xla_replication_devices
+        .format(len(local_devices), len(kind_devices)))
+    RuntimeError: Cannot replicate if number of devices (1) is different from 8
+
+This error is raised when the XLA device is called outside the spawn process. Don't call `xm.xla_device()` outside spawn.
+
+- **Unsupported datatype transfer to TPU**
+
+.. code-block::
+
+    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
+        v = _for_each_instance_rewrite(result.__dict__[k], select_fn, fn, rwmap)
+    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
+        result.__dict__[k] = v
+    TypeError: 'mappingproxy' object does not support item assignment
+
+PyTorch XLA only supports Tensor objects for CPU to TPU data transfer.
+
+- **Using `tpu_spawn_debug` Plugin**
+
+........Draft
+
+- **TPU Pod Training debugging**
+
+.........Draft
 
 About XLA
 ----------
