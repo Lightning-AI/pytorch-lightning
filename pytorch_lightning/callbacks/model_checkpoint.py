@@ -276,11 +276,13 @@ class ModelCheckpoint(Callback):
     ) -> None:
         """ Save a checkpoint at the end of the training epoch. """
         if (
-            self._should_skip_saving_checkpoint(trainer) or self._save_on_train_epoch_end
-            # TODO: should every_n_val_epochs be repurposed to work for this too?
+            self._should_skip_saving_checkpoint(trainer) or not self._save_on_train_epoch_end
+            # FIXME: repurpose every_n_val_epochs to work for this hook
+            or self._every_n_val_epochs < 1 or (trainer.current_epoch + 1) % self._every_n_val_epochs != 0
         ):
             return
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
+        # FIXME: last_global_step_saved wrong
         trainer.train_loop.global_step -= 1
         self.save_checkpoint(trainer)
         trainer.train_loop.global_step += 1
@@ -299,13 +301,14 @@ class ModelCheckpoint(Callback):
         Save a checkpoint at the very end of training.
 
         This will only save a checkpoint if `save_last` is also enabled
-        as the monitor metrics produced by training or validation steps or end of epochs
-        is not guaranteed to be available at this stage.
+        as the monitor metrics logged during training/validation steps or end of epochs
+        are not guaranteed to be available at this stage.
         """
         if self._should_skip_saving_checkpoint(trainer) or not trainer.checkpoint_connector.has_trained:
             return
+        # FIXME: has_trained not set to false where it should
         if self.save_last and self.verbose:
-            rank_zero_info("Saving last checkpoint...")
+            rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
         self._save_last_checkpoint(trainer, monitor_candidates)
@@ -391,7 +394,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps_triggered = self._every_n_train_steps >= 1
         every_n_val_epochs_triggered = self._every_n_val_epochs >= 1
         train_time_interval_triggered = self._train_time_interval is not None
-        if (every_n_train_steps_triggered + every_n_val_epochs_triggered + train_time_interval_triggered > 1):
+        if every_n_train_steps_triggered + every_n_val_epochs_triggered + train_time_interval_triggered > 1:
             raise MisconfigurationException(
                 f"Combination of parameters every_n_train_steps={self._every_n_train_steps}, "
                 f"every_n_val_epochs={self._every_n_val_epochs} and train_time_interval={self._train_time_interval} "
