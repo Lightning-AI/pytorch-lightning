@@ -110,6 +110,7 @@ class ModelCheckpoint(Callback):
             of time it takes to process a single training batch. This is not
             guaranteed to execute at the exact time specified, but should be close.
             This must be mutually exclusive with ``every_n_train_steps`` and ``every_n_val_epochs``.
+        FIXME
         every_n_val_epochs: Number of validation epochs between checkpoints.
             If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end.
             To disable, set ``every_n_val_epochs = 0``. This value must be ``None`` or non-negative.
@@ -119,7 +120,7 @@ class ModelCheckpoint(Callback):
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_val_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         period: Interval (number of epochs) between checkpoints.
-        save_on_train_epoch_end: TODO
+        save_on_train_epoch_end: FIXME
 
             .. warning::
                This argument has been deprecated in v1.3 and will be removed in v1.5.
