@@ -252,8 +252,9 @@ class LightningModule(
     @property
     def truncated_bptt_steps(self) -> int:
         """
-        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
-        If this is > 0, the training step is passed ``hiddens``.
+        Enables `Truncated Backpropagation Through Time` in the Trainer when set to a positive integer. It represents
+        the number of times :meth:`trainnig_step` gets called before backpropagation. If this is > 0, the
+        :meth:`trainnig_step` receives an additional argument ``hiddens`` and is expected to return a hidden state.
         """
         return self._truncated_bptt_steps
 
