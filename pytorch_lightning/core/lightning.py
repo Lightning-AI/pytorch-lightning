@@ -162,7 +162,22 @@ class LightningModule(
 
     @property
     def example_input_array(self) -> Any:
+        """
+        The example input array is a specification of what the module can consume in the :meth:`forward` method.
+        The return type is interpreted as follows:
+
+            - Single tensor: It is assumed the model takes a single argument, i.e.,
+                ``model.forward(model.example_input_array)``
+            - Tuple: The input array should be interpreted as a sequence of positional arguments, i.e.,
+                ``model.forward(*model.example_input_array)``
+            - Dict: The input array represents named keyword arguments, i.e.,
+                ``model.forward(**model.example_input_array)``
+        """
         return self._example_input_array
+
+    @example_input_array.setter
+    def example_input_array(self, example: Any) -> None:
+        self._example_input_array = example
 
     @property
     def current_epoch(self) -> int:
@@ -183,10 +198,6 @@ class LightningModule(
     def local_rank(self) -> int:
         """ The index of the current process within a single node. """
         return self.trainer.local_rank if self.trainer else 0
-
-    @example_input_array.setter
-    def example_input_array(self, example: Any) -> None:
-        self._example_input_array = example
 
     @property
     def datamodule(self) -> Any:
