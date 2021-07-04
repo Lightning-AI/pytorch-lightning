@@ -1479,18 +1479,16 @@ class LightningModule(
         """
         Makes sure only the gradients of the current optimizer's parameters are calculated
         in the training step to prevent dangling gradients in multiple-optimizer setup.
-
-        .. note:: Only called when using multiple optimizers
-
-        Override for your own behavior
-
-        It works with ``untoggle_optimizer`` to make sure param_requires_grad_state is properly reset.
+        It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
+        Override for your own behavior.
 
         Args:
-            optimizer: Current optimizer used in training_loop
-            optimizer_idx: Current optimizer idx in training_loop
-        """
+            optimizer: Current optimizer used in the training loop
+            optimizer_idx: Current optimizer idx in the training loop
 
+        Note:
+            Only called when using multiple optimizers
+        """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
@@ -1512,12 +1510,14 @@ class LightningModule(
 
     def untoggle_optimizer(self, optimizer_idx: int):
         """
-        .. note:: Only called when using multiple optimizers
-
-        Override for your own behavior
+        Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+        Override for your own behavior.
 
         Args:
-            optimizer_idx: Current optimizer idx in training_loop
+            optimizer_idx: Current optimizer idx in the training loop
+
+        Note:
+            Only called when using multiple optimizers
         """
         for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
