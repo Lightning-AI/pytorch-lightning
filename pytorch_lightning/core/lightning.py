@@ -1549,8 +1549,7 @@ class LightningModule(
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
-            ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
-            :meth:`~pytorch_lightning.loops.training_batch_loop.TrainingBatchLoop.advance`.
+            ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within the training loop.
 
         Args:
             epoch: Current epoch
