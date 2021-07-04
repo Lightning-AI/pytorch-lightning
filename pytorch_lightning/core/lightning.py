@@ -1689,7 +1689,7 @@ class LightningModule(
 
     def summarize(self, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
         """
-        Summarize this LightingModule.
+        Summarize this LightningModule.
 
         Args:
             mode: Can be either ``'top'`` (summarize only direct submodules) or ``'full'`` (summarize all layers).
