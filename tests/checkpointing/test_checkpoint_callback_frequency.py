@@ -50,7 +50,7 @@ def test_mc_called(tmpdir):
 @mock.patch('torch.save')
 @pytest.mark.parametrize(
     ['epochs', 'val_check_interval', 'expected'],
-    [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 7)],
+    [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)],
 )
 def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
 
@@ -60,6 +60,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,
+        limit_val_batches=1,
         progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
