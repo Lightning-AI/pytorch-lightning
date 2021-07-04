@@ -582,7 +582,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
         assert trainer.max_epochs == 1
 
         trainer.fit(model)
-        assert not trainer.disable_validation
+        assert trainer.enable_validation
         assert trainer.num_training_batches == fast_dev_run
         assert trainer.num_val_batches == [fast_dev_run] * len(trainer.val_dataloaders)
 
