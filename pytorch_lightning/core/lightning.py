@@ -118,7 +118,7 @@ class LightningModule(
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         """
-        Returns the optimizer(s) that are being use during training. Useful for manual optimization.
+        Returns the optimizer(s) that are being used during training. Useful for manual optimization.
 
         Args:
             use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
@@ -141,7 +141,7 @@ class LightningModule(
 
     def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
         """
-        Returns the learning rate scheduler(s) that are being use during training. Useful for manual optimization.
+        Returns the learning rate scheduler(s) that are being used during training. Useful for manual optimization.
 
         Returns:
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
@@ -1424,10 +1424,8 @@ class LightningModule(
 
     def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
         """
-        Call this directly from your training_step when doing optimizations manually.
-        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you.
-
-        This function forwards all args to the .backward() call as well.
+        Call this directly from your :meth:`training_step` when doing optimizations manually.
+        By using this, Lightning can ensure that all the proper scaling gets applied when using mixed precision.
 
         See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
 
@@ -1440,6 +1438,12 @@ class LightningModule(
                 # automatically applies scaling, etc...
                 self.manual_backward(loss)
                 opt.step()
+
+        Args:
+            loss: The tensor on which to compute gradients. Must have a graph attached.
+            optimizer: This argument is unused and deprecated. It will be removed in v1.4.
+            *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
+            **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
         if optimizer is not None:
             rank_zero_deprecation(
