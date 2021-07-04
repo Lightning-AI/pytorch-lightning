@@ -181,22 +181,22 @@ class LightningModule(
 
     @property
     def current_epoch(self) -> int:
-        """The current epoch"""
+        """The current epoch in the Trainer. If no Trainer is attached, this propery is 0."""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
     def global_step(self) -> int:
-        """Total training batches seen across all epochs"""
+        """Total training batches seen across all epochs. If no Trainer is attached, this propery is 0."""
         return self.trainer.global_step if self.trainer else 0
 
     @property
     def global_rank(self) -> int:
-        """ The index of the current process across all nodes and devices. """
+        """The index of the current process across all nodes and devices."""
         return self.trainer.global_rank if self.trainer else 0
 
     @property
     def local_rank(self) -> int:
-        """ The index of the current process within a single node. """
+        """The index of the current process within a single node."""
         return self.trainer.local_rank if self.trainer else 0
 
     @property
