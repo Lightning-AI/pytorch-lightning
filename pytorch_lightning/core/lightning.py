@@ -1265,9 +1265,9 @@ class LightningModule(
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
             - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
-                (or multiple ``lr_dict``).
+              (or multiple ``lr_dict``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-                key whose value is a single LR scheduler or ``lr_dict``.
+              key whose value is a single LR scheduler or ``lr_dict``.
             - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
 
