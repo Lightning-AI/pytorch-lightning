@@ -1701,10 +1701,7 @@ class LightningModule(
                 layer summary off. Default: 1.
 
         Return:
-            ModelSummary: The model summary object
-
-        See Also:
-            - Model summary utility class: :class:`~pytorch_lightning.memory.ModelSummary`
+            The model summary object
         """
         model_summary = None
 
