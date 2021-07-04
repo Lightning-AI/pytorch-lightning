@@ -49,7 +49,7 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 
 @pytest.mark.parametrize(
-    "train_dataloader, val_dataloaders, test_dataloaders, predict_dataloaders",
+    "train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders",
     [
         (_loader_no_len, None, None, None),
         (None, _loader_no_len, None, None),
@@ -60,14 +60,14 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 )
 @mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
 def test_error_patched_iterable_dataloaders(
-    _, tmpdir, train_dataloader, val_dataloaders, test_dataloaders, predict_dataloaders
+    _, tmpdir, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
     model = BoringModelNoDataloaders()
     connector = DataConnector(MagicMock())
 
     connector.attach_dataloaders(
         model,
-        train_dataloader=train_dataloader,
+        train_dataloaders=train_dataloaders,
         val_dataloaders=val_dataloaders,
         test_dataloaders=test_dataloaders,
         predict_dataloaders=predict_dataloaders,

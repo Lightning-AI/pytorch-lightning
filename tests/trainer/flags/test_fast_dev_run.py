@@ -95,7 +95,6 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
         # there should be no logger with fast_dev_run
         assert isinstance(trainer.logger, DummyLogger)
-        assert len(trainer.dev_debugger.logged_metrics) == fast_dev_run
 
         # checkpoint callback should not have been called with fast_dev_run
         assert trainer.checkpoint_callback == checkpoint_callback

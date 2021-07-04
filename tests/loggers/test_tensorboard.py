@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from argparse import Namespace
 from unittest import mock
@@ -275,7 +276,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 
         def training_step(self, *args):
             self.log('foo', 1, on_step=True, on_epoch=True)
-            if not self.trainer.train_loop.should_accumulate():
+            if not self.trainer.fit_loop.should_accumulate():
                 if self.trainer.logger_connector.should_update_logs:
                     self.indexes.append(self.trainer.global_step)
             return super().training_step(*args)
@@ -340,3 +341,15 @@ def test_tensorboard_with_symlink(log, tmpdir):
     _ = logger.version
 
     log.warning.assert_not_called()
+
+
+def test_tensorboard_missing_folder_warning(tmpdir, caplog):
+    """Verify that the logger throws a warning for invalid directory"""
+
+    name = "fake_dir"
+    logger = TensorBoardLogger(save_dir=tmpdir, name=name)
+
+    with caplog.at_level(logging.WARNING):
+        assert logger.version == 0
+
+    assert 'Missing logger folder:' in caplog.text

@@ -86,7 +86,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         callbacks=[early_stop_callback],
     )
 
-    with pytest.raises(MisconfigurationException, match=r'.*you restored a checkpoint with current_epoch*'):
+    with pytest.raises(MisconfigurationException, match=r'You restored a checkpoint with current_epoch'):
         new_trainer.fit(model)
 
 
@@ -123,7 +123,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideValidationReturn(BoringModel):
-        validation_return_values = torch.Tensor(loss_values)
+        validation_return_values = torch.tensor(loss_values)
 
         def validation_epoch_end(self, outputs):
             loss = self.validation_return_values[self.current_epoch]
@@ -137,6 +137,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
         val_check_interval=1.0,
         num_sanity_val_steps=0,
         max_epochs=10,
+        progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -176,6 +177,7 @@ def test_early_stopping_patience_train(
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=10,
+        progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch

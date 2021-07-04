@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
@@ -105,10 +108,10 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
     trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
-        assert trainer.train_loop.batch_idx == trainer.num_training_batches - 1
+        assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
         assert trainer.global_step == trainer.num_training_batches * max_epochs
     else:
-        assert trainer.train_loop.batch_idx == batch_idx_
+        assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
 
 
@@ -142,3 +145,43 @@ def test_should_stop_mid_epoch(tmpdir):
     assert trainer.current_epoch == 0
     assert trainer.global_step == 5
     assert model.validation_called_at == (0, 4)
+
+
+@pytest.mark.parametrize(['output'], [(5., ), ({'a': 5}, )])
+def test_warning_invalid_trainstep_output(tmpdir, output):
+
+    class InvalidTrainStepModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            return output
+
+    model = InvalidTrainStepModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    with pytest.raises(
+        MisconfigurationException,
+        match=re.escape(
+            "In automatic optimization, `training_step` must either return a Tensor, "
+            "a dict with key 'loss' or None (where the step will be skipped)."
+        )
+    ):
+        trainer.fit(model)
+
+
+def test_warning_valid_train_step_end(tmpdir):
+
+    class ValidTrainStepEndModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = self(batch)
+            return {'output': output, 'batch': batch}
+
+        def training_step_end(self, outputs):
+            loss = self.loss(outputs['batch'], outputs['output'])
+            return loss
+
+    # No error is raised
+    model = ValidTrainStepEndModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
+    trainer.fit(model)

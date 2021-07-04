@@ -12,17 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
-
-from torch.utils.data import DataLoader
+from typing import Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
-class DataConnector(object):
+class DataConnector:
 
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
@@ -65,22 +64,21 @@ class DataConnector(object):
 
         if self.trainer.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
-        else:
-            return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+        return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 
     def attach_data(
         self,
         model: 'pl.LightningModule',
-        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional['pl.LightningDataModule'] = None
     ) -> None:
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(
             model,
-            train_dataloader=train_dataloader,
+            train_dataloaders=train_dataloaders,
             val_dataloaders=val_dataloaders,
             test_dataloaders=test_dataloaders,
             predict_dataloaders=predict_dataloaders,
@@ -92,15 +90,15 @@ class DataConnector(object):
     def attach_dataloaders(
         self,
         model: 'pl.LightningModule',
-        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
     ) -> None:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
-        if train_dataloader is not None:
-            model.train_dataloader = _PatchDataLoader(train_dataloader)
+        if train_dataloaders is not None:
+            model.train_dataloader = _PatchDataLoader(train_dataloaders)
 
         if val_dataloaders is not None:
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
@@ -114,43 +112,40 @@ class DataConnector(object):
     def attach_datamodule(
         self, model: 'pl.LightningModule', datamodule: Optional['pl.LightningDataModule'] = None
     ) -> None:
-        # We use datamodule if it's been provided, otherwise we check model for it
-        datamodule = datamodule or getattr(model, 'datamodule', None)
-
         # If we have a datamodule, attach necessary hooks + dataloaders
-        if datamodule:
+        if datamodule is None:
+            return
 
-            # Override loader hooks
-            dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
-            for method in dl_methods:
-                if is_overridden(method, datamodule):
-                    setattr(model, method, getattr(datamodule, method))
+        # Override loader hooks
+        dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
+        for method in dl_methods:
+            if is_overridden(method, datamodule):
+                setattr(model, method, getattr(datamodule, method))
 
-            # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-            batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
-            for hook in batch_transfer_hooks:
-                if is_overridden(hook, datamodule):
-                    setattr(model, hook, getattr(datamodule, hook))
+        # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
+        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        for hook in batch_transfer_hooks:
+            if is_overridden(hook, datamodule):
+                setattr(model, hook, getattr(datamodule, hook))
 
-            self.trainer.datamodule = datamodule
-            datamodule.trainer = self.trainer
+        self.trainer.datamodule = datamodule
+        datamodule.trainer = self.trainer
 
-            # experimental feature for Flash
-            if hasattr(datamodule, "data_pipeline"):
-                model.data_pipeline = datamodule.data_pipeline
+        # experimental feature for Flash
+        if hasattr(datamodule, "data_pipeline"):
+            model.data_pipeline = datamodule.data_pipeline
 
 
-class _PatchDataLoader(object):
+class _PatchDataLoader:
     r"""
     Callable object for patching dataloaders passed into trainer.fit().
     Use this class to override model.*_dataloader() and be pickle-compatible.
 
     Args:
         dataloader: Dataloader object to return when called.
-
     """
 
-    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
+    def __init__(self, dataloader: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
         self.dataloader = dataloader
 
         # cannot pickle __code__ so cannot verify if PatchDataloader
@@ -158,5 +153,5 @@ class _PatchDataLoader(object):
         # so, we hack it by using the string representation
         self.patch_loader_code = str(self.__call__.__code__)
 
-    def __call__(self) -> Union[List[DataLoader], DataLoader]:
+    def __call__(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         return self.dataloader

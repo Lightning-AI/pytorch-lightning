@@ -34,7 +34,7 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 
 import argparse
 from collections import deque, namedtuple, OrderedDict
-from typing import List, Tuple
+from typing import Iterator, List, Tuple
 
 import gym
 import numpy as np
@@ -139,7 +139,7 @@ class RLDataset(IterableDataset):
         self.buffer = buffer
         self.sample_size = sample_size
 
-    def __iter__(self) -> Tuple:
+    def __iter__(self) -> Iterator:
         states, actions, rewards, dones, new_states = self.buffer.sample(self.sample_size)
         for i in range(len(dones)):
             yield states[i], actions[i], rewards[i], dones[i], new_states[i]

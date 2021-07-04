@@ -26,6 +26,7 @@ from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
+from weakref import proxy
 
 import numpy as np
 import torch
@@ -101,7 +102,7 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         every_n_train_steps: Number of training steps between checkpoints.
-            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training
+            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``train_time_interval`` and ``every_n_val_epochs``.
         train_time_interval: Checkpoints are monitored at the specified time interval.
@@ -109,8 +110,9 @@ class ModelCheckpoint(Callback):
             of time it takes to process a single training batch. This is not
             guaranteed to execute at the exact time specified, but should be close.
             This must be mutually exclusive with ``every_n_train_steps`` and ``every_n_val_epochs``.
+        FIXME
         every_n_val_epochs: Number of validation epochs between checkpoints.
-            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end
+            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end.
             To disable, set ``every_n_val_epochs = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``every_n_train_steps`` and ``train_time_interval``.
             Setting both ``ModelCheckpoint(..., every_n_val_epochs=V)`` and
@@ -118,7 +120,7 @@ class ModelCheckpoint(Callback):
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_val_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         period: Interval (number of epochs) between checkpoints.
-        save_on_train_epoch_end: TODO
+        save_on_train_epoch_end: FIXME
 
             .. warning::
                This argument has been deprecated in v1.3 and will be removed in v1.5.
@@ -203,7 +205,7 @@ class ModelCheckpoint(Callback):
         train_time_interval: Optional[timedelta] = None,
         every_n_val_epochs: Optional[int] = None,
         period: Optional[int] = None,
-        save_on_train_epoch_end: bool = True,
+        save_on_train_epoch_end: Optional[bool] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -234,6 +236,10 @@ class ModelCheckpoint(Callback):
         """
         self.__resolve_ckpt_dir(trainer)
         self._save_function = trainer.save_checkpoint
+        if self._save_on_train_epoch_end is None:
+            # if the user runs validation before multiple times per training epoch, we try to save checkpoint after
+            # validation instead of on train epoch end
+            self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
 
     def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._last_time_checked = time.monotonic()
@@ -275,11 +281,13 @@ class ModelCheckpoint(Callback):
     ) -> None:
         """ Save a checkpoint at the end of the training epoch. """
         if (
-            self._should_skip_saving_checkpoint(trainer) or self._save_on_train_epoch_end
-            # TODO: should every_n_val_epochs be repurposed to work for this too?
+            self._should_skip_saving_checkpoint(trainer) or not self._save_on_train_epoch_end
+            # FIXME: repurpose every_n_val_epochs to work for this hook
+            or self._every_n_val_epochs < 1 or (trainer.current_epoch + 1) % self._every_n_val_epochs != 0
         ):
             return
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
+        # FIXME: last_global_step_saved wrong
         trainer.train_loop.global_step -= 1
         self.save_checkpoint(trainer)
         trainer.train_loop.global_step += 1
@@ -298,16 +306,16 @@ class ModelCheckpoint(Callback):
         Save a checkpoint at the very end of training.
 
         This will only save a checkpoint if `save_last` is also enabled
-        as the monitor metrics produced by training or validation steps or end of epochs
-        is not guaranteed to be available at this stage.
+        as the monitor metrics logged during training/validation steps or end of epochs
+        are not guaranteed to be available at this stage.
         """
-        if self._should_skip_saving_checkpoint(trainer) or not trainer.checkpoint_connector.has_trained:
+        if self._should_skip_saving_checkpoint(trainer):
             return
         if self.save_last and self.verbose:
-            rank_zero_info("Saving last checkpoint...")
+            rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
+        monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
         trainer.train_loop.global_step -= 1
-        monitor_candidates = self._monitor_candidates(trainer)
         self._save_last_checkpoint(trainer, monitor_candidates)
         trainer.train_loop.global_step += 1
 
@@ -364,6 +372,10 @@ class ModelCheckpoint(Callback):
         # Mode 3: save last checkpoints
         self._save_last_checkpoint(trainer, monitor_candidates)
 
+        # notify loggers
+        if trainer.is_global_zero and trainer.logger:
+            trainer.logger.after_save_checkpoint(proxy(self))
+
     def _should_skip_saving_checkpoint(self, trainer: 'pl.Trainer') -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
         return (
@@ -388,7 +400,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps_triggered = self._every_n_train_steps >= 1
         every_n_val_epochs_triggered = self._every_n_val_epochs >= 1
         train_time_interval_triggered = self._train_time_interval is not None
-        if (every_n_train_steps_triggered + every_n_val_epochs_triggered + train_time_interval_triggered > 1):
+        if every_n_train_steps_triggered + every_n_val_epochs_triggered + train_time_interval_triggered > 1:
             raise MisconfigurationException(
                 f"Combination of parameters every_n_train_steps={self._every_n_train_steps}, "
                 f"every_n_val_epochs={self._every_n_val_epochs} and train_time_interval={self._train_time_interval} "
@@ -446,8 +458,11 @@ class ModelCheckpoint(Callback):
         self.kth_value, self.mode = mode_dict[mode]
 
     def __init_triggers(
-        self, every_n_train_steps: Optional[int], every_n_val_epochs: Optional[int],
-        train_time_interval: Optional[timedelta], period: Optional[int]
+        self,
+        every_n_train_steps: Optional[int],
+        every_n_val_epochs: Optional[int],
+        train_time_interval: Optional[timedelta],
+        period: Optional[int],
     ) -> None:
 
         # Default to running once after each validation epoch if neither
@@ -471,7 +486,6 @@ class ModelCheckpoint(Callback):
                 ' Please use `every_n_val_epochs` instead.'
             )
             self._every_n_val_epochs = period
-
         self._period = self._every_n_val_epochs
 
     @property
@@ -512,15 +526,6 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: 'pl.Trainer', filepath: str) -> None:
-        if trainer.training_type_plugin.rpc_enabled:
-            # RPCPlugin manages saving all model states
-            # TODO: the rpc plugin should wrap trainer.save_checkpoint
-            # instead of us having to do it here manually
-            trainer.training_type_plugin.rpc_save_model(trainer, self._do_save, filepath)
-        else:
-            self._do_save(trainer, filepath)
-
-    def _do_save(self, trainer: 'pl.Trainer', filepath: str) -> None:
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -679,10 +684,10 @@ class ModelCheckpoint(Callback):
             self.save_top_k = 1
 
         if deprecation_warning:
-            warning_cache.warn(
+            warning_cache.deprecation(
                 "Relying on `self.log('val_loss', ...)` to set the ModelCheckpoint monitor is deprecated in v1.2"
                 " and will be removed in v1.4. Please, create your own `mc = ModelCheckpoint(monitor='your_monitor')`"
-                " and use it as `Trainer(callbacks=[mc])`.", DeprecationWarning
+                " and use it as `Trainer(callbacks=[mc])`.",
             )
 
     def _validate_monitor_key(self, trainer: 'pl.Trainer') -> None:
@@ -695,7 +700,10 @@ class ModelCheckpoint(Callback):
                 f" {list(metrics.keys())}. "
                 f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
-            raise MisconfigurationException(m)
+            if not trainer.fit_loop.epoch_loop.val_loop._has_run:
+                warning_cache.warn(m)
+            else:
+                raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(
         self,
