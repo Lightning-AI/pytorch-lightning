@@ -259,25 +259,26 @@ class ModelPruning(Callback):
     def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> Callable:
         return partial(pruning_fn, **kwargs)
 
-    def make_pruning_permanent(self, pl_module: LightningModule) -> None:
+    def make_pruning_permanent(self, module: nn.Module) -> None:
         """
         Removes pruning buffers from any pruned modules
 
         Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
         """
-        for _, module in pl_module.named_modules():
+        for _, module in module.named_modules():
             for k in list(module._forward_pre_hooks):
                 hook = module._forward_pre_hooks[k]
                 if isinstance(hook, pytorch_prune.BasePruningMethod):
                     hook.remove(module)
                     del module._forward_pre_hooks[k]
 
-    def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str) -> None:
-        trained = getattr(module, tensor_name)
-        orig = getattr(orig_module, tensor_name)
-        if trained is None or orig is None:
+    @staticmethod
+    def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
+        dst = getattr(new, name)
+        src = getattr(old, name)
+        if dst is None or src is None or not isinstance(dst, torch.Tensor) or not isinstance(src, torch.Tensor):
             return
-        trained.data = orig.data.to(trained.device)
+        dst.data = src.data.to(dst.device)
 
     def apply_lottery_ticket_hypothesis(self) -> None:
         r"""
@@ -292,14 +293,6 @@ class ModelPruning(Callback):
 
         The ``resample_parameters`` argument can be used to reset the parameters with a new :math:`\theta_z \sim \mathcal{D}_\theta`
         """  # noqa: E501
-
-        def copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
-            dst = getattr(new, name)
-            src = getattr(old, name)
-            if dst is None or src is None or not isinstance(dst, torch.Tensor) or not isinstance(src, torch.Tensor):
-                return
-            dst.data = src.data.to(dst.device)
-
         assert self._original_layers is not None
         for d in self._original_layers.values():
             copy = d["data"]
@@ -309,7 +302,7 @@ class ModelPruning(Callback):
                 copy.reset_parameters()
             for i, name in names:
                 new, new_name = self._parameters_to_prune[i]
-                copy_param(new, copy, name)
+                self._copy_param(new, copy, name)
 
     def _apply_local_pruning(self, amount: float) -> None:
         for module, name in self._parameters_to_prune:

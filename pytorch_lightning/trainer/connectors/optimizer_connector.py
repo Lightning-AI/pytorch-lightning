@@ -29,11 +29,17 @@ class OptimizerConnector:
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, opt_indices: Optional[List[int]] = None) -> None:
+    def update_learning_rates(
+        self, interval: str, update_plateau_schedulers: bool, opt_indices: Optional[List[int]] = None
+    ) -> None:
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
+            update_plateau_schedulers: control whether ``ReduceLROnPlateau`` or non-plateau schedulers get updated.
+                This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
+                commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
+                so they have to be updated separately.
             opt_indices: indices of the optimizers to update.
         """
         if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
@@ -46,7 +52,10 @@ class OptimizerConnector:
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
                 continue
 
-            current_idx = self.trainer.train_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
+            if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
+                continue
+
+            current_idx = self.trainer.fit_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
@@ -83,7 +92,7 @@ class OptimizerConnector:
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.train_loop.batch_idx,
+                        self.trainer.fit_loop.batch_idx,
                         interval,
                         scheduler_idx,
                         old_lr,

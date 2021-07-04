@@ -174,4 +174,4 @@ def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
     )
     trainer.fit(model)
 
-    return trainer.train_loop.running_loss.last().item(), _hook_memory()
+    return trainer.fit_loop.running_loss.last().item(), _hook_memory()

@@ -161,14 +161,45 @@ def test_pruning_callback(
     )
 
 
-@RunIf(special=True)
-@pytest.mark.parametrize("parameters_to_prune", [False, True])
-@pytest.mark.parametrize("use_global_unstructured", [False, True])
-def test_pruning_callback_ddp(tmpdir, use_global_unstructured: bool, parameters_to_prune: bool):
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_0(tmpdir):
     train_with_pruning_callback(
         tmpdir,
-        parameters_to_prune=parameters_to_prune,
-        use_global_unstructured=use_global_unstructured,
+        parameters_to_prune=False,
+        use_global_unstructured=False,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_1(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=False,
+        use_global_unstructured=True,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_2(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=True,
+        use_global_unstructured=False,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_3(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=True,
+        use_global_unstructured=True,
         accelerator="ddp",
         gpus=2,
     )

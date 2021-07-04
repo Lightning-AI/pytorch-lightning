@@ -8,15 +8,14 @@ lightning_logs/
 .vscode/
 
 # Test-tube
-test_tube_logs/
-test_tube_data/
-test_tube_exp/
+test_tube_*/
 
 # Documentations
 docs/source/api
 docs/source/*.md
 docs/source/generated
 docs/source/*/generated
+docs/source/notebooks
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -154,7 +153,3 @@ cifar-10-batches-py
 *.pt
 # ctags
 tags
-data
-MNIST
-runs
-*trace*
