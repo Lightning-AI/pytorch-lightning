@@ -1830,16 +1830,16 @@ class LightningModule(
         ignore: Optional[Union[Sequence[str], str]] = None,
         frame: Optional[types.FrameType] = None
     ) -> None:
-        """Save model arguments to ``hparams`` attribute.
+        """Save model arguments to the ``hparams`` attribute.
 
         Args:
-            args: single object of `dict`, `NameSpace` or `OmegaConf`
-                or string names or arguments from class ``__init__``
-            ignore: an argument name or a list of argument names from
-                class ``__init__`` to be ignored
-            frame: a frame object. Default is None
+            args: single object of type :class:`dict`, :class:`~argparse.Namespace`, `OmegaConf`
+                or strings representing the argument names in ``__init__``.
+            ignore: an argument name or a list of argument names in ``__init__`` to be ignored
+            frame: a frame object. Default is ``None``.
 
         Example::
+
             >>> class ManuallyArgsModel(LightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
