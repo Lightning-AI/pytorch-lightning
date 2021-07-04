@@ -241,7 +241,7 @@ class LightningModule(
     @property
     def automatic_optimization(self) -> bool:
         """
-        If False you are responsible for calling .backward, .step, zero_grad.
+        If set to ``False`` you are responsible for calling ``.backward()``, ``.step()``, ``.zero_grad()``.
         """
         return self._automatic_optimization
 
