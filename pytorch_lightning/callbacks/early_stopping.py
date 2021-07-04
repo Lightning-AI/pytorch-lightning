@@ -175,7 +175,6 @@ class EarlyStopping(Callback):
     def on_validation_end(self, trainer, pl_module) -> None:
         if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
-
         self._run_early_stopping_check(trainer)
 
     def _run_early_stopping_check(self, trainer) -> None:
