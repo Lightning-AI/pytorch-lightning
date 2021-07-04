@@ -117,6 +117,17 @@ class LightningModule(
         self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        """
+        Returns the optimizer(s) that are being use during training. Useful for manual optimization.
+
+        Args:
+            use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
+                :class:`~pytorch_lighting.core.optimizer.LightningOptimizer` for automatic handling of precision and
+                profiling.
+
+        Returns:
+            A single optimizer, or a list of optimizers in case multiple ones are present.
+        """
         if use_pl_optimizer:
             opts = list(self.trainer.lightning_optimizers.values())
         else:
@@ -129,6 +140,13 @@ class LightningModule(
         return opts
 
     def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+        """
+        Returns the learning rate scheduler(s) that are being use during training. Useful for manual optimization.
+
+        Returns:
+            A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
+            schedulers were returned in :meth:´configure_optimizers´.
+        """
         if not self.trainer.lr_schedulers:
             return None
 
