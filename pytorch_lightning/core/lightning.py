@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""nn.Module with additional great features."""
+"""The LightningModule - an nn.Module with many additional features."""
 
 import collections
 import copy
