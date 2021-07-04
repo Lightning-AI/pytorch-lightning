@@ -1918,7 +1918,7 @@ class LightningModule(
         **kwargs,
     ):
         """
-        Saves the model in ONNX format
+        Saves the model in ONNX format.
 
         Args:
             file_path: The path of the file the onnx model should be saved to.
@@ -1970,8 +1970,8 @@ class LightningModule(
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
-        If you want to use tracing, please provided the argument `method='trace'` and make sure that either the
-        example_inputs argument is provided, or the model has self.example_input_array set.
+        If you want to use tracing, please provided the argument ``method='trace'`` and make sure that either the
+        `example_inputs` argument is provided, or the model has :attr:`example_input_array` set.
         If you would like to customize the modules that are scripted you should override this method.
         In case you want to return multiple modules, we recommend using a dictionary.
 
@@ -1979,7 +1979,7 @@ class LightningModule(
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
-              Default: None (Use self.example_input_array)
+              Default: None (uses :attr:`example_input_array`)
             **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
               :func:`torch.jit.trace` function.
 
@@ -2009,7 +2009,7 @@ class LightningModule(
             True
 
         Return:
-            This LightningModule as a torchscript, regardless of whether file_path is
+            This LightningModule as a torchscript, regardless of whether `file_path` is
             defined or not.
         """
         mode = self.training
