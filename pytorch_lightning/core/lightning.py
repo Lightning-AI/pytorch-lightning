@@ -93,16 +93,16 @@ class LightningModule(
 
         self._loaded_optimizer_states_dict = {}
 
-        #: Pointer to the trainer object
+        # pointer to the trainer object
         self.trainer = None
 
         self._distrib_type = None
         self._device_type = None
 
-        #: True if using amp
+        # true if using amp
         self.use_amp: bool = False
 
-        #: The precision used
+        # the precision used
         self.precision: int = 32
 
         # optionally can be set by user
@@ -145,7 +145,7 @@ class LightningModule(
 
         Returns:
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
-            schedulers were returned in :meth:´configure_optimizers´.
+            schedulers were returned in :meth:`configure_optimizers`.
         """
         if not self.trainer.lr_schedulers:
             return None
@@ -166,12 +166,12 @@ class LightningModule(
         The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
 
-            - Single tensor: It is assumed the model takes a single argument, i.e.,
-                ``model.forward(model.example_input_array)``
-            - Tuple: The input array should be interpreted as a sequence of positional arguments, i.e.,
-                ``model.forward(*model.example_input_array)``
-            - Dict: The input array represents named keyword arguments, i.e.,
-                ``model.forward(**model.example_input_array)``
+        -   Single tensor: It is assumed the model takes a single argument, i.e.,
+            ``model.forward(model.example_input_array)``
+        -   Tuple: The input array should be interpreted as a sequence of positional arguments, i.e.,
+            ``model.forward(*model.example_input_array)``
+        -   Dict: The input array represents named keyword arguments, i.e.,
+            ``model.forward(**model.example_input_array)``
         """
         return self._example_input_array
 
@@ -253,8 +253,8 @@ class LightningModule(
     def truncated_bptt_steps(self) -> int:
         """
         Enables `Truncated Backpropagation Through Time` in the Trainer when set to a positive integer. It represents
-        the number of times :meth:`trainnig_step` gets called before backpropagation. If this is > 0, the
-        :meth:`trainnig_step` receives an additional argument ``hiddens`` and is expected to return a hidden state.
+        the number of times :meth:`training_step` gets called before backpropagation. If this is > 0, the
+        :meth:`training_step` receives an additional argument ``hiddens`` and is expected to return a hidden state.
         """
         return self._truncated_bptt_steps
 
@@ -328,13 +328,13 @@ class LightningModule(
         rank_zero_only: Optional[bool] = None,
     ) -> None:
         """
-        Log a key, value
+        Log a key, value pair.
 
         Example::
 
             self.log('train_loss', loss)
 
-        The default behavior per hook is as follows
+        The default behavior per hook is as follows:
 
         .. csv-table:: ``*`` also applies to the test loop
            :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
@@ -478,7 +478,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
     ) -> None:
         """
-        Log a dictionary of values at once
+        Log a dictionary of values at once.
 
         Example::
 
