@@ -622,16 +622,14 @@ class LightningModule(
         sync_grads: bool = False,
     ):
         r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making
-        the ```all_gather``` operation accelerator agnostic.
-
-        ```all_gather``` is a function provided by accelerators to gather a tensor from several
-        distributed processes
+        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
+        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
+        distributed processes.
 
         Args:
-            tensor: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
+            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
             group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
 
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
