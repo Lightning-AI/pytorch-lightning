@@ -958,8 +958,6 @@ class Trainer(
 
         self._run_sanity_check(self.lightning_module)
 
-        self.checkpoint_connector.has_trained = False
-
         # enable train mode
         self.model.train()
         torch.set_grad_enabled(True)

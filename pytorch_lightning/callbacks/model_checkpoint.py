@@ -305,9 +305,8 @@ class ModelCheckpoint(Callback):
         as the monitor metrics logged during training/validation steps or end of epochs
         are not guaranteed to be available at this stage.
         """
-        if self._should_skip_saving_checkpoint(trainer) or not trainer.checkpoint_connector.has_trained:
+        if self._should_skip_saving_checkpoint(trainer):
             return
-        # FIXME: has_trained not set to false where it should
         if self.save_last and self.verbose:
             rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
