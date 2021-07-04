@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -157,7 +157,7 @@ class IndexBatchSamplerWrapper:
 class FastForwardSampler:
     """This class is used to wrap a :class:`torch.utils.data.Sampler` and fast forward it"""
 
-    def __init__(self, sampler: Union[Sampler, BatchSampler]) -> None:
+    def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
         self._sampler = sampler
         self._current_iteration = 0
         self.rng_state: Optional[torch.Tensor] = None
@@ -171,24 +171,35 @@ class FastForwardSampler:
         self.current_batch_size = batch_size
         self.inside_workers = inside_workers
 
+    @property
+    def worker_id(self) -> int:
+        worker_info = get_worker_info()
+        return worker_info.id if worker_info else 0
+
     def __iter__(self) -> Iterator[List[int]]:
         if self._num_workers is None:
             raise Exception(
                 f"The {self.__class__.__name__} hasn't been properly setup. Please, open an issue on PyTorch Lightning."
             )
-        self.rng_state = torch.random.get_rng_state()
+        if self.rng_state is None:
+            self.rng_state = torch.random.get_rng_state()
+        local_counter = 0
         for batch in self._sampler:
-            if self.restarting and self._current_iteration > 0:
-                self._current_iteration -= 1
-                if self._current_iteration == 0:
+            if self.restarting:
+                if self._state_dict is not None and self.worker_id in self._state_dict:
+                    worker_state_dict = self._state_dict[self.worker_id]
+                    self.load_state_dict(worker_state_dict)
+                    self._state_dict = None
+                local_counter += 1
+                if local_counter == self._current_iteration:
                     self.restarting = False
             else:
+                print("FastForwardSampler", self.worker_id, self._current_iteration)
                 if self.no_worker or self.inside_workers:
                     self._current_iteration += 1
                 yield batch
         self.rng_state = None
-        if self.no_worker or self.inside_workers:
-            self._current_iteration = 0
+        self._current_iteration = 0
 
     @property
     def no_worker(self):
@@ -238,7 +249,8 @@ class FastForwardSampler:
         else:
             current_iteration = number_batch_processed
 
-        current_iteration *= self.current_batch_size
+        if not self.inside_workers:
+            current_iteration *= self.current_batch_size
 
         return current_iteration
 
@@ -253,17 +265,42 @@ class FastForwardSampler:
             self._state_dict = state_dict
             self.restarting = True
             return
+        print("RELOADING", self.worker_id, state_dict)
         self.current_iteration = state_dict["current_iteration"]
         if state_dict["rng_state"] is not None:
             torch.random.set_rng_state(state_dict["rng_state"])
+            self.rng_state = state_dict["rng_state"]
         self.restarting = True
 
 
 class CaptureIterativeDataset(IterableDataset):
 
-    def __init__(self, dataset: IterableDataset):
+    def __init__(self, dataset: IterableDataset, num_workers: int, batch_size: int, is_inside_workers: bool):
         self.dataset = dataset
-        self.samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, FastForwardSampler)}
+        self.num_workers = num_workers
+        self.batch_size = batch_size
+        self.is_inside_workers = is_inside_workers
+        self.samplers_state_dict: Optional[Dict[int, Any]] = None
+        self.samplers = None
+
+    def setup(self, samplers_state_dict: Dict[int, Any]):
+        self.samplers_state_dict = samplers_state_dict
+
+    def _wrap_samplers(self) -> None:
+        if self.samplers is None:
+            self.samplers = {}
+            dataset_dict = self.dataset.__dict__
+            dataset_sampler_generators = {
+                k: v
+                for k, v in dataset_dict.items() if isinstance(v, Generator) and "sampler" in v.__qualname__.lower()
+            }
+            for (attr_name, sampler) in dataset_sampler_generators.items():
+                sampler = FastForwardSampler(sampler)
+                sampler.setup(self.num_workers, self.batch_size, self.is_inside_workers)
+                if self.samplers_state_dict is not None:
+                    sampler.load_state_dict(self.samplers_state_dict[attr_name])
+                self.samplers[attr_name] = sampler
+                dataset_dict[attr_name] = iter(sampler)
 
     @property
     def sampler(self) -> Sampler:
@@ -271,25 +308,25 @@ class CaptureIterativeDataset(IterableDataset):
 
     def __iter__(self) -> Iterator:
         self.iter_data = iter(self.dataset)
+        self._wrap_samplers()
+        # print(self.samplers)
         return self
 
     def __next__(self):
+        data = next(self.iter_data)
         worker_info = get_worker_info()
-        state_dicts = {}
+        state_dicts = {"id": worker_info.id if worker_info is not None else 0}
         for k, v in self.samplers.items():
-            state_dicts[k] = v.state_dict()
-            if worker_info:
-                state_dicts["id"] = worker_info.id
-        print(state_dicts)
-        return {"data": next(self.iter_data), BatchKeys.PL_SAMPLERS: state_dicts}
+            state_dicts.update({k: v.state_dict()})
+        return {"data": data, BatchKeys.PL_SAMPLERS: state_dicts}
 
 
-def _find_fast_forward_samplers(dataloader: Union[DataLoader, CombinedLoader]):
+def _find_fast_forward_samplers(dataloader: Union[DataLoader, CombinedLoader], state_dict):
     if isinstance(dataloader, CombinedLoader):
         dataloader = dataloader.loaders
     dataset = dataloader.dataset
     if isinstance(dataset, CaptureIterativeDataset):
-        return {k: v for k, v in dataset.__dict__["samplers"].items() if isinstance(v, FastForwardSampler)}
+        return dataset.setup(state_dict)
     else:
         sampler = dataloader.sampler
         return sampler if isinstance(sampler, FastForwardSampler) else dataloader.batch_sampler

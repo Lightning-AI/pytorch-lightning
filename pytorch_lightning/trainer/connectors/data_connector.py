@@ -44,7 +44,7 @@ class DataConnector:
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(prefetch_iterator(train_dataloader)), "get_train_batch"
+            enumerate(prefetch_iterator(train_dataloader, trainer=self.trainer)), "get_train_batch"
         )
         return profiled_dl
 

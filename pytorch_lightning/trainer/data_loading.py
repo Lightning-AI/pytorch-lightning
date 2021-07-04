@@ -21,7 +21,6 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import Sampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
@@ -118,14 +117,6 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def add_samplers_to_iterable_dataset(self, dataloader: DataLoader):
-        batch_size = dataloader.batch_size
-        num_workers = dataloader.num_workers
-        dl_dict = dataloader.dataset.__dict__
-        for k, v in dl_dict.items():
-            if isinstance(v, (Sampler, BatchSampler)):
-                dl_dict[k] = FastForwardSampler(v)
-                dl_dict[k].setup(num_workers, batch_size, True)
-
         skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
 
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
@@ -142,13 +133,16 @@ class TrainerDataLoadingMixin(ABC):
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context
 
-        # missing_kwargs = params.difference(skip_signature_keys).difference(dl_args)
-
         if not contains_dataset:
             dl_args.pop('dataset')
 
         if 'dataset' in dl_args:
-            dl_args["dataset"] = CaptureIterativeDataset(dl_args["dataset"])
+            dl_args["dataset"] = CaptureIterativeDataset(
+                dataset=dl_args["dataset"],
+                num_workers=dataloader.num_workers,
+                batch_size=dataloader.batch_size,
+                is_inside_workers=True
+            )
 
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context

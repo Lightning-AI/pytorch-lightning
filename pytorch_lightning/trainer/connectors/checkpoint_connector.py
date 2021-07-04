@@ -25,10 +25,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import _find_fast_forward_samplers, FastForwardSampler
 from pytorch_lightning.trainer.progress import FitLoopProgress, Tracker
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.supporters import CombinedLoaderIterator
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -182,6 +184,9 @@ class CheckpointConnector:
         # restore samplers
         self.restore_samplers()
 
+        # restore dataloaders
+        self.restore_dataloaders()
+
         self.restore_optimizers_and_schedulers()
 
     def restore_callbacks(self) -> None:
@@ -227,6 +232,14 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
+    def restore_dataloaders(self) -> None:
+        if not self._loaded_checkpoint:
+            return
+
+        state_dict = self._loaded_checkpoint.get("current_workers", None)
+        if state_dict:
+            self.trainer.train_dataloader.load_state_dict(state_dict)
+
     def restore_samplers(self) -> None:
         if not self._loaded_checkpoint:
             return
@@ -234,19 +247,22 @@ class CheckpointConnector:
         state_dict = self._loaded_checkpoint.get("samplers", None)
         if state_dict:
             train_state_dict = state_dict[TrainerFn.FITTING.value][RunningStage.TRAINING.value]
+
             # Todo: Find a way to not create the train_dataloader on reload
             self.trainer.reset_train_dataloader(self.trainer.lightning_module)
-            train_samplers = _find_fast_forward_samplers(self.trainer.train_dataloader)
+            train_samplers = _find_fast_forward_samplers(self.trainer.train_dataloader, train_state_dict)
             self._restore_samplers(train_state_dict, train_samplers)
 
             # Todo: Find a way to not create the train_dataloader on reload
             val_state_dict = state_dict[TrainerFn.FITTING.value][RunningStage.VALIDATING.value]
             self.trainer.reset_val_dataloader(self.trainer.lightning_module)
             for dl, state_dict in zip(self.trainer.val_dataloaders, val_state_dict):
-                val_samplers = _find_fast_forward_samplers(dl)
+                val_samplers = _find_fast_forward_samplers(dl, state_dict)
                 self._restore_samplers(state_dict, val_samplers)
 
     def _restore_samplers(self, state_dict, samplers):
+        if samplers is None:
+            return
         if isinstance(samplers, dict):
             assert samplers.keys() == state_dict.keys()
             for name in samplers.keys():
@@ -394,11 +410,12 @@ class CheckpointConnector:
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
-        if pl._PL_FAULT_TOLERANT_TRAINING:
+        if fault_tolerant_enabled():
             checkpoint.update({
                 'progress': self.get_progress_state_dict(),
                 'samplers': self.get_samplers_state_dict(),
                 'gradients': self.get_gradients_state_dict(),
+                'current_workers': self.get_current_worker(),
             })
 
         if not weights_only:
@@ -441,6 +458,13 @@ class CheckpointConnector:
 
     def get_gradients_state_dict(self):
         return {n: p.grad for n, p in self.trainer.lightning_module.named_parameters()}
+
+    def get_current_worker(self):
+        iter = self.trainer.current_iterator
+        if isinstance(iter, CombinedLoaderIterator):
+            return self.trainer.train_dataloader.state_dict()
+        else:
+            raise NotImplementedError
 
     def get_samplers_state_dict(self):
 

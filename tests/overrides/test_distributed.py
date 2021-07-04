@@ -18,6 +18,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
+from torch.utils.data._utils.worker import get_worker_info
 from torch.utils.data.dataloader import _InfiniteConstantSampler, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
@@ -30,6 +31,7 @@ from pytorch_lightning.overrides.distributed import (
     UnrepeatedDistributedSampler,
 )
 from pytorch_lightning.utilities.data import has_len
+from pytorch_lightning.utilities.enums import BatchKeys
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
@@ -220,6 +222,118 @@ def test_fast_forward_sampler_replacement(tmpdir):
     trainer.fit(model, train_dataloader=train_dataloader)
 
 
+class RangeIterativeDataset(IterableDataset):
+
+    def __init__(self, data, num_workers: int, batch_size: int, is_in_workers: bool, state_dict=None):
+        self.data = list(data)
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.is_in_workers = is_in_workers
+        self.state_dict = state_dict
+
+    def __iter__(self):
+        worker_info = get_worker_info()
+        if worker_info and self.num_workers == 2:
+            id = worker_info.id
+            num_samples = len(self.data)
+            if id == 0:
+                self.data = list(self.data)[:num_samples // 2]
+            else:
+                self.data = list(self.data)[num_samples // 2:]
+            self.user_sampler = RandomSampler(self.data)
+        else:
+            self.user_sampler = RandomSampler(self.data)
+
+        sampler = FastForwardSampler(self.user_sampler)
+        sampler.setup(self.batch_size, self.num_workers, self.is_in_workers)
+        if self.state_dict is not None:
+            sampler.load_state_dict(self.state_dict[0]["iter_sampler"])
+            self.state_dict = None
+        self.sampler = sampler
+        self.iter_sampler = iter(self.sampler)
+        return self
+
+    def __next__(self):
+        return self.data[next(self.iter_sampler)]
+
+
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize("batch_size", [3])
+def test_fast_forward_sampler_over_iterative_dataset(num_workers, batch_size, tmpdir):
+
+    initial_seed = seed_everything(42)
+    generator = torch.Generator()
+    generator.manual_seed(initial_seed)
+    dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True)
+    dataset = CaptureIterativeDataset(dataset, num_workers, batch_size, True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
+    iter_dataloader = iter(dataloader)
+    batches = []
+    for _ in range(5):
+        batches.append(next(iter_dataloader))
+
+    if num_workers == 0:
+        batch_0_expected = torch.tensor([4, 3, 12])
+        batch_1_expected = torch.tensor([18, 0, 7])
+        batch_2_expected = torch.tensor([8, 14, 11])
+        batch_3_expected = torch.tensor([5, 10, 13])
+        batch_4_expected = torch.tensor([17, 19, 15])
+    elif num_workers == 1:
+        batch_0_expected = torch.tensor([3, 18, 17])
+        batch_1_expected = torch.tensor([13, 2, 19])
+        batch_2_expected = torch.tensor([6, 4, 7])
+        batch_3_expected = torch.tensor([1, 14, 5])
+        batch_4_expected = torch.tensor([12, 8, 16])
+    else:
+        batch_0_expected = torch.tensor([3, 4, 5])
+        batch_1_expected = torch.tensor([10, 12, 14])
+        batch_2_expected = torch.tensor([7, 0, 9])
+        batch_3_expected = torch.tensor([16, 18, 17])
+        batch_4_expected = torch.tensor([8, 1, 2])
+
+    assert torch.equal(batches[0]["data"], batch_0_expected)
+    assert torch.equal(batches[1]["data"], batch_1_expected)
+    assert torch.equal(batches[2]["data"], batch_2_expected)
+    assert torch.equal(batches[3]["data"], batch_3_expected)
+    assert torch.equal(batches[4]["data"], batch_4_expected)
+
+    # restarting on batch_1 and getting 3 extra batches
+
+    def parse_metadata(batch):
+        return {
+            k: {
+                batch[BatchKeys.PL_SAMPLERS]["id"][-1].item(): {
+                    "current_iteration": v["current_iteration"][-1].item(),
+                    "rng_state": v["rng_state"][-1]
+                }
+            }
+            for k, v in batch[BatchKeys.PL_SAMPLERS].items() if k != "id"
+        }
+
+    state_dict = {0: {'iter_sampler': {}}}
+    for batch in batches[:2]:
+        metadata = parse_metadata(batch)
+        for k, v in metadata.items():
+            state_dict[0][k].update(v)
+
+    if num_workers == 2:
+        assert len(state_dict[0]["iter_sampler"]) == 2
+
+    initial_seed = seed_everything(42)
+    generator.manual_seed(initial_seed)
+    dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
+    dataset = CaptureIterativeDataset(dataset, num_workers, batch_size, True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
+    iter_dataloader = iter(dataloader)
+    batches = []
+    for _ in range(3):
+        batches.append(next(iter_dataloader))
+
+    assert torch.equal(batches[0]["data"], batch_2_expected)
+    assert torch.equal(batches[1]["data"], batch_3_expected)
+    assert torch.equal(batches[2]["data"], batch_4_expected)
+
+
 class IterativeRandomDataset(IterableDataset):
 
     def __init__(self, size, length):
@@ -228,7 +342,6 @@ class IterativeRandomDataset(IterableDataset):
         self.sampler = RandomSampler(self.data)
 
     def __iter__(self):
-        self.index = 0
         self.iter_sampler = iter(self.sampler)
         return self
 
@@ -241,32 +354,73 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
 
     seed_everything(42)
 
+    class CustomException(Exception):
+        pass
+
     class CheckFastForwardSamplerInjection(Callback):
 
         def __init__(self):
             self.has_called = False
+            self.restarting = False
 
-        def on_train_batch_end(self, trainer, *args) -> None:
+        def _validate_map_dl_idx_sampler_states(self, trainer, num_dataloaders, worker_iterations):
+            map_dl_idx_sampler_states = trainer.fit_loop.epoch_loop._map_dl_idx_sampler_states
+            assert len(map_dl_idx_sampler_states) == num_dataloaders
+            assert len(map_dl_idx_sampler_states[0]["iter_sampler"]) == len(worker_iterations)
+            assert map_dl_idx_sampler_states[0]["iter_sampler"][0]["current_iteration"] == worker_iterations[0]
+            if len(worker_iterations) == 2:
+                assert map_dl_idx_sampler_states[0]["iter_sampler"][1]["current_iteration"] == worker_iterations[1]
+            if len(worker_iterations) == 3:
+                assert map_dl_idx_sampler_states[0]["iter_sampler"][2]["current_iteration"] == worker_iterations[2]
+
+        def on_train_batch_end(
+            self,
+            trainer,
+            pl_module,
+            outputs,
+            batch,
+            batch_idx,
+            dataloader_idx,
+        ) -> None:
             assert isinstance(trainer.train_dataloader.loaders.sampler, _InfiniteConstantSampler)
             assert isinstance(trainer.train_dataloader.loaders.dataset, CaptureIterativeDataset)
-            sampler = trainer.train_dataloader.loaders.dataset.sampler
-            assert isinstance(sampler, FastForwardSampler)
+            if not self.restarting:
+                if trainer.fit_loop.batch_idx == 0:
+                    self._validate_map_dl_idx_sampler_states(trainer, 1, [3])
+                elif trainer.fit_loop.batch_idx == 1:
+                    self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 3])
+                    raise CustomException
+            else:
+                return
+                if trainer.fit_loop.batch_idx == 2:
+                    self._validate_map_dl_idx_sampler_states(trainer, 1, [0, 0, 3])
+                elif trainer.fit_loop.batch_idx == 3:
+                    self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 0, 3])
 
     model = BoringModel()
     model.training_epoch_end = None
 
     dataset = IterativeRandomDataset(32, 20)
-    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=2)
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=4)
     trainer_kwargs = dict(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, num_sanity_val_steps=0, limit_val_batches=0
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, num_sanity_val_steps=0, limit_val_batches=0
     )
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    callbacks = [CheckFastForwardSamplerInjection(), ck]
+    cb = CheckFastForwardSamplerInjection()
+    callbacks = [cb, ck]
     trainer = Trainer(**trainer_kwargs, callbacks=callbacks)
-    trainer.fit(model, train_dataloader=train_dataloader)
+    try:
+        trainer.fit(model, train_dataloader=train_dataloader)
+    except CustomException:
+        pass
 
+    trainer.current_iterator.loader_iters._shutdown_workers()
+    trainer.current_iterator = None
+
+    cb.restarting = True
+
+    # todo (tchaton): weird only 2 workers are being created
     dataset = IterativeRandomDataset(32, 20)
-    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=0)
-    trainer_kwargs["max_epochs"] = 4
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=4)
     trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=ck.last_model_path, callbacks=callbacks)
     trainer.fit(model, train_dataloader=train_dataloader)

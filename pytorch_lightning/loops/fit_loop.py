@@ -166,7 +166,6 @@ class FitLoop(Loop):
                     ' not been met. Training will continue...'
                 )
         self.trainer.should_stop = should_stop
-
         return stop_steps or should_stop or stop_epochs
 
     @property

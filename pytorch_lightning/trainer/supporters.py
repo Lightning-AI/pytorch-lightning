@@ -19,9 +19,10 @@ from typing import Any, Callable, Generator, Optional, Tuple, Union
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -371,6 +372,61 @@ class CombinedLoader(object):
         if self.mode == 'max_size_cycle':
             self._wrap_loaders_max_size_cycle()
 
+        self.loaders_iter_state_dict = None
+
+    def state_dict(self):
+        out = []
+
+        def fetch_next_worker(iter: Iterator):
+            nonlocal out
+            num_workers = iter._num_workers
+            if isinstance(iter, _MultiProcessingDataLoaderIter):
+                next_worker = (next(iter._worker_queue_idx_cycle) - 1) % num_workers
+                previous_worker = (next_worker - 1) % num_workers
+                print("workers", (previous_worker, next_worker))
+                while next(iter._worker_queue_idx_cycle) != previous_worker:
+                    pass
+            else:
+                next_worker = None
+            out.append({"num_workers": iter._num_workers, "previous_worker": next_worker})
+
+        apply_to_collection(self._iterator.loader_iters, Iterator, fetch_next_worker, wrong_dtype=(Sequence, Mapping))
+
+        return out
+
+    def load_state_dict(self, state_dict):
+        count = 0
+
+        def mock_reset_fn(self, loader, **__):
+            nonlocal count
+            state_dict[count]["loader"] = loader
+            count += 1
+
+        self.loaders_iter_state_dict = state_dict
+        # delay reset call.
+        _MultiProcessingDataLoaderIter._ori_reset = _MultiProcessingDataLoaderIter._reset
+        _MultiProcessingDataLoaderIter._reset = mock_reset_fn
+
+    def on_restart(self):
+        if self.loaders_iter_state_dict:
+            loader_iters = self._iterator.loader_iters
+            state_dict = self.loaders_iter_state_dict
+
+            def cycle_to_next_worker(iter: Iterator):
+                nonlocal state_dict
+                current = state_dict.pop(0)
+                num_workers = iter._num_workers
+                assert current["num_workers"] == num_workers
+                if isinstance(iter, _MultiProcessingDataLoaderIter):
+                    for _ in range(current["previous_worker"]):
+                        next(iter._worker_queue_idx_cycle)
+                    iter._reset = iter._ori_reset
+                    iter._reset(current["loader"], first_iter=True)
+
+            apply_to_collection(loader_iters, Iterator, cycle_to_next_worker, wrong_dtype=(Sequence, Mapping))
+
+            self.loaders_iter_state_dict = None
+
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
@@ -399,6 +455,7 @@ class CombinedLoader(object):
         Create and return an iterator, `CombinedLoaderIterator`, for the combined loader.
         """
         self._iterator = CombinedLoaderIterator(self.loaders)
+        self.on_restart()
         return self._iterator
 
     @staticmethod
@@ -515,13 +572,17 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
     return compute_func(new_data)
 
 
-def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, None]:
+def prefetch_iterator(iterable: Iterable,
+                      trainer: Optional['pl.Trainer'] = None) -> Generator[Tuple[Any, bool], None, None]:
     """
     Returns an iterator that pre-fetches and caches the next item.
     The values are passed through from the given iterable with an added boolean indicating if this is the last item.
     See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
     """
     it = iter(iterable)
+
+    if trainer:
+        trainer.current_iterator = it
 
     try:
         # the iterator may be empty from the beginning
@@ -535,3 +596,6 @@ def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, N
         last = val
     # yield last, no longer has next
     yield last, True
+
+    if trainer:
+        trainer.current_iterator = None
