@@ -784,7 +784,7 @@ class LightningModule(
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of the training epoch with the outputs of all training steps.
-        Use this in case you need to do something with all the outputs for every training_step.
+        Use this in case you need to do something with all the outputs returned by :meth:`training_step`.
 
         .. code-block:: python
 
@@ -844,8 +844,6 @@ class LightningModule(
                 (only if multiple val dataloaders used)
 
         Return:
-           Any of.
-
             - Any object or value
             - ``None`` - Validation will skip to the next batch
 
