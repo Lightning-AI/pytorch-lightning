@@ -307,10 +307,8 @@ class ModelCheckpoint(Callback):
         if self.save_last and self.verbose:
             rank_zero_info("Saving last checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        trainer.train_loop.global_step -= 1
-        monitor_candidates = self._monitor_candidates(trainer)
+        monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
         self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.train_loop.global_step += 1
 
     def on_save_checkpoint(
         self,
