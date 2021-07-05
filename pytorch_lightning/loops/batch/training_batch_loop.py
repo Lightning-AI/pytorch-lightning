@@ -130,7 +130,6 @@ class TrainingBatchLoop(Loop):
 
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
-                # assert self.trainer.lightning_module.layer.weight.requires_grad
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
                     self.batch_outputs[opt_idx].append(result.training_step_output)
