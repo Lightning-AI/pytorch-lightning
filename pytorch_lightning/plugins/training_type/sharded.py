@@ -16,7 +16,7 @@ from typing import Optional
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -54,7 +54,8 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.lightning_module.trainer.precision == 16
+                    precision = self.lightning_module.trainer.precision
+                    is_fp16 = precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.
@@ -85,7 +86,7 @@ class DDPShardedPlugin(DDPPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedPlugin` requires `fairscale` to be installed."

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -21,7 +20,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from tests import PATH_DATASETS
+from tests import _PATH_DATASETS
 from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 if _TORCHVISION_AVAILABLE:
@@ -127,13 +126,8 @@ class BasicGAN(LightningModule):
 
             # adversarial loss is binary cross-entropy
             g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
-            tqdm_dict = {'g_loss': g_loss}
-            output = OrderedDict({
-                'loss': g_loss,
-                'progress_bar': tqdm_dict,
-                'log': tqdm_dict,
-            })
-            return output
+            self.log('g_loss', g_loss, prog_bar=True, logger=True)
+            return g_loss
 
         # train discriminator
         if optimizer_idx == 1:
@@ -153,13 +147,8 @@ class BasicGAN(LightningModule):
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
-            tqdm_dict = {'d_loss': d_loss}
-            output = OrderedDict({
-                'loss': d_loss,
-                'progress_bar': tqdm_dict,
-                'log': tqdm_dict,
-            })
-            return output
+            self.log('d_loss', d_loss, prog_bar=True, logger=True)
+            return d_loss
 
     def configure_optimizers(self):
         lr = self.learning_rate
@@ -171,7 +160,7 @@ class BasicGAN(LightningModule):
         return [opt_g, opt_d], []
 
     def train_dataloader(self):
-        return DataLoader(TrialMNIST(root=PATH_DATASETS, train=True, download=True), batch_size=16)
+        return DataLoader(TrialMNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=16)
 
 
 class ParityModuleRNN(LightningModule):
@@ -229,7 +218,7 @@ class ParityModuleMNIST(LightningModule):
 
     def train_dataloader(self):
         return DataLoader(MNIST(
-            root=PATH_DATASETS,
+            root=_PATH_DATASETS,
             train=True,
             download=True,
         ), batch_size=128, num_workers=1)
@@ -265,9 +254,11 @@ class ParityModuleCIFAR(LightningModule):
     def train_dataloader(self):
         return DataLoader(
             CIFAR10(
-                root="./",
+                root=_PATH_DATASETS,
                 train=True,
                 download=True,
                 transform=self.transform,
-            ), batch_size=32, num_workers=1
+            ),
+            batch_size=32,
+            num_workers=1
         )

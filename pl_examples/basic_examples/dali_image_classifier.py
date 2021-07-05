@@ -22,7 +22,7 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DALI_AVAILABLE, _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _DALI_AVAILABLE, _PATH_DATASETS, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
@@ -180,8 +180,8 @@ class MyDataModule(pl.LightningDataModule):
         batch_size: int = 32,
     ):
         super().__init__()
-        dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
-        self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+        dataset = MNIST(_PATH_DATASETS, train=True, download=True, transform=transforms.ToTensor())
+        self.mnist_test = MNIST(_PATH_DATASETS, train=False, download=True, transform=transforms.ToTensor())
         self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
 
         eii_train = ExternalMNISTInputIterator(self.mnist_train, batch_size)

@@ -19,8 +19,10 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
+from collections import defaultdict
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Type
 
-from typing import Dict, List, Optional
+from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
@@ -53,7 +55,9 @@ class LearningRateMonitor(Callback):
     In case of multiple optimizers of same type, they will be named ``Adam``,
     ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
     be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
-    ``name`` keyword in the construction of the learning rate schdulers
+    ``name`` keyword in the construction of the learning rate schedulers.
+    A ``name`` keyword can also be used for parameter groups in the
+    construction of the optimizer.
 
     Example::
 
@@ -63,6 +67,19 @@ class LearningRateMonitor(Callback):
                 'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
                 'name': 'my_logging_name'
             }
+            return [optimizer], [lr_scheduler]
+
+    Example::
+
+        def configure_optimizer(self):
+            optimizer = torch.optim.SGD(
+                [{
+                    'params': [p for p in self.parameters()],
+                    'name': 'my_parameter_group_name'
+                }],
+                lr=0.1
+            )
+            lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
             return [optimizer], [lr_scheduler]
 
     """
@@ -138,6 +155,9 @@ class LearningRateMonitor(Callback):
     def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
+        names = self._find_names(trainer.lr_schedulers, add_lr_sch_names=False)
+        self._remap_keys(names)
+
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
             if scheduler['interval'] == interval or interval == 'any':
                 opt = scheduler['scheduler'].optimizer
@@ -145,22 +165,33 @@ class LearningRateMonitor(Callback):
                 use_betas = 'betas' in opt.defaults
 
                 for i, pg in enumerate(param_groups):
-                    suffix = f'/pg{i + 1}' if len(param_groups) > 1 else ''
-                    lr = self._extract_lr(param_group=pg, name=f'{name}{suffix}')
+                    name_and_suffix = self._add_suffix(name, param_groups, i)
+                    lr = self._extract_lr(pg, name_and_suffix)
                     latest_stat.update(lr)
                     momentum = self._extract_momentum(
-                        param_group=pg, name=f'{name}-momentum{suffix}', use_betas=use_betas
+                        param_group=pg, name=name_and_suffix.replace(name, f'{name}-momentum'), use_betas=use_betas
                     )
                     latest_stat.update(momentum)
 
         return latest_stat
 
-    def _extract_lr(self, param_group, name: str) -> Dict[str, float]:
+    def _extract_lr(self, param_group: Dict[str, Any], name: str) -> Dict[str, Any]:
         lr = param_group.get('lr')
         self.lrs[name].append(lr)
         return {name: lr}
 
-    def _extract_momentum(self, param_group, name: str, use_betas: bool) -> Dict[str, float]:
+    def _remap_keys(self, names: List[str], token: str = '/pg1') -> None:
+        """
+        This function is used the remap the keys if param groups for a given optimizer increased.
+        """
+        for new_name in names:
+            old_name = new_name.replace(token, '')
+            if token in new_name and old_name in self.lrs:
+                self.lrs[new_name] = self.lrs.pop(old_name)
+            elif new_name not in self.lrs:
+                self.lrs[new_name] = []
+
+    def _extract_momentum(self, param_group: Dict[str, Any], name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
@@ -168,35 +199,65 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
-    def _find_names(self, lr_schedulers) -> List[str]:
-        # Create uniqe names in the case we have multiple of the same learning
-        # rate schduler + multiple parameter groups
+    def _add_prefix(
+        self, name: str, optimizer_cls: Type[Optimizer], seen_optimizer_types: DefaultDict[Type[Optimizer], int]
+    ) -> str:
+        if optimizer_cls not in seen_optimizer_types:
+            return name
+        count = seen_optimizer_types[optimizer_cls]
+        return name + f'-{count - 1}' if count > 1 else name
+
+    def _add_suffix(self, name: str, param_groups: List[Dict], param_group_index: int, use_names: bool = True) -> str:
+        if len(param_groups) > 1:
+            if not use_names:
+                return f'{name}/pg{param_group_index+1}'
+            pg_name = param_groups[param_group_index].get('name', f'pg{param_group_index+1}')
+            return f'{name}/{pg_name}'
+        elif use_names:
+            pg_name = param_groups[param_group_index].get('name')
+            return f'{name}/{pg_name}' if pg_name else name
+        return name
+
+    def _duplicate_param_group_names(self, param_groups: List[Dict]) -> Set[str]:
+        names = [pg.get('name', f'pg{i}') for i, pg in enumerate(param_groups, start=1)]
+        unique = set(names)
+        if len(names) == len(unique):
+            return set()
+        return set(n for n in names if names.count(n) > 1)
+
+    def _find_names(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
+        # Create unique names in the case we have multiple of the same learning
+        # rate scheduler + multiple parameter groups
         names = []
+        seen_optimizers = []
+        seen_optimizer_types = defaultdict(int)
         for scheduler in lr_schedulers:
             sch = scheduler['scheduler']
             if scheduler['name'] is not None:
                 name = scheduler['name']
             else:
-                opt_name = 'lr-' + sch.optimizer.__class__.__name__
-                i, name = 1, opt_name
+                name = 'lr-' + sch.optimizer.__class__.__name__
 
-                # Multiple schduler of the same type
-                while True:
-                    if name not in names:
-                        break
-                    i, name = i + 1, f'{opt_name}-{i}'
+            seen_optimizers.append(sch.optimizer)
+            optimizer_cls = type(sch.optimizer)
+            if scheduler['name'] is None:
+                seen_optimizer_types[optimizer_cls] += 1
 
-            # Multiple param groups for the same schduler
+            # Multiple param groups for the same scheduler
             param_groups = sch.optimizer.param_groups
+            duplicates = self._duplicate_param_group_names(param_groups)
+            if duplicates:
+                raise MisconfigurationException(
+                    'A single `Optimizer` cannot have multiple parameter groups with identical '
+                    f'`name` values. {name} has duplicated parameter group names {duplicates}'
+                )
 
-            if len(param_groups) != 1:
-                for i, pg in enumerate(param_groups):
-                    temp = f'{name}/pg{i + 1}'
-                    names.append(temp)
-            else:
-                names.append(name)
+            name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
 
-            self.lr_sch_names.append(name)
+            names.extend(self._add_suffix(name, param_groups, i) for i in range(len(param_groups)))
+
+            if add_lr_sch_names:
+                self.lr_sch_names.append(name)
 
         return names
 

@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities import _module_available
+from tests import _PATH_DATASETS
 from tests.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
 _SKLEARN_AVAILABLE = _module_available("sklearn")
@@ -28,7 +29,7 @@ if _SKLEARN_AVAILABLE:
 
 class MNISTDataModule(LightningDataModule):
 
-    def __init__(self, data_dir: str = "./", batch_size: int = 32, use_trials: bool = False) -> None:
+    def __init__(self, data_dir: str = _PATH_DATASETS, batch_size: int = 32, use_trials: bool = False) -> None:
         super().__init__()
 
         self.data_dir = data_dir

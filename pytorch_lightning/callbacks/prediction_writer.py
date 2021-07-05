@@ -109,7 +109,7 @@ class BasePredictionWriter(Callback):
         if not self.interval.on_batch:
             return
         is_distributed = trainer.accelerator_connector.is_distributed
-        batch_indices = trainer.predict_loop.batch_indices if is_distributed else None
+        batch_indices = trainer.predict_loop.epoch_loop.current_batch_indices if is_distributed else None
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
     def on_predict_epoch_end(

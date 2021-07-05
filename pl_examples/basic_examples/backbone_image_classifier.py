@@ -24,7 +24,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _PATH_DATASETS, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
@@ -100,6 +100,10 @@ class LitClassifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         self.log('test_loss', loss)
 
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, y = batch
+        return self.backbone(x)
+
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
@@ -112,8 +116,8 @@ class MyDataModule(pl.LightningDataModule):
         batch_size: int = 32,
     ):
         super().__init__()
-        dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
-        self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+        dataset = MNIST(_PATH_DATASETS, train=True, download=True, transform=transforms.ToTensor())
+        self.mnist_test = MNIST(_PATH_DATASETS, train=False, download=True, transform=transforms.ToTensor())
         self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
         self.batch_size = batch_size
 
@@ -126,10 +130,15 @@ class MyDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
+    def predict_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
 
 def cli_main():
-    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
     cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
+    print(predictions[0])
 
 
 if __name__ == '__main__':
