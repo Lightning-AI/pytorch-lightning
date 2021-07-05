@@ -264,7 +264,7 @@ def test_horovod_multi_optimizer(tmpdir):
         assert hasattr(optimizer, 'synchronize'), 'optimizer has not been wrapped into DistributedOptimizer'
 
     def get_model_params(model):
-        return set([p for p in model.parameters()])
+        return set(list(model.parameters()))
 
     def get_optimizer_params(optimizer):
         return set([p for group in optimizer.param_groups for p in group.get('params', [])])

@@ -19,8 +19,8 @@ from typing import Any, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -37,7 +37,7 @@ if _POPTORCH_AVAILABLE:
 
 class LightningIPUModule(_LightningModuleWrapperBase):
 
-    def __init__(self, pl_module: LightningModule, precision: Union[str, int]):
+    def __init__(self, pl_module: 'pl.LightningModule', precision: Union[str, int]):
         super().__init__(pl_module)
         self.precision = precision
 
@@ -108,7 +108,6 @@ class IPUPlugin(ParallelPlugin):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
     def pre_dispatch(self) -> None:
-        self._handle_gradient_accumulation_steps()
         precision = self.lightning_module.trainer.precision
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
@@ -127,6 +126,7 @@ class IPUPlugin(ParallelPlugin):
                 options=self.inference_opts,
             )
             self.poptorch_models[x] = model
+        self._handle_gradient_accumulation_steps()
 
     @property
     def replication_factor(self):
@@ -136,7 +136,7 @@ class IPUPlugin(ParallelPlugin):
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
-        gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
+        gradient_accumulation = self.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
 
         if os.environ.get("PL_GLOBAL_SEED"):
@@ -167,7 +167,7 @@ class IPUPlugin(ParallelPlugin):
                 )
                 opts.set(replication_factor=self.replication_factor)
             if training:
-                accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+                accumulate_grad_batches = self.accumulate_grad_batches
                 if opts.Training.gradient_accumulation != accumulate_grad_batches:
                     rank_zero_warn(
                         f"Training poptorch.Options set gradientAccumulation to {opts.Training.gradient_accumulation}. "
@@ -184,7 +184,7 @@ class IPUPlugin(ParallelPlugin):
                 opts.Training.set(gradient_accumulation=1)
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> Optional['pl.LightningModule']:
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
@@ -207,13 +207,13 @@ class IPUPlugin(ParallelPlugin):
                 self.process_dataloader,
             )
             return dataloader
-        elif isinstance(dataloader, list):
+        if isinstance(dataloader, list):
             dataloader = apply_to_collection(dataloader, DataLoader, self.process_dataloader)
             return dataloader
         if not isinstance(dataloader, poptorch.DataLoader):
-            dataloader = self._convert_to_poptorch_loader(
-                dataloader=dataloader, opts=self._create_opts(training=self.lightning_module.training)
-            )
+            is_training = self.lightning_module.trainer.training
+            opts = self.training_opts if is_training else self.inference_opts
+            dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader
 
     def _convert_to_poptorch_loader(self, dataloader: Union[Iterable, DataLoader],
@@ -242,33 +242,44 @@ class IPUPlugin(ParallelPlugin):
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
+    @property
+    def accumulate_grad_batches(self) -> int:
+        """
+        Tracks lazily the set accumulate_grad_batches in the trainer.
+        The IPUPlugin replaces the original accumulate_grad_batches.
+        """
+        if self._original_accumulate_grad_batches is None:
+            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+            if not isinstance(self._original_accumulate_grad_batches, int):
+                raise MisconfigurationException(
+                    "IPUs currently only support accumulate_grad_batches being an integer value. "
+                    f"Received {self.accumulate_grad_batches}"
+                )
+        return self._original_accumulate_grad_batches
+
     def _handle_gradient_accumulation_steps(self):
         """
         This functions overrides the trainer.accumulation_scheduler to generate
         ``accumulate_grad_batches=1``.
         Therefore, ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation.
         """
-        self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(self._original_accumulate_grad_batches, int):
-            raise MisconfigurationException(
-                f"IPUs currently only support accumulate_grad_batches being an integer value. "
-                f"Received {self._original_accumulate_grad_batches}"
-            )
-        if self._original_accumulate_grad_batches > 1:
+        if self.accumulate_grad_batches > 1:
             self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        if self._original_accumulate_grad_batches > 1:
-            if total_batch_idx % self._original_accumulate_grad_batches == 0:
+        if self.accumulate_grad_batches > 1:
+            if total_batch_idx % self.accumulate_grad_batches == 0:
                 current_global_step += 1
             return current_global_step
         return super().update_global_step(total_batch_idx, current_global_step)
 
     @property
     def _n_replicate(self):
-        # Ensure we replicate values to have enough dimensions to split across devices
-        accumulate_grad_batches = self._original_accumulate_grad_batches
-        return self.replication_factor * self.device_iterations * accumulate_grad_batches
+        opts = self.training_opts if self.lightning_module.training else self.inference_opts
+        accumulate_grad_batches = opts.Training.gradient_accumulation
+        device_iterations = opts.device_iterations
+        replication_factor = opts.replication_factor
+        return replication_factor * device_iterations * accumulate_grad_batches
 
     def _prepare_input(self, args: Any):
 

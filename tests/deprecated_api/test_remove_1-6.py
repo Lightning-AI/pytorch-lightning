@@ -16,7 +16,9 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -77,12 +79,12 @@ def test_v1_6_0_ddp_sync_batchnorm():
 
 
 def test_v1_6_0_ddp_spawn_num_nodes():
-    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
+    with pytest.deprecated_call(match="Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(num_nodes=1)
 
 
 def test_v1_6_0_ddp_spawn_sync_batchnorm():
-    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
+    with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(sync_batchnorm=False)
 
 
@@ -227,3 +229,49 @@ def test_v1_6_0_extras_with_gradients(tmpdir):
     match = r"\{'foo'\} has a `grad_fn`.*behaviour will change in v1\.6"
     with pytest.deprecated_call(match=match):
         trainer.fit(model)
+
+
+def test_v1_6_0_train_loop(tmpdir):
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match=r"`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
+    ):
+        _ = trainer.train_loop
+
+
+def test_v1_6_0_rank_zero_warnings_moved():
+    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
+        rank_zero_warn('test')
+    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
+        rank_zero_deprecation('test')
+
+
+def test_v1_6_0_ddp_plugin_task_idx():
+    plugin = DDPPlugin()
+    with pytest.deprecated_call(match='Use `DDPPlugin.local_rank` instead'):
+        _ = plugin.task_idx
+
+
+def test_v1_6_0_lightning_module_loaded_optimizer_states_dict():
+    from pytorch_lightning.core.lightning import warning_cache
+    model = BoringModel()
+    _ = model.loaded_optimizer_states_dict
+    assert any(
+        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
+    )
+    warning_cache.clear()
+
+    model.loaded_optimizer_states_dict = {}
+    assert any(
+        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
+    )
+    warning_cache.clear()
+
+
+def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
+    model = BoringModel()
+    with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
+        ModelSummary(model, mode="top")
+
+    with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
+        model.summarize(mode="top")

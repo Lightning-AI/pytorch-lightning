@@ -813,11 +813,11 @@ def test_missing_worker_init_fn():
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat([batch for batch in dataloader])
+    batches0 = torch.cat(list(dataloader))
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat([batch for batch in dataloader])
+    batches1 = torch.cat(list(dataloader))
 
     is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
     is_deterministic = torch.eq(batches0, batches1).all()
@@ -1533,7 +1533,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
             if self.trainer.training:
-                assert dataloader_idx is None
+                assert dataloader_idx == 0
             elif self.trainer.validating:
                 assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:

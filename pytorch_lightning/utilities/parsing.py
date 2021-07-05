@@ -19,7 +19,7 @@ from argparse import Namespace
 from dataclasses import fields, is_dataclass
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -33,18 +33,20 @@ def str_to_bool_or_str(val: str) -> Union[str, bool]:
     lower = val.lower()
     if lower in ('y', 'yes', 't', 'true', 'on', '1'):
         return True
-    elif lower in ('n', 'no', 'f', 'false', 'off', '0'):
+    if lower in ('n', 'no', 'f', 'false', 'off', '0'):
         return False
-    else:
-        return val
+    return val
 
 
 def str_to_bool(val: str) -> bool:
     """Convert a string representation of truth to bool.
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
+    are 'n', 'no', 'f', 'false', 'off', and '0'.
+
+    Raises:
+        ValueError:
+            If ``val`` isn't in one of the aforementioned true or false values.
 
     >>> str_to_bool('YES')
     True
@@ -98,7 +100,7 @@ def clean_namespace(hparams):
     del_attrs = [k for k, v in hparams_dict.items() if not is_picklable(v)]
 
     for k in del_attrs:
-        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
+        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled")
         del hparams_dict[k]
 
 
@@ -165,10 +167,9 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         # recursive update
         path_args.append(local_args)
         return collect_init_args(frame.f_back, path_args, inside=True)
-    elif not inside:
+    if not inside:
         return collect_init_args(frame.f_back, path_args, inside)
-    else:
-        return path_args
+    return path_args
 
 
 def flatten_dict(source, result=None):

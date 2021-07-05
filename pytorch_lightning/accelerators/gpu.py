@@ -13,13 +13,11 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
@@ -42,10 +40,7 @@ class GPUAccelerator(Accelerator):
 
     def on_train_start(self) -> None:
         # clear cache before training
-        # use context because of:
-        # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
@@ -54,11 +49,3 @@ class GPUAccelerator(Accelerator):
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
-
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        # no need to transfer batch to device in DP mode
-        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
-        if not isinstance(self.training_type_plugin, DataParallelPlugin):
-            step_kwargs = super().to_device(step_kwargs)
-
-        return step_kwargs
