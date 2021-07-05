@@ -178,6 +178,10 @@ class TrainingBatchLoop(Loop):
             with self.block_ddp_sync_behaviour():
                 closure()
 
+            if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
+                # revert back to previous state
+                self.trainer.lightning_module.untoggle_optimizer(opt_idx)
+
         # ------------------------------
         # BACKWARD PASS
         # ------------------------------
