@@ -282,6 +282,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#8025](https://github.com/PyTorchLightning/pytorch-lightning/pull/8025))
 
 
+- Deprecated the `Trainer.disable_validation` property in favor of `not Trainer.enable_validation` ([#8291](https://github.com/PyTorchLightning/pytorch-lightning/pull/8291))
+
+
 - Deprecated `mode` parameter in `ModelSummary` in favor of `max_depth` ([#8062](https://github.com/PyTorchLightning/pytorch-lightning/pull/8062))
 
 
