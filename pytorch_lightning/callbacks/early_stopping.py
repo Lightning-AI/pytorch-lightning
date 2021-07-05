@@ -149,8 +149,12 @@ class EarlyStopping(Callback):
     def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule',
-                           checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[str, Any]:
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
