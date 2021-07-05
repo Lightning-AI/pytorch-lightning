@@ -180,7 +180,7 @@ class IPUPlugin(ParallelPlugin):
         return self._process_dataloader(dataloader, is_training=False)
 
     def _process_dataloader(self, dataloader: Union[Iterable, DataLoader],
-                            is_training: bool) -> Union[Iterable, DataLoader]:
+                            is_training: bool,) -> Union[Iterable, DataLoader]:
         if isinstance(dataloader, CombinedLoader):
             dataloader.loaders = apply_to_collection(
                 dataloader.loaders, DataLoader, self._process_dataloader, is_training
