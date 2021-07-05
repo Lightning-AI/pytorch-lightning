@@ -137,7 +137,7 @@ class TrainerProperties(ABC):
 
     @property
     def ipus(self) -> int:
-        return self.accelerator_connector.ipus
+        return self.accelerator_connector.num_ipus
 
     @property
     def num_gpus(self) -> int:
