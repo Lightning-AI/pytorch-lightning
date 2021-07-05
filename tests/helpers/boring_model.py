@@ -17,6 +17,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
+from tests import _PATH_DATASETS
 
 
 class RandomDictDataset(Dataset):
@@ -154,7 +155,7 @@ class BoringModel(LightningModule):
 
 class BoringDataModule(LightningDataModule):
 
-    def __init__(self, data_dir: str = './'):
+    def __init__(self, data_dir: str = _PATH_DATASETS):
         super().__init__()
         self.data_dir = data_dir
         self.non_picklable = None

@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from tests import PATH_DATASETS
+from tests import _PATH_DATASETS
 from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 if _TORCHVISION_AVAILABLE:
@@ -160,7 +160,7 @@ class BasicGAN(LightningModule):
         return [opt_g, opt_d], []
 
     def train_dataloader(self):
-        return DataLoader(TrialMNIST(root=PATH_DATASETS, train=True, download=True), batch_size=16)
+        return DataLoader(TrialMNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=16)
 
 
 class ParityModuleRNN(LightningModule):
@@ -218,7 +218,7 @@ class ParityModuleMNIST(LightningModule):
 
     def train_dataloader(self):
         return DataLoader(MNIST(
-            root=PATH_DATASETS,
+            root=_PATH_DATASETS,
             train=True,
             download=True,
         ), batch_size=128, num_workers=1)
@@ -254,9 +254,11 @@ class ParityModuleCIFAR(LightningModule):
     def train_dataloader(self):
         return DataLoader(
             CIFAR10(
-                root="./",
+                root=_PATH_DATASETS,
                 train=True,
                 download=True,
                 transform=self.transform,
-            ), batch_size=32, num_workers=1
+            ),
+            batch_size=32,
+            num_workers=1
         )
