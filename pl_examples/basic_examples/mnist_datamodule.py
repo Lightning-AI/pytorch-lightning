@@ -17,7 +17,7 @@ from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE
+from pl_examples import _PATH_DATASETS, _TORCHVISION_MNIST_AVAILABLE
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
@@ -41,7 +41,7 @@ class MNISTDataModule(LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str = _DATASETS_PATH,
+        data_dir: str = _PATH_DATASETS,
         val_split: int = 5000,
         num_workers: int = 16,
         normalize: bool = False,
