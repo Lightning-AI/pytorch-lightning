@@ -256,7 +256,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         gpus=1,
         precision=16,
     )
-    with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
+    with pytest.warns(UserWarning, match='will be ignored since DeepSpeed handles the backward'):
         trainer.fit(model)
 
 

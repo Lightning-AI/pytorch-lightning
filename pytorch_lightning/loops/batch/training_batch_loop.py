@@ -139,6 +139,10 @@ class TrainingBatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
+    def teardown(self) -> None:
+        # release memory
+        self._remaining_splits = None
+
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency"""
         return len(self.get_active_optimizers(batch_idx))
