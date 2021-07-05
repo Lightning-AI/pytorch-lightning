@@ -23,10 +23,12 @@ from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import BatchProgress, OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -48,12 +50,29 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self._warning_cache: WarningCache = WarningCache()
+        self.progress = BatchProgress()
+        self.optim_progress = OptimizationProgress()
 
+        self._warning_cache: WarningCache = WarningCache()
         self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
+
+    def connect(
+        self,
+        trainer: 'pl.Trainer',
+        *args: Any,
+        progress: Optional[BatchProgress] = None,
+        optim_progress: Optional[OptimizationProgress] = None,
+        **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
+        super().connect(trainer, *args, **kwargs)
+        if progress is not None:
+            self.progress = progress
+        if optim_progress is not None:
+            self.optim_progress = optim_progress
 
     @property
     def done(self) -> bool:
