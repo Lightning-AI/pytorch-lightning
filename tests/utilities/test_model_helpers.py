@@ -37,6 +37,9 @@ def test_is_overridden():
         def foo(self):
             pass
 
+        def bar(self):
+            return 1
+
     with pytest.raises(ValueError, match="The parent should define the method"):
         is_overridden("foo", TestModel())
 
@@ -49,6 +52,7 @@ def test_is_overridden():
         def __new__(cls, *args, **kwargs):
             obj = super().__new__(cls)
             obj.foo = cls.wrap(obj.foo)
+            obj.bar = cls.wrap(obj.bar)
             return obj
 
         @staticmethod
@@ -60,8 +64,12 @@ def test_is_overridden():
 
             return wrapper
 
+        def bar(self):
+            return 2
+
     # `functools.wraps()` support
     assert not is_overridden("foo", WrappedModel(), parent=TestModel)
+    assert is_overridden("bar", WrappedModel(), parent=TestModel)
 
     # `Mock` support
     mock = Mock(spec=BoringModel, wraps=model)
