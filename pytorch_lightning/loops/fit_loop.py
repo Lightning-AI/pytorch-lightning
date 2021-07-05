@@ -235,7 +235,7 @@ class FitLoop(Loop):
 
         self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
-        did_train_only = self.trainer.disable_validation or self.epoch_loop.val_loop.skip
+        did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
         if did_train_only:
             self.global_step -= 1
             self._check_checkpoint_callback(True)
