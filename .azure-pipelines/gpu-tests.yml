@@ -61,47 +61,47 @@ jobs:
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
-    - bash: |
-        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-        unzip -o legacy/checkpoints.zip -d legacy/
-        ls -l legacy/checkpoints/
-      displayName: 'Get legacy checkpoints'
+    #- bash: |
+    #    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
+    #    unzip -o legacy/checkpoints.zip -d legacy/
+    #    ls -l legacy/checkpoints/
+    #  displayName: 'Get legacy checkpoints'
 
-    - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
-      displayName: 'Testing: standard'
+    #- bash: |
+    #    python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+    #  displayName: 'Testing: standard'
 
-    - bash: |
-        bash tests/special_tests.sh
-      displayName: 'Testing: special'
+    #- bash: |
+    #    bash tests/special_tests.sh
+    #  displayName: 'Testing: special'
 
-    - bash: |
-        python -m coverage report
-        python -m coverage xml
-        python -m coverage html
-        python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
-        ls -l
-      displayName: 'Statistics'
+    #- bash: |
+    #    python -m coverage report
+    #    python -m coverage xml
+    #    python -m coverage html
+    #    python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
+    #    ls -l
+    #  displayName: 'Statistics'
 
-    - task: PublishTestResults@2
-      displayName: 'Publish test results'
-      inputs:
-        testResultsFiles: '$(Build.StagingDirectory)/test-results.xml'
-        testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
-      condition: succeededOrFailed()
+    #- task: PublishTestResults@2
+    #  displayName: 'Publish test results'
+    #  inputs:
+    #    testResultsFiles: '$(Build.StagingDirectory)/test-results.xml'
+    #    testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
+    #  condition: succeededOrFailed()
 
-    - task: PublishCodeCoverageResults@1
-      displayName: 'Publish coverage report'
-      inputs:
-        codeCoverageTool: 'cobertura'
-        summaryFileLocation: 'coverage.xml'
-        reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
-        testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
-      condition: succeededOrFailed()
+    #- task: PublishCodeCoverageResults@1
+    #  displayName: 'Publish coverage report'
+    #  inputs:
+    #    codeCoverageTool: 'cobertura'
+    #    summaryFileLocation: 'coverage.xml'
+    #    reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
+    #    testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
+    #  condition: succeededOrFailed()
 
-    - bash: |
-        python -m pytest benchmarks -v --maxfail=2 --durations=0
-      displayName: 'Testing: benchmarks'
+    #- bash: |
+    #    python -m pytest benchmarks -v --maxfail=2 --durations=0
+    #  displayName: 'Testing: benchmarks'
 
     - script: |
         set -e
