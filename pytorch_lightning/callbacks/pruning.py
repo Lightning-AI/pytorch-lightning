@@ -417,7 +417,6 @@ class ModelPruning(Callback):
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             prev_device = pl_module.device
             # prune a copy so training can continue with the same buffers
-            rank_zero_debug(f"{pl_module.layer.mlp_3.weight.grad_fn=}")
             copy = deepcopy(pl_module.to("cpu"))
             self.make_pruning_permanent(copy)
             checkpoint["state_dict"] = copy.state_dict()
