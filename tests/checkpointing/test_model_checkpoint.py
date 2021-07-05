@@ -533,7 +533,7 @@ def test_model_checkpoint_save_last(tmpdir):
 
 def test_invalid_top_k(tmpdir):
     """ Make sure that a MisconfigurationException is raised for a negative save_top_k argument. """
-    with pytest.raises(MisconfigurationException, match=r'.*Must be None or >= -1'):
+    with pytest.raises(MisconfigurationException, match=r'.*Must be >= -1'):
         ModelCheckpoint(dirpath=tmpdir, save_top_k=-3)
 
 
@@ -544,9 +544,9 @@ def test_none_monitor_top_k(tmpdir):
     ):
         ModelCheckpoint(dirpath=tmpdir, save_top_k=3)
     # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, save_top_k=None)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
+    ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
 
 
 def test_none_monitor_save_last(tmpdir):
