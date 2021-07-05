@@ -22,6 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -173,15 +174,11 @@ class Accelerator:
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
-
-        if model is not None:
+        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
+            # no need to transfer batch to device in DP mode
             return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
 
         return move_data_to_device(batch, device)
-
-    def on_train_start(self) -> None:
-        """Hook to do something upon the training start"""
-        pass
 
     def training_step(
         self,
@@ -199,8 +196,6 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
@@ -219,8 +214,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
@@ -236,8 +229,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
@@ -253,8 +244,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
@@ -348,14 +337,6 @@ class Accelerator:
             model=self.model,
         )
 
-    def on_train_epoch_end(self) -> None:
-        """Hook to do something on the end of an training epoch."""
-        pass
-
-    def on_train_end(self) -> None:
-        """Hook to do something at the end of the training"""
-        pass
-
     def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
         """
         Creates optimizers and schedulers
@@ -383,18 +364,11 @@ class Accelerator:
         self.optimizers = optimizers
         self.schedulers = schedulers
 
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        """Pushes the batch to the root device"""
-        step_kwargs['batch'] = self.batch_to_device(
-            step_kwargs['batch'], self.root_device, dataloader_idx=step_kwargs.get('dataloader_idx', None)
-        )
-        return step_kwargs
-
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
-        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
         return None
 
@@ -405,10 +379,6 @@ class Accelerator:
     @property
     def scaler(self) -> Optional['GradScaler']:
         return getattr(self.precision_plugin, 'scaler', None)
-
-    @property
-    def rpc_enabled(self) -> bool:
-        return self.training_type_plugin.rpc_enabled
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
@@ -459,6 +429,22 @@ class Accelerator:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return self.training_type_plugin.process_dataloader(dataloader)
+
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the train dataloader."""
+        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
+
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the val dataloader."""
+        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
+
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the test dataloader."""
+        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
+
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the predict dataloader."""
+        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
 
     @property
     def results(self) -> Any:
@@ -547,3 +533,45 @@ class Accelerator:
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
+
+    def on_train_epoch_end(self) -> None:
+        """Hook to do something on the end of an training epoch."""
+        pass
+
+    def on_train_start(self) -> None:
+        """Called when train begins."""
+        return self.training_type_plugin.on_train_start()
+
+    def on_validation_start(self) -> None:
+        """Called when validation begins."""
+        return self.training_type_plugin.on_validation_start()
+
+    def on_test_start(self) -> None:
+        """Called when test begins."""
+        return self.training_type_plugin.on_test_start()
+
+    def on_predict_start(self) -> None:
+        """Called when predict begins."""
+        return self.training_type_plugin.on_predict_start()
+
+    def on_validation_end(self) -> None:
+        """Called when validation ends."""
+        return self.training_type_plugin.on_validation_end()
+
+    def on_test_end(self) -> None:
+        """Called when test end."""
+        return self.training_type_plugin.on_test_end()
+
+    def on_predict_end(self) -> None:
+        """Called when predict ends."""
+        return self.training_type_plugin.on_predict_end()
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        return self.training_type_plugin.on_train_end()
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+        """
+        return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)

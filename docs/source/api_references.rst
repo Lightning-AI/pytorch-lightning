@@ -89,8 +89,6 @@ Training Type Plugins
     DDPSpawnPlugin
     DeepSpeedPlugin
     HorovodPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
 
@@ -137,8 +135,15 @@ Profiler API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    profilers
+    AbstractProfiler
+    AdvancedProfiler
+    BaseProfiler
+    PassThroughProfiler
+    PyTorchProfiler
+    SimpleProfiler
+
 
 Trainer API
 -----------

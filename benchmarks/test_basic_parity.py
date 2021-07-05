@@ -46,8 +46,8 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 @pytest.mark.parametrize(
     'cls_model,max_diff_speed,max_diff_memory,num_epochs,num_runs',
     [
-        (ParityModuleRNN, 0.05, 0.0, 4, 3),
-        (ParityModuleMNIST, 0.25, 0.0, 4, 3),  # todo: lower this thr
+        (ParityModuleRNN, 0.05, 0.001, 4, 3),
+        (ParityModuleMNIST, 0.25, 0.001, 4, 3),  # todo: lower this thr
         pytest.param(
             ParityModuleCIFAR,
             4.0,
@@ -180,4 +180,4 @@ def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
     )
     trainer.fit(model)
 
-    return trainer.train_loop.running_loss.last().item(), _hook_memory()
+    return trainer.fit_loop.running_loss.last().item(), _hook_memory()

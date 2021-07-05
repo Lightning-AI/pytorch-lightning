@@ -26,6 +26,7 @@ from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
+from weakref import proxy
 
 import numpy as np
 import torch
@@ -101,7 +102,7 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         every_n_train_steps: Number of training steps between checkpoints.
-            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training
+            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``train_time_interval`` and ``every_n_val_epochs``.
         train_time_interval: Checkpoints are monitored at the specified time interval.
@@ -110,7 +111,7 @@ class ModelCheckpoint(Callback):
             guaranteed to execute at the exact time specified, but should be close.
             This must be mutually exclusive with ``every_n_train_steps`` and ``every_n_val_epochs``.
         every_n_val_epochs: Number of validation epochs between checkpoints.
-            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end
+            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end.
             To disable, set ``every_n_val_epochs = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``every_n_train_steps`` and ``train_time_interval``.
             Setting both ``ModelCheckpoint(..., every_n_val_epochs=V)`` and
@@ -330,6 +331,10 @@ class ModelCheckpoint(Callback):
         # Mode 3: save last checkpoints
         self._save_last_checkpoint(trainer, monitor_candidates)
 
+        # notify loggers
+        if trainer.is_global_zero and trainer.logger:
+            trainer.logger.after_save_checkpoint(proxy(self))
+
     def _should_skip_saving_checkpoint(self, trainer: 'pl.Trainer') -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
         return (
@@ -478,15 +483,6 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: 'pl.Trainer', filepath: str) -> None:
-        if trainer.training_type_plugin.rpc_enabled:
-            # RPCPlugin manages saving all model states
-            # TODO: the rpc plugin should wrap trainer.save_checkpoint
-            # instead of us having to do it here manually
-            trainer.training_type_plugin.rpc_save_model(trainer, self._do_save, filepath)
-        else:
-            self._do_save(trainer, filepath)
-
-    def _do_save(self, trainer: 'pl.Trainer', filepath: str) -> None:
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -645,10 +641,10 @@ class ModelCheckpoint(Callback):
             self.save_top_k = 1
 
         if deprecation_warning:
-            warning_cache.warn(
+            warning_cache.deprecation(
                 "Relying on `self.log('val_loss', ...)` to set the ModelCheckpoint monitor is deprecated in v1.2"
                 " and will be removed in v1.4. Please, create your own `mc = ModelCheckpoint(monitor='your_monitor')`"
-                " and use it as `Trainer(callbacks=[mc])`.", DeprecationWarning
+                " and use it as `Trainer(callbacks=[mc])`.",
             )
 
     def _validate_monitor_key(self, trainer: 'pl.Trainer') -> None:
@@ -661,7 +657,10 @@ class ModelCheckpoint(Callback):
                 f" {list(metrics.keys())}. "
                 f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
-            raise MisconfigurationException(m)
+            if not trainer.fit_loop.epoch_loop.val_loop._has_run:
+                warning_cache.warn(m)
+            else:
+                raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(
         self,
