@@ -100,6 +100,9 @@ class EvaluationEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
+        with self.trainer.profiler.profile("evaluation_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
@@ -119,11 +122,10 @@ class EvaluationEpochLoop(Loop):
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""
-        return self.outputs
-
-    def teardown(self) -> None:
-        """Frees memory of tracked outputs"""
+        outputs = self.outputs
+        # free memory
         self.outputs = []
+        return outputs
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).

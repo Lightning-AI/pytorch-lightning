@@ -83,17 +83,20 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
+        with self.trainer.profiler.profile("predict_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 
     def on_run_end(self) -> Tuple[Any, Any]:
         """Returns the predictions and the corresponding batch indices"""
-        return self.predictions, self._all_batch_indices
-
-    def teardown(self) -> None:
-        """Frees memory of collected predictions."""
+        predictions = self.predictions
+        all_batch_indices = self._all_batch_indices
+        # free memory
         self.predictions = []
         self._all_batch_indices = []
+        return predictions, all_batch_indices
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Runs the actual predict step together with all the
