@@ -45,8 +45,8 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 @pytest.mark.parametrize(
     'cls_model,max_diff_speed,max_diff_memory',
     [
-        (ParityModuleRNN, 0.05, 0.0),
-        (ParityModuleMNIST, 0.25, 0.0),  # todo: lower this thr
+        (ParityModuleRNN, 0.05, 0.001),
+        (ParityModuleMNIST, 0.25, 0.001),  # todo: lower this thr
     ]
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
