@@ -328,12 +328,11 @@ class AcceleratorConnector(object):
         return len(gpus)
 
     @property
-    def num_ipus(self) -> int:
+    def num_ipus(self) -> Optional[int]:
         if isinstance(self.ipus, int):
             return self.ipus
-        elif isinstance(self._training_type_plugin, IPUPlugin):
+        if isinstance(self._training_type_plugin, IPUPlugin):
             return self._training_type_plugin.replication_factor
-        return self.ipus
 
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
