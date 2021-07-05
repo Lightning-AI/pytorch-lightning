@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -ex
 
 ARGS="--trainer.max_epochs=1 --data.batch_size=32 --trainer.limit_train_batches=2 --trainer.limit_val_batches=2"
 
