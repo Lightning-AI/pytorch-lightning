@@ -302,7 +302,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated trainer attributes - `get_model` and `accelerator_backend` ([#7502](https://github.com/PyTorchLightning/pytorch-lightning/pull/7502))
 
 
-- Removed support for automatically monitoring the `val_loss` key with `ModelCheckpoint` ([#8293](https://github.com/PyTorchLightning/pytorch-lightning/pull/8293))
+- Removed support for automatically monitoring the `val_loss` key with `ModelCheckpoint`. Pass your `monitor` of choice to the `ModelCheckpoint` instance instead ([#8293](https://github.com/PyTorchLightning/pytorch-lightning/pull/8293))
 
 
 - Removed support for `self.log(tbptt_reduce_fx)` and `self.log(tbptt_pad_token)`. Please, open a discussion explaining your use-case if you relied on these. ([#7644](https://github.com/PyTorchLightning/pytorch-lightning/pull/7644))
