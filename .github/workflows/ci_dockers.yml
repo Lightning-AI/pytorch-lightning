@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.7]
-        pytorch_version: [1.4, 1.8]
+        pytorch_version: [1.6, 1.8]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -68,24 +68,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # todo: see notes in Dockerfile
           - python_version: 3.6
-            pytorch_version: 1.4
+            pytorch_version: 1.6
           - python_version: 3.7
             pytorch_version: 1.7
           - python_version: 3.8
             pytorch_version: 1.8
-          # - python_version: 3.9
-          #   pytorch_version: 1.9
+          - python_version: 3.9
+            pytorch_version: 1.9
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      # for PT 1.4 we need to use CUDA 10.1
-      - run: |
-          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) >= 1.5 else 10.1)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-        id: extend
 
       - name: Build CUDA Docker
         # publish master/release
@@ -94,7 +87,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
+            CUDA_VERSION=10.2
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 50
@@ -106,7 +99,7 @@ jobs:
       matrix:
         include:
           - python_version: 3.6
-            pytorch_version: 1.4
+            pytorch_version: 1.6
           - python_version: 3.7
             pytorch_version: 1.7
           - python_version: 3.8
@@ -117,12 +110,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # for PT 1.3 and 1.4 we need to use CUDA 10.1
-      - run: |
-          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-        id: extend
-
       - name: Build CUDA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -130,7 +117,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
+            CUDA_VERSION=10.2
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50
