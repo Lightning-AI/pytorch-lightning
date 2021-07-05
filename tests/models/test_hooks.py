@@ -256,7 +256,6 @@ class HookedModel(BoringModel):
     def __init__(self, called):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
-        pl_module_hooks.difference_update({'optimizers'})  # for manual opt
         # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         module_hooks.difference_update({'forward', 'zero_grad', 'train'})
@@ -305,8 +304,8 @@ class HookedModel(BoringModel):
                 dict(name='forward', args=(ANY, )),
             ]
             if not self.automatic_optimization:
-                # FIXME: can be simplified?
                 expected += [
+                    dict(name='optimizers'),
                     # FIXME: None, None?
                     *([dict(name='backward', args=(ANY, None, None))] if using_apex else []),
                     dict(name='manual_backward', args=(ANY, ANY)),
@@ -423,9 +422,9 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         def training_step(self, batch, batch_idx):
             if self.automatic_optimization:
                 return super().training_step(batch, batch_idx)
+            loss = self.step(batch[0])
             opt = self.optimizers()
             opt.zero_grad()
-            loss = self.step(batch[0])
             self.manual_backward(loss, opt)
             opt.step()
             return {'loss': loss}
