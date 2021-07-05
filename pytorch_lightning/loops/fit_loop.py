@@ -20,6 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import FitLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -50,6 +51,7 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
+        self.progress = FitLoopProgress()
 
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
@@ -167,10 +169,14 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+    def connect(
+        self, trainer: 'pl.Trainer', *args: Any, progress: Optional[FitLoopProgress] = None, **kwargs: Any
+    ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+        if progress is not None:
+            self.progress = progress
+        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -236,7 +242,7 @@ class FitLoop(Loop):
             self.global_step += 1
 
     def on_run_end(self) -> None:
-        """Runs teardown logic and calls the ``on_train_end`` hook"""
+        """Calls the ``on_train_end`` hook"""
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
@@ -265,9 +271,6 @@ class FitLoop(Loop):
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
-        # reset bookkeeping
-        self.trainer._running_stage = None
-
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
         return self.epoch_loop.batch_loop.should_accumulate()
@@ -291,3 +294,6 @@ class FitLoop(Loop):
 
     def load_state_dict(self, state_dict: Dict) -> None:
         self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
+
+    def teardown(self) -> None:
+        self.epoch_loop.teardown()

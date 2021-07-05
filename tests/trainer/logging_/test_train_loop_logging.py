@@ -261,7 +261,9 @@ def test_tbptt_log(tmpdir):
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
+            if hiddens is not None:
+                assert hiddens.grad_fn is None
+            self.test_hidden = torch.tensor(2., requires_grad=True).pow(2)
 
             x_tensor, y_list = batch
             assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
