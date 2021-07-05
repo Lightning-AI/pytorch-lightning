@@ -109,6 +109,7 @@ extensions = [
     'sphinx_copybutton',
     'sphinx_paramlinks',
     'sphinx_togglebutton',
+    'sphinx_search.extension',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
