@@ -256,9 +256,11 @@ class HookedModel(BoringModel):
     def __init__(self, called):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
+        pl_module_hooks.difference_update({'optimizers'})  # for manual opt
         # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
-        pl_module_hooks.difference_update(module_hooks - {'forward', 'zero_grad', 'train'})
+        module_hooks.difference_update({'forward', 'zero_grad', 'train'})
+        pl_module_hooks.difference_update(module_hooks)
 
         def call(hook, fn, *args, **kwargs):
             out = fn(*args, **kwargs)
