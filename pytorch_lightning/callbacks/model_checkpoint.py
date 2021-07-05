@@ -221,7 +221,7 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
 
         self.__init_monitor_mode(mode)
-        self.__init_ckpt_dir(dirpath, filename, save_top_k)
+        self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_val_epochs, train_time_interval, period)
         self.__validate_init_configuration()
         self._save_function = None
@@ -383,15 +383,10 @@ class ModelCheckpoint(Callback):
                     ' will duplicate the last checkpoint saved.'
                 )
 
-    def __init_ckpt_dir(
-        self,
-        dirpath: Optional[Union[str, Path]],
-        filename: Optional[str],
-        save_top_k: int,
-    ) -> None:
+    def __init_ckpt_dir(self, dirpath: Optional[Union[str, Path]], filename: Optional[str]) -> None:
         self._fs = get_filesystem(str(dirpath) if dirpath else '')
 
-        if save_top_k > 0 and dirpath is not None and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
+        if self.save_top_k != 0 and dirpath is not None and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
         if dirpath and self._fs.protocol == 'file':
