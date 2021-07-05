@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - bash: |
-          python -m pytest benchmarks -v --maxfail=2 --durations=0
+          python -m pytest benchmarks -v --durations=0
         displayName: 'Testing: benchmarks'
         env:
           PL_RUNNING_BENCHMARKS: 1
