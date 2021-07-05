@@ -1437,7 +1437,6 @@ class LightningModule(
 
         Args:
             loss: The tensor on which to compute gradients. Must have a graph attached.
-            optimizer: This argument is unused and deprecated. It will be removed in v1.4.
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
