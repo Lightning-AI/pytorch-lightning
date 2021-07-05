@@ -186,6 +186,8 @@ class FastForwardSampler:
         local_counter = 0
         for batch in self._sampler:
             if self.restarting:
+                if self._current_iteration == 0:
+                    self.restarting = False
                 if self._state_dict is not None and self.worker_id in self._state_dict:
                     worker_state_dict = self._state_dict[self.worker_id]
                     self.load_state_dict(worker_state_dict)
@@ -194,7 +196,6 @@ class FastForwardSampler:
                 if local_counter == self._current_iteration:
                     self.restarting = False
             else:
-                print("FastForwardSampler", self.worker_id, self._current_iteration)
                 if self.no_worker or self.inside_workers:
                     self._current_iteration += 1
                 yield batch
@@ -265,7 +266,6 @@ class FastForwardSampler:
             self._state_dict = state_dict
             self.restarting = True
             return
-        print("RELOADING", self.worker_id, state_dict)
         self.current_iteration = state_dict["current_iteration"]
         if state_dict["rng_state"] is not None:
             torch.random.set_rng_state(state_dict["rng_state"])

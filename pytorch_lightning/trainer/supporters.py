@@ -421,7 +421,7 @@ class CombinedLoader(object):
                     while next(iter._worker_queue_idx_cycle) != 0:
                         pass
                     # increment previous worker
-                    for _ in range(current["previous_worker"]):
+                    for _ in range(current["previous_worker"] - 1):
                         next(iter._worker_queue_idx_cycle)
                     iter._reset = iter._ori_reset
                     iter._reset(current["loader"], first_iter=True)

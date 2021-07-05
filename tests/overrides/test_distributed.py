@@ -400,12 +400,15 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
         def _validate_map_dl_idx_sampler_states(self, trainer, num_dataloaders, worker_iterations):
             map_dl_idx_sampler_states = trainer.fit_loop.epoch_loop._map_dl_idx_sampler_states
             assert len(map_dl_idx_sampler_states) == num_dataloaders
-            assert len(map_dl_idx_sampler_states[0]["iter_sampler"]) == len(worker_iterations)
-            assert map_dl_idx_sampler_states[0]["iter_sampler"][0]["current_iteration"] == worker_iterations[0]
-            if len(worker_iterations) == 2:
+            assert len(map_dl_idx_sampler_states[0]["iter_sampler"]) == len([i for i in worker_iterations if i > 0])
+            if len(worker_iterations) == 1 and worker_iterations[0] > 0:
+                assert map_dl_idx_sampler_states[0]["iter_sampler"][0]["current_iteration"] == worker_iterations[0]
+            if len(worker_iterations) == 2 and worker_iterations[1] > 0:
                 assert map_dl_idx_sampler_states[0]["iter_sampler"][1]["current_iteration"] == worker_iterations[1]
-            if len(worker_iterations) == 3:
+            if len(worker_iterations) == 3 and worker_iterations[2] > 0:
                 assert map_dl_idx_sampler_states[0]["iter_sampler"][2]["current_iteration"] == worker_iterations[2]
+            if len(worker_iterations) == 4 and worker_iterations[3] > 0:
+                assert map_dl_idx_sampler_states[0]["iter_sampler"][3]["current_iteration"] == worker_iterations[3]
 
         def on_train_batch_end(
             self,
@@ -422,20 +425,32 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
             assert trainer.train_dataloader.loaders.dataset.initial_seed == 42
             if not self.restarting:
                 if trainer.fit_loop.batch_idx == 0:
+                    t = torch.tensor([20, 16, 24])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3])
-                    assert torch.equal(batch, torch.tensor([20, 16, 24]))
-                    assert torch.equal(torch.tensor([20, 16, 24]) % 4, torch.tensor([0, 0, 0]))
+                    assert torch.equal(batch, t)
+                    assert torch.equal(t % 4, torch.tensor([0, 0, 0]))
                 elif trainer.fit_loop.batch_idx == 1:
+                    t = torch.tensor([1, 9, 5])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 3])
-                    assert torch.equal(batch, torch.tensor([1, 9, 5]))
-                    assert torch.equal(torch.tensor([1, 9, 5]) % 4, torch.tensor([1, 1, 1]))
+                    assert torch.equal(batch, t)
+                    assert torch.equal(t % 4, torch.tensor([1, 1, 1]))
                     raise CustomException
             else:
-                breakpoint()
                 if trainer.fit_loop.batch_idx == 2:
+                    t = torch.tensor([2, 14, 22])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [0, 0, 3])
+                    assert torch.equal(batch, t)
+                    assert torch.equal(t % 4, torch.tensor([2, 2, 2]))
                 elif trainer.fit_loop.batch_idx == 3:
-                    self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 0, 3])
+                    t = torch.tensor([7, 11, 15])
+                    self._validate_map_dl_idx_sampler_states(trainer, 1, [0, 0, 3, 3])
+                    assert torch.equal(batch, t)
+                    assert torch.equal(t % 4, torch.tensor([3, 3, 3]))
+                elif trainer.fit_loop.batch_idx == 4:
+                    t = torch.tensor([8, 4, 0])
+                    self._validate_map_dl_idx_sampler_states(trainer, 1, [6, 0, 3, 3])
+                    assert torch.equal(batch, t)
+                    assert torch.equal(t % 4, torch.tensor([0, 0, 0]))
 
     class TestModel(BoringModel):
 
@@ -460,9 +475,6 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
         trainer.fit(model, train_dataloader=train_dataloader)
     except CustomException:
         pass
-
-    # trainer.current_iterator.loader_iters._shutdown_workers()
-    # trainer.current_iterator = None
 
     cb.restarting = True
 
