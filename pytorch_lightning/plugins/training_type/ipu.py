@@ -66,7 +66,7 @@ class IPUPlugin(ParallelPlugin):
         device_iterations: int = 1,
         autoreport: bool = True,
         autoreport_dir: Optional[str] = None,
-        parallel_devices: Optional[List[torch.device]] = (),
+        parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         training_opts: Optional['poptorch.Options'] = None,
         inference_opts: Optional['poptorch.Options'] = None
@@ -130,13 +130,14 @@ class IPUPlugin(ParallelPlugin):
 
     @property
     def replication_factor(self) -> int:
-        # This should be set via the opts not the parallel devices
-        if self.lightning_module and self.lightning_module.trainer.training and self._training_opts is not None:
-            return self._training_opts.replication_factor
-        elif self._training_opts is not None:
-            return self._training_opts.replication_factor
-        elif self._inference_opts is not None:
-            return self._inference_opts.replication_factor
+        if not self.lightning_module:
+            # The plugin has been passed in by the user and has not been connected to the Trainer.
+            # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
+            # In this scenario we prioritize the training options.
+            if self._training_opts:
+                return self._training_opts.replication_factor
+            if self._inference_opts:
+                return self._inference_opts.replication_factor
         return len(self.parallel_devices)
 
     def _create_opts(self, training: bool) -> 'poptorch.Options':
@@ -167,30 +168,28 @@ class IPUPlugin(ParallelPlugin):
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=True)
 
     def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=False)
 
     def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=False)
 
     def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=False)
 
-    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+    def _process_dataloader(self, dataloader: Union[Iterable, DataLoader],
+                            is_training: bool) -> Union[Iterable, DataLoader]:
         if isinstance(dataloader, CombinedLoader):
             dataloader.loaders = apply_to_collection(
-                dataloader.loaders,
-                DataLoader,
-                self.process_dataloader,
+                dataloader.loaders, DataLoader, self._process_dataloader, is_training
             )
             return dataloader
         if isinstance(dataloader, list):
-            dataloader = apply_to_collection(dataloader, DataLoader, self.process_dataloader)
+            dataloader = apply_to_collection(dataloader, DataLoader, self._process_dataloader, is_training)
             return dataloader
         if not isinstance(dataloader, poptorch.DataLoader):
-            is_training = self.lightning_module.trainer.training
             opts = self.training_opts if is_training else self.inference_opts
             dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader

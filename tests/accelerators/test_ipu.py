@@ -23,6 +23,7 @@ from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -121,7 +122,7 @@ def test_warning_if_ipus_not_used(tmpdir):
 @RunIf(ipu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, plugins=IPUPlugin())
+        Trainer(default_root_dir=tmpdir, plugins=IPUPlugin(training_opts=poptorch.Options()))
     assert len(record) == 0
 
 
@@ -380,37 +381,68 @@ def test_manual_poptorch_opts(tmpdir):
 def test_manual_poptorch_opts_custom(tmpdir):
     """
     Ensure if the user passes manual poptorch Options with custom parameters set,
-    we respect them in our poptorch options.
+    we respect them in our poptorch options and the dataloaders.
     """
 
     model = IPUModel()
-    inference_opts = poptorch.Options()
-    inference_opts.deviceIterations(16)
-    inference_opts.replicationFactor(2)
-    inference_opts.Training.gradientAccumulation(1)
-
     training_opts = poptorch.Options()
     training_opts.deviceIterations(8)
     training_opts.replicationFactor(2)
     training_opts.Training.gradientAccumulation(2)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
-    )
+    inference_opts = poptorch.Options()
+    inference_opts.deviceIterations(16)
+    inference_opts.replicationFactor(1)
+    inference_opts.Training.gradientAccumulation(1)
+
+    class TestCallback(Callback):
+
+        def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+            # ensure dataloaders were correctly set up during training.
+            plugin = trainer.accelerator.training_type_plugin
+            assert isinstance(plugin, IPUPlugin)
+            assert plugin.training_opts.replication_factor == 2
+            assert plugin.inference_opts.replication_factor == 1
+
+            val_dataloader = trainer.val_dataloaders[0]
+            train_dataloader = trainer.train_dataloader
+            assert isinstance(train_dataloader, CombinedLoader)
+            train_dataloader = train_dataloader.loaders
+            assert isinstance(val_dataloader, poptorch.DataLoader)
+            assert isinstance(train_dataloader, poptorch.DataLoader)
+            assert train_dataloader.options.replication_factor == 2
+            assert val_dataloader.options.replication_factor == 1
+
+    plugin = IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    # ensure we default to the training options replication factor
+    assert plugin.replication_factor == 2
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin, callbacks=TestCallback())
     trainer.fit(model)
+
     plugin = trainer.accelerator.training_type_plugin
     assert isinstance(plugin, IPUPlugin)
-    inference_opts = plugin.inference_opts
-    training_opts = plugin.training_opts
-    assert inference_opts.device_iterations == 16
-    assert inference_opts.replication_factor == 2
-    assert inference_opts.Training.gradient_accumulation == 1
 
+    training_opts = plugin.training_opts
     assert training_opts.device_iterations == 8
     assert training_opts.replication_factor == 2
     assert training_opts.Training.gradient_accumulation == 2
+
+    inference_opts = plugin.inference_opts
+    assert inference_opts.device_iterations == 16
+    assert inference_opts.replication_factor == 1
+    assert inference_opts.Training.gradient_accumulation == 1
+
+
+@RunIf(ipu=True)
+def test_replication_factor(tmpdir):
+    """
+    Ensure if the user passes manual poptorch Options with custom parameters set,
+    we set them correctly in the dataloaders.
+    """
+
+    plugin = IPUPlugin()
+    trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
+    assert trainer.ipus == 2
 
 
 @RunIf(ipu=True)

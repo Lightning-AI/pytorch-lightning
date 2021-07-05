@@ -329,7 +329,9 @@ class AcceleratorConnector(object):
 
     @property
     def num_ipus(self) -> int:
-        if isinstance(self._training_type_plugin, IPUPlugin):
+        if isinstance(self.ipus, int):
+            return self.ipus
+        elif isinstance(self._training_type_plugin, IPUPlugin):
             return self._training_type_plugin.replication_factor
         return self.ipus
 
@@ -343,8 +345,7 @@ class AcceleratorConnector(object):
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
         elif self.on_ipu:
-            if isinstance(self.ipus, int):
-                devices = list(range(self.ipus))
+            devices = list(range(self.num_ipus))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
