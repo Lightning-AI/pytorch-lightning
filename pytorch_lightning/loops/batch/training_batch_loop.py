@@ -204,20 +204,17 @@ class TrainingBatchLoop(Loop):
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
-                if len(self.trainer.optimizers) > 1:
-                    # revert back to previous state
-                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
             else:
                 result = self._training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
-            if not result:
-                # user decided to skip optimization
-                return result
-
-            # update running loss + reset accumulated loss
+        if result:
+            # if no result, user decided to skip optimization
+            # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
+            self._process_closure_result(result)
 
-        self._process_closure_result(result)
+        # untoggle model params
+        self._run_optimization_end(opt_idx)
         return result
 
     def _training_step_and_backward_closure(
@@ -508,6 +505,11 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
             model.toggle_optimizer(optimizer, opt_idx)
+
+    def _run_optimization_end(self, opt_idx: int) -> None:
+        if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
+            model = self.trainer.lightning_module
+            model.untoggle_optimizer(opt_idx)
 
     @contextmanager
     def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
