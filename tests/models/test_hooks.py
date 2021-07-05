@@ -423,11 +423,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         def training_step(self, batch, batch_idx):
             if self.automatic_optimization:
                 return super().training_step(batch, batch_idx)
-            # FIXME: why does deepspeed need this?
-            if kwargs.get('plugins') == 'deepspeed':
-                opt = self.optimizers()[0]
-            else:
-                opt = self.optimizers()
+            opt = self.optimizers()
             opt.zero_grad()
             loss = self.step(batch[0])
             self.manual_backward(loss, opt)

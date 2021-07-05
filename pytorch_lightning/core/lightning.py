@@ -123,7 +123,7 @@ class LightningModule(
             opts = self.trainer.optimizers
 
         # single optimizer
-        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
+        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], (Optimizer, LightningOptimizer)):
             return opts[0]
         # multiple opts
         return opts
