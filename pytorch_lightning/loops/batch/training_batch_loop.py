@@ -190,7 +190,8 @@ class TrainingBatchLoop(Loop):
                 result = self._training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
         if result:
-            # update running loss + reset accumulated loss
+            # if no result, user decided to skip optimization
+            # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
             self._process_closure_result(result)
 
