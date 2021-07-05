@@ -60,7 +60,7 @@ class DataConnector:
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
         if self.trainer.datamodule is not None and is_overridden('prepare_data', self.trainer.datamodule):
-            should_call_dm_prepare_data = not self.trainer.datamodule.has_prepared_data
+            should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
         if self.trainer.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
