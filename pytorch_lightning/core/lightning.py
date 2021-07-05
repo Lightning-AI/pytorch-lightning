@@ -1392,7 +1392,7 @@ class LightningModule(
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
-    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you.
@@ -1411,11 +1411,6 @@ class LightningModule(
                 self.manual_backward(loss)
                 opt.step()
         """
-        if optimizer is not None:
-            rank_zero_deprecation(
-                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
-            )
-
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
