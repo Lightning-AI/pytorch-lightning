@@ -275,12 +275,20 @@ class FastForwardSampler:
 
 class CaptureIterativeDataset(IterableDataset):
 
-    def __init__(self, dataset: IterableDataset, num_workers: int, batch_size: int, is_inside_workers: bool):
+    def __init__(
+        self,
+        dataset: IterableDataset,
+        num_workers: int,
+        batch_size: int,
+        is_inside_workers: bool,
+        initial_seed: Optional[torch.Generator] = None
+    ):
         self.dataset = dataset
         self.num_workers = num_workers
         self.batch_size = batch_size
         self.is_inside_workers = is_inside_workers
         self.samplers_state_dict: Optional[Dict[int, Any]] = None
+        self.initial_seed = initial_seed
         self.samplers = None
 
     def setup(self, samplers_state_dict: Dict[int, Any]):
@@ -309,7 +317,6 @@ class CaptureIterativeDataset(IterableDataset):
     def __iter__(self) -> Iterator:
         self.iter_data = iter(self.dataset)
         self._wrap_samplers()
-        # print(self.samplers)
         return self
 
     def __next__(self):

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import os
 from collections.abc import Iterable
 from unittest import mock
@@ -334,19 +335,52 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers, batch_size, tm
     assert torch.equal(batches[2]["data"], batch_4_expected)
 
 
-class IterativeRandomDataset(IterableDataset):
+class CustomIterativeDataset(IterableDataset):
 
-    def __init__(self, size, length):
-        self.len = length
-        self.data = torch.randn(length, size)
-        self.sampler = RandomSampler(self.data)
+    def __init__(self, dataset, num_workers: int, drop_last: bool = True):
+        self.dataset = list(dataset)
+        self.num_workers = num_workers
+        self.drop_last = drop_last
+
+        if self.drop_last and len(self.dataset) % self.num_workers != 0:
+            self.num_samples = math.ceil((len(self.dataset) - self.num_workers) / self.num_workers)
+        else:
+            self.num_samples = math.ceil(len(self.dataset) / self.num_workers)
+
+        self.total_size = self.num_samples * self.num_workers
+
+    @property
+    def rank(self) -> int:
+        info = get_worker_info()
+        return info.id if info else 0
 
     def __iter__(self):
+        indices = list(range(len(self.dataset)))
+
+        if not self.drop_last:
+            # add extra samples to make it evenly divisible
+            padding_size = self.total_size - len(indices)
+            if padding_size <= len(indices):
+                indices += indices[:padding_size]
+            else:
+                indices += (indices * math.ceil(padding_size / len(indices)))[:padding_size]
+        else:
+            # remove tail of data to make it evenly divisible.
+            indices = indices[:self.total_size]
+        assert len(indices) == self.total_size
+
+        # subsample
+        indices = indices[self.rank:self.total_size:self.num_workers]
+        assert len(indices) == self.num_samples
+
+        self.indices = indices
+        self.sampler = RandomSampler(indices)
         self.iter_sampler = iter(self.sampler)
+
         return self
 
     def __next__(self):
-        return self.data[next(self.iter_sampler)]
+        return self.indices[next(self.iter_sampler)]
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -384,24 +418,37 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
         ) -> None:
             assert isinstance(trainer.train_dataloader.loaders.sampler, _InfiniteConstantSampler)
             assert isinstance(trainer.train_dataloader.loaders.dataset, CaptureIterativeDataset)
+            assert trainer.train_dataloader.loaders.generator.initial_seed() == 42
+            assert trainer.train_dataloader.loaders.dataset.initial_seed == 42
             if not self.restarting:
                 if trainer.fit_loop.batch_idx == 0:
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3])
+                    assert torch.equal(batch, torch.tensor([20, 16, 24]))
+                    assert torch.equal(torch.tensor([20, 16, 24]) % 4, torch.tensor([0, 0, 0]))
                 elif trainer.fit_loop.batch_idx == 1:
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 3])
+                    assert torch.equal(batch, torch.tensor([1, 9, 5]))
+                    assert torch.equal(torch.tensor([1, 9, 5]) % 4, torch.tensor([1, 1, 1]))
                     raise CustomException
             else:
-                return
+                breakpoint()
                 if trainer.fit_loop.batch_idx == 2:
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [0, 0, 3])
                 elif trainer.fit_loop.batch_idx == 3:
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 0, 3])
 
-    model = BoringModel()
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            pass
+
+    model = TestModel()
     model.training_epoch_end = None
 
-    dataset = IterativeRandomDataset(32, 20)
-    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=4)
+    num_workers = 4
+
+    dataset = CustomIterativeDataset(range(30), num_workers)
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=num_workers)
     trainer_kwargs = dict(
         default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, num_sanity_val_steps=0, limit_val_batches=0
     )
@@ -414,13 +461,12 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
     except CustomException:
         pass
 
-    trainer.current_iterator.loader_iters._shutdown_workers()
-    trainer.current_iterator = None
+    # trainer.current_iterator.loader_iters._shutdown_workers()
+    # trainer.current_iterator = None
 
     cb.restarting = True
 
-    # todo (tchaton): weird only 2 workers are being created
-    dataset = IterativeRandomDataset(32, 20)
-    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=4)
+    dataset = CustomIterativeDataset(range(30), num_workers)
+    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=num_workers)
     trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=ck.last_model_path, callbacks=callbacks)
     trainer.fit(model, train_dataloader=train_dataloader)

@@ -381,14 +381,13 @@ class CombinedLoader(object):
             nonlocal out
             num_workers = iter._num_workers
             if isinstance(iter, _MultiProcessingDataLoaderIter):
-                next_worker = (next(iter._worker_queue_idx_cycle) - 1) % num_workers
+                next_worker = (next(iter._worker_queue_idx_cycle)) % num_workers
                 previous_worker = (next_worker - 1) % num_workers
-                print("workers", (previous_worker, next_worker))
                 while next(iter._worker_queue_idx_cycle) != previous_worker:
                     pass
             else:
                 next_worker = None
-            out.append({"num_workers": iter._num_workers, "previous_worker": next_worker})
+            out.append({"num_workers": iter._num_workers, "previous_worker": previous_worker})
 
         apply_to_collection(self._iterator.loader_iters, Iterator, fetch_next_worker, wrong_dtype=(Sequence, Mapping))
 
@@ -418,6 +417,10 @@ class CombinedLoader(object):
                 num_workers = iter._num_workers
                 assert current["num_workers"] == num_workers
                 if isinstance(iter, _MultiProcessingDataLoaderIter):
+                    # move back to 0
+                    while next(iter._worker_queue_idx_cycle) != 0:
+                        pass
+                    # increment previous worker
                     for _ in range(current["previous_worker"]):
                         next(iter._worker_queue_idx_cycle)
                     iter._reset = iter._ori_reset

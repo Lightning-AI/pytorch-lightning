@@ -19,6 +19,7 @@ from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import torch
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -136,12 +137,18 @@ class TrainerDataLoadingMixin(ABC):
         if not contains_dataset:
             dl_args.pop('dataset')
 
+        seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch
+
+        if dl_args.get("generator") is None:
+            dl_args["generator"] = torch.Generator().manual_seed(seed)
+
         if 'dataset' in dl_args:
             dl_args["dataset"] = CaptureIterativeDataset(
                 dataset=dl_args["dataset"],
                 num_workers=dataloader.num_workers,
                 batch_size=dataloader.batch_size,
-                is_inside_workers=True
+                is_inside_workers=True,
+                initial_seed=dl_args["generator"].initial_seed(),
             )
 
         dataloader = type(dataloader)(**dl_args)
