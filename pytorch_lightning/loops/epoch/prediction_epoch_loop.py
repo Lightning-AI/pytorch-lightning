@@ -83,6 +83,9 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
+        with self.trainer.profiler.profile("predict_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 

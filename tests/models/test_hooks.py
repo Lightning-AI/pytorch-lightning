@@ -287,13 +287,13 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
@@ -338,12 +338,12 @@ class HookedModel(BoringModel):
         outputs = {key: ANY}
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name=f'on_{fn}_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name=f'{fn}_step', args=(ANY, i)),
                 dict(name=f'{fn}_step_end', args=(outputs, )),
@@ -358,11 +358,11 @@ class HookedModel(BoringModel):
         for i in range(batches):
             out.extend([
                 # TODO: `{,Callback}.on_batch_{start,end}`
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 dict(name='Callback.on_predict_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_predict_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='predict_step', args=(ANY, i)),
                 # TODO: `predict_step_end`
@@ -777,9 +777,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
     dm = HookedDataModule(called)
     trainer.fit(model, datamodule=dm)
     batch_transfer = [
-        dict(name='on_before_batch_transfer', args=(ANY, None)),
-        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-        dict(name='on_after_batch_transfer', args=(ANY, None)),
+        dict(name='on_before_batch_transfer', args=(ANY, 0)),
+        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+        dict(name='on_after_batch_transfer', args=(ANY, 0)),
     ]
     expected = [
         dict(name='prepare_data'),

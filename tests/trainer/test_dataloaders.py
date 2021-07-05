@@ -1533,7 +1533,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
             if self.trainer.training:
-                assert dataloader_idx is None
+                assert dataloader_idx == 0
             elif self.trainer.validating:
                 assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:
