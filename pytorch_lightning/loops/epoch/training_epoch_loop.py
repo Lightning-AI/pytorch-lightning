@@ -91,7 +91,7 @@ class TrainingEpochLoop(loops.Loop):
 
     @property
     def total_optimizer_step(self) -> int:
-        return self.progress.optim.optimizer.step.completed
+        return self.progress.optim.optimizer.step.total.completed
 
     @property
     def current_batch_seen(self) -> int:
