@@ -275,3 +275,9 @@ def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
 
     with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
         model.summarize(mode="top")
+
+
+def test_v1_6_0_deprecated_disable_validation():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
+        _ = trainer.disable_validation
