@@ -172,13 +172,7 @@ class RangeIterativeDataset(IterableDataset):
         else:
             self.user_sampler = RandomSampler(self.data)
 
-        sampler = FastForwardSampler(self.user_sampler)
-        sampler.setup(self.batch_size, self.num_workers, self.is_in_workers)
-        if self.state_dict is not None:
-            sampler.load_state_dict(self.state_dict[0]["iter_sampler"])
-            self.state_dict = None
-        self.sampler = sampler
-        self.iter_sampler = iter(self.sampler)
+        self.iter_sampler = iter(self.user_sampler)
         return self
 
     def __next__(self):
@@ -243,6 +237,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator.manual_seed(initial_seed)
     dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
     dataset = CaptureIterativeDataset(dataset, num_workers, batch_size, True)
+    dataset.setup(state_dict[0])
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
     batches = []
@@ -380,12 +375,13 @@ class MetaLearningDataset(IterableDataset):
         return self.world_size is not None and self.world_size > 1
 
     def set_seed(self, shared: bool = False):
+        initial_seed = self.initial_seed + self.current_task_iteration
         if shared:
-            seed = self.initial_seed
-            np_seed = _generate_state(self.initial_seed, 0)
+            seed = initial_seed
+            np_seed = _generate_state(initial_seed, 0)
         else:
-            seed = self.initial_seed + self.worker_id + self.global_rank + self.current_task_iteration
-            np_seed = _generate_state(self.initial_seed, self.worker_id + self.global_rank)
+            seed = initial_seed + self.worker_id + self.global_rank + self.current_task_iteration
+            np_seed = _generate_state(initial_seed, self.worker_id + self.global_rank)
 
         random.seed(seed)
         torch.manual_seed(seed)
@@ -396,6 +392,9 @@ class MetaLearningDataset(IterableDataset):
         self.selected_indexes = np.random.choice(self.unique_labels, self.task_num_classes, replace=False)
         self.selected_indexes.sort()
         self.task_indices = np.arange(len(self.dataset))[np.in1d(self.labels, self.selected_indexes)]
+        print()
+        print("TASK_INDICES", self.task_indices)
+        print()
         self.task_length = len(self.task_indices)
         self.set_seed(shared=False)
 
@@ -477,7 +476,9 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     dataset_length = 60
     num_classes = 10
 
-    dataset = ClassificationDataset(range(dataset_length), np.random.randint(0, num_classes, dataset_length))
+    labels = np.random.randint(0, num_classes, dataset_length)
+
+    dataset = ClassificationDataset(range(dataset_length), labels)
     dataset = MetaLearningDataset(
         dataset,
         batch_size=batch_size,
@@ -505,6 +506,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
             except StopIteration:
                 break
         epoch_results.append(batches)
+        dataloader.dataset.dataset.current_task_iteration += 1
 
     assert len(epoch_results) == 2
 
@@ -532,12 +534,12 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
     # restarting on epoch 0 / real batch 2
     state_dict = {0: {'iter_sampler': {}}}
-    for batch in epoch_results[0][3:5]:
+    for batch in epoch_results[0][2:4]:
         metadata = parse_metadata(batch)
         for k, v in metadata.items():
             state_dict[0][k].update(v)
 
-    dataset = ClassificationDataset(range(dataset_length), np.random.randint(0, num_classes, dataset_length))
+    dataset = ClassificationDataset(range(dataset_length), labels)
     dataset = MetaLearningDataset(
         dataset,
         batch_size=batch_size,
@@ -566,13 +568,21 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
             except StopIteration:
                 break
         epoch_results_restart.append(batches)
+        dataloader.dataset.dataset.current_task_iteration += 1
+        dataloader.dataset.samplers_state_dict = None
 
-    assert len(epoch_results_restart[0]) + 3 == len(epoch_results[0])
-    epoch_tensors = [e["data"][0] for e in epoch_results[0][2:]]
+    assert len(epoch_results_restart[0]) + 2 == len(epoch_results[0])
+    epoch_tensors = [e["data"][0] for e in epoch_results[0][4:]]
     epoch_tensors_restart = [e["data"][0] for e in epoch_results_restart[0][2:]]
-    print([e["data"] for e in epoch_results[0]])
 
-    breakpoint()
+    for t, tr in zip(epoch_tensors, epoch_tensors_restart):
+        assert torch.equal(t, tr)
+
+    epoch_tensors = [e["data"][0] for e in epoch_results[1][2:]]
+    epoch_tensors_restart = [e["data"][0] for e in epoch_results_restart[1][2:]]
+
+    for t, tr in zip(epoch_tensors, epoch_tensors_restart):
+        assert torch.equal(t, tr)
 
 
 def test_fast_forward_sampler_iterative_dataset():

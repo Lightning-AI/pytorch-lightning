@@ -65,7 +65,6 @@ class FastForwardSampler:
             else:
                 if self.no_worker or self.inside_workers:
                     self._current_iteration += 1
-                print(batch)
                 yield batch
         self.rng_state = None
         self._current_iteration = 0
@@ -166,20 +165,18 @@ class CaptureIterativeDataset(IterableDataset):
         if self.samplers is None:
             self.samplers = {}
             dataset_dict = self.dataset.__dict__
-            sampler_names = (k.lower() for k, v in dataset_dict.items() if isinstance(v, Sampler))
-            dataset_sampler_generators = {
-                k: v
-                for k, v in dataset_dict.items()
-                if isinstance(v, Generator) and any(name in v.__qualname__.lower() for name in sampler_names)
-            }
+            sampler_names = [v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler)]
+            dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, Generator)}
             for (attr_name, sampler) in dataset_sampler_generators.items():
-                sampler = FastForwardSampler(sampler)
-                sampler.setup(self.num_workers, self.batch_size, self.is_inside_workers)
-                if self.samplers_state_dict is not None:
-                    print(attr_name, self.samplers_state_dict)
-                    sampler.load_state_dict(self.samplers_state_dict[attr_name])
-                self.samplers[attr_name] = sampler
-                dataset_dict[attr_name] = iter(sampler)
+                generator_name = sampler.__qualname__.split('.')[0]
+                if any(sampler_name == generator_name for sampler_name in sampler_names):
+                    sampler = FastForwardSampler(sampler)
+                    sampler.setup(self.num_workers, self.batch_size, self.is_inside_workers)
+                    if self.samplers_state_dict is not None:
+                        sampler.load_state_dict(self.samplers_state_dict[attr_name])
+                    self.samplers[attr_name] = sampler
+                    dataset_dict[attr_name] = iter(sampler)
+        self.samplers_state_dict = None
 
     @property
     def sampler(self) -> Sampler:
