@@ -59,7 +59,14 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         """
         closure_loss = self.scaler.scale(closure_loss)
 
-        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
+        # do backward pass
+        if model.automatic_optimization:
+            model.backward(closure_loss, optimizer, opt_idx)
+        else:
+            closure_loss.backward(*args, **kwargs)
+
+        # once backward has been applied, release graph
+        closure_loss = closure_loss.detach()
 
         # unscale gradient to allow analyze within `on_after_backward`
         self.scaler.unscale_(optimizer)
