@@ -98,7 +98,7 @@ class ModelCheckpoint(Callback):
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
             For ``'val_acc'``, this should be ``'max'``, for ``'val_loss'`` this should be ``'min'``, etc.
-        auto_insert_metric_name: When ``True`` checkpoints filename will contain the metric name.
+        auto_insert_metric_name: When ``True``, the checkpoints filenames will contain the metric name.
             For example, ``filename='checkpoint_{epoch:02d}-{acc:02d}`` with epoch 1 and acc 80 will resolve to
             ``checkpoint_epoch=01-acc=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders. Default: ``True``.
