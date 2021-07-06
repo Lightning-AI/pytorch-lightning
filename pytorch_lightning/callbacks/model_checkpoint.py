@@ -208,7 +208,7 @@ class ModelCheckpoint(Callback):
         self.monitor = monitor
         self.verbose = verbose
         self.save_last = save_last
-        self.save_top_k = int(save_top_k)
+        self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._last_global_step_saved = -1
