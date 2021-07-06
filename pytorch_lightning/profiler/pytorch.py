@@ -195,13 +195,13 @@ class PyTorchProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
-    RECORD_FUNCTION_PREFIXE = "optimizer_step_and_closure_"
+    RECORD_FUNCTION_PREFIX = "optimizer_step_and_closure_"
     STEP_FUNCTIONS = {
         "validation_step",
         "test_step",
         "predict_step",
     }
-    STEP_FUNCTION_PREFIXE = "optimizer_step_and_closure_"
+    STEP_FUNCTION_PREFIX = "optimizer_step_and_closure_"
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -406,7 +406,7 @@ class PyTorchProfiler(BaseProfiler):
 
         if (
             self.profiler is not None
-            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIXE))
+            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
             and action_name not in self._recording_map
         ):
             recording = record_function(action_name)
@@ -422,7 +422,7 @@ class PyTorchProfiler(BaseProfiler):
             return
 
         if self.profiler is not None \
-                and (action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIXE)):
+                and (action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)):
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
