@@ -156,7 +156,11 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
+            default_root_dir=tmpdir,
+            max_steps=1,
+            logger=False,
+            callbacks=[checkpoint, callback_capture],
+            limit_val_batches=2
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -183,7 +187,13 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
     dm = ClassifDataModule()
     model = ClassificationModel()
-    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
+    args = {
+        'default_root_dir': tmpdir,
+        'max_steps': 1,
+        'logger': False,
+        "limit_val_batches": 2,
+        "num_sanity_val_steps": 0
+    }
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
