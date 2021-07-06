@@ -27,6 +27,7 @@ class GPUAccelerator(Accelerator):
     """ Accelerator for GPU devices. """
 
     def setup_environment(self) -> None:
+        super().setup_environment()
         if "cuda" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         torch.cuda.set_device(self.root_device)

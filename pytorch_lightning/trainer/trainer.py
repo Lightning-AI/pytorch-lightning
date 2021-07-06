@@ -816,7 +816,8 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         # check if bug is fixed
-        _ = self.log_dir
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            _ = self.log_dir
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
 
         # restore modules after setup
