@@ -10,8 +10,9 @@ from pytorch_lightning.utilities.cli import ArgumentParser
 def run(args: Namespace):
 
     local_rank = args.local_rank
+    device = torch.device("cuda", local_rank)
 
-    message = torch.tensor([local_rank])
+    message = torch.tensor([local_rank], device=device)
 
     torch.distributed.init_process_group(backend="nccl", world_size=2, rank=local_rank)
     print("init successful")
@@ -21,13 +22,13 @@ def run(args: Namespace):
 
     print("before wrapping")
     model = nn.Linear(2, 2)
-    model.cuda(local_rank)
+    model.to(device)
     ddp_model = DistributedDataParallel(model, device_ids=[local_rank])
 
     print("after wrapping")
     torch.distributed.barrier()
 
-    ddp_model(torch.rand(5, 2).cuda(local_rank))
+    ddp_model(torch.rand(5, 2).to(device))
 
 
 if __name__ == "__main__":
