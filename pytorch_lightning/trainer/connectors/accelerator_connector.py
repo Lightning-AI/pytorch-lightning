@@ -335,7 +335,7 @@ class AcceleratorConnector(object):
     def has_ipu(self) -> bool:
         # Here, we are not checking for IPU availability, but instead if User has passed
         # `ipus` to Trainer for training.
-        return self.ipus is not None
+        return self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin)
 
     @property
     def use_ipu(self) -> bool:
@@ -394,6 +394,14 @@ class AcceleratorConnector(object):
         if gpus is None:
             return 0
         return len(gpus)
+
+    @property
+    def num_ipus(self) -> int:
+        if isinstance(self.ipus, int):
+            return self.ipus
+        if isinstance(self._training_type_plugin, IPUPlugin):
+            return self._training_type_plugin.replication_factor
+        return 0
 
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:

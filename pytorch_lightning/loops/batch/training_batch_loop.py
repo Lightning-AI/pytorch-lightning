@@ -23,12 +23,15 @@ from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import BatchProgress, OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -47,12 +50,29 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self.warning_cache: WarningCache = WarningCache()
+        self.progress = BatchProgress()
+        self.optim_progress = OptimizationProgress()
 
+        self._warning_cache: WarningCache = WarningCache()
         self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
+
+    def connect(
+        self,
+        trainer: 'pl.Trainer',
+        *args: Any,
+        progress: Optional[BatchProgress] = None,
+        optim_progress: Optional[OptimizationProgress] = None,
+        **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
+        super().connect(trainer, *args, **kwargs)
+        if progress is not None:
+            self.progress = progress
+        if optim_progress is not None:
+            self.optim_progress = optim_progress
 
     @property
     def done(self) -> bool:
@@ -75,7 +95,7 @@ class TrainingBatchLoop(Loop):
             dataloader_idx: the index of the dataloader producing the current batch
         """
         if batch is None:
-            self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
         # hook
@@ -138,6 +158,10 @@ class TrainingBatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
+    def teardown(self) -> None:
+        # release memory
+        self._remaining_splits = None
+
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         """Gets the number of active optimizers based on their frequency"""
         return len(self.get_active_optimizers(batch_idx))
@@ -180,20 +204,17 @@ class TrainingBatchLoop(Loop):
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
-                if len(self.trainer.optimizers) > 1:
-                    # revert back to previous state
-                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
             else:
                 result = self._training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
-            if not result:
-                # user decided to skip optimization
-                return result
-
-            # update running loss + reset accumulated loss
+        if result:
+            # if no result, user decided to skip optimization
+            # otherwise update running loss + reset accumulated loss
             self._update_running_loss(result.loss)
+            self._process_closure_result(result)
 
-        self._process_closure_result(result)
+        # untoggle model params
+        self._run_optimization_end(opt_idx)
         return result
 
     def _training_step_and_backward_closure(
@@ -345,8 +366,8 @@ class TrainingBatchLoop(Loop):
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
-            if hiddens is not None:
-                hiddens = hiddens.detach()
+            # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
+            hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
             results.extra = training_step_output
 
         # handle scalar return
@@ -485,6 +506,11 @@ class TrainingBatchLoop(Loop):
             model = self.trainer.lightning_module
             model.toggle_optimizer(optimizer, opt_idx)
 
+    def _run_optimization_end(self, opt_idx: int) -> None:
+        if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
+            model = self.trainer.lightning_module
+            model.untoggle_optimizer(opt_idx)
+
     @contextmanager
     def block_ddp_sync_behaviour(self, should_block_sync: bool = False) -> Generator[None, None, None]:
         """
@@ -543,7 +569,7 @@ class TrainingBatchLoop(Loop):
                         self._check_finite(result.loss)
 
                 else:
-                    self.warning_cache.warn(
+                    self._warning_cache.warn(
                         "training_step returned None. If this was on purpose, ignore this warning..."
                     )
 
@@ -645,7 +671,7 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self.warning_cache.deprecation(
+                    self._warning_cache.deprecation(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5"
