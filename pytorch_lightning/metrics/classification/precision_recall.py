@@ -21,7 +21,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 class Precision(_Precision):
 
-    @deprecated_metrics(target=_Precision)
+    @deprecated_metrics(target=_Precision, args_mapping={"multilabel": None, "is_multiclass": None})
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -49,7 +49,7 @@ class Precision(_Precision):
 
 class Recall(_Recall):
 
-    @deprecated_metrics(target=_Recall)
+    @deprecated_metrics(target=_Recall, args_mapping={"multilabel": None, "is_multiclass": None})
     def __init__(
         self,
         num_classes: Optional[int] = None,

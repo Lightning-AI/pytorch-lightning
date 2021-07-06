@@ -108,13 +108,13 @@ def test_multiple_optimizers_manual(tmpdir):
             loss_1 = self.step(batch[0])
 
             # fake generator
-            self.manual_backward(loss_1, opt_a)
+            self.manual_backward(loss_1)
             opt_a.step()
             opt_a.zero_grad()
 
             # fake discriminator
             loss_2 = self.step(batch[0])
-            self.manual_backward(loss_2, opt_b)
+            self.manual_backward(loss_2)
             opt_b.step()
             opt_b.zero_grad()
 
