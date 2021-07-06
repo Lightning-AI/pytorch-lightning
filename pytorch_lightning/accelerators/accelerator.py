@@ -364,7 +364,7 @@ class Accelerator:
         model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
-        self.schedulers = schedulers
+        self.lr_schedulers = schedulers
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:

@@ -308,7 +308,7 @@ class HookedModel(BoringModel):
                     # nested calls so shown before
                     dict(name='Callback.on_after_backward', args=(trainer, model)),
                     dict(name='on_after_backward'),
-                    # FIXME: None, None?
+                    # `None, None` are for optimizer and optimizer index
                     *([dict(name='backward', args=(ANY, None, None))] if using_apex else []),
                     dict(name='manual_backward', args=(ANY, )),
                 ]
