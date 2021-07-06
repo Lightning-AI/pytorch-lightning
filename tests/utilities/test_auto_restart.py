@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import os
 import random
 from collections.abc import Iterable
@@ -33,6 +34,18 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
+
+
+def parse_metadata(batch):
+    return {
+        k: {
+            batch[AutoRestartBatchKeys.PL_SAMPLERS]["id"][-1].item(): {
+                "current_iteration": v["current_iteration"][-1].item(),
+                "rng_state": v["rng_state"][-1]
+            }
+        }
+        for k, v in batch[AutoRestartBatchKeys.PL_SAMPLERS].items() if k != "id"
+    }
 
 
 def test_fast_forward_on_batch_sampler():
@@ -216,17 +229,6 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     assert torch.equal(batches[4]["data"], batch_4_expected)
 
     # restarting on batch_1 and getting 3 extra batches
-
-    def parse_metadata(batch):
-        return {
-            k: {
-                batch[AutoRestartBatchKeys.PL_SAMPLERS]["id"][-1].item(): {
-                    "current_iteration": v["current_iteration"][-1].item(),
-                    "rng_state": v["rng_state"][-1]
-                }
-            }
-            for k, v in batch[AutoRestartBatchKeys.PL_SAMPLERS].items() if k != "id"
-        }
 
     state_dict = {0: {'iter_sampler': {}}}
     for batch in batches[:2]:
@@ -487,6 +489,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     assert len(epoch_results) == 2
 
     if worldsize == 1:
+        assert len(epoch_results[0]) == math.ceil((30 / 2) / 4) + 1
         assert epoch_results[0][0]["data"]["task_length"] == epoch_results[0][1]["data"]["task_length"]
         assert torch.equal(
             epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"]
@@ -495,6 +498,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
         assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
     else:
+
         first_task_metadata = all_gather(epoch_results[0][0]["data"]["task_length"], worldsize)
         second_task_metadata = all_gather(epoch_results[0][1]["data"]["task_length"], worldsize)
         assert torch.equal(first_task_metadata[0], first_task_metadata[1])
@@ -505,6 +509,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert not torch.equal(first_batch_list[0], first_batch_list[1])
         second_batch_list = all_gather(epoch_results[0][3]["data"][0], worldsize)
         assert not torch.equal(second_batch_list[0], second_batch_list[1])
+
+    print(len(epoch_results[0]))
 
 
 def test_fast_forward_sampler_iterative_dataset():
