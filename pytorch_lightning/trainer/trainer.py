@@ -271,7 +271,7 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
-            reload_dataloaders_every_n_epochs: Set to a non negative integer to reload dataloaders every n epochs.
+            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
                 Default: 0
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
