@@ -20,6 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import TrainingEpochProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -34,9 +35,7 @@ class TrainingEpochLoop(loops.Loop):
         super().__init__()
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
-
         self.global_step: int = 0
-
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
         # the current batch index in the loop that runs over the dataloader(s)
@@ -46,22 +45,15 @@ class TrainingEpochLoop(loops.Loop):
         # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
+        self.progress = TrainingEpochProgress()
 
-        self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.val_loop: Optional[loops.EvaluationLoop] = None
+        self.batch_loop = TrainingBatchLoop()
+        self.val_loop = loops.EvaluationLoop()
 
+        self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
-        self._results = ResultCollection(training=True)
-
-    @property
-    def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self._results
-        elif self.trainer.validating:
-            return self.val_loop.results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
 
     @property
     def batch_idx(self) -> int:
@@ -77,6 +69,19 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
+    def connect(
+        self,
+        trainer: 'pl.Trainer',
+        *args: Any,
+        progress: Optional[TrainingEpochProgress] = None,
+        **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
+        super().connect(trainer, *args, **kwargs)
+        if progress is not None:
+            self.progress = progress
+        self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
+        self.val_loop.connect(trainer, progress=self.progress.val)
     def connect(self, trainer: 'pl.Trainer', batch_loop, val_loop) -> None:
         """Connects the loop with all necessary parts like trainer and accelerators"""
         super().connect(trainer)
@@ -115,6 +120,9 @@ class TrainingEpochLoop(loops.Loop):
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
+        with self.trainer.profiler.profile("training_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
+
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
             self.batches_seen += 1
@@ -219,11 +227,16 @@ class TrainingEpochLoop(loops.Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
-        return self._epoch_output
+
+        epoch_output = self._epoch_output
+        # free memory
+        self._epoch_output = None
+        return epoch_output
 
     def teardown(self) -> None:
-        """Frees memory of tracked epoch outputs."""
-        self.epoch_output = None
+        self._results.cpu()
+        self.batch_loop.teardown()
+        self.val_loop.teardown()
 
     def _run_validation(self):
         # reload dataloaders
@@ -424,3 +437,10 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def state_dict(self) -> Dict:
+        return {"batch_loop": self.batch_loop.state_dict(), "val_loop": self.val_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.batch_loop.load_state_dict(state_dict["batch_loop"])
+        self.val_loop.load_state_dict(state_dict["val_loop"])

@@ -42,7 +42,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
         loss_1 = self.step(batch)
 
-        self.manual_backward(loss_1, opt_a)
+        self.manual_backward(loss_1)
         opt_a.step()
 
         # fake discriminator
@@ -50,9 +50,9 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
 
         # ensure we forward the correct params to the optimizer
         # without retain_graph we can't do multiple backward passes
-        self.manual_backward(loss_2, opt_b)
+        self.manual_backward(loss_2)
         # todo: understand why synchronization breaks there.
-        # self.manual_backward(loss_2, opt_a, retain_graph=True)
+        # self.manual_backward(loss_2, retain_graph=True)
         opt_b.step()
 
         assert self.layer.weight.grad is None or torch.all(self.layer.weight.grad == 0)
