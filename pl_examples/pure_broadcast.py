@@ -12,6 +12,8 @@ def run(args: Namespace):
     local_rank = args.local_rank
     device = torch.device("cuda", local_rank)
 
+    torch.cuda.set_device(device)
+
     message_tensor = torch.tensor([local_rank], device=device)
     message_str = f"this is local rank {local_rank}"
 
