@@ -22,8 +22,8 @@ def run(args: Namespace):
     print("the tensor message is:", message_tensor)
 
     # UNCOMMENT TO REPRODUCE HANG
-    # torch.distributed.broadcast_object_list(message_str, src=0)
-    # print("the string message is:", message_str)
+    torch.distributed.broadcast_object_list(message_str, src=0)
+    print("the string message is:", message_str)
 
     print("before wrapping")
     model = nn.Linear(2, 2)
