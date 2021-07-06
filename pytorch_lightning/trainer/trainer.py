@@ -355,20 +355,21 @@ class Trainer(
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
         validation_epoch_loop = EvaluationLoop()
+
         training_epoch_loop.connect(trainer=self, batch_loop=training_batch_loop, val_loop=validation_epoch_loop)
         training_batch_loop.connect(trainer=self)
         validation_epoch_loop.connect(trainer=self)
-        self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop)
+        self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop, progress=FitLoopProgress())
 
         # .validate() loop
         # TODO: connect progress
         self.validate_loop = EvaluationLoop()
-        self.validate_loop.connect(trainer=self)
+        self.validate_loop.connect(trainer=self, progress=EpochLoopProgress())
 
         # .test() loop
         # TODO: connect progress
         self.test_loop = EvaluationLoop()
-        self.test_loop.connect(trainer=self)
+        self.test_loop.connect(trainer=self, progress=EpochLoopProgress())
 
         # .predict() loop
         # TODO: connect progress
@@ -1019,17 +1020,11 @@ class Trainer(
 
         assert self.evaluating
 
-        if self.validating or self.sanity_checking:
-            loop = self.validate_loop
-        else:
-            assert self.testing
-            loop = self.test_loop
-
         # reload dataloaders
-        loop.reload_evaluation_dataloaders()
+        self._evaluation_loop.reload_evaluation_dataloaders()
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
-            eval_loop_results = loop.run()
+            eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1059,11 +1054,11 @@ class Trainer(
             self.on_sanity_check_start()
 
             # reload dataloaders
-            self.validate_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop.reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self.validate_loop.run()
+                self._evaluation_loop.run()
 
             self.on_sanity_check_end()
 
