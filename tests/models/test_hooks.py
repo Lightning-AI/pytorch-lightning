@@ -290,7 +290,6 @@ class HookedModel(BoringModel):
     def _train_batch(self, trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get('amp_backend') == 'native'
         using_apex = kwargs.get('amp_backend') == 'apex'
-        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
             expected = [
@@ -306,13 +305,12 @@ class HookedModel(BoringModel):
             if not self.automatic_optimization:
                 expected += [
                     dict(name='optimizers'),
+                    # nested calls so shown before
+                    dict(name='Callback.on_after_backward', args=(trainer, model)),
+                    dict(name='on_after_backward'),
                     # FIXME: None, None?
                     *([dict(name='backward', args=(ANY, None, None))] if using_apex else []),
-                    dict(name='manual_backward', args=(ANY, ANY)),
-                    *([
-                        dict(name='Callback.on_after_backward', args=(trainer, model)),
-                        dict(name='on_after_backward'),
-                    ] if using_native_amp or using_apex or using_deepspeed else []),
+                    dict(name='manual_backward', args=(ANY, )),
                 ]
             expected += [
                 dict(name='training_step', args=(ANY, i)),
@@ -425,7 +423,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             loss = self.step(batch[0])
             opt = self.optimizers()
             opt.zero_grad()
-            self.manual_backward(loss, opt)
+            self.manual_backward(loss)
             opt.step()
             return {'loss': loss}
 

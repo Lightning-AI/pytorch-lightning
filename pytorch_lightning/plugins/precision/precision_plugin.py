@@ -82,6 +82,8 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
 
+        model.trainer.call_hook("on_after_backward")
+
         return closure_loss
 
     def pre_optimizer_step(

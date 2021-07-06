@@ -284,6 +284,8 @@ class Accelerator:
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
+            optimizer: The optimizer optimizing the gradients to call backward for
+            optimizer_idx: the index of the current optimizer
             should_accumulate: whether to accumulate gradients
         """
         self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)

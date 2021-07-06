@@ -80,7 +80,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
             # TODO: avoid dev_debugger and track these calls with mock
             model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-
         else:
             closure_loss.backward(*args, **kwargs)
 
@@ -91,6 +90,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
+
+        model.trainer.call_hook("on_after_backward")
+
         return closure_loss
 
     @staticmethod
@@ -128,10 +130,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """
         # apex amp does not support closures.
         lambda_closure()
-
-        if not pl_module.automatic_optimization:
-            pl_module.trainer.call_hook("on_after_backward")
-
         optimizer.step(**kwargs)
         return False
 

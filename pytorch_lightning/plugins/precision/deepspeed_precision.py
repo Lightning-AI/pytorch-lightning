@@ -44,12 +44,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine = pl_module.trainer.model
         # DeepSpeed not support closures.
         lambda_closure()
-
-        if not pl_module.automatic_optimization:
-            pl_module.trainer.call_hook("on_after_backward")
-
         deepspeed_engine.step()
-
         return False
 
     def backward(
@@ -70,8 +65,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         # todo: hack around for deepspeed engine to call backward
         deepspeed_engine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
+
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
+
+        model.trainer.call_hook("on_after_backward")
+
         return closure_loss
 
     def clip_gradients(

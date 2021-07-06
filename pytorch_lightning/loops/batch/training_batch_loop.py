@@ -260,20 +260,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
-    def _on_after_backward(self, batch_idx: int, untouched_loss: Tensor) -> None:
-        """Calls ``on_after_backward`` hook and tracks loss history
-
-        Args:
-            batch_idx: the index of the current batch
-            untouched_loss: the original loss value
-        """
-
-        # insert after step hook
-        self.trainer.call_hook("on_after_backward")
-
-        # when in dev debugging track the losses
-        self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
-
     def _check_training_step_output(self, training_step_output: STEP_OUTPUT) -> None:
         """Sanity checks that training produced a valid output and optimizer step has already been called in manual
         optimization.
@@ -559,10 +545,8 @@ class TrainingBatchLoop(Loop):
                     with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
 
-                    # hook - call this hook only
-                    # when gradients have finished to accumulate
-                    if not self.should_accumulate():
-                        self._on_after_backward(batch_idx, result.loss)
+                    # when in dev debugging track the losses
+                    self.trainer.dev_debugger.track_train_loss_history(batch_idx, result.loss)
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:

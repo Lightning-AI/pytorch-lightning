@@ -62,8 +62,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
 
         # unscale gradient to allow analyze within `on_after_backward`
-        if not should_accumulate and model.automatic_optimization:
-            self.scaler.unscale_(optimizer)
+        self.scaler.unscale_(optimizer)
+        model.trainer.call_hook("on_after_backward")
 
         return closure_loss
 
@@ -84,18 +84,13 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
 
-        if not pl_module.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-            pl_module.trainer.call_hook("on_after_backward")
-            self.scaler.step(optimizer)
-            self.scaler.update()
-        else:
+        if pl_module.automatic_optimization:
             result = lambda_closure()
-            # lambda_closure returning None indicates that backward has been skipped
-            if result is not None:
-                self.scaler.step(optimizer)
-                self.scaler.update()
-
+            if result is None:
+                # lambda_closure returning None indicates that backward has been skipped
+                return False
+        self.scaler.step(optimizer)
+        self.scaler.update()
         return False
 
     @contextmanager
