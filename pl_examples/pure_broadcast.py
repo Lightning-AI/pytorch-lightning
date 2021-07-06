@@ -22,9 +22,8 @@ def run(args: Namespace):
     print(f"[{local_rank}] the tensor message is:", message_tensor)
 
     # UNCOMMENT TO REPRODUCE HANG
-    torch.distributed.barrier()
-    torch.distributed.broadcast_object_list(message_str, src=0)
-    print(f"[{local_rank}] the string message is:", message_str)
+    # torch.distributed.broadcast_object_list(message_str, src=0)
+    # print(f"[{local_rank}] the string message is:", message_str)
 
     print(f"[{local_rank}] before wrapping")
     model = nn.Linear(2, 2)
