@@ -259,7 +259,7 @@ class AcceleratorConnector(object):
 
     @property
     def on_ipu(self) -> bool:
-        return self.ipus is not None
+        return self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin)
 
     @property
     def tpu_id(self) -> Optional[int]:
@@ -328,6 +328,14 @@ class AcceleratorConnector(object):
         return len(gpus)
 
     @property
+    def num_ipus(self) -> int:
+        if isinstance(self.ipus, int):
+            return self.ipus
+        if isinstance(self._training_type_plugin, IPUPlugin):
+            return self._training_type_plugin.replication_factor
+        return 0
+
+    @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
@@ -337,8 +345,7 @@ class AcceleratorConnector(object):
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
         elif self.on_ipu:
-            if isinstance(self.ipus, int):
-                devices = list(range(self.ipus))
+            devices = list(range(self.num_ipus))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices

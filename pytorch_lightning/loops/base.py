@@ -46,15 +46,7 @@ class Loop(ABC):
     def __init__(self) -> None:
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
-        self._restarting = False
-
-    @property
-    def restarting(self) -> bool:
-        return self._restarting
-
-    @restarting.setter
-    def restarting(self, restarting: bool) -> None:
-        self._restarting = restarting
+        self.restarting = False
 
     @property
     @abstractmethod
