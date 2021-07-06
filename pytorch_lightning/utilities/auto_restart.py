@@ -166,14 +166,17 @@ class CaptureIterativeDataset(IterableDataset):
         if self.samplers is None:
             self.samplers = {}
             dataset_dict = self.dataset.__dict__
+            sampler_names = (k.lower() for k, v in dataset_dict.items() if isinstance(v, Sampler))
             dataset_sampler_generators = {
                 k: v
-                for k, v in dataset_dict.items() if isinstance(v, Generator) and "sampler" in v.__qualname__.lower()
+                for k, v in dataset_dict.items()
+                if isinstance(v, Generator) and any(name in v.__qualname__.lower() for name in sampler_names)
             }
             for (attr_name, sampler) in dataset_sampler_generators.items():
                 sampler = FastForwardSampler(sampler)
                 sampler.setup(self.num_workers, self.batch_size, self.is_inside_workers)
                 if self.samplers_state_dict is not None:
+                    print(attr_name, self.samplers_state_dict)
                     sampler.load_state_dict(self.samplers_state_dict[attr_name])
                 self.samplers[attr_name] = sampler
                 dataset_dict[attr_name] = iter(sampler)

@@ -341,6 +341,7 @@ class MetaLearningDataset(IterableDataset):
         global_rank: Optional[int] = None,
         world_size: Optional[int] = None,
         initial_seed: Optional[torch.Generator] = None,
+        shuffle: bool = True,
         debugging: bool = False,
     ):
         self.dataset = dataset
@@ -354,6 +355,7 @@ class MetaLearningDataset(IterableDataset):
         self.initial_seed = initial_seed
         self.generator: Optional[torch.Generator] = None
         self.current_task_iteration = 0
+        self.shuffle = shuffle
         self.debugging = debugging
 
         if labels is None:
@@ -394,16 +396,30 @@ class MetaLearningDataset(IterableDataset):
         self.selected_indexes = np.random.choice(self.unique_labels, self.task_num_classes, replace=False)
         self.selected_indexes.sort()
         self.task_indices = np.arange(len(self.dataset))[np.in1d(self.labels, self.selected_indexes)]
+        self.task_length = len(self.task_indices)
         self.set_seed(shared=False)
 
+    @property
+    def worker_rank(self) -> int:
+        worker_id = self.worker_id
+        is_global_zero = self.global_rank == 0
+        return self.global_rank + worker_id + int(not is_global_zero)
+
     def create_sampler(self):
+        data = range(self.task_length)
         if self.world_size == 1 and self.num_workers in (0, 1):
-            self.sampler = RandomSampler(self.task_indices, generator=self.generator)
+            if self.shuffle:
+                self.sampler = RandomSampler(data, generator=self.generator)
+            else:
+                self.sampler = SequentialSampler(data)
         else:
             num_workers = 1 if self.num_workers in (None, 0) else self.num_workers
             num_replicas = num_workers * self.world_size
-            rank = self.global_rank + self.worker_id
-            self.sampler = DistributedSampler(self.task_indices, num_replicas=num_replicas, rank=rank)
+            self.sampler = DistributedSampler(
+                data, num_replicas=num_replicas, rank=self.worker_rank, shuffle=self.shuffle
+            )
+
+            print("INDICES", self.worker_rank, list(self.sampler))
 
     def __iter__(self):
         if self.generator is None:
@@ -421,8 +437,9 @@ class MetaLearningDataset(IterableDataset):
         if is_first_batch:
             self.is_first_batch = False
             return {"task_length": len(self.task_indices), "selected_indexes": self.selected_indexes}
-        indices = next(self.iter_sampler)
-        return default_collate([self.dataset[idx] for idx in indices])
+        random_indices = next(self.iter_sampler)
+        task_indices = [self.task_indices[idx] for idx in random_indices]
+        return default_collate([self.dataset[idx] for idx in task_indices])
 
 
 class ClassificationDataset(Dataset):
@@ -443,6 +460,11 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     if worldsize > 1:
         _setup_ddp(rank, worldsize)
 
+    def all_gather(tensor, world_size):
+        tensor_list = [torch.zeros_like(tensor, dtype=torch.int64) for _ in range(world_size)]
+        torch.distributed.all_gather(tensor_list, tensor)
+        return tensor_list
+
     initial_seed = seed_everything(42)
 
     generator = torch.Generator()
@@ -450,7 +472,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
     num_workers = 2
     batch_size = 4
-    dataset_length = 30
+    dataset_length = 60
     num_classes = 10
 
     dataset = ClassificationDataset(range(dataset_length), np.random.randint(0, num_classes, dataset_length))
@@ -462,18 +484,14 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         global_rank=rank,
         world_size=worldsize,
         initial_seed=initial_seed,
-        debugging=True
+        debugging=True,
+        shuffle=True,
     )
 
     dataset = CaptureIterativeDataset(
         dataset, num_workers=num_workers, batch_size=batch_size, is_inside_workers=True, initial_seed=initial_seed
     )
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
-
-    def all_gather(tensor, world_size):
-        tensor_list = [torch.zeros_like(tensor, dtype=torch.int64) for _ in range(world_size)]
-        torch.distributed.all_gather(tensor_list, tensor)
-        return tensor_list
 
     epoch_results = []
     for _ in range(2):
@@ -488,8 +506,9 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
     assert len(epoch_results) == 2
 
+    assert len(epoch_results[0]) == math.ceil((dataset_length / (num_workers * worldsize)) / batch_size) + 2
+
     if worldsize == 1:
-        assert len(epoch_results[0]) == math.ceil((30 / 2) / 4) + 1
         assert epoch_results[0][0]["data"]["task_length"] == epoch_results[0][1]["data"]["task_length"]
         assert torch.equal(
             epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"]
@@ -498,7 +517,6 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
         assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
     else:
-
         first_task_metadata = all_gather(epoch_results[0][0]["data"]["task_length"], worldsize)
         second_task_metadata = all_gather(epoch_results[0][1]["data"]["task_length"], worldsize)
         assert torch.equal(first_task_metadata[0], first_task_metadata[1])
@@ -510,7 +528,44 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         second_batch_list = all_gather(epoch_results[0][3]["data"][0], worldsize)
         assert not torch.equal(second_batch_list[0], second_batch_list[1])
 
-    print(len(epoch_results[0]))
+    # restarting on epoch 0 / real batch 2
+    state_dict = {0: {'iter_sampler': {}}}
+    for batch in epoch_results[0][3:5]:
+        metadata = parse_metadata(batch)
+        for k, v in metadata.items():
+            state_dict[0][k].update(v)
+
+    dataset = ClassificationDataset(range(dataset_length), np.random.randint(0, num_classes, dataset_length))
+    dataset = MetaLearningDataset(
+        dataset,
+        batch_size=batch_size,
+        drop_last=True,
+        num_workers=num_workers,
+        global_rank=rank,
+        world_size=worldsize,
+        initial_seed=initial_seed,
+        debugging=True,
+        shuffle=True,
+    )
+
+    dataset = CaptureIterativeDataset(
+        dataset, num_workers=num_workers, batch_size=batch_size, is_inside_workers=True, initial_seed=initial_seed
+    )
+    dataset.setup(state_dict[0])
+    dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
+
+    epoch_results_restart = []
+    for _ in range(2):
+        iter_dataloader = iter(dataloader)
+        batches = []
+        while True:
+            try:
+                batches.append(next(iter_dataloader))
+            except StopIteration:
+                break
+        epoch_results_restart.append(batches)
+
+    breakpoint()
 
 
 def test_fast_forward_sampler_iterative_dataset():
