@@ -16,7 +16,7 @@ from typing import Optional
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -86,7 +86,7 @@ class DDPShardedPlugin(DDPPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedPlugin` requires `fairscale` to be installed."

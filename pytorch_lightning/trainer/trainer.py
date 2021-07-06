@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
@@ -21,15 +22,13 @@ from weakref import proxy
 
 import torch
 
-from pytorch_lightning.accelerators import Accelerator
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops import EvaluationLoop, FitLoop, PredictionLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
@@ -38,6 +37,7 @@ from pytorch_lightning.profiler import (
     PassThroughProfiler,
     PyTorchProfiler,
     SimpleProfiler,
+    XLAProfiler,
 )
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -57,6 +57,7 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -72,6 +73,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -351,13 +353,13 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.validation_loop = EvaluationLoop()
+        self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self)
-        self.validation_loop.connect(self)
-        self.test_loop.connect(self)
-        self.predict_loop.connect(self)
+        self.fit_loop.connect(self, progress=FitLoopProgress())
+        self.validate_loop.connect(self, progress=EpochLoopProgress())
+        self.test_loop.connect(self, progress=EpochLoopProgress())
+        self.predict_loop.connect(self, progress=EpochLoopProgress())
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -463,23 +465,9 @@ class Trainer(
         self.num_predict_batches = []
         self.predicted_ckpt_path = None
 
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
-        # clean hparams
-        if hasattr(model, "hparams"):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
-
-        # attach model log function to callback
-        self.callback_connector.attach_model_logging_functions(model)
-
     def fit(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -535,7 +523,7 @@ class Trainer(
 
     def validate(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
@@ -611,7 +599,7 @@ class Trainer(
 
     def test(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
@@ -686,7 +674,7 @@ class Trainer(
 
     def predict(
         self,
-        model: Optional[LightningModule] = None,
+        model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
@@ -756,7 +744,7 @@ class Trainer(
 
     def tune(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -816,7 +804,7 @@ class Trainer(
 
         return result
 
-    def _run(self, model: LightningModule) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -922,8 +910,10 @@ class Trainer(
 
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
+        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
+        # which need to happen before.
         self.accelerator.teardown()
-        self.logger_connector.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -963,7 +953,8 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            ref_model.summarize(mode=self.weights_summary)
+            max_depth = ModelSummary.MODES[self.weights_summary]
+            ref_model.summarize(max_depth=max_depth)
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -998,9 +989,11 @@ class Trainer(
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
@@ -1014,10 +1007,10 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self.evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop.reload_evaluation_dataloaders()
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
-            eval_loop_results = self.evaluation_loop.run()
+            eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1047,11 +1040,11 @@ class Trainer(
             self.on_sanity_check_start()
 
             # reload dataloaders
-            self.evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop.reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self.evaluation_loop.run()
+                self._evaluation_loop.run()
 
             self.on_sanity_check_end()
 
@@ -1099,7 +1092,7 @@ class Trainer(
         self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
-    def _call_setup_hook(self, model: LightningModule) -> None:
+    def _call_setup_hook(self, model: 'pl.LightningModule') -> None:
         fn = self.state.fn._setup_fn
 
         self.accelerator.barrier("pre_setup")
@@ -1111,7 +1104,7 @@ class Trainer(
 
         self.accelerator.barrier("post_setup")
 
-    def _call_configure_sharded_model(self, model: LightningModule) -> None:
+    def _call_configure_sharded_model(self, model: 'pl.LightningModule') -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
 
@@ -1124,7 +1117,7 @@ class Trainer(
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
-    def _call_teardown_hook(self, model: LightningModule) -> None:
+    def _call_teardown_hook(self, model: 'pl.LightningModule') -> None:
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
@@ -1135,6 +1128,8 @@ class Trainer(
 
         model._current_fx_name = None
         model._current_dataloader_idx = None
+        # these could have become stale if metrics are defined in `setup`
+        model._metric_attributes = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
@@ -1185,6 +1180,7 @@ class Trainer(
                 "simple": SimpleProfiler,
                 "advanced": AdvancedProfiler,
                 "pytorch": PyTorchProfiler,
+                "xla": XLAProfiler,
             }
             profiler = profiler.lower()
             if profiler not in PROFILERS:
@@ -1222,7 +1218,7 @@ class Trainer(
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."

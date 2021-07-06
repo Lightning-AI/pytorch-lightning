@@ -17,8 +17,8 @@ from copy import deepcopy
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Type
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -32,19 +32,19 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    lightning_module: LightningModule
+    lightning_module: 'pl.LightningModule'
 
-    def on_before_accelerator_backend_setup(self, model: LightningModule) -> None:
+    def on_before_accelerator_backend_setup(self, model: 'pl.LightningModule') -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def configure_sharded_model(self, model: LightningModule) -> None:
+    def configure_sharded_model(self, model: 'pl.LightningModule') -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_configure_sharded_model(self, model)
 
-    def setup(self, model: LightningModule, stage: Optional[str]) -> None:
+    def setup(self, model: 'pl.LightningModule', stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage=stage)

@@ -288,7 +288,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
     class TestModel(BoringModel):
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD([{'params': [p for p in self.layer.parameters()], 'name': 'linear'}], lr=0.1)
+            optimizer = torch.optim.SGD([{'params': list(self.layer.parameters()), 'name': 'linear'}], lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
@@ -325,11 +325,11 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         def configure_optimizers(self):
             param_groups = [
                 {
-                    'params': [p for p in self.linear_a.parameters()],
+                    'params': list(self.linear_a.parameters()),
                     'name': 'linear'
                 },
                 {
-                    'params': [p for p in self.linear_b.parameters()],
+                    'params': list(self.linear_b.parameters()),
                     'name': 'linear'
                 },
             ]
