@@ -3,8 +3,10 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from deprecate import void
 
+import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
+from pytorch_lightning.trainer.progress import EpochProgress
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -16,10 +18,20 @@ class PredictionEpochLoop(Loop):
         self.return_predictions: bool = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
+        self.progress = EpochProgress()
+
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
         self._warning_cache = WarningCache()
         self._all_batch_indices: List[int] = []
+
+    def connect(
+        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
+        super().connect(trainer, *args, **kwargs)
+        if progress is not None:
+            self.progress = progress
 
     @property
     def done(self) -> bool:
@@ -82,6 +94,9 @@ class PredictionEpochLoop(Loop):
         batch_idx, batch = next(dataloader_iter)
         if batch is None:
             raise StopIteration
+
+        with self.trainer.profiler.profile("predict_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)

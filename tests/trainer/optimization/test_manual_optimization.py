@@ -42,7 +42,7 @@ class ManualOptModel(BoringModel):
             assert torch.all(self.layer.weight.grad == 0)
 
         loss_1 = self.step(batch[0])
-        self.manual_backward(loss_1, opt_a)
+        self.manual_backward(loss_1)
         opt_a.step()
         opt_a.zero_grad()
         assert torch.all(self.layer.weight.grad == 0)
@@ -50,8 +50,8 @@ class ManualOptModel(BoringModel):
         loss_2 = self.step(batch[0])
         # ensure we forward the correct params to the optimizer
         # without retain_graph we can't do multiple backward passes
-        self.manual_backward(loss_2, opt_b, retain_graph=True)
-        self.manual_backward(loss_2, opt_a)
+        self.manual_backward(loss_2, retain_graph=True)
+        self.manual_backward(loss_2)
         assert self.layer.weight.grad is not None
         opt_b.step()
         opt_b.zero_grad()
@@ -254,7 +254,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         if self.should_update:
 
-            self.manual_backward(loss, opt)
+            self.manual_backward(loss)
             opt.step()
             opt.zero_grad()
 
@@ -385,7 +385,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
             if self.should_update:
 
-                self.manual_backward(loss, opt)
+                self.manual_backward(loss)
                 if self.should_have_updated:
                     opt.step()
                     opt.zero_grad()
@@ -458,7 +458,7 @@ def test_multiple_optimizers_step(tmpdir):
             if self.layer.weight.grad is not None:
                 assert torch.all(self.layer.weight.grad == 0)
 
-            self.manual_backward(loss_1, opt_a)
+            self.manual_backward(loss_1)
             opt_a.step()
 
             # fake discriminator
@@ -467,8 +467,8 @@ def test_multiple_optimizers_step(tmpdir):
 
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
+            self.manual_backward(loss_2, retain_graph=True)
+            self.manual_backward(loss_2, retain_graph=True)
 
             assert self.layer.weight.grad is not None
             opt_b.step()
@@ -542,7 +542,7 @@ def test_step_with_optimizer_closure(tmpdir):
                     loss = compute_loss()
                     losses.append(loss)
                     retain_graph = (num_backward - 1) != backward_idx
-                    self.manual_backward(loss, opt, retain_graph=retain_graph)
+                    self.manual_backward(loss, retain_graph=retain_graph)
                 # emulate MC dropout training
                 loss = torch.stack(losses).mean()
                 self._losses.append(loss)
@@ -604,7 +604,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
                     retain_graph = num_backward != backward_idx  # noqa E225
-                    self.manual_backward(loss_1, opt, retain_graph=retain_graph)
+                    self.manual_backward(loss_1, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
 
@@ -661,7 +661,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
                     retain_graph = num_backward != backward_idx  # noqa E225
-                    self.manual_backward(loss_1, opt, retain_graph=retain_graph)
+                    self.manual_backward(loss_1, retain_graph=retain_graph)
 
             opt.step(closure=optimizer_closure)
             opt.zero_grad()
@@ -719,12 +719,12 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             def gen_closure():
                 loss_gen = compute_loss()
                 self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
-                self.manual_backward(loss_gen, opt_gen)
+                self.manual_backward(loss_gen)
 
             def dis_closure():
                 loss_dis = compute_loss()
                 self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
-                self.manual_backward(loss_dis, opt_dis)
+                self.manual_backward(loss_dis)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
             gen_closure()
@@ -813,8 +813,8 @@ class TesManualOptimizationDDPModel(BoringModel):
             loss_zeros = self.loss_zeros(None, predictions)
             return loss_ones, loss_zeros
 
-        def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
-            self.manual_backward(loss, opt, retain_graph=retain_graph)
+        def make_manual_backward(loss, retain_graph=False, make_optimizer_step=True):
+            self.manual_backward(loss, retain_graph=retain_graph)
             if make_optimizer_step:
                 grad_clone = self.layer.weight.grad.clone()
                 assert self.manual_sync_grad()
@@ -823,13 +823,13 @@ class TesManualOptimizationDDPModel(BoringModel):
 
         def gen_closure():
             loss_ones_gen, loss_zeros = compute_loss()
-            make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
-            make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, make_optimizer_step=make_gen_optimizer_step)
 
         def dis_closure():
             loss_ones_gen, loss_zeros = compute_loss()
-            make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
-            make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, make_optimizer_step=make_dis_optimizer_step)
 
         # this will accumulate gradients for 2 batches and then call opt_gen.step()
         if make_gen_optimizer_step:
@@ -917,8 +917,8 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
             loss_zeros = self.loss_zeros(None, predictions)
             return loss_ones, loss_zeros
 
-        def make_manual_backward(loss, opt, retain_graph=False, make_optimizer_step=True):
-            self.manual_backward(loss, opt, retain_graph=retain_graph)
+        def make_manual_backward(loss, retain_graph=False, make_optimizer_step=True):
+            self.manual_backward(loss, retain_graph=retain_graph)
             if make_optimizer_step:
                 grad_clone = self.layer.weight.grad.clone()
                 assert self.manual_sync_grad()
@@ -927,13 +927,13 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 
         def gen_closure():
             loss_ones_gen, loss_zeros = compute_loss()
-            make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
-            make_manual_backward(loss_ones_gen, opt_gen, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
+            make_manual_backward(loss_ones_gen, make_optimizer_step=make_gen_optimizer_step)
 
         def dis_closure():
             loss_ones_gen, loss_zeros = compute_loss()
-            make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
-            make_manual_backward(loss_ones_gen, opt_dis, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
+            make_manual_backward(loss_ones_gen, make_optimizer_step=make_dis_optimizer_step)
 
         # this will accumulate gradients for 2 batches and then call opt_gen.step()
         with opt_gen.toggle_model(sync_grad=make_gen_optimizer_step):
@@ -1055,7 +1055,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             self.log("loss_d", loss_d, prog_bar=True)
 
             optimizer.zero_grad()
-            self.manual_backward(loss_d, optimizer)
+            self.manual_backward(loss_d)
             optimizer.step()
             self.untoggle_optimizer(optimizer_idx)
 
@@ -1068,7 +1068,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             self.log("loss_g", loss_g, prog_bar=True)
 
             optimizer.zero_grad()
-            self.manual_backward(loss_g, optimizer)
+            self.manual_backward(loss_g)
             optimizer.step()
             self.untoggle_optimizer(optimizer_idx)
 

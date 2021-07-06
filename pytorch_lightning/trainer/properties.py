@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -137,7 +137,7 @@ class TrainerProperties(ABC):
 
     @property
     def ipus(self) -> int:
-        return self.accelerator_connector.ipus
+        return self.accelerator_connector.num_ipus
 
     @property
     def num_gpus(self) -> int:
@@ -296,6 +296,10 @@ class TrainerProperties(ABC):
     @property
     def disable_validation(self) -> bool:
         """ Check if validation is disabled during training. """
+        rank_zero_deprecation(
+            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
+            " Use `not trainer.enable_validation` instead."
+        )
         return not self.enable_validation
 
     @property
