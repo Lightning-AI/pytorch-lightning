@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import random
 from collections.abc import Iterable
 from typing import Optional
 
@@ -21,8 +22,8 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, SequentialSampler
-from torch.utils.data._utils.worker import get_worker_info
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data._utils.worker import _generate_state, get_worker_info
+from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
@@ -331,17 +332,27 @@ class MetaLearningDataset(IterableDataset):
     def __init__(
         self,
         dataset: Dataset,
+        batch_size: int,
+        drop_last: bool,
         task_num_classes: int = 5,
         num_workers: Optional[int] = None,
         global_rank: Optional[int] = None,
         world_size: Optional[int] = None,
+        initial_seed: Optional[torch.Generator] = None,
+        debugging: bool = False,
     ):
         self.dataset = dataset
-        self.num_workers = num_workers
+        self.batch_size = batch_size
+        self.drop_last = drop_last
+        self.num_workers = num_workers or 1
         self.global_rank = global_rank
         self.world_size = world_size
         self.task_num_classes = task_num_classes
         self.labels = labels = getattr(dataset, "labels")
+        self.initial_seed = initial_seed
+        self.generator: Optional[torch.Generator] = None
+        self.current_task_iteration = 0
+        self.debugging = debugging
 
         if labels is None:
             raise MisconfigurationException(f"Provided {self.dataset} should have an attribute labels.")
@@ -356,38 +367,62 @@ class MetaLearningDataset(IterableDataset):
         self.unique_labels = np.unique(self.labels)
 
     @property
-    def is_distributed(self) -> bool:
-        return self.world_size is not None and self.world_size > 1
-
-    @property
     def worker_id(self) -> int:
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
+    @property
+    def is_distributed(self) -> bool:
+        return self.world_size is not None and self.world_size > 1
+
+    def set_seed(self, shared: bool = False):
+        if shared:
+            seed = self.initial_seed
+            np_seed = _generate_state(self.initial_seed, 0)
+        else:
+            seed = self.initial_seed + self.worker_id + self.global_rank + self.current_task_iteration
+            np_seed = _generate_state(self.initial_seed, self.worker_id + self.global_rank)
+
+        random.seed(seed)
+        torch.manual_seed(seed)
+        np.random.seed(np_seed)
+
     def sample_task_indices(self):
+        self.set_seed(shared=True)
         self.selected_indexes = np.random.choice(self.unique_labels, self.task_num_classes, replace=False)
         self.selected_indexes.sort()
         self.task_indices = np.arange(len(self.dataset))[np.in1d(self.labels, self.selected_indexes)]
+        self.set_seed(shared=False)
 
     def create_sampler(self):
-        if self.world_size > 1:
+        if self.is_distributed:
             num_replicas = self.num_workers * self.world_size
             rank = self.num_workers * self.global_rank
             self.sampler = DistributedSampler(self.task_indices, num_replicas=num_replicas, rank=rank)
         else:
-            self.sampler = RandomSampler(self.task_indices)
+            if self.num_workers > 1:
+                self.sampler = DistributedSampler(self.task_indices, num_replicas=self.num_workers, rank=self.worker_id)
+            else:
+                self.sampler = RandomSampler(self.task_indices, generator=self.generator)
 
     def __iter__(self):
+        if self.generator is None:
+            self.generator = torch.Generator().manual_seed(self.initial_seed)
         self.sample_task_indices()
         self.create_sampler()
-        self.iter_sampler = iter(self.sampler)
+        self.batch_sampler = BatchSampler(self.sampler, batch_size=self.batch_size, drop_last=self.drop_last)
+        self.iter_sampler = iter(self.batch_sampler)
         self.is_first_batch = True
+        self.current_task_iteration += 1
         return self
 
     def __next__(self):
-        if self.is_first_batch:
+        is_first_batch = self.is_first_batch if self.debugging else (self.is_first_batch and self.worker_id == 0)
+        if is_first_batch:
+            self.is_first_batch = False
             return {"task_length": len(self.task_indices), "selected_indexes": self.selected_indexes}
-        return self.dataset[next(self.iter_sampler)]
+        indices = next(self.iter_sampler)
+        return default_collate([self.dataset[idx] for idx in indices])
 
 
 class ClassificationDataset(Dataset):
@@ -419,22 +454,25 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     num_classes = 10
 
     dataset = ClassificationDataset(range(dataset_length), np.random.randint(0, num_classes, dataset_length))
-    dataset = MetaLearningDataset(dataset, num_workers=num_workers, global_rank=rank, world_size=worldsize)
-
-    iter_dataset = iter(dataset)
-
-    batch = next(iter_dataset)
-    assert batch["task_length"] == 14
-    assert batch["selected_indexes"].tolist() == [0, 1, 3, 5, 6]
+    dataset = MetaLearningDataset(
+        dataset,
+        batch_size=batch_size,
+        drop_last=True,
+        num_workers=num_workers,
+        global_rank=rank,
+        world_size=worldsize,
+        initial_seed=initial_seed,
+        debugging=True
+    )
 
     dataset = CaptureIterativeDataset(
         dataset, num_workers=num_workers, batch_size=batch_size, is_inside_workers=True, initial_seed=initial_seed
     )
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
-    iter_dataloader = iter(dataloader)
+    dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
 
     epoch_results = []
     for _ in range(2):
+        iter_dataloader = iter(dataloader)
         batches = []
         while True:
             try:
@@ -442,6 +480,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
             except StopIteration:
                 break
         epoch_results.append(batches)
+
+    assert len(epoch_results) == 2
+    assert epoch_results[0][0]["data"]["task_length"] == epoch_results[0][1]["data"]["task_length"]
+    assert torch.equal(epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"])
+    assert epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 0
+    assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
+    assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
 
 
 def test_fast_forward_sampler_iterative_dataset():

@@ -149,7 +149,7 @@ class CaptureIterativeDataset(IterableDataset):
         num_workers: int,
         batch_size: int,
         is_inside_workers: bool,
-        initial_seed: Optional[torch.Generator] = None
+        initial_seed: Optional[int] = None
     ):
         self.dataset = dataset
         self.num_workers = num_workers
