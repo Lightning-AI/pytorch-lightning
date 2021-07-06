@@ -292,13 +292,13 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, device, None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
@@ -307,6 +307,7 @@ class HookedModel(BoringModel):
                 dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
                 dict(name='Callback.on_before_backward', args=(trainer, model, ANY)),
                 dict(name='on_before_backward', args=(ANY, )),
+                # DeepSpeed handles backward internally
                 *([dict(name='backward', args=(ANY, ANY, 0))] if kwargs.get('plugins') != 'deepspeed' else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
                 dict(name='on_after_backward'),
@@ -344,12 +345,12 @@ class HookedModel(BoringModel):
         outputs = {key: ANY}
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name=f'on_{fn}_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, device, None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name=f'{fn}_step', args=(ANY, i)),
                 dict(name=f'{fn}_step_end', args=(outputs, )),
@@ -363,12 +364,12 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name='Callback.on_predict_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_predict_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='predict_step', args=(ANY, i)),
                 # TODO: `predict_step_end`
@@ -433,17 +434,18 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs):
         dict(name='prepare_data'),
         dict(name='configure_callbacks'),
         dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
-        # FIXME
+        # DeepSpeed needs the batch size to figure out throughput logging
         *([dict(name='train_dataloader')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage='fit')),
         dict(name='setup', kwargs=dict(stage='fit')),
         dict(name='configure_sharded_model'),
         dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
-        # FIXME
+        # DeepSpeed skips initializing optimizers here as they are handled via config
         *([dict(name='configure_optimizers')] if kwargs.get('plugins') != 'deepspeed' else []),
         dict(name='Callback.on_fit_start', args=(trainer, model)),
         dict(name='on_fit_start'),
-        # FIXME
+        # TODO: explore whether DeepSpeed can have the same flow for optimizers
+        # DeepSpeed did not find any optimizer in the config so they are loaded here
         *([dict(name='configure_optimizers')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.on_pretrain_routine_start', args=(trainer, model)),
         dict(name='on_pretrain_routine_start'),
@@ -808,9 +810,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
     dm = HookedDataModule(called)
     trainer.fit(model, datamodule=dm)
     batch_transfer = [
-        dict(name='on_before_batch_transfer', args=(ANY, None)),
-        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-        dict(name='on_after_batch_transfer', args=(ANY, None)),
+        dict(name='on_before_batch_transfer', args=(ANY, 0)),
+        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+        dict(name='on_after_batch_transfer', args=(ANY, 0)),
     ]
     expected = [
         dict(name='prepare_data'),

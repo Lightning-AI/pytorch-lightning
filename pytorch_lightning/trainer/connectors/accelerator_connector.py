@@ -15,6 +15,7 @@
 import logging
 import os
 from typing import List, Optional, Sequence, Union
+from weakref import proxy
 
 import torch
 
@@ -244,6 +245,8 @@ class AcceleratorConnector(object):
 
     @property
     def cluster_environment(self) -> ClusterEnvironment:
+        if self._cluster_environment is None:
+            self._cluster_environment = self.select_cluster_environment()
         return self._cluster_environment
 
     @property
@@ -256,7 +259,7 @@ class AcceleratorConnector(object):
 
     @property
     def on_ipu(self) -> bool:
-        return self.ipus is not None
+        return self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin)
 
     @property
     def tpu_id(self) -> Optional[int]:
@@ -325,6 +328,14 @@ class AcceleratorConnector(object):
         return len(gpus)
 
     @property
+    def num_ipus(self) -> int:
+        if isinstance(self.ipus, int):
+            return self.ipus
+        if isinstance(self._training_type_plugin, IPUPlugin):
+            return self._training_type_plugin.replication_factor
+        return 0
+
+    @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
@@ -334,8 +345,7 @@ class AcceleratorConnector(object):
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
         elif self.on_ipu:
-            if isinstance(self.ipus, int):
-                devices = list(range(self.ipus))
+            devices = list(range(self.num_ipus))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
@@ -376,9 +386,9 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-        elif self.precision == 64:
+        if self.precision == 64:
             return DoublePrecisionPlugin()
-        elif self.precision == 16:
+        if self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
@@ -496,7 +506,9 @@ class AcceleratorConnector(object):
                 training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
-            training_type.cluster_environment = self.select_cluster_environment()
+            # transfer ownership of the cluster environment to the training type
+            training_type.cluster_environment = self.cluster_environment
+            self._cluster_environment = proxy(self.cluster_environment)
 
         if hasattr(training_type, 'num_nodes'):
             # set num_nodes for training_type from trainer setting
@@ -529,10 +541,15 @@ class AcceleratorConnector(object):
             acc_cls = CPUAccelerator
         # as precision_plugin is dependent on training_type_plugin, make sure
         # that we first select training_type_plugin, then precision_plugin
-        return acc_cls(
+        accelerator = acc_cls(
             training_type_plugin=self.training_type_plugin,
             precision_plugin=self.precision_plugin,
         )
+        # transfer ownership of the plugins to the accelerator
+        self._training_type_plugin = proxy(self.training_type_plugin)
+        self._precision_plugin = proxy(self.precision_plugin)
+
+        return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
