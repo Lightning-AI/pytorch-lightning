@@ -352,7 +352,7 @@ on_load_checkpoint
     :noindex:
 
 on_before_backward
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_before_backward
     :noindex:
