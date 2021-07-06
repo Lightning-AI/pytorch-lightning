@@ -13,7 +13,7 @@ Fixes #<issue_number>
 
 ### Does your PR introduce any breaking changes ? If yes, please list them.
 
-<!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
+<!-- In the CHANGELOG, separate each item in the unreleased section by a blank line to reduce collisions -->
 
 ## Before submitting
 - [ ] Was this discussed/approved via a GitHub issue? (not for typos and docs)
