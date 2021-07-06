@@ -39,7 +39,14 @@ class TrainDataloaderVariations(ABC):
 
     def train_dataloader__multiple_mapping(self):
         """Return a mapping loaders with different lengths"""
-        return {
-            'a': self.dataloader(train=True, num_samples=100),
-            'b': self.dataloader(train=True, num_samples=50),
-        }
+
+        # List[DataLoader]
+        loaders_a_b = [self.dataloader(num_samples=100, train=True), self.dataloader(num_samples=50, train=True)]
+        loaders_c_d_e = [
+            self.dataloader(num_samples=50, train=True),
+            self.dataloader(num_samples=50, train=True),
+            self.dataloader(num_samples=50, train=True)
+        ]
+        # Dict[str, List[DataLoader]]
+        loaders = {"a_b": loaders_a_b, "c_d_e": loaders_c_d_e}
+        return loaders

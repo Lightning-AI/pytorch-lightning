@@ -25,7 +25,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
@@ -62,6 +62,9 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
+        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
+            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
+            logs are saved in ``/save_dir/version/``.
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
@@ -83,12 +86,14 @@ class TensorBoardLogger(LightningLoggerBase):
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = '',
+        sub_dir: Optional[str] = None,
         **kwargs
     ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._sub_dir = sub_dir
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
@@ -107,8 +112,7 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         if self.name is None or len(self.name) == 0:
             return self.save_dir
-        else:
-            return os.path.join(self.save_dir, self.name)
+        return os.path.join(self.save_dir, self.name)
 
     @property
     def log_dir(self) -> str:
@@ -120,11 +124,19 @@ class TensorBoardLogger(LightningLoggerBase):
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, version)
+        if isinstance(self.sub_dir, str):
+            log_dir = os.path.join(log_dir, self.sub_dir)
+        log_dir = os.path.expandvars(log_dir)
+        log_dir = os.path.expanduser(log_dir)
         return log_dir
 
     @property
     def save_dir(self) -> Optional[str]:
         return self._save_dir
+
+    @property
+    def sub_dir(self) -> Optional[str]:
+        return self._sub_dir
 
     @property
     @rank_zero_experiment
@@ -210,7 +222,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule, input_array=None):
+    def log_graph(self, model: 'pl.LightningModule', input_array=None):
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
@@ -254,14 +266,16 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._version
 
     def _get_next_version(self):
-        root_dir = os.path.join(self.save_dir, self.name)
+        root_dir = self.root_dir
 
-        if not self._fs.isdir(root_dir):
+        try:
+            listdir_info = self._fs.listdir(root_dir)
+        except OSError:
             log.warning('Missing logger folder: %s', root_dir)
             return 0
 
         existing_versions = []
-        for listing in self._fs.listdir(root_dir):
+        for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
             if self._fs.isdir(d) and bn.startswith("version_"):

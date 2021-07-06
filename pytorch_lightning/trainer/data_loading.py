@@ -22,8 +22,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.core import LightningModule
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
@@ -51,6 +51,7 @@ class TrainerDataLoadingMixin(ABC):
     test_dataloaders: Optional[List[DataLoader]]
     num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
+    log_every_n_steps: int
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
     accelerator: Accelerator
@@ -225,7 +226,7 @@ class TrainerDataLoadingMixin(ABC):
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
-    def reset_train_dataloader(self, model: LightningModule) -> None:
+    def reset_train_dataloader(self, model: 'pl.LightningModule') -> None:
         """Resets the train dataloader and initialises required variables
         (number of batches, when to validate, etc.).
 
@@ -238,7 +239,7 @@ class TrainerDataLoadingMixin(ABC):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn(
                     'You requested to overfit but enabled training dataloader shuffling.'
-                    ' We are turning it off for you.'
+                    ' We are turning off the training dataloader shuffling for you.'
                 )
                 self.train_dataloader = self.replace_sampler(
                     self.train_dataloader, SequentialSampler(self.train_dataloader.dataset)
@@ -259,7 +260,10 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
+        self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
+
+        # allow accelerator to modify dataloader
+        self.train_dataloader = self.accelerator.on_reset_train_dataloader(self.train_dataloader)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 
@@ -299,9 +303,16 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
+        if self.logger and self.num_training_batches < self.log_every_n_steps:
+            rank_zero_warn(
+                f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
+                f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
+                f" you want to see logs for the training epoch."
+            )
+
     def _reset_eval_dataloader(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         mode: str,
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
@@ -361,6 +372,10 @@ class TrainerDataLoadingMixin(ABC):
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
 
+        # allow accelerator to modify dataloader
+        hook_name = f"on_reset_{mode}_dataloader"
+        dataloaders = getattr(self.accelerator, hook_name)(dataloaders)
+
         loader_num_batches = []
 
         # determine number of batches
@@ -397,7 +412,7 @@ class TrainerDataLoadingMixin(ABC):
 
         return loader_num_batches, dataloaders
 
-    def reset_val_dataloader(self, model: LightningModule) -> None:
+    def reset_val_dataloader(self, model: 'pl.LightningModule') -> None:
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
@@ -429,7 +444,20 @@ class TrainerDataLoadingMixin(ABC):
         if has_loader:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
-    def request_dataloader(self, model: LightningModule, stage: str) -> DataLoader:
+    def reset_train_val_dataloaders(self, model) -> None:
+        """
+        Resets train and val dataloaders if none are attached to the trainer.
+
+        The val dataloader must be initialized before training loop starts, as the training loop
+        inspects the val dataloader to determine whether to run the evaluation loop.
+        """
+        if self.train_dataloader is None:
+            self.reset_train_dataloader(model)
+
+        if self.val_dataloaders is None:
+            self.reset_val_dataloader(model)
+
+    def request_dataloader(self, model: 'pl.LightningModule', stage: str) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
 
         Args:

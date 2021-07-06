@@ -17,7 +17,7 @@ from typing import Optional, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -83,7 +83,7 @@ def scale_batch_size(
 
     # Restore initial state of model
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
+        trainer.checkpoint_connector.restore(str(save_path))
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
@@ -115,8 +115,8 @@ def __scale_batch_dump_params(trainer: 'pl.Trainer') -> None:
 def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule', steps_per_trial: int) -> None:
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
-    trainer.train_loop.current_epoch = 0
-    trainer.train_loop.max_steps = steps_per_trial  # take few steps
+    trainer.fit_loop.current_epoch = 0
+    trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
     trainer.callbacks = []  # not needed before full run
@@ -127,8 +127,8 @@ def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule
 
 def __scale_batch_restore_params(trainer: 'pl.Trainer') -> None:
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
-    trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
-    trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
+    trainer.fit_loop.current_epoch = trainer.__dumped_params['current_epoch']
+    trainer.fit_loop.max_steps = trainer.__dumped_params['max_steps']
     trainer.weights_summary = trainer.__dumped_params['weights_summary']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
@@ -144,7 +144,7 @@ def _run_power_scaling(
     """ Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered. """
     for _ in range(max_trials):
         garbage_collection_cuda()
-        trainer.train_loop.global_step = 0  # reset after each try
+        trainer.fit_loop.global_step = 0  # reset after each try
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -160,7 +160,10 @@ def _run_power_scaling(
             else:
                 raise  # some other error not memory related
 
-        if not changed:
+        if changed:
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+        else:
             break
     return new_size
 
@@ -175,7 +178,7 @@ def _run_binsearch_scaling(
     count = 0
     while True:
         garbage_collection_cuda()
-        trainer.train_loop.global_step = 0  # reset after each try
+        trainer.fit_loop.global_step = 0  # reset after each try
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -192,7 +195,10 @@ def _run_binsearch_scaling(
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
 
-            if not changed:
+            if changed:
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+            else:
                 break
 
         except RuntimeError as exception:

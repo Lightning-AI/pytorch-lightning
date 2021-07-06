@@ -53,7 +53,7 @@ Datamodules are for you if you ever asked the questions:
 
 What is a DataModule
 --------------------
-A DataModule is simply a collection of a train_dataloader, val_dataloader(s), test_dataloader(s) along with the
+A DataModule is simply a collection of a train_dataloader(s), val_dataloader(s), test_dataloader(s) along with the
 matching transforms and data processing/downloads steps required.
 
 Here's a simple PyTorch example:
@@ -320,11 +320,13 @@ Returns a special dataloader for inference. This is the dataloader that the Trai
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to define how you want to move an arbitrary batch to a device.
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+so that you can add different logic as per your requirement.
 
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             x = batch['x']
             x = CustomDataWrapper(x)
             batch['x'] = x.to(device)
@@ -337,6 +339,8 @@ Override to define how you want to move an arbitrary batch to a device.
 on_before_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch before it is transferred to the device.
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+so that you can add different logic as per your requirement.
 
 .. testcode::
 
@@ -346,15 +350,14 @@ Override to alter or apply augmentations to your batch before it is transferred 
             return batch
 
 
-.. warning::
-    Currently dataloader_idx always returns 0 and will be updated to support the true idx in the future.
-
 .. note:: This hook only runs on single GPU training and DDP (no data-parallel).
 
 
 on_after_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch after it is transferred to the device.
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
+so that you can add different logic as per your requirement.
 
 .. testcode::
 
@@ -363,10 +366,6 @@ Override to alter or apply augmentations to your batch after it is transferred t
             batch['x'] = gpu_transforms(batch['x'])
             return batch
 
-
-.. warning::
-
-    Currently ``dataloader_idx`` always returns 0 and will be updated to support the true ``idx`` in the future.
 
 .. note::
     This hook only runs on single GPU training and DDP (no data-parallel). This hook

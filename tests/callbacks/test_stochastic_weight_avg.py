@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
@@ -33,7 +33,7 @@ if _TORCH_GREATER_EQUAL_1_6:
 
     class SwaTestModel(BoringModel):
 
-        def __init__(self, batchnorm: bool = True, interval: str = "epoch"):
+        def __init__(self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False):
             super().__init__()
             layers = [nn.Linear(32, 32)]
             if batchnorm:
@@ -41,6 +41,7 @@ if _TORCH_GREATER_EQUAL_1_6:
             layers += [nn.ReLU(), nn.Linear(32, 2)]
             self.layer = nn.Sequential(*layers)
             self.interval = interval
+            self.iterable_dataset = iterable_dataset
 
         def training_step(self, batch, batch_idx):
             output = self.forward(batch)
@@ -48,7 +49,11 @@ if _TORCH_GREATER_EQUAL_1_6:
             return {"loss": loss}
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+            dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
+            dset = dset_cls(32, 64)
+
+            return DataLoader(dset, batch_size=2)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -74,7 +79,7 @@ if _TORCH_GREATER_EQUAL_1_6:
 
         def on_train_epoch_start(self, trainer, *args):
             super().on_train_epoch_start(trainer, *args)
-            assert trainer.train_loop._skip_backward == (trainer.current_epoch > self.swa_end)
+            assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
             if self.swa_start <= trainer.current_epoch:
                 assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
                 assert trainer.lr_schedulers[0]["interval"] == "epoch"
@@ -92,7 +97,7 @@ if _TORCH_GREATER_EQUAL_1_6:
             super().on_train_end(trainer, pl_module)
 
             # make sure these are correctly set again
-            assert not trainer.train_loop._skip_backward
+            assert not trainer.fit_loop._skip_backward
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 
@@ -107,8 +112,10 @@ if _TORCH_GREATER_EQUAL_1_6:
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch"):
-    model = SwaTestModel(batchnorm=batchnorm, interval=interval)
+def train_with_swa(
+    tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+):
+    model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
@@ -117,6 +124,7 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=max_epochs,
         limit_train_batches=5,
         limit_val_batches=0,
@@ -154,8 +162,9 @@ def test_swa_callback_1_gpu(tmpdir):
 
 @RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
-def test_swa_callback(tmpdir, batchnorm: bool):
-    train_with_swa(tmpdir, batchnorm=batchnorm)
+@pytest.mark.parametrize('iterable_dataset', (True, False))
+def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
+    train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
 @RunIf(min_torch="1.6.0")

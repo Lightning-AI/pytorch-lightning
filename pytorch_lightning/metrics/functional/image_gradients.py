@@ -16,7 +16,7 @@ from typing import Tuple
 import torch
 from torchmetrics.functional import image_gradients as _image_gradients
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_image_gradients)
@@ -25,3 +25,4 @@ def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     .. deprecated::
         Use :func:`torchmetrics.functional.image_gradients`. Will be removed in v1.5.0.
     """
+    return void(img)

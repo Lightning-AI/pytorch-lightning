@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import pickle
 import sys
 from typing import Optional, Union
 from unittest import mock
@@ -19,12 +20,14 @@ from unittest.mock import ANY, call, Mock
 
 import pytest
 import torch
+from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.progress import tqdm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
@@ -191,11 +194,11 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.train_loop.batch_idx
+            assert self.train_batch_idx == trainer.fit_loop.batch_idx
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.train_loop.batch_idx + 1
+            assert self.train_batch_idx == trainer.fit_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
@@ -349,7 +352,8 @@ def test_main_progress_bar_update_amount(
         checkpoint_callback=False,
     )
     trainer.fit(model)
-    progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
+    if train_batches > 0:
+        progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
     if val_batches > 0:
         progress_bar.val_progress_bar.update.assert_has_calls([call(delta) for delta in val_deltas])
 
@@ -383,8 +387,9 @@ def test_tensor_to_float_conversion(tmpdir):
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            self.log('foo', torch.tensor(0.123), prog_bar=True)
-            self.log('bar', {"baz": torch.tensor([1])}, prog_bar=True)
+            self.log('a', torch.tensor(0.123), prog_bar=True, on_epoch=False)
+            self.log('b', {"b1": torch.tensor([1])}, prog_bar=True, on_epoch=False)
+            self.log('c', {"c1": 2}, prog_bar=True, on_epoch=False)
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
@@ -396,9 +401,12 @@ def test_tensor_to_float_conversion(tmpdir):
     )
     trainer.fit(TestModel())
 
+    torch.testing.assert_allclose(trainer.progress_bar_metrics['a'], 0.123)
+    assert trainer.progress_bar_metrics['b'] == {'b1': 1.0}
+    assert trainer.progress_bar_metrics['c'] == {'c1': 2.0}
     pbar = trainer.progress_bar_callback.main_progress_bar
     actual = str(pbar.postfix)
-    assert actual.endswith("foo=0.123, bar={'baz': tensor([1])}")
+    assert actual.endswith("a=0.123, b={'b1': 1.0}, c={'c1': 2.0}"), actual
 
 
 @pytest.mark.parametrize(
@@ -432,6 +440,10 @@ class PrintModel(BoringModel):
         self.print("test_step")
         return super().test_step(*args, **kwargs)
 
+    def predict_step(self, *args, **kwargs):
+        self.print("predict_step")
+        return super().predict_step(*args, **kwargs)
+
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print(tqdm_write, tmpdir):
@@ -444,16 +456,45 @@ def test_progress_bar_print(tqdm_write, tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
+        limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
     )
     trainer.fit(model)
     trainer.test(model)
-    assert tqdm_write.call_count == 3
+    trainer.predict(model)
+    assert tqdm_write.call_count == 4
     assert tqdm_write.call_args_list == [
         call("training_step", end="", file=None, nolock=False),
         call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
         call("test_step", end=os.linesep, file=None, nolock=False),
+        call("predict_step", end=os.linesep, file=None, nolock=False),
+    ]
+
+
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+def test_progress_bar_print_no_train(tqdm_write, tmpdir):
+    """ Test that printing in the LightningModule redirects arguments to the progress bar without training. """
+    model = PrintModel()
+    bar = ProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        max_steps=1,
+        callbacks=[bar],
+    )
+
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
+    assert tqdm_write.call_count == 3
+    assert tqdm_write.call_args_list == [
+        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
+        call("test_step", end=os.linesep, file=None, nolock=False),
+        call("predict_step", end=os.linesep, file=None, nolock=False),
     ]
 
 
@@ -469,16 +510,88 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
+        limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
     )
     bar.disable()
     trainer.fit(model)
-    trainer.test(model)
+    trainer.test(model, verbose=False)
+    trainer.predict(model)
 
     mock_print.assert_has_calls([
         call("training_step", end=""),
         call("validation_step", file=ANY),
         call("test_step"),
+        call("predict_step"),
     ])
     tqdm_write.assert_not_called()
+
+
+def test_progress_bar_can_be_pickled():
+    bar = ProgressBar()
+    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    model = BoringModel()
+
+    pickle.dumps(bar)
+    trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.test(model)
+    pickle.dumps(bar)
+    trainer.predict(model)
+    pickle.dumps(bar)
+
+
+@RunIf(min_gpus=2, special=True)
+def test_progress_bar_max_val_check_interval_0(tmpdir):
+    _test_progress_bar_max_val_check_interval(
+        tmpdir,
+        total_train_samples=8,
+        train_batch_size=4,
+        total_val_samples=2,
+        val_batch_size=1,
+        val_check_interval=0.2
+    )
+
+
+@RunIf(min_gpus=2, special=True)
+def test_progress_bar_max_val_check_interval_1(tmpdir):
+    _test_progress_bar_max_val_check_interval(
+        tmpdir,
+        total_train_samples=8,
+        train_batch_size=4,
+        total_val_samples=2,
+        val_batch_size=1,
+        val_check_interval=0.5
+    )
+
+
+def _test_progress_bar_max_val_check_interval(
+    tmpdir, total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval
+):
+    world_size = 2
+    train_data = DataLoader(RandomDataset(32, total_train_samples), batch_size=train_batch_size)
+    val_data = DataLoader(RandomDataset(32, total_val_samples), batch_size=val_batch_size)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        weights_summary=None,
+        val_check_interval=val_check_interval,
+        gpus=world_size,
+        accelerator="ddp",
+    )
+    trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
+
+    total_train_batches = total_train_samples // (train_batch_size * world_size)
+    val_check_batch = max(1, int(total_train_batches * val_check_interval))
+    assert trainer.val_check_batch == val_check_batch
+    val_checks_per_epoch = total_train_batches / val_check_batch
+    total_val_batches = total_val_samples // (val_batch_size * world_size)
+    assert trainer.progress_bar_callback.total_train_batches == total_train_batches
+    assert trainer.progress_bar_callback.total_val_batches == total_val_batches
+    total_val_batches = total_val_batches * val_checks_per_epoch
+    if trainer.is_global_zero:
+        assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches

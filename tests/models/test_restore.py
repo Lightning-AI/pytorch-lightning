@@ -143,7 +143,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_end(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
@@ -156,7 +156,11 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
+            default_root_dir=tmpdir,
+            max_steps=1,
+            logger=False,
+            callbacks=[checkpoint, callback_capture],
+            limit_val_batches=2
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -183,7 +187,13 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
     dm = ClassifDataModule()
     model = ClassificationModel()
-    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
+    args = {
+        'default_root_dir': tmpdir,
+        'max_steps': 1,
+        'logger': False,
+        "limit_val_batches": 2,
+        "num_sanity_val_steps": 0
+    }
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
@@ -431,10 +441,10 @@ def test_dp_resume(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.on_train_start_called = False
+            self.on_pretrain_routine_end_called = False
 
         # set the epoch start hook so we can predict before the model does the full training
-        def on_train_start(self):
+        def on_pretrain_routine_end(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
 
             # if model and state loaded correctly, predictions will be good even though we
@@ -443,14 +453,14 @@ def test_dp_resume(tmpdir):
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
-            self.on_train_start_called = True
+            self.on_pretrain_routine_end_called = True
 
     # new model
     model = CustomModel()
 
     # fit new model which should load hpc weights
     new_trainer.fit(model, datamodule=dm)
-    assert model.on_train_start_called
+    assert model.on_pretrain_routine_end_called
 
     # test freeze on gpu
     model.freeze()

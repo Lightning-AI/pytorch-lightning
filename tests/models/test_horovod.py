@@ -264,7 +264,7 @@ def test_horovod_multi_optimizer(tmpdir):
         assert hasattr(optimizer, 'synchronize'), 'optimizer has not been wrapped into DistributedOptimizer'
 
     def get_model_params(model):
-        return set([p for p in model.parameters()])
+        return set(list(model.parameters()))
 
     def get_optimizer_params(optimizer):
         return set([p for group in optimizer.param_groups for p in group.get('params', [])])
@@ -296,7 +296,7 @@ def test_result_reduce_horovod(tmpdir):
                 self.training_step_called = True
 
                 tensor = torch.tensor([1.0])
-                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum', on_step=True, on_epoch=True)
+                self.log("test_tensor", tensor, sync_dist=True, reduce_fx='sum', on_step=True, on_epoch=True)
 
                 res = self._results
 

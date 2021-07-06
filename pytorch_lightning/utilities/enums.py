@@ -79,7 +79,7 @@ class DistributedType(LightningEnum):
     HOROVOD = 'horovod'
     DDP_SHARDED = 'ddp_sharded'
     DDP_SHARDED_SPAWN = 'ddp_sharded_spawn'
-    RPC_SEQUENTIAL_PLUGIN = 'rpc_sequential'
+    DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
 
 class DeviceType(LightningEnum):
@@ -96,6 +96,7 @@ class DeviceType(LightningEnum):
     """
     CPU = 'CPU'
     GPU = 'GPU'
+    IPU = 'IPU'
     TPU = 'TPU'
 
 

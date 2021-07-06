@@ -100,6 +100,10 @@ class LitClassifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         self.log('test_loss', loss)
 
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, y = batch
+        return self.backbone(x)
+
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
@@ -126,11 +130,15 @@ class MyDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
+    def predict_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
 
 def cli_main():
-    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
-    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
-    print(result)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
+    print(predictions[0])
 
 
 if __name__ == '__main__':

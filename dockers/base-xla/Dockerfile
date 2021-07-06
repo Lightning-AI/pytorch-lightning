@@ -14,7 +14,7 @@
 
 FROM google/cloud-sdk:slim
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.6
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.

@@ -23,6 +23,7 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -33,6 +34,7 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -51,7 +53,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
-        super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
+        super().__init__(parallel_devices)
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -67,11 +69,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def world_size(self) -> int:
-        return self.num_processes
+        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
-        return self.device
+        return xm.xla_device()
 
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
@@ -129,7 +131,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        return MpDeviceLoader(dataloader, self.device)
+        return MpDeviceLoader(dataloader, self.root_device)
 
     def configure_ddp(self) -> None:
         pass
@@ -168,12 +170,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.barrier("end-process")
 
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             time.sleep(2)
 
+    @parameter_validation
     def model_to_device(self) -> None:
-        self.device = xm.xla_device()
-        self.model = self.wrapped_model.to(self.device)
+        self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
@@ -184,8 +186,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
+        # requires to compute the state_dict on all processes in case Metrics are present
+        state_dict = self.lightning_module.state_dict()
+
         if self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+            rank_zero_warn("cleaning up tpu spawn environment...")
 
             # save the last weights
             last_path = None
@@ -194,13 +199,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.save(self.lightning_module.state_dict(), last_path)
+                self.save(state_dict, last_path)
 
-            if self.global_rank == 0:
+            if self.local_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
+                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def save(self, state_dict: Dict, path: str) -> None:
         xm.save(state_dict, path)
@@ -209,7 +215,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.device, dtype=torch.float)
+        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -277,6 +283,26 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
+    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+        self._pod_progress_bar_force_stdout()
+        return output
+
+    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+        self._pod_progress_bar_force_stdout()
+        return output
+
+    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+        self._pod_progress_bar_force_stdout()
+        return output
+
+    def _pod_progress_bar_force_stdout(self) -> None:
+        # Why is it required? The way `pytorch_xla.distributed` streams logs
+        # from different vms to the master worker doesn't work well with tqdm
+        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
+        # The print statement seems to force tqdm to flush stdout.
+        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print()
+
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -302,3 +328,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
+
+    def teardown(self) -> None:
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)
+        self.barrier("teardown")
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.local_rank == 0
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)

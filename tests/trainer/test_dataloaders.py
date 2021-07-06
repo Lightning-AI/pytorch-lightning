@@ -582,7 +582,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
         assert trainer.max_epochs == 1
 
         trainer.fit(model)
-        assert not trainer.disable_validation
+        assert trainer.enable_validation
         assert trainer.num_training_batches == fast_dev_run
         assert trainer.num_val_batches == [fast_dev_run] * len(trainer.val_dataloaders)
 
@@ -766,7 +766,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     train_dl = model.dataloader(train=False)
     train_dl.num_workers = 0
 
-    train_multi_dl = {'a': train_dl, 'b': train_dl}
+    train_multi_dl = {'a_b': [train_dl, train_dl], 'c_d_e': [train_dl, train_dl, train_dl]}
     val_multi_dl = [val_dl, val_dl]
     test_multi_dl = [train_dl, train_dl]
 
@@ -813,11 +813,11 @@ def test_missing_worker_init_fn():
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat([batch for batch in dataloader])
+    batches0 = torch.cat(list(dataloader))
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat([batch for batch in dataloader])
+    batches1 = torch.cat(list(dataloader))
 
     is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
     is_deterministic = torch.eq(batches0, batches1).all()
@@ -893,6 +893,25 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
     model = MultiProcessModel()
     model.val_dataloader = None
     trainer.fit(model, train_dataloader=dataloader)
+
+
+def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
+    """ Test that a warning message is shown if the dataloader length is too short for the chosen logging interval. """
+    model = BoringModel()
+    dataloader = DataLoader(RandomDataset(32, length=10))
+    model.train_dataloader = lambda: dataloader
+
+    with pytest.warns(UserWarning, match=r"The number of training samples \(10\) is smaller than the logging interval"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            log_every_n_steps=11,
+        )
+        trainer.fit(model)
+
+    with pytest.warns(UserWarning, match=r"The number of training samples \(1\) is smaller than the logging interval"):
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1)
+        trainer.fit(model)
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):
@@ -1497,6 +1516,106 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
 
     new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
     assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
+
+
+@pytest.mark.parametrize('multiple_trainloader_mode', ["min_size", "max_size_cycle"])
+def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
+    """
+    Check the correct dataloader_idx inside hooks
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.val_call_count = 0
+            self.test_call_count = 0
+
+        def assert_dataloader_idx_hook(self, dataloader_idx):
+            if self.trainer.training:
+                assert dataloader_idx == 0
+            elif self.trainer.validating:
+                assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
+            elif self.trainer.testing:
+                assert dataloader_idx == (0 if self.test_call_count <= 5 else 1)
+
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            return super().transfer_batch_to_device(batch, device, dataloader_idx)
+
+        def on_before_batch_transfer(self, batch, dataloader_idx):
+            # incrementing here since this is the first hook called at each step
+            if self.trainer.validating:
+                self.val_call_count += 1
+            elif self.trainer.testing:
+                self.test_call_count += 1
+
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            return super().on_before_batch_transfer(batch, dataloader_idx)
+
+        def on_after_batch_transfer(self, batch, dataloader_idx):
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            return super().on_after_batch_transfer(batch, dataloader_idx)
+
+        def training_step(self, batch, batch_idx):
+            return super().training_step(batch['a'], batch_idx)
+
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            out = super().validation_step(batch, batch_idx)
+            loss = out.pop('x')
+            out[f'val_loss_{dataloader_idx}'] = loss
+            return out
+
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            out = super().test_step(batch, batch_idx)
+            loss = out.pop('y')
+            out[f'test_loss_{dataloader_idx}'] = loss
+            return out
+
+        def predict(self, batch, batch_idx, dataloader_idx):
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            return super().predict(batch, batch_idx, dataloader_idx)
+
+        def assert_epoch_end_outputs(self, outputs, mode):
+            assert len(outputs) == 2
+            assert all(f'{mode}_loss_0' in x for x in outputs[0])
+            assert all(f'{mode}_loss_1' in x for x in outputs[1])
+
+        def validation_epoch_end(self, outputs):
+            self.assert_epoch_end_outputs(outputs, mode='val')
+
+        def test_epoch_end(self, outputs):
+            self.assert_epoch_end_outputs(outputs, mode='test')
+
+        def train_dataloader(self):
+            return {'a': DataLoader(RandomDataset(32, 64)), 'b': DataLoader(RandomDataset(32, 64))}
+
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def test_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def predict_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomBoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=5,
+        multiple_trainloader_mode=multiple_trainloader_mode,
+    )
+
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.test(ckpt_path=None)
+
+    preds = trainer.predict(model)
+    assert len(preds) == 2
+    assert all(len(x) == 5 for x in preds)
 
 
 def test_request_dataloader(tmpdir):

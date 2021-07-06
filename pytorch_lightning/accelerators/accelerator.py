@@ -22,6 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -87,10 +88,10 @@ class Accelerator:
             trainer: the trainer instance
             model: the LightningModule
         """
-        self.setup_training_type_plugin(self.training_type_plugin, model)
+        self.setup_training_type_plugin(model)
         if not self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
-        self.setup_precision_plugin(self.precision_plugin)
+        self.setup_precision_plugin()
 
     def start_training(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
@@ -151,45 +152,42 @@ class Accelerator:
 
     @property
     def root_device(self) -> torch.device:
+        """Returns the root device"""
         return self.training_type_plugin.root_device
 
     def teardown(self) -> None:
         """
         This method is called to teardown the training process.
-        It is the right place to release memory and free other ressources.
-
-        By default we add a barrier here to synchronize processes before returning
-        control back to the caller.
+        It is the right place to release memory and free other resources.
         """
-        self.barrier("teardown")
+        self.training_type_plugin.teardown()
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def batch_to_device(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
         Args:
             batch: The batch of samples to move to the correct device
             device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
-
-        if model is not None:
-            return model._apply_batch_transfer_handler(batch, device)
+        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
+            # no need to transfer batch to device in DP mode
+            return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
 
         return move_data_to_device(batch, device)
 
-    def on_train_start(self) -> None:
-        """Hook to do something upon the training start"""
-        pass
-
     def training_step(
         self,
-        args: List[Union[Any, int]],
+        step_kwargs: Dict[str, Union[Any, int]],
     ) -> STEP_OUTPUT:
         """The actual training step.
 
         Args:
-            args: the arguments for the models training step. Can consist of the following:
+            step_kwargs: the arguments for the models training step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -198,19 +196,17 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        args[0] = self.to_device(args[0])
-
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
-            return self.training_type_plugin.training_step(*args)
+            return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
 
-    def validation_step(self, args: List[Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         Args:
-            args: the arguments for the models validation step. Can consist of the following:
+            step_kwargs: the arguments for the models validation step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -218,18 +214,14 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
-
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(*args)
+            return self.training_type_plugin.validation_step(*step_kwargs.values())
 
-    def test_step(self, args: List[Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
         Args:
-            args: the arguments for the models test step. Can consist of the following:
+            step_kwargs: the arguments for the models test step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -237,32 +229,23 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
-
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
-            return self.training_type_plugin.test_step(*args)
+            return self.training_type_plugin.test_step(*step_kwargs.values())
 
-    def predict_step(self, args: List[Union[Any, int]]) -> STEP_OUTPUT:
+    def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.
 
         Args:
-            args: the arguments for the models predict step. Can consist of the following:
+            step_kwargs: the arguments for the models predict step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
                 - batch_idx (int): The index of this batch.
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
-
         """
-        batch = self.to_device(args[0])
-
-        args[0] = batch
-
         with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
-            return self.training_type_plugin.predict_step(*args)
+            return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         """A hook to do something at the end of the training step
@@ -354,14 +337,6 @@ class Accelerator:
             model=self.model,
         )
 
-    def on_train_epoch_end(self) -> None:
-        """Hook to do something on the end of an training epoch."""
-        pass
-
-    def on_train_end(self) -> None:
-        """Hook to do something at the end of the training"""
-        pass
-
     def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
         """
         Creates optimizers and schedulers
@@ -378,26 +353,22 @@ class Accelerator:
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'pl.LightningModule') -> None:
+    def setup_training_type_plugin(self, model: 'pl.LightningModule') -> None:
         """Attaches the training type plugin to the accelerator."""
-        plugin.setup(model)
+        self.training_type_plugin.setup(model)
 
-    def setup_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+    def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator"""
-        model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
         self.schedulers = schedulers
-
-    def to_device(self, batch: Any) -> Any:
-        """Pushes the batch to the root device"""
-        return self.batch_to_device(batch, self.root_device)
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
-        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
             return AMPType.NATIVE
         return None
 
@@ -409,16 +380,18 @@ class Accelerator:
     def scaler(self) -> Optional['GradScaler']:
         return getattr(self.precision_plugin, 'scaler', None)
 
-    @property
-    def rpc_enabled(self) -> bool:
-        return self.training_type_plugin.rpc_enabled
-
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         """
         return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
+
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """
+        Returns state of model. Allows for syncing/collating model state from processes in custom plugins.
+        """
+        return self.training_type_plugin.lightning_module_state_dict()
 
     def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
         return self.training_type_plugin.on_save(checkpoint)
@@ -457,6 +430,22 @@ class Accelerator:
         """
         return self.training_type_plugin.process_dataloader(dataloader)
 
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the train dataloader."""
+        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
+
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the val dataloader."""
+        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
+
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the test dataloader."""
+        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
+
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the predict dataloader."""
+        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
+
     @property
     def results(self) -> Any:
         """
@@ -491,7 +480,7 @@ class Accelerator:
             'Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
             ' It will be removed in v1.5.'
         )
-        self.setup_training_type_plugin(plugin, model)
+        self.setup_training_type_plugin(model)
 
     # todo: remove in v1.5
     def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
@@ -504,7 +493,7 @@ class Accelerator:
             'Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
             ' It will be removed in v1.5.'
         )
-        self.setup_precision_plugin(plugin)
+        self.setup_precision_plugin()
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -544,3 +533,45 @@ class Accelerator:
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
+
+    def on_train_epoch_end(self) -> None:
+        """Hook to do something on the end of an training epoch."""
+        pass
+
+    def on_train_start(self) -> None:
+        """Called when train begins."""
+        return self.training_type_plugin.on_train_start()
+
+    def on_validation_start(self) -> None:
+        """Called when validation begins."""
+        return self.training_type_plugin.on_validation_start()
+
+    def on_test_start(self) -> None:
+        """Called when test begins."""
+        return self.training_type_plugin.on_test_start()
+
+    def on_predict_start(self) -> None:
+        """Called when predict begins."""
+        return self.training_type_plugin.on_predict_start()
+
+    def on_validation_end(self) -> None:
+        """Called when validation ends."""
+        return self.training_type_plugin.on_validation_end()
+
+    def on_test_end(self) -> None:
+        """Called when test end."""
+        return self.training_type_plugin.on_test_end()
+
+    def on_predict_end(self) -> None:
+        """Called when predict ends."""
+        return self.training_type_plugin.on_predict_end()
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        return self.training_type_plugin.on_train_end()
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+        """
+        return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)
