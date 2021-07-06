@@ -33,6 +33,7 @@ def run(args: Namespace):
     print("after wrapping")
     torch.distributed.barrier()
 
+    print("before forward")
     ddp_model(torch.rand(5, 2).to(device))
 
 
