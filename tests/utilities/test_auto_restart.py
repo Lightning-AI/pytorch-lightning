@@ -395,15 +395,13 @@ class MetaLearningDataset(IterableDataset):
         self.set_seed(shared=False)
 
     def create_sampler(self):
-        if self.is_distributed:
-            num_replicas = self.num_workers * self.world_size
-            rank = self.num_workers * self.global_rank
-            self.sampler = DistributedSampler(self.task_indices, num_replicas=num_replicas, rank=rank)
+        if self.world_size == 1 and self.num_workers in (0, 1):
+            self.sampler = RandomSampler(self.task_indices, generator=self.generator)
         else:
-            if self.num_workers > 1:
-                self.sampler = DistributedSampler(self.task_indices, num_replicas=self.num_workers, rank=self.worker_id)
-            else:
-                self.sampler = RandomSampler(self.task_indices, generator=self.generator)
+            num_workers = 1 if self.num_workers in (None, 0) else self.num_workers
+            num_replicas = num_workers * self.world_size
+            rank = self.global_rank + self.worker_id
+            self.sampler = DistributedSampler(self.task_indices, num_replicas=num_replicas, rank=rank)
 
     def __iter__(self):
         if self.generator is None:
@@ -470,6 +468,11 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     )
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
 
+    def all_gather(tensor, world_size):
+        tensor_list = [torch.zeros_like(tensor, dtype=torch.int64) for _ in range(world_size)]
+        torch.distributed.all_gather(tensor_list, tensor)
+        return tensor_list
+
     epoch_results = []
     for _ in range(2):
         iter_dataloader = iter(dataloader)
@@ -482,11 +485,26 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         epoch_results.append(batches)
 
     assert len(epoch_results) == 2
-    assert epoch_results[0][0]["data"]["task_length"] == epoch_results[0][1]["data"]["task_length"]
-    assert torch.equal(epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"])
-    assert epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 0
-    assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
-    assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
+
+    if worldsize == 1:
+        assert epoch_results[0][0]["data"]["task_length"] == epoch_results[0][1]["data"]["task_length"]
+        assert torch.equal(
+            epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"]
+        )
+        assert epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 0
+        assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
+        assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
+    else:
+        first_task_metadata = all_gather(epoch_results[0][0]["data"]["task_length"], worldsize)
+        second_task_metadata = all_gather(epoch_results[0][1]["data"]["task_length"], worldsize)
+        assert torch.equal(first_task_metadata[0], first_task_metadata[1])
+        assert torch.equal(second_task_metadata[0], second_task_metadata[1])
+        assert torch.equal(first_task_metadata[0], second_task_metadata[1])
+
+        first_batch_list = all_gather(epoch_results[0][2]["data"][0], worldsize)
+        assert not torch.equal(first_batch_list[0], first_batch_list[1])
+        second_batch_list = all_gather(epoch_results[0][3]["data"][0], worldsize)
+        assert not torch.equal(second_batch_list[0], second_batch_list[1])
 
 
 def test_fast_forward_sampler_iterative_dataset():
