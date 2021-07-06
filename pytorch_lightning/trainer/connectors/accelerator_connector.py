@@ -203,8 +203,7 @@ class AcceleratorConnector(object):
         elif self.distributed_backend == DeviceType.CPU:
             self._accelerator_type = DeviceType.CPU
 
-        accelerator_types = DeviceType.__members__.values()
-        if self.distributed_backend in ["auto", *accelerator_types]:
+        if self.distributed_backend in ["auto"] + list(DeviceType):
             self.distributed_backend = None
 
     def validate_accelerator_type(self) -> None:
@@ -213,8 +212,7 @@ class AcceleratorConnector(object):
                 f"Mismatch between the requested {self._accelerator_type}"
                 f" and assigned {self._device_type}"
             )
-        else:
-            self._accelerator_type = self._device_type
+        self._accelerator_type = self._device_type
 
     def handle_given_plugins(self) -> None:
 
@@ -309,7 +307,7 @@ class AcceleratorConnector(object):
         # Here, we are not checking for GPU availability, but instead if User has passed
         # `gpus` to Trainer for training.
         gpus = self.parallel_device_ids
-        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
+        return gpus is not None and len(gpus) > 0
 
     @property
     def use_gpu(self) -> bool:
