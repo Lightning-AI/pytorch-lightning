@@ -1248,7 +1248,7 @@ get_progress_bar_dict
     :noindex:
 
 on_before_backward
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_backward
     :noindex:
