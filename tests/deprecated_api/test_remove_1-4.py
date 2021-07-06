@@ -26,32 +26,6 @@ def test_v1_4_0_deprecated_imports():
         from pytorch_lightning.utilities.argparse_utils import _gpus_arg_default  # noqa: F811 F401
 
 
-def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def training_step(self, batch, *_, **kwargs):
-            opt = self.optimizers()
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.manual_backward(loss, opt)
-
-        @property
-        def automatic_optimization(self):
-            return False
-
-    model = TestModel()
-    model.training_epoch_end = None
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
-    with pytest.deprecated_call(
-        match="`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
-    ):
-        trainer.fit(model)
-
-
 def test_v1_4_0_deprecated_hpc_load(tmpdir):
     model = BoringModel()
     trainer = Trainer(
