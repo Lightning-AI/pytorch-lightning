@@ -33,6 +33,9 @@ def run(args: Namespace):
     print(f"[{local_rank}] barrier")
     torch.distributed.barrier()
 
+    torch.distributed.broadcast_object_list(message_str, src=0)
+    print(f"[{local_rank}] the string message is:", message_str)
+
     print(f"[{local_rank}] before forward")
     ddp_model(torch.rand(5, 2).to(device))
 
