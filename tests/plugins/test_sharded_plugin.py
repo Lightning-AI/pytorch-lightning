@@ -10,7 +10,6 @@ from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import set_random_master_port
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
