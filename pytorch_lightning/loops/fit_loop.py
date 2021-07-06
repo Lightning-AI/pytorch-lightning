@@ -45,6 +45,7 @@ class FitLoop(Loop):
         self.max_epochs = min_epochs
         self.min_epochs = max_epochs
         self.epoch_loop = None
+        self.progress: Optional[FitLoopProgress] = None
 
     @property
     def current_epoch(self) -> int:
@@ -161,16 +162,19 @@ class FitLoop(Loop):
         return self.done or self.trainer.num_training_batches == 0
 
     def connect(
-        self, trainer: 'pl.Trainer', *args: Any, progress: Optional[FitLoopProgress] = None, **kwargs: Any
+        self,
+        trainer: 'pl.Trainer',
+        epoch_loop,
+        *args: Any,
+        progress: Optional[FitLoopProgress] = None,
+        **kwargs: Any,
     ) -> None:
-    def connect(self, trainer: 'pl.Trainer', epoch_loop) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
         if progress is not None:
             self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
-        super().connect(trainer)
         self.epoch_loop = epoch_loop
+        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
