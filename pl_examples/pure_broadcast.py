@@ -46,6 +46,7 @@ def broacast(obj, rank):
     if rank != 0:
         obj = [None] * len(obj)
 
+    print(f"[{rank}] call to broadcast_list:")
     torch.distributed.broadcast_object_list(obj, 0)
     return obj[0]
 
