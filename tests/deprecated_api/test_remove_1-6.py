@@ -91,7 +91,7 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
 
     model = BoringModel()
 
-    with pytest.deprecated_call(match='will be removed in v1.6'):
+    with pytest.deprecated_call(match='`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed'):
         trainer = Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=0.3,
