@@ -108,6 +108,4 @@ jobs:
         python -m pytest pl_examples -v --maxfail=2 --durations=0
         bash pl_examples/run_examples-args.sh --trainer.gpus 1 --trainer.max_epochs 1 --data.batch_size 64 --trainer.limit_train_batches 5 --trainer.limit_val_batches 3
         bash pl_examples/run_ddp-examples.sh --trainer.max_epochs 1 --data.batch_size 32 --trainer.limit_train_batches 2 --trainer.limit_val_batches 2
-      env:
-        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Examples'
