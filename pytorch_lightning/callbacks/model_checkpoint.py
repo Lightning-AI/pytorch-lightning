@@ -100,7 +100,7 @@ class ModelCheckpoint(Callback):
             For ``'val_acc'``, this should be ``'max'``, for ``'val_loss'`` this should be ``'min'``, etc.
         auto_insert_metric_name: When ``True`` checkpoints filename will contain the metric name.
             For filename ``filename='checkpoint_{epoch:02d}-{acc:02d}`` epoch 1 and acc 80 it will resolve to
-            ``checkpoint_epoch=01-val=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
+            ``checkpoint_epoch=01-acc=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders. Default: ``True``.
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
