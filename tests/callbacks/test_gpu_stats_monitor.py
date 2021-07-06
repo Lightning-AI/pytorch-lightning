@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -127,29 +128,28 @@ def test_gpu_stats_monitor_parse_gpu_stats():
 
 
 @RunIf(min_gpus=2)
-def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset():
-    # `CUDA_VISIBLE_DEVICES` unset
-    try:
-        del os.environ['CUDA_VISIBLE_DEVICES']
-    except KeyError:
-        pass
-
+@mock.patch.dict(os.environ, {})
+@mock.patch('torch.cuda.device_count', return_value=2)
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset(device_count_mock, is_avaliable_mock):
     gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 0])
     expected = ['1', '0']
     assert gpu_ids == expected
 
 
-def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_set():
-    # `CUDA_VISIBLE_DEVICES` set (integers)
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2,3,4'
-
+@mock.patch.dict(os.environ, {'CUDA_VISIBLE_DEVICES': '2,3,4'})
+@mock.patch('torch.cuda.device_count', return_value=4)
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_integers(device_count_mock, is_avaliable_mock):
     gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
     expected = ['3', '4']
     assert gpu_ids == expected
 
-    # `CUDA_VISIBLE_DEVICES` set (UUID strings)
-    os.environ['CUDA_VISIBLE_DEVICES'] = 'GPU-01a23b4c,GPU-56d78e9f,GPU-02a46c8e'
 
+@mock.patch.dict(os.environ, {'CUDA_VISIBLE_DEVICES': 'GPU-01a23b4c,GPU-56d78e9f,GPU-02a46c8e'})
+@mock.patch('torch.cuda.device_count', return_value=3)
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_uuids(device_count_mock, is_avaliable_mock):
     gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
     expected = ['GPU-56d78e9f', 'GPU-02a46c8e']
     assert gpu_ids == expected
