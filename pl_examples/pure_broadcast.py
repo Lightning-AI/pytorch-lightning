@@ -13,12 +13,15 @@ def run(args: Namespace):
     device = torch.device("cuda", local_rank)
 
     message = torch.tensor([local_rank], device=device)
+    message_str = f"this is local rank {local_rank}"
 
     torch.distributed.init_process_group(backend="nccl", world_size=2, rank=local_rank)
     print("init successful")
 
     torch.distributed.broadcast(message, src=0)
     print("the message is:", message)
+    torch.distributed.broadcast_object_list(message_str, src=0)
+    print("the message_str is:", message_str)
 
     print("before wrapping")
     model = nn.Linear(2, 2)
