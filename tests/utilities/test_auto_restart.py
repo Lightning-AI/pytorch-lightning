@@ -415,8 +415,10 @@ class MetaLearningDataset(IterableDataset):
         else:
             num_workers = 1 if self.num_workers in (None, 0) else self.num_workers
             num_replicas = num_workers * self.world_size
+            current_seed = self.initial_seed + self.current_task_iteration
+            print("MetaLearningDataset Seed", current_seed)
             self.sampler = DistributedSampler(
-                data, num_replicas=num_replicas, rank=self.worker_rank, shuffle=self.shuffle
+                data, num_replicas=num_replicas, rank=self.worker_rank, shuffle=self.shuffle, seed=current_seed
             )
 
             print("INDICES", self.worker_rank, list(self.sampler))
@@ -436,7 +438,7 @@ class MetaLearningDataset(IterableDataset):
         is_first_batch = self.is_first_batch if self.debugging else (self.is_first_batch and self.worker_id == 0)
         if is_first_batch:
             self.is_first_batch = False
-            return {"task_length": len(self.task_indices), "selected_indexes": self.selected_indexes}
+            return {"task_length": len(self.batch_sampler), "selected_indexes": self.selected_indexes}
         random_indices = next(self.iter_sampler)
         task_indices = [self.task_indices[idx] for idx in random_indices]
         return default_collate([self.dataset[idx] for idx in task_indices])
@@ -564,6 +566,11 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
             except StopIteration:
                 break
         epoch_results_restart.append(batches)
+
+    assert len(epoch_results_restart[0]) + 3 == len(epoch_results[0])
+    epoch_tensors = [e["data"][0] for e in epoch_results[0][2:]]
+    epoch_tensors_restart = [e["data"][0] for e in epoch_results_restart[0][2:]]
+    print([e["data"] for e in epoch_results[0]])
 
     breakpoint()
 
