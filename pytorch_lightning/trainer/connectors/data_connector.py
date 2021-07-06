@@ -16,7 +16,7 @@ from typing import Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import prefetch_iterator
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -47,9 +47,9 @@ class DataConnector:
 
         if reload_dataloaders_every_epoch:
             reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed in v1.6."
-                " Please use `reload_dataloaders_every_n_epochs` in Trainer.", DeprecationWarning
+                " Please use `reload_dataloaders_every_n_epochs` in Trainer."
             )
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
