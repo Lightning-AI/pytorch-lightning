@@ -1456,8 +1456,8 @@ class LightningModule(
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
                 holds the normalized value (scaled by 1 / accumulation steps).
-            optimizer: Current optimizer being used. `None` if using manual optimization.
-            optimizer_idx: Index of the current optimizer being used. `None` if using manual optimization.
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
 
         Example::
 

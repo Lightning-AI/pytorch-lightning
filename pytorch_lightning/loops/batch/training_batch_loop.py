@@ -578,8 +578,8 @@ class TrainingBatchLoop(Loop):
 
         Args:
             result: The output of the trainstep (including the loss value)
-            optimizer: Current optimizer being used. `None` if using manual optimization.
-            opt_idx: Index of the current optimizer being used. `None` if using manual optimization.
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
         """
         self.trainer.dev_debugger.track_event("backward_call")
 
