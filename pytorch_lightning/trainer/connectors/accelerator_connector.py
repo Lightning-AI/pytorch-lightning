@@ -649,7 +649,7 @@ class AcceleratorConnector(object):
                 self._set_horovod_backend()
             elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
-            elif self.num_gpus > 1:
+            elif self.num_gpus > 1 and self.use_gpu:
                 rank_zero_warn(
                     'You requested multiple GPUs but did not specify a backend, e.g.'
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'

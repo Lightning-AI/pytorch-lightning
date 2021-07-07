@@ -630,3 +630,12 @@ def test_accelerator_cpu_with_gpus_flag():
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(min_gpus=2)
+def test_accelerator_cpu_with_multiple_gpus():
+
+    trainer = Trainer(accelerator="cpu", gpus=2)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
