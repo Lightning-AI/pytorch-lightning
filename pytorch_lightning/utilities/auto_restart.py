@@ -67,6 +67,7 @@ class FastForwardSampler(Sampler):
         else:
             for i, batch in enumerate(self._sampler, 1):
 
+                # the `state dict` was cached as workers were available before.
                 if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
 
                     # reload the current state dict
