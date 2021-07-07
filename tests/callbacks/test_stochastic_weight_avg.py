@@ -101,7 +101,7 @@ if _TORCH_GREATER_EQUAL_1_6:
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 
-            # the batchnorm update epoch should not backward
+            # check backward call count. the batchnorm update epoch should not backward
             assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
             # check call counts
