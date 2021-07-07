@@ -208,6 +208,7 @@ def test_error_on_dataloader_idx(tmpdir, stage):
 
     # _step method needs a positional argument regardless of number of loaders
     class TestModel(BoringModel):
+
         def validation_step(self, **kwargs):
             return super().validation_step(**kwargs)
 
