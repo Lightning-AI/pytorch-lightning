@@ -42,8 +42,6 @@ class CheckpointConnector:
     def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        # used to validate checkpointing logic
-        self.has_trained = False
         self._loaded_checkpoint = dict()
 
     @property

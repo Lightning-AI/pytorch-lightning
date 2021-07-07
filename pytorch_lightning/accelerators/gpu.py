@@ -26,16 +26,19 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """ Accelerator for GPU devices. """
 
+    def setup_environment(self) -> None:
+        super().setup_environment()
+        if "cuda" not in str(self.root_device):
+            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
+        torch.cuda.set_device(self.root_device)
+
     def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         self.set_nvidia_flags(trainer.local_rank)
-        torch.cuda.set_device(self.root_device)
         return super().setup(trainer, model)
 
     def on_train_start(self) -> None:
