@@ -37,21 +37,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 
-    def backward(
+    def pre_backward(
         self,
         model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        *args: Any,
-        **kwargs: Any,
     ) -> torch.Tensor:
-        """performs the actual backpropagation
-
-        Args:
-            model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
-        """
-        closure_loss = self.scaler.scale(closure_loss)
-        return super().backward(model, closure_loss, *args, **kwargs)
+        return self.scaler.scale(closure_loss)
 
     def pre_optimizer_step(
         self,
@@ -61,9 +52,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        """always called before the optimizer step.
-        Checks that the optimizer is not LBFGS, as this one is not supported by native amp
-        """
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
@@ -75,6 +63,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             if result is None:
                 # lambda_closure returning None indicates that backward has been skipped
                 return False
+        # TODO: Add `on_before_optimizer_step`
+        # self.scaler.unscale_(optimizer)
+        # pl_module.trainer.call_hook("on_before_optimizer_step")
         self.scaler.step(optimizer)
         self.scaler.update()
         return False

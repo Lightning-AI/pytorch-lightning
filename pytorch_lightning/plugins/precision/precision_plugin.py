@@ -51,32 +51,57 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
-    def backward(
+    def pre_backward(
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        *args: Any,
-        **kwargs: Any,
     ) -> Tensor:
-        """performs the actual backpropagation
+        """Run before precision plugin executes backward
 
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
-        automatic_optimization = model.automatic_optimization
+        return closure_loss
 
+    def backward(
+        self,
+        model: 'pl.LightningModule',
+        closure_loss: Tensor,
+        optimizer: Optimizer,
+        opt_idx: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Performs the actual backpropagation
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss value obtained from the closure
+            optimizer: the optimizer to perform the step later on
+            opt_idx: the optimizer's index
+        """
         # do backward pass
-        if automatic_optimization:
-            model.backward(closure_loss, *args, **kwargs)
+        # FIXME: check `if model is not None and isinstance(model, pl.LightningModule)`?
+        if model.automatic_optimization:
+            model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
         else:
             closure_loss.backward(*args, **kwargs)
 
+    def post_backward(
+        self,
+        model: 'pl.LightningModule',
+        closure_loss: Tensor,
+    ) -> Tensor:
+        """Run after precision plugin executes backward
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss value obtained from the closure
+        """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
-
         model.trainer.call_hook("on_after_backward")
-
         return closure_loss
 
     def pre_optimizer_step(

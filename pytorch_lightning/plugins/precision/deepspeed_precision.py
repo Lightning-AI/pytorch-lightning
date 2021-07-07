@@ -53,7 +53,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         closure_loss: Tensor,
         *args: Any,
         **kwargs: Any,
-    ) -> Tensor:
+    ) -> None:
         if is_overridden('backward', model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
@@ -62,13 +62,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         # todo: hack around for deepspeed engine to call backward
         deepspeed_engine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
-
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
-
-        model.trainer.call_hook("on_after_backward")
-
-        return closure_loss
 
     def clip_gradients(
         self,

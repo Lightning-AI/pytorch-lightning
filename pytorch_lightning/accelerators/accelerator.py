@@ -287,14 +287,14 @@ class Accelerator:
             optimizer_idx: the index of the current optimizer
         """
         self.training_type_plugin.pre_backward(closure_loss, optimizer, optimizer_idx)
+        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs
-        )
+        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
 
+        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
         self.training_type_plugin.post_backward(closure_loss, optimizer, optimizer_idx)
 
-        return output
+        return closure_loss
 
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         """performs the actual optimizer step.
