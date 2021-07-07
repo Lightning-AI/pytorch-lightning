@@ -181,6 +181,8 @@ class CheckpointConnector:
         # restore progress (loops etc.)
         self.restore_progress()
 
+        self.restore_loops()
+
         # restore samplers
         self.restore_samplers()
 
@@ -231,6 +233,26 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
+
+    def restore_loops(self):
+        if not self._loaded_checkpoint:
+            return
+
+        state_dict = self._loaded_checkpoint.get("loops", None)
+        if state_dict:
+            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
+
+            self.trainer.fit_loop.restarting = True
+            self.trainer.fit_loop.epoch_loop.restarting = True
+            self.trainer.fit_loop.epoch_loop.batch_loop.restarting = True
+            self.trainer.fit_loop.epoch_loop.val_loop.restarting = True
+            self.trainer.validate_loop.restarting = True
+            self.trainer.test_loop.restarting = True
+            self.trainer.predict_loop.restarting = True
+            self.trainer.is_restarting = True
 
     def restore_dataloaders(self) -> None:
         if not self._loaded_checkpoint:
@@ -410,12 +432,13 @@ class CheckpointConnector:
         }
 
         if fault_tolerant_enabled():
-            checkpoint.update({
-                'progress': self.get_progress_state_dict(),
-                'samplers': self.get_samplers_state_dict(),
-                'gradients': self.get_gradients_state_dict(),
-                'current_workers': self.get_current_worker(),
-            })
+            checkpoint["loops"] = self.get_loops_state_dict()
+            # checkpoint.update({
+            #    'progress': self.get_progress_state_dict(),
+            #    'samplers': self.get_samplers_state_dict(),
+            #    'gradients': self.get_gradients_state_dict(),
+            #    'current_workers': self.get_current_worker(),
+            # })
 
         if not weights_only:
             # dump callbacks
@@ -492,6 +515,14 @@ class CheckpointConnector:
             return dataloader.batch_sampler.state_dict()
         else:
             return self.trainer.fit_loop.epoch_loop._map_dl_idx_sampler_states[dl_idx]
+
+    def get_loops_state_dict(self):
+        return {
+            "fit_loop": self.trainer.fit_loop.state_dict(),
+            "validate_loop": self.trainer.validate_loop.state_dict(),
+            "test_loop": self.trainer.test_loop.state_dict(),
+            "predict_loop": self.trainer.predict_loop.state_dict(),
+        }
 
     def get_progress_state_dict(self):
         return {TrainerFn.FITTING.value: self.trainer.fit_loop.progress.state_dict()}

@@ -92,8 +92,7 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
         self.val_loop.connect(trainer, progress=self.progress.val)
 
-    def reset(self) -> None:
-        """Resets the internal state of the loop for a new run"""
+    def _initialize(self) -> None:
         self.iteration_count = 0
         self.batches_seen = 0
         self.is_last_batch = False
@@ -102,13 +101,16 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if not self.trainer.is_restarting:
-            # reset tracking
-            self.progress.reset_on_epoch()
-        else:
-            # todo (tchaton) do we need both ?
-            self.iteration_count = self.current_batch_seen
-            self.batches_seen = self.current_batch_seen
+    def restore(self) -> None:
+        """Restore the internal state of the loop for a new run"""
+        self._initialize()
+
+    def reset(self) -> None:
+        """Resets the internal state of the loop for a new run"""
+        self._initialize()
+
+        # reset tracking
+        self.progress.reset_on_epoch()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.progress.increment_ready()
@@ -468,13 +470,6 @@ class TrainingEpochLoop(loops.Loop):
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def state_dict(self) -> Dict:
-        return {"batch_loop": self.batch_loop.state_dict(), "val_loop": self.val_loop.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        self.batch_loop.load_state_dict(state_dict["batch_loop"])
-        self.val_loop.load_state_dict(state_dict["val_loop"])
-
     def _sanetize_batch(self, batch: Any) -> Any:
         if isinstance(batch, Dict) and BatchKeys.PL_SAMPLERS in batch:
             current_iterations = {
@@ -494,3 +489,22 @@ class TrainingEpochLoop(loops.Loop):
             return batch["data"]
 
         return batch
+
+    def state_dict(self) -> Dict:
+        progress = {
+            "total": self.progress.total.state_dict(),
+            "current": self.progress.current.state_dict(),
+            "dataloader_idx": self.progress.dataloader_idx,
+        }
+        return {
+            "batch_loop": self.batch_loop.state_dict(),
+            "val_loop": self.val_loop.state_dict(),
+            "progress": progress
+        }
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.batch_loop.load_state_dict(state_dict["batch_loop"])
+        self.val_loop.load_state_dict(state_dict["val_loop"])
+        self.progress.total.load_state_dict(state_dict["progress"]["total"])
+        self.progress.current.load_state_dict(state_dict["progress"]["current"])
+        self.progress.dataloader_idx = state_dict["progress"]["dataloader_idx"]
