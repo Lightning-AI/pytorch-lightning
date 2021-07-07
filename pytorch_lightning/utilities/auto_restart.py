@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import deepcopy
-from typing import Any, Dict, Generator, Iterator, Optional, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 from torch.utils.data import get_worker_info, Sampler
-from torch.utils.data.dataloader import IterableDataset
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
@@ -222,3 +222,70 @@ class CaptureIterableDataset(IterableDataset):
                 }
             }
         return state_dict
+
+
+def _find_next_worker_id(iter, state_dict: Dict[str, Any], num_workers: int):
+    if isinstance(iter, _MultiProcessingDataLoaderIter):
+        next_worker = (next(iter._worker_queue_idx_cycle)) % num_workers
+        previous_worker = (next_worker - 1) % num_workers
+        while next(iter._worker_queue_idx_cycle) != previous_worker:
+            pass
+    else:
+        previous_worker = None
+
+    state_dict.update({"num_workers": iter._num_workers, "previous_worker": previous_worker})
+
+
+def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
+    if isinstance(dataloader.sampler, FastForwardSampler):
+        return dataloader.sampler
+
+    elif isinstance(dataloader.batch_sampler, FastForwardSampler):
+        return dataloader.batch_sampler
+
+
+def fetch_previous_worker_state_dict(iter: Iterator, out: List):
+    num_workers = iter._num_workers
+    if isinstance(iter, _MultiProcessingDataLoaderIter):
+        next_worker = (next(iter._worker_queue_idx_cycle)) % num_workers
+        previous_worker = (next_worker - 1) % num_workers
+        while next(iter._worker_queue_idx_cycle) != previous_worker:
+            pass
+    else:
+        previous_worker = None
+
+    out.append({"num_workers": iter._num_workers, "previous_worker": previous_worker})
+
+
+def fetch_fast_forward_samplers_state_dict(dataloader: DataLoader, out: List, count: int):
+    fast_forward_samplers = find_fast_forward_samplers(dataloader)
+
+    if fast_forward_samplers is not None:
+        out[count]["sampler"] = fast_forward_samplers.state_dict()
+        count += 1
+
+
+def cycle_to_next_worker(iter: Iterator, state_dict: List[Dict[str, Any]], count: int):
+    current = state_dict[count]
+    num_workers = iter._num_workers
+    assert current["num_workers"] == num_workers
+    if isinstance(iter, _MultiProcessingDataLoaderIter):
+        # move back to 0
+        while next(iter._worker_queue_idx_cycle) != 0:
+            pass
+        # increment previous worker
+        for _ in range(current["previous_worker"] - 1):
+            next(iter._worker_queue_idx_cycle)
+        iter._reset = iter._ori_reset
+        iter._reset(current["loader"], first_iter=True)
+
+    count += 1
+
+
+def fast_forward_sampler_load_state_dict(dataloader, state_dict: List[Dict[str, Any]], count: int):
+    current_state_dict = state_dict[count]["sampler"]
+    fast_forward_samplers = find_fast_forward_samplers(dataloader)
+
+    if fast_forward_samplers is not None:
+        fast_forward_samplers.load_state_dict(current_state_dict)
+        count += 1

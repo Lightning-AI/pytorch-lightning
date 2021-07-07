@@ -25,17 +25,13 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.overrides.distributed import (
-    CaptureIterativeDataset,
-    FastForwardSampler,
-    IndexBatchSamplerWrapper,
-    UnrepeatedDistributedSampler,
-)
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -143,11 +139,8 @@ class TrainerDataLoadingMixin(ABC):
             dl_args["generator"] = torch.Generator().manual_seed(seed)
 
         if 'dataset' in dl_args:
-            dl_args["dataset"] = CaptureIterativeDataset(
+            dl_args["dataset"] = CaptureIterableDataset(
                 dataset=dl_args["dataset"],
-                num_workers=dataloader.num_workers,
-                batch_size=dataloader.batch_size,
-                is_inside_workers=True,
                 initial_seed=dl_args["generator"].initial_seed(),
             )
 
@@ -222,7 +215,7 @@ class TrainerDataLoadingMixin(ABC):
 
         batch_size = dl_args["batch_size"]
 
-        fast_forward_sampler.setup(getattr(dataloader, "num_workers"), batch_size, False)
+        fast_forward_sampler.setup(batch_size)
 
         return dl_args, fast_forward_sampler
 

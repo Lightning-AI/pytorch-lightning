@@ -301,10 +301,13 @@ class FitLoop(Loop):
                 cb.on_validation_end(self.trainer, model)
 
     def state_dict(self) -> Dict:
-        return {"epoch_loop": self.epoch_loop.state_dict()}
+        return {"epoch_loop": self.epoch_loop.state_dict(), "dataloader": self.trainer.train_dataloader.state_dict()}
 
     def load_state_dict(self, state_dict: Dict) -> None:
         self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
+        # todo (tchaton) Can we avoid creating the dataloader there ?
+        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+        self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

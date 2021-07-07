@@ -14,6 +14,7 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import partial
 from typing import Any, Callable, Generator, Optional, Tuple, Union
 
 import torch
@@ -375,23 +376,18 @@ class CombinedLoader(object):
         self.loaders_iter_state_dict = None
 
     def state_dict(self):
+        from pytorch_lightning.utilities.auto_restart import (
+            fetch_fast_forward_samplers_state_dict,
+            fetch_previous_worker_state_dict,
+        )
+
         out = []
+        apply_to_collection(self._iterator.loader_iters, Iterator, partial(fetch_previous_worker_state_dict, out=out))
 
-        def fetch_next_worker(iter: Iterator):
-            nonlocal out
-            num_workers = iter._num_workers
-            if isinstance(iter, _MultiProcessingDataLoaderIter):
-                next_worker = (next(iter._worker_queue_idx_cycle)) % num_workers
-                previous_worker = (next_worker - 1) % num_workers
-                while next(iter._worker_queue_idx_cycle) != previous_worker:
-                    pass
-            else:
-                previous_worker = None
-
-            out.append({"num_workers": iter._num_workers, "previous_worker": previous_worker})
-
-        apply_to_collection(self._iterator.loader_iters, Iterator, fetch_next_worker, wrong_dtype=(Sequence, Mapping))
-
+        count = 0
+        apply_to_collection(
+            self.loaders, DataLoader, partial(fetch_fast_forward_samplers_state_dict, out=out, count=count)
+        )
         return out
 
     def load_state_dict(self, state_dict):
@@ -409,27 +405,22 @@ class CombinedLoader(object):
 
     def on_restart(self):
         if self.loaders_iter_state_dict:
-            loader_iters = self._iterator.loader_iters
-            state_dict = self.loaders_iter_state_dict
+            from pytorch_lightning.utilities.auto_restart import (
+                cycle_to_next_worker,
+                fast_forward_sampler_load_state_dict,
+            )
 
-            def cycle_to_next_worker(iter: Iterator):
-                nonlocal state_dict
-                current = state_dict.pop(0)
-                num_workers = iter._num_workers
-                assert current["num_workers"] == num_workers
-                if isinstance(iter, _MultiProcessingDataLoaderIter):
-                    # move back to 0
-                    while next(iter._worker_queue_idx_cycle) != 0:
-                        pass
-                    # increment previous worker
-                    for _ in range(current["previous_worker"] - 1):
-                        next(iter._worker_queue_idx_cycle)
-                    iter._reset = iter._ori_reset
-                    iter._reset(current["loader"], first_iter=True)
+            count = 0
+            apply_to_collection(
+                self._iterator.loader_iters, Iterator,
+                partial(cycle_to_next_worker, state_dict=self.loaders_iter_state_dict, count=count)
+            )
 
-            apply_to_collection(loader_iters, Iterator, cycle_to_next_worker, wrong_dtype=(Sequence, Mapping))
-
-            self.loaders_iter_state_dict = None
+            count = 0
+            apply_to_collection(
+                self.loaders, DataLoader,
+                partial(fast_forward_sampler_load_state_dict, state_dict=self.loaders_iter_state_dict, count=count)
+            )
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:

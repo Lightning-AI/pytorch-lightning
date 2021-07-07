@@ -134,6 +134,10 @@ class TrainingEpochLoop(loops.Loop):
         _, (batch, is_last) = next(dataloader_iter)
         batch = self._sanetize_batch(batch)
 
+        print()
+        print(self.trainer.current_epoch, self.batches_seen)
+        print()
+
         self.is_last_batch = is_last
 
         # ------------------------------------
@@ -498,7 +502,7 @@ class TrainingEpochLoop(loops.Loop):
         return {
             "batch_loop": self.batch_loop.state_dict(),
             "val_loop": self.val_loop.state_dict(),
-            "progress": progress
+            "progress": progress,
         }
 
     def load_state_dict(self, state_dict: Dict) -> None:
