@@ -97,6 +97,7 @@ def test_fast_forward_on_sequential_sampler():
 
 
 @RunIf(min_torch="1.5.0")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
     """
     This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived
