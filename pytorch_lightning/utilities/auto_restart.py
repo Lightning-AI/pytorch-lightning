@@ -75,7 +75,7 @@ class FastForwardSampler(Sampler):
                 # yield the batch
                 yield batch
 
-        self.reset()
+        self.reset_iteration()
 
     def reset(self) -> None:
         self._current_iteration = 0
