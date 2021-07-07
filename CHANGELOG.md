@@ -134,6 +134,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `restore` function and `restarting` attribute to base `Loop` ([#8247](https://github.com/PyTorchLightning/pytorch-lightning/pull/8247))
 
 
+- Added `FastForwardSampler` and `CaptureIterativeDataset` ([#8307](https://github.com/PyTorchLightning/pytorch-lightning/pull/8307))
+
+
 ### Changed
 
 

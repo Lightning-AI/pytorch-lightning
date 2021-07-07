@@ -115,10 +115,10 @@ class FastForwardSampler(Sampler):
 
         return current_iteration
 
-    def state_dict(self, number_batch_processed: Optional[int] = None):
+    def state_dict(self, number_batch_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         return {self.worker_id: {"current_iteration": self._compute_current_iteration(number_batch_processed)}}
 
-    def load_state_dict(self, state_dict: Dict[str, Any], workers_initialized: bool = False):
+    def load_state_dict(self, state_dict: Dict[str, Any], workers_initialized: bool = False) -> None:
         # if the state dict contains multiple states, it means there were multiple workers
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         if len(state_dict) > 1 and not workers_initialized:
@@ -144,7 +144,7 @@ class CaptureIterativeDataset(IterableDataset):
         self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
 
-    def load_state_dict(self, state_dict: Dict[int, Any]):
+    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self.state_dict = state_dict
 
     def _wrap_generator_samplers(self) -> None:
@@ -186,7 +186,7 @@ class CaptureIterativeDataset(IterableDataset):
         # reset state dict.
         self.state_dict = None
 
-    def reset_on_epoch(self):
+    def reset_on_epoch(self) -> None:
         self.state_dict = None
 
     @property
@@ -216,7 +216,7 @@ class CaptureIterativeDataset(IterableDataset):
         return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: state_dicts}
 
     @staticmethod
-    def convert_batch_into_state_dict(batch):
+    def convert_batch_into_state_dict(batch) -> Dict[str, Dict[int, Any]]:
         """
         This function is used to convert a batch into a state_dict
         """
