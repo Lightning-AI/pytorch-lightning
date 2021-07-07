@@ -106,13 +106,12 @@ class ConfigValidator:
             sig_args = inspect.signature(getattr(model, step_name)).parameters
             loaders = getattr(model, loader_name)()
             len_loaders = 1 if not isinstance(loaders, list) else len(loaders)
-            if (len(sig_args) == 2 and len_loaders != 1):
+            if len(sig_args) == 2 and len_loaders != 1:
                 raise MisconfigurationException(
-                    f'You provide multiple {stage} dataloaders, but no `dataloader_idx` argument'
+                    f'You provided multiple {stage} dataloaders, but no `dataloader_idx` argument'
                     f' given in {step_name}.'
                 )
-            if (len(sig_args) == 3
-                and len_loaders < 2) and sig_args['dataloader_idx'].default is not inspect.Parameter.empty:
+            if len(sig_args) == 3 and len_loaders < 2 and sig_args['dataloader_idx'].default is not inspect.Parameter.empty:
                 raise MisconfigurationException(
                     f'You provided only a single {stage} dataloader, but have included the `dataloader_idx`'
                     f' in the {step_name} method. Either remove the argument or give it a default value'
