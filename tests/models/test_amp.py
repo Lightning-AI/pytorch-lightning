@@ -216,6 +216,7 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     assert not bwd_mock.called
 
 
+@RunIf(min_gpus=1, amp_apex=True)
 @mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
 def test_amp_with_apex(bwd_mock, tmpdir):
     """Check calling apex scaling in training."""
