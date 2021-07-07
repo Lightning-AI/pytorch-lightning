@@ -150,7 +150,6 @@ def test_logdir_logger_collection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=2,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         logger=[TensorBoardLogger(save_dir=tmpdir, name='custom_logs')]
     )
 
