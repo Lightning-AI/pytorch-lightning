@@ -22,9 +22,9 @@ from torch.optim import Adam
 from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import get_worker_info
 from torch.utils.data.dataloader import _InfiniteConstantSampler, DataLoader
-from torch.utils.data.dataset import IterableDataset, Dataset
+from torch.utils.data.dataset import Dataset, IterableDataset
 
-from pytorch_lightning import Callback, seed_everything, Trainer, LightningModule
+from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.overrides.distributed import (
     CaptureIterativeDataset,
@@ -546,4 +546,3 @@ def test_fastforward_sampler_and_dataset(tmpdir):
     print(torch.cat(model.recorded_samples))
     indices = [int(x) for x in torch.cat(model.recorded_samples).floor()]
     assert indices == [6, 7, 8, 9]
-
