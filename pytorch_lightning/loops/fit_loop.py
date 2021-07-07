@@ -278,7 +278,7 @@ class FitLoop(Loop):
     def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
         # TODO: bake this logic into the ModelCheckpoint callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
+        if should_update:
             callbacks = self.trainer.checkpoint_callbacks
 
             if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
