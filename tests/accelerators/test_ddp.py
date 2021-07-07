@@ -32,9 +32,10 @@ CLI_ARGS = '--max_epochs 1 --gpus 2 --accelerator ddp'
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_only(tmpdir):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     # call the script
-    call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120)
+    call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120, as_module=as_module)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -45,9 +46,10 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_test_only(tmpdir):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     # call the script
-    call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir)
+    call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir, as_module=as_module)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -58,9 +60,10 @@ def test_multi_gpu_model_ddp_test_only(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_test(tmpdir):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
     # call the script
-    call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20)
+    call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20, as_module=as_module)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -123,8 +126,16 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
 
 
 @RunIf(min_gpus=2, min_torch="1.8.1", special=True)
-@pytest.mark.parametrize("precision", [16, 32])
-def test_ddp_wrapper(tmpdir, precision):
+def test_ddp_wrapper_16(tmpdir):
+    _test_ddp_wrapper(tmpdir, precision=16)
+
+
+@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
+def test_ddp_wrapper_32(tmpdir):
+    _test_ddp_wrapper(tmpdir, precision=32)
+
+
+def _test_ddp_wrapper(tmpdir, precision):
     """
     Test parameters to ignore are carried over for DDP.
     """

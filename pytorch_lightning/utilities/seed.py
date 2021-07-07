@@ -34,7 +34,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     In addition, sets the following environment variables:
 
     - `PL_GLOBAL_SEED`: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
-    - `PL_SEED_WORKERS`: (optional) is set to 1 if ```workers=True``.
+    - `PL_SEED_WORKERS`: (optional) is set to 1 if ``workers=True``.
 
     Args:
         seed: the integer value seed for global random state in Lightning.

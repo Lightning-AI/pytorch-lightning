@@ -395,7 +395,7 @@ def test_log_works_in_val_callback(tmpdir):
 
     for fx, attrs in cb.logged_arguments.items():
         should_include = attrs["prog_bar"] and attrs["on_step"] ^ attrs["on_epoch"]
-        is_included = fx in trainer.logger_connector.progress_bar_metrics
+        is_included = fx in trainer.progress_bar_metrics
         assert is_included if should_include else not is_included
 
 
@@ -529,7 +529,7 @@ def test_log_works_in_test_callback(tmpdir):
 
     for fx, attrs in cb.funcs_attr.items():
         should_include = attrs["prog_bar"] and attrs["on_step"] ^ attrs["on_epoch"]
-        is_included = fx in trainer.logger_connector.progress_bar_metrics
+        is_included = fx in trainer.progress_bar_metrics
         assert is_included if should_include else not is_included
 
 
@@ -592,8 +592,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         mock_calls = list(mock_log_metrics.mock_calls)
         if isinstance(mock_calls[idx].kwargs, dict):
             return mock_calls[idx].kwargs["metrics"]
-        else:
-            return mock_calls[idx][2]["metrics"]
+        return mock_calls[idx][2]["metrics"]
 
     expected = {'valid_loss_0_step', 'valid_loss_2'}
     assert set(get_metrics_at_idx(1)) == expected

@@ -244,7 +244,7 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    trainer.fit_loop.training_loop.warning_cache.clear()
+    trainer.fit_loop.epoch_loop._warning_cache.clear()
 
     class NewSignature(Callback):
 
@@ -369,8 +369,10 @@ def test_v1_5_0_datamodule_setter():
     datamodule = BoringDataModule()
     with no_deprecated_call(match="The `LightningModule.datamodule`"):
         model.datamodule = datamodule
-    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
-        _ = model.datamodule
+    from pytorch_lightning.core.lightning import warning_cache
+    warning_cache.clear()
+    _ = model.datamodule
+    assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
 
 
 def test_v1_5_0_trainer_tbptt_steps(tmpdir):

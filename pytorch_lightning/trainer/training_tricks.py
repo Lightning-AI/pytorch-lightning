@@ -18,7 +18,7 @@ from abc import ABC
 import torch
 from torch import Tensor
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters, print_nan_gradients
 
@@ -34,7 +34,7 @@ class TrainerTrainingTricksMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    lightning_module: LightningModule
+    lightning_module: 'pl.LightningModule'
 
     def print_nan_gradients(self) -> None:
         rank_zero_deprecation(

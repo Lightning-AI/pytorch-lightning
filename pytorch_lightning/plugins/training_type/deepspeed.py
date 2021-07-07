@@ -15,7 +15,6 @@ import contextlib
 import json
 import logging
 import os
-import warnings
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
@@ -33,6 +32,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -260,10 +260,11 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
         if cpu_offload or cpu_offload_params or cpu_offload_use_pin_memory:
-            warnings.warn(
+            _warn(
                 "The usage of `cpu_offload`, `cpu_offload_params`, and `cpu_offload_use_pin_memory` "
                 "is deprecated since v1.4 and will be removed in v1.5."
-                " From now on use `offload_optimizer`, `offload_parameters` and `pin_memory`.", DeprecationWarning
+                " From now on use `offload_optimizer`, `offload_parameters` and `pin_memory`.",
+                category=LightningDeprecationWarning
             )
             offload_optimizer = cpu_offload
             offload_parameters = cpu_offload_params
@@ -338,8 +339,6 @@ class DeepSpeedPlugin(DDPPlugin):
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
 
     def pre_dispatch(self):
         self.init_deepspeed()
@@ -699,10 +698,9 @@ class DeepSpeedPlugin(DDPPlugin):
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
             return super().update_global_step(total_batch_idx, current_global_step)
-        else:
-            if total_batch_idx % self._original_accumulate_grad_batches == 0:
-                current_global_step += 1
-            return current_global_step
+        if total_batch_idx % self._original_accumulate_grad_batches == 0:
+            current_global_step += 1
+        return current_global_step
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

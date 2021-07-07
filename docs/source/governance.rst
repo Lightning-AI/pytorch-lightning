@@ -3,9 +3,15 @@
 Lightning Governance | Persons of interest
 ==========================================
 
+BDFL
+----
+Role: All final decisions related to Lightning.
+
+- William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
+
+
 Leads
 -----
-- William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_) (Former Core Member PyTorch Ignite)

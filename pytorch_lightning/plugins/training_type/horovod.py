@@ -15,13 +15,12 @@ from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 from torch.optim.lr_scheduler import _LRScheduler, Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import group, rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import distributed_available, group, rank_zero_only, ReduceOp
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -125,7 +124,7 @@ class HorovodPlugin(ParallelPlugin):
         self.join()
 
     def barrier(self, *args, **kwargs):
-        if torch_distrib.is_initialized():
+        if distributed_available():
             self.join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
@@ -134,6 +133,7 @@ class HorovodPlugin(ParallelPlugin):
 
     def model_to_device(self):
         if self.on_gpu:
+            # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 

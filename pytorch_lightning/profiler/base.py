@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, TextIO, Union
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
@@ -63,10 +63,9 @@ class BaseProfiler(AbstractProfiler):
         self.dirpath = dirpath
         self.filename = filename
         if output_filename is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
                 " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5",
-                DeprecationWarning
             )
             filepath = Path(output_filename)
             self.dirpath = filepath.parent
@@ -113,14 +112,19 @@ class BaseProfiler(AbstractProfiler):
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
-    def _prepare_filename(self, extension: str = ".txt") -> str:
-        filename = ""
+    def _prepare_filename(
+        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
+    ) -> str:
+        args = []
         if self._stage is not None:
-            filename += f"{self._stage}-"
-        filename += str(self.filename)
+            args.append(self._stage)
+        if self.filename:
+            args.append(self.filename)
         if self._local_rank is not None:
-            filename += f"-{self._local_rank}"
-        filename += extension
+            args.append(str(self._local_rank))
+        if action_name is not None:
+            args.append(action_name)
+        filename = split_token.join(args) + extension
         return filename
 
     def _prepare_streams(self) -> None:

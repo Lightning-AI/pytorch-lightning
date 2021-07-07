@@ -11,6 +11,10 @@ The following links the related issue to the PR (https://docs.github.com/en/free
 -->
 Fixes #<issue_number>
 
+### Does your PR introduce any breaking changes ? If yes, please list them.
+
+<!-- In the CHANGELOG, separate each item in the unreleased section by a blank line to reduce collisions -->
+
 ## Before submitting
 - [ ] Was this discussed/approved via a GitHub issue? (not for typos and docs)
 - [ ] Did you read the [contributor guideline](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md), **Pull Request** section?
@@ -19,6 +23,7 @@ Fixes #<issue_number>
 - [ ] Did you write any new necessary tests? (not for typos and docs)
 - [ ] Did you verify new and existing tests pass locally with your changes?
 - [ ] Did you update the [CHANGELOG](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/CHANGELOG.md)? (not for typos, docs, test updates, or internal minor changes/refactorings)
+- [ ] Did you list all the breaking changes introduced by this pull request?
 
 <!-- For CHANGELOG separate each item in the unreleased section by a blank line to reduce collisions -->
 

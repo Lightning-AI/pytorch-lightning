@@ -11,12 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Optional
 
 
 @dataclass
-class Tracker:
+class _DataclassStateDictMixin:
+
+    def state_dict(self) -> dict:
+        return asdict(self)
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.__dict__.update(state_dict)
+
+    @classmethod
+    def from_state_dict(cls, state_dict: dict) -> "_DataclassStateDictMixin":
+        obj = cls()
+        obj.load_state_dict(state_dict)
+        return obj
+
+
+@dataclass
+class Tracker(_DataclassStateDictMixin):
     """
     Track an event's progress.
 
@@ -28,6 +44,7 @@ class Tracker:
 
     Attributes set to ``None`` are treated as unused and are restricted.
     """
+
     ready: Optional[int] = 0
     started: Optional[int] = 0
     processed: Optional[int] = 0
@@ -55,7 +72,7 @@ class Tracker:
 
 
 @dataclass
-class Progress:
+class Progress(_DataclassStateDictMixin):
     """
     Track aggregated and current progress.
 
@@ -63,6 +80,7 @@ class Progress:
         total: Intended to track the total progress of an event
         current: Intended to track the current progress of an event
     """
+
     total: Tracker = field(default_factory=Tracker)
     current: Tracker = field(default_factory=Tracker)
 
@@ -91,35 +109,70 @@ class Progress:
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, **kwargs: Optional[int]) -> 'Progress':
+    def from_defaults(cls, **kwargs: Optional[int]) -> "Progress":
         return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.total.load_state_dict(state_dict["total"])
+        self.current.load_state_dict(state_dict["current"])
+
+
+class BatchProgress(Progress):
+    """
+    Tracks the batch progress
+
+    Args:
+        total: Tracks the total epoch progress
+        current: Tracks the current epoch progress
+    """
 
 
 @dataclass
-class LoopProgress:
+class EpochProgress(Progress):
     """
-    Track loop progress during execution.
-
+    Tracks the epoch progress
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        epoch: Tracks epochs progress.
+        total: Tracks the total epoch progress
+        current: Tracks the current epoch progress
         batch: Tracks batch progress.
     """
-    epoch: Progress = field(default_factory=Progress)
-    batch: Progress = field(default_factory=Progress)
 
-    def increment_epoch_completed(self) -> None:
-        self.epoch.increment_completed()
-        self.reset_on_epoch()
+    batch: BatchProgress = field(default_factory=BatchProgress)
 
     def reset_on_epoch(self) -> None:
         self.batch.current.reset()
-        self.epoch.current.reset()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.batch.load_state_dict(state_dict["batch"])
 
 
 @dataclass
-class OptimizationProgress:
+class OptimizerProgress(_DataclassStateDictMixin):
+    """
+    Track optimizer progress.
+
+    Args:
+        step: Tracks ``optimizer.step`` calls.
+        zero_grad: Tracks ``optimizer.zero_grad`` calls.
+    """
+
+    step: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
+    zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
+
+    def reset_on_epoch(self) -> None:
+        self.step.current.reset()
+        self.zero_grad.current.reset()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.step.load_state_dict(state_dict["step"])
+        self.zero_grad.load_state_dict(state_dict["zero_grad"])
+
+
+@dataclass
+class OptimizationProgress(_DataclassStateDictMixin):
     """
     Track optimization progress.
 
@@ -127,54 +180,86 @@ class OptimizationProgress:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
     """
-    optimizer: Progress = Progress.from_defaults(processed=None)
-    scheduler: Progress = Progress.from_defaults(started=None, processed=None)
-    zero_grad: Progress = Progress.from_defaults(processed=None)
+
+    # TODO: support for multiple optimizers
+    optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
+    scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
 
     @property
     def optimizer_steps(self) -> int:
-        return self.optimizer.total.completed
+        return self.optimizer.step.total.completed
 
     @property
     def scheduler_steps(self) -> int:
         return self.scheduler.total.completed
 
+    def reset_on_epoch(self) -> None:
+        self.optimizer.reset_on_epoch()
+        self.scheduler.current.reset()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.optimizer.load_state_dict(state_dict["optimizer"])
+        self.scheduler.load_state_dict(state_dict["scheduler"])
+
 
 @dataclass
-class TrainingProgress(Progress):
+class EpochLoopProgress(_DataclassStateDictMixin):
     """
-    Extends ``Progress`` with training specific attributes
+    Tracks epoch loop progress.
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        optimization: Tracks optimization progress
+        epoch: Tracks epochs progress.
     """
-    optimization: OptimizationProgress = field(default_factory=OptimizationProgress)
 
+    epoch: EpochProgress = field(default_factory=EpochProgress)
 
-@dataclass
-class TrainingLoopProgress(LoopProgress):
-    epoch: TrainingProgress = field(default_factory=TrainingProgress)
+    def increment_epoch_completed(self) -> None:
+        self.epoch.increment_completed()
+        self.reset_on_epoch()
 
     def reset_on_epoch(self) -> None:
-        # override to avoid resetting `epoch.current`
-        self.batch.current.reset()
+        self.epoch.reset_on_epoch()
+        self.epoch.current.reset()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.epoch.load_state_dict(state_dict["epoch"])
 
 
 @dataclass
-class FitLoopProgress:
-    train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
-    val: LoopProgress = field(default_factory=LoopProgress)
+class TrainingEpochProgress(EpochProgress):
+    """
+    Extends ``EpochProgress`` with training specific attributes
+
+    Args:
+        total: Tracks the total epoch progress.
+        current: Tracks the current epoch progress.
+        batch: Tracks batch progress.
+        optim: Tracks optimization progress.
+        val: Tracks val_loop progress.
+    """
+
+    optim: OptimizationProgress = field(default_factory=OptimizationProgress)
+    val: EpochLoopProgress = field(default_factory=EpochLoopProgress)
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.optim.load_state_dict(state_dict["optim"])
+        self.val.load_state_dict(state_dict["val"])
 
 
 @dataclass
-class LoopState:
+class FitLoopProgress(EpochLoopProgress):
     """
-    Basic dataclass to track loop progress across trainer functions during trainer execution.
+    Extends ``EpochLoopProgress`` with fit specific attributes
 
-    This class will be removed and these attributes will live in each loop.
+    Args:
+        epoch: Tracks epochs progress.
     """
 
-    fit: FitLoopProgress = field(default_factory=FitLoopProgress)
-    val: LoopProgress = field(default_factory=LoopProgress)
-    test: LoopProgress = field(default_factory=LoopProgress)
-    predict: LoopProgress = field(default_factory=LoopProgress)
+    epoch: TrainingEpochProgress = field(default_factory=TrainingEpochProgress)
+
+    def reset_on_epoch(self) -> None:
+        # do not reset `epoch.current` as it should track the number of epochs this `fit` call
+        self.epoch.reset_on_epoch()
+        self.epoch.optim.reset_on_epoch()
