@@ -721,7 +721,7 @@ class AcceleratorConnector(object):
 
         # Initialize Horovod to get rank / size info
         hvd.init()
-        if self.use_gpu:
+        if self.has_gpu:
             # Horovod assigns one local GPU per process
             self.parallel_device_ids = list(range(hvd.local_size()))
         else:
