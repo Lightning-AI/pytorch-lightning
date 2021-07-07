@@ -22,17 +22,21 @@ from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
 class FastForwardSampler(Sampler):
     """
-    This class is used to wrap a :class:`torch.utils.data.Sampler` and record the number
-    of iteration performed during an epoch.
-    On reload, if a ``state_dict`` is provided, this will be used to fast forward the wrapped samplers.
+    This FastForwardSampler wraps a :class:`torch.utils.data.Sampler` and records the number of iterations
+    performed during an epoch. It maintains a state through :meth:`state_dict` that can be reloaded through
+    :meth:`load_state_dict`. If the sampler is used in a multiprocessing context, the FastForwardSampler will record
+    the state of the current worker.
 
+    When reloading, the FastForwardSampler will `fast-forward` the wrapped sampler by iterating through all the
+    samples seen in the last iterations (for the current worker).
     """
 
     def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
+        super().__init__(data_source=None)
         self.sampler = sampler
+        self.restarting: bool = False
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
-        self.restarting: bool = False
         self._cached_state_dict: Optional[Dict[str, Any]] = None
 
     def __getattr__(self, key: str) -> Any:
@@ -51,6 +55,18 @@ class FastForwardSampler(Sampler):
     def worker_id(self) -> int:
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
+
+    @property
+    def drop_last(self) -> bool:
+        return self.sampler.drop_last
+
+    @property
+    def batch_size(self) -> int:
+        return self.sampler.batch_size
+
+    @property
+    def batch_indices(self) -> Optional[List[int]]:
+        return self.sampler.batch_indices
 
     def __iter__(self) -> Iterator[List[int]]:
         # setup local counter
@@ -106,10 +122,15 @@ class FastForwardSampler(Sampler):
         return current_iteration
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
+        """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
-    def load_state_dict(self, state_dict: Dict[str, Any], workers_initialized: bool = False) -> None:
-        # if the state dict contains multiple states, it means there were multiple workers
+    def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
+        """
+        Loads the saved state for the wrapped sampler.
+        If the ``state_dict`` contains multiple states, it means there were multiple workers.
+        The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
+        """
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         if len(state_dict) > 1 and not workers_initialized:
             self._cached_state_dict = deepcopy(state_dict)
@@ -129,10 +150,15 @@ class CaptureIterableDataset(IterableDataset):
     """
 
     def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None):
+        super().__init__()
         self.dataset = dataset
         self.state_dict: Optional[Dict[int, Any]] = None
         self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
+
+    @property
+    def sampler(self) -> Sampler:
+        return self.dataset.sampler
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self.state_dict = deepcopy(state_dict)
@@ -178,10 +204,6 @@ class CaptureIterableDataset(IterableDataset):
 
     def reset_on_epoch(self) -> None:
         self.state_dict = None
-
-    @property
-    def sampler(self) -> Sampler:
-        return self.dataset.sampler
 
     def __iter__(self) -> Iterator:
         # create a generator from the wrapped Iterative Dataset
