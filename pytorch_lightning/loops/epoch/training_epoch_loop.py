@@ -88,8 +88,7 @@ class TrainingEpochLoop(loops.Loop):
     ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
+        self.progress = progress or self.progress
         self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
         self.val_loop.connect(trainer, progress=self.progress.val)
 

@@ -49,7 +49,7 @@ class OptimizerConnector:
         if opt_indices is None:
             opt_indices = []
 
-        progress: OptimizationProgress = self.trainer.fit_loop.epoch_loop.batch_loop.optimization_progress
+        progress: OptimizationProgress = self.trainer.fit_loop.epoch_loop.batch_loop.optim_progress
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:

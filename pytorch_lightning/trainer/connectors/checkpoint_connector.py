@@ -23,7 +23,7 @@ from torch.utils.data.dataset import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import _find_fast_forward_samplers, FastForwardSampler
-from pytorch_lightning.trainer.progress import FitLoopProgress, Tracker
+from pytorch_lightning.trainer.progress import Tracker
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoaderIterator
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -327,9 +327,8 @@ class CheckpointConnector:
                 return v
 
             # used to assign progress to sub-loops.
-            progress = FitLoopProgress.from_state_dict(state_dict)
-            apply_to_collection(progress, Tracker, fn)
-            self.trainer.fit_loop.progress = progress
+            self.trainer.fit_loop.progress.from_state_dict(state_dict)
+            apply_to_collection(self.trainer.fit_loop.progress, Tracker, fn)
 
         self.trainer.is_restarting = True
 

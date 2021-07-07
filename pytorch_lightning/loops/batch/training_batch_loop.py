@@ -58,28 +58,6 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
-        self._progress: Optional[BatchProgress] = None
-        self._optimization_progress: Optional[OptimizationProgress] = None
-
-    @property
-    def progress(self) -> BatchProgress:
-        if not self._progress:
-            self._progress = BatchProgress()
-        return self._progress
-
-    @progress.setter
-    def progress(self, progress: BatchProgress):
-        self._progress = progress
-
-    @property
-    def optimization_progress(self) -> OptimizationProgress:
-        if not self._optimization_progress:
-            self._optimization_progress = OptimizationProgress()
-        return self._optimization_progress
-
-    @optimization_progress.setter
-    def optimization_progress(self, optimization_progress: OptimizationProgress):
-        self._optimization_progress = optimization_progress
 
     def connect(
         self,
@@ -91,10 +69,8 @@ class TrainingBatchLoop(Loop):
     ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        if optim_progress is not None:
-            self.optim_progress = optim_progress
+        self.progress = progress or self.progress
+        self.optim_progress = optim_progress or self.optim_progress
 
     @property
     def done(self) -> bool:
@@ -146,7 +122,7 @@ class TrainingBatchLoop(Loop):
 
         if not self.trainer.is_restarting:
             # reset tracking
-            self.optimization_progress.optimizer.reset_on_epoch()
+            self.optim_progress.optimizer.reset_on_epoch()
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits
@@ -193,7 +169,7 @@ class TrainingBatchLoop(Loop):
                         continue
 
                 # track optimizer_idx
-                self.optimization_progress.optimizer_idx = opt_idx
+                self.optim_progress.optimizer_idx = opt_idx
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
@@ -292,7 +268,7 @@ class TrainingBatchLoop(Loop):
 
             # this should be done only if result.loss exists
             if not self.should_accumulate():
-                self.optimization_progress.optimizer.step.increment_started()
+                self.optim_progress.optimizer.step.increment_started()
 
             return return_result.loss
 
@@ -463,7 +439,7 @@ class TrainingBatchLoop(Loop):
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
 
-        self.optimization_progress.optimizer.step.increment_ready()
+        self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
         model_ref.optimizer_step(
@@ -477,7 +453,7 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-        self.optimization_progress.optimizer.step.increment_completed()
+        self.optim_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
@@ -485,9 +461,9 @@ class TrainingBatchLoop(Loop):
         Args:
             optimizer: the current optimizer
         """
-        self.optimization_progress.optimizer.zero_grad.increment_started()
+        self.optim_progress.optimizer.zero_grad.increment_started()
         self.trainer.call_hook('on_before_zero_grad', optimizer)
-        self.optimization_progress.optimizer.zero_grad.increment_ready()
+        self.optim_progress.optimizer.zero_grad.increment_ready()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
         """Zeroes out all gradients of parameters optimized by the current optimizer.
@@ -500,7 +476,7 @@ class TrainingBatchLoop(Loop):
 
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-        self.optimization_progress.optimizer.zero_grad.increment_completed()
+        self.optim_progress.optimizer.zero_grad.increment_completed()
 
     def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
         """Tracks gradient norms and clips the gradients of all parameters optimized by the current optimizer.
@@ -763,3 +739,12 @@ class TrainingBatchLoop(Loop):
         if lightning_module.truncated_bptt_steps > 0:
             return lightning_module.truncated_bptt_steps
         return self.trainer.truncated_bptt_steps or 0
+
+    def state_dict(self) -> Dict:
+        return {"progress": self.progress.state_dict(), "optim_progress": self.optim_progress.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        if "progress" in state_dict:
+            self.progress.load_state_dict(state_dict['progress'])
+        if "optim_progress" in state_dict:
+            self.optim_progress.load_state_dict(state_dict['optim_progress'])

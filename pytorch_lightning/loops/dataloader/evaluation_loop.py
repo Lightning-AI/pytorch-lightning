@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -74,8 +74,7 @@ class EvaluationLoop(DataLoaderLoop):
     ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
+        self.progress = progress or self.progress
         self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     @property
@@ -290,3 +289,10 @@ class EvaluationLoop(DataLoaderLoop):
     def teardown(self) -> None:
         self._results.cpu()
         self.epoch_loop.teardown()
+
+    def state_dict(self) -> Dict:
+        return {"progress": self.progress.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        if "progress" in state_dict:
+            self.progress.load_state_dict(state_dict["progress"])

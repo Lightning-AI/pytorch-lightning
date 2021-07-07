@@ -303,7 +303,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingEpochProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.progress, BatchProgress)
-    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optimization_progress, OptimizationProgress)
+    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optim_progress, OptimizationProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.val_loop.progress, EpochLoopProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress, EpochProgress)
 
@@ -319,7 +319,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     num_optimizers = 3 if use_multiple_optimizers else 1
 
-    optim = trainer.fit_loop.epoch_loop.batch_loop.optimization_progress
+    optim = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
 
     # 4 optimizer steps because breaking on the second batch of the second epoch (3 + 1)
     total = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
