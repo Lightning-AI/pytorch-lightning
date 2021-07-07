@@ -177,7 +177,6 @@ class TrainingEpochLoop(loops.Loop):
 
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers('step', update_plateau_schedulers=True)
-        self.trainer.checkpoint_connector.has_trained = True
 
         self.total_batch_idx += 1
 
