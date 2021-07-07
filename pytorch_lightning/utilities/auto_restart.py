@@ -46,6 +46,22 @@ class FastForwardSampler(Sampler):
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
+    @property
+    def drop_last(self) -> bool:
+        return self._sampler.drop_last
+
+    @property
+    def batch_size(self) -> int:
+        return self._sampler.batch_size
+
+    @property
+    def sampler(self) -> Sampler:
+        return self._sampler
+
+    @property
+    def batch_indices(self) -> Optional[List[int]]:
+        return self._sampler.batch_indices
+
     def __iter__(self) -> Iterator[List[int]]:
         # setup local counter
         restart_counter = 0
