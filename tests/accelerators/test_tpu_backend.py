@@ -149,7 +149,3 @@ def test_accelerator_tpu_with_auto():
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
-    trainer = Trainer(accelerator="auto", tpu_cores=[1])
-
-    assert trainer._device_type == "tpu"
-    assert isinstance(trainer.accelerator, TPUAccelerator)
