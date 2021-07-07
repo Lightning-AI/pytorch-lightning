@@ -131,11 +131,6 @@ def test_accelerator_tpu():
     ):
         trainer = Trainer(accelerator="tpu")
 
-    trainer = Trainer(accelerator="auto", tpu_cores=8)
-
-    assert trainer._device_type == "tpu"
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-
 
 @RunIf(tpu=True)
 def test_accelerator_cpu_with_tpu_cores_flag():
@@ -144,3 +139,17 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(tpu=True)
+def test_accelerator_tpu_with_auto():
+
+    trainer = Trainer(accelerator="auto", tpu_cores=8)
+
+    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+
+    trainer = Trainer(accelerator="auto", tpu_cores=[1])
+
+    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)

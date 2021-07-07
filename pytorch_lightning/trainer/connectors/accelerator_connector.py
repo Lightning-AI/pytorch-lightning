@@ -178,7 +178,7 @@ class AcceleratorConnector(object):
         if self.distributed_backend == "auto":
             if self.has_tpu:
                 self._accelerator_type = DeviceType.TPU
-            if self.has_ipu:
+            elif self.has_ipu:
                 self._accelerator_type = DeviceType.IPU
             elif self.has_gpu:
                 self._accelerator_type = DeviceType.GPU
