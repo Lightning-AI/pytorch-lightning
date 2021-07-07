@@ -172,6 +172,7 @@ class CaptureIterableDataset(IterableDataset):
                 # Generator name have the  the form `SamplerName.__iter__`
                 generator_name = generator.__qualname__.split('.')[0]
             else:
+                # assume the retrieved iterator is coming from sampler.
                 is_legacy = True
 
             # validate the base generator name matches a sampler name.

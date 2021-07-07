@@ -233,7 +233,7 @@ class RangeIterableDataset(IterableDataset):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
-@pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
 @RunIf(min_torch="1.6.0")
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
@@ -259,8 +259,6 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
         _state_dict = CaptureIterableDataset.convert_batch_into_state_dict(batch)
         for k, v in _state_dict.items():
             state_dict[k].update(v)
-
-    breakpoint()
 
     assert len(state_dict["iter_sampler"]) == (num_workers if num_workers > 1 else 1)
 
