@@ -159,32 +159,39 @@ def test_fast_forward_on_random_sampler():
     This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived
     the right next batch on restart.
     """
+    seed = 42
     seed_everything(42)
 
     dataset = range(15)
-    random_sampler = RandomSampler(dataset)
+    generator = torch.Generator().manual_seed(seed)
+    values = [v for v in RandomSampler(dataset, generator=generator)]
+
+    generator = torch.Generator().manual_seed(seed)
+    random_sampler = RandomSampler(dataset, generator=generator)
     sampler = FastForwardSampler(random_sampler)
     sampler.setup(3)
     batch_sampler = BatchSampler(sampler, 3, False)
 
     batch_sampler_iter = iter(batch_sampler)
 
-    assert next(batch_sampler_iter) == [14, 9, 1]
-    assert next(batch_sampler_iter) == [7, 11, 3]
-    assert next(batch_sampler_iter) == [12, 8, 2]
+    assert next(batch_sampler_iter) == values[:3]
+    assert next(batch_sampler_iter) == values[3:6]
+    assert next(batch_sampler_iter) == values[6:9]
 
     state_dict = sampler.state_dict(3)
     assert state_dict[0]["current_iteration"] == 9
     state_dict[0]["current_iteration"] = 6
 
     seed_everything(42)
+    generator = torch.Generator().manual_seed(seed)
+    random_sampler = RandomSampler(dataset, generator=generator)
     sampler = FastForwardSampler(random_sampler)
     sampler.setup(3)
     batch_sampler = BatchSampler(sampler, 3, False)
     sampler.load_state_dict(state_dict)
 
     batch_sampler_iter = iter(batch_sampler)
-    assert next(batch_sampler_iter) == [12, 8, 2]
+    assert next(batch_sampler_iter) == values[6:9]
     has_raised = False
     try:
         for _ in range(5):
@@ -245,31 +252,6 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     for _ in range(5):
         batches.append(next(iter_dataloader))
 
-    if num_workers == 0:
-        batch_0_expected = torch.tensor([4, 3, 12])
-        batch_1_expected = torch.tensor([18, 0, 7])
-        batch_2_expected = torch.tensor([8, 14, 11])
-        batch_3_expected = torch.tensor([5, 10, 13])
-        batch_4_expected = torch.tensor([17, 19, 15])
-    elif num_workers == 1:
-        batch_0_expected = torch.tensor([3, 18, 17])
-        batch_1_expected = torch.tensor([13, 2, 19])
-        batch_2_expected = torch.tensor([6, 4, 7])
-        batch_3_expected = torch.tensor([1, 14, 5])
-        batch_4_expected = torch.tensor([12, 8, 16])
-    else:
-        batch_0_expected = torch.tensor([3, 4, 5])
-        batch_1_expected = torch.tensor([10, 12, 14])
-        batch_2_expected = torch.tensor([7, 0, 9])
-        batch_3_expected = torch.tensor([16, 18, 17])
-        batch_4_expected = torch.tensor([8, 1, 2])
-
-    assert torch.equal(batches[0]["data"], batch_0_expected)
-    assert torch.equal(batches[1]["data"], batch_1_expected)
-    assert torch.equal(batches[2]["data"], batch_2_expected)
-    assert torch.equal(batches[3]["data"], batch_3_expected)
-    assert torch.equal(batches[4]["data"], batch_4_expected)
-
     # restarting on batch_1 and getting 3 extra batches
 
     state_dict = {'iter_sampler': {}}
@@ -287,13 +269,13 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
-    batches = []
+    batches_restart = []
     for _ in range(3):
-        batches.append(next(iter_dataloader))
+        batches_restart.append(next(iter_dataloader))
 
-    assert torch.equal(batches[0]["data"], batch_2_expected)
-    assert torch.equal(batches[1]["data"], batch_3_expected)
-    assert torch.equal(batches[2]["data"], batch_4_expected)
+    assert torch.equal(batches_restart[0]["data"], batches[2]["data"])
+    assert torch.equal(batches_restart[1]["data"], batches[3]["data"])
+    assert torch.equal(batches_restart[2]["data"], batches[4]["data"])
 
 
 def _setup_ddp(rank, worldsize):
