@@ -21,8 +21,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EvaluationEpochLoopProgress
+from pytorch_lightning.trainer.progress import EvaluationEpochLoopProgress, Tracker
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -296,3 +297,8 @@ class EvaluationLoop(DataLoaderLoop):
     def load_state_dict(self, state_dict: Dict) -> None:
         if "progress" in state_dict:
             self.progress.load_state_dict(state_dict["progress"])
+
+            def fn(v: Tracker):
+                v.reset_on_restart()
+
+            apply_to_collection(self.progress, Tracker, fn)

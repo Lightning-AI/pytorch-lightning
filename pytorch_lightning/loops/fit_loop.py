@@ -20,9 +20,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress
+from pytorch_lightning.trainer.progress import FitLoopProgress, Tracker
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 log = logging.getLogger(__name__)
 
@@ -308,6 +309,11 @@ class FitLoop(Loop):
         # todo (tchaton) Can we avoid creating the dataloader there ?
         self.trainer.reset_train_dataloader(self.trainer.lightning_module)
         self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
+
+        def fn(v: Tracker):
+            v.reset_on_restart()
+
+        apply_to_collection(self.progress, Tracker, fn)
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

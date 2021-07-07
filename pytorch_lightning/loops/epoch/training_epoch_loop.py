@@ -105,6 +105,9 @@ class TrainingEpochLoop(loops.Loop):
         """Restore the internal state of the loop for a new run"""
         self._initialize()
 
+        self.iteration_count = self.progress.total.completed
+        self.batches_seen = self.progress.total.completed
+
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self._initialize()

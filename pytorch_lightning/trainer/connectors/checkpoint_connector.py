@@ -20,11 +20,9 @@ from typing import Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import Tracker
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoaderIterator
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import fault_tolerant_enabled
@@ -178,12 +176,6 @@ class CheckpointConnector:
 
         self.restore_loops()
 
-        # restore samplers
-        self.restore_samplers()
-
-        # restore dataloaders
-        self.restore_dataloaders()
-
         self.restore_optimizers_and_schedulers()
 
     def restore_callbacks(self) -> None:
@@ -207,8 +199,6 @@ class CheckpointConnector:
         """
         if not self._loaded_checkpoint:
             return
-
-        self.restore_progress_tracking()
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -240,14 +230,6 @@ class CheckpointConnector:
             self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
             self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
-            def fn(v: Tracker):
-                v.reset_on_restart()
-
-            apply_to_collection(self.trainer.fit_loop.progress, Tracker, fn)
-            apply_to_collection(self.trainer.validate_loop.progress, Tracker, fn)
-            apply_to_collection(self.trainer.test_loop.progress, Tracker, fn)
-            apply_to_collection(self.trainer.predict_loop.progress, Tracker, fn)
-
             self.trainer.fit_loop.restarting = True
             self.trainer.fit_loop.epoch_loop.restarting = True
             self.trainer.fit_loop.epoch_loop.batch_loop.restarting = True
@@ -256,14 +238,6 @@ class CheckpointConnector:
             self.trainer.test_loop.restarting = True
             self.trainer.predict_loop.restarting = True
             self.trainer.is_restarting = True
-
-    def restore_dataloaders(self) -> None:
-        if not self._loaded_checkpoint:
-            return
-
-        state_dict = self._loaded_checkpoint.get("current_workers", None)
-        if state_dict:
-            self.trainer.train_dataloader.load_state_dict(state_dict)
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
@@ -304,28 +278,6 @@ class CheckpointConnector:
         lr_schedulers = self._loaded_checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
-
-    def restore_progress_tracking(self) -> None:
-        """ Restores the loop progress states from the pre-loaded checkpoint. """
-        if not self._loaded_checkpoint:
-            return
-
-        progress = self._loaded_checkpoint.get('progress')
-        if not progress:
-            return
-
-        state_dict = progress.get(TrainerFn.FITTING.value)
-        if state_dict:
-
-            def fn(v: Tracker) -> Tracker:
-                v.reset_on_restart()
-                return v
-
-            # used to assign progress to sub-loops.
-            self.trainer.fit_loop.progress.from_state_dict(state_dict)
-            apply_to_collection(self.trainer.fit_loop.progress, Tracker, fn)
-
-        self.trainer.is_restarting = True
 
     # ----------------------------------
     # PRIVATE OPS
