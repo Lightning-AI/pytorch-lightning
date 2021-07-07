@@ -133,6 +133,7 @@ class HorovodPlugin(ParallelPlugin):
 
     def model_to_device(self):
         if self.on_gpu:
+            # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 

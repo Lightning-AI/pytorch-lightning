@@ -571,8 +571,11 @@ class TrainingBatchLoop(Loop):
         detect_nan_parameters(model)
 
     def backward(
-        self, result: STEP_OUTPUT, optimizer: Optional[torch.optim.Optimizer], opt_idx: Optional[int], *args: Any,
-        **kwargs: Any
+        self,
+        result: STEP_OUTPUT,
+        optimizer: Optional[torch.optim.Optimizer],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Performs the backward step.
 
@@ -581,15 +584,11 @@ class TrainingBatchLoop(Loop):
             optimizer: Current optimizer being used. ``None`` if using manual optimization.
             opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
         """
-        self.trainer.dev_debugger.track_event("backward_call")
-
         # backward can be called manually in the training loop
         if isinstance(result, Tensor):
-            self.trainer.accelerator.backward(result, optimizer, opt_idx, *args, **kwargs)
+            self.trainer.accelerator.backward(result, optimizer, *args, **kwargs)
         else:
-            result.closure_loss = self.trainer.accelerator.backward(
-                result.closure_loss, optimizer, opt_idx, *args, **kwargs
-            )
+            result.closure_loss = self.trainer.accelerator.backward(result.closure_loss, optimizer, *args, **kwargs)
 
         if not self.should_accumulate():
             # track gradients
