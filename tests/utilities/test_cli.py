@@ -612,6 +612,7 @@ class EarlyExitTestModel(BoringModel):
         raise KeyboardInterrupt()
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize('logger', (False, True))
 @pytest.mark.parametrize(
     'trainer_kwargs', (
