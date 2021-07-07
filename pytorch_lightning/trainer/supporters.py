@@ -386,7 +386,8 @@ class CombinedLoader(object):
                 while next(iter._worker_queue_idx_cycle) != previous_worker:
                     pass
             else:
-                next_worker = None
+                previous_worker = None
+
             out.append({"num_workers": iter._num_workers, "previous_worker": previous_worker})
 
         apply_to_collection(self._iterator.loader_iters, Iterator, fetch_next_worker, wrong_dtype=(Sequence, Mapping))
