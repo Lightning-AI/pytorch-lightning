@@ -276,7 +276,6 @@ class Accelerator:
         closure_loss: Tensor,
         optimizer: Optimizer,
         optimizer_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -286,15 +285,14 @@ class Accelerator:
             closure_loss: a tensor holding the loss value to backpropagate
             optimizer: The optimizer optimizing the gradients to call backward for
             optimizer_idx: the index of the current optimizer
-            should_accumulate: whether to accumulate gradients
         """
-        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        self.training_type_plugin.pre_backward(closure_loss, optimizer, optimizer_idx)
 
         output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
+            self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs
         )
 
-        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        self.training_type_plugin.post_backward(closure_loss, optimizer, optimizer_idx)
 
         return output
 

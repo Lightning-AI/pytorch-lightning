@@ -79,7 +79,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             )
         return unwrap_lightning_module_sharded(self._model)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
         pass
 
     def post_training_step(self):

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, Dict, Sequence
+from typing import Any, Callable, ContextManager, Dict, Optional, Sequence
 
 import torch
 from torch import Tensor
@@ -51,9 +51,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
+        optimizer: Optional[Optimizer],
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -63,20 +61,17 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer index
-            should_accumulate: whether to accumulate gradients or not
-
         """
-        opt = model.trainer.optimizers if optimizer is None else optimizer
+        opt = optimizer or model.trainer.optimizers
         scaled_loss: ContextManager[Tensor] = amp.scale_loss(closure_loss, opt)
 
         # enter apex context
         closure_loss = scaled_loss.__enter__()
 
         # do backward pass
-        # TODO: not entirely sure, why we need this
+        # FIXME: not entirely sure, why we need this
         if model is not None and isinstance(model, pl.LightningModule):
-            model.backward(closure_loss, optimizer, opt_idx, **kwargs)
+            model.backward(closure_loss, optimizer, *args, **kwargs)
 
             # TODO: avoid dev_debugger and track these calls with mock
             model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))

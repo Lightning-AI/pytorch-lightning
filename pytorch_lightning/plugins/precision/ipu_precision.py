@@ -33,9 +33,6 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:

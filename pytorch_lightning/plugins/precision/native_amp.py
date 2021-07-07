@@ -41,9 +41,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> torch.Tensor:
@@ -52,27 +49,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
         """
         closure_loss = self.scaler.scale(closure_loss)
-
-        # do backward pass
-        if model.automatic_optimization:
-            model.backward(closure_loss, optimizer, opt_idx)
-        else:
-            closure_loss.backward(*args, **kwargs)
-
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
-
-        # unscale gradient to allow analyze within `on_after_backward`
-        self.scaler.unscale_(optimizer)
-        model.trainer.call_hook("on_after_backward")
-
-        return closure_loss
+        return super().backward(model, closure_loss, *args, **kwargs)
 
     def pre_optimizer_step(
         self,

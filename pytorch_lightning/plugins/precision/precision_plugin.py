@@ -55,9 +55,6 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -66,16 +63,12 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
         """
         automatic_optimization = model.automatic_optimization
 
         # do backward pass
         if automatic_optimization:
-            model.backward(closure_loss, optimizer, opt_idx)
+            model.backward(closure_loss, *args, **kwargs)
         else:
             closure_loss.backward(*args, **kwargs)
 

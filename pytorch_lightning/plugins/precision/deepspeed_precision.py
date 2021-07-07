@@ -41,9 +41,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        deepspeed_engine = pl_module.trainer.model
         # DeepSpeed not support closures.
         lambda_closure()
+        deepspeed_engine = pl_module.trainer.model
         deepspeed_engine.step()
         return False
 
@@ -51,9 +51,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
