@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 from deprecate import void
 from torch import Tensor
 
+import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import EpochProgress
@@ -40,17 +41,15 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
-        self._progress: Optional[EpochProgress] = None
+        self.progress = EpochProgress()
 
-    @property
-    def progress(self) -> EpochProgress:
-        if not self._progress:
-            self._progress = EpochProgress()
-        return self._progress
-
-    @progress.setter
-    def progress(self, progress: EpochProgress) -> None:
-        self._progress = progress
+    def connect(
+        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
+        super().connect(trainer, *args, **kwargs)
+        if progress is not None:
+            self.progress = progress
 
     @property
     def done(self) -> bool:
@@ -116,19 +115,13 @@ class EvaluationEpochLoop(Loop):
 
         batch_idx, batch = next(dataloader_iter)
 
-        print()
-        print(
-            self.trainer.current_epoch,
-            self.trainer.fit_loop.batch_idx,
-            dataloader_idx,
-            batch_idx,
-        )
-        print()
-
         if batch is None:
             raise StopIteration
 
         self.progress.batch.increment_started()
+
+        with self.trainer.profiler.profile("evaluation_batch_to_device"):
+            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
@@ -155,11 +148,10 @@ class EvaluationEpochLoop(Loop):
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""
-        return self.outputs
-
-    def teardown(self) -> None:
-        """Frees memory of tracked outputs"""
+        outputs = self.outputs
+        # free memory
         self.outputs = []
+        return outputs
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         """The evaluation step (validation_step or test_step depending on the trainer's state).

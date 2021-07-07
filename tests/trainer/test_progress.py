@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
+
 import pytest
 import torch
 
@@ -148,15 +150,17 @@ def test_fit_loop_progress_serialization():
     fit_loop.epoch.optim.optimizer_idx = 1
     fit_loop.epoch.dataloader_idx = 2
     fit_loop.epoch.val.should_check_val = True
+    _ = deepcopy(fit_loop)
+    fit_loop.epoch.increment_completed()  # check `TrainingEpochProgress.load_state_dict` calls `super`
 
     state_dict = fit_loop.state_dict()
     # yapf: disable
     expected = {
         'epoch': {
             # number of epochs across `fit` calls
-            'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            'total': {'completed': 1, 'processed': 0, 'ready': 0, 'started': 0},
             # number of epochs this `fit` call
-            'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+            'current': {'completed': 1, 'processed': 0, 'ready': 0, 'started': 0},
             'batch': {
                 # number of batches across `fit` calls
                 'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
@@ -210,13 +214,16 @@ def test_fit_loop_progress_serialization():
     }
     assert expected == state_dict
     # yapf: enable
+
     new_loop = FitLoopProgress.from_state_dict(state_dict)
     assert fit_loop == new_loop
 
 
 def test_epoch_loop_progress_serialization():
     loop = EpochLoopProgress()
+    _ = deepcopy(loop)
     state_dict = loop.state_dict()
+
     # yapf: disable
     assert state_dict == {
         'epoch': {
@@ -234,6 +241,7 @@ def test_epoch_loop_progress_serialization():
         }
     }
     # yapf: enable
+
     new_loop = EpochLoopProgress.from_state_dict(state_dict)
     assert loop == new_loop
 

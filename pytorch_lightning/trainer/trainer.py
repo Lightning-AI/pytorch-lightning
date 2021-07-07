@@ -27,7 +27,7 @@ from weakref import proxy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -61,6 +61,7 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -351,10 +352,10 @@ class Trainer(
         self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self)
-        self.validate_loop.connect(self)
-        self.test_loop.connect(self)
-        self.predict_loop.connect(self)
+        self.fit_loop.connect(self, progress=FitLoopProgress())
+        self.validate_loop.connect(self, progress=EpochLoopProgress())
+        self.test_loop.connect(self, progress=EpochLoopProgress())
+        self.predict_loop.connect(self, progress=EpochLoopProgress())
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -904,8 +905,10 @@ class Trainer(
 
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
+        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
+        # which need to happen before.
         self.accelerator.teardown()
-        self.logger_connector.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -981,7 +984,6 @@ class Trainer(
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
@@ -1029,10 +1031,10 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self.evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop.reload_evaluation_dataloaders()
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
-            eval_loop_results = self.evaluation_loop.run()
+            eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1062,11 +1064,11 @@ class Trainer(
             self.on_sanity_check_start()
 
             # reload dataloaders
-            self.evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop.reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self.evaluation_loop.run()
+                self._evaluation_loop.run()
 
             self.on_sanity_check_end()
 
@@ -1240,7 +1242,7 @@ class Trainer(
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."

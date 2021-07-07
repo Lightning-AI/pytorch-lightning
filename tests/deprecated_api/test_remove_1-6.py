@@ -252,6 +252,22 @@ def test_v1_6_0_ddp_plugin_task_idx():
         _ = plugin.task_idx
 
 
+def test_v1_6_0_lightning_module_loaded_optimizer_states_dict():
+    from pytorch_lightning.core.lightning import warning_cache
+    model = BoringModel()
+    _ = model.loaded_optimizer_states_dict
+    assert any(
+        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
+    )
+    warning_cache.clear()
+
+    model.loaded_optimizer_states_dict = {}
+    assert any(
+        "The `LightningModule.loaded_optimizer_states_dict` property is deprecated in v1.4" in w for w in warning_cache
+    )
+    warning_cache.clear()
+
+
 def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="Argument `mode` in `ModelSummary` is deprecated in v1.4"):
@@ -259,3 +275,9 @@ def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
 
     with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
         model.summarize(mode="top")
+
+
+def test_v1_6_0_deprecated_disable_validation():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
+        _ = trainer.disable_validation

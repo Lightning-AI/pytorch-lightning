@@ -32,12 +32,13 @@ class EvaluationLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
-        self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
+        self.progress = EvaluationEpochLoopProgress()
+
         self.epoch_loop = EvaluationEpochLoop()
-        self._progress: Optional[EvaluationEpochLoopProgress] = None
-        self._has_run: bool = False
         self._results = ResultCollection(training=False)
+        self._max_batches: Optional[Union[int, Sequence[int]]] = None
+        self._has_run: bool = False
 
     @property
     def num_dataloaders(self) -> int:
@@ -53,17 +54,6 @@ class EvaluationLoop(DataLoaderLoop):
         return length
 
     @property
-    def progress(self) -> EvaluationEpochLoopProgress:
-        if not self._progress:
-            self._progress = EvaluationEpochLoopProgress(epoch=self.epoch_loop.progress)
-        return self._progress
-
-    @progress.setter
-    def progress(self, progress: EvaluationEpochLoopProgress):
-        self._progress = progress
-        self.epoch_loop.progress = progress.epoch
-
-    @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns the validation or test dataloaders"""
         if self.trainer.testing:
@@ -71,19 +61,22 @@ class EvaluationLoop(DataLoaderLoop):
         return self.trainer.val_dataloaders
 
     @property
-    def results(self) -> ResultCollection:
-        """Returns the current results"""
-        return self._results
-
-    @property
     def predictions(self):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        """Connects the loop to everything necessary (like trainer and accelerators)"""
+    def connect(
+        self,
+        trainer: "pl.Trainer",
+        *args: Any,
+        progress: Optional[EvaluationEpochLoopProgress] = None,
+        **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+        if progress is not None:
+            self.progress = progress
+        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     @property
     def done(self) -> bool:
@@ -211,8 +204,8 @@ class EvaluationLoop(DataLoaderLoop):
         """Runs ``on_{validation/test}_start`` hooks"""
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        assert self.results is not None
-        self.results.to(device=self.trainer.lightning_module.device)
+        assert self._results is not None
+        self._results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
             self.trainer.call_hook("on_test_start", *args, **kwargs)
@@ -293,3 +286,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
+
+    def teardown(self) -> None:
+        self._results.cpu()
+        self.epoch_loop.teardown()

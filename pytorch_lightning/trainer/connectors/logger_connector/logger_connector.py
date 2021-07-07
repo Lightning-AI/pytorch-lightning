@@ -154,9 +154,9 @@ class LoggerConnector:
         if self.trainer.sanity_checking:
             return
 
-        num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
+        num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
+        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
             callback_metrics = {
                 k: v
@@ -312,9 +312,3 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
-
-    def teardown(self):
-        self.trainer.fit_loop.epoch_loop._results.cpu()
-        self.trainer.fit_loop.epoch_loop.val_loop._results.cpu()
-        self.trainer.validate_loop._results.cpu()
-        self.trainer.test_loop._results.cpu()
