@@ -150,6 +150,10 @@ class CaptureIterableDataset(IterableDataset):
         self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
 
+    @property
+    def sampler(self) -> Sampler:
+        return self.dataset.sampler
+
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self.state_dict = state_dict
 
@@ -194,10 +198,6 @@ class CaptureIterableDataset(IterableDataset):
 
     def reset_on_epoch(self) -> None:
         self.state_dict = None
-
-    @property
-    def sampler(self) -> Sampler:
-        return self.dataset.sampler
 
     def __iter__(self) -> Iterator:
         # create a generator from the wrapped Iterative Dataset
