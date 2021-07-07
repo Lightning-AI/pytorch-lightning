@@ -31,6 +31,7 @@ class FastForwardSampler(Sampler):
     """
 
     def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
+        super().__init__(data_source=None)
         self.sampler = sampler
         self.restarting: bool = False
         self._current_iteration = 0
