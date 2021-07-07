@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 from torch.utils.data import BatchSampler, get_worker_info, Sampler
@@ -33,6 +34,11 @@ class FastForwardSampler(Sampler):
         self._dataloader_batch_size: Optional[int] = None
         self.restarting: bool = False
         self._cached_state_dict: Optional[Dict[str, Any]] = None
+
+    def __getattr__(self, key: str) -> Any:
+        if key in self.__dict__:
+            return self.__dict__[key]
+        return self.sampler.__dict__[key]
 
     def setup(self, dataloader_batch_size: Optional[int] = None) -> None:
         """
@@ -83,18 +89,6 @@ class FastForwardSampler(Sampler):
     def __len__(self) -> int:
         return len(self.sampler)
 
-    @property
-    def drop_last(self) -> bool:
-        return self.sampler.drop_last
-
-    @property
-    def batch_size(self) -> int:
-        return self.sampler.batch_size
-
-    @property
-    def batch_indices(self) -> Optional[List[int]]:
-        return self.sampler.batch_indices
-
     def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
         """
         This function is used to compute the effective iteration.
@@ -118,7 +112,7 @@ class FastForwardSampler(Sampler):
         # if the state dict contains multiple states, it means there were multiple workers
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         if len(state_dict) > 1 and not workers_initialized:
-            self._cached_state_dict = state_dict
+            self._cached_state_dict = deepcopy(state_dict)
             self.restarting = self._cached_state_dict[self.worker_id]["current_iteration"] > 0
             return
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
@@ -141,7 +135,7 @@ class CaptureIterableDataset(IterableDataset):
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
-        self.state_dict = state_dict
+        self.state_dict = deepcopy(state_dict)
 
     def _wrap_generator_samplers(self) -> None:
         if self.samplers is None:

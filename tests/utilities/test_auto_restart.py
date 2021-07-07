@@ -30,10 +30,19 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
-from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
+
+
+def test_fast_forward_getattr():
+    dataset = range(15)
+    sampler = SequentialSampler(dataset)
+    batch_sampler = BatchSampler(sampler, 3, False)
+    index_batch_sampler = FastForwardSampler(batch_sampler)
+
+    assert index_batch_sampler.batch_size == 3
+    assert index_batch_sampler.sampler == batch_sampler
 
 
 def test_fast_forward_on_batch_sampler():
@@ -47,7 +56,6 @@ def test_fast_forward_on_batch_sampler():
     index_batch_sampler = FastForwardSampler(batch_sampler)
 
     assert isinstance(index_batch_sampler, Iterable)
-    assert has_len(index_batch_sampler)
 
     index_batch_sampler_iter = iter(index_batch_sampler)
 
@@ -131,7 +139,7 @@ def test_fast_forward_on_random_sampler():
     assert has_raised
 
 
-class RangeIterativeDataset(IterableDataset):
+class RangeIterableDataset(IterableDataset):
 
     def __init__(self, data, num_workers: int, batch_size: int, is_in_workers: bool, state_dict=None):
         self.data = list(data)
@@ -172,7 +180,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     initial_seed = seed_everything(42)
     generator = torch.Generator()
     generator.manual_seed(initial_seed)
-    dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True)
+    dataset = RangeIterableDataset(range(20), num_workers, batch_size, True)
     dataset = CaptureIterableDataset(dataset, num_workers)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
@@ -217,7 +225,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     initial_seed = seed_everything(42)
     generator.manual_seed(initial_seed)
-    dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
+    dataset = RangeIterableDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
     dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
@@ -306,9 +314,6 @@ def test_fast_forward_sampler_with_distributed_sampler():
     tutils.set_random_master_port()
     worldsize = 2
     mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize, ), nprocs=worldsize)
-
-
-# Iterative Dataset
 
 
 class MetaLearningDataset(IterableDataset):
