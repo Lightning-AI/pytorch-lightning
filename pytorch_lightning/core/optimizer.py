@@ -21,10 +21,6 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def is_lightning_optimizer(optimizer):
-    return isinstance(optimizer, LightningOptimizer)
-
-
 def do_nothing_closure():
     return
 
