@@ -45,6 +45,9 @@ def is_overridden(
             raise ValueError("Expected a parent")
 
     instance_attr = getattr(instance, method_name, None)
+    # `functools.wraps()` support
+    if hasattr(instance_attr, '__wrapped__'):
+        instance_attr = instance_attr.__wrapped__
     # `Mock(wraps=...)` support
     if isinstance(instance_attr, Mock):
         # access the wrapped function

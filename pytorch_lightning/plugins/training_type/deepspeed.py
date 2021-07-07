@@ -339,8 +339,6 @@ class DeepSpeedPlugin(DDPPlugin):
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
 
     def pre_dispatch(self):
         self.init_deepspeed()

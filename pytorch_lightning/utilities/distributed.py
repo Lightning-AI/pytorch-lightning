@@ -342,6 +342,4 @@ def register_ddp_comm_hook(
 
 
 def tpu_distributed() -> bool:
-    if _TPU_AVAILABLE:
-        return xm.xrt_world_size() > 1
-    return False
+    return _TPU_AVAILABLE and xm.xrt_world_size() > 1

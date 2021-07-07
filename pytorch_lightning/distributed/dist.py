@@ -24,7 +24,7 @@ class LightningDistributed:
         self.device = device
 
     def broadcast(self, obj: Any, group=_group.WORLD):
-        # always wrap into a list so list can be brodcasted.
+        # always wrap into a list so it can be broadcasted.
         obj = [obj]
 
         if self.rank != 0:
