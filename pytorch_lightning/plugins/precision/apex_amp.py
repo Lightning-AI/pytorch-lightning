@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, Sequence
+from typing import Any, Callable, ContextManager, Dict, Sequence
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.types import _PARAMETERS
@@ -39,7 +38,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
-    def dispatch(self, trainer: "pl.Trainer") -> None:
+    def dispatch(self, trainer: 'pl.Trainer') -> None:
         if not self._connected:
             accelerator = trainer.accelerator
             _, accelerator.optimizers = amp.initialize(
@@ -50,7 +49,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         closure_loss: Tensor,
         optimizer: Optimizer,
         opt_idx: int,
@@ -76,7 +75,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         # do backward pass
         # TODO: not entirely sure, why we need this
-        if model is not None and isinstance(model, LightningModule):
+        if model is not None and isinstance(model, pl.LightningModule):
             model.backward(closure_loss, optimizer, opt_idx, **kwargs)
 
             # TODO: avoid dev_debugger and track these calls with mock
@@ -118,7 +117,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: LightningModule,
+        pl_module: 'pl.LightningModule',
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
@@ -135,3 +134,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         optimizer.step(**kwargs)
         return False
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if "amp_scaling_state" in checkpoint:
+            amp.load_state_dict(checkpoint["amp_scaling_state"])
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        checkpoint["amp_scaling_state"] = amp.state_dict()

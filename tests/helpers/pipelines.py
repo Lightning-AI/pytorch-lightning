@@ -91,11 +91,12 @@ def run_model_test(
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
         checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
-        trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
+        trainer.checkpoint_connector.restore(checkpoint_path)
 
 
 @torch.no_grad()
 def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
+    orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()
     trained_model.eval()
@@ -108,3 +109,4 @@ def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
     acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
+    trained_model.to(orig_device)

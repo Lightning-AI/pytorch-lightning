@@ -103,6 +103,23 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         # Add sync_dist=True to sync logging across all GPU workers
         self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
 
+It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
+
+.. testcode::
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        tensors = self(x)
+        return tensors
+
+    def test_epoch_end(self, outputs):
+        mean = torch.mean(self.all_gather(outputs))
+
+        # When logging only on rank 0, don't forget to add
+        # ``rank_zero_only=True`` to avoid deadlocks on synchronization.
+        if self.trainer.is_global_zero:
+            self.log("my_reduced_metric", mean, rank_zero_only=True)
+
 
 Make models pickleable
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -619,38 +636,39 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 ----------
 
-TorchElastic
---------------
-Lightning supports the use of TorchElastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Torch Distributed Elastic
+-------------------------
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
 
 .. code-block:: python
 
     Trainer(gpus=8, accelerator='ddp')
 
-
-Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
-
-.. code-block:: bash
-
-    etcd --enable-v2
-         --listen-client-urls http://0.0.0.0:2379,http://127.0.0.1:4001
-         --advertise-client-urls PUBLIC_HOSTNAME:2379
-
-
-And then launch the elastic job with:
+To launch a fault-tolerant job, run the following on all nodes.
 
 .. code-block:: bash
 
-    python -m torchelastic.distributed.launch
+    python -m torch.distributed.run
+            --nnodes=NUM_NODES
+            --nproc_per_node=TRAINERS_PER_NODE
+            --rdzv_id=JOB_ID
+            --rdzv_backend=c10d
+            --rdzv_endpoint=HOST_NODE_ADDR
+            YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
+
+To launch an elastic job, run the following on at least ``MIN_SIZE`` nodes and at most ``MAX_SIZE`` nodes.
+
+.. code-block:: bash
+
+    python -m torch.distributed.run
             --nnodes=MIN_SIZE:MAX_SIZE
             --nproc_per_node=TRAINERS_PER_NODE
             --rdzv_id=JOB_ID
-            --rdzv_backend=etcd
-            --rdzv_endpoint=ETCD_HOST:ETCD_PORT
+            --rdzv_backend=c10d
+            --rdzv_endpoint=HOST_NODE_ADDR
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
 
-
-See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
+See the official `Torch Distributed Elastic documentation <https://pytorch.org/docs/stable/distributed.elastic.html>`_ for details
 on installation and more use cases.
 
 ----------

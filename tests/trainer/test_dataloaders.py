@@ -582,7 +582,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
         assert trainer.max_epochs == 1
 
         trainer.fit(model)
-        assert not trainer.disable_validation
+        assert trainer.enable_validation
         assert trainer.num_training_batches == fast_dev_run
         assert trainer.num_val_batches == [fast_dev_run] * len(trainer.val_dataloaders)
 
@@ -813,11 +813,11 @@ def test_missing_worker_init_fn():
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat([batch for batch in dataloader])
+    batches0 = torch.cat(list(dataloader))
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat([batch for batch in dataloader])
+    batches1 = torch.cat(list(dataloader))
 
     is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
     is_deterministic = torch.eq(batches0, batches1).all()
@@ -893,6 +893,25 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
     model = MultiProcessModel()
     model.val_dataloader = None
     trainer.fit(model, train_dataloader=dataloader)
+
+
+def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
+    """ Test that a warning message is shown if the dataloader length is too short for the chosen logging interval. """
+    model = BoringModel()
+    dataloader = DataLoader(RandomDataset(32, length=10))
+    model.train_dataloader = lambda: dataloader
+
+    with pytest.warns(UserWarning, match=r"The number of training samples \(10\) is smaller than the logging interval"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            log_every_n_steps=11,
+        )
+        trainer.fit(model)
+
+    with pytest.warns(UserWarning, match=r"The number of training samples \(1\) is smaller than the logging interval"):
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1)
+        trainer.fit(model)
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):
@@ -1514,7 +1533,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
             if self.trainer.training:
-                assert dataloader_idx is None
+                assert dataloader_idx == 0
             elif self.trainer.validating:
                 assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:

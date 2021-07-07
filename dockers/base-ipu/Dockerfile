@@ -14,7 +14,7 @@
 
 FROM ubuntu:20.04
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 ARG PYTHON_VERSION=3.8
 ARG PYTORCH_VERSION=1.7

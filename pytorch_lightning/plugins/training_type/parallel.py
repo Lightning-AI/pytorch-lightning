@@ -19,7 +19,7 @@ from typing import Any, List, Optional
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
@@ -81,6 +81,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    def reconciliate_processes(self, trace: str):
+        """
+        Function to re-conciliate processes on failure
+        """
+
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes """
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
@@ -99,7 +104,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: LightningModule) -> LightningModule:
+    def configure_sync_batchnorm(model: 'pl.LightningModule') -> 'pl.LightningModule':
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
@@ -112,8 +117,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         Return:
             LightningModule with batchnorm layers synchronized between process groups
         """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
+        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):
@@ -133,5 +137,4 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
-            with torch.cuda.device(self.root_device):
-                torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
