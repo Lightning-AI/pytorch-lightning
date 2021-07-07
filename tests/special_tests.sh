@@ -79,7 +79,7 @@ if [ $? -eq 0 ]; then
 fi
 
 # test that a user can manually launch individual processes
-args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.max_epochs=1 --data.batch_size=32 --trainer.limit_train_batches=2 --trainer.limit_val_batches=2"
+args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.fast_dev_run=True
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
 report+="Ran\tmanual ddp launch test\n"
