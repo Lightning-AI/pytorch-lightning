@@ -82,7 +82,7 @@ fi
 args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.max_epochs=1 --data.batch_size=32 --trainer.limit_train_batches=2 --trainer.limit_val_batches=2"
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
-report+="Ran manual ddp launch test\n"
+report+="Ran\tmanual ddp launch test\n"
 
 # echo test report
 printf '=%.s' {1..80}
