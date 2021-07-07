@@ -232,12 +232,13 @@ class CaptureIterableDataset(IterableDataset):
         """
         This function is used to convert a batch into a state_dict
         """
-        return {
-            k: {
-                batch[AutoRestartBatchKeys.PL_SAMPLERS]["id"][-1].item(): {
-                    "current_iteration": v[batch[AutoRestartBatchKeys.PL_SAMPLERS]["id"][-1].item()]
-                    ["current_iteration"][-1].item(),
+        state_dict = {}
+        batch_worker_id = batch[AutoRestartBatchKeys.PL_SAMPLERS].pop("id")
+        worker_id = batch_worker_id[-1].item()
+        for sampler_name, sampler_state_dict in batch[AutoRestartBatchKeys.PL_SAMPLERS].items():
+            state_dict[sampler_name] = {
+                worker_id: {
+                    "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
                 }
             }
-            for k, v in batch[AutoRestartBatchKeys.PL_SAMPLERS].items() if k != "id"
-        }
+        return state_dict

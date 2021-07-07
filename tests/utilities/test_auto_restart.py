@@ -35,6 +35,62 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
 
+# Credit to PyTorch Team.
+# Taken from:
+# https://github.com/pytorch/pytorch/blob/3b977a0d2834d300c0301a0c6af98c8e939019ce/torch/utils/data/_utils/worker.py#L151
+# Not available in PyTorch 1.4.
+def _generate_state(base_seed, worker_id):
+    INIT_A = 0x43b0d7e5
+    MULT_A = 0x931e8875
+    INIT_B = 0x8b51f9dd
+    MULT_B = 0x58f38ded
+    MIX_MULT_L = 0xca01f9dd
+    MIX_MULT_R = 0x4973f715
+    XSHIFT = 4 * 8 // 2
+    MASK32 = 0xFFFFFFFF
+
+    entropy = [worker_id, base_seed & MASK32, base_seed >> 32, 0]
+    pool = [0] * 4
+
+    hash_const_A = INIT_A
+
+    def hash(value):
+        nonlocal hash_const_A
+        value = (value ^ hash_const_A) & MASK32
+        hash_const_A = (hash_const_A * MULT_A) & MASK32
+        value = (value * hash_const_A) & MASK32
+        value = (value ^ (value >> XSHIFT)) & MASK32
+        return value
+
+    def mix(x, y):
+        result_x = (MIX_MULT_L * x) & MASK32
+        result_y = (MIX_MULT_R * y) & MASK32
+        result = (result_x - result_y) & MASK32
+        result = (result ^ (result >> XSHIFT)) & MASK32
+        return result
+
+    # Add in the entropy to the pool.
+    for i in range(len(pool)):
+        pool[i] = hash(entropy[i])
+
+    # Mix all bits together so late bits can affect earlier bits.
+    for i_src in range(len(pool)):
+        for i_dst in range(len(pool)):
+            if i_src != i_dst:
+                pool[i_dst] = mix(pool[i_dst], hash(pool[i_src]))
+
+    hash_const_B = INIT_B
+    state = []
+    for i_dst in range(4):
+        data_val = pool[i_dst]
+        data_val = (data_val ^ hash_const_B) & MASK32
+        hash_const_B = (hash_const_B * MULT_B) & MASK32
+        data_val = (data_val * hash_const_B) & MASK32
+        data_val = (data_val ^ (data_val >> XSHIFT)) & MASK32
+        state.append(data_val)
+    return state
+
+
 def test_fast_forward_getattr():
     dataset = range(15)
     sampler = SequentialSampler(dataset)
@@ -170,7 +226,7 @@ class RangeIterableDataset(IterableDataset):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize("num_workers", [1])
 @RunIf(min_torch="1.5.0")
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
@@ -368,7 +424,6 @@ class MetaLearningDataset(IterableDataset):
         return self.world_size is not None and self.world_size > 1
 
     def set_seed(self, shared: bool = False):
-        from torch.utils.data._utils.worker import _generate_state
         initial_seed = self.initial_seed + self.current_task_iteration
         if shared:
             seed = initial_seed
