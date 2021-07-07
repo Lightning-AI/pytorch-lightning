@@ -644,20 +644,20 @@ class AcceleratorConnector(object):
         if isinstance(self.distributed_backend, Accelerator):
             return
 
+        is_cpu_accelerator_type = self._accelerator_type and self._accelerator_type == DeviceType.CPU
+        _use_cpu = is_cpu_accelerator_type or self.distributed_backend and 'cpu' in self.distributed_backend
+
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
             elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
-            elif self.num_gpus > 1 and self.use_gpu:
+            elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     'You requested multiple GPUs but did not specify a backend, e.g.'
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
                 )
                 self.distributed_backend = "ddp_spawn"
-
-        is_cpu_accelerator_type = self._accelerator_type and self._accelerator_type == DeviceType.CPU
-        _use_cpu = is_cpu_accelerator_type or self.distributed_backend and 'cpu' in self.distributed_backend
 
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
