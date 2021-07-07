@@ -39,11 +39,17 @@ def test_attributes_from_environment_variables():
     assert env.world_size() == 100
 
 
-@pytest.mark.parametrize("environ, creates_children", [
-    ({}, False),
-    ({"LOCAL_RANK": "2"}, True),
-    ({"NODE_RANK": "1"}, False),
-])
+@pytest.mark.parametrize(
+    "environ, creates_children", [
+        ({}, False),
+        ({
+            "LOCAL_RANK": "2"
+        }, True),
+        ({
+            "NODE_RANK": "1"
+        }, False),
+    ]
+)
 def test_manual_user_launch(environ, creates_children):
     """ Test that the environment switches to manual user mode when LOCAL_RANK env variable detected. """
     with mock.patch.dict(os.environ, environ):
