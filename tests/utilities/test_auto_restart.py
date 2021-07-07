@@ -152,7 +152,7 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [6, 7, 8]
 
 
-@RunIf(min_torch="1.5.0")
+@RunIf(min_torch="1.6.0")
 @pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
     """
@@ -227,7 +227,7 @@ class RangeIterableDataset(IterableDataset):
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [1])
-@RunIf(min_torch="1.5.0")
+@RunIf(min_torch="1.6.0")
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
     This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
@@ -365,7 +365,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True, min_torch="1.5.0")
+@RunIf(skip_windows=True, min_torch="1.6.0")
 def test_fast_forward_sampler_with_distributed_sampler():
     """Make sure result logging works with DDP"""
     tutils.set_random_master_port()
@@ -633,13 +633,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
-@RunIf(min_torch="1.5.0")
+@RunIf(min_torch="1.6.0")
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True, min_torch="1.5.0")
+@RunIf(skip_windows=True, min_torch="1.6.0")
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     """Make sure result logging works with DDP"""
     tutils.set_random_master_port()
