@@ -571,14 +571,15 @@ class TrainingBatchLoop(Loop):
         detect_nan_parameters(model)
 
     def backward(
-        self, result: STEP_OUTPUT, optimizer: Optional[torch.optim.Optimizer], opt_idx: int, *args: Any, **kwargs: Any
+        self, result: STEP_OUTPUT, optimizer: Optional[torch.optim.Optimizer], opt_idx: Optional[int], *args: Any,
+        **kwargs: Any
     ) -> None:
         """Performs the backward step.
 
         Args:
             result: The output of the trainstep (including the loss value)
-            optimizer: The optimizer optimizing the gradients to call backward for
-            opt_idx: the index of the current optimizer
+            optimizer: Current optimizer being used. `None` if using manual optimization.
+            opt_idx: Index of the current optimizer being used. `None` if using manual optimization.
         """
         self.trainer.dev_debugger.track_event("backward_call")
 

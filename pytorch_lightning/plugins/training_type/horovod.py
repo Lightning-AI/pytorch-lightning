@@ -15,7 +15,7 @@ from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -194,7 +194,7 @@ class HorovodPlugin(ParallelPlugin):
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
 
-    def post_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.
         for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()

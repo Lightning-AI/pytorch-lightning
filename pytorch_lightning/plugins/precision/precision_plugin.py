@@ -68,8 +68,6 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
-        opt_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -78,12 +76,10 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: Current optimizer being used. `None` if using manual optimization.
-            opt_idx: Index of the current optimizer being used. `None` if using manual optimization.
         """
         # do backward pass
         if model is not None and isinstance(model, pl.LightningModule):
-            model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
+            model.backward(closure_loss, *args, **kwargs)
         else:
             closure_loss.backward(*args, **kwargs)
 

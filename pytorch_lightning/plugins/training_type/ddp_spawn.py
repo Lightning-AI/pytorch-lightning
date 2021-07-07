@@ -20,7 +20,6 @@ import torch
 import torch.distributed
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -333,7 +332,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def pre_backward(self, closure_loss: torch.Tensor, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
             prepare_for_backward(self.model, closure_loss)

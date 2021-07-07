@@ -274,8 +274,6 @@ class Accelerator:
     def backward(
         self,
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -283,17 +281,14 @@ class Accelerator:
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            optimizer: The optimizer optimizing the gradients to call backward for
-            optimizer_idx: the index of the current optimizer
         """
-        # FIXME: Remove optimizer arguments?
-        self.training_type_plugin.pre_backward(closure_loss, optimizer, optimizer_idx)
+        self.training_type_plugin.pre_backward(closure_loss)
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
+        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
 
         closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
-        self.training_type_plugin.post_backward(closure_loss, optimizer, optimizer_idx)
+        self.training_type_plugin.post_backward(closure_loss)
 
         return closure_loss
 
