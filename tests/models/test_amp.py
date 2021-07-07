@@ -243,7 +243,7 @@ def test_amp_with_apex(bwd_mock, tmpdir):
         amp_backend='apex',
         gpus=1,
     )
-    assert trainer.amp_backend == "apex"
+    assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert bwd_mock.call_count == 10
