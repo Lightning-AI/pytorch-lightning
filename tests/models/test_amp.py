@@ -194,7 +194,6 @@ def test_cpu_model_with_amp(tmpdir):
         Trainer(precision=16)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
 def test_amp_without_apex(bwd_mock, tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
@@ -217,7 +216,6 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     assert not bwd_mock.called
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
 @mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
 def test_amp_with_apex(bwd_mock, tmpdir):
