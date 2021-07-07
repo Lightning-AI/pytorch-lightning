@@ -326,10 +326,13 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
+        if not distributed_available():
+            return obj
         return self.dist.broadcast(obj)
 
     def model_to_device(self):
         if self.root_device.type == "cuda":
+            # set the device on the spawned subprocesses
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 

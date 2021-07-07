@@ -17,7 +17,7 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -61,11 +61,13 @@ from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgres
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    device_parser,
     DeviceType,
     parsing,
     rank_zero_deprecation,
@@ -144,6 +146,7 @@ class Trainer(
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
+        reload_dataloaders_every_n_epochs: int = 0,
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -272,7 +275,14 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
+            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: 0
+
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
+
+                .. deprecated:: v1.4
+                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
+                    Please use ``reload_dataloaders_every_n_epochs``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -324,6 +334,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
+        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -332,8 +343,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, ipus, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
-            benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, tpu_cores, ipus, distributed_backend, gpus, gpu_ids, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -382,7 +393,8 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch,
+            prepare_data_per_node
         )
 
         # init training tricks
@@ -959,8 +971,6 @@ class Trainer(
 
         self._run_sanity_check(self.lightning_module)
 
-        self.checkpoint_connector.has_trained = False
-
         # enable train mode
         self.model.train()
         torch.set_grad_enabled(True)
@@ -1160,6 +1170,18 @@ class Trainer(
             self.lightning_module._current_fx_name = prev_fx_name
 
         return output
+
+    def _parse_devices(
+        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
+                                                                                                            str, int]]
+    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+        if auto_select_gpus and isinstance(gpus, int):
+            gpus = pick_multiple_gpus(gpus)
+
+        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
+        gpu_ids = device_parser.parse_gpu_ids(gpus)
+        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        return gpu_ids, tpu_cores
 
     @staticmethod
     def _log_api_event(event: str) -> None:
