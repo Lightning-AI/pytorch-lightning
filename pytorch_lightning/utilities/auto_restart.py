@@ -28,7 +28,7 @@ class FastForwardSampler(Sampler):
     """
 
     def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
-        self._sampler = sampler
+        self.sampler = sampler
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self.restarting: bool = False
@@ -51,7 +51,7 @@ class FastForwardSampler(Sampler):
         restart_counter = 0
 
         # iteration over wrapped sampler
-        for batch in self._sampler:
+        for batch in self.sampler:
 
             # if we are restarting, we will fastforward the batches
             if self.restarting:
@@ -81,32 +81,28 @@ class FastForwardSampler(Sampler):
         self._current_iteration = 0
 
     def __len__(self) -> int:
-        return len(self._sampler)
+        return len(self.sampler)
 
     @property
     def drop_last(self) -> bool:
-        return self._sampler.drop_last
+        return self.sampler.drop_last
 
     @property
     def batch_size(self) -> int:
-        return self._sampler.batch_size
-
-    @property
-    def sampler(self) -> Sampler:
-        return self._sampler
+        return self.sampler.batch_size
 
     @property
     def batch_indices(self) -> Optional[List[int]]:
-        return self._sampler.batch_indices
+        return self.sampler.batch_indices
 
-    def _compute_current_iteration(self, number_batch_processed: Optional[int] = None) -> int:
+    def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
         """
         This function is used to compute the effective iteration.
         As DataLoader can perform ``prefecthing`` or training can fail while processing a batch,
-        the current iteration needs to be computed using the ``number_batch_processed`` processed information.
+        the current iteration needs to be computed using the ``num_batches_processed`` processed information.
         """
-        if number_batch_processed is not None:
-            current_iteration = number_batch_processed
+        if num_batches_processed is not None:
+            current_iteration = num_batches_processed
         else:
             current_iteration = self._current_iteration
 
@@ -115,8 +111,8 @@ class FastForwardSampler(Sampler):
 
         return current_iteration
 
-    def state_dict(self, number_batch_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
-        return {self.worker_id: {"current_iteration": self._compute_current_iteration(number_batch_processed)}}
+    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
+        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
     def load_state_dict(self, state_dict: Dict[str, Any], workers_initialized: bool = False) -> None:
         # if the state dict contains multiple states, it means there were multiple workers
@@ -129,12 +125,12 @@ class FastForwardSampler(Sampler):
         self.restarting = self._current_iteration > 0
 
 
-class CaptureIterativeDataset(IterableDataset):
+class CaptureIterableDataset(IterableDataset):
     """
-    The ``CaptureIterativeDataset`` is used to wrap an :class:`torch.utils.data.IterativeDataset`.
-    On ``__iter__`` function call   the ``CaptureIterativeDataset`` will wrap the wrapped dataset
+    The ``CaptureIterableDataset`` is used to wrap an :class:`torch.utils.data.IterableDataset`.
+    On ``__iter__`` function call   the ``CaptureIterableDataset`` will wrap the wrapped dataset
         generators into ``FastForwardSampler`` to keep track of progress.
-    On ``__next__`` function call, the ``CaptureIterativeDataset`` will return a dictionary containing
+    On ``__next__`` function call, the ``CaptureIterableDataset`` will return a dictionary containing
         user data and metadata containing the ``FastForwardSampler`` samplers state_dict.
     """
 
@@ -173,7 +169,7 @@ class CaptureIterativeDataset(IterableDataset):
                     # wrap the generator into a ``FastForwardSampler``
                     sampler = FastForwardSampler(generator)
 
-                    # if ``CaptureIterativeDataset`` was available, the sampler should reload its own state.
+                    # if ``CaptureIterableDataset`` was available, the sampler should reload its own state.
                     if self.state_dict is not None:
                         sampler.load_state_dict(self.state_dict[generator_attr_name])
 
