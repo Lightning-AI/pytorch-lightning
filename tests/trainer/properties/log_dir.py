@@ -148,9 +148,7 @@ def test_logdir_logger_collection(tmpdir):
     model = TestModel(expected)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=2,
-        logger=[TensorBoardLogger(save_dir=tmpdir, name='custom_logs')]
+        default_root_dir=tmpdir, max_steps=2, logger=[TensorBoardLogger(save_dir=tmpdir, name='custom_logs')]
     )
 
     assert isinstance(trainer.logger, LoggerCollection)
