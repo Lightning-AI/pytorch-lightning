@@ -441,7 +441,7 @@ def test_pytorch_profiler_logger_collection(tmpdir):
 
     def look_for_trace(trace_dir):
         """ Determines if a directory contains a PyTorch trace """
-        return any(("trace.json" in filename for filename in os.listdir(trace_dir)))
+        return any("trace.json" in filename for filename in os.listdir(trace_dir))
 
     # Sanity check
     assert not look_for_trace(tmpdir)
