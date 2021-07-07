@@ -332,6 +332,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def model_to_device(self):
         if self.root_device.type == "cuda":
+            # set the device on the spawned subprocesses
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
