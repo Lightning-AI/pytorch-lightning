@@ -116,7 +116,10 @@ class LightningModule(
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
 
-    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+    def optimizers(
+        self,
+        use_pl_optimizer: bool = True
+    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
         """
         Returns the optimizer(s) that are being used during training. Useful for manual optimization.
 

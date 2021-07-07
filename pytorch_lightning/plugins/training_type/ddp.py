@@ -366,8 +366,6 @@ class DDPPlugin(ParallelPlugin):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
-        if self.root_device.type == "cuda":
-            torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
