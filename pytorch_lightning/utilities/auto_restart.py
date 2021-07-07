@@ -32,9 +32,9 @@ class FastForwardSampler(Sampler):
 
     def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
         self.sampler = sampler
+        self.restarting: bool = False
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
-        self.restarting: bool = False
         self._cached_state_dict: Optional[Dict[str, Any]] = None
 
     def setup(self, dataloader_batch_size: Optional[int] = None) -> None:
