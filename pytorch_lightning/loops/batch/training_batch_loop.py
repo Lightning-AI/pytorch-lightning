@@ -114,15 +114,22 @@ class TrainingBatchLoop(Loop):
         self.batch_outputs = None  # free memory
         return output
 
-    def reset(self) -> None:
+    def _initialize(self):
         """Resets the loop state"""
         self._hiddens = None
         self.batch_idx = 0
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-        if not self.trainer.is_restarting:
-            # reset tracking
-            self.optim_progress.optimizer.reset_on_epoch()
+    def restore(self) -> None:
+        """Restore the loop state"""
+        self._initialize()
+
+    def reset(self) -> None:
+        """Resets the loop state"""
+        self._initialize()
+
+        # reset tracking
+        self.optim_progress.optimizer.reset_on_epoch()
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
         """Splits the data into tbptt splits

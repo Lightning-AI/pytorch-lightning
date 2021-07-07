@@ -245,6 +245,14 @@ class CheckpointConnector:
             self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
             self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
+            def fn(v: Tracker):
+                v.reset_on_restart()
+
+            apply_to_collection(self.trainer.fit_loop.progress, Tracker, fn)
+            apply_to_collection(self.trainer.validate_loop.progress, Tracker, fn)
+            apply_to_collection(self.trainer.test_loop.progress, Tracker, fn)
+            apply_to_collection(self.trainer.predict_loop.progress, Tracker, fn)
+
             self.trainer.fit_loop.restarting = True
             self.trainer.fit_loop.epoch_loop.restarting = True
             self.trainer.fit_loop.epoch_loop.batch_loop.restarting = True
