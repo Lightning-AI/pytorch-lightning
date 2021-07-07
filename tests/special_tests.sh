@@ -33,12 +33,6 @@ blocklist='test_pytorch_profiler_nested_emit_nvtx'
 report=''
 
 
-# test that a user can manually launch individual processes
-args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.max_epochs=1 --data.batch_size=32 --trainer.limit_train_batches=2 --trainer.limit_val_batches=2"
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
-
-
 for i in "${!files_arr[@]}"; do
   file=${files_arr[$i]}
   lineno=${linenos_arr[$i]}
@@ -85,7 +79,10 @@ if [ $? -eq 0 ]; then
     report+="Ran\ttests/utilities/test_warnings.py\n"
 fi
 
-
+# test that a user can manually launch individual processes
+args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.max_epochs=1 --data.batch_size=32 --trainer.limit_train_batches=2 --trainer.limit_val_batches=2"
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
 
 # echo test report
 printf '=%.s' {1..80}
