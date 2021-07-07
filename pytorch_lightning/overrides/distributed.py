@@ -22,7 +22,7 @@ from torch.utils.data.dataloader import DataLoader, IterableDataset
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.enums import BatchKeys
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
@@ -325,7 +325,7 @@ class CaptureIterativeDataset(IterableDataset):
         state_dicts = {"id": worker_info.id if worker_info is not None else 0}
         for k, v in self.samplers.items():
             state_dicts.update({k: v.state_dict()})
-        return {"data": data, BatchKeys.PL_SAMPLERS: state_dicts}
+        return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: state_dicts}
 
 
 def _find_fast_forward_samplers(dataloader: Union[DataLoader, CombinedLoader], state_dict):

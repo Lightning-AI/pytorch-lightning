@@ -113,6 +113,9 @@ class GradClipAlgorithmType(LightningEnum):
     NORM = 'norm'
 
 
-class BatchKeys(LightningEnum):
+class AutoRestartBatchKeys(LightningEnum):
+    """
+    Defines special dictionary keys used to track sampler progress with multiple workers.
+    """
 
-    PL_SAMPLERS = "pl_samplers"
+    PL_SAMPLERS = "__pl_samplers__"

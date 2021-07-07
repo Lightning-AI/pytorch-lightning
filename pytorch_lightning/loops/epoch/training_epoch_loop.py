@@ -21,7 +21,7 @@ from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import TrainingEpochProgress
-from pytorch_lightning.utilities.enums import BatchKeys
+from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -470,15 +470,15 @@ class TrainingEpochLoop(loops.Loop):
             self.trainer.logger.save()
 
     def _sanetize_batch(self, batch: Any) -> Any:
-        if isinstance(batch, Dict) and BatchKeys.PL_SAMPLERS in batch:
+        if isinstance(batch, Dict) and AutoRestartBatchKeys.PL_SAMPLERS in batch:
             current_iterations = {
                 k: {
-                    batch[BatchKeys.PL_SAMPLERS]["id"][-1].item(): {
+                    batch[AutoRestartBatchKeys.PL_SAMPLERS]["id"][-1].item(): {
                         "current_iteration": v["current_iteration"][-1].item(),
                         "rng_state": None
                     }
                 }
-                for k, v in batch[BatchKeys.PL_SAMPLERS].items() if k != "id"
+                for k, v in batch[AutoRestartBatchKeys.PL_SAMPLERS].items() if k != "id"
             }
             if self._dataloader_idx not in self._map_dl_idx_sampler_states:
                 self._map_dl_idx_sampler_states[self._dataloader_idx] = current_iterations
