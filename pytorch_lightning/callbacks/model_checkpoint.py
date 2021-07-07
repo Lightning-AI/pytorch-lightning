@@ -629,7 +629,7 @@ class ModelCheckpoint(Callback):
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer: 'pl.Trainer') -> None:
-        metrics = trainer.logger_connector.callback_metrics
+        metrics = trainer.callback_metrics
         deprecation_warning = False
 
         if self.monitor is None and 'val_loss' in metrics:
@@ -648,7 +648,7 @@ class ModelCheckpoint(Callback):
             )
 
     def _validate_monitor_key(self, trainer: 'pl.Trainer') -> None:
-        metrics = trainer.logger_connector.callback_metrics
+        metrics = trainer.callback_metrics
 
         # validate metric
         if self.monitor is not None and not self._is_valid_monitor_key(metrics):
@@ -678,7 +678,7 @@ class ModelCheckpoint(Callback):
         return filepath
 
     def _monitor_candidates(self, trainer: 'pl.Trainer', epoch: int, step: int) -> Dict[str, _METRIC]:
-        monitor_candidates = deepcopy(trainer.logger_connector.callback_metrics)
+        monitor_candidates = deepcopy(trainer.callback_metrics)
         monitor_candidates.update(epoch=epoch, step=step)
         return monitor_candidates
 
