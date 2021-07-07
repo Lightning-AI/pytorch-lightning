@@ -132,10 +132,15 @@ class FastForwardSampler(Sampler):
         return current_iteration
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
+        """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
-    def load_state_dict(self, state_dict: Dict[str, Any], workers_initialized: bool = False) -> None:
-        # if the state dict contains multiple states, it means there were multiple workers
+    def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
+        """
+        Loads the saved state for the wrapped sampler.
+        If the ``state_dict`` contains multiple states, it means there were multiple workers.
+        The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
+        """
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         if len(state_dict) > 1 and not workers_initialized:
             self._cached_state_dict = state_dict
