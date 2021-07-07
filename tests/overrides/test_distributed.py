@@ -18,12 +18,13 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.optim import Adam
 from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import get_worker_info
 from torch.utils.data.dataloader import _InfiniteConstantSampler, DataLoader
-from torch.utils.data.dataset import IterableDataset
+from torch.utils.data.dataset import IterableDataset, Dataset
 
-from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer, LightningModule
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.overrides.distributed import (
     CaptureIterativeDataset,
@@ -482,3 +483,67 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
     train_dataloader = DataLoader(dataset, batch_size=3, num_workers=num_workers)
     trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=ck.last_model_path, callbacks=callbacks)
     trainer.fit(model, train_dataloader=train_dataloader)
+
+
+class MonotonicRandomDataset(Dataset):
+
+    def __getitem__(self, index):
+        # 0.{random digits}
+        # 1.{random digits}
+        # 2.{random digits}
+        # ...
+        return torch.rand(1) + index
+
+    def __len__(self):
+        return 64
+
+
+class RandomLightningModule(LightningModule):
+
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Linear(1, 2)
+        self.recorded_samples = []
+
+    def forward(self, x):
+        return self.layer(x)
+
+    def training_step(self, batch, batch_idx):
+        # print(batch_idx, batch)
+        self.recorded_samples.append(batch)
+        return {"loss": self(batch).sum()}
+
+    def train_dataloader(self):
+        dataset = MonotonicRandomDataset()
+        dataloader = DataLoader(dataset, batch_size=2)
+        return dataloader
+
+    def configure_optimizers(self):
+        return Adam(self.parameters())
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_fastforward_sampler_and_dataset(tmpdir):
+    print("initial training")
+    seed_everything(1)
+    model = RandomLightningModule()
+    trainer = Trainer(max_steps=3, progress_bar_refresh_rate=0, weights_summary=None)
+    trainer.fit(model)
+
+    print(torch.cat(model.recorded_samples))
+    indices = [int(x) for x in torch.cat(model.recorded_samples).floor()]
+    assert indices == [0, 1, 2, 3, 4, 5]
+
+    ckpt_file = os.path.join(tmpdir, "one.ckpt")
+    trainer.save_checkpoint(ckpt_file)
+
+    print("resuming")
+    seed_everything(1)
+    model = RandomLightningModule()
+    trainer = Trainer(max_steps=6, progress_bar_refresh_rate=0, weights_summary=None, resume_from_checkpoint=ckpt_file)
+    trainer.fit(model)
+
+    print(torch.cat(model.recorded_samples))
+    indices = [int(x) for x in torch.cat(model.recorded_samples).floor()]
+    assert indices == [6, 7, 8, 9]
+
