@@ -476,7 +476,9 @@ class CheckpointConnector:
 
         return {
             TrainerFn.FITTING.value: {
-                RunningStage.TRAINING.value: self._get_samplers_state_dict(self.trainer.train_dataloader, 0),
+                RunningStage.TRAINING.value: apply_to_collection(
+                    self.trainer.train_dataloader.loaders, DataLoader, self._get_samplers_state_dict, 0
+                ),
                 RunningStage.VALIDATING.value: [
                     self._get_samplers_state_dict(dl, dl_idx) for dl_idx, dl in enumerate(self.trainer.val_dataloaders)
                 ]

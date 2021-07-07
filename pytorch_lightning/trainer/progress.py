@@ -246,9 +246,9 @@ class EvaluationEpochLoopProgress(EpochLoopProgress):
 
     should_check_val: bool = False
 
-    def __setstate__(self, state: dict) -> None:
-        self.epoch.__setstate__(state["epoch"])
-        self.should_check_val = state["should_check_val"]
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.epoch.load_state_dict(state_dict["epoch"])
+        self.should_check_val = state_dict["should_check_val"]
 
 
 @dataclass

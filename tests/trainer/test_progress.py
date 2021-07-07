@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -150,8 +152,8 @@ def test_fit_loop_progress_serialization():
     fit_loop.epoch.optim.optimizer_idx = 1
     fit_loop.epoch.dataloader_idx = 2
     fit_loop.epoch.val.should_check_val = True
+    fit_loop.epoch.increment_completed()
     _ = deepcopy(fit_loop)
-    fit_loop.epoch.increment_completed()  # check `TrainingEpochProgress.load_state_dict` calls `super`
 
     state_dict = fit_loop.state_dict()
     # yapf: disable
@@ -221,6 +223,7 @@ def test_fit_loop_progress_serialization():
 
 def test_epoch_loop_progress_serialization():
     loop = EpochLoopProgress()
+    loop.epoch.dataloader_idx = 1
     _ = deepcopy(loop)
     state_dict = loop.state_dict()
 
@@ -237,7 +240,7 @@ def test_epoch_loop_progress_serialization():
                 # number of batches this `validate` call
                 'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
             },
-            'dataloader_idx': 0,
+            'dataloader_idx': 1,
         }
     }
     # yapf: enable
@@ -246,6 +249,7 @@ def test_epoch_loop_progress_serialization():
     assert loop == new_loop
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
@@ -403,6 +407,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     # assert optim.scheduler.current == Tracker(ready=current, started=None, processed=None, completed=current)
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
     class ValidationModel(BoringModel):
@@ -468,10 +473,6 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
         val_check_interval=2,
         num_sanity_val_steps=0,  # TODO (tchaton) This fails when increasing to 1
     )
-
-    print()
-    print("RESTARTING")
-    print()
 
     trainer.fit(model)
 
