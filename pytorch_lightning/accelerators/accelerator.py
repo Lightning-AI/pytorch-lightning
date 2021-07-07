@@ -286,6 +286,7 @@ class Accelerator:
             optimizer: The optimizer optimizing the gradients to call backward for
             optimizer_idx: the index of the current optimizer
         """
+        # FIXME: Remove optimizer arguments?
         self.training_type_plugin.pre_backward(closure_loss, optimizer, optimizer_idx)
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 

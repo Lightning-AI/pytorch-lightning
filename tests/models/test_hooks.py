@@ -289,7 +289,7 @@ class HookedModel(BoringModel):
 
     def _train_batch(self, trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get('amp_backend') == 'native'
-        using_apex = kwargs.get('amp_backend') == 'apex'
+        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
             expected = [
@@ -305,11 +305,11 @@ class HookedModel(BoringModel):
             if not self.automatic_optimization:
                 expected += [
                     dict(name='optimizers'),
-                    # nested calls so shown before
+                    # DeepSpeed handles backward internally
+                    *([dict(name='backward', args=(ANY, None, None))] if not using_deepspeed else []),
                     dict(name='Callback.on_after_backward', args=(trainer, model)),
                     dict(name='on_after_backward'),
-                    # `None, None` are for optimizer and optimizer index
-                    *([dict(name='backward', args=(ANY, None, None))] if using_apex else []),
+                    # `manual_backward` calls the previous 3
                     dict(name='manual_backward', args=(ANY, )),
                 ]
             expected += [
@@ -323,7 +323,7 @@ class HookedModel(BoringModel):
                     dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
                     # TODO: `on_before_backward`
                     # DeepSpeed handles backward internally
-                    *([dict(name='backward', args=(ANY, ANY, 0))] if kwargs.get('plugins') != 'deepspeed' else []),
+                    *([dict(name='backward', args=(ANY, ANY, 0))] if not using_deepspeed else []),
                     dict(name='Callback.on_after_backward', args=(trainer, model)),
                     dict(name='on_after_backward'),
                     # TODO: `on_before_optimizer_step`

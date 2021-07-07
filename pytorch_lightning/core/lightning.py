@@ -1446,7 +1446,9 @@ class LightningModule(
         # backward
         self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, None, None, *args, **kwargs)
 
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+    def backward(
+        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
+    ) -> None:
         """
         Called to perform backward on the loss returned in :meth:`training_step`.
         Override this hook with your own implementation if you need to.
@@ -1454,8 +1456,8 @@ class LightningModule(
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
                 holds the normalized value (scaled by 1 / accumulation steps).
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
+            optimizer: Current optimizer being used. `None` if using manual optimization.
+            optimizer_idx: Index of the current optimizer being used. `None` if using manual optimization.
 
         Example::
 
