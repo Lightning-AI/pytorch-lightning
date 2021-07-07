@@ -331,13 +331,6 @@ DeepSpeed ZeRO Stage 3 shards the optimizer states, gradients and the model para
 
 We've ran benchmarks for all these features and given a simple example of how all these features work in Lightning, which you can see at `minGPT <https://github.com/SeanNaren/minGPT/tree/stage3>`_.
 
-Currently this functionality is only available on master and will be included in our next 1.3 Release Candidate and 1.3 release.
-
-.. code-block:: python
-
-    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/refs/heads/master.zip
-
-
 To reach the highest memory efficiency or model size, you must:
 
 1. Use the DeepSpeed Plugin with the stage 3 parameter

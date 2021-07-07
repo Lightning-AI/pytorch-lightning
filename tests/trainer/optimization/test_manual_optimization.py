@@ -575,8 +575,8 @@ def test_step_with_optimizer_closure(tmpdir):
 
     trainer.fit(model)
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
-    assert trainer.logger_connector.progress_bar_metrics["train_loss_step"] == model._losses[-1]
-    assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
+    assert trainer.progress_bar_metrics["train_loss_step"] == model._losses[-1]
+    assert trainer.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
