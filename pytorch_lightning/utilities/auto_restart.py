@@ -77,7 +77,7 @@ class FastForwardSampler(Sampler):
 
         self.reset_iteration()
 
-    def reset(self) -> None:
+    def reset_iteration(self) -> None:
         self._current_iteration = 0
 
     def __len__(self) -> int:
