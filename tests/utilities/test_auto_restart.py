@@ -36,18 +36,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
 
-def parse_metadata(batch):
-    return {
-        k: {
-            batch[AutoRestartBatchKeys.PL_SAMPLERS]["id"][-1].item(): {
-                "current_iteration": v["current_iteration"][-1].item(),
-                "rng_state": v["rng_state"][-1]
-            }
-        }
-        for k, v in batch[AutoRestartBatchKeys.PL_SAMPLERS].items() if k != "id"
-    }
-
-
 def test_fast_forward_on_batch_sampler():
     """
     This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived
@@ -57,7 +45,6 @@ def test_fast_forward_on_batch_sampler():
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = FastForwardSampler(batch_sampler)
-    index_batch_sampler.setup(1, 1, False)
 
     assert isinstance(index_batch_sampler, Iterable)
     assert has_len(index_batch_sampler)
@@ -69,11 +56,7 @@ def test_fast_forward_on_batch_sampler():
 
     state_dict = index_batch_sampler.state_dict(2)
 
-    dataset = range(15)
-    sampler = SequentialSampler(dataset)
-    batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = FastForwardSampler(batch_sampler)
-    index_batch_sampler.setup(1, 1, False)
     index_batch_sampler.load_state_dict(state_dict)
 
     index_batch_sampler_iter = iter(index_batch_sampler)
@@ -86,8 +69,9 @@ def test_fast_forward_on_sequential_sampler():
     the right next batch on restart.
     """
     dataset = range(15)
-    sampler = FastForwardSampler(SequentialSampler(dataset))
-    sampler.setup(1, 3, False)
+    sequential_sampler = SequentialSampler(dataset)
+    sampler = FastForwardSampler(sequential_sampler)
+    sampler.setup(3)
     batch_sampler = BatchSampler(sampler, 3, False)
 
     batch_sampler_iter = iter(batch_sampler)
@@ -96,12 +80,8 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [3, 4, 5]
 
     state_dict = sampler.state_dict(2)
-    assert state_dict["current_iteration"] == 6
+    assert state_dict[0]["current_iteration"] == 6
 
-    dataset = range(15)
-    sampler = FastForwardSampler(SequentialSampler(dataset))
-    sampler.setup(1, 3, False)
-    batch_sampler = BatchSampler(sampler, 3, False)
     sampler.load_state_dict(state_dict)
 
     batch_sampler_iter = iter(batch_sampler)
@@ -116,8 +96,9 @@ def test_fast_forward_on_random_sampler():
     seed_everything(42)
 
     dataset = range(15)
-    sampler = FastForwardSampler(RandomSampler(dataset))
-    sampler.setup(1, 3, False)
+    random_sampler = RandomSampler(dataset)
+    sampler = FastForwardSampler(random_sampler)
+    sampler.setup(3)
     batch_sampler = BatchSampler(sampler, 3, False)
 
     batch_sampler_iter = iter(batch_sampler)
@@ -127,12 +108,12 @@ def test_fast_forward_on_random_sampler():
     assert next(batch_sampler_iter) == [12, 8, 2]
 
     state_dict = sampler.state_dict(3)
-    assert state_dict["current_iteration"] == 9
-    state_dict["current_iteration"] = 6
+    assert state_dict[0]["current_iteration"] == 9
+    state_dict[0]["current_iteration"] = 6
 
-    dataset = range(15)
-    sampler = FastForwardSampler(RandomSampler(dataset))
-    sampler.setup(1, 3, False)
+    seed_everything(42)
+    sampler = FastForwardSampler(random_sampler)
+    sampler.setup(3)
     batch_sampler = BatchSampler(sampler, 3, False)
     sampler.load_state_dict(state_dict)
 
@@ -144,8 +125,7 @@ def test_fast_forward_on_random_sampler():
             next(batch_sampler_iter)
     except StopIteration:
         has_raised = True
-        assert sampler.rng_state is None
-        assert sampler.current_iteration == 0
+        assert sampler._current_iteration == 0
         sampler.load_state_dict(sampler.state_dict(0))
     assert has_raised
 
@@ -179,6 +159,7 @@ class RangeIterativeDataset(IterableDataset):
         return self.data[next(self.iter_sampler)]
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
@@ -190,7 +171,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator = torch.Generator()
     generator.manual_seed(initial_seed)
     dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True)
-    dataset = CaptureIterativeDataset(dataset, num_workers, batch_size, True)
+    dataset = CaptureIterativeDataset(dataset, num_workers)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
     batches = []
@@ -224,20 +205,19 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     # restarting on batch_1 and getting 3 extra batches
 
-    state_dict = {0: {'iter_sampler': {}}}
+    state_dict = {'iter_sampler': {}}
     for batch in batches[:2]:
-        metadata = parse_metadata(batch)
-        for k, v in metadata.items():
-            state_dict[0][k].update(v)
+        _state_dict = CaptureIterativeDataset.convert_batch_into_state_dict(batch)
+        for k, v in _state_dict.items():
+            state_dict[k].update(v)
 
-    if num_workers == 2:
-        assert len(state_dict[0]["iter_sampler"]) == 2
+    assert len(state_dict["iter_sampler"]) == (num_workers if num_workers > 1 else 1)
 
     initial_seed = seed_everything(42)
     generator.manual_seed(initial_seed)
     dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
-    dataset = CaptureIterativeDataset(dataset, num_workers, batch_size, True)
-    dataset.setup(state_dict[0])
+    dataset = CaptureIterativeDataset(dataset)
+    dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
     batches = []
@@ -271,7 +251,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
     sampler = FastForwardSampler(
         DistributedSampler(dataset, num_replicas=worldsize, rank=rank, drop_last=True, seed=initial_seed)
     )
-    sampler.setup(num_workers, batch_size, False)
+    sampler.setup(batch_size)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=num_workers, generator=generator, sampler=sampler
     )
@@ -289,13 +269,17 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 
     expected = torch.tensor([17, 27, 24]) if rank == 0 else torch.tensor([19, 5, 3])
     assert torch.equal(batches[-1], expected)
-    assert sampler.state_dict(num_yielded)["current_iteration"] == 16
+
+    assert sampler.state_dict(num_yielded)[0]["current_iteration"] == 16
+
+    reload_state_dict = sampler.state_dict(num_yielded - 1)
+    assert reload_state_dict[0]["current_iteration"] == 12
 
     sampler = FastForwardSampler(
         DistributedSampler(dataset, num_replicas=worldsize, rank=rank, drop_last=True, seed=initial_seed)
     )
-    sampler.setup(num_workers, batch_size, False)
-    sampler.load_state_dict({'rng_state': None, 'current_iteration': 12})
+    sampler.setup(batch_size)
+    sampler.load_state_dict(reload_state_dict)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=num_workers, generator=generator, sampler=sampler
     )
@@ -310,9 +294,10 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
             break
 
     assert torch.equal(batches[-1], expected)
-    assert sampler.state_dict(num_yielded)["current_iteration"] == 16
+    assert sampler.state_dict(num_yielded)[0]["current_iteration"] == 16
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler():
     """Make sure result logging works with DDP"""
@@ -391,10 +376,11 @@ class MetaLearningDataset(IterableDataset):
         self.set_seed(shared=True)
         self.selected_indexes = np.random.choice(self.unique_labels, self.task_num_classes, replace=False)
         self.selected_indexes.sort()
+
+        # subset of indices from the entire dataset where the labels are actually among the
+        # task_num_classes selected_indexes
+
         self.task_indices = np.arange(len(self.dataset))[np.in1d(self.labels, self.selected_indexes)]
-        print()
-        print("TASK_INDICES", self.task_indices)
-        print()
         self.task_length = len(self.task_indices)
         self.set_seed(shared=False)
 
@@ -415,12 +401,9 @@ class MetaLearningDataset(IterableDataset):
             num_workers = 1 if self.num_workers in (None, 0) else self.num_workers
             num_replicas = num_workers * self.world_size
             current_seed = self.initial_seed + self.current_task_iteration
-            print("MetaLearningDataset Seed", current_seed)
             self.sampler = DistributedSampler(
                 data, num_replicas=num_replicas, rank=self.worker_rank, shuffle=self.shuffle, seed=current_seed
             )
-
-            print("INDICES", self.worker_rank, list(self.sampler))
 
     def __iter__(self):
         if self.generator is None:
@@ -433,11 +416,16 @@ class MetaLearningDataset(IterableDataset):
         self.current_task_iteration += 1
         return self
 
+    def increment_iteration(self):
+        self.current_task_iteration += 1
+
     def __next__(self):
+        # this is optional, but useful to accumulate gradient over the entire task.
         is_first_batch = self.is_first_batch if self.debugging else (self.is_first_batch and self.worker_id == 0)
         if is_first_batch:
             self.is_first_batch = False
             return {"task_length": len(self.batch_sampler), "selected_indexes": self.selected_indexes}
+
         random_indices = next(self.iter_sampler)
         task_indices = [self.task_indices[idx] for idx in random_indices]
         return default_collate([self.dataset[idx] for idx in task_indices])
@@ -490,10 +478,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         debugging=True,
         shuffle=True,
     )
-
-    dataset = CaptureIterativeDataset(
-        dataset, num_workers=num_workers, batch_size=batch_size, is_inside_workers=True, initial_seed=initial_seed
-    )
+    dataset = CaptureIterativeDataset(dataset, initial_seed=initial_seed)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
 
     epoch_results = []
@@ -533,11 +518,11 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert not torch.equal(second_batch_list[0], second_batch_list[1])
 
     # restarting on epoch 0 / real batch 2
-    state_dict = {0: {'iter_sampler': {}}}
+    state_dict = {'iter_sampler': {}}
     for batch in epoch_results[0][2:4]:
-        metadata = parse_metadata(batch)
+        metadata = CaptureIterativeDataset.convert_batch_into_state_dict(batch)
         for k, v in metadata.items():
-            state_dict[0][k].update(v)
+            state_dict[k].update(v)
 
     dataset = ClassificationDataset(range(dataset_length), labels)
     dataset = MetaLearningDataset(
@@ -552,10 +537,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         shuffle=True,
     )
 
-    dataset = CaptureIterativeDataset(
-        dataset, num_workers=num_workers, batch_size=batch_size, is_inside_workers=True, initial_seed=initial_seed
-    )
-    dataset.setup(state_dict[0])
+    dataset = CaptureIterativeDataset(dataset, initial_seed=initial_seed)
+    dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
 
     epoch_results_restart = []
@@ -568,8 +551,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
             except StopIteration:
                 break
         epoch_results_restart.append(batches)
-        dataloader.dataset.dataset.current_task_iteration += 1
-        dataloader.dataset.samplers_state_dict = None
+        dataloader.dataset.dataset.increment_iteration()
+        dataloader.dataset.reset_on_epoch()
 
     assert len(epoch_results_restart[0]) + 2 == len(epoch_results[0])
     epoch_tensors = [e["data"][0] for e in epoch_results[0][4:]]
@@ -585,10 +568,12 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert torch.equal(t, tr)
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     """Make sure result logging works with DDP"""
