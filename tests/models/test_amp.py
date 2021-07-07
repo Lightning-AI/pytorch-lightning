@@ -195,7 +195,8 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_amp_without_apex(tmpdir):
+@mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
+def test_amp_without_apex(bwd_mock, tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
     model = BoringModel()
 
@@ -213,12 +214,13 @@ def test_amp_without_apex(tmpdir):
     assert trainer.amp_backend is None
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.dev_debugger.count_events('AMP') == 0
+    assert not bwd_mock.called
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
-def test_amp_with_apex(tmpdir):
+@mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
+def test_amp_with_apex(bwd_mock, tmpdir):
     """Check calling apex scaling in training."""
 
     class CustomModel(BoringModel):
@@ -243,10 +245,10 @@ def test_amp_with_apex(tmpdir):
         amp_backend='apex',
         gpus=1,
     )
-    assert str(trainer.amp_backend) == "AMPType.APEX"
+    assert trainer.amp_backend == "apex"
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.dev_debugger.count_events('AMP') == 10
+    assert bwd_mock.call_count == 10
 
     assert isinstance(trainer.lr_schedulers[0]['scheduler'].optimizer, optim.Adam)
     assert isinstance(trainer.lr_schedulers[1]['scheduler'].optimizer, optim.SGD)
