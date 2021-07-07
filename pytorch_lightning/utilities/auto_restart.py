@@ -65,7 +65,7 @@ class FastForwardSampler(Sampler):
                 yield batch
 
         else:
-            for i, batch in enumerate(self._sampler, 1):
+            for i, batch in enumerate(self._sampler):
 
                 # the `state dict` was cached as workers were available before.
                 if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
@@ -74,8 +74,8 @@ class FastForwardSampler(Sampler):
                     self.load_state_dict(self._cached_state_dict, workers_initialized=True)
                     self._cached_state_dict = None
 
-                # when the current index is higher than the current_iteration, we have "fast forwarded" the sampler.
-                if self._current_iteration < i:
+                # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
+                if self._current_iteration <= i:
                     self._current_iteration += 1
                     yield batch
 
