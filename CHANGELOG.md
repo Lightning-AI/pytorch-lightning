@@ -122,6 +122,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add support for optimizers and learning rate schedulers to `LightningCLI` ([#8093](https://github.com/PyTorchLightning/pytorch-lightning/pull/8093))
 
 
+- Decoupled device parsing logic from Accelerator connector to Trainer ([#8180](https://github.com/PyTorchLightning/pytorch-lightning/pull/8180))
+
+
 - Added XLA Profiler ([#8014](https://github.com/PyTorchLightning/pytorch-lightning/pull/8014))
 
 

@@ -57,7 +57,6 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
@@ -88,8 +87,8 @@ class AcceleratorConnector(object):
         tpu_cores,
         ipus,
         distributed_backend,
-        auto_select_gpus,
         gpus,
+        gpu_ids,
         num_nodes,
         sync_batchnorm,
         benchmark,
@@ -106,11 +105,12 @@ class AcceleratorConnector(object):
         self._accelerator_type = None
 
         self.num_processes = num_processes
-        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        # `gpus` is the input passed to the Trainer, whereas `gpu_ids` is a list of parsed gpu ids.
+        self.gpus = gpus
+        self.parallel_device_ids = gpu_ids
+        self.tpu_cores = tpu_cores
         self.ipus = ipus
         self.distributed_backend = distributed_backend
-        self.auto_select_gpus = auto_select_gpus
-        self.gpus = gpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
@@ -134,12 +134,6 @@ class AcceleratorConnector(object):
             plugins = [plugins]
 
         self.plugins = plugins
-
-        # for gpus allow int, string and gpu list
-        if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = pick_multiple_gpus(gpus)
-
-        self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
         self.select_accelerator_type()
         self.set_distributed_mode()
