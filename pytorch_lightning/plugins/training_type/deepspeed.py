@@ -27,12 +27,13 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
+from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning, rank_zero_warn
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -647,29 +648,26 @@ class DeepSpeedPlugin(DDPPlugin):
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
         """
-        if self.world_size > 1 and self.zero_stage_3:
-            if self.save_full_weights:
-                # todo: expose this as general function in deepspeed
-                state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
-                if self.is_global_zero:
-                    # State dict keys will include reference to wrapper LightningDeepSpeedModule
-                    # Delete `module` prefix before saving.
-                    state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
-                    checkpoint['state_dict'] = state_dict
-                    return super().save_checkpoint(checkpoint, filepath)
-                return
+        if self.save_full_weights and self.zero_stage_3:
+            # todo (sean): expose this as general function in deepspeed
+            state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
+            if self.is_global_zero:
+                # State dict keys will include reference to wrapper LightningDeepSpeedModule
+                # Delete `module` prefix before saving.
+                state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
+                checkpoint['state_dict'] = state_dict
+                return super().save_checkpoint(checkpoint, filepath)
+            return
 
-            # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
-            # dump states as a checkpoint dictionary object
-            save_dir = self._filepath_to_dir(filepath)
-            _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
-            checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-            self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
-        else:
-            super().save_checkpoint(checkpoint, filepath)
+        # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
+        # dump states as a checkpoint dictionary object
+        save_dir = self._filepath_to_dir(filepath)
+        _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
+        checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
+        self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
 
     def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        if self.save_full_weights or self.world_size == 1:
+        if self.save_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
@@ -691,11 +689,18 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
-        pass
+        if self.save_full_weights and self.zero_stage_3:
+            self.lightning_module.load_state_dict(checkpoint['state_dict'])
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
-        pass
+        if self.save_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            rank_zero_warn(
+                "A single checkpoint file was saved using ZeRO Stage 3. This means optimizer states and "
+                "scheduler states can not be restored. If you'd like to restore these states, you must"
+                "set save_full_weights=False, i.e Trainer(plugins=DeepSpeedPlugin(save_full_weights=False)) "
+                "when training the model initially."
+            )
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:

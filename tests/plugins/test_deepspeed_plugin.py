@@ -507,6 +507,10 @@ class ModelParallelClassificationModel(LightningModule):
             'interval': 'step',
         }]
 
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if not hasattr(self, 'model'):
+            self.configure_sharded_model()
+
 
 class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
 
@@ -589,27 +593,24 @@ def run_checkpoint_test(
 
     results = trainer.test(model, datamodule=dm)
     assert results[0]['test_acc'] > 0.7
-
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results[0]['test_acc'] > 0.7
     assert saved_results == results
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
-        gpus=2,
-        precision=16,
-        accumulate_grad_batches=2,
-        callbacks=[ck],
-        resume_from_checkpoint=ck.best_model_path
-    )
-    results = trainer.test(model, datamodule=dm)
-    assert results[0]['test_acc'] > 0.7
+    if automatic_optimization:
+        model_cls = ModelParallelClassificationModel()
+    else:
+        model_cls = ManualModelParallelClassificationModel()
+    if trainer.is_global_zero:
+        trainer = Trainer(default_root_dir=tmpdir, gpus=1, precision=16)
+        saved_model = model_cls.load_from_checkpoint(ck.best_model_path)
 
-    dm.predict_dataloader = dm.test_dataloader
-    results = trainer.predict(datamodule=dm)
-    assert results[-1] > 0.7
+        results = trainer.test(saved_model, datamodule=dm)
+        assert results[0]['test_acc'] > 0.7
+
+        dm.predict_dataloader = dm.test_dataloader
+        results = trainer.predict(datamodule=dm)
+        assert results[-1] > 0.7
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -621,7 +622,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=False)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True, special=False)
 def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
