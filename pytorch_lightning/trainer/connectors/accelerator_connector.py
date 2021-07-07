@@ -682,7 +682,7 @@ class AcceleratorConnector(object):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
-                'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
+                'Requested `accelerator="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
