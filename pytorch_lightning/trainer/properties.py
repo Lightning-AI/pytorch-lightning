@@ -226,11 +226,10 @@ class TrainerProperties(ABC):
             dirpath = self.default_root_dir
         elif isinstance(self.logger, TensorBoardLogger):
             dirpath = self.logger.log_dir
+        elif isinstance(self.logger, LoggerCollection):
+            dirpath = self.default_root_dir
         else:
             dirpath = self.logger.save_dir
-
-        if isinstance(self.logger, LoggerCollection) and dirpath is None:
-            dirpath = self.default_root_dir
 
         dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
