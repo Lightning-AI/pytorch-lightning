@@ -17,20 +17,18 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops import EvaluationLoop, FitLoop, PredictionLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
@@ -59,14 +57,17 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    device_parser,
     DeviceType,
     parsing,
     rank_zero_deprecation,
@@ -145,6 +146,7 @@ class Trainer(
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
+        reload_dataloaders_every_n_epochs: int = 0,
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -273,7 +275,14 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
+            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: 0
+
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
+
+                .. deprecated:: v1.4
+                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
+                    Please use ``reload_dataloaders_every_n_epochs``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -325,6 +334,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
+        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -333,8 +343,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, ipus, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
-            benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, tpu_cores, ipus, distributed_backend, gpus, gpu_ids, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -346,13 +356,13 @@ class Trainer(
         self.tuner = Tuner(self)
 
         self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.validation_loop = EvaluationLoop()
+        self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self)
-        self.validation_loop.connect(self)
-        self.test_loop.connect(self)
-        self.predict_loop.connect(self)
+        self.fit_loop.connect(self, progress=FitLoopProgress())
+        self.validate_loop.connect(self, progress=EpochLoopProgress())
+        self.test_loop.connect(self, progress=EpochLoopProgress())
+        self.predict_loop.connect(self, progress=EpochLoopProgress())
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -383,7 +393,8 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch,
+            prepare_data_per_node
         )
 
         # init training tricks
@@ -456,20 +467,6 @@ class Trainer(
 
         self.num_predict_batches = []
         self.predicted_ckpt_path = None
-
-    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
-        # clean hparams
-        if hasattr(model, "hparams"):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
-
-        # attach model log function to callback
-        self.callback_connector.attach_model_logging_functions(model)
 
     def fit(
         self,
@@ -916,8 +913,10 @@ class Trainer(
 
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
+        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
+        # which need to happen before.
         self.accelerator.teardown()
-        self.logger_connector.teardown()
+        self._active_loop.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -957,7 +956,8 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            ref_model.summarize(mode=self.weights_summary)
+            max_depth = ModelSummary.MODES[self.weights_summary]
+            ref_model.summarize(max_depth=max_depth)
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -970,8 +970,6 @@ class Trainer(
             self.progress_bar_callback.disable()
 
         self._run_sanity_check(self.lightning_module)
-
-        self.checkpoint_connector.has_trained = False
 
         # enable train mode
         self.model.train()
@@ -992,7 +990,6 @@ class Trainer(
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self.state.stage = None
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
@@ -1011,10 +1008,10 @@ class Trainer(
         assert self.evaluating
 
         # reload dataloaders
-        self.evaluation_loop.reload_evaluation_dataloaders()
+        self._evaluation_loop.reload_evaluation_dataloaders()
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
-            eval_loop_results = self.evaluation_loop.run()
+            eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1044,11 +1041,11 @@ class Trainer(
             self.on_sanity_check_start()
 
             # reload dataloaders
-            self.evaluation_loop.reload_evaluation_dataloaders()
+            self._evaluation_loop.reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self.evaluation_loop.run()
+                self._evaluation_loop.run()
 
             self.on_sanity_check_end()
 
@@ -1174,6 +1171,18 @@ class Trainer(
 
         return output
 
+    def _parse_devices(
+        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
+                                                                                                            str, int]]
+    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+        if auto_select_gpus and isinstance(gpus, int):
+            gpus = pick_multiple_gpus(gpus)
+
+        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
+        gpu_ids = device_parser.parse_gpu_ids(gpus)
+        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        return gpu_ids, tpu_cores
+
     @staticmethod
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
@@ -1222,7 +1231,7 @@ class Trainer(
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU:
+        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."

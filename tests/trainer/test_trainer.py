@@ -373,7 +373,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     for i, loss in enumerate(losses):
         trainer.fit_loop.current_epoch = i
         trainer.fit_loop.global_step = i
-        trainer.logger_connector.callback_metrics.update({"checkpoint_on": loss})
+        trainer.callback_metrics.update({"checkpoint_on": loss})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
@@ -1101,9 +1101,9 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
 
     with patch.object(
-        trainer.fit_loop.val_loop.epoch_loop,
+        trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
         "evaluation_step",
-        wraps=trainer.fit_loop.val_loop.epoch_loop.evaluation_step
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple_mixed_length()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1131,9 +1131,9 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == float("inf")
 
     with patch.object(
-        trainer.fit_loop.val_loop.epoch_loop,
+        trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
         "evaluation_step",
-        wraps=trainer.fit_loop.val_loop.epoch_loop.evaluation_step
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple()
         trainer.fit(model, val_dataloaders=val_dataloaders)

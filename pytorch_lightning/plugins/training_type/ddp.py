@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Union
 import __main__
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
+import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
@@ -41,7 +41,13 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    distributed_available,
+    rank_zero_info,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -94,7 +100,7 @@ class DDPPlugin(ParallelPlugin):
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
-        self.task_idx = None
+        self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -127,6 +133,18 @@ class DDPPlugin(ParallelPlugin):
     @sync_batchnorm.setter
     def sync_batchnorm(self, sync_batchnorm: bool) -> None:
         self._sync_batchnorm = sync_batchnorm
+
+    @property
+    def task_idx(self) -> Optional[int]:
+        rank_zero_deprecation(
+            f'`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use '
+            f'`{self.__class__.__name__}.local_rank` instead.'
+        )
+        return self._task_idx
+
+    @task_idx.setter
+    def task_idx(self, task_idx: int) -> None:
+        self._task_idx = task_idx
 
     @property
     def distributed_sampler_kwargs(self):
@@ -191,11 +209,9 @@ class DDPPlugin(ParallelPlugin):
         if self.parallel_devices is None:
             raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
 
-        os.environ["PL_TRAINER_GPUS"] = ",".join([str(device.index) for device in self.parallel_devices])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-        num_gpus = len(self.parallel_devices)
-        os.environ["WORLD_SIZE"] = f"{num_gpus * self.num_nodes}"
+        os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
         self.interactive_ddp_procs = []
 
@@ -278,7 +294,7 @@ class DDPPlugin(ParallelPlugin):
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
+        if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self._model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -305,9 +321,11 @@ class DDPPlugin(ParallelPlugin):
         world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if not torch.distributed.is_initialized():
+        if torch.distributed.is_available() and not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch.distributed.init_process_group(
+                self.torch_distributed_backend, rank=global_rank, world_size=world_size
+            )
 
             # on rank=0 let everyone know training is starting
             rank_zero_info(
@@ -333,12 +351,12 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch_distrib.is_initialized():
+        if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
-            torch_distrib.barrier()
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
@@ -349,8 +367,6 @@ class DDPPlugin(ParallelPlugin):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
-        if self.root_device.type == "cuda":
-            torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:

@@ -18,9 +18,10 @@ from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.epoch.evaluation_epoch_loop import EvaluationEpochLoop
+from pytorch_lightning.loops.dataloader import DataLoaderLoop
+from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import EpochLoopProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -31,10 +32,14 @@ class EvaluationLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
-        self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
+        self.progress = EpochLoopProgress()
+
         self.epoch_loop = EvaluationEpochLoop()
+
         self._results = ResultCollection(training=False)
+        self._max_batches: Optional[Union[int, Sequence[int]]] = None
+        self._has_run: bool = False
 
     @property
     def num_dataloaders(self) -> int:
@@ -57,19 +62,18 @@ class EvaluationLoop(DataLoaderLoop):
         return self.trainer.val_dataloaders
 
     @property
-    def results(self) -> ResultCollection:
-        """Returns the current results"""
-        return self._results
-
-    @property
     def predictions(self):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        """Connects the loop to everything necessary (like trainer and accelerators)"""
+    def connect(
+        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
+    ) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+        if progress is not None:
+            self.progress = progress
+        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     @property
     def done(self) -> bool:
@@ -172,15 +176,15 @@ class EvaluationLoop(DataLoaderLoop):
         model = self.trainer.lightning_module
         if self.trainer.testing:
             self.trainer.reset_test_dataloader(model)
-        elif self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
+        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
             self.trainer.reset_val_dataloader(model)
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        assert self.results is not None
-        self.results.to(device=self.trainer.lightning_module.device)
+        assert self._results is not None
+        self._results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
             self.trainer.call_hook("on_test_start", *args, **kwargs)
@@ -261,3 +265,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
+
+    def teardown(self) -> None:
+        self._results.cpu()
+        self.epoch_loop.teardown()
