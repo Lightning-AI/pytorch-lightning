@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -101,8 +102,9 @@ if _TORCH_GREATER_EQUAL_1_6:
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 
-            # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
+            if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+                # check backward call count. the batchnorm update epoch should not backward
+                assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
             # check call counts
             assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
