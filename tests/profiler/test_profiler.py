@@ -454,14 +454,12 @@ def test_pytorch_profiler_logger_collection(tmpdir):
         default_root_dir=tmpdir,
         profiler="pytorch",
         logger=logger,
-        limit_train_batches=5,  # it takes a while for the warning to appear
+        limit_train_batches=5,
         max_epochs=1,
     )
 
     assert isinstance(trainer.logger, LoggerCollection)
-
     trainer.fit(model)
-
     assert look_for_trace(tmpdir)
 
 
