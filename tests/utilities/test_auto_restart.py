@@ -98,7 +98,7 @@ def test_fast_forward_getattr():
     index_batch_sampler = FastForwardSampler(batch_sampler)
 
     assert index_batch_sampler.batch_size == 3
-    assert index_batch_sampler.sampler == batch_sampler
+    assert index_batch_sampler.sampler == sampler
 
 
 def test_fast_forward_on_batch_sampler():

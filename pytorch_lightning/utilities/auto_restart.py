@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import deepcopy
-from typing import Any, Dict, Generator, Iterator, List, Optional, Union
+from typing import Any, Dict, Generator, Iterator, Optional, Union
 
-from torch.utils.data import BatchSampler, get_worker_info, Sampler
+from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import IterableDataset
 
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -23,17 +23,17 @@ from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 class FastForwardSampler(Sampler):
     """
     This FastForwardSampler wraps a :class:`torch.utils.data.Sampler` and records the number of iterations
-    performed during an epoch. It maintains a state through :meth:`state_dict` that can be reloaded through
-    :meth:`load_state_dict`. If the sampler is used in a multiprocessing context, the FastForwardSampler will record
+    performed during an epoch. It maintains a state, saved with :meth:`state_dict`, that can be reloaded with
+    :meth:`load_state_dict`. If the sampler is used in a multiprocessing context, the ``FastForwardSampler`` will record
     the state of the current worker.
 
-    When reloading, the FastForwardSampler will `fast-forward` the wrapped sampler by iterating through all the
+    When reloading, the ``FastForwardSampler`` will "fast-forward" the wrapped sampler by iterating through all the
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
+    def __init__(self, sampler: Union[Sampler, Generator]) -> None:
         super().__init__(data_source=None)
-        self.sampler = sampler
+        self._sampler = sampler
         self.restarting: bool = False
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
@@ -42,7 +42,7 @@ class FastForwardSampler(Sampler):
     def __getattr__(self, key: str) -> Any:
         if key in self.__dict__:
             return self.__dict__[key]
-        return self.sampler.__dict__[key]
+        return getattr(self._sampler, key, None)
 
     def setup(self, dataloader_batch_size: Optional[int] = None) -> None:
         """
@@ -56,24 +56,12 @@ class FastForwardSampler(Sampler):
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
-    @property
-    def drop_last(self) -> bool:
-        return self.sampler.drop_last
-
-    @property
-    def batch_size(self) -> int:
-        return self.sampler.batch_size
-
-    @property
-    def batch_indices(self) -> Optional[List[int]]:
-        return self.sampler.batch_indices
-
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[Any]:
         # setup local counter
         restart_counter = 0
 
         # iteration over wrapped sampler
-        for batch in self.sampler:
+        for batch in self._sampler:
 
             # if we are restarting, we will fastforward the batches
             if self.restarting:
@@ -97,9 +85,6 @@ class FastForwardSampler(Sampler):
                 # yield the batch
                 yield batch
 
-        self.reset_iteration()
-
-    def reset_iteration(self) -> None:
         self._current_iteration = 0
 
     def __len__(self) -> int:
@@ -143,15 +128,15 @@ class FastForwardSampler(Sampler):
 class CaptureIterableDataset(IterableDataset):
     """
     The ``CaptureIterableDataset`` is used to wrap an :class:`torch.utils.data.IterableDataset`.
-    On ``__iter__`` function call   the ``CaptureIterableDataset`` will wrap the wrapped dataset
+    On ``__iter__`` function call,   the ``CaptureIterableDataset`` will wrap the wrapped dataset
         generators into ``FastForwardSampler`` to keep track of progress.
     On ``__next__`` function call, the ``CaptureIterableDataset`` will return a dictionary containing
         user data and metadata containing the ``FastForwardSampler`` samplers state_dict.
     """
 
-    def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None):
+    def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None) -> None:
         super().__init__()
-        self.dataset = dataset
+        self.dataset = deepcopy(dataset)
         self.state_dict: Optional[Dict[int, Any]] = None
         self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
@@ -164,40 +149,42 @@ class CaptureIterableDataset(IterableDataset):
         self.state_dict = deepcopy(state_dict)
 
     def _wrap_generator_samplers(self) -> None:
-        if self.samplers is None:
-            self.samplers = {}
+        if self.samplers is not None:
+            return
 
-            # access wrapped dataset attributes
-            dataset_dict = self.dataset.__dict__
+        self.samplers = {}
 
-            # create a tuple of sampler names
-            samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
+        # access wrapped dataset attributes
+        dataset_dict = self.dataset.__dict__
 
-            # create a dictionary of generator present within the dataset attributes
-            dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, Generator)}
+        # create a tuple of sampler names
+        samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
 
-            # iterate over the generator. If a generator was created from a ``Sampler```,
-            # it will be wrapped into a ``FastForwardSampler``.
-            for (generator_attr_name, generator) in dataset_sampler_generators.items():
+        # create a dictionary of generator present within the dataset attributes
+        dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, Generator)}
 
-                # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split('.')[0]
+        # iterate over the generator. If a generator was created from a ``Sampler```,
+        # it will be wrapped into a ``FastForwardSampler``.
+        for (generator_attr_name, generator) in dataset_sampler_generators.items():
 
-                # validate the base generator name matches a sampler name.
-                if any(sampler_name == generator_name for sampler_name in samplers_names):
+            # Generator name have the  the form `SamplerName.__iter__`
+            generator_name = generator.__qualname__.split('.')[0]
 
-                    # wrap the generator into a ``FastForwardSampler``
-                    sampler = FastForwardSampler(generator)
+            # validate the base generator name matches a sampler name.
+            if any(sampler_name == generator_name for sampler_name in samplers_names):
 
-                    # if ``CaptureIterableDataset`` was available, the sampler should reload its own state.
-                    if self.state_dict is not None:
-                        sampler.load_state_dict(self.state_dict[generator_attr_name])
+                # wrap the generator into a ``FastForwardSampler``
+                sampler = FastForwardSampler(generator)
 
-                    # store the samplers
-                    self.samplers[generator_attr_name] = sampler
+                # if ``CaptureIterableDataset`` was available, the sampler should reload its own state.
+                if self.state_dict is not None:
+                    sampler.load_state_dict(self.state_dict[generator_attr_name])
 
-                    # replace generator with the generator from the ``FastForwardSampler``.
-                    dataset_dict[generator_attr_name] = iter(sampler)
+                # store the samplers
+                self.samplers[generator_attr_name] = sampler
+
+                # replace generator with the generator from the ``FastForwardSampler``.
+                dataset_dict[generator_attr_name] = iter(sampler)
 
         # reset state dict.
         self.state_dict = None
@@ -221,8 +208,7 @@ class CaptureIterableDataset(IterableDataset):
         # create current samplers state_dict
         worker_info = get_worker_info()
         state_dicts = {"id": worker_info.id if worker_info is not None else 0}
-        for k, v in self.samplers.items():
-            state_dicts.update({k: v.state_dict()})
+        state_dicts.update({k: v.state_dict() for k, v in self.samplers.items()})
 
         # return both current data and samplers ``state_dict``.
         return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: state_dicts}
