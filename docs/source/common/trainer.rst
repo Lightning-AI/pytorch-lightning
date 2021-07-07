@@ -204,11 +204,7 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
+.. youtube:: 55fHcXNBkEY
 
 |
 
@@ -255,11 +251,7 @@ Example::
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/accumulate_grad_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/accumulate_grad_batches.mp4"></video>
+.. youtube:: c-7TM6pre8o
 
 |
 
@@ -282,11 +274,7 @@ Example::
 amp_backend
 ^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_backend.mp4"></video>
+.. youtube:: fq7gAacJirQ
 
 |
 
@@ -303,11 +291,7 @@ Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
 amp_level
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_level.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_level.mp4"></video>
+.. youtube:: Qtha1Pny44U
 
 |
 
@@ -349,11 +333,7 @@ before any training.
 auto_select_gpus
 ^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_select+_gpus.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_select_gpus.mp4"></video>
+.. youtube:: 38hgdpuziMk
 
 |
 
@@ -416,11 +396,7 @@ Example::
 benchmark
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/benchmark.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/benchmark.mp4"></video>
+.. youtube:: OI3Pt1NBzJM
 
 |
 
@@ -441,7 +417,7 @@ Example::
 deterministic
 ^^^^^^^^^^^^^
 
-.. raw:: html
+.. youtube:: _GHh_PZGTH4
 
     <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/deterministic.jpg"
@@ -503,11 +479,7 @@ the trainer callbacks should there be two or more of the same type.
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/check_val_every_n_epoch.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/check_val_every_n_epoch.mp4"></video>
+.. youtube:: 2MJGwcXDBb4
 
 |
 
@@ -593,11 +565,7 @@ Deprecated: This has been renamed ``accelerator``.
 fast_dev_run
 ^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
+.. youtube:: GrsUSONYShA
 
 |
 
