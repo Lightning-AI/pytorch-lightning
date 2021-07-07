@@ -57,33 +57,26 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        # setup local counter
-        restart_counter = 0
+        # split restart logic to avoid user with tempering with "fast-forwarding"
 
-        # iteration over wrapped sampler
-        for batch in self._sampler:
+        if not self.restarting:
+            for batch in self._sampler:
+                self._current_iteration += 1
+                yield batch
 
-            # if we are restarting, we will fastforward the batches
-            if self.restarting:
+        else:
+            for i, batch in enumerate(self._sampler, 1):
 
-                # the state dict is cached until workers are made available through the DataLoader
                 if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
 
                     # reload the current state dict
                     self.load_state_dict(self._cached_state_dict, workers_initialized=True)
                     self._cached_state_dict = None
 
-                # increment counter
-                restart_counter += 1
-
-                # if restart counter matches the current iteration, we should stop restarting
-                if restart_counter == self._current_iteration:
-                    self.restarting = False
-            else:
-                self._current_iteration += 1
-
-                # yield the batch
-                yield batch
+                # when the current index is higher than the current_iteration, we have "fast forwarded" the sampler.
+                if self._current_iteration < i:
+                    self._current_iteration += 1
+                    yield batch
 
         self._current_iteration = 0
 
