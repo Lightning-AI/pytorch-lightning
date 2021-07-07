@@ -233,7 +233,7 @@ class RangeIterableDataset(IterableDataset):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize("num_workers", [0])
 @RunIf(min_torch="1.6.0")
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
@@ -259,6 +259,8 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
         _state_dict = CaptureIterableDataset.convert_batch_into_state_dict(batch)
         for k, v in _state_dict.items():
             state_dict[k].update(v)
+
+    breakpoint()
 
     assert len(state_dict["iter_sampler"]) == (num_workers if num_workers > 1 else 1)
 
@@ -297,9 +299,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
     batch_size = 4
 
     dataset = range(30)
-    sampler = FastForwardSampler(
-        DistributedSampler(dataset, num_replicas=worldsize, rank=rank, drop_last=True, seed=initial_seed)
-    )
+    sampler = FastForwardSampler(DistributedSampler(dataset, num_replicas=worldsize, rank=rank, seed=initial_seed))
     sampler.setup(batch_size)
     dataloader = DataLoader(
         dataset, batch_size=batch_size, num_workers=num_workers, generator=generator, sampler=sampler
@@ -324,9 +324,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
     reload_state_dict = sampler.state_dict(num_yielded - 1)
     assert reload_state_dict[0]["current_iteration"] == 12
 
-    sampler = FastForwardSampler(
-        DistributedSampler(dataset, num_replicas=worldsize, rank=rank, drop_last=True, seed=initial_seed)
-    )
+    sampler = FastForwardSampler(DistributedSampler(dataset, num_replicas=worldsize, rank=rank, seed=initial_seed))
     sampler.setup(batch_size)
     sampler.load_state_dict(reload_state_dict)
     dataloader = DataLoader(

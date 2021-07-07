@@ -155,17 +155,27 @@ class CaptureIterableDataset(IterableDataset):
         samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
 
         # create a dictionary of generator present within the dataset attributes
-        dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, Generator)}
+        dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, (Generator, Iterator))}
 
         # iterate over the generator. If a generator was created from a ``Sampler```,
         # it will be wrapped into a ``FastForwardSampler``.
         for (generator_attr_name, generator) in dataset_sampler_generators.items():
 
-            # Generator name have the  the form `SamplerName.__iter__`
-            generator_name = generator.__qualname__.split('.')[0]
+            if isinstance(generator, Sampler):
+                continue
+
+            # used to handle a weird behaviour from PyTorch 1.6
+            # where the sampler is converted to a list_iterator
+            is_legacy = False
+
+            if isinstance(generator, Generator):
+                # Generator name have the  the form `SamplerName.__iter__`
+                generator_name = generator.__qualname__.split('.')[0]
+            else:
+                is_legacy = True
 
             # validate the base generator name matches a sampler name.
-            if any(sampler_name == generator_name for sampler_name in samplers_names):
+            if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a ``FastForwardSampler``
                 sampler = FastForwardSampler(generator)
