@@ -21,10 +21,13 @@ from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
 class FastForwardSampler(Sampler):
     """
-    This class is used to wrap a :class:`torch.utils.data.Sampler` and record the number
-    of iteration performed during an epoch.
-    On reload, if a ``state_dict`` is provided, this will be used to fast forward the wrapped samplers.
+    This FastForwardSampler wraps a :class:`torch.utils.data.Sampler` and records the number of iterations
+    performed during an epoch. It maintains a state through :meth:`state_dict` that can be reloaded through
+    :meth:`load_state_dict`. If the sampler is used in a multiprocessing context, the FastForwardSampler will record
+    the state of the current worker.
 
+    When reloading, the FastForwardSampler will `fast-forward` the wrapped sampler by iterating through all the
+    samples seen in the last iterations (for the current worker).
     """
 
     def __init__(self, sampler: Union[Sampler, BatchSampler, Generator]) -> None:
