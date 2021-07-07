@@ -29,7 +29,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything
-from pytorch_lightning.utilities.auto_restart import CaptureIterativeDataset, FastForwardSampler
+from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -165,7 +165,7 @@ class RangeIterativeDataset(IterableDataset):
 @RunIf(min_torch="1.5.0")
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
-    This test ensures ``FastForwardSampler`` and ``CaptureIterativeDataset`` are properly being
+    This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
     used to capture workers states.
     """
     batch_size = 3
@@ -173,7 +173,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator = torch.Generator()
     generator.manual_seed(initial_seed)
     dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True)
-    dataset = CaptureIterativeDataset(dataset, num_workers)
+    dataset = CaptureIterableDataset(dataset, num_workers)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
     batches = []
@@ -209,7 +209,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     state_dict = {'iter_sampler': {}}
     for batch in batches[:2]:
-        _state_dict = CaptureIterativeDataset.convert_batch_into_state_dict(batch)
+        _state_dict = CaptureIterableDataset.convert_batch_into_state_dict(batch)
         for k, v in _state_dict.items():
             state_dict[k].update(v)
 
@@ -218,7 +218,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     initial_seed = seed_everything(42)
     generator.manual_seed(initial_seed)
     dataset = RangeIterativeDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
-    dataset = CaptureIterativeDataset(dataset)
+    dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     iter_dataloader = iter(dataloader)
@@ -481,7 +481,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         debugging=True,
         shuffle=True,
     )
-    dataset = CaptureIterativeDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
 
     epoch_results = []
@@ -523,7 +523,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     # restarting on epoch 0 / real batch 2
     state_dict = {'iter_sampler': {}}
     for batch in epoch_results[0][2:4]:
-        metadata = CaptureIterativeDataset.convert_batch_into_state_dict(batch)
+        metadata = CaptureIterableDataset.convert_batch_into_state_dict(batch)
         for k, v in metadata.items():
             state_dict[k].update(v)
 
@@ -540,7 +540,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         shuffle=True,
     )
 
-    dataset = CaptureIterativeDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
 

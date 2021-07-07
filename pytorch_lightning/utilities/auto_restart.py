@@ -198,7 +198,7 @@ class CaptureIterableDataset(IterableDataset):
         self._wrap_generator_samplers()
         return self
 
-    def __next__(self):
+    def __next__(self) -> Dict[str, Any]:
         # fetch next data
         data = next(self.iter_data)
 
