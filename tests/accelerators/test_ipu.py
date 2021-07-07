@@ -502,7 +502,7 @@ def test_accelerator_ipu():
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `ipus` to `Trainer`"
+        MisconfigurationException, match="You passed `accelerator='ipu'`, but you didn't pass `ipus` to `Trainer`"
     ):
         trainer = Trainer(accelerator="ipu")
 
