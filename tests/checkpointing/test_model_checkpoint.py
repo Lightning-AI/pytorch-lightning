@@ -590,7 +590,7 @@ def test_invalid_trigger_combination(tmpdir):
 def test_none_every_n_train_steps_val_epochs(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
     assert checkpoint_callback.period == 1
-    assert checkpoint_callback._every_n_val_epochs == 1
+    assert checkpoint_callback._every_n_epochs == 1
     assert checkpoint_callback._every_n_train_steps == 0
 
 
