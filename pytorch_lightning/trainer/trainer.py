@@ -17,7 +17,7 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -61,11 +61,13 @@ from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgres
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    device_parser,
     DeviceType,
     parsing,
     rank_zero_deprecation,
@@ -324,6 +326,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
+        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -332,8 +335,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, ipus, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
-            benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, tpu_cores, ipus, distributed_backend, gpus, gpu_ids, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -1160,6 +1163,18 @@ class Trainer(
             self.lightning_module._current_fx_name = prev_fx_name
 
         return output
+
+    def _parse_devices(
+        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
+                                                                                                            str, int]]
+    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+        if auto_select_gpus and isinstance(gpus, int):
+            gpus = pick_multiple_gpus(gpus)
+
+        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
+        gpu_ids = device_parser.parse_gpu_ids(gpus)
+        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        return gpu_ids, tpu_cores
 
     @staticmethod
     def _log_api_event(event: str) -> None:
