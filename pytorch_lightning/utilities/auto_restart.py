@@ -52,19 +52,15 @@ class FastForwardSampler(Sampler):
 
     @property
     def drop_last(self) -> bool:
-        return self._sampler.drop_last
+        return self.sampler.drop_last
 
     @property
     def batch_size(self) -> int:
-        return self._sampler.batch_size
-
-    @property
-    def sampler(self) -> Sampler:
-        return self._sampler
+        return self.sampler.batch_size
 
     @property
     def batch_indices(self) -> Optional[List[int]]:
-        return self._sampler.batch_indices
+        return self.sampler.batch_indices
 
     def __iter__(self) -> Iterator[List[int]]:
         # setup local counter
@@ -102,18 +98,6 @@ class FastForwardSampler(Sampler):
 
     def __len__(self) -> int:
         return len(self.sampler)
-
-    @property
-    def drop_last(self) -> bool:
-        return self.sampler.drop_last
-
-    @property
-    def batch_size(self) -> int:
-        return self.sampler.batch_size
-
-    @property
-    def batch_indices(self) -> Optional[List[int]]:
-        return self.sampler.batch_indices
 
     def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
         """
