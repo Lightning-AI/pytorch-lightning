@@ -144,6 +144,7 @@ class CaptureIterableDataset(IterableDataset):
     """
 
     def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None):
+        super().__init__()
         self.dataset = dataset
         self.state_dict: Optional[Dict[int, Any]] = None
         self.initial_seed = initial_seed
