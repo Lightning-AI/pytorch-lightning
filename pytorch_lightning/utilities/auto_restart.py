@@ -102,7 +102,7 @@ class FastForwardSampler(Sampler):
     def _compute_current_iteration(self, number_batch_processed: Optional[int] = None) -> int:
         """
         This function is used to compute the effective iteration.
-        As DataLoader can perform ``prefecthing`` or training can fail while processing a batch,
+        As DataLoader can perform ``prefetching`` or training can fail while processing a batch,
         the current iteration needs to be computed using the ``number_batch_processed`` processed information.
         """
         if number_batch_processed is not None:
