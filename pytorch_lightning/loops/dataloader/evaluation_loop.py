@@ -73,6 +73,8 @@ class EvaluationLoop(DataLoaderLoop):
     def connect(self, epoch_loop: EvaluationEpochLoop):
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
+        if self.trainer is not None:
+            self.epoch_loop.trainer = self.trainer
 
     # def connect(
     #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any

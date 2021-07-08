@@ -79,8 +79,9 @@ class TrainingEpochLoop(loops.Loop):
         """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         self.batch_loop = batch_loop
         self.val_loop = val_loop
-        # if self.trainer is not None:
-        #     self.batch_loop.connect()
+        if self.trainer is not None:
+            self.batch_loop.trainer = self.trainer
+            self.val_loop.trainer = self.trainer
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

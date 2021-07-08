@@ -82,6 +82,8 @@ class PredictionLoop(DataLoaderLoop):
 
     def connect(self, epoch_loop: PredictionEpochLoop):
         self.epoch_loop = epoch_loop
+        if self.trainer is not None:
+            self.epoch_loop.trainer = self.trainer
 
     # def connect(
     #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any

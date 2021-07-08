@@ -169,6 +169,8 @@ class FitLoop(Loop):
     def connect(self, epoch_loop: TrainingEpochLoop):
         """Connects a training epoch loop to this fit loop."""
         self.epoch_loop = epoch_loop
+        if self.trainer is not None:
+            self.epoch_loop.trainer = self.trainer
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
