@@ -28,6 +28,8 @@ PATH_IPYNB = os.path.join(PATH_HERE, 'notebooks')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, '.actions'))
 
+# if you run into an import error here, try to execute this command:
+# git submodule update --init --recursive
 from helpers import HelperCLI  # noqa: E401 E402
 
 FOLDER_GENERATED = 'generated'
