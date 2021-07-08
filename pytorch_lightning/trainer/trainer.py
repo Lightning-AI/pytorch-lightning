@@ -365,8 +365,8 @@ class Trainer(
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
-        validation_epoch_loop = EvaluationLoop()
-        training_epoch_loop.link(batch_loop=training_batch_loop, val_loop=validation_epoch_loop)
+        training_validation_loop = EvaluationLoop()
+        training_epoch_loop.link(batch_loop=training_batch_loop, val_loop=training_validation_loop)
         fit_loop.link(epoch_loop=training_epoch_loop)
 
         # default .fit() loop
