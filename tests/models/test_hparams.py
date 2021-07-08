@@ -31,7 +31,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
-from pytorch_lightning.utilities.hparams_mixin import merge_hparams
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
@@ -803,30 +803,17 @@ def test_no_datamodule_for_hparams(tmpdir):
 
     mock_logger = _get_mock_logger(tmpdir)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
-    trainer.fit(model, data.train_dataloader())
+    trainer.fit(model, datamodule=data)
 
     # Merged hparams were logged
     mock_logger.log_hyperparams.assert_called_with(org_model_hparams)
 
 
-def test_merging_hparams(tmpdir):
-    model_hparams = {'arg1': 'abc', 'arg2': 'abc'}
-    data_hparams = {'data_dir': 'foo'}
-    merged_hparams = merge_hparams(model_hparams, data_hparams)
+def test_colliding_hparams(tmpdir):
 
-    # Merged hparams contain all keys
-    assert all(key in merged_hparams for key in model_hparams.keys())
-    assert all(key in merged_hparams for key in data_hparams.keys())
+    model = SaveHparamsModel({'data_dir': 'abc', 'arg2': 'abc'})
+    data = DataModuleWithHparams({'data_dir': 'foo'})
 
-    # Original dicts are not modified
-    assert not any(key in model_hparams for key in data_hparams.keys())
-    assert not any(key in data_hparams for key in model_hparams.keys())
-
-
-def test_colliding_datamodule_hparams(tmpdir):
-    """Test that colliding hparams from the datamodule are caught."""
-    model_hparams = {'data_dir': 'abc', 'arg2': 'abc'}
-    data_hparams = {'data_dir': 'foo'}
-
-    with pytest.raises(ValueError):
-        merge_hparams(model_hparams, data_hparams)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    with pytest.raises(MisconfigurationException, match=r'Error while merging hparams:'):
+        trainer.fit(model, datamodule=data)

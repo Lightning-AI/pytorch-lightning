@@ -156,25 +156,3 @@ class HyperparametersMixin:
             return "hparams"
 
         return None
-
-
-def merge_hparams(lightning_hparams: dict, data_hparams: dict) -> dict:
-    """Merge the hparams of a LightningModule and a LightningDataModule and return them.
-
-    If there is an overlap between the hparams in the LightningModule and in the
-    LightningDataModule an exception is raised.
-
-    Args:
-        lightning_hparams: the hyperparameters of a LightningModule
-        data_hparams: the hyperparameters of a LightningDataModule
-    """
-    colliding_keys = [key for key in data_hparams.keys() if key in lightning_hparams]
-    if colliding_keys:
-        raise ValueError(
-            f'Error while merging hparams: the keys {colliding_keys} are present '
-            f'in both the LightningModules and LightningDataModules hparams.'
-        )
-    merged_hparams = copy.deepcopy(lightning_hparams)
-    merged_hparams.update(data_hparams)
-
-    return merged_hparams

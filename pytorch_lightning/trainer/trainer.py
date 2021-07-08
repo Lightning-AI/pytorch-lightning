@@ -77,7 +77,6 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.hparams_mixin import merge_hparams
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -911,7 +910,15 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
             datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
-            hparams_initial = merge_hparams(self.lightning_module.hparams_initial, datamodule_hparams)
+            lightning_hparams = self.lightning_module.hparams_initial
+            colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
+            if colliding_keys:
+                raise MisconfigurationException(
+                    f"Error while merging hparams: the keys {colliding_keys} are present "
+                    "in both the LightningModule's and LightningDataModule's hparams."
+                )
+
+            hparams_initial = {**lightning_hparams, **datamodule_hparams}
 
             self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
