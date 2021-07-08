@@ -16,9 +16,8 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
 
-ARG CUDA_VERSION=11.1
 
-FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+FROM ubuntu:20.04
 #FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
@@ -30,7 +29,6 @@ ENV \
     PATH="$PATH:/root/.local/bin" \
     DEBIAN_FRONTEND=noninteractive \
     TZ=Europe/Prague \
-    PATH="$PATH:/root/.local/bin" \
     # CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU
 
@@ -80,14 +78,12 @@ COPY environment.yml environment.yml
 ARG PYTORCH_VERSION=1.6
 
 # conda init
-RUN conda create -y --name $CONDA_ENV cudatoolkit=${CUDA_VERSION} python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit cudnn nccl nvcc_linux-64 pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- python[>=]+[\d\.]+', '# - python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- horovod[>=]+[\d\.]+', '# - horovod', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
     conda env update --name $CONDA_ENV --file environment.yml && \
     conda clean -ya && \
@@ -101,10 +97,12 @@ ENV \
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
+COPY ./.github/prune-packages.py requirements_prune_packages.py
 COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
 
 RUN \
     pip list | grep torch && \
+    python requirements_prune_packages.py requirements-extra.txt "horovod" && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
     # Install remaining requirements
@@ -113,18 +111,20 @@ RUN \
     rm requirements*
 
 RUN \
+    CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
     # install DALI, needed for examples
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION_MAJOR}0
 
-RUN \
-    # install NVIDIA apex
-    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
+#RUN \
+#    # install NVIDIA apex
+#    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
+#    pip install --no-cache-dir --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
 
 RUN \
     # Show what we have
     pip --version && \
     conda info && \
     pip list && \
-    python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
+    python -c 'from nvidia.dali.pipeline import Pipeline' && \
+    python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "from torch import __version__ as ver; assert '.'.join(ver.split('.')[:2]) == '$PYTORCH_VERSION', ver"

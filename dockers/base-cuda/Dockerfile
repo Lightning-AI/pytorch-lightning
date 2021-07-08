@@ -123,5 +123,5 @@ RUN \
     pip --version && \
     pip list && \
     python -c 'from nvidia.dali.pipeline import Pipeline' && \
-    python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
+    python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"
