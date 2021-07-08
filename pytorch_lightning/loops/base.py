@@ -93,7 +93,7 @@ class Loop(ABC):
             # when assigning a Trainer to a loop, it will assign to its children too.
             object.__setattr__(self, name, value)
             for loop in self._loops.values():
-                object.__setattr__(loop, name, value)
+                loop.__setattr__(name, value)
         elif isinstance(value, Loop):
             if name == "_Loop__parent_loop":
                 object.__setattr__(self, name, value)

@@ -233,3 +233,12 @@ def test_loop_hierarchy():
     assert loop_child._Loop__parent_loop is None
     state_dict = loop_parent.get_state_dict()
     assert state_dict == OrderedDict([('state_dict', {'a': 1}), ('progress', {'increment': 2})])
+
+    grand_loop_parent = Simple(0)
+    loop_parent = Simple(1)
+    loop_child = Simple(2)
+    grand_loop_parent.loop_child = loop_parent
+    loop_parent.loop_child = loop_child
+
+    grand_loop_parent.trainer = Trainer()
+    assert loop_child.trainer is not None
