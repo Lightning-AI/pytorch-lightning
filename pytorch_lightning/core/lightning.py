@@ -91,8 +91,6 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self._loaded_optimizer_states_dict = {}
-
         # pointer to the trainer object
         self.trainer = None
 
@@ -109,14 +107,19 @@ class LightningModule(
         self._example_input_array = None
         self._datamodule = None
         self._current_fx_name: Optional[str] = None
-        self._running_manual_backward: bool = False
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
         self._metric_attributes: Optional[Dict[int, str]] = None
 
-    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
+        # deprecated, will be removed in 1.6
+        self._loaded_optimizer_states_dict = {}
+
+    def optimizers(
+        self,
+        use_pl_optimizer: bool = True
+    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
         """
         Returns the optimizer(s) that are being used during training. Useful for manual optimization.
 
@@ -134,7 +137,7 @@ class LightningModule(
             opts = self.trainer.optimizers
 
         # single optimizer
-        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
+        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], (Optimizer, LightningOptimizer)):
             return opts[0]
         # multiple opts
         return opts
@@ -1418,7 +1421,7 @@ class LightningModule(
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
-    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, *args, **kwargs) -> None:
         """
         Call this directly from your :meth:`training_step` when doing optimizations manually.
         By using this, Lightning can ensure that all the proper scaling gets applied when using mixed precision.
@@ -1437,24 +1440,18 @@ class LightningModule(
 
         Args:
             loss: The tensor on which to compute gradients. Must have a graph attached.
-            optimizer: This argument is unused and deprecated. It will be removed in v1.4.
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        if optimizer is not None:
-            rank_zero_deprecation(
-                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
-            )
-
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
-        self._running_manual_backward = True
-        self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
-        self._running_manual_backward = False
+        self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, None, None, *args, **kwargs)
 
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+    def backward(
+        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
+    ) -> None:
         """
         Called to perform backward on the loss returned in :meth:`training_step`.
         Override this hook with your own implementation if you need to.
@@ -1462,16 +1459,15 @@ class LightningModule(
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
                 holds the normalized value (scaled by 1 / accumulation steps).
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
 
         Example::
 
             def backward(self, loss, optimizer, optimizer_idx):
                 loss.backward()
         """
-        if self.automatic_optimization or self._running_manual_backward:
-            loss.backward(*args, **kwargs)
+        loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

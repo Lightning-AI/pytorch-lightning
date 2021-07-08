@@ -41,27 +41,19 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        deepspeed_engine = pl_module.trainer.model
         # DeepSpeed not support closures.
         lambda_closure()
-
-        if not pl_module.automatic_optimization:
-            pl_module.trainer.call_hook("on_after_backward")
-
+        deepspeed_engine = pl_module.trainer.model
         deepspeed_engine.step()
-
         return False
 
     def backward(
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> Tensor:
+    ) -> None:
         if is_overridden('backward', model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
@@ -74,9 +66,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         model.trainer.call_hook("on_before_backward", closure_loss)
 
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
-        return closure_loss
 
     def clip_gradients(
         self,

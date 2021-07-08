@@ -37,36 +37,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 
-    def backward(
+    def pre_backward(
         self,
         model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
     ) -> torch.Tensor:
-        """performs the actual backpropagation
-
-        Args:
-            model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
-        """
-        closure_loss = self.scaler.scale(closure_loss)
-
-        # call `on_before_backward` hook
-        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
-
-        # unscale gradient to allow analyze within `on_after_backward`
-        if not should_accumulate and model.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-
-        return closure_loss
+        return self.scaler.scale(closure_loss)
 
     def pre_optimizer_step(
         self,
@@ -76,27 +52,21 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        """always called before the optimizer step.
-        Checks that the optimizer is not LBFGS, as this one is not supported by native amp
-        """
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-
-        if not pl_module.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-            pl_module.trainer.call_hook("on_after_backward")
-            self.scaler.step(optimizer)
-            self.scaler.update()
-        else:
+        # TODO: Add `on_before_optimizer_step`
+        # self.scaler.unscale_(optimizer)
+        # pl_module.trainer.call_hook("on_before_optimizer_step")
+        if pl_module.automatic_optimization:
             result = lambda_closure()
-            # lambda_closure returning None indicates that backward has been skipped
-            if result is not None:
-                self.scaler.step(optimizer)
-                self.scaler.update()
-
+            if result is None:
+                # lambda_closure returning None indicates that backward has been skipped
+                return False
+        self.scaler.step(optimizer)
+        self.scaler.update()
         return False
 
     @contextmanager

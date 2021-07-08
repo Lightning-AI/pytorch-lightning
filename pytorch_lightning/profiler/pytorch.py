@@ -116,11 +116,11 @@ class ScheduleWrapper:
         self._current_action = current_action
 
     def reset(self):
-        self._num_training_step_and_backward = 0
+        self._num_optimizer_step_and_closure = 0
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
-        self._training_step_and_backward_reached_end = False
+        self._optimizer_step_and_closure_reached_end = False
         self._validation_step_reached_end = False
         self._test_step_reached_end = False
         self._predict_step_reached_end = False
@@ -130,8 +130,8 @@ class ScheduleWrapper:
 
     @property
     def num_step(self) -> int:
-        if self._current_action == "training_step_and_backward":
-            return self._num_training_step_and_backward
+        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            return self._num_optimizer_step_and_closure
         if self._current_action == "validation_step":
             return self._num_validation_step
         if self._current_action == "test_step":
@@ -141,11 +141,11 @@ class ScheduleWrapper:
         return 0
 
     def _step(self) -> None:
-        if self._current_action == "training_step_and_backward":
-            self._num_training_step_and_backward += 1
+        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            self._num_optimizer_step_and_closure += 1
         elif self._current_action == "validation_step":
             if self._start_action_name == "on_fit_start":
-                if self._num_training_step_and_backward > 0:
+                if self._num_optimizer_step_and_closure > 0:
                     self._num_validation_step += 1
             else:
                 self._num_validation_step += 1
@@ -156,8 +156,8 @@ class ScheduleWrapper:
 
     @property
     def has_finished(self) -> bool:
-        if self._current_action == "training_step_and_backward":
-            return self._training_step_and_backward_reached_end
+        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            return self._optimizer_step_and_closure_reached_end
         if self._current_action == "validation_step":
             return self._validation_step_reached_end
         if self._current_action == "test_step":
@@ -174,8 +174,8 @@ class ScheduleWrapper:
         self._step()
         action = self._schedule(self.num_step)
         if action == ProfilerAction.RECORD_AND_SAVE:
-            if self._current_action == "training_step_and_backward":
-                self._training_step_and_backward_reached_end = True
+            if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+                self._optimizer_step_and_closure_reached_end = True
             elif self._current_action == "validation_step":
                 self._validation_step_reached_end = True
             elif self._current_action == "test_step":
@@ -195,12 +195,13 @@ class PyTorchProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
+    RECORD_FUNCTION_PREFIX = "optimizer_step_and_closure_"
     STEP_FUNCTIONS = {
-        "training_step_and_backward",
         "validation_step",
         "test_step",
         "predict_step",
     }
+    STEP_FUNCTION_PREFIX = "optimizer_step_and_closure_"
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -404,7 +405,8 @@ class PyTorchProfiler(BaseProfiler):
                 self._register.__enter__()
 
         if (
-            self.profiler is not None and action_name in self._record_functions
+            self.profiler is not None
+            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
             and action_name not in self._recording_map
         ):
             recording = record_function(action_name)
@@ -419,7 +421,8 @@ class PyTorchProfiler(BaseProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
-        if self.profiler is not None and action_name in self.STEP_FUNCTIONS:
+        if self.profiler is not None \
+                and (action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)):
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
