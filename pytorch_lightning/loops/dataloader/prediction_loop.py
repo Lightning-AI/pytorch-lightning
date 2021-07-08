@@ -20,7 +20,6 @@ class PredictionLoop(DataLoaderLoop):
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
         self.progress = EpochLoopProgress()
-
         self.epoch_loop = PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
@@ -76,10 +75,13 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
+    def link(self, epoch_loop: PredictionEpochLoop):
+        self.epoch_loop = epoch_loop
+
     def connect(
         self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
     ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
+        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         super().connect(trainer, *args, **kwargs)
         if progress is not None:
             self.progress = progress

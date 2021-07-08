@@ -28,7 +28,7 @@ class PredictionEpochLoop(Loop):
     def connect(
         self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
     ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
+        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         super().connect(trainer, *args, **kwargs)
         if progress is not None:
             self.progress = progress

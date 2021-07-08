@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.loops import FitLoop, TrainingEpochLoop, EvaluationLoop, TrainingBatchLoop
+from pytorch_lightning.trainer.progress import FitLoopProgress
 
 
 class RandomDataset(Dataset):
@@ -51,6 +53,7 @@ def run():
     test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
+
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         limit_train_batches=1,
@@ -59,6 +62,20 @@ def run():
         max_epochs=1,
         weights_summary=None,
     )
+
+    # construct loops
+    fit_loop = FitLoop()
+    train_epoch_loop = TrainingEpochLoop(min_steps=0, max_steps=2)
+    train_batch_loop = TrainingBatchLoop()
+    val_loop = EvaluationLoop()
+
+    # link loops
+    train_epoch_loop.link(batch_loop=train_batch_loop, val_loop=val_loop)
+    fit_loop.link(epoch_loop=train_epoch_loop)
+
+    # connect fit loop to trainer
+    trainer.fit_loop = fit_loop
+
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)
 

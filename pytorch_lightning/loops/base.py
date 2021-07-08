@@ -58,8 +58,12 @@ class Loop(ABC):
         """Determine whether to return immediately from the call to :meth:`run`."""
         return False
 
+    def link(self, **kwargs: "Loop"):
+        """Optionally link one or multiple loops to this one. Linked loops should form a tree."""
+        raise NotImplementedError(f"{self.__class__.__name__} does link any child loops.")
+
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects Loop with all the necessary things like connectors and accelerators."""
+        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         # TODO(@justusschock): Make the trainer a weakref/proxy
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(

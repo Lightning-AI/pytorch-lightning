@@ -69,19 +69,20 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
+    def link(self, batch_loop, val_loop):
+        """Links a batch loop and a validation loop to this training epoch loop."""
+        self.batch_loop = batch_loop
+        self.val_loop = val_loop
+
     def connect(
         self,
         trainer: 'pl.Trainer',
-        batch_loop,
-        val_loop,
         *args: Any,
         progress: Optional[TrainingEpochProgress] = None,
         **kwargs: Any
     ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
+        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         super().connect(trainer, *args, **kwargs)
-        self.batch_loop = batch_loop  # or TrainingBatchLoop()
-        self.val_loop = val_loop  # or loops.EvaluationLoop()
         if progress is not None:
             self.progress = progress
         self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)

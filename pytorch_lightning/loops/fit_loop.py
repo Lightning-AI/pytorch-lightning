@@ -161,19 +161,21 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
+    def link(self, epoch_loop: TrainingEpochLoop):
+        """Links a training epoch loop to this fit loop."""
+        self.epoch_loop = epoch_loop
+
     def connect(
         self,
         trainer: 'pl.Trainer',
-        epoch_loop,
         *args: Any,
         progress: Optional[FitLoopProgress] = None,
         **kwargs: Any,
     ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
+        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         super().connect(trainer, *args, **kwargs)
         if progress is not None:
             self.progress = progress
-        self.epoch_loop = epoch_loop
         self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     def reset(self) -> None:

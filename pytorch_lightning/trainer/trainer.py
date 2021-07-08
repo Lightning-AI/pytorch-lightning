@@ -359,33 +359,27 @@ class Trainer(
         self.tuner = Tuner(self)
 
         # .fit() loop
-        self.fit_loop = FitLoop(
+        fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
             max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
         validation_epoch_loop = EvaluationLoop()
+        training_epoch_loop.link(batch_loop=training_batch_loop, val_loop=validation_epoch_loop)
+        fit_loop.link(epoch_loop=training_epoch_loop)
 
-        training_epoch_loop.connect(trainer=self, batch_loop=training_batch_loop, val_loop=validation_epoch_loop)
-        training_batch_loop.connect(trainer=self)
-        validation_epoch_loop.connect(trainer=self)
-        self.fit_loop.connect(trainer=self, epoch_loop=training_epoch_loop, progress=FitLoopProgress())
+        # default .fit() loop
+        self.fit_loop = fit_loop
 
-        # .validate() loop
-        # TODO: connect progress
+        # default .validate() loop
         self.validate_loop = EvaluationLoop()
-        self.validate_loop.connect(trainer=self, progress=EpochLoopProgress())
 
-        # .test() loop
-        # TODO: connect progress
+        # default .test() loop
         self.test_loop = EvaluationLoop()
-        self.test_loop.connect(trainer=self, progress=EpochLoopProgress())
 
-        # .predict() loop
-        # TODO: connect progress
+        # default .predict() loop
         self.predict_loop = PredictionLoop()
-        self.predict_loop.connect(trainer=self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -458,6 +452,42 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def fit_loop(self):
+        return self._fit_loop
+
+    @fit_loop.setter
+    def fit_loop(self, loop: FitLoop):
+        self._fit_loop = loop
+        self._fit_loop.connect(self, progress=FitLoopProgress())
+
+    @property
+    def validate_loop(self):
+        return self._validate_loop
+
+    @validate_loop.setter
+    def validate_loop(self, loop: EvaluationLoop):
+        self._validate_loop = loop
+        self._validate_loop.connect(self, progress=EpochLoopProgress())
+
+    @property
+    def test_loop(self):
+        return self._test_loop
+
+    @test_loop.setter
+    def test_loop(self, loop: EvaluationLoop):
+        self._test_loop = loop
+        self._test_loop.connect(self, progress=EpochLoopProgress())
+
+    @property
+    def predict_loop(self):
+        return self._predict_loop
+
+    @predict_loop.setter
+    def predict_loop(self, loop: PredictionLoop):
+        self._predict_loop = loop
+        self._predict_loop.connect(self, progress=EpochLoopProgress())
 
     def _setup_on_init(
         self,
