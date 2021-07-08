@@ -117,10 +117,9 @@ class FitLoop(Loop):
         return self.epoch_loop.total_epoch_completed
 
     @property
-    def total_optimizer_step_completed(self) -> int:
+    def total_optimizer_step(self) -> int:
         """Returns the total number of optimizer step completed"""
-        breakpoint()
-        return self.progress.optim.optimizer.step.total.completed
+        return self.epoch_loop.total_optimizer_step
 
     @property
     def running_loss(self) -> TensorRunningAccum:
@@ -153,14 +152,14 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps is not None and self.total_optimizer_step_completed >= self.max_steps
+        stop_steps = self.max_steps is not None and self.total_optimizer_step >= self.max_steps
         stop_epochs = self.max_epochs is not None and self.total_epoch_completed >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
             met_min_epochs = self.total_epoch_completed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.total_optimizer_step_completed >= self.min_steps if self.min_steps else True
+            met_min_steps = self.total_optimizer_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 should_stop = True
             else:

@@ -60,6 +60,10 @@ class TrainingBatchLoop(Loop):
         self.is_restarting: bool = False
 
     @property
+    def total_optimizer_step(self) -> int:
+        return self.optim_progress.optimizer.step.total.completed
+
+    @property
     def current_batch_completed(self):
         return self.progress.current.completed
 

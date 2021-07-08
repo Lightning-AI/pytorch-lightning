@@ -291,11 +291,13 @@ class EvaluationLoop(DataLoaderLoop):
             yield batch_idx, batch
 
     def state_dict(self) -> Dict:
-        dataloader = self.dataloaders[self.progress.dataloader_idx]
-        return {"dataloader": dataloader_to_state_dict(dataloader, self.current_dataloader_iter)}
+        if self.dataloaders:
+            dataloader = self.dataloaders[self.progress.dataloader_idx]
+            return {"dataloader": dataloader_to_state_dict(dataloader, self.current_dataloader_iter)}
+        return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:
-        if self.dataloaders is None:
+        if self.dataloaders:
             self.reload_evaluation_dataloaders()
             dataloader = self.dataloaders[self.progress.dataloader_idx]
             dataloader_load_state_dict(dataloader, state_dict["dataloader"])
