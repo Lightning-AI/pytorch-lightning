@@ -287,7 +287,12 @@ class HookedModel(BoringModel):
         # `BoringModel` does not have a return for `test_step_end` so this would fail
         pass
 
-    def _train_batch(self, trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
+    def _train_batch(self, *args, **kwargs):
+        if self.automatic_optimization:
+            return self._auto_train_batch(*args, **kwargs)
+        return self._manual_train_batch(*args, **kwargs)
+
+    def _auto_train_batch(self, trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get('amp_backend') == 'native'
         using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
@@ -300,40 +305,53 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
+                # TODO: `on_before_optimizer_step`
                 dict(name='forward', args=(ANY, )),
-            ]
-            if not self.automatic_optimization:
-                expected += [
-                    dict(name='optimizers'),
-                    # DeepSpeed handles backward internally
-                    *([dict(name='backward', args=(ANY, None, None))] if not using_deepspeed else []),
-                    dict(name='Callback.on_after_backward', args=(trainer, model)),
-                    dict(name='on_after_backward'),
-                    # `manual_backward` calls the previous 3
-                    dict(name='manual_backward', args=(ANY, )),
-                ]
-            expected += [
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
+                dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
+                dict(name='on_before_zero_grad', args=(ANY, )),
+                dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
+                # TODO: `on_before_backward`
+                # DeepSpeed handles backward internally
+                *([dict(name='backward', args=(ANY, ANY, 0))] if not using_deepspeed else []),
+                dict(name='Callback.on_after_backward', args=(trainer, model)),
+                dict(name='on_after_backward'),
+                dict(
+                    name='optimizer_step',
+                    args=(current_epoch, i, ANY, 0, ANY),
+                    kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp)
+                ),
+                dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
+                dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
+                dict(name='Callback.on_batch_end', args=(trainer, model)),
             ]
-            if self.automatic_optimization:
-                expected += [
-                    dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
-                    dict(name='on_before_zero_grad', args=(ANY, )),
-                    dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
-                    # TODO: `on_before_backward`
-                    # DeepSpeed handles backward internally
-                    *([dict(name='backward', args=(ANY, ANY, 0))] if not using_deepspeed else []),
-                    dict(name='Callback.on_after_backward', args=(trainer, model)),
-                    dict(name='on_after_backward'),
-                    # TODO: `on_before_optimizer_step`
-                    dict(
-                        name='optimizer_step',
-                        args=(current_epoch, i, ANY, 0, ANY),
-                        kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp)
-                    )
-                ]
-            expected += [
+            out.extend(expected)
+        return out
+
+    def _manual_train_batch(self, trainer, model, batches, device=torch.device('cpu'), **kwargs):
+        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
+        out = []
+        for i in range(batches):
+            expected = [
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
+                # TODO: `on_batch_{start,end}`
+                dict(name='Callback.on_batch_start', args=(trainer, model)),
+                dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
+                dict(name='on_train_batch_start', args=(ANY, i, 0)),
+                dict(name='forward', args=(ANY, )),
+                dict(name='optimizers'),
+                # DeepSpeed handles backward internally
+                *([dict(name='backward', args=(ANY, None, None))] if not using_deepspeed else []),
+                dict(name='Callback.on_after_backward', args=(trainer, model)),
+                dict(name='on_after_backward'),
+                # `manual_backward` calls the previous 3
+                dict(name='manual_backward', args=(ANY, )),
+                # TODO: `on_before_optimizer_step`
+                dict(name='training_step', args=(ANY, i)),
+                dict(name='training_step_end', args=(dict(loss=ANY), )),
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
                 dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
                 dict(name='Callback.on_batch_end', args=(trainer, model)),
