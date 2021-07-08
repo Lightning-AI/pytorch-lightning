@@ -59,6 +59,7 @@ class TrainerProperties(ABC):
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
+    reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
@@ -292,6 +293,12 @@ class TrainerProperties(ABC):
                 f" in `LightingModule`.", UserWarning
             )
         return {**standard_metrics, **pbar_metrics}
+
+    @property
+    def _should_reload_dl_epoch(self) -> bool:
+        """ Check if dataloader should be reloaded in the current epoch. """
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and (not self.current_epoch % n_epochs)
 
     @property
     def disable_validation(self) -> bool:
