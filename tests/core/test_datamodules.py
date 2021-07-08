@@ -13,7 +13,7 @@
 # limitations under the License.
 import pickle
 from argparse import ArgumentParser
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from unittest import mock
 from unittest.mock import call, PropertyMock
 
@@ -558,21 +558,7 @@ class DataModuleWithHparams(LightningDataModule):
 
     def __init__(self, arg0, arg1, kwarg0=None):
         super().__init__()
-
-        self.arg0 = arg0
-        self.arg1 = arg1
-        self.kwarg0 = kwarg0
-
         self.save_hyperparameters()
-
-    def prepare_data(self, *args, **kwargs):
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-        pass
-
-    def train_dataloader(self, *args, **kwargs):
-        pass
 
 
 def test_simple_hyperparameters_saving():
