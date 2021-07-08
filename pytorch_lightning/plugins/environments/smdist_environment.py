@@ -50,6 +50,9 @@ class SMDistributedEnvironment(ClusterEnvironment):
     def world_size(self) -> int:
         return dist.get_world_size()
 
+    def set_world_size(self, size: int) -> None:
+        log.debug("SMDistributedEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+
     def local_rank(self) -> int:
         return dist.get_local_rank()
 
@@ -60,3 +63,8 @@ class SMDistributedEnvironment(ClusterEnvironment):
 
     def global_rank(self) -> int:
         return dist.get_rank()
+
+    def set_global_rank(self, rank: int) -> None:
+        log.debug(
+            "SMDistributedEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
+        )
