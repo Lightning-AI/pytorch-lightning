@@ -103,7 +103,6 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=10.2
           file: dockers/base-cuda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
@@ -135,13 +134,12 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
-  docker-nvidia:
+  docker-NVIDIA:
     runs-on: ubuntu-20.04
     # todo: temporarily skip as the base container does not fit to agent
     if: false
@@ -166,7 +164,7 @@ jobs:
           tags: nvcr.io/pytorchlightning/pytorch_lightning:nvidia
         timeout-minutes: 55
 
-  docker-ipu:
+  docker-IPU:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

@@ -68,6 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # todo: see notes in Dockerfile
           - python_version: 3.7
             pytorch_version: 1.6
           - python_version: 3.8
@@ -99,9 +100,9 @@ jobs:
           - python_version: 3.6
             pytorch_version: 1.6
           - python_version: 3.8
-            pytorch_version: 1.8
-          - python_version: 3.9
             pytorch_version: 1.9
+          - python_version: 3.9
+            pytorch_version: 1.10
     steps:
       - name: Checkout
         uses: actions/checkout@v2
