@@ -90,14 +90,14 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'pl.LightningModule',
+        model: 'pl.LightningModule',
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        pl_module.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
         # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
         lambda_closure()  # APEX amp does not support closures
         optimizer.step(**kwargs)
