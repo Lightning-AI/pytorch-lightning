@@ -170,10 +170,10 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
             # pass loaders as a nested dict. This will create batches like this:
             loaders = {
-                'loaders_a_b': {
-                    'a': loader_a,
-                    'b': loader_b
-                },
+                'loaders_a_b': [
+                    loader_a,
+                    loader_b
+                ],
                 'loaders_c_d': {
                     'c': loader_c,
                     'd': loader_d
@@ -186,8 +186,8 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_a_b = batch["loaders_a_b"]
             batch_c_d = batch["loaders_c_d"]
 
-            batch_a = batch_a_b["a"]
-            batch_b = batch_a_b["a"]
+            batch_a = batch_a_b[0]
+            batch_b = batch_a_b[1]
 
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
