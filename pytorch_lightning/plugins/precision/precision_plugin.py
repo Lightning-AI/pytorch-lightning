@@ -110,7 +110,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        self.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
