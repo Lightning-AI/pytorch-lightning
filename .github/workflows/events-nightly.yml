@@ -72,7 +72,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 55
 
@@ -106,7 +106,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-cuda/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
@@ -132,6 +132,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # see: https://pytorch.org/get-started/previous-versions/
+      - run: |
+          cuda=$(python -c "print(11.1 if float(${{matrix.pytorch_version}}) > 1.7 else 10.2)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
+
       - name: Publish Conda to Docker Hub
         # publish master/release
         uses: docker/build-push-action@v2
@@ -139,8 +145,9 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
@@ -165,7 +172,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: dockers/nvidia/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: nvcr.io/pytorchlightning/pytorch_lightning:nvidia
         timeout-minutes: 55
 
@@ -199,7 +206,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-ipu/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
@@ -211,6 +218,6 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ipu-ci-runner/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 55
