@@ -16,7 +16,7 @@ from typing import Optional
 
 
 @dataclass
-class _DataclassStateDictMixin:
+class BaseProgress:
 
     def state_dict(self) -> dict:
         return asdict(self)
@@ -25,14 +25,14 @@ class _DataclassStateDictMixin:
         self.__dict__.update(state_dict)
 
     @classmethod
-    def from_state_dict(cls, state_dict: dict) -> "_DataclassStateDictMixin":
+    def from_state_dict(cls, state_dict: dict) -> "BaseProgress":
         obj = cls()
         obj.load_state_dict(state_dict)
         return obj
 
 
 @dataclass
-class Tracker(_DataclassStateDictMixin):
+class Tracker(BaseProgress):
     """
     Track an event's progress.
 
@@ -72,7 +72,7 @@ class Tracker(_DataclassStateDictMixin):
 
 
 @dataclass
-class Progress(_DataclassStateDictMixin):
+class Progress(BaseProgress):
     """
     Track aggregated and current progress.
 
@@ -150,7 +150,7 @@ class EpochProgress(Progress):
 
 
 @dataclass
-class OptimizerProgress(_DataclassStateDictMixin):
+class OptimizerProgress(BaseProgress):
     """
     Track optimizer progress.
 
@@ -172,7 +172,7 @@ class OptimizerProgress(_DataclassStateDictMixin):
 
 
 @dataclass
-class OptimizationProgress(_DataclassStateDictMixin):
+class OptimizationProgress(BaseProgress):
     """
     Track optimization progress.
 
@@ -203,7 +203,7 @@ class OptimizationProgress(_DataclassStateDictMixin):
 
 
 @dataclass
-class EpochLoopProgress(_DataclassStateDictMixin):
+class EpochLoopProgress(BaseProgress):
     """
     Tracks epoch loop progress.
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.

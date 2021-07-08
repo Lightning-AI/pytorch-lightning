@@ -13,12 +13,17 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, OrderedDict
 
 from deprecate import void
 
 import pytorch_lightning as pl
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class Loop(ABC):
@@ -47,6 +52,40 @@ class Loop(ABC):
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
         self.restarting = False
+        self._loops = OrderedDict()
+        self._progress = OrderedDict()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if isinstance(value, Loop):
+            self._loops[name] = value
+        elif isinstance(value, BaseProgress):
+            self._progress[name] = value
+        else:
+            object.__setattr__(self, name, value)
+
+    def __getattr__(self, name) -> Any:
+        loops = self.__dict__.get('_loops')
+
+        if loops is not None and name in loops:
+            return loops[name]
+
+        progress = self.__dict__.get('_progress')
+
+        if progress is not None and name in progress:
+            return progress[name]
+
+        if name not in self.__dict__:
+            raise AttributeError(f"{self.__class__.__name__} Loop doesn't have attribute {name}.")
+
+        return self.__dict__[name]
+
+    def __delattr__(self, name) -> None:
+        if name in self._loops:
+            del self._loops[name]
+        elif name in self._progress:
+            del self._progress[name]
+        else:
+            object.__delattr__(self, name)
 
     @property
     @abstractmethod
@@ -89,6 +128,8 @@ class Loop(ABC):
             return self.on_skip()
 
         if self.restarting:
+            if not is_overridden("restore", self, Loop):
+                warning_cache.warn(f"{self.__class__.__name__} Loop doesn't override the restore function.")
             self.restore()
             self.restarting = False
         else:
@@ -108,7 +149,7 @@ class Loop(ABC):
         output = self.on_run_end()
         return output
 
-    def restore(self) -> None:
+    def restore(self, state: Optional[Dict] = None) -> None:
         """Restore the internal state of the loop the beginning of run if restarting is ``True``."""
 
     @abstractmethod
@@ -142,9 +183,46 @@ class Loop(ABC):
     def teardown(self) -> None:
         """Use to release memory etc."""
 
-    def load_state_dict(self, state_dict: Dict) -> None:
-        """Restore the loop state from the provided state_dict."""
-
     def state_dict(self) -> Dict:
-        """Return the loop current states."""
+        """Current Loop state"""
         return {}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        """Reload Loop state"""
+
+    def get_state_dict(self, destination: Optional[OrderedDict] = None, prefix: Optional[str] = '') -> OrderedDict:
+        if destination is None:
+            destination = OrderedDict()
+
+        destination[prefix + "state_dict"] = self.state_dict()
+
+        for name, progress in self._progress.items():
+            destination[prefix + name] = progress.state_dict()
+
+        for name, loop in self._loops.items():
+            loop.get_state_dict(destination, prefix + name + '.')
+        return destination
+
+    def _load_from_state_dict(self, state_dict, prefix, strict, missing_keys, unexpected_keys, error_msgs):
+        self.load_state_dict(state_dict[prefix + "state_dict"])
+
+        for name, progress in self._progress.items():
+            progress.load_state_dict(state_dict[prefix + name])
+
+    def _load_state_dict(self, state_dict: Dict, strict: bool = True):
+
+        missing_keys = []
+        unexpected_keys = []
+        error_msgs = []
+
+        state_dict = state_dict.copy()
+
+        def load(loop, prefix=''):
+            loop._load_from_state_dict(state_dict, prefix, True, missing_keys, unexpected_keys, error_msgs)
+            loop.restarting = True
+            for name, loop_children in loop._loops.items():
+                if loop_children is not None:
+                    load(loop_children, prefix + name + '.')
+
+        load(self)
+        load = None  # break load->load reference cycle
