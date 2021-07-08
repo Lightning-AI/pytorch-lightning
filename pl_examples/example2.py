@@ -1,23 +1,15 @@
+import os
 from collections import OrderedDict
-from typing import Any, Union, Dict, Optional, Iterator, Tuple
+from typing import Any, Dict, Iterator, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-
-from pytorch_lightning.loops import Loop
-from pytorch_lightning.trainer.connectors.logger_connector.result import (
-    ResultCollection,
-)
-
-import os
-
-import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
-
-
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 
 
 class SimpleLoop(Loop):
@@ -61,9 +53,7 @@ class SimpleLoop(Loop):
         self.iteration_count = 0
 
     def on_run_start(self) -> None:
-        self.train_dataloader = iter(
-            self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        )
+        self.train_dataloader = iter(self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader))
         self.trainer.call_hook("on_train_start")
 
     def advance(self) -> None:
@@ -77,9 +67,7 @@ class SimpleLoop(Loop):
         output = self._run_optimization(batch, self.iteration_count, optimizer)
 
         # hook
-        self.trainer.call_hook(
-            "on_train_batch_end", output, batch, self.iteration_count, dataloader_idx=0
-        )
+        self.trainer.call_hook("on_train_batch_end", output, batch, self.iteration_count, dataloader_idx=0)
         self.trainer.call_hook("on_batch_end")
 
     def on_run_end(self) -> None:
@@ -96,15 +84,11 @@ class SimpleLoop(Loop):
         training_step_output = self.trainer.accelerator.training_step(step_kwargs)
         self.trainer.accelerator.post_training_step()
 
-        training_step_output = self.trainer.call_hook(
-            "training_step_end", training_step_output
-        )
+        training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
         loss, extra = self._process_training_step_output(training_step_output)
 
         # backward pass (single optimizer, no accumulation supported)
-        self.trainer.accelerator.backward(
-            loss, optimizer, optimizer_idx=0, should_accumulate=False
-        )
+        self.trainer.accelerator.backward(loss, optimizer, optimizer_idx=0, should_accumulate=False)
 
         # optimizer step (no closures supported)
         lightning_module.optimizer_step(optimizer=optimizer)
@@ -114,9 +98,7 @@ class SimpleLoop(Loop):
         return output
 
     @staticmethod
-    def _process_training_step_output(
-        training_step_output: Union[Dict, Tensor]
-    ) -> Tuple[Tensor, Dict]:
+    def _process_training_step_output(training_step_output: Union[Dict, Tensor]) -> Tuple[Tensor, Dict]:
         loss = None
         extra = {}
 
