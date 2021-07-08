@@ -17,7 +17,6 @@ from typing import Any, Dict, Optional, Union
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed import SMLightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -191,7 +190,7 @@ class DDPSMPlugin(DDPPlugin):
     def lightning_module(self):
         return self.unwrap_lightning_module()
 
-    def unwrap_lightning_module(self) -> LightningModule:
+    def unwrap_lightning_module(self):
         model = self._model
         if isinstance(model, (DistributedDataParallel)):
             model = model.module
