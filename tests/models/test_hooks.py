@@ -292,7 +292,8 @@ class HookedModel(BoringModel):
             return self._auto_train_batch(*args, **kwargs)
         return self._manual_train_batch(*args, **kwargs)
 
-    def _auto_train_batch(self, trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
+    @staticmethod
+    def _auto_train_batch(trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
         using_native_amp = kwargs.get('amp_backend') == 'native'
         using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
@@ -328,7 +329,8 @@ class HookedModel(BoringModel):
             ])
         return out
 
-    def _manual_train_batch(self, trainer, model, batches, device=torch.device('cpu'), **kwargs):
+    @staticmethod
+    def _manual_train_batch(trainer, model, batches, device=torch.device('cpu'), **kwargs):
         using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
