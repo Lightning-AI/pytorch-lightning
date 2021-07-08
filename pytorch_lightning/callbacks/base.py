@@ -297,13 +297,13 @@ class Callback(abc.ABC):
         pass
 
     def on_after_backward(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
-        """Called after ``loss.backward()`` and before optimizers do anything."""
+        """Called after ``loss.backward()`` and before optimizers are stepped."""
         pass
 
     def on_before_optimizer_step(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', batch_idx: int, optimizer: Optimizer, opt_idx: int
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', optimizer: Optimizer, opt_idx: int
     ) -> None:
-        """Called after ``on_after_backward()`` once the gradient is accumulated and before ``optimizer.step()``."""
+        """Called before ``optimizer.step()``."""
         pass
 
     def on_before_zero_grad(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', optimizer: Optimizer) -> None:

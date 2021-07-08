@@ -544,7 +544,6 @@ class TrainingBatchLoop(Loop):
                 if result is not None:
                     with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
-                    self.on_after_backward(batch_idx, result.loss)
 
                     # when in dev debugging track the losses
                     self.trainer.dev_debugger.track_train_loss_history(batch_idx, result.loss)

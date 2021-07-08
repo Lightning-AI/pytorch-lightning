@@ -297,7 +297,7 @@ class ModelHooks:
 
     def on_after_backward(self) -> None:
         """
-        Called in the training loop after ``loss.backward()`` and before optimizers are stepped.
+        Called after ``loss.backward()`` and before optimizers are stepped.
 
         Note:
             If using native AMP, the gradients will not be unscaled at this point.
