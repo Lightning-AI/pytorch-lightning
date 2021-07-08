@@ -35,6 +35,10 @@ def test_loop_restore():
             super().__init__()
             self.dataset = dataset
 
+        @property
+        def skip(self) -> bool:
+            return False
+
         def restore(self) -> None:
             self.iter_dataset = iter(self.dataset)
             for _ in range(self.iteration_count):
@@ -64,8 +68,11 @@ def test_loop_restore():
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
 
+    trainer = Trainer()
+
     data = range(10)
     loop = Simple(data)
+    loop.trainer = trainer
     try:
         loop.run()
         state_dict = {}
@@ -73,6 +80,7 @@ def test_loop_restore():
         state_dict = loop.state_dict()
 
     loop = Simple(data)
+    loop.trainer = trainer
     loop.load_state_dict(state_dict)
     loop.restarting = True
     loop.run()
@@ -110,6 +118,10 @@ def test_loop_hierarchy():
             self.progress.increment += 1
 
         @property
+        def skip(self) -> bool:
+            return False
+
+        @property
         def done(self) -> bool:
             return self.iteration_count > 0
 
@@ -128,21 +140,28 @@ def test_loop_hierarchy():
     grand_loop_parent = Simple(0)
     loop_parent = Simple(1)
     loop_child = Simple(2)
-    loop_parent.loop_child = loop_child
-    assert loop_child._num_parents == 1
-    loop_parent.loop_child = loop_child
-    assert loop_child._num_parents == 1
 
-    with pytest.raises(MisconfigurationException, match="The Simple already contains the provided loop"):
+    assert not loop_child.has_parent
+    loop_parent.loop_child = loop_child
+
+    assert loop_child._Loop__parent_loop == loop_parent
+
+    assert loop_child.has_parent
+
+    with pytest.raises(MisconfigurationException, match="already has a parent"):
+        loop_parent.loop_child = loop_child
+
+    assert not loop_parent.skip
+
+    with pytest.raises(MisconfigurationException, match="already has a parent"):
         loop_parent.something = loop_child
 
     with pytest.raises(MisconfigurationException, match="Loop hasn't been attached to any Trainer."):
         grand_loop_parent.run()
 
-    grand_loop_parent.loop_child = loop_child
-    assert loop_child._num_parents == 2
-    del grand_loop_parent.loop_child
-    assert loop_child._num_parents == 1
+    with pytest.raises(MisconfigurationException, match="already has a parent"):
+        grand_loop_parent.loop_child = loop_child
+
     assert loop_child.has_parent
     assert loop_parent.has_children
 
@@ -210,6 +229,7 @@ def test_loop_hierarchy():
     assert loop_parent.loop_child.progress.increment == 1
 
     del loop_parent.loop_child
-    assert loop_child._num_parents == 0
+    assert not loop_child.has_parent
+    assert loop_child._Loop__parent_loop is None
     state_dict = loop_parent.get_state_dict()
     assert state_dict == OrderedDict([('state_dict', {'a': 1}), ('progress', {'increment': 2})])
