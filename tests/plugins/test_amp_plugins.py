@@ -76,7 +76,7 @@ class GradientUnscaleBoringModel(BoringModel):
         if self.trainer.fit_loop.should_accumulate():
             return
         opt = self.optimizers()
-        self.trainer.accelerator.precision_plugin.scaler.unscale_(opt)
+        self.trainer.precision_plugin.scaler.unscale_(opt)
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
