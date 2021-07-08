@@ -904,14 +904,15 @@ class Trainer(
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
+        self._log_hyperparams()
 
+    def _log_hyperparams(self):
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            hparams_initial = merge_hparams(
-                self.lightning_module.hparams_initial,
-                {} if self.datamodule is None else self.datamodule.hparams_initial,
-            )
+            datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
+            hparams_initial = merge_hparams(self.lightning_module.hparams_initial, datamodule_hparams)
+
             self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()

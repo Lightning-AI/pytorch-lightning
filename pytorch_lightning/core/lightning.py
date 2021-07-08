@@ -31,7 +31,6 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -1959,27 +1958,6 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
-
-    def add_datamodule_hparams(self, datamodule: LightningDataModule):
-        """Add the hparams of a LightningDataModule to the hparams and hparams_initial of this module."""
-        if not hasattr(datamodule, 'hparams'):
-            return
-
-        hparams = self._to_hparams_dict(datamodule.hparams)
-        if not hasattr(self, '_hparams'):
-            self._hparams = hparams
-            self._hparams_initial = hparams
-        else:
-            colliding_keys = [key for key in hparams.keys() if key in self.hparams]
-            colliding_keys += [key for key in hparams.keys() if key in self.hparams_initial]
-            colliding_keys = set(colliding_keys)
-            if colliding_keys:
-                raise ValueError(
-                    f'Error while adding datamodule hparams: the keys {colliding_keys} '
-                    f'are already present in the model hparams.'
-                )
-            self.hparams.update(hparams)
-            self._hparams_initial.update(hparams)
 
     @property
     def model_size(self) -> float:
