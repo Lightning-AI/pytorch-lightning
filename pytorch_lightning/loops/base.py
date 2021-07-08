@@ -257,8 +257,7 @@ class Loop(ABC):
         return destination
 
     def _load_from_state_dict(self, state_dict, prefix, apply_restart):
-        self.load_state_dict(state_dict[prefix + "state_dict"])
-
+        # reload progress first as it might be used for ``load_state_dict``.
         for name, progress in self._progress.items():
             progress.load_state_dict(state_dict[prefix + name])
             if apply_restart:
@@ -267,6 +266,8 @@ class Loop(ABC):
                     v.reset_on_restart()
 
                 apply_to_collection(progress, Tracker, restart)
+
+        self.load_state_dict(state_dict[prefix + "state_dict"])
 
     def _load_state_dict(self, state_dict: Dict, apply_restart: bool = True):
 

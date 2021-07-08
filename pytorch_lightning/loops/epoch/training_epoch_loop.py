@@ -67,7 +67,7 @@ class TrainingEpochLoop(loops.Loop):
 
     @property
     def total_optimizer_step(self) -> int:
-        return self.progress.optim.optimizer.step.total.completed
+        return self.progress.optimizer.step.total.completed
 
     @property
     def current_batch_seen(self) -> int:
@@ -96,14 +96,13 @@ class TrainingEpochLoop(loops.Loop):
         self._initialize()
 
         self.iteration_count = self.total_epoch_completed
-        self.batches_seen = self.total_epoch_completed
-
-        # reset tracking
-        self.progress.current.reset()
+        self.batches_seen = self.batch_loop.current_batch_completed
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self._initialize()
+
+        self.batch_loop.progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.progress.increment_ready()
@@ -176,20 +175,16 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
+        if not self.progress.should_check_val:
+            self.progress.should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
 
-        if self.trainer.is_restarting:
-            should_check_val = self.progress.should_check_val
-        else:
-            self.progress.should_check_val = should_check_val
-
-        if should_check_val:
+        if self.progress.should_check_val:
             self.trainer.validating = True
             self._run_validation()
             self.trainer.training = True
 
         # inform trainer that restart is completed
-        self.trainer.is_restarting = False
+        self.progress.should_check_val = False
 
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)

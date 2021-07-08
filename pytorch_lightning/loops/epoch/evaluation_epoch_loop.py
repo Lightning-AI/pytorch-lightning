@@ -18,10 +18,9 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 from deprecate import void
 from torch import Tensor
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EpochProgress
+from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -41,19 +40,7 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
-        self.progress = EpochProgress()
-
-    @property
-    def state(self):
-        return {}
-
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
-    ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
+        self.progress = Progress()
 
     @property
     def done(self) -> bool:
@@ -72,13 +59,15 @@ class EvaluationEpochLoop(Loop):
         """Restore the loop's internal state."""
         self._initialize()
 
-        self.iteration_count = self.progress.batch.current.completed
+        self.iteration_count = self.progress.current.completed
+
+        breakpoint()
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._initialize()
 
-        self.progress.batch.current.reset()
+        self.progress.current.reset()
 
     def on_run_start(
         self,
@@ -100,7 +89,6 @@ class EvaluationEpochLoop(Loop):
         self.dl_max_batches = dl_max_batches
         self.dataloader_idx = dataloader_idx
         self.num_dataloaders = num_dataloaders
-        self.progress.dataloader_idx = dataloader_idx
 
     def advance(
         self,
@@ -125,12 +113,13 @@ class EvaluationEpochLoop(Loop):
         batch_idx, batch = next(dataloader_iter)
 
         print()
-        print("BATCH_IDX", dataloader_idx, batch_idx)
+        print(
+            "BATCH_IDX", self.trainer.current_epoch, self.trainer.fit_loop.epoch_loop.batch_idx, dataloader_idx,
+            batch_idx
+        )
 
         if batch is None:
             raise StopIteration
-
-        self.progress.batch.increment_started()
 
         with self.trainer.profiler.profile("evaluation_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
@@ -138,14 +127,16 @@ class EvaluationEpochLoop(Loop):
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
-        self.progress.batch.increment_ready()
+        self.progress.increment_started()
+
+        self.progress.increment_ready()
 
         # lightning module methods
         with self.trainer.profiler.profile("evaluation_step_and_end"):
             output = self.evaluation_step(batch, batch_idx, dataloader_idx)
             output = self.evaluation_step_end(output)
 
-        self.progress.batch.increment_processed()
+        self.progress.increment_processed()
 
         # hook + store predictions
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
@@ -156,7 +147,7 @@ class EvaluationEpochLoop(Loop):
         # track epoch level outputs
         self.outputs = self._track_output_for_epoch_end(self.outputs, output)
 
-        self.progress.batch.increment_completed()
+        self.progress.increment_completed()
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""
@@ -294,10 +285,3 @@ class EvaluationEpochLoop(Loop):
                 output = output.cpu()
             outputs.append(output)
         return outputs
-
-    def state_dict(self) -> Dict:
-        return {"progress": self.progress.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        if "progress" in state_dict:
-            self.progress.load_state_dict(state_dict["progress"])

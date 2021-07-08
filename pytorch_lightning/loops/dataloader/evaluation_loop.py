@@ -17,14 +17,11 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EvaluationEpochLoopProgress, Tracker
+from pytorch_lightning.trainer.progress import DataLoaderProgress
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import dataloader_load_state_dict, dataloader_to_state_dict
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -36,22 +33,13 @@ class EvaluationLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.outputs = []
-        self.progress = EvaluationEpochLoopProgress()
+        self.progress = DataLoaderProgress()
 
         self.epoch_loop = EvaluationEpochLoop()
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
         self.current_dataloader_iter: Optional[Iterator] = None
-
-    @property
-    def state(self):
-        state = {"should_check_val": self.progress.should_check_val}
-        if self.current_dataloader_iter is not None:
-            dataloader = self.dataloaders[self.progress.epoch.dataloader_idx]
-            state.update(dataloader=dataloader_to_state_dict(dataloader, self.current_dataloader_iter))
-
-        return state
 
     @property
     def num_dataloaders(self) -> int:
@@ -78,20 +66,6 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(
-        self,
-        trainer: "pl.Trainer",
-        *args: Any,
-        epoch_loop: Optional[Loop] = None,
-        progress: Optional[EvaluationEpochLoopProgress] = None,
-        **kwargs: Any
-    ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.progress = progress or self.progress
-        self.epoch_loop = epoch_loop or self.epoch_loop
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
-
     @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
@@ -115,16 +89,14 @@ class EvaluationLoop(DataLoaderLoop):
     def restore(self) -> None:
         self._initialize()
 
-        self.iteration_count = self.progress.epoch.dataloader_idx
-
-        breakpoint()
+        self.iteration_count = self.progress.dataloader_idx
 
     def reset(self) -> None:
         """Resets the internal state of the loop"""
         self._initialize()
 
         # reset batch / epoch progress tracking
-        self.progress.reset_on_epoch()
+        self.progress.current.reset()
 
     def on_skip(self) -> List:
         return []
@@ -132,7 +104,7 @@ class EvaluationLoop(DataLoaderLoop):
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
         void(*args, **kwargs)
-        self.progress.epoch.increment_started()
+        self.progress.increment_started()
 
         # hook
         self.on_evaluation_model_eval()
@@ -140,13 +112,15 @@ class EvaluationLoop(DataLoaderLoop):
         self.on_evaluation_start()
         self.on_evaluation_epoch_start()
 
-        self.progress.epoch.increment_ready()
+        self.progress.increment_ready()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
+
+        self.progress.dataloader_idx = self.iteration_count
 
         dl_outputs = self.epoch_loop.run(
             self.enumerate(dataloader),
@@ -174,7 +148,7 @@ class EvaluationLoop(DataLoaderLoop):
         if len(outputs) > 0 and self.num_dataloaders == 1:
             outputs = outputs[0]
 
-        self.progress.epoch.increment_processed()
+        self.progress.increment_processed()
 
         # lightning module method
         self.evaluation_epoch_end(outputs)
@@ -194,7 +168,7 @@ class EvaluationLoop(DataLoaderLoop):
         # enable train mode again
         self.on_evaluation_model_train()
 
-        self.progress.epoch.increment_completed()
+        self.progress.increment_completed()
 
         return eval_loop_results
 
@@ -313,25 +287,15 @@ class EvaluationLoop(DataLoaderLoop):
 
     def enumerate(self, dataloader: DataLoader) -> Any:
         self.current_dataloader_iter = iter(dataloader)
-        for batch_idx, batch in enumerate(self.current_dataloader_iter, self.progress.epoch.batch.current.completed):
+        for batch_idx, batch in enumerate(self.current_dataloader_iter, self.epoch_loop.iteration_count):
             yield batch_idx, batch
 
     def state_dict(self) -> Dict:
-        return self.state
+        dataloader = self.dataloaders[self.progress.dataloader_idx]
+        return {"dataloader": dataloader_to_state_dict(dataloader, self.current_dataloader_iter)}
 
     def load_state_dict(self, state_dict: Dict) -> None:
-        if "should_check_val" in state_dict:
-            self.progress.should_check_val = state_dict["should_check_val"]
-
-        if "epoch_loop" in state_dict:
-            self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
-
-        if "dataloader" in state_dict:
+        if self.dataloaders is None:
             self.reload_evaluation_dataloaders()
-            current_dataloader = self.dataloaders[self.progress.epoch.dataloader_idx]
-            dataloader_load_state_dict(current_dataloader, state_dict["dataloader"])
-
-        def fn(v: Tracker):
-            v.reset_on_restart()
-
-        apply_to_collection(self.progress, Tracker, fn)
+            dataloader = self.dataloaders[self.progress.dataloader_idx]
+            dataloader_load_state_dict(dataloader, state_dict["dataloader"])

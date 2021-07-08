@@ -14,8 +14,6 @@
 from dataclasses import asdict, dataclass, field
 from typing import Dict, Optional
 
-from torch.utils import data
-
 
 class ProgressDict(Dict):
 
@@ -151,6 +149,7 @@ class BatchProgress(Progress):
     should_check_val: bool = False
 
 
+@dataclass
 class TrainingEpochProgress2(Progress):
     """
     Tracks the batch progress
@@ -160,6 +159,20 @@ class TrainingEpochProgress2(Progress):
         current: Tracks the current epoch progress
     """
     should_check_val: bool = False
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.should_check_val = state_dict["should_check_val"]
+
+
+@dataclass
+class DataLoaderProgress(Progress):
+
+    dataloader_idx: int = 0
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.dataloader_idx = state_dict["dataloader_idx"]
 
 
 @dataclass

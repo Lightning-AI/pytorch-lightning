@@ -249,8 +249,8 @@ def test_epoch_loop_progress_serialization():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
-@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+@pytest.mark.parametrize("use_multiple_optimizers", [False])
+@pytest.mark.parametrize("accumulate_grad_batches", [1])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
     class TestModel(BoringModel):
@@ -302,8 +302,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     # assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingEpochProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.progress, BatchProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optim_progress, OptimizationProgress)
-    assert isinstance(trainer.fit_loop.epoch_loop.val_loop.progress, EpochLoopProgress)
-    assert isinstance(trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress, EpochProgress)
 
     pr = trainer.fit_loop.epoch_loop.progress
 
@@ -417,6 +415,7 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if self.trainer.fit_loop.epoch_loop.batch_idx == 3 and batch_idx == 1 and dataloader_idx == 1:
+                assert self.trainer.fit_loop.epoch_loop.progress.should_check_val
                 raise CustomException
             return super().validation_step(batch, batch_idx)
 
@@ -447,21 +446,19 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
     pr = trainer.fit_loop.epoch_loop.val_loop.progress
 
-    assert isinstance(pr, EpochLoopProgress)
-    assert isinstance(pr.epoch, EpochProgress)
-    assert isinstance(pr.epoch.batch, BatchProgress)
-    assert pr.epoch.total == Tracker(ready=2, started=2, processed=1, completed=1)
-    assert pr.epoch.current == Tracker(ready=1, started=1, processed=0, completed=0)
+    assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
+    assert pr.current == Tracker(ready=1, started=1, processed=0, completed=0)
+    assert pr.dataloader_idx == 1
+
+    assert trainer.fit_loop.epoch_loop.progress.should_check_val
+
+    pr = trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress
 
     # 3 dataloaders with 3 samples for batch_idx == 1 + first dataloader on batch_idx == 1 + failure on batch_idx = 1
     current = 2
     total = 3 * 3 + 3 + current
-    assert pr.epoch.batch.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
-    assert pr.epoch.batch.current == Tracker(
-        ready=current, started=current, processed=current - 1, completed=current - 1
-    )
-
-    assert pr.epoch.dataloader_idx == 1
+    assert pr.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
+    assert pr.current == Tracker(ready=current, started=current, processed=current - 1, completed=current - 1)
 
     print()
     print("RESTARTING")
@@ -487,10 +484,12 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
     pr = trainer.fit_loop.epoch_loop.val_loop.progress
 
-    assert pr.epoch.total == Tracker(ready=2, started=2, processed=2, completed=2)
-    assert pr.epoch.current == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.total == Tracker(ready=2, started=2, processed=2, completed=2)
+    assert pr.current == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert pr.dataloader_idx == 2
+
+    pr = trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress
 
     # total = 3 (num validation samples) * 3 (num dataloaders) * 2 (num validation)
-    assert pr.epoch.batch.total == Tracker(ready=18, started=18, processed=18, completed=18)
-    assert pr.epoch.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
-    assert pr.epoch.dataloader_idx == 2
+    assert pr.total == Tracker(ready=18, started=18, processed=18, completed=18)
+    assert pr.current == Tracker(ready=3, started=3, processed=3, completed=3)

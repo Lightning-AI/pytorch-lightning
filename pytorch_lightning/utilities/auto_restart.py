@@ -272,6 +272,10 @@ def fetch_fast_forward_samplers_state_dict(dataloader: DataLoader, out: List, co
     fast_forward_samplers = find_fast_forward_samplers(dataloader)
 
     if fast_forward_samplers is not None:
+        try:
+            out[count]
+        except IndexError:
+            out.append({})
         out[count]["sampler"] = fast_forward_samplers.state_dict()
         count += 1
 
@@ -304,7 +308,8 @@ def fast_forward_sampler_load_state_dict(dataloader, state_dict: List[Dict[str, 
 
 def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator) -> List[Dict[str, Any]]:
     out = []
-    fetch_previous_worker_state_dict(iter, out)
+    if iter is not None:
+        fetch_previous_worker_state_dict(iter, out)
 
     count = 0
     fetch_fast_forward_samplers_state_dict(dataloader, out, count)

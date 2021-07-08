@@ -51,12 +51,16 @@ class TrainingBatchLoop(Loop):
         self.split_idx: Optional[int] = None
         self.progress = BatchProgress()
         self.optim_progress = OptimizationProgress()
-
+        self._dataloader_idx = 0
         self._warning_cache: WarningCache = WarningCache()
         self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
+
+    @property
+    def current_batch_completed(self):
+        return self.progress.current.completed
 
     @property
     def done(self) -> bool:
@@ -82,8 +86,9 @@ class TrainingBatchLoop(Loop):
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
-        if batch_idx == 0:
-            self.progress.current.reset()
+        print()
+        print("TRAIN BATCH IDX", self.trainer.current_epoch, batch_idx)
+        print()
 
         self.progress.increment_ready()
 
@@ -101,6 +106,7 @@ class TrainingBatchLoop(Loop):
         super().run(batch, batch_idx, dataloader_idx)
         output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
         self.batch_outputs = None  # free memory
+
         return output
 
     def _initialize(self):
