@@ -106,7 +106,8 @@ class HyperparametersMixin:
         else:
             self._hparams = hp
 
-    def _to_hparams_dict(self, hp):
+    @staticmethod
+    def _to_hparams_dict(hp: Union[dict, Namespace, str]):
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -115,7 +116,6 @@ class HyperparametersMixin:
             raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
         elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
             raise ValueError(f"Unsupported config type of {type(hp)}.")
-
         return hp
 
     @property
