@@ -67,12 +67,15 @@ class FastForwardSampler(Sampler):
         else:
             for i, batch in enumerate(self._sampler, 1):
 
+                print(batch)
+
                 # the `state dict` was cached as workers were available before.
                 if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
 
                     # reload the current state dict
                     self.load_state_dict(self._cached_state_dict, workers_initialized=True)
                     self._cached_state_dict = None
+                    self.restarting = False
 
                 # when the current index is higher than the current_iteration, we have "fast forwarded" the sampler.
                 if self._current_iteration < i:
@@ -289,3 +292,19 @@ def fast_forward_sampler_load_state_dict(dataloader, state_dict: List[Dict[str, 
     if fast_forward_samplers is not None:
         fast_forward_samplers.load_state_dict(current_state_dict)
         count += 1
+
+
+def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator) -> List[Dict[str, Any]]:
+    out = []
+    fetch_previous_worker_state_dict(iter, out)
+
+    count = 0
+    fetch_fast_forward_samplers_state_dict(dataloader, out, count)
+    return out
+
+
+def dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> None:
+    fast_forward_sampler = find_fast_forward_samplers(dataloader)
+
+    if isinstance(fast_forward_sampler, Sampler):
+        fast_forward_sampler.load_state_dict(state_dict[0]["sampler"])

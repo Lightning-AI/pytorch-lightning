@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Dict, Iterator
+from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any, Dict, Iterator, Optional
 
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.trainer.progress import BaseProgress
 
 
 def test_loop_restore():
@@ -72,3 +74,95 @@ def test_loop_restore():
 
     assert not loop.restarting
     assert loop.outputs == list(range(10))
+
+
+def test_loop_recursivity():
+
+    @dataclass
+    class SimpleProgress(BaseProgress):
+
+        increment: int = 0
+
+        def state_dict(self):
+            return {"increment": self.increment}
+
+        def load_state_dict(self, state_dict):
+            self.increment = state_dict["increment"]
+
+    class Simple(Loop):
+
+        def __init__(self, a):
+            super().__init__()
+            self.a = a
+            self.progress = SimpleProgress()
+
+        def advance(self, *args: Any, **kwargs: Any) -> None:
+            for loop in self._loops.values():
+                loop.run()
+                self.progress.increment += 1
+            self.progress.increment += 1
+
+        @property
+        def done(self) -> bool:
+            return self.iteration_count > 0
+
+        def reset(self) -> None:
+            pass
+
+        def restore(self, state: Optional[Dict]) -> None:
+            assert state is not None
+            if self.a == 1:
+                assert state["a"] == self.a
+            else:
+                assert state["a"] != self.a
+
+        def state_dict(self) -> Dict:
+            return {"a": self.a}
+
+    loop_parent = Simple(1)
+    loop_child = Simple(2)
+    loop_parent.loop_child = loop_child
+    state_dict = loop_parent.get_state_dict()
+    assert state_dict == OrderedDict([('state_dict', {
+        'a': 1
+    }), ('progress', {
+        'increment': 0
+    }), ('loop_child.state_dict', {
+        'a': 2
+    }), ('loop_child.progress', {
+        'increment': 0
+    })])
+
+    state_dict["loop_child.state_dict"]["a"] = 3
+    loop_parent.load_state_dict(state_dict)
+    cached_state = loop_parent.loop_child._cached_state
+    assert cached_state == state_dict["loop_child.state_dict"]
+    assert loop_parent.restarting
+
+    loop_parent.run()
+
+    assert loop_parent._cached_state is None
+    assert loop_parent.loop_child._cached_state is None
+    assert not loop_parent.restarting
+
+    state_dict = loop_parent.get_state_dict()
+    assert state_dict == OrderedDict([('state_dict', {
+        'a': 1
+    }), ('progress', {
+        'increment': 2
+    }), ('loop_child.state_dict', {
+        'a': 2
+    }), ('loop_child.progress', {
+        'increment': 1
+    })])
+
+    loop_parent = Simple(1)
+    loop_child = Simple(2)
+    loop_parent.loop_child = loop_child
+    loop_parent.load_state_dict(state_dict)
+    assert loop_parent.progress.increment == 2
+    assert loop_parent.loop_child.progress.increment == 1
+
+    del loop_parent.loop_child
+    state_dict = loop_parent.get_state_dict()
+    assert state_dict == OrderedDict([('state_dict', {'a': 1}), ('progress', {'increment': 2})])

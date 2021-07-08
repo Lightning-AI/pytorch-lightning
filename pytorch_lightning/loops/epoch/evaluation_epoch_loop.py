@@ -43,6 +43,10 @@ class EvaluationEpochLoop(Loop):
         self.outputs: List[STEP_OUTPUT] = []
         self.progress = EpochProgress()
 
+    @property
+    def state(self):
+        return {}
+
     def connect(
         self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
     ) -> None:
@@ -56,8 +60,7 @@ class EvaluationEpochLoop(Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.iteration_count >= self.dl_max_batches
 
-    def reset(self) -> None:
-        """Resets the loop's internal state."""
+    def _initialize(self):
         self.iteration_count = 0
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
@@ -65,11 +68,17 @@ class EvaluationEpochLoop(Loop):
         self.num_dataloaders = None
         self.outputs = []
 
-        if not self.trainer.is_restarting:
-            self.progress.batch.current.reset()
-        else:
-            self.iteration_count = self.progress.batch.current.completed
-            self.trainer.is_restarting = False
+    def restore(self):
+        """Restore the loop's internal state."""
+        self._initialize()
+
+        self.iteration_count = self.progress.batch.current.completed
+
+    def reset(self) -> None:
+        """Resets the loop's internal state."""
+        self._initialize()
+
+        self.progress.batch.current.reset()
 
     def on_run_start(
         self,
@@ -114,6 +123,9 @@ class EvaluationEpochLoop(Loop):
         void(dl_max_batches, num_dataloaders)
 
         batch_idx, batch = next(dataloader_iter)
+
+        print()
+        print("BATCH_IDX", dataloader_idx, batch_idx)
 
         if batch is None:
             raise StopIteration
@@ -282,3 +294,10 @@ class EvaluationEpochLoop(Loop):
                 output = output.cpu()
             outputs.append(output)
         return outputs
+
+    def state_dict(self) -> Dict:
+        return {"progress": self.progress.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        if "progress" in state_dict:
+            self.progress.load_state_dict(state_dict["progress"])

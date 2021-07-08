@@ -463,6 +463,10 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
 
     assert pr.epoch.dataloader_idx == 1
 
+    print()
+    print("RESTARTING")
+    print()
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
