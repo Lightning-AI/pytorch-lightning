@@ -16,8 +16,11 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
 
+import pytest
+
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_loop_restore():
@@ -92,6 +95,8 @@ def test_loop_hierarchy():
 
     class Simple(Loop):
 
+        __children__loops__ = ("loop_child")
+
         def __init__(self, a):
             super().__init__()
             self.a = a
@@ -123,6 +128,21 @@ def test_loop_hierarchy():
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
     state_dict = loop_parent.get_state_dict()
+
+    with pytest.raises(MisconfigurationException, match="The current loop accept only loop_child"):
+        loop_parent.wrong_name = loop_child
+
+    loop_progress: ProgressDict = loop_parent.loop_progress
+    assert loop_progress["progress"] == loop_parent.progress
+    assert loop_progress["loop_child"]["progress"] == loop_child.progress
+
+    assert loop_progress.progress == loop_parent.progress
+    assert loop_progress.loop_child.progress == loop_child.progress
+
+    loop_progress = loop_child.loop_progress
+    assert loop_progress["progress"] == loop_child.progress
+    assert loop_progress.progress == loop_child.progress
+
     assert state_dict == OrderedDict([('state_dict', {
         'a': 1
     }), ('progress', {
@@ -132,6 +152,8 @@ def test_loop_hierarchy():
     }), ('loop_child.progress', {
         'increment': 0
     })])
+
+    loop_parent.progress
 
     state_dict["loop_child.state_dict"]["a"] = 3
     loop_parent._load_state_dict(state_dict)

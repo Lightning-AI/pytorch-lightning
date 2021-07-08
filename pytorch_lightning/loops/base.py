@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional, OrderedDict
 from deprecate import void
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -55,8 +55,30 @@ class Loop(ABC):
         self._loops = OrderedDict()
         self._progress = OrderedDict()
 
+    @property
+    def is_leaf(self) -> bool:
+        loops = self.__dict__.get('_loops')
+        return len(loops) == 0
+
+    @property
+    def loop_progress(self) -> Dict[str, Any]:
+        progress = {}
+        for n, p in self.__dict__.get('_progress').items():
+            progress[n] = p
+
+        loops = self.__dict__.get('_loops')
+
+        if loops is not None:
+            for name, loop in loops.items():
+                progress[name] = ProgressDict(**loop.loop_progress)
+        return ProgressDict(**progress)
+
     def __setattr__(self, name: str, value: Any) -> None:
         if isinstance(value, Loop):
+            if getattr(self, "__children__loops__", None) is not None and name not in self.__children__loops__:
+                raise MisconfigurationException(
+                    f"The current loop accept only {self.__children__loops__} as children attribute names."
+                )
             self._loops[name] = value
         elif isinstance(value, BaseProgress):
             self._progress[name] = value
