@@ -71,8 +71,8 @@ class Loop(ABC):
 
     @property
     def is_leaf(self) -> bool:
-        """Whether this loop is a children and has no children itself."""
-        return not self.has_children and self.has_parent
+        """This loop is a leaf if it doesn't possess any loops."""
+        return not self.has_children
 
     @property
     def loop_progress(self) -> Dict[str, Any]:
