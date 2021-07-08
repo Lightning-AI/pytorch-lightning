@@ -241,13 +241,12 @@ a path to a file, for example:
 
     $ python trainer.py --trainer "$TRAINER_CONFIG" --model "$MODEL_CONFIG" [...]
 
-An alternative for environment variables could be to instantiate the CLI with :code:`env_parse=True`. In this case the
-the help shows the names of the environment variables for all options. A global config would be given in
+An alternative for environment variables could be to instantiate the CLI with :code:`env_parse=True`. In this case the help shows the names of the environment variables for all options. A global config would be given in
 :code:`PL_CONFIG` and there wouldn't be a need to specify any command line argument.
 
 It is also possible to set a path to a config file of defaults. If the file exists it would be automatically loaded
 without having to specify any command line argument. Arguments given would override the values in the default config
-file. To load a defaults file :code:`my_cli_defaults.yaml` in current working directory would be implemented as:
+file. Loading a defaults file :code:`my_cli_defaults.yaml` in the current working directory would be implemented as:
 
 .. testcode::
 
@@ -511,7 +510,7 @@ it can make it tempting to use an instance of a class as a default. For example:
 Normally classes are mutable as it is in this case. The instance of :code:`MyModel` would be created the moment that the
 module that defines :code:`MyMainModel` is first imported. This means that the default of :code:`backbone` will be
 initialized before the CLI class runs :code:`seed_everything` making it non-reproducible. Furthermore, if
-:code:`MyMainModel` is used more than once in the same python process and the :code:`backbone` parameter is not
+:code:`MyMainModel` is used more than once in the same Python process and the :code:`backbone` parameter is not
 overridden, the same instance would be used in multiple places which very likely is not what the developer intended.
 Having an instance as default also makes it impossible to generate the complete config file since for arbitrary classes
 it is not known which arguments were used to instantiate it.
@@ -723,7 +722,7 @@ automatically saved including all settings. This is useful to figure out what wa
 requiring to look at the source code. If by mistake the exact version of the source code is lost or some defaults
 changed, having the full config means that most of the information is preserved.
 
-The class is targeted at implementing CLIs because running a command from a shell provides a separation with the python
+The class is targeted at implementing CLIs because running a command from a shell provides a separation with the Python
 source code. Ideally the CLI would be placed in your path as part of the installation of a stable package, instead of
 running from a clone of a repository that could have uncommitted local modifications. Creating installable packages that
 include CLIs is out of the scope of this document. This is mentioned only as a teaser for people who would strive for
