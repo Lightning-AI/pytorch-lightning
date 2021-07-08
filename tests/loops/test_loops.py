@@ -129,6 +129,9 @@ def test_loop_hierarchy():
     loop_parent = Simple(1)
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
+    assert loop_child._num_parents == 1
+    loop_parent.loop_child = loop_child
+    assert loop_child._num_parents == 1
 
     with pytest.raises(MisconfigurationException, match="The Simple already contains the provided loop"):
         loop_parent.something = loop_child

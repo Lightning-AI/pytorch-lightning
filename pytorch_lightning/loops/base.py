@@ -98,14 +98,18 @@ class Loop(ABC):
                 raise MisconfigurationException(
                     f"The current loop accept only {self.__children__loops__} as children attribute names."
                 )
+            is_contained = False
             for loop_name, loop in self._loops.items():
-                if loop == value and name != loop_name:
-                    raise MisconfigurationException(
-                        f"The {self.__class__.__name__} already contains the provided loop "
-                        f"{loop} under the attribute_name {loop_name}."
-                    )
-            self._loops[name] = value
-            value._num_parents += 1
+                if loop == value:
+                    is_contained = True
+                    if name != loop_name:
+                        raise MisconfigurationException(
+                            f"The {self.__class__.__name__} already contains the provided loop "
+                            f"{loop} under the attribute_name {loop_name}."
+                        )
+            if not is_contained:
+                self._loops[name] = value
+                value._num_parents += 1
         elif isinstance(value, BaseProgress):
             self._progress[name] = value
         else:
