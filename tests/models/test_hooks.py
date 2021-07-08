@@ -315,7 +315,8 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
                 dict(name='on_before_zero_grad', args=(ANY, )),
                 dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
-                # TODO: `on_before_backward`
+                dict(name='Callback.on_before_backward', args=(trainer, model, ANY)),
+                dict(name='on_before_backward', args=(ANY, )),
                 # DeepSpeed handles backward internally
                 *([dict(name='backward', args=(ANY, ANY, 0))] if not using_deepspeed else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
@@ -345,6 +346,8 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
                 dict(name='forward', args=(ANY, )),
+                dict(name='Callback.on_before_backward', args=(trainer, model, ANY)),
+                dict(name='on_before_backward', args=(ANY, )),
                 # DeepSpeed handles backward internally
                 *([dict(name='backward', args=(ANY, None, None))] if not using_deepspeed else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
