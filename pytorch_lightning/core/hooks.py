@@ -435,8 +435,9 @@ class DataHooks:
             A collection of :class:`torch.utils.data.DataLoader` specifying training samples.
             In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a positive integer.
 
         For data processing use the following pattern:
 
@@ -505,8 +506,9 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a postive integer.
 
         For data processing use the following pattern:
 
@@ -565,8 +567,9 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for validation.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a positive integer.
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 

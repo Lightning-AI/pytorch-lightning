@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, Dict, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
 from torch import Tensor
@@ -51,47 +51,20 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
+        optimizer: Optional[Optimizer],
         *args: Any,
         **kwargs: Any,
-    ) -> Tensor:
-        """performs the actual backpropagation
+    ) -> None:
+        """Run before precision plugin executes backward
 
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer index
-            should_accumulate: whether to accumulate gradients or not
-
+            optimizer: current optimizer being used. ``None`` if using manual optimization
         """
-        opt = model.trainer.optimizers if optimizer is None else optimizer
-        scaled_loss: ContextManager[Tensor] = amp.scale_loss(closure_loss, opt)
-
-        # enter apex context
-        closure_loss = scaled_loss.__enter__()
-
-        # do backward pass
-        # TODO: not entirely sure, why we need this
-        if model is not None and isinstance(model, pl.LightningModule):
-            model.backward(closure_loss, optimizer, opt_idx, **kwargs)
-
-            # TODO: avoid dev_debugger and track these calls with mock
-            model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-
-        else:
-            closure_loss.backward(*args, **kwargs)
-
-        # exit amp context
-        error = scaled_loss.__exit__(None, None, None)
-        if error:
-            raise Exception("apex unscale error")
-
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
-        return closure_loss
+        opt = optimizer or model.trainer.optimizers
+        with amp.scale_loss(closure_loss, opt) as closure_loss:
+            super().backward(model, closure_loss, optimizer, *args, **kwargs)
 
     @staticmethod
     def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
@@ -128,10 +101,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """
         # apex amp does not support closures.
         lambda_closure()
-
-        if not pl_module.automatic_optimization:
-            pl_module.trainer.call_hook("on_after_backward")
-
         optimizer.step(**kwargs)
         return False
 

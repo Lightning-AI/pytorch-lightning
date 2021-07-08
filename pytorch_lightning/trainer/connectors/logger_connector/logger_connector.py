@@ -154,9 +154,9 @@ class LoggerConnector:
         if self.trainer.sanity_checking:
             return
 
-        num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
+        num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
+        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
             callback_metrics = {
                 k: v
@@ -269,6 +269,11 @@ class LoggerConnector:
         return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
+        if self.trainer.sanity_checking:
+            # reset metrics
+            self._progress_bar_metrics = {}
+            self._logged_metrics = {}
+            self._callback_metrics = {}
         self.trainer._results.reset(metrics=metrics)
         self._batch_idx = None
         self._split_idx = None
@@ -307,9 +312,3 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
-
-    def teardown(self):
-        self.trainer.fit_loop.epoch_loop._results.cpu()
-        self.trainer.fit_loop.val_loop._results.cpu()
-        self.trainer.validation_loop._results.cpu()
-        self.trainer.test_loop._results.cpu()

@@ -40,7 +40,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.layer = None
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
         opt.zero_grad()
@@ -256,7 +256,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         gpus=1,
         precision=16,
     )
-    with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
+    with pytest.warns(UserWarning, match='will be ignored since DeepSpeed handles the backward'):
         trainer.fit(model)
 
 
@@ -518,7 +518,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         self.log('train_loss', loss, prog_bar=True)
         self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         opt.zero_grad()
@@ -640,8 +640,16 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-@pytest.mark.parametrize('offload_optimizer', [True, False])
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
+
+
+def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """

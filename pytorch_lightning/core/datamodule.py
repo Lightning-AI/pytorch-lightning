@@ -63,10 +63,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     * **test_dataloader** the test dataloader(s).
     * **teardown** (things to do on every accelerator in distributed mode when finished)
 
-
-    This allows you to share a full dataset without explaining how to download,
-    split transform and process the data
-
+    This allows you to share a full dataset without explaining how to download, split, transform, and process the data
     """
 
     name: str = ...
@@ -381,7 +378,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     def __new__(cls, *args: Any, **kwargs: Any) -> 'LightningDataModule':
         obj = super().__new__(cls)
-        # track `DataHooks` calls and run `prepare_data` only on rank zero
+        # track `DataHooks` calls
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)

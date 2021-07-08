@@ -124,7 +124,7 @@ class MyDataModule(pl.LightningDataModule):
 
 
 def cli_main():
-    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234)
+    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
     cli.trainer.test(cli.model, datamodule=cli.datamodule)
     predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
     print(predictions[0])

@@ -153,8 +153,8 @@ class CallbackConnector:
         model_callbacks = model.configure_callbacks()
         if not model_callbacks:
             return
-        model_callback_types = set(type(c) for c in model_callbacks)
-        trainer_callback_types = set(type(c) for c in trainer.callbacks)
+        model_callback_types = {type(c) for c in model_callbacks}
+        trainer_callback_types = {type(c) for c in trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
         if override_types:
             rank_zero_info(

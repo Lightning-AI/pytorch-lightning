@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
 from unittest import mock
 
 import pytest
@@ -21,9 +20,11 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
@@ -33,7 +34,7 @@ if _TORCH_GREATER_EQUAL_1_6:
 
     class SwaTestModel(BoringModel):
 
-        def __init__(self, batchnorm: bool = True, interval: str = "epoch"):
+        def __init__(self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False):
             super().__init__()
             layers = [nn.Linear(32, 32)]
             if batchnorm:
@@ -41,6 +42,7 @@ if _TORCH_GREATER_EQUAL_1_6:
             layers += [nn.ReLU(), nn.Linear(32, 2)]
             self.layer = nn.Sequential(*layers)
             self.interval = interval
+            self.iterable_dataset = iterable_dataset
 
         def training_step(self, batch, batch_idx):
             output = self.forward(batch)
@@ -48,7 +50,11 @@ if _TORCH_GREATER_EQUAL_1_6:
             return {"loss": loss}
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+            dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
+            dset = dset_cls(32, 64)
+
+            return DataLoader(dset, batch_size=2)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -96,19 +102,19 @@ if _TORCH_GREATER_EQUAL_1_6:
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 
-            # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.dev_debugger.count_events(
-                "backward_call"
-            ) == trainer.max_epochs * trainer.limit_train_batches
+            if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+                # check backward call count. the batchnorm update epoch should not backward
+                assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
             # check call counts
             assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
             assert self.transfer_weights_calls == 1
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch"):
-    model = SwaTestModel(batchnorm=batchnorm, interval=interval)
+def train_with_swa(
+    tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+):
+    model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
@@ -127,7 +133,9 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
         gpus=gpus,
         num_processes=num_processes
     )
-    trainer.fit(model)
+
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward):
+        trainer.fit(model)
 
     # check the model is the expected
     assert trainer.lightning_module == model
@@ -155,8 +163,9 @@ def test_swa_callback_1_gpu(tmpdir):
 
 @RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
-def test_swa_callback(tmpdir, batchnorm: bool):
-    train_with_swa(tmpdir, batchnorm=batchnorm)
+@pytest.mark.parametrize('iterable_dataset', (True, False))
+def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
+    train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
 @RunIf(min_torch="1.6.0")
