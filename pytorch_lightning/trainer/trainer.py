@@ -32,7 +32,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import EvaluationLoop, FitLoop, PredictionLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
@@ -52,6 +51,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.loop_connector import LoopConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
@@ -61,7 +61,6 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.progress import EpochLoopProgress, EvaluationEpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -359,14 +358,7 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.validate_loop = EvaluationLoop()
-        self.test_loop = EvaluationLoop()
-        self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self)
-        self.validate_loop.connect(self)
-        self.test_loop.connect(self)
-        self.predict_loop.connect(self)
+        self.loop_connector = LoopConnector(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -375,6 +367,10 @@ class Trainer(
             )
         self.weights_summary = weights_summary
         self.shown_warnings = set()
+
+        self.loop_connector.on_trainer_init(
+            min_epochs=min_epochs, max_epochs=max_epochs, min_steps=min_steps, max_steps=max_steps
+        )
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init

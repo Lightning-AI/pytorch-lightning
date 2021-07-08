@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional
 
 from deprecate import void
 
@@ -56,13 +56,13 @@ class Loop(ABC):
         self.restarting = False
         self._loops = OrderedDict()
         self._progress = OrderedDict()
-        self._num_parents: int = 0
-        self.__children__loops__: Optional[Sequence[str]] = None
+        self._has_parent: bool = False
+        self.__parent_loop: Optional['Loop'] = None
 
     @property
     def has_parent(self) -> Optional[bool]:
-        """Whether the number of loop parents is not null"""
-        return self._num_parents > 0
+        """Whether this loop has been attached to another loop"""
+        return self._has_parent
 
     @property
     def has_children(self) -> bool:
@@ -72,8 +72,8 @@ class Loop(ABC):
 
     @property
     def is_leaf(self) -> bool:
-        """Whether this loop is a children and has no children itself."""
-        return not self.has_children and self.has_parent
+        """This loop is a leaf if it doesn't possess any loops."""
+        return not self.has_children
 
     @property
     def loop_progress(self) -> Dict[str, Any]:
@@ -94,24 +94,20 @@ class Loop(ABC):
             # when assigning a Trainer to a loop, it will assign to its children too.
             object.__setattr__(self, name, value)
             for loop in self._loops.values():
-                object.__setattr__(loop, name, value)
+                loop.__setattr__(name, value)
         elif isinstance(value, Loop):
+            if name == "_Loop__parent_loop":
+                object.__setattr__(self, name, value)
+                return
             if getattr(self, "__children__loops__", None) is not None and name not in self.__children__loops__:
                 raise MisconfigurationException(
-                    f"The current loop accept only {self.__children__loops__} as children attribute names."
+                    f"The current loop accept only {self.__children__loops__} as children attribute names. Found {name}"
                 )
-            is_contained = False
-            for loop_name, loop in self._loops.items():
-                if loop == value:
-                    is_contained = True
-                    if name != loop_name:
-                        raise MisconfigurationException(
-                            f"The {self.__class__.__name__} already contains the provided loop "
-                            f"{loop} under the attribute_name {loop_name}."
-                        )
-            if not is_contained:
-                self._loops[name] = value
-                value._num_parents += 1
+            if value._has_parent:
+                raise MisconfigurationException(f"This provided loop {value} already has a parent. ")
+            self._loops[name] = value
+            value._has_parent = True
+            value.__parent_loop = self
         elif isinstance(value, BaseProgress):
             self._progress[name] = value
         else:
@@ -132,7 +128,8 @@ class Loop(ABC):
 
     def __delattr__(self, name) -> None:
         if name in self._loops:
-            self._loops[name]._num_parents -= 1
+            self._loops[name]._has_parent = False
+            self._loops[name]._Loop__parent_loop = None
             del self._loops[name]
         elif name in self._progress:
             del self._progress[name]
