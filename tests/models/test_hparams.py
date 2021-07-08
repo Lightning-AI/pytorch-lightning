@@ -17,7 +17,6 @@ import os
 import pickle
 from argparse import Namespace
 from dataclasses import dataclass
-from typing import Optional
 from unittest import mock
 
 import cloudpickle
@@ -25,7 +24,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import Container, OmegaConf
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -45,11 +44,6 @@ class SaveHparamsModel(BoringModel):
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
-
-    def training_step(self, batch, batch_idx):
-        output = self.layer(batch[0])
-        loss = self.loss(batch, output)
-        return {"loss": loss}
 
 
 def decorate(func):
@@ -753,40 +747,21 @@ def test_dataclass_lightning_module(tmpdir):
 class NoHparamsModel(BoringModel):
     """ Tests a model without hparams. """
 
-    def training_step(self, batch, batch_idx):
-        output = self.layer(batch[0])
-        loss = self.loss(batch, output)
-        return {"loss": loss}
-
 
 class DataModuleWithoutHparams(LightningDataModule):
 
-    def __init__(self):
-        super().__init__()
-        self._data = None
-
-    def prepare_data(self, *args, **kwargs):
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-        self.data = torch.randn(10, 32)
-
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        return DataLoader(TensorDataset(self.data), batch_size=10)
+        return DataLoader(RandomDataset(32, 64), batch_size=32)
 
 
 class DataModuleWithHparams(LightningDataModule):
 
     def __init__(self, hparams):
         super().__init__()
-        self.data = None
         self.save_hyperparameters(hparams)
 
-    def setup(self, stage: Optional[str] = None):
-        self.data = torch.randn(10, 32)
-
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        return DataLoader(TensorDataset(self.data), batch_size=10)
+        return DataLoader(RandomDataset(32, 64), batch_size=32)
 
 
 def _get_mock_logger(tmpdir):
