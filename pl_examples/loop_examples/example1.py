@@ -2,7 +2,7 @@ import os
 
 from torch.utils.data import DataLoader
 
-from pl_examples.bug_report_model import RandomDataset, BoringModel
+from pl_examples.bug_report_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.loops import EvaluationLoop, FitLoop, TrainingBatchLoop, TrainingEpochLoop
 

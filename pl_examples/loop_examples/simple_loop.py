@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterator, Optional, Tuple, Union
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 
