@@ -15,15 +15,6 @@ from dataclasses import asdict, dataclass, field
 from typing import Dict, Optional
 
 
-class ProgressDict(Dict):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-
 @dataclass
 class BaseProgress:
 
@@ -38,6 +29,15 @@ class BaseProgress:
         obj = cls()
         obj.load_state_dict(state_dict)
         return obj
+
+
+class ProgressDict(Dict):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 
 @dataclass
@@ -150,7 +150,7 @@ class BatchProgress(Progress):
 
 
 @dataclass
-class TrainingEpochProgress2(Progress):
+class TrainingEpochProgress(Progress):
     """
     Tracks the batch progress
 
@@ -284,42 +284,3 @@ class EvaluationEpochLoopProgress(EpochLoopProgress):
     def load_state_dict(self, state_dict: dict) -> None:
         self.epoch.load_state_dict(state_dict["epoch"])
         self.should_check_val = state_dict["should_check_val"]
-
-
-@dataclass
-class TrainingEpochProgress(EpochProgress):
-    """
-    Extends ``EpochProgress`` with training specific attributes
-
-    Args:
-        total: Tracks the total epoch progress.
-        current: Tracks the current epoch progress.
-        batch: Tracks batch progress.
-        optim: Tracks optimization progress.
-        val: Tracks val_loop progress.
-    """
-
-    optim: OptimizationProgress = field(default_factory=OptimizationProgress)
-    val: EvaluationEpochLoopProgress = field(default_factory=EvaluationEpochLoopProgress)
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        super().load_state_dict(state_dict)
-        self.optim.load_state_dict(state_dict["optim"])
-        self.val.load_state_dict(state_dict["val"])
-
-
-@dataclass
-class FitLoopProgress(EpochLoopProgress):
-    """
-    Extends ``EpochLoopProgress`` with fit specific attributes
-
-    Args:
-        epoch: Tracks epochs progress.
-    """
-
-    epoch: TrainingEpochProgress = field(default_factory=TrainingEpochProgress)
-
-    def reset_on_epoch(self) -> None:
-        # do not reset `epoch.current` as it should track the number of epochs this `fit` call
-        self.epoch.reset_on_epoch()
-        self.epoch.optim.reset_on_epoch()

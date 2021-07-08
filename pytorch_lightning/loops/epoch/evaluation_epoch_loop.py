@@ -61,8 +61,6 @@ class EvaluationEpochLoop(Loop):
 
         self.iteration_count = self.progress.current.completed
 
-        breakpoint()
-
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._initialize()

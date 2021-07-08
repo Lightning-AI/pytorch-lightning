@@ -256,6 +256,19 @@ class Loop(ABC):
             loop.get_state_dict(destination, prefix + name + '.')
         return destination
 
+    def get_progress_state_dict(
+        self, destination: Optional[OrderedDict] = None, prefix: Optional[str] = ''
+    ) -> OrderedDict:
+        if destination is None:
+            destination = OrderedDict()
+
+        for name, progress in self._progress.items():
+            destination[prefix + name] = progress.state_dict()
+
+        for name, loop in self._loops.items():
+            loop.get_progress_state_dict(destination, prefix + name + '.')
+        return destination
+
     def _load_from_state_dict(self, state_dict, prefix, apply_restart):
         # reload progress first as it might be used for ``load_state_dict``.
         for name, progress in self._progress.items():

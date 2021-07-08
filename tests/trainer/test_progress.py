@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections import OrderedDict
 from copy import deepcopy
 from unittest import mock
 
@@ -24,7 +25,6 @@ from pytorch_lightning.trainer.progress import (
     BatchProgress,
     EpochLoopProgress,
     EpochProgress,
-    FitLoopProgress,
     OptimizationProgress,
     OptimizerProgress,
     Progress,
@@ -147,77 +147,96 @@ def test_optimizer_progress_default_factory():
 
 
 def test_fit_loop_progress_serialization():
-    fit_loop = FitLoopProgress()
-    fit_loop.epoch.optim.optimizer_idx = 1
-    fit_loop.epoch.dataloader_idx = 2
-    fit_loop.epoch.val.should_check_val = True
-    fit_loop.epoch.increment_completed()
-    _ = deepcopy(fit_loop)
+    trainer = Trainer()
+    trainer.fit_loop.epoch_loop.progress.increment_completed()
+    trainer.fit_loop.epoch_loop.progress.should_check_val = True
+    state_dict = trainer.fit_loop.get_progress_state_dict()
 
-    state_dict = fit_loop.state_dict()
     # yapf: disable
-    expected = {
-        'epoch': {
-            # number of epochs across `fit` calls
-            'total': {'completed': 1, 'processed': 0, 'ready': 0, 'started': 0},
-            # number of epochs this `fit` call
-            'current': {'completed': 1, 'processed': 0, 'ready': 0, 'started': 0},
-            'batch': {
-                # number of batches across `fit` calls
-                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                # number of batches this epoch
-                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+    expected = OrderedDict([
+        (
+            "epoch_loop.progress",
+            {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 1},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 1},
+                "should_check_val": True,
             },
-            'dataloader_idx': 2,
-            # `fit` optimization progress
-            'optim': {
-                # optimizers progress
-                'optimizer': {
-                    'step': {
-                        # `optimizer.step` calls across `fit` calls
-                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                        # `optimizer.step` calls this epoch
-                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
+        ),
+        (
+            "epoch_loop.batch_loop.progress",
+            {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            },
+        ),
+        (
+            "epoch_loop.batch_loop.optim_progress",
+            {
+                "optimizer_idx": 0,
+                "optimizer": {
+                    "step": {
+                        "total": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
+                        "current": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
                     },
-                    'zero_grad': {
-                        # `optimizer.zero_grad` calls across `fit` calls
-                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                        # `optimizer.zero_grad` calls this epoch
-                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
+                    "zero_grad": {
+                        "total": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
+                        "current": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
                     },
                 },
-                'scheduler': {
-                    # `scheduler.step` calls across `fit` calls
-                    'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
-                    # `scheduler.step` calls this epoch
-                    'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
-                },
-                "optimizer_idx": 1,
-            },
-            # `fit` validation progress
-            'val': {
-                'epoch': {
-                    # number of `validation` calls across `fit` calls
-                    'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    # number of `validation` calls this `fit` call
-                    'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    'batch': {
-                        # number of batches across `fit` `validation` calls
-                        'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                        # number of batches this `fit` `validation` call
-                        'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
+                "scheduler": {
+                    "total": {
+                        "ready": 0,
+                        "started": None,
+                        "processed": None,
+                        "completed": 0,
                     },
-                    'dataloader_idx': 0
+                    "current": {
+                        "ready": 0,
+                        "started": None,
+                        "processed": None,
+                        "completed": 0,
+                    },
                 },
-                'should_check_val': True,
             },
-        }
-    }
+        ),
+        (
+            "epoch_loop.val_loop.progress",
+            {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "dataloader_idx": 0,
+            },
+        ),
+        (
+            "epoch_loop.val_loop.epoch_loop.progress",
+            {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            },
+        ),
+    ])
     assert expected == state_dict
     # yapf: enable
-
-    new_loop = FitLoopProgress.from_state_dict(state_dict)
-    assert fit_loop == new_loop
 
 
 def test_epoch_loop_progress_serialization():

@@ -19,7 +19,7 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import TrainingEpochProgress2
+from pytorch_lightning.trainer.progress import TrainingEpochProgress
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -45,7 +45,7 @@ class TrainingEpochLoop(loops.Loop):
         # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
-        self.progress = TrainingEpochProgress2()
+        self.progress = TrainingEpochProgress()
 
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
