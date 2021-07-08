@@ -300,7 +300,7 @@ class ModelHooks:
         Called before ``loss.backward()``.
 
         Args:
-            loss: Loss divided by number of batches for gradient accumulation.
+            loss: Loss divided by number of batches for gradient accumulation and scaled if using native AMP.
         """
         pass
 
