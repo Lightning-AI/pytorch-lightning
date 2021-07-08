@@ -780,8 +780,7 @@ class DataModuleWithHparams(LightningDataModule):
     def __init__(self, hparams):
         super().__init__()
         self.data = None
-
-        self.hparams = hparams
+        self.save_hyperparameters(hparams)
 
     def setup(self, stage: Optional[str] = None):
         self.data = torch.randn(10, 32)
