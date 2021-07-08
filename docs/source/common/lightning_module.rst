@@ -1446,7 +1446,7 @@ on_test_model_train
     :noindex:
 
 on_before_optimizer_step
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
     :noindex:

@@ -358,7 +358,7 @@ on_after_backward
     :noindex:
 
 on_before_optimizer_step
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_before_optimizer_step
     :noindex:
