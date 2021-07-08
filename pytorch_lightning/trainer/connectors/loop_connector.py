@@ -69,4 +69,3 @@ class LoopConnector(object):
         self.trainer.validate_loop.restarting = True
         self.trainer.test_loop.restarting = True
         self.trainer.predict_loop.restarting = True
-        self.trainer.is_restarting = True
