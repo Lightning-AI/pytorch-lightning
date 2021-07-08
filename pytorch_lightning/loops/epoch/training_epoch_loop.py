@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import TrainingEpochProgress
+from pytorch_lightning.trainer.progress import TrainingEpochProgress2
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -46,7 +46,7 @@ class TrainingEpochLoop(loops.Loop):
         # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
-        self.progress = TrainingEpochProgress()
+        self.progress = TrainingEpochProgress2()
 
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
@@ -61,6 +61,10 @@ class TrainingEpochLoop(loops.Loop):
     def batch_idx(self) -> int:
         """Returns the current batch index (within this epoch)"""
         return self.iteration_count
+
+    @property
+    def total_epoch_completed(self) -> int:
+        return self.progress.total.completed
 
     @property
     def total_optimizer_step(self) -> int:
@@ -83,14 +87,12 @@ class TrainingEpochLoop(loops.Loop):
         self,
         trainer: 'pl.Trainer',
         *args: Any,
-        progress: Optional[TrainingEpochProgress] = None,
         **kwargs: Any
     ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.progress = progress or self.progress
-        self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
-        self.val_loop.connect(trainer, progress=self.progress.val)
+        self.batch_loop.connect(trainer)
+        self.val_loop.connect(trainer)
 
     def _initialize(self) -> None:
         self.iteration_count = 0
@@ -105,15 +107,15 @@ class TrainingEpochLoop(loops.Loop):
         """Restore the internal state of the loop for a new run"""
         self._initialize()
 
-        self.iteration_count = self.progress.total.completed
-        self.batches_seen = self.progress.total.completed
+        self.iteration_count = self.total_epoch_completed
+        self.batches_seen = self.total_epoch_completed
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self._initialize()
 
         # reset tracking
-        self.progress.reset_on_epoch()
+        self.progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.progress.increment_ready()
@@ -136,10 +138,6 @@ class TrainingEpochLoop(loops.Loop):
         """
         _, (batch, is_last) = next(dataloader_iter)
         batch = self._sanetize_batch(batch)
-
-        print()
-        print(self.trainer.current_epoch, self.batches_seen)
-        print()
 
         self.is_last_batch = is_last
 
@@ -193,9 +191,9 @@ class TrainingEpochLoop(loops.Loop):
         should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
 
         if self.trainer.is_restarting:
-            should_check_val = self.progress.val.should_check_val
+            should_check_val = self.progress.should_check_val
         else:
-            self.progress.val.should_check_val = should_check_val
+            self.progress.should_check_val = should_check_val
 
         if should_check_val:
             self.trainer.validating = True
@@ -495,22 +493,3 @@ class TrainingEpochLoop(loops.Loop):
             return batch["data"]
 
         return batch
-
-    def state_dict(self) -> Dict:
-        progress = {
-            "total": self.progress.total.state_dict(),
-            "current": self.progress.current.state_dict(),
-            "dataloader_idx": self.progress.dataloader_idx,
-        }
-        return {
-            "batch_loop": self.batch_loop.state_dict(),
-            "val_loop": self.val_loop.state_dict(),
-            "progress": progress,
-        }
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        self.batch_loop.load_state_dict(state_dict["batch_loop"])
-        self.val_loop.load_state_dict(state_dict["val_loop"])
-        self.progress.total.load_state_dict(state_dict["progress"]["total"])
-        self.progress.current.load_state_dict(state_dict["progress"]["current"])
-        self.progress.dataloader_idx = state_dict["progress"]["dataloader_idx"]

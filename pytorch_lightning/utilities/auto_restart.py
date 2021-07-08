@@ -16,6 +16,10 @@ from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
+from typing import Any, Dict, Generator, Iterator, Optional, Union
+
+from torch.utils.data import get_worker_info, Sampler
+from torch.utils.data.dataloader import IterableDataset
 
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
@@ -65,9 +69,7 @@ class FastForwardSampler(Sampler):
                 yield batch
 
         else:
-            for i, batch in enumerate(self._sampler, 1):
-
-                print(batch)
+            for i, batch in enumerate(self._sampler):
 
                 # the `state dict` was cached as workers were available before.
                 if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
@@ -75,10 +77,9 @@ class FastForwardSampler(Sampler):
                     # reload the current state dict
                     self.load_state_dict(self._cached_state_dict, workers_initialized=True)
                     self._cached_state_dict = None
-                    self.restarting = False
 
-                # when the current index is higher than the current_iteration, we have "fast forwarded" the sampler.
-                if self._current_iteration < i:
+                # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
+                if self._current_iteration <= i:
                     self._current_iteration += 1
                     yield batch
 
@@ -158,17 +159,28 @@ class CaptureIterableDataset(IterableDataset):
         samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
 
         # create a dictionary of generator present within the dataset attributes
-        dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, Generator)}
+        dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, (Generator, Iterator))}
 
         # iterate over the generator. If a generator was created from a ``Sampler```,
         # it will be wrapped into a ``FastForwardSampler``.
         for (generator_attr_name, generator) in dataset_sampler_generators.items():
 
-            # Generator name have the  the form `SamplerName.__iter__`
-            generator_name = generator.__qualname__.split('.')[0]
+            if isinstance(generator, Sampler):
+                continue
+
+            # used to handle a weird behaviour from PyTorch 1.6
+            # where the sampler is converted to a list_iterator
+            is_legacy = False
+
+            if isinstance(generator, Generator):
+                # Generator name have the  the form `SamplerName.__iter__`
+                generator_name = generator.__qualname__.split('.')[0]
+            else:
+                # assume the retrieved iterator is coming from sampler.
+                is_legacy = True
 
             # validate the base generator name matches a sampler name.
-            if any(sampler_name == generator_name for sampler_name in samplers_names):
+            if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a ``FastForwardSampler``
                 sampler = FastForwardSampler(generator)

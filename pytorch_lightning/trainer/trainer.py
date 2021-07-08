@@ -363,10 +363,10 @@ class Trainer(
         self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self, progress=FitLoopProgress())
-        self.validate_loop.connect(self, progress=EvaluationEpochLoopProgress())
-        self.test_loop.connect(self, progress=EvaluationEpochLoopProgress())
-        self.predict_loop.connect(self, progress=EpochLoopProgress())
+        self.fit_loop.connect(self)
+        self.validate_loop.connect(self)
+        self.test_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:

@@ -12,7 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import asdict, dataclass, field
-from typing import Optional
+from typing import Dict, Optional
+
+from torch.utils import data
+
+
+class ProgressDict(Dict):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 
 @dataclass
@@ -130,6 +141,17 @@ class Progress(BaseProgress):
 
 
 class BatchProgress(Progress):
+    """
+    Tracks the batch progress
+
+    Args:
+        total: Tracks the total epoch progress
+        current: Tracks the current epoch progress
+    """
+    should_check_val: bool = False
+
+
+class TrainingEpochProgress2(Progress):
     """
     Tracks the batch progress
 

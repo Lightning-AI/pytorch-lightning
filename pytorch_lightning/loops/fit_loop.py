@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress, Tracker
+from pytorch_lightning.trainer.progress import Progress, Tracker
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -52,7 +52,6 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.progress = FitLoopProgress()
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
@@ -116,12 +115,13 @@ class FitLoop(Loop):
     @property
     def total_epoch_completed(self) -> int:
         """Returns the total number of epoch completed"""
-        return self.progress.epoch.total.completed
+        return self.epoch_loop.total_epoch_completed
 
     @property
     def total_optimizer_step_completed(self) -> int:
         """Returns the total number of optimizer step completed"""
-        return self.progress.epoch.optim.optimizer.step.total.completed
+        breakpoint()
+        return self.progress.optim.optimizer.step.total.completed
 
     @property
     def running_loss(self) -> TensorRunningAccum:
@@ -179,12 +179,11 @@ class FitLoop(Loop):
         return self.done or self.trainer.num_training_batches == 0
 
     def connect(
-        self, trainer: 'pl.Trainer', *args: Any, progress: Optional[FitLoopProgress] = None, **kwargs: Any
+        self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any
     ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.progress = progress or self.progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -193,7 +192,7 @@ class FitLoop(Loop):
         """Calls the ``on_train_start`` hook."""
 
         # reset current epoch counter to 0
-        self.progress.epoch.current.reset()
+        self.epoch_loop.progress.current.reset()
 
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
@@ -302,18 +301,19 @@ class FitLoop(Loop):
                 cb.on_validation_end(self.trainer, model)
 
     def state_dict(self) -> Dict:
-        return {"epoch_loop": self.epoch_loop.state_dict(), "dataloader": self.trainer.train_dataloader.state_dict()}
+        # return {"dataloader": self.trainer.train_dataloader.state_dict()}
+        return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:
-        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
-        # todo (tchaton) Can we avoid creating the dataloader there ?
-        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
-        self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
+        if "dataloader" in state_dict:
+            # todo (tchaton) Can we avoid creating the dataloader there ?
+            self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+            self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
 
-        def fn(v: Tracker):
-            v.reset_on_restart()
+            def fn(v: Tracker):
+                v.reset_on_restart()
 
-        apply_to_collection(self.progress, Tracker, fn)
+            apply_to_collection(self.progress, Tracker, fn)
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

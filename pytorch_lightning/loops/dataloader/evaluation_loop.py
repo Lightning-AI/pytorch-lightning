@@ -43,7 +43,6 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
         self.current_dataloader_iter: Optional[Iterator] = None
-        self.has_called = False
 
     @property
     def state(self):
@@ -314,8 +313,6 @@ class EvaluationLoop(DataLoaderLoop):
 
     def enumerate(self, dataloader: DataLoader) -> Any:
         self.current_dataloader_iter = iter(dataloader)
-        if self.has_called:
-            breakpoint()
         for batch_idx, batch in enumerate(self.current_dataloader_iter, self.progress.epoch.batch.current.completed):
             yield batch_idx, batch
 
@@ -338,6 +335,3 @@ class EvaluationLoop(DataLoaderLoop):
             v.reset_on_restart()
 
         apply_to_collection(self.progress, Tracker, fn)
-
-        self.has_called = True
-        breakpoint()

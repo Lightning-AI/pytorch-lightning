@@ -28,6 +28,7 @@ from pytorch_lightning.trainer.progress import (
     OptimizationProgress,
     OptimizerProgress,
     Progress,
+    ProgressDict,
     Tracker,
     TrainingEpochProgress,
 )
@@ -300,16 +301,16 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     except CustomException:
         pass
 
-    assert isinstance(trainer.fit_loop.progress, FitLoopProgress)
-    assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingEpochProgress)
+    # assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingEpochProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.progress, BatchProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optim_progress, OptimizationProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.val_loop.progress, EpochLoopProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress, EpochProgress)
 
-    assert trainer.fit_loop.progress.epoch == trainer.fit_loop.epoch_loop.progress
 
     pr = trainer.fit_loop.epoch_loop.progress
+
+    breakpoint()
 
     assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
     assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)

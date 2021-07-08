@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator
+
+import pytest
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
+from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_loop_restore():
@@ -76,7 +81,7 @@ def test_loop_restore():
     assert loop.outputs == list(range(10))
 
 
-def test_loop_recursivity():
+def test_loop_hierarchy():
 
     @dataclass
     class SimpleProgress(BaseProgress):
@@ -90,6 +95,8 @@ def test_loop_recursivity():
             self.increment = state_dict["increment"]
 
     class Simple(Loop):
+
+        __children__loops__ = ("loop_child", "something")
 
         def __init__(self, a):
             super().__init__()
@@ -109,20 +116,55 @@ def test_loop_recursivity():
         def reset(self) -> None:
             pass
 
-        def restore(self, state: Optional[Dict]) -> None:
-            assert state is not None
-            if self.a == 1:
-                assert state["a"] == self.a
-            else:
-                assert state["a"] != self.a
+        def restore(self) -> None:
+            pass
 
         def state_dict(self) -> Dict:
             return {"a": self.a}
 
+        def load_state_dict(self, state_dict: Dict) -> None:
+            self.a = state_dict["a"]
+
+    grand_loop_parent = Simple(0)
     loop_parent = Simple(1)
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
+    assert loop_child._num_parents == 1
+    loop_parent.loop_child = loop_child
+    assert loop_child._num_parents == 1
+
+    with pytest.raises(MisconfigurationException, match="The Simple already contains the provided loop"):
+        loop_parent.something = loop_child
+
+    with pytest.raises(MisconfigurationException, match="Loop hasn't been attached to any Trainer."):
+        grand_loop_parent.run()
+
+    grand_loop_parent.loop_child = loop_child
+    assert loop_child._num_parents == 2
+    del grand_loop_parent.loop_child
+    assert loop_child._num_parents == 1
+    assert loop_child.has_parent
+    assert loop_parent.has_children
+
     state_dict = loop_parent.get_state_dict()
+
+    with pytest.raises(MisconfigurationException, match="The current loop accept only"):
+        loop_parent.wrong_name = loop_child
+
+    loop_progress: ProgressDict = loop_parent.loop_progress
+    assert loop_progress["progress"] == loop_parent.progress
+    assert loop_progress["loop_child"]["progress"] == loop_child.progress
+
+    assert loop_progress.progress == loop_parent.progress
+    assert loop_progress.loop_child.progress == loop_child.progress
+
+    loop_progress = loop_child.loop_progress
+    assert loop_progress["progress"] == loop_child.progress
+    assert loop_progress.progress == loop_child.progress
+
+    loop_parent.trainer = Trainer()
+    assert loop_child.trainer == loop_parent.trainer
+
     assert state_dict == OrderedDict([('state_dict', {
         'a': 1
     }), ('progress', {
@@ -133,16 +175,20 @@ def test_loop_recursivity():
         'increment': 0
     })])
 
+    loop_parent.progress
+
     state_dict["loop_child.state_dict"]["a"] = 3
-    loop_parent.load_state_dict(state_dict)
-    cached_state = loop_parent.loop_child._cached_state
-    assert cached_state == state_dict["loop_child.state_dict"]
+    loop_parent._load_state_dict(state_dict)
     assert loop_parent.restarting
 
     loop_parent.run()
 
-    assert loop_parent._cached_state is None
-    assert loop_parent.loop_child._cached_state is None
+    loop_parent_copy = deepcopy(loop_parent)
+    assert loop_parent_copy.get_state_dict() == loop_parent.get_state_dict()
+
+    assert loop_parent_copy.state_dict() == {'a': 1}
+    assert loop_parent_copy.loop_child.state_dict() == {'a': 3}
+
     assert not loop_parent.restarting
 
     state_dict = loop_parent.get_state_dict()
@@ -151,7 +197,7 @@ def test_loop_recursivity():
     }), ('progress', {
         'increment': 2
     }), ('loop_child.state_dict', {
-        'a': 2
+        'a': 3
     }), ('loop_child.progress', {
         'increment': 1
     })])
@@ -159,10 +205,11 @@ def test_loop_recursivity():
     loop_parent = Simple(1)
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
-    loop_parent.load_state_dict(state_dict)
+    loop_parent._load_state_dict(state_dict)
     assert loop_parent.progress.increment == 2
     assert loop_parent.loop_child.progress.increment == 1
 
     del loop_parent.loop_child
+    assert loop_child._num_parents == 0
     state_dict = loop_parent.get_state_dict()
     assert state_dict == OrderedDict([('state_dict', {'a': 1}), ('progress', {'increment': 2})])
