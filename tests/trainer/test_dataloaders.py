@@ -582,7 +582,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
         assert trainer.max_epochs == 1
 
         trainer.fit(model)
-        assert not trainer.disable_validation
+        assert trainer.enable_validation
         assert trainer.num_training_batches == fast_dev_run
         assert trainer.num_val_batches == [fast_dev_run] * len(trainer.val_dataloaders)
 
@@ -813,11 +813,11 @@ def test_missing_worker_init_fn():
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat([batch for batch in dataloader])
+    batches0 = torch.cat(list(dataloader))
 
     seed_everything(0)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat([batch for batch in dataloader])
+    batches1 = torch.cat(list(dataloader))
 
     is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
     is_deterministic = torch.eq(batches0, batches1).all()
@@ -1304,7 +1304,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         val_check_interval=0.3,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
     )
     trainer.fit(model)
@@ -1368,17 +1368,16 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_dataloaders_load_every_epoch(tmpdir):
+@pytest.mark.parametrize("n", [1, 2])
+def test_dataloaders_load_every_n_epochs(tmpdir, n):
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0.3,
         limit_val_batches=0.3,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
     trainer.fit(model)
@@ -1386,24 +1385,27 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = [
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'test_dataloader',
-    ]
+    expected_sequence = ['val_dataloader']
+    if n == 1:
+        expected_sequence += ['train_dataloader', 'val_dataloader'] * 3
+    elif n == 2:
+        expected_sequence += ['train_dataloader', 'val_dataloader'] * 2
+    expected_sequence += ['test_dataloader']
+
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
+
+
+@pytest.mark.parametrize("n", ['test', -1])
+def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
+
+    with pytest.raises(MisconfigurationException, match='should be an int >'):
+        Trainer(
+            default_root_dir=tmpdir,
+            reload_dataloaders_every_n_epochs=n,
+        )
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -1426,7 +1428,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         limit_train_batches=0.3,
         limit_val_batches=0.3,
         num_sanity_val_steps=0,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
@@ -1533,7 +1535,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
             if self.trainer.training:
-                assert dataloader_idx is None
+                assert dataloader_idx == 0
             elif self.trainer.validating:
                 assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:

@@ -38,6 +38,7 @@ class LoggerConnector:
         self._progress_bar_metrics: Dict[str, float] = {}
         self._logged_metrics: Dict[str, _METRIC] = {}
         self._callback_metrics: Dict[str, _METRIC] = {}
+        self._gpus_metrics: Dict[str, str] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
@@ -94,11 +95,6 @@ class LoggerConnector:
         if self.trainer.logger is None or not metrics:
             return
 
-        # add gpu memory
-        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            metrics.update(mem_map)
-
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
 
@@ -124,10 +120,9 @@ class LoggerConnector:
     def _eval_log_step(self) -> Optional[int]:
         if self.trainer.state.stage is RunningStage.VALIDATING:
             return self._val_log_step
-        elif self.trainer.state.stage is RunningStage.TESTING:
+        if self.trainer.state.stage is RunningStage.TESTING:
             return self._test_log_step
-        else:
-            return None
+        return None
 
     def _increment_eval_log_step(self) -> None:
         if self.trainer.state.stage is RunningStage.VALIDATING:
@@ -159,9 +154,9 @@ class LoggerConnector:
         if self.trainer.sanity_checking:
             return
 
-        num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
+        num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
+        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
             callback_metrics = {
                 k: v
@@ -214,6 +209,8 @@ class LoggerConnector:
         if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
+        self._log_gpus_metrics()
+
         # when metrics should be logged
         assert not self._epoch_end_reached
         if self.should_update_logs or self.trainer.fast_dev_run:
@@ -226,6 +223,12 @@ class LoggerConnector:
 
         # reset result collection for next epoch
         self.trainer._results.reset(metrics=True)
+
+    def _log_gpus_metrics(self):
+        for key, mem in self.gpus_metrics.items():
+            gpu_id = int(key.split('/')[0].split(':')[1])
+            if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
     """
     Utilities and properties
@@ -266,6 +269,11 @@ class LoggerConnector:
         return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
+        if self.trainer.sanity_checking:
+            # reset metrics
+            self._progress_bar_metrics = {}
+            self._logged_metrics = {}
+            self._callback_metrics = {}
         self.trainer._results.reset(metrics=metrics)
         self._batch_idx = None
         self._split_idx = None
@@ -276,6 +284,13 @@ class LoggerConnector:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
         return self.trainer._results.metrics(on_step)
+
+    @property
+    def gpus_metrics(self) -> Dict[str, str]:
+        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
+            self._gpus_metrics.update(mem_map)
+        return self._gpus_metrics
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
@@ -297,9 +312,3 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
-
-    def teardown(self):
-        self.trainer.fit_loop.training_loop._results.cpu()
-        self.trainer.fit_loop.validation_loop._results.cpu()
-        self.trainer.validation_loop._results.cpu()
-        self.trainer.test_loop._results.cpu()

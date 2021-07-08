@@ -15,6 +15,7 @@
 import logging
 import os
 from typing import List, Optional, Sequence, Union
+from weakref import proxy
 
 import torch
 
@@ -56,7 +57,6 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
@@ -85,8 +85,8 @@ class AcceleratorConnector(object):
         tpu_cores,
         ipus,
         distributed_backend,
-        auto_select_gpus,
         gpus,
+        gpu_ids,
         num_nodes,
         sync_batchnorm,
         benchmark,
@@ -102,11 +102,12 @@ class AcceleratorConnector(object):
         self._distrib_type = None
 
         self.num_processes = num_processes
-        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        # `gpus` is the input passed to the Trainer, whereas `gpu_ids` is a list of parsed gpu ids.
+        self.gpus = gpus
+        self.parallel_device_ids = gpu_ids
+        self.tpu_cores = tpu_cores
         self.ipus = ipus
         self.distributed_backend = distributed_backend
-        self.auto_select_gpus = auto_select_gpus
-        self.gpus = gpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
@@ -130,12 +131,6 @@ class AcceleratorConnector(object):
             plugins = [plugins]
 
         self.plugins = plugins
-
-        # for gpus allow int, string and gpu list
-        if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = pick_multiple_gpus(gpus)
-
-        self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -244,6 +239,8 @@ class AcceleratorConnector(object):
 
     @property
     def cluster_environment(self) -> ClusterEnvironment:
+        if self._cluster_environment is None:
+            self._cluster_environment = self.select_cluster_environment()
         return self._cluster_environment
 
     @property
@@ -256,7 +253,7 @@ class AcceleratorConnector(object):
 
     @property
     def on_ipu(self) -> bool:
-        return self.ipus is not None
+        return self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin)
 
     @property
     def tpu_id(self) -> Optional[int]:
@@ -325,6 +322,14 @@ class AcceleratorConnector(object):
         return len(gpus)
 
     @property
+    def num_ipus(self) -> int:
+        if isinstance(self.ipus, int):
+            return self.ipus
+        if isinstance(self._training_type_plugin, IPUPlugin):
+            return self._training_type_plugin.replication_factor
+        return 0
+
+    @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
@@ -334,8 +339,7 @@ class AcceleratorConnector(object):
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
         elif self.on_ipu:
-            if isinstance(self.ipus, int):
-                devices = list(range(self.ipus))
+            devices = list(range(self.num_ipus))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
@@ -376,9 +380,9 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-        elif self.precision == 64:
+        if self.precision == 64:
             return DoublePrecisionPlugin()
-        elif self.precision == 16:
+        if self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
@@ -496,7 +500,9 @@ class AcceleratorConnector(object):
                 training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
-            training_type.cluster_environment = self.select_cluster_environment()
+            # transfer ownership of the cluster environment to the training type
+            training_type.cluster_environment = self.cluster_environment
+            self._cluster_environment = proxy(self.cluster_environment)
 
         if hasattr(training_type, 'num_nodes'):
             # set num_nodes for training_type from trainer setting
@@ -529,10 +535,15 @@ class AcceleratorConnector(object):
             acc_cls = CPUAccelerator
         # as precision_plugin is dependent on training_type_plugin, make sure
         # that we first select training_type_plugin, then precision_plugin
-        return acc_cls(
+        accelerator = acc_cls(
             training_type_plugin=self.training_type_plugin,
             precision_plugin=self.precision_plugin,
         )
+        # transfer ownership of the plugins to the accelerator
+        self._training_type_plugin = proxy(self.training_type_plugin)
+        self._precision_plugin = proxy(self.precision_plugin)
+
+        return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
@@ -665,7 +676,7 @@ class AcceleratorConnector(object):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
-                'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
+                'Requested `accelerator="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 

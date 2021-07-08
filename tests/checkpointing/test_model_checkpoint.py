@@ -340,7 +340,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     path_yaml = os.path.join(tmpdir, 'best_k_models.yaml')
     checkpoint.to_yaml(path_yaml)
     d = yaml.full_load(open(path_yaml, 'r'))
-    best_k = {k: v for k, v in checkpoint.best_k_models.items()}
+    best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
 
@@ -533,7 +533,7 @@ def test_model_checkpoint_save_last(tmpdir):
 
 def test_invalid_top_k(tmpdir):
     """ Make sure that a MisconfigurationException is raised for a negative save_top_k argument. """
-    with pytest.raises(MisconfigurationException, match=r'.*Must be None or >= -1'):
+    with pytest.raises(MisconfigurationException, match=r'.*Must be >= -1'):
         ModelCheckpoint(dirpath=tmpdir, save_top_k=-3)
 
 
@@ -544,9 +544,9 @@ def test_none_monitor_top_k(tmpdir):
     ):
         ModelCheckpoint(dirpath=tmpdir, save_top_k=3)
     # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, save_top_k=None)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
+    ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
 
 
 def test_none_monitor_save_last(tmpdir):
@@ -823,7 +823,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     assert checkpoint_callback.best_model_path == tmpdir / "epoch=2.ckpt"
     assert checkpoint_callback.best_model_score == epochs - 1
     assert len(os.listdir(tmpdir)) == len(checkpoint_callback.best_k_models) == epochs
-    assert set(checkpoint_callback.best_k_models.keys()) == set(str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs))
+    assert set(checkpoint_callback.best_k_models.keys()) == {str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs)}
     assert checkpoint_callback.kth_best_model_path == tmpdir / 'epoch=0.ckpt'
 
 
@@ -1021,7 +1021,6 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
             ...
 
     def assert_trainer_init(trainer):
-        assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
 
@@ -1057,7 +1056,6 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
     model = ExtendedBoringModel()
     trainer.fit(model)
-    assert trainer.checkpoint_connector.has_trained
     assert trainer.global_step == epochs * limit_train_batches
     assert trainer.current_epoch == epochs - 1
     assert_checkpoint_log_dir(0)
@@ -1081,19 +1079,16 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         model = ExtendedBoringModel()
 
         trainer.test(model)
-        assert not trainer.checkpoint_connector.has_trained
         # resume_from_checkpoint is resumed when calling `.fit`
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
 
         trainer.fit(model)
-        assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)
 
         trainer.validate(model)
-        assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
 
@@ -1272,10 +1267,11 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
 
         # check best_k_models state
         expected = {"epoch=0-v1.ckpt", "epoch=1-v1.ckpt"} if i else {"epoch=0.ckpt", "epoch=1.ckpt"}
-        assert {Path(f).name for f in mc.best_k_models.keys()} == expected
+        assert {Path(f).name for f in mc.best_k_models} == expected
 
     # check created ckpts
-    assert set(f.basename for f in tmpdir.listdir()) == {
+    actual = {f.basename for f in tmpdir.listdir()}
+    assert actual == {
         "epoch=0.ckpt",
         "epoch=1.ckpt",
         "epoch=0-v1.ckpt",
@@ -1307,7 +1303,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
     expected = {'test.ckpt', *[f"test-v{i}.ckpt" for i in ckpt_range]}
     # check best_k_models state
-    assert {Path(f).name for f in mc.best_k_models.keys()} == expected
+    assert {Path(f).name for f in mc.best_k_models} == expected
     # check created ckpts
     assert set(os.listdir(tmpdir)) == expected
 

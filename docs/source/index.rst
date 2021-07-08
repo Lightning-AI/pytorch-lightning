@@ -133,7 +133,7 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: community
+   :name: Community
    :caption: Community
 
 

@@ -20,7 +20,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 class StatScores(_StatScores):
 
-    @deprecated_metrics(target=_StatScores)
+    @deprecated_metrics(target=_StatScores, args_mapping={"is_multiclass": None})
     def __init__(
         self,
         threshold: float = 0.5,
