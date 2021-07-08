@@ -183,8 +183,9 @@ class Loop(ABC):
         if self.restarting:
             if not is_overridden("restore", self, Loop):
                 warning_cache.warn(f"{self.__class__.__name__} Loop doesn't override the restore function.")
-            self.restore()
-            self.restarting = False
+            is_restore_finished = self.restore()
+            if is_restore_finished is None or is_restore_finished:
+                self.restarting = False
         else:
             self.reset()
 
@@ -202,8 +203,13 @@ class Loop(ABC):
         output = self.on_run_end()
         return output
 
-    def restore(self, state: Optional[Dict] = None) -> None:
-        """Restore the internal state of the loop the beginning of run if restarting is ``True``."""
+    def restore(self) -> Optional[bool]:
+        """
+        Restore the internal state of the loop the beginning of run if restarting is ``True``.
+
+        Returns:
+            is_restore_finished: Whether the restoration actually finished.
+        """
 
     @abstractmethod
     def reset(self) -> None:

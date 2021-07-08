@@ -112,11 +112,12 @@ class TrainingBatchLoop(Loop):
         self.batch_idx = 0
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def restore(self) -> None:
+    def restore(self) -> bool:
         """Restore the loop state"""
         self._initialize()
 
-        self.is_restarting = True
+        # restarting isn't finished yet.
+        return False
 
     def reset(self) -> None:
         """Resets the loop state"""
@@ -164,10 +165,10 @@ class TrainingBatchLoop(Loop):
             for opt_idx, optimizer in active_optimizers:
 
                 # handle optimization restart
-                if self.is_restarting:
+                if self.restarting:
                     if len(active_optimizers) > 1 and opt_idx < self.progress.current.completed:
                         continue
-                    self.is_restarting = False
+                    self.restarting = False
 
                 # track optimizer_idx
                 self.optim_progress.optimizer_idx = opt_idx
