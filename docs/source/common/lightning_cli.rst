@@ -203,10 +203,10 @@ that might not be clear by only reading the help are the following.
 
 :class:`~pytorch_lightning.utilities.cli.LightningCLI` is based on argparse and as such follows the same arguments style
 as many POSIX command line tools. Long options are prefixed with two dashes and its corresponding values should be
-provided with an empty space or an equal sign, as :code:`--option value` or :code:`--option=value`. The same options can
-be given multiple times and ones given later (to the right) override the previous ones. If a class has an init parameter
-that is required, it also has to be given as :code:`--option` which makes things explicit and more readable instead of
-relying on positional arguments.
+provided with an empty space or an equal sign, as :code:`--option value` or :code:`--option=value`. Command line options
+are parsed from left to right, therefore if a setting appears multiple times the value most to the right will override
+the previous ones. If a class has an init parameter that is required (i.e. no default value), it is given as
+:code:`--option` which makes it explicit and more readable instead of relying on positional arguments.
 
 When calling a CLI, all options can be provided using individual arguments. However, given the large amount of options
 that the CLIs have, it is recommended to use a combination of config files and individual arguments. Therefore, a common
@@ -217,11 +217,20 @@ config, for example:
 
     $ python trainer.py --config experiment_defaults.yaml --trainer.max_epochs 100
 
-Another common pattern could be having multiple config files, two examples being:
+Another common pattern could be having multiple config files:
 
 .. code-block:: bash
 
     $ python trainer.py --config config1.yaml --config config2.yaml [...]
+
+As explained before, :code:`config1.yaml` is parsed first and then :code:`config2.yaml`. Therefore, if individual
+settings are defined in both files, then the ones in :code:`config2.yaml` will be used. Settings in :code:`config1.yaml`
+that are not in :code:`config2.yaml` are be kept.
+
+Groups of options can also be given as independent config files:
+
+.. code-block:: bash
+
     $ python trainer.py --trainer trainer.yaml --model model.yaml --data data.yaml [...]
 
 When running experiments in clusters it could be desired to use a config which needs to be accessed from a remote
@@ -241,8 +250,9 @@ a path to a file, for example:
 
     $ python trainer.py --trainer "$TRAINER_CONFIG" --model "$MODEL_CONFIG" [...]
 
-An alternative for environment variables could be to instantiate the CLI with :code:`env_parse=True`. In this case the help shows the names of the environment variables for all options. A global config would be given in
-:code:`PL_CONFIG` and there wouldn't be a need to specify any command line argument.
+An alternative for environment variables could be to instantiate the CLI with :code:`env_parse=True`. In this case the
+help shows the names of the environment variables for all options. A global config would be given in :code:`PL_CONFIG`
+and there wouldn't be a need to specify any command line argument.
 
 It is also possible to set a path to a config file of defaults. If the file exists it would be automatically loaded
 without having to specify any command line argument. Arguments given would override the values in the default config
@@ -576,8 +586,9 @@ The linking of arguments is observed in the help of the tool, which for this exa
         model.batch_size <-- data.batch_size
                               Number of samples in a batch (type: int)
 
-Sometimes a parameter value is only available after class instantiation. An example could be that your model requires the number of classes to instantiate its fully connected layer (for a classification task) but the value is not available until the data module has been instantiated.
-The code below illustrates how to address this.
+Sometimes a parameter value is only available after class instantiation. An example could be that your model requires
+the number of classes to instantiate its fully connected layer (for a classification task) but the value is not
+available until the data module has been instantiated. The code below illustrates how to address this.
 
 .. testcode::
 
