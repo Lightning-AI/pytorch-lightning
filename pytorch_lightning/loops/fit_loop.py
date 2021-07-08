@@ -42,8 +42,8 @@ class FitLoop(Loop):
     # FIXME: update the note above
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
-        self.max_epochs = min_epochs
-        self.min_epochs = max_epochs
+        self.max_epochs = max_epochs
+        self.min_epochs = min_epochs
         self.epoch_loop = None
         self.progress: Optional[FitLoopProgress] = None
 
