@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.8
 
       - name: Install dependencies
         run: >-
@@ -82,7 +82,10 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
-        pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
+        pytorch_version: ["1.6", "1.7", "1.8", "1.9"]
+        exclude:
+          - python_version: "3.9"
+            pytorch_version: "1.6"
 
     steps:
       - name: Checkout
@@ -96,7 +99,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Publish CUDA to Docker Hub
-        if: ${{ matrix.pytorch_version != '1.10' }}
         # publish master/release
         uses: docker/build-push-action@v2
         with:
@@ -115,6 +117,9 @@ jobs:
       matrix:
         python_version: ["3.6", "3.7", "3.8", "3.9"]
         pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
+        exclude:
+          - python_version: "3.9"
+            pytorch_version: "1.6"
 
     steps:
       - name: Checkout
