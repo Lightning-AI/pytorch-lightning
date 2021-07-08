@@ -297,7 +297,7 @@ class HookedModel(BoringModel):
         using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
-            expected = [
+            out.extend([
                 dict(name='on_before_batch_transfer', args=(ANY, 0)),
                 dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
                 dict(name='on_after_batch_transfer', args=(ANY, 0)),
@@ -325,15 +325,14 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
                 dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
                 dict(name='Callback.on_batch_end', args=(trainer, model)),
-            ]
-            out.extend(expected)
+            ])
         return out
 
     def _manual_train_batch(self, trainer, model, batches, device=torch.device('cpu'), **kwargs):
         using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
         for i in range(batches):
-            expected = [
+            out.extend([
                 dict(name='on_before_batch_transfer', args=(ANY, 0)),
                 dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
                 dict(name='on_after_batch_transfer', args=(ANY, 0)),
@@ -355,8 +354,7 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
                 dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
                 dict(name='Callback.on_batch_end', args=(trainer, model)),
-            ]
-            out.extend(expected)
+            ])
         return out
 
     @staticmethod
