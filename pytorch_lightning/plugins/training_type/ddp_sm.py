@@ -75,6 +75,11 @@ class DDPSMPlugin(DDPPlugin):
         rank_zero_only.rank = self.global_rank
         self.model_to_device()
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
