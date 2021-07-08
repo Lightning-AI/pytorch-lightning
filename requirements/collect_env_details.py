@@ -26,26 +26,11 @@ import numpy
 import torch
 import tqdm
 
-sys.path += [os.path.abspath('..'), os.path.abspath('.')]
+sys.path += [os.path.abspath('..'), os.path.abspath('../tests')]
 import pytorch_lightning  # noqa: E402
 
 LEVEL_OFFSET = '\t'
 KEY_PADDING = 20
-
-
-def run_and_parse_first_match(run_lambda, command, regex):
-    """Runs command using run_lambda, returns the first regex match if it exists"""
-    rc, out, _ = run_lambda(command)
-    if rc != 0:
-        return None
-    match = re.search(regex, out)
-    if match is None:
-        return None
-    return match.group(1)
-
-
-def get_running_cuda_version(run_lambda):
-    return run_and_parse_first_match(run_lambda, 'nvcc --version', r'V(.*)$')
 
 
 def info_system():
