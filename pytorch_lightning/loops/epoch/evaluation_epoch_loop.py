@@ -110,12 +110,6 @@ class EvaluationEpochLoop(Loop):
 
         batch_idx, batch = next(dataloader_iter)
 
-        print()
-        print(
-            "BATCH_IDX", self.trainer.current_epoch, self.trainer.fit_loop.epoch_loop.batch_idx, dataloader_idx,
-            batch_idx
-        )
-
         if batch is None:
             raise StopIteration
 

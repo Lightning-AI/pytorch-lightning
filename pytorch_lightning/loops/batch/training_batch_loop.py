@@ -27,7 +27,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import BatchProgress, OptimizationProgress
+from pytorch_lightning.trainer.progress import OptimizationProgress, Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -49,7 +49,7 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self.progress = BatchProgress()
+        self.progress = Progress()
         self.optim_progress = OptimizationProgress()
         self._dataloader_idx = 0
         self._warning_cache: WarningCache = WarningCache()
@@ -57,6 +57,7 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
+        self.is_restarting: bool = False
 
     @property
     def current_batch_completed(self):
@@ -86,10 +87,6 @@ class TrainingBatchLoop(Loop):
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
-        print()
-        print("TRAIN BATCH IDX", self.trainer.current_epoch, batch_idx)
-        print()
-
         self.progress.increment_ready()
 
         # hook
@@ -118,6 +115,8 @@ class TrainingBatchLoop(Loop):
     def restore(self) -> None:
         """Restore the loop state"""
         self._initialize()
+
+        self.is_restarting = True
 
     def reset(self) -> None:
         """Resets the loop state"""
@@ -165,9 +164,10 @@ class TrainingBatchLoop(Loop):
             for opt_idx, optimizer in active_optimizers:
 
                 # handle optimization restart
-                if self.trainer.is_restarting:
+                if self.is_restarting:
                     if len(active_optimizers) > 1 and opt_idx < self.progress.current.completed:
                         continue
+                    self.is_restarting = False
 
                 # track optimizer_idx
                 self.optim_progress.optimizer_idx = opt_idx

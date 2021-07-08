@@ -258,7 +258,7 @@ def test_epoch_loop_progress_serialization():
                 # number of batches this `validate` call
                 'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
             },
-            'dataloader_idx': 1,
+            'dataloader_idx': 1
         }
     }
     # yapf: enable
@@ -268,8 +268,8 @@ def test_epoch_loop_progress_serialization():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("use_multiple_optimizers", [False])
-@pytest.mark.parametrize("accumulate_grad_batches", [1])
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
     class TestModel(BoringModel):
@@ -318,8 +318,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     except CustomException:
         pass
 
-    # assert isinstance(trainer.fit_loop.epoch_loop.progress, TrainingEpochProgress)
-    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.progress, BatchProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optim_progress, OptimizationProgress)
 
     pr = trainer.fit_loop.epoch_loop.progress

@@ -138,6 +138,7 @@ class Progress(BaseProgress):
         self.current.load_state_dict(state_dict["current"])
 
 
+@dataclass
 class BatchProgress(Progress):
     """
     Tracks the batch progress
@@ -146,7 +147,6 @@ class BatchProgress(Progress):
         total: Tracks the total epoch progress
         current: Tracks the current epoch progress
     """
-    should_check_val: bool = False
 
 
 @dataclass
