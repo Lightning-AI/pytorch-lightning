@@ -78,7 +78,7 @@ COPY environment.yml environment.yml
 ARG PYTORCH_VERSION=1.6
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit cudnn nccl nvcc_linux-64 pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit nvcc_linux-64 pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
