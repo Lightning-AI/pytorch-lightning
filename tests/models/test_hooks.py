@@ -256,6 +256,8 @@ class HookedModel(BoringModel):
     def __init__(self, called):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
+        # remove non-hooks
+        pl_module_hooks.difference_update({'optimizers'})
         # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         module_hooks.difference_update({'forward', 'zero_grad', 'train'})
@@ -343,7 +345,6 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
                 dict(name='forward', args=(ANY, )),
-                dict(name='optimizers'),
                 # DeepSpeed handles backward internally
                 *([dict(name='backward', args=(ANY, None, None))] if not using_deepspeed else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
