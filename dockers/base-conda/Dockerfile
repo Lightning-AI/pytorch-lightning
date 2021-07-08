@@ -16,21 +16,25 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
 
-ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=10.2
 
-# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
-# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+#FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
+# https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
+ENV \
+    PATH="$PATH:/root/.local/bin" \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Europe/Prague \
+    PATH="$PATH:/root/.local/bin" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    MKL_THREADING_LAYER=GNU
 
-ENV PATH="$PATH:/root/.local/bin"
-
-RUN apt-get update -qq && \
+RUN apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -76,7 +80,7 @@ COPY environment.yml environment.yml
 ARG PYTORCH_VERSION=1.6
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch -c pytorch-test -c pytorch-nightly && \
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later

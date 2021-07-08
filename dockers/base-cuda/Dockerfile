@@ -34,7 +34,7 @@ ENV \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU
 
-RUN apt-get update -qq && \
+RUN apt-get update -qq --fix-missing  && \
     apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
