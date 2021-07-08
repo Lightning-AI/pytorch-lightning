@@ -61,10 +61,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             )
         # todo: hack around for deepspeed engine to call backward
         deepspeed_engine = model.trainer.model
-
-        # hook
-        model.trainer.call_hook("on_before_backward", closure_loss)
-
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
     def clip_gradients(

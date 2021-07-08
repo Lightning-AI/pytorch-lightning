@@ -297,18 +297,10 @@ class ModelHooks:
 
     def on_before_backward(self, loss: torch.Tensor) -> None:
         """
-        Override on_before_backward with your own implementation if you need to.
-
-        Args:
-            loss: Loss divided by number of batches for gradient accumulation and possibly scaled by Mixed Precision.
-
         Called before ``loss.backward()``.
 
-        Example::
-
-            def on_before_backward(self, loss):
-                print(f"Current Loss: {loss}")
-
+        Args:
+            loss: Loss divided by number of batches for gradient accumulation.
         """
         pass
 
