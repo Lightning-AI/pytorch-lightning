@@ -41,8 +41,10 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        # DeepSpeed not support closures.
-        lambda_closure()
+        """Hook to do something before each optimizer step."""
+        pl_module.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+        lambda_closure()  # DeepSpeed does not support closures
         deepspeed_engine = pl_module.trainer.model
         deepspeed_engine.step()
         return False

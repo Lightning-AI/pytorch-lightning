@@ -57,9 +57,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-        # TODO: Add `on_before_optimizer_step`
-        # self.scaler.unscale_(optimizer)
-        # pl_module.trainer.call_hook("on_before_optimizer_step")
+        self.scaler.unscale_(optimizer)
+        pl_module.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         if pl_module.automatic_optimization:
             result = lambda_closure()
             if result is None:

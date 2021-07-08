@@ -297,32 +297,36 @@ class ModelHooks:
 
     def on_after_backward(self) -> None:
         """
-        Called in the training loop after ``loss.backward()`` and before optimizers do anything.
-        This is the ideal place to inspect or log gradient information.
+        Called in the training loop after ``loss.backward()`` and before optimizers are stepped.
 
         Note:
-            If :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches` is greater than one, this hook
-            is called after each of the backward passes during gradient accumulation. This is in contrast to
-            `on_before_optimizer_step()` which is always called only once before the optimizer step.
+            If using native AMP, the gradients will not be unscaled at this point.
+            Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
+        """
+
+    def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """
+        Called before ``optimizer.step()``.
+
+        The hook is only called if gradients do not need to be accumulated.
+        See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+        If using native AMP, the loss will be unscaled before calling this hook.
+        See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
+        for more information on the scaling of gradients.
+
+        Args:
+            optimizer: Current optimizer being used.
+            optimizer_idx: Index of the current optimizer being used.
 
         Example::
 
-            def on_after_backward(self):
+            def on_before_optimizer_step(self, optimizer, optimizer_idx):
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     for k, v in self.named_parameters():
                         self.logger.experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
-
-        """
-
-    def on_before_optimizer_step(self, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
-        """
-        Called after ``on_after_backward()`` once the gradient is accumulated and before ``optimizer.step()``.
-
-        Called only once, in contrast to ``on_after_backward()`` which might be called multiple times corresponding
-        to the value of :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
         """
 
     def on_post_move_to_device(self) -> None:

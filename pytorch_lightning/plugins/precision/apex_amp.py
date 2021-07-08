@@ -96,11 +96,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        """
-        always called before the optimizer step.
-        """
-        # apex amp does not support closures.
-        lambda_closure()
+        """Hook to do something before each optimizer step."""
+        pl_module.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+        lambda_closure()  # APEX amp does not support closures
         optimizer.step(**kwargs)
         return False
 
