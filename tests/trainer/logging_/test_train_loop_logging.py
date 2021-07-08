@@ -451,7 +451,7 @@ def test_log_works_in_train_callback(tmpdir):
 
     for fx, attrs in cb.logged_arguments.items():
         should_include = attrs["prog_bar"] and attrs["on_step"] ^ attrs["on_epoch"]
-        is_included = fx in trainer.logger_connector.progress_bar_metrics
+        is_included = fx in trainer.progress_bar_metrics
         assert is_included if should_include else not is_included
 
 
@@ -590,7 +590,6 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             self.log("on_train_epoch_end", 6)
-            self.callback_metrics = trainer.logger_connector.callback_metrics
 
     model = BoringModel()
     trainer = Trainer(
@@ -757,9 +756,9 @@ def test_sanity_metrics_are_reset(tmpdir):
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             if batch_idx == 0:
-                assert self.trainer.logger_connector._progress_bar_metrics == {}
-                assert self.trainer.logger_connector._logged_metrics == {}
-                assert self.trainer.logger_connector._callback_metrics == {}
+                assert self.trainer.progress_bar_metrics == {}
+                assert self.trainer.logged_metrics == {}
+                assert self.trainer.callback_metrics == {}
             self.log("train_loss", loss, prog_bar=True, logger=True)
             return loss
 

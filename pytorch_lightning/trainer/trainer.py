@@ -146,6 +146,7 @@ class Trainer(
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
+        reload_dataloaders_every_n_epochs: int = 0,
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -274,7 +275,14 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
+            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: 0
+
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
+
+                .. deprecated:: v1.4
+                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
+                    Please use ``reload_dataloaders_every_n_epochs``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -385,7 +393,8 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch,
+            prepare_data_per_node
         )
 
         # init training tricks
@@ -961,8 +970,6 @@ class Trainer(
             self.progress_bar_callback.disable()
 
         self._run_sanity_check(self.lightning_module)
-
-        self.checkpoint_connector.has_trained = False
 
         # enable train mode
         self.model.train()

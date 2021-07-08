@@ -596,8 +596,6 @@ class TrainingBatchLoop(Loop):
             optimizer: The optimizer optimizing the gradients to call backward for
             opt_idx: the index of the current optimizer
         """
-        self.trainer.dev_debugger.track_event("backward_call")
-
         should_accumulate = self.should_accumulate()
 
         # backward can be called manually in the training loop
@@ -608,7 +606,7 @@ class TrainingBatchLoop(Loop):
                 result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 
-        if not self.should_accumulate():
+        if not should_accumulate:
             # track gradients
             grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
             if grad_norm_dict:
