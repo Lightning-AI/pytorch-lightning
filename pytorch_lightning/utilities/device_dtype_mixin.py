@@ -31,7 +31,7 @@ class DeviceDtypeModuleMixin(Module):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, new_dtype: Union[str, torch.dtype]) -> RuntimeError:
+    def dtype(self, new_dtype: Union[str, torch.dtype]) -> None:
         # necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
 
@@ -121,12 +121,9 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        if isinstance(device, torch.device):
-            property_device = device
-        elif isinstance(device, int):
-            property_device = torch.device('cuda', index=device)
-        else:
-            property_device = torch.device('cuda')
+        property_device = (
+            device if isinstance(device, torch.device) else torch.device('cuda', index=device)  # type: ignore
+        )  # mypy expects `device` for `index` to be int, while `Optional[int]` is okay => ignore typing for now
         self.__update_properties(device=property_device)
         return super().cuda(device=device)
 
