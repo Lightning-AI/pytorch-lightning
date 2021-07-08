@@ -60,7 +60,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step later on
+            optimizer: current optimizer being used. ``None`` if using manual optimization
         """
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
