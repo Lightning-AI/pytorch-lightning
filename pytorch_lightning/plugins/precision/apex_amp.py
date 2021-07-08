@@ -63,7 +63,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             optimizer: the optimizer to perform the step later on
         """
         opt = optimizer or model.trainer.optimizers
-        with amp.scale_loss(closure_loss, opt):
+        with amp.scale_loss(closure_loss, opt) as closure_loss:
             super().backward(model, closure_loss, optimizer, *args, **kwargs)
 
     @staticmethod
