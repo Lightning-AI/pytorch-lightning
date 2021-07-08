@@ -225,19 +225,7 @@ class CheckpointConnector:
 
         state_dict = self._loaded_checkpoint.get("loops", None)
         if state_dict:
-            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
-            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
-            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
-            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
-
-            self.trainer.fit_loop.restarting = True
-            self.trainer.fit_loop.epoch_loop.restarting = True
-            self.trainer.fit_loop.epoch_loop.batch_loop.restarting = True
-            self.trainer.fit_loop.epoch_loop.val_loop.restarting = True
-            self.trainer.validate_loop.restarting = True
-            self.trainer.test_loop.restarting = True
-            self.trainer.predict_loop.restarting = True
-            self.trainer.is_restarting = True
+            self.trainer.loop_connector.load_state_dict(state_dict)
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
@@ -358,12 +346,6 @@ class CheckpointConnector:
 
         if fault_tolerant_enabled():
             checkpoint["loops"] = self.get_loops_state_dict()
-            # checkpoint.update({
-            #    'progress': self.get_progress_state_dict(),
-            #    'samplers': self.get_samplers_state_dict(),
-            #    'gradients': self.get_gradients_state_dict(),
-            #    'current_workers': self.get_current_worker(),
-            # })
 
         if not weights_only:
             # dump callbacks
@@ -415,10 +397,10 @@ class CheckpointConnector:
 
     def get_loops_state_dict(self):
         return {
-            "fit_loop": self.trainer.fit_loop.state_dict(),
-            "validate_loop": self.trainer.validate_loop.state_dict(),
-            "test_loop": self.trainer.test_loop.state_dict(),
-            "predict_loop": self.trainer.predict_loop.state_dict(),
+            "fit_loop": self.trainer.fit_loop.get_state_dict(),
+            "validate_loop": self.trainer.validate_loop.get_state_dict(),
+            "test_loop": self.trainer.test_loop.get_state_dict(),
+            "predict_loop": self.trainer.predict_loop.get_state_dict(),
         }
 
     def get_progress_state_dict(self):

@@ -16,7 +16,6 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
@@ -83,12 +82,6 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and (self.total_optimizer_step) >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.batch_loop.connect(trainer)
-        self.val_loop.connect(trainer)
-
     def _initialize(self) -> None:
         self.iteration_count = 0
         self.batches_seen = 0
@@ -105,12 +98,12 @@ class TrainingEpochLoop(loops.Loop):
         self.iteration_count = self.total_epoch_completed
         self.batches_seen = self.total_epoch_completed
 
+        # reset tracking
+        self.progress.current.reset()
+
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self._initialize()
-
-        # reset tracking
-        self.progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.progress.increment_ready()

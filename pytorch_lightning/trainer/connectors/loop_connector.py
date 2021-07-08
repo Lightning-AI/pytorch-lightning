@@ -15,6 +15,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import EvaluationLoop, FitLoop, PredictionLoop
+from pytorch_lightning.loops.base import Loop
 
 
 class LoopConnector(object):
@@ -28,7 +29,7 @@ class LoopConnector(object):
         self.trainer.test_loop = self.on_test_loop_init(*args, **kwargs)
         self.trainer.predict_loop = self.on_predict_loop_init(*args, **kwargs)
 
-        self.connect_loops_to_trainer()
+        self.connect(self.trainer)
 
     def on_fit_loop_init(
         self,
@@ -37,22 +38,35 @@ class LoopConnector(object):
         min_steps: Optional[int] = None,
         max_steps: Optional[int] = None,
         **__,
-    ):
+    ) -> Loop:
         return FitLoop(min_epochs=min_epochs, max_epochs=max_epochs, min_steps=min_steps, max_steps=max_steps)
 
-    def on_validate_loop_init(self, *_, **__):
+    def on_validate_loop_init(self, *_, **__) -> Loop:
         return EvaluationLoop()
 
-    def on_test_loop_init(self, *_, **__):
+    def on_test_loop_init(self, *_, **__) -> Loop:
         return EvaluationLoop()
 
-    def on_predict_loop_init(self, *_, **__):
+    def on_predict_loop_init(self, *_, **__) -> Loop:
         return PredictionLoop()
 
-    def connect_loops_to_trainer(self):
-        self.trainer.fit_loop.trainer = self.trainer
-        self.trainer.validate_loop.trainer = self.trainer
-        self.trainer.test_loop.trainer = self.trainer
-        self.trainer.predict_loop.trainer = self.trainer
+    def connect(self, trainer: 'pl.Trainer') -> None:
+        trainer.fit_loop.trainer = trainer
+        trainer.validate_loop.trainer = trainer
+        trainer.test_loop.trainer = trainer
+        trainer.predict_loop.trainer = trainer
 
-        breakpoint()
+    def load_state_dict(self, state_dict, apply_restart: bool = True):
+        self.trainer.fit_loop._load_state_dict(state_dict["fit_loop"], apply_restart=apply_restart)
+        self.trainer.validate_loop._load_state_dict(state_dict["validate_loop"], apply_restart=apply_restart)
+        self.trainer.test_loop._load_state_dict(state_dict["test_loop"], apply_restart=apply_restart)
+        self.trainer.predict_loop._load_state_dict(state_dict["predict_loop"], apply_restart=apply_restart)
+
+        self.trainer.fit_loop.restarting = True
+        self.trainer.fit_loop.epoch_loop.restarting = True
+        self.trainer.fit_loop.epoch_loop.batch_loop.restarting = True
+        self.trainer.fit_loop.epoch_loop.val_loop.restarting = True
+        self.trainer.validate_loop.restarting = True
+        self.trainer.test_loop.restarting = True
+        self.trainer.predict_loop.restarting = True
+        self.trainer.is_restarting = True

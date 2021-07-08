@@ -23,7 +23,6 @@ from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
@@ -59,19 +58,6 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
 
-    def connect(
-        self,
-        trainer: 'pl.Trainer',
-        *args: Any,
-        progress: Optional[BatchProgress] = None,
-        optim_progress: Optional[OptimizationProgress] = None,
-        **kwargs: Any
-    ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.progress = progress or self.progress
-        self.optim_progress = optim_progress or self.optim_progress
-
     @property
     def done(self) -> bool:
         """Returns if all batch splits have been processed already"""
@@ -95,6 +81,9 @@ class TrainingBatchLoop(Loop):
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
+
+        if batch_idx == 0:
+            self.progress.current.reset()
 
         self.progress.increment_ready()
 
@@ -128,7 +117,6 @@ class TrainingBatchLoop(Loop):
         """Resets the loop state"""
         self._initialize()
 
-        # reset tracking
         self.optim_progress.optimizer.reset_on_epoch()
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
@@ -744,12 +732,3 @@ class TrainingBatchLoop(Loop):
         if lightning_module.truncated_bptt_steps > 0:
             return lightning_module.truncated_bptt_steps
         return self.trainer.truncated_bptt_steps or 0
-
-    def state_dict(self) -> Dict:
-        return {"progress": self.progress.state_dict(), "optim_progress": self.optim_progress.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        if "progress" in state_dict:
-            self.progress.load_state_dict(state_dict['progress'])
-        if "optim_progress" in state_dict:
-            self.optim_progress.load_state_dict(state_dict['optim_progress'])

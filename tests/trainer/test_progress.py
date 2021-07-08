@@ -28,9 +28,7 @@ from pytorch_lightning.trainer.progress import (
     OptimizationProgress,
     OptimizerProgress,
     Progress,
-    ProgressDict,
     Tracker,
-    TrainingEpochProgress,
 )
 from tests.helpers import BoringModel
 
@@ -309,13 +307,13 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     pr = trainer.fit_loop.epoch_loop.progress
 
-    breakpoint()
-
     assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
     assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
 
-    assert pr.batch.total == Tracker(ready=5, started=5, processed=4, completed=4)
-    assert pr.batch.current == Tracker(ready=2, started=2, processed=1, completed=1)
+    pr = trainer.fit_loop.epoch_loop.batch_loop.progress
+
+    assert pr.total == Tracker(ready=5, started=5, processed=4, completed=4)
+    assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
 
     num_optimizers = 3 if use_multiple_optimizers else 1
 
@@ -377,10 +375,12 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     assert pr.total == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.current == Tracker(ready=2, started=2, processed=2, completed=2)
 
-    assert pr.batch.total == Tracker(ready=9, started=9, processed=9, completed=9)
-    assert pr.batch.current == Tracker(ready=3, started=3, processed=3, completed=3)
+    pr = trainer.fit_loop.epoch_loop.batch_loop.progress
 
-    optim = trainer.fit_loop.epoch_loop.progress.optim
+    assert pr.total == Tracker(ready=9, started=9, processed=9, completed=9)
+    assert pr.current == Tracker(ready=3, started=3, processed=3, completed=3)
+
+    optim = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
 
     if accumulate_grad_batches == 2:
         total = 2 * 3 * (3 if use_multiple_optimizers else 1)

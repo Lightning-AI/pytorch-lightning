@@ -14,13 +14,12 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import Progress, Tracker
+from pytorch_lightning.trainer.progress import Tracker
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -177,11 +176,6 @@ class FitLoop(Loop):
     def skip(self) -> bool:
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
-
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""

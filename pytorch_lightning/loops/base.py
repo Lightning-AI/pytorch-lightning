@@ -19,7 +19,8 @@ from typing import Any, Dict, Optional
 from deprecate import void
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
+from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict, Tracker
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -255,22 +256,24 @@ class Loop(ABC):
             loop.get_state_dict(destination, prefix + name + '.')
         return destination
 
-    def _load_from_state_dict(self, state_dict, prefix, strict, missing_keys, unexpected_keys, error_msgs):
+    def _load_from_state_dict(self, state_dict, prefix, apply_restart):
         self.load_state_dict(state_dict[prefix + "state_dict"])
 
         for name, progress in self._progress.items():
             progress.load_state_dict(state_dict[prefix + name])
+            if apply_restart:
 
-    def _load_state_dict(self, state_dict: Dict, strict: bool = True):
+                def restart(v: Tracker):
+                    v.reset_on_restart()
 
-        missing_keys = []
-        unexpected_keys = []
-        error_msgs = []
+                apply_to_collection(progress, Tracker, restart)
+
+    def _load_state_dict(self, state_dict: Dict, apply_restart: bool = True):
 
         state_dict = state_dict.copy()
 
         def load(loop, prefix=''):
-            loop._load_from_state_dict(state_dict, prefix, True, missing_keys, unexpected_keys, error_msgs)
+            loop._load_from_state_dict(state_dict, prefix, apply_restart)
             loop.restarting = True
             for name, loop_children in loop._loops.items():
                 if loop_children is not None:
