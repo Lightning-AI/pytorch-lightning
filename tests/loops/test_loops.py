@@ -20,6 +20,7 @@ import pytest
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -124,9 +125,21 @@ def test_loop_hierarchy():
         def load_state_dict(self, state_dict: Dict) -> None:
             self.a = state_dict["a"]
 
+    grand_loop_parent = Simple(0)
     loop_parent = Simple(1)
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
+
+    with pytest.raises(MisconfigurationException, match="Loop hasn't been attached to any Trainer."):
+        grand_loop_parent.run()
+
+    grand_loop_parent.loop_child = loop_child
+    assert loop_child._num_parents == 2
+    del grand_loop_parent.loop_child
+    assert loop_child._num_parents == 1
+    assert loop_child.has_parent
+    assert loop_parent.has_children
+
     state_dict = loop_parent.get_state_dict()
 
     with pytest.raises(MisconfigurationException, match="The current loop accept only loop_child"):
@@ -142,6 +155,9 @@ def test_loop_hierarchy():
     loop_progress = loop_child.loop_progress
     assert loop_progress["progress"] == loop_child.progress
     assert loop_progress.progress == loop_child.progress
+
+    loop_parent.trainer = Trainer()
+    assert loop_child.trainer == loop_parent.trainer
 
     assert state_dict == OrderedDict([('state_dict', {
         'a': 1
@@ -188,5 +204,6 @@ def test_loop_hierarchy():
     assert loop_parent.loop_child.progress.increment == 1
 
     del loop_parent.loop_child
+    assert loop_child._num_parents == 0
     state_dict = loop_parent.get_state_dict()
     assert state_dict == OrderedDict([('state_dict', {'a': 1}), ('progress', {'increment': 2})])

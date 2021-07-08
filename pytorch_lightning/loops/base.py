@@ -55,11 +55,20 @@ class Loop(ABC):
         self.restarting = False
         self._loops = OrderedDict()
         self._progress = OrderedDict()
+        self._num_parents: int = 0
+
+    @property
+    def has_parent(self) -> Optional[bool]:
+        return self._num_parents > 0
+
+    @property
+    def has_children(self) -> bool:
+        loops = self.__dict__.get('_loops')
+        return len(loops) > 0
 
     @property
     def is_leaf(self) -> bool:
-        loops = self.__dict__.get('_loops')
-        return len(loops) == 0
+        return not self.has_children and self.has_parent
 
     @property
     def loop_progress(self) -> Dict[str, Any]:
@@ -75,12 +84,21 @@ class Loop(ABC):
         return ProgressDict(**progress)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if isinstance(value, Loop):
+        if isinstance(value, pl.Trainer):
+            # when assigning a Trainer to a loop, it will assign to its children too.
+            object.__setattr__(self, name, value)
+            for loop in self._loops.values():
+                object.__setattr__(loop, name, value)
+        elif isinstance(value, Loop):
             if getattr(self, "__children__loops__", None) is not None and name not in self.__children__loops__:
                 raise MisconfigurationException(
                     f"The current loop accept only {self.__children__loops__} as children attribute names."
                 )
-            self._loops[name] = value
+            if value not in self._loops.values():
+                self._loops[name] = value
+                value._num_parents += 1
+            else:
+                raise MisconfigurationException("This loop has already been assigned.")
         elif isinstance(value, BaseProgress):
             self._progress[name] = value
         else:
@@ -104,6 +122,7 @@ class Loop(ABC):
 
     def __delattr__(self, name) -> None:
         if name in self._loops:
+            self._loops[name]._num_parents -= 1
             del self._loops[name]
         elif name in self._progress:
             del self._progress[name]
@@ -147,6 +166,9 @@ class Loop(ABC):
         Returns:
             the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
+        if self.trainer is None:
+            raise MisconfigurationException(f"The {self.__class__.__name__} Loop hasn't been attached to any Trainer.")
+
         if self.skip:
             return self.on_skip()
 
