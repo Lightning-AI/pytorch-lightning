@@ -21,23 +21,24 @@ from typing import cast, List, Optional, Type, TypeVar, Union
 import torch
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+from pytorch_lightning.loops import PredictionLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
-from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -58,12 +59,15 @@ class TrainerProperties(ABC):
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
+    reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
     fit_loop: FitLoop
-    evaluation_loop: EvaluationDataLoaderLoop
+    validate_loop: EvaluationLoop
+    test_loop: EvaluationLoop
+    predict_loop: PredictionLoop
     """
     Accelerator properties
     """
@@ -133,6 +137,10 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.tpu_cores
 
     @property
+    def ipus(self) -> int:
+        return self.accelerator_connector.num_ipus
+
+    @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
 
@@ -141,7 +149,7 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.parallel_device_ids
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         return self.accelerator.lightning_module
 
     @property
@@ -272,7 +280,7 @@ class TrainerProperties(ABC):
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.lightning_module
-        ref_model = cast(LightningModule, ref_model)
+        ref_model = cast(pl.LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
         pbar_metrics = self.progress_bar_metrics
@@ -287,8 +295,18 @@ class TrainerProperties(ABC):
         return {**standard_metrics, **pbar_metrics}
 
     @property
+    def _should_reload_dl_epoch(self) -> bool:
+        """ Check if dataloader should be reloaded in the current epoch. """
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and (not self.current_epoch % n_epochs)
+
+    @property
     def disable_validation(self) -> bool:
         """ Check if validation is disabled during training. """
+        rank_zero_deprecation(
+            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
+            " Use `not trainer.enable_validation` instead."
+        )
         return not self.enable_validation
 
     @property
@@ -484,40 +502,51 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def train_loop(self) -> FitLoop:
-        # FIXME(@awaelchli): the current train_loop should be renamed to fit_loop
-        return self.fit_loop
-
-    @property
     def global_step(self) -> int:
-        return self.train_loop.global_step
+        return self.fit_loop.global_step
 
     @property
     def current_epoch(self) -> int:
-        return self.train_loop.current_epoch
+        return self.fit_loop.current_epoch
 
     @property
     def max_epochs(self) -> Optional[int]:
-        return self.train_loop.max_epochs
+        return self.fit_loop.max_epochs
 
     @property
     def min_epochs(self) -> Optional[int]:
-        return self.train_loop.min_epochs
+        return self.fit_loop.min_epochs
 
     @property
     def max_steps(self) -> Optional[int]:
-        return self.train_loop.max_steps
+        return self.fit_loop.max_steps
 
     @property
     def min_steps(self) -> Optional[int]:
-        return self.train_loop.min_steps
+        return self.fit_loop.min_steps
 
     @property
-    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationDataLoaderLoop]]:
+    def is_last_batch(self) -> bool:
+        return self.fit_loop.epoch_loop.is_last_batch
+
+    @property
+    def _evaluation_loop(self) -> EvaluationLoop:
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            return self.fit_loop.epoch_loop.val_loop
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validate_loop
+        if self.state.fn == TrainerFn.TESTING:
+            return self.test_loop
+        raise RuntimeError("The `Trainer._evaluation_loop` property isn't defined. Accessed outside of scope")
+
+    @property
+    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop, PredictionLoop]]:
         if self.training:
-            return self.train_loop
-        elif self.sanity_checking or self.evaluating:
-            return self.evaluation_loop
+            return self.fit_loop
+        if self.sanity_checking or self.evaluating:
+            return self._evaluation_loop
+        if self.predicting:
+            return self.predict_loop
 
     """
     Logging properties
@@ -539,7 +568,7 @@ class TrainerProperties(ABC):
     def _results(self) -> Optional[ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
-            return active_loop.results
+            return active_loop._results
 
     """
     Other

@@ -200,7 +200,7 @@ class ProgressBarBase(Callback):
         self._trainer = trainer
 
     def on_train_start(self, trainer, pl_module):
-        self._train_batch_idx = trainer.train_loop.batch_idx
+        self._train_batch_idx = trainer.fit_loop.batch_idx
 
     def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0

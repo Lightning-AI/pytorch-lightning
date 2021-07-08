@@ -21,9 +21,7 @@ from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@mock.patch(
-    "pytorch_lightning.loops.dataloader.evaluation_dataloader_loop.EvaluationDataLoaderLoop.on_evaluation_epoch_end"
-)
+@mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop.on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     """
     Tests that `on_evaluation_epoch_end` is called
@@ -97,14 +95,18 @@ def test_memory_consumption_validation(tmpdir):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
-            assert lower < torch.cuda.memory_allocated(0) - initial_memory < upper
+            current = torch.cuda.memory_allocated(0)
+            assert lower < current
+            assert current - initial_memory < upper
             return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
-            assert lower < torch.cuda.memory_allocated(0) - initial_memory < upper
+            current = torch.cuda.memory_allocated(0)
+            assert lower < current
+            assert current - initial_memory < upper
             return super().validation_step(batch, batch_idx)
 
     torch.cuda.empty_cache()

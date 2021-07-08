@@ -194,11 +194,11 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.train_loop.batch_idx
+            assert self.train_batch_idx == trainer.fit_loop.batch_idx
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.train_loop.batch_idx + 1
+            assert self.train_batch_idx == trainer.fit_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
@@ -543,22 +543,33 @@ def test_progress_bar_can_be_pickled():
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize([
-    "total_train_samples",
-    "train_batch_size",
-    "total_val_samples",
-    "val_batch_size",
-    "val_check_interval",
-], [
-    (8, 4, 2, 1, 0.2),
-    (8, 4, 2, 1, 0.5),
-])
-def test_progress_bar_max_val_check_interval(
-    total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval, tmpdir
+def test_progress_bar_max_val_check_interval_0(tmpdir):
+    _test_progress_bar_max_val_check_interval(
+        tmpdir,
+        total_train_samples=8,
+        train_batch_size=4,
+        total_val_samples=2,
+        val_batch_size=1,
+        val_check_interval=0.2
+    )
+
+
+@RunIf(min_gpus=2, special=True)
+def test_progress_bar_max_val_check_interval_1(tmpdir):
+    _test_progress_bar_max_val_check_interval(
+        tmpdir,
+        total_train_samples=8,
+        train_batch_size=4,
+        total_val_samples=2,
+        val_batch_size=1,
+        val_check_interval=0.5
+    )
+
+
+def _test_progress_bar_max_val_check_interval(
+    tmpdir, total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval
 ):
-
     world_size = 2
-
     train_data = DataLoader(RandomDataset(32, total_train_samples), batch_size=train_batch_size)
     val_data = DataLoader(RandomDataset(32, total_val_samples), batch_size=val_batch_size)
 
