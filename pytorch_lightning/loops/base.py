@@ -54,11 +54,11 @@ class Loop(ABC):
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
         self._cached_state: Optional[Dict] = None
-        self.restarting = False
         self._loops = OrderedDict()
         self._progress = OrderedDict()
         self._has_parent: bool = False
         self.__parent_loop: Optional['Loop'] = None
+        self.restarting = False
 
     @property
     def has_parent(self) -> Optional[bool]:
@@ -91,8 +91,7 @@ class Loop(ABC):
         return ProgressDict(**progress)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if isinstance(value, pl.Trainer):
-            # when assigning a Trainer to a loop, it will assign to its children too.
+        if isinstance(value, pl.Trainer) or (name == "restarting" and value is True):
             object.__setattr__(self, name, value)
             for loop in self._loops.values():
                 loop.__setattr__(name, value)

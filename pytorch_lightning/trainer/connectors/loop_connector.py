@@ -63,9 +63,6 @@ class LoopConnector(object):
         self.trainer.predict_loop._load_state_dict(state_dict["predict_loop"], apply_restart=apply_restart)
 
         self.trainer.fit_loop.restarting = True
-        self.trainer.fit_loop.epoch_loop.restarting = True
-        self.trainer.fit_loop.epoch_loop.batch_loop.restarting = True
-        self.trainer.fit_loop.epoch_loop.val_loop.restarting = True
         self.trainer.validate_loop.restarting = True
         self.trainer.test_loop.restarting = True
         self.trainer.predict_loop.restarting = True
