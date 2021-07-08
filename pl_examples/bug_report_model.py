@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loops import FitLoop, TrainingEpochLoop, EvaluationLoop, TrainingBatchLoop
+from pytorch_lightning.loops import EvaluationLoop, FitLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import FitLoopProgress
 
 
