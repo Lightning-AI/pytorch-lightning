@@ -59,19 +59,23 @@ class Loop(ABC):
 
     @property
     def has_parent(self) -> Optional[bool]:
+        """Whether the number of loop parents is not null"""
         return self._num_parents > 0
 
     @property
     def has_children(self) -> bool:
+        """Whether this loop has any children"""
         loops = self.__dict__.get('_loops')
         return len(loops) > 0
 
     @property
     def is_leaf(self) -> bool:
+        """Whether this loop is a children and has no children itself."""
         return not self.has_children and self.has_parent
 
     @property
     def loop_progress(self) -> Dict[str, Any]:
+        """Return the progress for the current loop and children loop."""
         progress = {}
         for n, p in self.__dict__.get('_progress').items():
             progress[n] = p
@@ -94,11 +98,14 @@ class Loop(ABC):
                 raise MisconfigurationException(
                     f"The current loop accept only {self.__children__loops__} as children attribute names."
                 )
-            if value not in self._loops.values():
-                self._loops[name] = value
-                value._num_parents += 1
-            else:
-                raise MisconfigurationException("This loop has already been assigned.")
+            for loop_name, loop in self._loops.items():
+                if loop == value and name != loop_name:
+                    raise MisconfigurationException(
+                        f"The {self.__class__.__name__} already contains the provided loop "
+                        f"{loop} under the attribute_name {loop_name}."
+                    )
+            self._loops[name] = value
+            value._num_parents += 1
         elif isinstance(value, BaseProgress):
             self._progress[name] = value
         else:

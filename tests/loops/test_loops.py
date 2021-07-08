@@ -96,7 +96,7 @@ def test_loop_hierarchy():
 
     class Simple(Loop):
 
-        __children__loops__ = ("loop_child")
+        __children__loops__ = ("loop_child", "something")
 
         def __init__(self, a):
             super().__init__()
@@ -130,6 +130,9 @@ def test_loop_hierarchy():
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
 
+    with pytest.raises(MisconfigurationException, match="The Simple already contains the provided loop"):
+        loop_parent.something = loop_child
+
     with pytest.raises(MisconfigurationException, match="Loop hasn't been attached to any Trainer."):
         grand_loop_parent.run()
 
@@ -142,7 +145,7 @@ def test_loop_hierarchy():
 
     state_dict = loop_parent.get_state_dict()
 
-    with pytest.raises(MisconfigurationException, match="The current loop accept only loop_child"):
+    with pytest.raises(MisconfigurationException, match="The current loop accept only"):
         loop_parent.wrong_name = loop_child
 
     loop_progress: ProgressDict = loop_parent.loop_progress
