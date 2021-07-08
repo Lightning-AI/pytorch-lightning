@@ -307,7 +307,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     assert isinstance(trainer.fit_loop.epoch_loop.val_loop.progress, EpochLoopProgress)
     assert isinstance(trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress, EpochProgress)
 
-
     pr = trainer.fit_loop.epoch_loop.progress
 
     breakpoint()

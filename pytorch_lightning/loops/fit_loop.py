@@ -178,9 +178,7 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(
-        self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
         self.epoch_loop.connect(trainer)

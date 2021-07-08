@@ -83,12 +83,7 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and (self.total_optimizer_step) >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(
-        self,
-        trainer: 'pl.Trainer',
-        *args: Any,
-        **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
         self.batch_loop.connect(trainer)

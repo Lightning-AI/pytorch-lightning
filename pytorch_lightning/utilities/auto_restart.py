@@ -16,10 +16,6 @@ from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
-from typing import Any, Dict, Generator, Iterator, Optional, Union
-
-from torch.utils.data import get_worker_info, Sampler
-from torch.utils.data.dataloader import IterableDataset
 
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
