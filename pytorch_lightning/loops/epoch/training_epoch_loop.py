@@ -55,6 +55,12 @@ class TrainingEpochLoop(loops.Loop):
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
+    @loops.Loop.trainer.setter
+    def trainer(self, trainer):
+        self._trainer = trainer
+        self.batch_loop.trainer = trainer
+        self.val_loop.trainer = trainer
+
     @property
     def batch_idx(self) -> int:
         """Returns the current batch index (within this epoch)"""

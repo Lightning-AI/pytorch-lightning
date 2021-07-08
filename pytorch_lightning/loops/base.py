@@ -45,13 +45,17 @@ class Loop(ABC):
     """
 
     def __init__(self) -> None:
-        self.parent: Optional["Loop"] = None
         self.iteration_count: int = 0
         self.restarting = False
+        self._trainer = None
 
     @property
     def trainer(self) -> "pl.Trainer":
-        return self.parent.trainer
+        return self._trainer
+
+    @trainer.setter
+    def trainer(self, trainer: "pl.Trainer"):
+        self._trainer = trainer
 
     @property
     @abstractmethod

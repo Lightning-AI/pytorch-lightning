@@ -40,6 +40,11 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
 
+    @DataLoaderLoop.trainer.setter
+    def trainer(self, trainer):
+        self._trainer = trainer
+        self.epoch_loop.trainer = trainer
+
     @property
     def num_dataloaders(self) -> int:
         """Returns the total number of dataloaders"""

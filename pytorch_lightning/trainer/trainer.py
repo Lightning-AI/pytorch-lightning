@@ -458,8 +458,8 @@ class Trainer(
 
     @fit_loop.setter
     def fit_loop(self, loop: FitLoop):
+        loop.trainer = self
         self._fit_loop = loop
-        self._fit_loop.trainer = self
 
     @property
     def validate_loop(self):
@@ -467,8 +467,8 @@ class Trainer(
 
     @validate_loop.setter
     def validate_loop(self, loop: EvaluationLoop):
+        loop.trainer = self
         self._validate_loop = loop
-        self._validate_loop.trainer = self
 
     @property
     def test_loop(self):
@@ -476,8 +476,8 @@ class Trainer(
 
     @test_loop.setter
     def test_loop(self, loop: EvaluationLoop):
+        loop.trainer = self
         self._test_loop = loop
-        self._test_loop.trainer = self
 
     @property
     def predict_loop(self):
@@ -485,8 +485,8 @@ class Trainer(
 
     @predict_loop.setter
     def predict_loop(self, loop: PredictionLoop):
+        loop.trainer = self
         self._predict_loop = loop
-        self._predict_loop.trainer = self
 
     def _setup_on_init(
         self,

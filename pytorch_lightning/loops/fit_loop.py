@@ -47,6 +47,11 @@ class FitLoop(Loop):
         self.epoch_loop = None
         self.progress: Optional[FitLoopProgress] = None
 
+    @Loop.trainer.setter
+    def trainer(self, trainer):
+        self._trainer = trainer
+        self.epoch_loop.trainer = trainer
+
     @property
     def current_epoch(self) -> int:
         """Return the current epoch"""

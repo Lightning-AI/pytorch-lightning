@@ -25,6 +25,11 @@ class PredictionLoop(DataLoaderLoop):
         self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
 
+    @DataLoaderLoop.trainer.setter
+    def trainer(self, trainer):
+        self._trainer = trainer
+        self.epoch_loop.trainer = trainer
+
     @property
     def return_predictions(self) -> bool:
         """Whether to return the predictions or not"""
