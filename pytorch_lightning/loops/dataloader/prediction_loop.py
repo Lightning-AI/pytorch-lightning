@@ -75,17 +75,17 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def link(self, epoch_loop: PredictionEpochLoop):
+    def connect(self, epoch_loop: PredictionEpochLoop):
         self.epoch_loop = epoch_loop
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    ) -> None:
-        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+    # def connect(
+    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
+    # ) -> None:
+    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
+    #     super().connect(trainer, *args, **kwargs)
+    #     if progress is not None:
+    #         self.progress = progress
+    #     self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

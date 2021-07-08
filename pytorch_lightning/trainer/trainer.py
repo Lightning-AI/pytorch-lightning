@@ -358,7 +358,6 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        # .fit() loop
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
             max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
@@ -366,8 +365,8 @@ class Trainer(
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
         training_validation_loop = EvaluationLoop()
-        training_epoch_loop.link(batch_loop=training_batch_loop, val_loop=training_validation_loop)
-        fit_loop.link(epoch_loop=training_epoch_loop)
+        training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
+        fit_loop.connect(epoch_loop=training_epoch_loop)
 
         # default .fit() loop
         self.fit_loop = fit_loop
@@ -460,7 +459,7 @@ class Trainer(
     @fit_loop.setter
     def fit_loop(self, loop: FitLoop):
         self._fit_loop = loop
-        self._fit_loop.connect(self, progress=FitLoopProgress())
+        self._fit_loop.trainer = self
 
     @property
     def validate_loop(self):
@@ -469,7 +468,7 @@ class Trainer(
     @validate_loop.setter
     def validate_loop(self, loop: EvaluationLoop):
         self._validate_loop = loop
-        self._validate_loop.connect(self, progress=EpochLoopProgress())
+        self._validate_loop.trainer = self
 
     @property
     def test_loop(self):
@@ -478,7 +477,7 @@ class Trainer(
     @test_loop.setter
     def test_loop(self, loop: EvaluationLoop):
         self._test_loop = loop
-        self._test_loop.connect(self, progress=EpochLoopProgress())
+        self._test_loop.trainer = self
 
     @property
     def predict_loop(self):
@@ -487,7 +486,7 @@ class Trainer(
     @predict_loop.setter
     def predict_loop(self, loop: PredictionLoop):
         self._predict_loop = loop
-        self._predict_loop.connect(self, progress=EpochLoopProgress())
+        self._predict_loop.trainer = self
 
     def _setup_on_init(
         self,

@@ -65,18 +65,18 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def link(self, epoch_loop: EvaluationEpochLoop):
-        """Links the evaluation epoch loop with this loop."""
+    def connect(self, epoch_loop: EvaluationEpochLoop):
+        """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    ) -> None:
-        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+    # def connect(
+    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
+    # ) -> None:
+    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
+    #     super().connect(trainer, *args, **kwargs)
+    #     if progress is not None:
+    #         self.progress = progress
+    #     self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     @property
     def done(self) -> bool:

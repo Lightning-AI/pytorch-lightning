@@ -25,13 +25,13 @@ class PredictionEpochLoop(Loop):
         self._warning_cache = WarningCache()
         self._all_batch_indices: List[int] = []
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
-    ) -> None:
-        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
+    # def connect(
+    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
+    # ) -> None:
+    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
+        # super().connect(trainer, *args, **kwargs)
+        # if progress is not None:
+        #     self.progress = progress
 
     @property
     def done(self) -> bool:

@@ -65,16 +65,20 @@ def run():
 
     # construct loops
     fit_loop = FitLoop()
+    fit_loop.any = TrainingEpochLoop()
+
     train_epoch_loop = TrainingEpochLoop(min_steps=0, max_steps=2)
     train_batch_loop = TrainingBatchLoop()
     val_loop = EvaluationLoop()
 
     # link loops
-    train_epoch_loop.link(batch_loop=train_batch_loop, val_loop=val_loop)
-    fit_loop.link(epoch_loop=train_epoch_loop)
+    train_epoch_loop.connect(batch_loop=train_batch_loop, val_loop=val_loop)
+    fit_loop.connect(epoch_loop=train_epoch_loop)
 
     # connect fit loop to trainer
     trainer.fit_loop = fit_loop
+
+    fit_loop.connect(epoch_loop=TrainingEpochLoop())
 
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)

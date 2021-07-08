@@ -47,8 +47,8 @@ class TrainingEpochLoop(loops.Loop):
         self.is_last_batch: Optional[bool] = None
         self.progress = TrainingEpochProgress()
 
-        self.batch_loop = TrainingBatchLoop()
-        self.val_loop = loops.EvaluationLoop()
+        self.batch_loop = None
+        self.val_loop = None
 
         self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
@@ -69,24 +69,12 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def link(self, batch_loop, val_loop):
-        """Links a batch loop and a validation loop to this training epoch loop."""
+    def connect(self, batch_loop: TrainingBatchLoop, val_loop: "loops.EvaluationLoop") -> None:
+        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
         self.batch_loop = batch_loop
         self.val_loop = val_loop
-
-    def connect(
-        self,
-        trainer: 'pl.Trainer',
-        *args: Any,
-        progress: Optional[TrainingEpochProgress] = None,
-        **kwargs: Any
-    ) -> None:
-        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
-        self.val_loop.connect(trainer, progress=self.progress.val)
+        # if self.trainer is not None:
+        #     self.batch_loop.connect()
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from deprecate import void
+from onnx.backend.test.case.node.loop import Loop
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -44,9 +45,13 @@ class Loop(ABC):
     """
 
     def __init__(self) -> None:
+        self.parent: Optional["Loop"] = None
         self.iteration_count: int = 0
-        self.trainer: Optional['pl.Trainer'] = None
         self.restarting = False
+
+    @property
+    def trainer(self) -> "pl.Trainer":
+        return self.parent.trainer
 
     @property
     @abstractmethod
@@ -58,18 +63,13 @@ class Loop(ABC):
         """Determine whether to return immediately from the call to :meth:`run`."""
         return False
 
-    def link(self, **kwargs: "Loop"):
-        """Optionally link one or multiple loops to this one. Linked loops should form a tree."""
-        raise NotImplementedError(f"{self.__class__.__name__} does link any child loops.")
-
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-        # TODO(@justusschock): Make the trainer a weakref/proxy
-        if not isinstance(trainer, pl.Trainer):
-            raise MisconfigurationException(
-                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
-            )
-        self.trainer = trainer
+    def connect(self, **kwargs: "Loop") -> None:
+        """Optionally connect one or multiple loops to this one. Linked loops should form a tree."""
+        # if not isinstance(trainer, pl.Trainer):
+        #     raise MisconfigurationException(
+        #         f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
+        #     )
+        # raise NotImplementedError(f"{self.__class__.__name__} does connect any child loops.")
 
     def on_skip(self) -> Optional[Any]:
         """
