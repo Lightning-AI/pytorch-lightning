@@ -2,6 +2,8 @@
 
 Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!
 
+If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
+
 ## Main Core Value: One less thing to remember
 
 Simplify the API as much as possible from the user perspective.
@@ -14,18 +16,18 @@ This helps users avoid all sorts of subtle errors.
 
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.
 
-#### No PyTorch Interference
+### No PyTorch Interference
 
 We don't want to add any abstractions on top of pure PyTorch.
 This gives researchers all the control they need without having to learn yet another framework.
 
-#### Simple Internal Code
+### Simple Internal Code
 
 It's useful for users to look at the code and understand very quickly what's happening.
 Many users won't be engineers. Thus we need to value clear, simple code over condensed ninja moves.
 While that's super cool, this isn't the project for that :)
 
-#### Force User Decisions To Best Practices
+### Force User Decisions To Best Practices
 
 There are 1,000 ways to do something. However, eventually one popular solution becomes standard practice, and everyone follows.
 We try to find the best way to solve a particular problem, and then force our users to use it for readability and simplicity.
@@ -35,22 +37,22 @@ A bad forced decision would be to make users use a specific library to do someth
 
 When something becomes a best practice, we add it to the framework. This is usually something like bits of code in utils or in the model file that everyone keeps adding over and over again across projects. When this happens, bring that code inside the trainer and add a flag for it.
 
-#### Simple External API
+### Simple External API
 
 What makes sense to you may not make sense to others. When creating an issue with an API change suggestion, please validate that it makes sense for others.
 Treat code changes the way you treat a startup: validate that it's a needed feature, then add if it makes sense for many people.
 
-#### Backward-compatible API
+### Backward-compatible API
 
 We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backward compatible with good deprecation warnings.
 
 **You shouldn't be afraid to upgrade Lightning :)**
 
-#### Gain User Trust
+### Gain User Trust
 
 As a researcher, you can't have any part of your code going wrong. So, make thorough tests to ensure that every implementation of a new trick or subtle change is correct.
 
-#### Interoperability
+### Interoperability
 
 Have a favorite feature from other libraries like fast.ai or transformers? Those should just work with lightning as well. Grab your favorite model or learning rate scheduler from your favorite library and run it in Lightning.
 
@@ -58,13 +60,13 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 ## Contribution Types
 
-We are always looking for help implementing new features or fixing bugs.
+We are always open to contributions of new features or bug fixes.
 
 A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
-1. If you find a bug please submit a github issue.
+1. If you find a bug please submit a GitHub issue.
 
    - Make sure the title explains the issue.
    - Describe your setup, what you are trying to do, expected vs. actual behaviour. Please add configs and code samples.
@@ -79,12 +81,12 @@ A lot of good work has already been done in project mechanics (requirements.txt,
 
 3. Submit a PR!
 
-_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution and we can help you or finish it with you :]_
+_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution, and we can help you or finish it with you :]_
 
 ### New Features:
 
-1. Submit a github issue - describe what is the motivation of such feature (adding the use case or an example is helpful).
-2. Let's discuss to determine the feature scope.
+1. Submit a GitHub issue - describe what is the motivation of such feature (adding the use case, or an example is helpful).
+2. Determine the feature scope with us.
 3. Submit a PR! We recommend test driven approach to adding new features as well:
 
    - Write a test for the functionality you want to add.
@@ -98,7 +100,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
-Most of the tests in PyTorch Lightning train a trial MNIST model under various trainer conditions (ddp, ddp2+amp, etc...). The tests expect the model to perform to a reasonable degree of testing accuracy to pass. Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
+Most of the tests in PyTorch Lightning train a trial MNIST model under various trainer conditions (ddp, ddp2+amp, etc...). The tests expect the model to perform to a reasonable degree of testing accuracy to pass. Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
 
 ---
 
@@ -108,7 +110,7 @@ Most of the tests in PyTorch Lightning train a trial MNIST model under various t
 To build the documentation locally, simply execute the following commands from project root (only for Unix):
 - `make clean` cleans repo from temp/generated files
 - `make docs` builds documentation under _docs/build/html_
-- `make test` runs all project's tests
+- `make test` runs all project's tests with coverage
 
 ### Original code
 
@@ -199,10 +201,16 @@ Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 
-**Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
+**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest pytorch_lightning tests pl_examples -v --flake8
+python -m pytest pytorch_lightning tests pl_examples -v
+```
+
+You can also run a single test as follows:
+
+```bash
+python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Pull Request
@@ -224,14 +232,14 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - Make sure all tests are passing.
    - Make sure you add a GitHub issue to your PR.
 5. Use tags in PR name for following cases:
-   - **[blocked by #<number>]** if you work is depending on others changes.
+   - **[blocked by #<number>]** if your work is dependent on other PRs.
    - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
 
 #### How can I help/contribute?
 
-All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes. 
+All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes.
 To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
 
 #### Is there a recommendation for branch names?
@@ -317,14 +325,6 @@ run our/your test with
 python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
 ```
 
-#### How to contribute bugfixes/features?
-
-Currently we have separate streams/branches for bugfixes/features and release from the default branch (`master`).
-Bugfixes should land in this `master` branch and features should land in `release/X.y-dev`.
-This means that when starting your contribution and creating a branch according to question 2) you should start this new branch from master or future release dev branch.
-Later in PR creation also pay attention to properly set the target branch, usually the starting (base) and target branch are the same.
-
-_Note, that this flow may change after the 1.2 release as we will adjust releasing strategy._
 
 #### How to fix PR with mixed base and target branches?
 
@@ -333,7 +333,7 @@ Do not panic, the solution is very straightforward and quite simple.
 All you need to do are these two steps in arbitrary order:
    - Ask someone from Core to change the base/target branch to the correct one
    - Rebase or cherry-pick your commits onto the correct base branch...
-     
+
 Let's show how to deal with the git...
 the sample case is moving a PR from `master` to `release/1.2-dev` assuming my branch name is `my-branch`
 and the last true master commit is `ccc111` and your first commit is `mmm222`.
@@ -348,7 +348,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
      #  so open one and cherry-pick your last commits from `my-branch-backup`
      #  resolve all eventual conflict as the new base may contain different code
      # when all done, push back to the open PR
-     git push -f 
+     git push -f
      ```
    * **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
      ```bash

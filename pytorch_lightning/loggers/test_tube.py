@@ -18,10 +18,10 @@ Test Tube Logger
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import _module_available, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
 
@@ -74,6 +74,10 @@ class TestTubeLogger(LightningLoggerBase):
             the user has defined the `self.example_input_array` attribute in their
             model.
         prefix: A string to put at the beginning of metric keys.
+
+    Raises:
+        ImportError:
+            If required TestTube package is not installed on the device.
     """
 
     __test__ = False
@@ -149,20 +153,18 @@ class TestTubeLogger(LightningLoggerBase):
         self.experiment.log(metrics, global_step=step)
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule, input_array=None):
+    def log_graph(self, model: 'pl.LightningModule', input_array=None):
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(
-                    model, model.transfer_batch_to_device(model.example_input_array, model.device)
-                )
+                self.experiment.add_graph(model, model._apply_batch_transfer_handler(input_array))
             else:
                 rank_zero_warn(
-                    'Could not log computational graph since the'
-                    ' `model.example_input_array` attribute is not set'
-                    ' or `input_array` was not given', UserWarning
+                    'Could not log computational graph since neither the'
+                    ' `model.example_input_array` attribute is set nor'
+                    ' `input_array` was given', UserWarning
                 )
 
     @rank_zero_only
@@ -197,15 +199,15 @@ class TestTubeLogger(LightningLoggerBase):
     def name(self) -> str:
         if self._experiment is None:
             return self._name
-        else:
-            return self.experiment.name
+
+        return self.experiment.name
 
     @property
     def version(self) -> int:
         if self._experiment is None:
             return self._version
-        else:
-            return self.experiment.version
+
+        return self.experiment.version
 
     # Test tube experiments are not pickleable, so we need to override a few
     # methods to get DDP working. See

@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import platform
+import re
 from collections import OrderedDict
 from logging import INFO
-from unittest import mock
+from typing import Union
 
 import pytest
 import torch
@@ -23,10 +22,11 @@ import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn import Sequential
 
-from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelPruning
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
@@ -37,10 +37,14 @@ class TestModel(BoringModel):
         self.layer = Sequential(
             OrderedDict([
                 ("mlp_1", nn.Linear(32, 32)),
-                ("mlp_2", nn.Linear(32, 32)),
+                ("mlp_2", nn.Linear(32, 32, bias=False)),
                 ("mlp_3", nn.Linear(32, 2)),
             ])
         )
+
+    def training_step(self, batch, batch_idx):
+        self.log("test", -batch_idx)
+        return super().training_step(batch, batch_idx)
 
 
 class TestPruningMethod(pytorch_prune.BasePruningMethod):
@@ -76,12 +80,16 @@ def train_with_pruning_callback(
         "pruning_fn": pruning_fn,
         "amount": 0.3,
         "use_global_unstructured": use_global_unstructured,
-        "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis
+        "use_lottery_ticket_hypothesis": use_lottery_ticket_hypothesis,
+        "verbose": 1,
     }
     if parameters_to_prune:
         pruning_kwargs["parameters_to_prune"] = [(model.layer.mlp_1, "weight"), (model.layer.mlp_2, "weight")]
     else:
-        pruning_kwargs["parameter_names"] = ["weight"]
+        if isinstance(pruning_fn, str) and pruning_fn.endswith("_structured"):
+            pruning_kwargs["parameter_names"] = ["weight"]
+        else:
+            pruning_kwargs["parameter_names"] = ["weight", "bias"]
     if isinstance(pruning_fn, str) and pruning_fn.endswith("_structured"):
         pruning_kwargs["pruning_dim"] = 0
     if pruning_fn == "ln_structured":
@@ -141,7 +149,8 @@ def test_pruning_misconfiguration():
 )
 @pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
 def test_pruning_callback(
-    tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn, use_lottery_ticket_hypothesis
+    tmpdir, use_global_unstructured: bool, parameters_to_prune: bool,
+    pruning_fn: Union[str, pytorch_prune.BasePruningMethod], use_lottery_ticket_hypothesis: bool
 ):
     train_with_pruning_callback(
         tmpdir,
@@ -152,34 +161,62 @@ def test_pruning_callback(
     )
 
 
-@pytest.mark.parametrize("parameters_to_prune", [False, True])
-@pytest.mark.parametrize("use_global_unstructured", [False, True])
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1", reason="test should be run outside of pytest"
-)
-def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_0(tmpdir):
     train_with_pruning_callback(
         tmpdir,
-        parameters_to_prune=parameters_to_prune,
-        use_global_unstructured=use_global_unstructured,
+        parameters_to_prune=False,
+        use_global_unstructured=False,
         accelerator="ddp",
         gpus=2,
     )
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_1(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=False,
+        use_global_unstructured=True,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_2(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=True,
+        use_global_unstructured=False,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_3(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=True,
+        use_global_unstructured=True,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(min_gpus=2, skip_windows=True)
 def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(tmpdir, use_global_unstructured=True, accelerator="ddp_spawn", gpus=2)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
-def test_pruning_lth_callable(tmpdir, resample_parameters):
+def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     model = TestModel()
 
     class ModelPruningTestCallback(ModelPruning):
@@ -218,9 +255,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
 
 
 @pytest.mark.parametrize("make_pruning_permanent", (False, True))
-@mock.patch.dict(os.environ, {}, clear=True)
-def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
-    seed_everything(0)
+def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool):
     model = TestModel()
     pruning_kwargs = {
         'parameters_to_prune': [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
@@ -229,6 +264,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     }
     p1 = ModelPruning("l1_unstructured", amount=0.5, apply_pruning=lambda e: not e % 2, **pruning_kwargs)
     p2 = ModelPruning("random_unstructured", amount=0.25, apply_pruning=lambda e: e % 2, **pruning_kwargs)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -243,19 +279,22 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     with caplog.at_level(INFO):
         trainer.fit(model)
 
-    actual = [m.strip() for m in caplog.messages[-9:]]
+    actual = [m.strip() for m in caplog.messages]
+    actual = [m for m in actual if m.startswith("Applied")]
+    percentage = r"\(\d+(?:\.\d+)?%\)"
     expected = [
-        "Applied `L1Unstructured`. Pruned: 0/1122 (0.00%) -> 544/1122 (48.48%)",
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 506 (49.41%)",  # noqa: E501
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 38 (59.38%)",  # noqa: E501
-        "Applied `RandomUnstructured`. Pruned: 544/1122 (48.48%) -> 680/1122 (60.61%)",
-        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.25. Pruned: 506 (49.41%) -> 633 (61.82%)",  # noqa: E501
-        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.25. Pruned: 38 (59.38%) -> 47 (73.44%)",  # noqa: E501
-        "Applied `L1Unstructured`. Pruned: 680/1122 (60.61%) -> 884/1122 (78.79%)",
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 633 (61.82%) -> 828 (80.86%)",  # noqa: E501
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 47 (73.44%) -> 56 (87.50%)",  # noqa: E501
+        rf"Applied `L1Unstructured`. Pruned: \d+\/1122 {percentage} -> \d+\/1122 {percentage}",
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.5. Pruned: 0 \(0.00%\) -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.5. Pruned: 0 \(0.00%\) -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/1122 {percentage} -> \d+\/1122 {percentage}",
+        rf"Applied `RandomUnstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.25. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `RandomUnstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.25. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `L1Unstructured`. Pruned: \d+\/1122 {percentage} -> \d+\/1122 {percentage}",
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.5. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.5. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
     ]
-    assert actual == expected
+    expected = [re.compile(s) for s in expected]
+    assert all(regex.match(s) for s, regex in zip(actual, expected))
 
     filepath = str(tmpdir / "foo.ckpt")
     trainer.save_checkpoint(filepath)
@@ -263,3 +302,54 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     model.load_from_checkpoint(filepath, strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
+
+
+@pytest.mark.parametrize("on_train_epoch_end", (False, True))
+def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog, on_train_epoch_end):
+    """
+    When a model is saved multiple times and make_permanent=True, we need to
+    make sure a copy is pruned and not the trained model if we want to continue
+    with the same pruning buffers.
+    """
+
+    class TestPruning(ModelPruning):
+
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            super().on_save_checkpoint(trainer, pl_module, checkpoint)
+            if not on_train_epoch_end:
+                # these checks only work if pruning on `validation_epoch_end`
+                # because `on_save_checkpoint` is called before `on_train_epoch_end`
+                assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
+                assert hasattr(pl_module.layer.mlp_3, "weight_orig")
+
+    model = TestModel()
+    pruning_callback = TestPruning(
+        "random_unstructured",
+        parameters_to_prune=[(model.layer.mlp_3, "weight")],
+        verbose=1,
+        make_pruning_permanent=True,
+        prune_on_train_epoch_end=on_train_epoch_end,
+    )
+    ckpt_callback = ModelCheckpoint(monitor="test", save_top_k=2, save_last=True)
+    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, progress_bar_refresh_rate=0)
+    with caplog.at_level(INFO):
+        trainer.fit(model)
+
+    actual = [m.strip() for m in caplog.messages]
+    actual = [m for m in actual if m.startswith("Applied")]
+    percentage = r"\(\d+(?:\.\d+)?%\)"
+    expected = [
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 {percentage} -> \d+\/66 {percentage}",
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 {percentage} -> \d+\/66 {percentage}",
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 {percentage} -> \d+\/66 {percentage}",
+    ]
+    expected = [re.compile(s) for s in expected]
+    assert all(regex.match(s) for s, regex in zip(actual, expected))
+
+    # removed on_train_end
+    assert not hasattr(model.layer.mlp_3, "weight_orig")
+
+    model.load_from_checkpoint(trainer.checkpoint_callback.kth_best_model_path)
+    assert not hasattr(model.layer.mlp_3, "weight_orig")
+    model.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
+    assert not hasattr(model.layer.mlp_3, "weight_orig")

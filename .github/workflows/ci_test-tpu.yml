@@ -9,7 +9,6 @@ on:
 #      - master
 
 env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
@@ -23,8 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7]
-        xla-version: [1.6, 1.7]
+        python-version: [3.7]
+        xla-version: [1.6, 1.8]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 

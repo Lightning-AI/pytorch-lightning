@@ -198,7 +198,7 @@ class ImageNetLightningModel(LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("ImageNetLightningModel")
         parser.add_argument(
             '-a',
             '--arch',
@@ -233,7 +233,7 @@ class ImageNetLightningModel(LightningModule):
             dest='weight_decay'
         )
         parser.add_argument('--pretrained', dest='pretrained', action='store_true', help='use pre-trained model')
-        return parser
+        return parent_parser
 
 
 def main(args: Namespace) -> None:

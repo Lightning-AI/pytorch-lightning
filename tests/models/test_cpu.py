@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
-from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -22,9 +20,9 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
@@ -49,7 +47,7 @@ def test_cpu_slurm_save_load(tmpdir):
     real_global_step = trainer.global_step
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, 'cpu model failed to complete'
+    assert trainer.state.finished, 'cpu model failed to complete'
 
     # predict with trained model before saving
     # make a prediction
@@ -127,9 +125,7 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+@RunIf(skip_windows=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()
@@ -230,7 +226,7 @@ def test_running_test_after_fitting(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -273,7 +269,7 @@ def test_running_test_no_val(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -295,7 +291,7 @@ def test_simple_cpu(tmpdir):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
+    assert trainer.state.finished, 'amp + ddp model failed to complete'
 
 
 def test_cpu_model(tmpdir):
@@ -327,7 +323,8 @@ def test_all_features_cpu_model(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.01)
 
 
-def test_tbptt_cpu_model(tmpdir):
+@pytest.mark.parametrize("n_hidden_states", [1, 2])
+def test_tbptt_cpu_model(tmpdir, n_hidden_states):
     """Test truncated back propagation through time works."""
     truncated_bptt_steps = 2
     sequence_size = 30
@@ -346,15 +343,19 @@ def test_tbptt_cpu_model(tmpdir):
 
     class BpttTestModel(BoringModel):
 
-        def __init__(self, batch_size, in_features, out_features, *args, **kwargs):
+        def __init__(self, batch_size, in_features, out_features, n_hidden_states, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
             self.batch_size = batch_size
             self.layer = torch.nn.Linear(in_features, out_features)
+            self.n_hidden_states = n_hidden_states
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
+            if self.n_hidden_states == 1:
+                self.test_hidden = torch.rand(1)
+            else:
+                self.test_hidden = tuple([torch.rand(1)] * self.n_hidden_states)
 
             x_tensor, y_list = batch
             assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
@@ -383,7 +384,12 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    model = BpttTestModel(batch_size=batch_size, in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
+    model = BpttTestModel(
+        batch_size=batch_size,
+        in_features=truncated_bptt_steps,
+        out_features=truncated_bptt_steps,
+        n_hidden_states=n_hidden_states
+    )
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model
@@ -395,5 +401,4 @@ def test_tbptt_cpu_model(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
-
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training model with `{n_hidden_states}` hidden state failed with {trainer.state}"

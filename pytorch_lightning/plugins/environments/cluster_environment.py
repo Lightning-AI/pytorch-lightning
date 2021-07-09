@@ -11,25 +11,50 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABC, abstractmethod
 
-from pytorch_lightning.plugins.legacy.plugin import LightningPlugin
 
+class ClusterEnvironment(ABC):
+    """ Specification of a cluster environment. """
 
-class ClusterEnvironment(LightningPlugin):
+    @abstractmethod
+    def creates_children(self) -> bool:
+        """ Whether the environment creates the subprocesses or not. """
 
-    def __init__(self):
-        self._world_size = None
+    @abstractmethod
+    def master_address(self) -> str:
+        """ The master address through which all processes connect and communicate. """
 
-    def master_address(self):
+    @abstractmethod
+    def master_port(self) -> int:
+        """ An open and configured port in the master node through which all processes communicate. """
+
+    @abstractmethod
+    def world_size(self) -> int:
+        """ The number of processes across all devices and nodes. """
+
+    @abstractmethod
+    def set_world_size(self, size: int) -> None:
         pass
 
-    def master_port(self):
+    @abstractmethod
+    def global_rank(self) -> int:
+        """ The rank (index) of the currently running process across all nodes and devices. """
+
+    @abstractmethod
+    def set_global_rank(self, rank: int) -> None:
         pass
 
-    def world_size(self):
-        return self._world_size
+    @abstractmethod
+    def local_rank(self) -> int:
+        """ The rank (index) of the currently running process inside of the current node. """
 
-    def local_rank(self):
+    @abstractmethod
+    def node_rank(self) -> int:
+        """ The rank (index) of the node on which the current process runs. """
+
+    def teardown(self) -> None:
+        """ Clean up any state set after execution finishes. """
         pass
 
     def global_rank(self):

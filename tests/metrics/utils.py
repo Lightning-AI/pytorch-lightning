@@ -8,8 +8,7 @@ import numpy as np
 import pytest
 import torch
 from torch.multiprocessing import Pool, set_start_method
-
-from pytorch_lightning.metrics import Metric
+from torchmetrics import Metric
 
 try:
     set_start_method("spawn")
@@ -67,7 +66,7 @@ def _class_test(
     metric_class: Metric,
     sk_metric: Callable,
     dist_sync_on_step: bool,
-    metric_args: dict = {},
+    metric_args: dict = None,
     check_dist_sync_on_step: bool = True,
     check_batch: bool = True,
     atol: float = 1e-8,
@@ -90,6 +89,8 @@ def _class_test(
         check_batch: bool, if true will check if the metric is also correctly
             calculated across devices for each batch (and not just at the end)
     """
+    if metric_args is None:
+        metric_args = {}
     # Instanciate lightning metric
     metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
 
@@ -131,7 +132,7 @@ def _functional_test(
     target: torch.Tensor,
     metric_functional: Callable,
     sk_metric: Callable,
-    metric_args: dict = {},
+    metric_args: dict = None,
     atol: float = 1e-8,
 ):
     """Utility function doing the actual comparison between lightning functional metric
@@ -144,6 +145,8 @@ def _functional_test(
         sk_metric: callable function that is used for comparison
         metric_args: dict with additional arguments used for class initialization
     """
+    if metric_args is None:
+        metric_args = {}
     metric = partial(metric_functional, **metric_args)
 
     for i in range(NUM_BATCHES):
@@ -186,7 +189,7 @@ class MetricTester:
         target: torch.Tensor,
         metric_functional: Callable,
         sk_metric: Callable,
-        metric_args: dict = {},
+        metric_args: dict = None,
     ):
         """Main method that should be used for testing functions. Call this inside
         testing method
@@ -198,6 +201,8 @@ class MetricTester:
             sk_metric: callable function that is used for comparison
             metric_args: dict with additional arguments used for class initialization
         """
+        if metric_args is None:
+            metric_args = {}
         _functional_test(
             preds=preds,
             target=target,
@@ -215,7 +220,7 @@ class MetricTester:
         metric_class: Metric,
         sk_metric: Callable,
         dist_sync_on_step: bool,
-        metric_args: dict = {},
+        metric_args: dict = None,
         check_dist_sync_on_step: bool = True,
         check_batch: bool = True,
     ):
@@ -236,6 +241,8 @@ class MetricTester:
             check_batch: bool, if true will check if the metric is also correctly
                 calculated across devices for each batch (and not just at the end)
         """
+        if metric_args is None:
+            metric_args = {}
         if ddp:
             if sys.platform == "win32":
                 pytest.skip("DDP not supported on windows")

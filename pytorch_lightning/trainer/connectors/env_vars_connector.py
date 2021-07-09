@@ -18,27 +18,25 @@ from typing import Callable
 from pytorch_lightning.utilities.argparse import get_init_arguments_and_types, parse_env_variables
 
 
-def overwrite_by_env_vars(fn: Callable) -> Callable:
+def _defaults_from_env_vars(fn: Callable) -> Callable:
     """
     Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which
     input arguments should be moved automatically to the correct device.
-
     """
 
     @wraps(fn)
-    def overwrite_by_env_vars(self, *args, **kwargs):
-        # get the class
-        cls = self.__class__
+    def insert_env_defaults(self, *args, **kwargs):
+        cls = self.__class__  # get the class
         if args:  # inace any args passed move them to kwargs
             # parse only the argument names
             cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
             # convert args to kwargs
-            kwargs.update({k: v for k, v in zip(cls_arg_names, args)})
+            kwargs.update(dict(zip(cls_arg_names, args)))
+        env_variables = vars(parse_env_variables(cls))
         # update the kwargs by env variables
-        # todo: maybe add a warning that some init args were overwritten by Env arguments
-        kwargs.update(vars(parse_env_variables(cls)))
+        kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
 
         # all args were already moved to kwargs
         return fn(self, **kwargs)
 
-    return overwrite_by_env_vars
+    return insert_env_defaults

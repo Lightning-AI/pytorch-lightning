@@ -11,120 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.loops import FitLoop
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
-class DeprecatedDistDeviceAttributes:
+class DeprecatedTrainerAttributes:
 
-    _distrib_type: DistributedType
-    _device_type: DeviceType
-    _running_stage: RunningStage
-    num_gpus: int
+    sanity_checking: bool
+    fit_loop: FitLoop
 
     @property
-    def on_cpu(self) -> bool:
-        rank_zero_warn("Internal: `on_cpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._device_type == DeviceType.CPU
-
-    @on_cpu.setter
-    def on_cpu(self, val: bool) -> None:
-        rank_zero_warn("Internal: `on_cpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._device_type = DeviceType.CPU
-
-    @property
-    def on_tpu(self) -> bool:
-        rank_zero_warn("Internal: `on_tpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._device_type == DeviceType.TPU
-
-    @on_tpu.setter
-    def on_tpu(self, val: bool) -> None:
-        rank_zero_warn("Internal: `on_tpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._device_type = DeviceType.TPU
-
-    @property
-    def use_tpu(self) -> bool:
-        rank_zero_warn("Internal: `use_tpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self.on_tpu
-
-    @use_tpu.setter
-    def use_tpu(self, val: bool) -> None:
-        rank_zero_warn("Internal: `use_tpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        self.on_tpu = val
-
-    @property
-    def on_gpu(self) -> bool:
-        rank_zero_warn("Internal: `on_gpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._device_type == DeviceType.GPU
-
-    @on_gpu.setter
-    def on_gpu(self, val: bool) -> None:
-        rank_zero_warn("Internal: `on_gpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._device_type = DeviceType.GPU
-
-    @property
-    def use_dp(self) -> bool:
-        rank_zero_warn("Internal: `use_dp` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._distrib_type == DistributedType.DP
-
-    @use_dp.setter
-    def use_dp(self, val: bool) -> None:
-        rank_zero_warn("Internal: `use_dp` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._distrib_type = DistributedType.DP
-
-    @property
-    def use_ddp(self) -> bool:
-        rank_zero_warn("Internal: `use_ddp` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
-
-    @use_ddp.setter
-    def use_ddp(self, val: bool) -> None:
-        rank_zero_warn("Internal: `use_ddp` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._distrib_type = DistributedType.DDP
-
-    @property
-    def use_ddp2(self) -> bool:
-        rank_zero_warn("Internal: `use_ddp2` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._distrib_type == DistributedType.DDP2
-
-    @use_ddp2.setter
-    def use_ddp2(self, val: bool) -> None:
-        rank_zero_warn("Internal: `use_ddp2` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._distrib_type = DistributedType.DDP2
-
-    @property
-    def use_horovod(self) -> bool:
-        rank_zero_warn("Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        return self._distrib_type == DistributedType.HOROVOD
-
-    @use_horovod.setter
-    def use_horovod(self, val: bool) -> None:
-        rank_zero_warn("Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning)
-        if val:
-            self._distrib_type = DistributedType.HOROVOD
-
-    @property
-    def use_single_gpu(self) -> bool:
-        rank_zero_warn(
-            "Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.", DeprecationWarning
+    def running_sanity_check(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.running_sanity_check` has been renamed to `Trainer.sanity_checking` and will be removed in v1.5."
         )
-        # todo, limiting to exclude DDP2 is not clear but it comes from connectors...
-        return (
-            self._device_type and self._device_type == DeviceType.GPU and self.num_gpus == 1
-            and self._distrib_type != DistributedType.DDP2
-        )
+        return self.sanity_checking
 
-    @use_single_gpu.setter
-    def use_single_gpu(self, val: bool) -> None:
-        rank_zero_warn(
-            "Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.",
-            DeprecationWarning,
+    @property
+    def train_loop(self) -> FitLoop:
+        rank_zero_deprecation(
+            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
         )
-        if val:
-            self._device_type = DeviceType.GPU
+        return self.fit_loop

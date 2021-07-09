@@ -46,18 +46,23 @@ recursive-include docs/source/_static/images/general/ pl_overview* tf_* tutorial
 
 # Include the Requirements
 recursive-include requirements *.txt
-recursive-exclude requirements *.sh
+recursive-exclude requirements *.sh *.py
 include requirements.txt
 include pyproject.toml
 
 # Exclude build configs
 exclude *.yml
 exclude *.yaml
+exclude *.toml
 exclude *.jsonnet
 exclude .yapfignore
 
 # Exclude pyright config
 exclude .pyrightconfig.json
+
+# Exclude submodules
+exclude .gitmodules
+exclude _notebooks
 
 # Exclude Makefile
 exclude Makefile
@@ -65,7 +70,6 @@ exclude Makefile
 prune .git
 prune .github
 prune .circleci
-prune notebook*
 prune temp*
 prune test*
 prune benchmark*

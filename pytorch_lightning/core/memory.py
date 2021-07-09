@@ -16,14 +16,19 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -71,14 +76,15 @@ class LayerSummary(object):
     def __del__(self):
         self.detach_hook()
 
-    def _register_hook(self) -> RemovableHandle:
+    def _register_hook(self) -> Optional[RemovableHandle]:
         """
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
+        Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
 
         Return:
-            A handle for the installed hook.
+            A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
         def hook(module, inp, out):
@@ -88,7 +94,10 @@ class LayerSummary(object):
             self._out_size = parse_batch_shape(out)
             self._hook_handle.remove()
 
-        return self._module.register_forward_hook(hook)
+        handle = None
+        if not isinstance(self._module, torch.jit.ScriptModule):
+            handle = self._module.register_forward_hook(hook)
+        return handle
 
     def detach_hook(self):
         """
@@ -114,7 +123,7 @@ class LayerSummary(object):
     @property
     def num_parameters(self) -> int:
         """ Returns the number of parameters in this module. """
-        return sum(np.prod(p.shape) for p in self._module.parameters())
+        return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary(object):
@@ -122,11 +131,17 @@ class ModelSummary(object):
     Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
     Args:
-        model: The model to summarize (also referred to as the root module)
+        model: The model to summarize (also referred to as the root module).
         mode: Can be one of
 
-             - `top` (default): only the top-level modules will be recorded (the children of the root module)
-             - `full`: summarizes all layers and their submodules in the root module
+            - `top` (default): only the top-level modules will be recorded (the children of the root module)
+            - `full`: summarizes all layers and their submodules in the root module
+
+            .. deprecated:: v1.4
+                This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
+
+        max_depth: Maximum depth of modules to show. Use -1 to show all modules or 0 to show no
+            summary. Defaults to 1.
 
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
@@ -151,7 +166,7 @@ class ModelSummary(object):
         ...         return self.net(x)
         ...
         >>> model = LitModel()
-        >>> ModelSummary(model, mode='top')  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
@@ -160,7 +175,7 @@ class ModelSummary(object):
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
-        >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
         0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
@@ -173,28 +188,44 @@ class ModelSummary(object):
         0.530     Total estimated model params size (MB)
     """
 
-    MODE_TOP = "top"
-    MODE_FULL = "full"
-    MODE_DEFAULT = MODE_TOP
-    MODES = [MODE_FULL, MODE_TOP]
+    MODES = dict(top=1, full=-1)  # TODO: remove in v1.6
 
-    def __init__(self, model, mode: str = MODE_DEFAULT):
+    def __init__(self, model, mode: Optional[str] = None, max_depth: Optional[int] = 1):
         self._model = model
-        self._mode = mode
+
+        #  temporary mapping from mode to max_depth
+        if max_depth is None or mode is not None:
+            if mode in ModelSummary.MODES:
+                max_depth = ModelSummary.MODES[mode]
+                from pytorch_lightning.utilities import rank_zero_deprecation
+                rank_zero_deprecation(
+                    f"Argument `mode` in `ModelSummary` is deprecated in v1.4"
+                    f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behaviour."
+                )
+            else:
+                from pytorch_lightning.utilities.exceptions import MisconfigurationException
+                raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
+
+        if not isinstance(max_depth, int) or max_depth < -1:
+            raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
+
+        self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
-        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6
+        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
-        if self._mode == ModelSummary.MODE_FULL:
-            mods = self._model.named_modules()
-            mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self._mode == ModelSummary.MODE_TOP:
+        if self._max_depth == 0:
+            mods = []
+        elif self._max_depth == 1:
             # the children are the top-level modules
             mods = self._model.named_children()
         else:
-            mods = []
+            mods = self._model.named_modules()
+            mods = list(mods)[1:]  # do not include root module (LightningModule)
         return list(mods)
 
     @property
@@ -219,11 +250,13 @@ class ModelSummary(object):
 
     @property
     def total_parameters(self) -> int:
-        return sum(p.numel() for p in self._model.parameters())
+        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+        return sum(
+            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
+        )
 
     @property
     def model_size(self) -> float:
@@ -236,6 +269,12 @@ class ModelSummary(object):
             self._forward_example_input()
         for layer in summary.values():
             layer.detach_hook()
+
+        if self._max_depth >= 1:
+            # remove summary entries with depth > max_depth
+            for k in [k for k in summary if k.count(".") >= self._max_depth]:
+                del summary[k]
+
         return summary
 
     def _forward_example_input(self) -> None:
@@ -244,7 +283,7 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
-        input_ = model.transfer_batch_to_device(input_, model.device)
+        input_ = model._apply_batch_transfer_handler(input_)
 
         if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)
@@ -430,5 +469,17 @@ def get_human_readable_count(number: int) -> str:
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
-    else:
-        return f"{number:,.1f} {labels[index]}"
+
+    return f"{number:,.1f} {labels[index]}"
+
+
+def _is_lazy_weight_tensor(p: Tensor) -> bool:
+    if _TORCH_GREATER_EQUAL_1_8:
+        from torch.nn.parameter import UninitializedParameter
+        if isinstance(p, UninitializedParameter):
+            warning_cache.warn(
+                "A layer with UninitializedParameter was found. "
+                "Thus, the total number of parameters detected may be inaccurate."
+            )
+            return True
+    return False

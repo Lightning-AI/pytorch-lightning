@@ -12,161 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import platform
 import time
-from typing import Type, Union
+from typing import Type
 
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.legacy.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.accelerators.legacy import DDPLauncher
+from pytorch_lightning.plugins import DDPSpawnShardedPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_one_gpu():
-    plugin_parity_test(
-        gpus=1,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_amp_one_gpu():
-    plugin_parity_test(
-        gpus=1,
-        precision=16,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_multi_gpu():
-    plugin_parity_test(
-        gpus=2,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
-    plugin_parity_test(
-        gpus=2,
-        precision=16,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
-    plugin_parity_test(
-        gpus=2,
-        precision=16,
-        accelerator='ddp_spawn',
-        plugin='ddp_sharded',
-        model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
-@DDPLauncher.run("--accelerator ddp --gpus 2 --precision 32")
-def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
-    plugin_parity_test(
-        gpus=args.gpus,
-        precision=args.precision,
-        accelerator=args.accelerator,
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
-@DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
-def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
-    plugin_parity_test(
-        gpus=args.gpus,
-        precision=args.precision,
-        accelerator=args.accelerator,
-        plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
-    """
-        Ensures same results using multiple optimizers across multiple GPUs
-    """
-    plugin_parity_test(
-        plugin=DDPShardedPlugin(),
-        gpus=2,
-        accelerator='ddp_spawn',
-        model_cls=SeedTrainLoaderMultipleOptimizersModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
-    """
-        Ensures using multiple optimizers across multiple GPUs with manual optimization
-    """
-    plugin_parity_test(
-        plugin=DDPShardedPlugin(),
-        gpus=2,
-        accelerator='ddp_spawn',
-        model_cls=SeedTrainLoaderManualModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
+from tests.helpers.runif import RunIf
 
 
 class SeedTrainLoaderModel(BoringModel):
     """
-        Overrides training loader to ensure we enforce the same seed for all DDP processes.
+    Overrides training loader to ensure we enforce the same seed for all DDP processes.
     """
 
     def train_dataloader(self):
@@ -182,7 +42,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
         loss_1 = self.step(batch)
 
-        self.manual_backward(loss_1, opt_a)
+        self.manual_backward(loss_1)
         opt_a.step()
 
         # fake discriminator
@@ -190,9 +50,9 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
 
         # ensure we forward the correct params to the optimizer
         # without retain_graph we can't do multiple backward passes
-        self.manual_backward(loss_2, opt_b)
+        self.manual_backward(loss_2)
         # todo: understand why synchronization breaks there.
-        # self.manual_backward(loss_2, opt_a, retain_graph=True)
+        # self.manual_backward(loss_2, retain_graph=True)
         opt_b.step()
 
         assert self.layer.weight.grad is None or torch.all(self.layer.weight.grad == 0)
@@ -216,7 +76,7 @@ class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
     def training_step(self, batch, batch_idx, optimizer_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
-        return {"loss": loss}
+        return {'loss': loss}
 
     def training_epoch_end(self, outputs) -> None:
         # outputs should be an array with an entry per optimizer
@@ -260,9 +120,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
 def plugin_parity_test(
     model_cls: Type[SeedTrainLoaderModel],
-    plugin: Union[str, DDPPlugin],
     seed: int = 42,
-    accelerator: str = 'ddp_spawn',
     gpus: int = 0,
     precision: int = 32,
     max_percent_speed_diff: float = 0.1,
@@ -273,9 +131,7 @@ def plugin_parity_test(
 
     Args:
         model_cls: Model class to use for test.
-        plugin: Plugin to parity test.
         seed: Seed for generators. Note that this does not handle the seed for data-loading on multi-process.
-        accelerator: Accelerator type for test.
         gpus: Number of GPUS to enable.
         precision: Whether to use AMP or normal FP32 training.
         max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
@@ -293,7 +149,7 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator=accelerator,
+        accelerator='ddp_spawn',
     )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
@@ -307,9 +163,9 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator=accelerator,
-        plugins=[plugin],
+        accelerator='ddp_sharded_spawn',
     )
+    assert isinstance(trainer.training_type_plugin, DDPSpawnShardedPlugin)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
         trainer=trainer, model=custom_plugin_model, use_cuda=use_cuda
@@ -322,11 +178,48 @@ def plugin_parity_test(
     # Assert speed parity by ensuring percentage difference between custom/ddp is below threshold
     percent_diff = (custom_model_time - ddp_time) / custom_model_time
 
-    assert percent_diff <= max_percent_speed_diff, \
-        f'Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}'
+    assert (
+        percent_diff <= max_percent_speed_diff
+    ), f'Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}'
 
     if use_cuda:
         # Assert CUDA memory parity
-        assert max_memory_custom <= max_memory_ddp, \
-            f'Custom plugin used too much memory compared to DDP,' \
+        assert max_memory_custom <= max_memory_ddp, (
+            'Custom plugin used too much memory compared to DDP, '
             f'Custom Mem: {max_memory_custom}, DDP Mem: {max_memory_ddp}'
+        )
+
+
+@RunIf(skip_windows=True, fairscale=True)
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1)),
+        pytest.param(
+            dict(gpus=1, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1, amp_native=True)
+        ),
+        pytest.param(dict(gpus=2, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2)),
+        pytest.param(
+            dict(gpus=2, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2, amp_native=True)
+        ),
+        pytest.param(
+            dict(gpus=2, model_cls=SeedTrainLoaderMultipleOptimizersModel),
+            marks=[
+                RunIf(min_gpus=2),
+                pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
+            ],
+        ),
+        pytest.param(
+            dict(gpus=2, model_cls=SeedTrainLoaderManualModel),
+            marks=[
+                RunIf(min_gpus=2),
+                pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
+            ],
+        ),
+    ],
+)
+def test_ddp_spawn_sharded_plugin(kwargs):
+    if kwargs['gpus'] > 1:
+        # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
+        kwargs['max_percent_speed_diff'] = 0.25
+    plugin_parity_test(**kwargs)

@@ -16,6 +16,7 @@ Comet Logger
 ------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -23,12 +24,12 @@ from typing import Any, Dict, Optional, Union
 import torch
 from torch import is_tensor
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
 
 if _COMET_AVAILABLE:
@@ -115,6 +116,12 @@ class CometLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `workspace`, `log_code`, etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
+
+    Raises:
+        ImportError:
+            If required Comet package is not installed on the device.
+        MisconfigurationException:
+            If neither ``api_key`` nor ``save_dir`` are passed as arguments.
     """
 
     LOGGER_JOIN_CHAR = '-'
@@ -311,6 +318,6 @@ class CometLogger(LightningLoggerBase):
         state["_experiment"] = None
         return state
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)

@@ -26,8 +26,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.6
-ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -49,6 +47,7 @@ RUN apt-get update -qq && \
         unzip \
         ca-certificates \
         software-properties-common \
+        libopenmpi-dev \
     && \
 
 # Install python
@@ -75,12 +74,14 @@ ENV \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
     HOROVOD_WITHOUT_MPI=1 \
-    # MAKEFLAGS="-j$(nproc)" \
-    MAKEFLAGS="-j1" \
+    MAKEFLAGS="-j$(nproc)" \
+    # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
+
+ARG PYTORCH_VERSION=1.6
 
 # conda init
 RUN \
@@ -93,22 +94,31 @@ RUN \
     # eventualy use pre-release
     #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
-    python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
     # todo: find a way how to install nightly PT version
     #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
     pip install -r requirements/devel.txt --no-cache-dir && \
-    rm -rf requirements*
+    rm -rf requirements.* requirements/
 
 RUN \
     # install DALI, needed for examples
     pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
-    # install NVIDIA AMP
-    git clone https://github.com/NVIDIA/apex && \
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
-    rm -rf apex
+    # install NVIDIA apex
+    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
+    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
+
+RUN \
+    # install FairScale
+    pip install fairscale>=0.3.4
+
+RUN \
+    # install DeepSpeed
+    pip install deepspeed==0.4.0
 
 RUN \
     # Show what we have

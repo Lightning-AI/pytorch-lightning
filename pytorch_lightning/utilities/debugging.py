@@ -39,8 +39,6 @@ class InternalDebugger(object):
     def __init__(self, trainer):
         self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
         self.trainer = trainer
-        self.logged_metrics = []
-        self.pbar_added_metrics = []
         self.saved_train_losses = []
         self.saved_val_losses = []
         self.saved_test_losses = []
@@ -53,6 +51,7 @@ class InternalDebugger(object):
         self.test_dataloader_calls = []
         self.dataloader_sequence_calls = []
 
+    @enabled_only
     def track_event(
         self,
         evt_type: str,
@@ -69,15 +68,6 @@ class InternalDebugger(object):
             "local_rank": local_rank,
             "comment": comment,
         })
-
-    def count_events(self, evt_type: str, strict=False) -> int:
-        count = 0
-        for evt in self.events:
-            if strict and evt["event"] == evt_type:
-                count += 1
-            elif not strict and evt_type in evt["event"]:
-                count += 1
-        return count
 
     @enabled_only
     def track_load_dataloader_call(self, name, dataloaders):
@@ -111,23 +101,21 @@ class InternalDebugger(object):
             self.test_dataloader_calls.append(values)
 
     @enabled_only
-    def track_logged_metrics_history(self, scalar_metrics):
-        scalar_metrics['global_step'] = self.trainer.global_step
-        self.logged_metrics.append(scalar_metrics)
-
-    @enabled_only
     def track_train_loss_history(self, batch_idx, loss):
         loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
-    def track_lr_schedulers_update(self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None):
+    def track_lr_schedulers_update(
+        self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None, monitor_val=None
+    ):
         loss_dict = {
             'batch_idx': batch_idx,
             'interval': interval,
             'scheduler_idx': scheduler_idx,
             'epoch': self.trainer.current_epoch,
             'monitor_key': monitor_key,
+            'monitor_val': monitor_val,
             'old_lr': old_lr,
             'new_lr': new_lr
         }
@@ -136,7 +124,7 @@ class InternalDebugger(object):
     @enabled_only
     def track_eval_loss_history(self, batch_idx, dataloader_idx, output):
         loss_dict = {
-            'sanity_check': self.trainer.running_sanity_check,
+            'sanity_check': self.trainer.sanity_checking,
             'dataloader_idx': dataloader_idx,
             'batch_idx': batch_idx,
             'epoch': self.trainer.current_epoch,
@@ -147,11 +135,6 @@ class InternalDebugger(object):
             self.saved_test_losses.append(loss_dict)
         else:
             self.saved_val_losses.append(loss_dict)
-
-    @enabled_only
-    def track_pbar_metrics_history(self, metrics):
-        metrics['debug_epoch'] = self.trainer.current_epoch
-        self.pbar_added_metrics.append(metrics)
 
     @enabled_only
     def track_early_stopping_history(self, callback, current):

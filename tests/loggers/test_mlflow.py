@@ -19,6 +19,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
+from pytorch_lightning.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
 from tests.helpers import BoringModel
 
 
@@ -83,6 +84,33 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     logger3 = MLFlowLogger('new', save_dir=tmpdir)
     assert logger3.experiment_id == "exp-id-3" != logger.experiment_id
     assert logger3.run_id == "run-id-3"
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_run_name_setting(client, mlflow, tmpdir):
+    """ Test that the run_name argument makes the MLFLOW_RUN_NAME tag. """
+
+    tags = resolve_tags({MLFLOW_RUN_NAME: 'run-name-1'})
+
+    # run_name is appended to tags
+    logger = MLFlowLogger('test', run_name='run-name-1', save_dir=tmpdir)
+    logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
+    _ = logger.experiment
+    client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=tags)
+
+    # run_name overrides tags[MLFLOW_RUN_NAME]
+    logger = MLFlowLogger('test', run_name='run-name-1', tags={MLFLOW_RUN_NAME: "run-name-2"}, save_dir=tmpdir)
+    logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
+    _ = logger.experiment
+    client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=tags)
+
+    # default run_name (= None) does not append new tag
+    logger = MLFlowLogger('test', save_dir=tmpdir)
+    logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
+    _ = logger.experiment
+    default_tags = resolve_tags(None)
+    client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=default_tags)
 
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
@@ -184,3 +212,46 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 
     with pytest.warns(RuntimeWarning, match='special characters in metric name'):
         logger.log_metrics(metrics)
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
+    """
+    Test that the logger raises warning with special characters not accepted by MLFlow.
+    """
+    logger = MLFlowLogger('test', save_dir=tmpdir)
+    value = 'test' * 100
+    key = 'test_param'
+    params = {key: value}
+
+    with pytest.warns(RuntimeWarning, match=f'Discard {key}={value}'):
+        logger.log_hyperparams(params)
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.time')
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
+    """
+    Test that the logger calls methods on the mlflow experiment correctly.
+    """
+    time.return_value = 1
+
+    logger = MLFlowLogger('test', save_dir=tmpdir, artifact_location='my_artifact_location')
+    logger._mlflow_client.get_experiment_by_name.return_value = None
+
+    params = {'test': 'test_param'}
+    logger.log_hyperparams(params)
+
+    logger.experiment.log_param.assert_called_once_with(logger.run_id, 'test', 'test_param')
+
+    metrics = {'some_metric': 10}
+    logger.log_metrics(metrics)
+
+    logger.experiment.log_metric.assert_called_once_with(logger.run_id, 'some_metric', 10, 1000, None)
+
+    logger._mlflow_client.create_experiment.assert_called_once_with(
+        name='test',
+        artifact_location='my_artifact_location',
+    )

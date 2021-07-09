@@ -26,7 +26,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.6
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
@@ -42,6 +41,7 @@ RUN apt-get update -qq && \
         curl \
         unzip \
         ca-certificates \
+        libopenmpi-dev \
     && \
 
 # Install conda and python.
@@ -68,12 +68,14 @@ ENV \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
     HOROVOD_WITHOUT_MPI=1 \
-    # MAKEFLAGS="-j$(nproc)" \
-    MAKEFLAGS="-j1" \
+    MAKEFLAGS="-j$(nproc)" \
+    # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
     CONDA_ENV=lightning
 
 COPY environment.yml environment.yml
+
+ARG PYTORCH_VERSION=1.6
 
 # conda init
 RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch -c pytorch-test -c pytorch-nightly && \
@@ -97,10 +99,12 @@ ENV \
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
+COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
+    python requirements_adjust_versions.py requirements-extra.txt && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \
@@ -111,10 +115,9 @@ RUN \
     pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
-    # install NVIDIA AMP
-    git clone https://github.com/NVIDIA/apex && \
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
-    rm -rf apex
+    # install NVIDIA apex
+    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
+    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
 
 RUN \
     # Show what we have

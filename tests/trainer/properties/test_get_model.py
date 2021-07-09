@@ -11,28 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
-
-import pytest
-import torch
 
 from pytorch_lightning import Trainer
-from tests.accelerators.legacy import DDPLauncher
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):
 
     def on_fit_start(self):
-        assert self == self.trainer.get_model()
+        assert self == self.trainer.lightning_module
 
     def on_fit_end(self):
-        assert self == self.trainer.get_model()
+        assert self == self.trainer.lightning_module
 
 
 def test_get_model(tmpdir):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly
+    Tests that `trainer.lightning_module` extracts the model correctly
     """
 
     model = TrainerGetModel()
@@ -47,10 +43,10 @@ def test_get_model(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(skip_windows=True)
 def test_get_model_ddp_cpu(tmpdir):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly when using ddp on cpu
+    Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu
     """
 
     model = TrainerGetModel()
@@ -67,10 +63,10 @@ def test_get_model_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_get_model_gpu(tmpdir):
     """
-    Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU
+    Tests that `trainer.lightning_module` extracts the model correctly when using GPU
     """
 
     model = TrainerGetModel()
@@ -84,26 +80,3 @@ def test_get_model_gpu(tmpdir):
         gpus=1,
     )
     trainer.fit(model)
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
-def test_get_model_ddp_gpu(tmpdir, args=None):
-    """
-    Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU + ddp accelerators
-    """
-
-    model = TrainerGetModel()
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        gpus=1,
-        accelerator=args.accelerator
-    )
-    trainer.fit(model)
-    return 1

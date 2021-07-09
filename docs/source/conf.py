@@ -13,42 +13,36 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 # import m2r
-import builtins
 import glob
 import os
 import shutil
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
+PATH_RAW_NB = os.path.join(PATH_ROOT, '_notebooks')
+PATH_IPYNB = os.path.join(PATH_HERE, 'notebooks')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
+sys.path.append(os.path.join(PATH_RAW_NB, '.actions'))
+
+from helpers import HelperCLI  # noqa: E401 E402
 
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
-if SPHINX_MOCK_REQUIREMENTS:
-    builtins.__LIGHTNING_SETUP__ = True
 
-import pytorch_lightning  # noqa: E402
+spec = spec_from_file_location(
+    "pytorch_lightning/__about__.py",
+    os.path.join(PATH_ROOT, "pytorch_lightning", "__about__.py"),
+)
+about = module_from_spec(spec)
+spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
-# # export the documentation
-# with open('intro.rst', 'w') as fp:
-#     intro = pytorch_lightning.__doc__.replace(os.linesep + ' ', '')
-#     fp.write(m2r.convert(intro))
-#     # fp.write(pytorch_lightning.__doc__)
-
-# # export the READme
-# with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
-#     readme = fp.read()
-# # replace all paths to relative
-# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
-#              if os.path.isdir(p)):
-#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
-# with open('readme.md', 'w') as fp:
-#     fp.write(readme)
+HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -79,19 +73,19 @@ _transform_changelog(
 # -- Project information -----------------------------------------------------
 
 project = 'PyTorch Lightning'
-copyright = pytorch_lightning.__copyright__
-author = pytorch_lightning.__author__
+copyright = about.__copyright__
+author = about.__author__
 
 # The short X.Y version
-version = pytorch_lightning.__version__
+version = about.__version__
 # The full version, including alpha/beta/rc tags
-release = pytorch_lightning.__version__
+release = about.__version__
 
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '3.4'
+needs_sphinx = '4.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -108,10 +102,9 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgmath',
-    'recommonmark',
     'sphinx.ext.autosectionlabel',
-    # 'm2r',
-    # 'nbsphinx',  # it seems some sphinx issue
+    'myst_parser',
+    'nbsphinx',
     'sphinx_autodoc_typehints',
     'sphinx_copybutton',
     'sphinx_paramlinks',
@@ -129,12 +122,14 @@ nbsphinx_execute = 'never'
 nbsphinx_allow_errors = True
 nbsphinx_requirejs_path = ''
 
+# myst-parser, forcing to parse all html pages with mathjax
+# https://github.com/executablebooks/MyST-Parser/issues/394
+myst_update_mathjax = False
+
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-# source_suffix = ['.rst', '.md', '.ipynb']
-source_suffix = {
+source_parsers = {
     '.rst': 'restructuredtext',
     '.txt': 'markdown',
     '.md': 'markdown',
@@ -156,6 +151,8 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     f'{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md',
+    'notebooks/course_UvA-DL/*',
+    'notebooks/template*',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -176,8 +173,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    'pytorch_project': pytorch_lightning.__homepage__,
-    'canonical_url': pytorch_lightning.__homepage__,
+    'pytorch_project': 'https://pytorchlightning.ai',
+    'canonical_url': about.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
@@ -279,6 +276,7 @@ intersphinx_mapping = {
     'torch': ('https://pytorch.org/docs/stable/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'PIL': ('https://pillow.readthedocs.io/en/stable/', None),
+    'torchmetrics': ('https://torchmetrics.readthedocs.io/en/stable/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -328,9 +326,11 @@ PACKAGE_MAPPING = {
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
     'hydra-core': 'hydra',
+    'pyDeprecate': 'deprecate',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
+    MOCK_PACKAGES += ['fairscale']
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'extra.txt'))
@@ -358,7 +358,8 @@ autodoc_default_options = {
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
 #  string to disable permalinks.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
-html_add_permalinks = "¶"
+html_permalinks = True
+html_permalinks_icon = "¶"
 
 # True to prefix each section label with the name of the document it is in, followed by a colon.
 #  For example, index:Introduction for a section called Introduction that appears in document index.rst.
@@ -371,10 +372,11 @@ doctest_test_doctest_blocks = ''
 doctest_global_setup = """
 import importlib
 import os
+from typing import Optional
 import torch
 from torch import nn
 import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
@@ -383,6 +385,6 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _module_available,
 )
-TORCHVISION_AVAILABLE = _module_available("torchvision")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True

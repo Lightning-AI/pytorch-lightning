@@ -36,6 +36,8 @@ references:
   build_push_docker: &build_push_docker
     run:
       name: Build and push Docker image
+      environment:
+        - PYTHON_VER: 3.7
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
@@ -83,30 +85,13 @@ references:
        sudo pip install pycobertura
        pycobertura show coverage.xml
 
-  delete_gke_jobs: &delete_gke_jobs
-   run:
-     name: Delete GKE Jobs
-     command: |
-       # Match jobs whose age matches patterns like '1h' or '1d', i.e. any job
-       # that has been around longer than 1hr. First print all columns for
-       # matches, then execute the delete.
-       jobs_to_delete=$(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $0}')
-       echo $jobs_to_delete
-       if [ ${#jobs_to_delete} -gt 1 ];
-         then kubectl delete job $(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $1}');
-       fi
-
 jobs:
 
   TPU-tests:
-    parameters:
-      python:
-        type: string
     docker:
       - image: circleci/python:3.7
     environment:
-      - PYTHON_VER: << parameters.python >>
-      - XLA_VER: 1.7
+      - XLA_VER: 1.8
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -134,42 +119,19 @@ jobs:
       - image: readthedocs/build:latest
     steps:
       - checkout
+      - run:
+          command: |
+            git submodule update --init --recursive
+          name: Init git submodule
       - *make_docs
       - store_artifacts:
           # allows us to preview the generated html pages
           path: docs/build/html/
           destination: html
 
-  cleanup-gke-jobs:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - gcp-gke/install
-      - gcp-gke/update-kubeconfig-with-credentials:
-          cluster: $GKE_CLUSTER
-          perform-login: true
-      - *delete_gke_jobs
-
-
 workflows:
   version: 2
-  tpu-tests:
+  ci-tests:
     jobs:
       - build-Docs
-      - TPU-tests:
-          matrix:
-            parameters:
-              python: ["3.6", "3.7"]
-  tpu-cleanup:
-    triggers:
-      - schedule:
-          # The cron format is:
-          # min (0-59) hour (0-23) monthday (1-31) month (1-12) weekday (0-6, 0=Sun)
-          # Set to run at the first minute of every hour.
-          cron: "0 * * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - cleanup-gke-jobs
+      - TPU-tests

@@ -215,9 +215,9 @@ class SegModel(pl.LightningModule):
         img = img.float()
         mask = mask.long()
         out = self(img)
-        loss_val = F.cross_entropy(out, mask, ignore_index=250)
-        log_dict = {'train_loss': loss_val}
-        return {'loss': loss_val, 'log': log_dict, 'progress_bar': log_dict}
+        loss = F.cross_entropy(out, mask, ignore_index=250)
+        log_dict = {'train_loss': loss}
+        return {'loss': loss, 'log': log_dict, 'progress_bar': log_dict}
 
     def validation_step(self, batch, batch_idx):
         img, mask = batch
@@ -245,7 +245,7 @@ class SegModel(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("SegModel")
         parser.add_argument("--data_path", type=str, help="path where dataset is stored")
         parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
         parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
@@ -257,7 +257,7 @@ class SegModel(pl.LightningModule):
             default=False,
             help="whether to use bilinear interpolation or transposed"
         )
-        return parser
+        return parent_parser
 
 
 def main(hparams: Namespace):

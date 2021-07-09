@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning.core.lightning import LightningModule
+from tests import PATH_DATASETS
 from tests.base.model_optimizers import ConfigureOptimizersPool
 from tests.base.model_test_dataloaders import TestDataloaderVariations
 from tests.base.model_test_epoch_ends import TestEpochEndVariations
@@ -28,7 +29,7 @@ from tests.base.model_utilities import ModelTemplateData, ModelTemplateUtils
 from tests.base.model_valid_dataloaders import ValDataloaderVariations
 from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.model_valid_steps import ValidationStepVariations
-from tests.helpers.datasets import PATH_DATASETS, TrialMNIST
+from tests.helpers.datasets import TrialMNIST
 
 
 class EvalModelTemplate(
@@ -111,7 +112,7 @@ class EvalModelTemplate(
         x = self.c_d1_drop(x)
 
         x = self.c_d2(x)
-        logits = F.log_softmax(x, dim=1)
+        logits = F.softmax(x, dim=1)
 
         return logits
 

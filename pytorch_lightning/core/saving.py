@@ -15,6 +15,7 @@
 import ast
 import csv
 import inspect
+import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
@@ -25,13 +26,13 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
+log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
@@ -135,7 +136,7 @@ class ModelIO(object):
 
         if hparams_file is not None:
             extension = hparams_file.split('.')[-1]
-            if extension.lower() in ('csv'):
+            if extension.lower() == 'csv':
                 hparams = load_hparams_from_tags_csv(hparams_file)
             elif extension.lower() in ('yml', 'yaml'):
                 hparams = load_hparams_from_yaml(hparams_file)
@@ -201,7 +202,17 @@ class ModelIO(object):
         model.on_load_checkpoint(checkpoint)
 
         # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'], strict=strict)
+        keys = model.load_state_dict(checkpoint['state_dict'], strict=strict)
+
+        if not strict:
+            if keys.missing_keys:
+                rank_zero_warn(
+                    f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}"
+                )
+            if keys.unexpected_keys:
+                rank_zero_warn(
+                    f"Found keys that are not in the model state dict but in the checkpoint: {keys.unexpected_keys}"
+                )
 
         return model
 

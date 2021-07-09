@@ -23,7 +23,7 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import DeviceType, rank_zero_only
@@ -47,6 +47,10 @@ class GPUStatsMonitor(Callback):
         fan_speed: Set to ``True`` to monitor percentage of fan speed. Default: ``False``.
         temperature: Set to ``True`` to monitor the memory and gpu temperature in degree Celsius.
             Default: ``False``.
+
+    Raises:
+        MisconfigurationException:
+            If NVIDIA driver is not installed, not running on GPUs, or ``Trainer`` has no logger.
 
     Example::
 
@@ -97,7 +101,7 @@ class GPUStatsMonitor(Callback):
             'temperature': temperature
         })
 
-    def on_train_start(self, trainer, *args, **kwargs):
+    def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
             raise MisconfigurationException('Cannot use GPUStatsMonitor callback with Trainer that has no logger.')
 
@@ -109,12 +113,12 @@ class GPUStatsMonitor(Callback):
 
         self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
 
-    def on_train_epoch_start(self, *args, **kwargs):
+    def on_train_epoch_start(self, trainer, pl_module) -> None:
         self._snap_intra_step_time = None
         self._snap_inter_step_time = None
 
     @rank_zero_only
-    def on_train_batch_start(self, trainer, *args, **kwargs):
+    def on_train_batch_start(self, trainer, pl_module, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
@@ -132,7 +136,9 @@ class GPUStatsMonitor(Callback):
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
-    def on_train_batch_end(self, trainer, *args, **kwargs):
+    def on_train_batch_end(
+        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
@@ -205,6 +211,4 @@ class GPUStatsMonitor(Callback):
 
     @staticmethod
     def _should_log(trainer) -> bool:
-        should_log = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
-
-        return should_log
+        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop

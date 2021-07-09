@@ -13,6 +13,11 @@
 # limitations under the License.
 import functools
 import os
+import traceback
+from contextlib import contextmanager
+from typing import Optional
+
+import pytest
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -92,11 +97,15 @@ def pl_multi_process_test(func):
             try:
                 func(**kwargs)
                 queue.put(1)
-            # todo: specify the possible exception
             except Exception:
-                import traceback
-                traceback.print_exc()
-                queue.put(-1)
+                _trace = traceback.format_exc()
+                print(_trace)
+                # code 17 means RuntimeError: tensorflow/compiler/xla/xla_client/mesh_service.cc:364 :
+                # Failed to meet rendezvous 'torch_xla.core.xla_model.save': Socket closed (14)
+                if "terminated with exit code 17" in _trace:
+                    queue.put(1)
+                else:
+                    queue.put(-1)
 
         proc = Process(target=inner_f, args=(queue, ), kwargs=kwargs)
         proc.start()
@@ -106,3 +115,18 @@ def pl_multi_process_test(func):
         assert result == 1, 'expected 1, but returned %s' % result
 
     return wrapper
+
+
+@contextmanager
+def no_warning_call(warning_type, match: Optional[str] = None):
+    with pytest.warns(None) as record:
+        yield
+
+        try:
+            w = record.pop(warning_type)
+            if not (match and match in str(w.message)):
+                return
+        except AssertionError:
+            # no warning raised
+            return
+        raise AssertionError(f"`{warning_type}` was raised: {w}")

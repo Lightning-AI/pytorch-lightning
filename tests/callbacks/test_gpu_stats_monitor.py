@@ -21,17 +21,17 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GPUStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor(tmpdir):
     """
     Test GPU stats are logged using a logger.
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     gpu_stats = GPUStatsMonitor(intra_step_time=True)
     logger = CSVLogger(tmpdir)
     log_every_n_steps = 2
@@ -47,7 +47,7 @@ def test_gpu_stats_monitor(tmpdir):
     )
 
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
@@ -76,12 +76,12 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
         GPUStatsMonitor()
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_logger(tmpdir):
     """
     Test GPUStatsMonitor with no logger in Trainer.
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(
@@ -96,12 +96,12 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     """
     Test GPUStatsMonitor raises a warning when not training on GPU device.
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(

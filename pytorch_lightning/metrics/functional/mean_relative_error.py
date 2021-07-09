@@ -11,44 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple
 
 import torch
+from torchmetrics.functional.regression.mean_relative_error import mean_relative_error as _mean_relative_error
 
-from pytorch_lightning.metrics.utils import _check_same_shape
-
-
-def _mean_relative_error_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
-    _check_same_shape(preds, target)
-    target_nz = target.clone()
-    target_nz[target == 0] = 1
-    sum_rltv_error = torch.sum(torch.abs((preds - target) / target_nz))
-    n_obs = target.numel()
-    return sum_rltv_error, n_obs
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-def _mean_relative_error_compute(sum_rltv_error: torch.Tensor, n_obs: int) -> torch.Tensor:
-    return sum_rltv_error / n_obs
-
-
+@deprecated_metrics(target=_mean_relative_error)
 def mean_relative_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
-    Computes mean relative error
-
-    Args:
-        pred: estimated labels
-        target: ground truth labels
-
-    Return:
-        Tensor with mean relative error
-
-    Example:
-
-        >>> x = torch.tensor([0., 1, 2, 3])
-        >>> y = torch.tensor([0., 1, 2, 2])
-        >>> mean_relative_error(x, y)
-        tensor(0.1250)
-
+    .. deprecated::
+        Use :func:`torchmetrics.functional.regression.mean_relative_error`. Will be removed in v1.5.0.
     """
-    sum_rltv_error, n_obs = _mean_relative_error_update(preds, target)
-    return _mean_relative_error_compute(sum_rltv_error, n_obs)
+    return void(preds, target)

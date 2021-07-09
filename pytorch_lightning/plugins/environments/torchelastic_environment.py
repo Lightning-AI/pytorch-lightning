@@ -12,62 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
+from typing import Optional
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_warn
 
+log = logging.getLogger(__name__)
+
 
 class TorchElasticEnvironment(ClusterEnvironment):
-    """An environment for running in an environment managed by Torch Elastic
+    """ Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_ """
 
-    This ClusterEnvironment expects that it was invoked from within a job
-    started with the Elastic Launcher.
+    @staticmethod
+    def is_using_torchelastic() -> bool:
+        """ Returns ``True`` if the current process was launched using the torchelastic command. """
+        required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
+        return all(v in os.environ for v in required_env_vars)
 
-    This plugin expects the following environment variables:
+    def creates_children(self) -> bool:
+        return True
 
-    MASTER_ADDR
-      fqdn of the host that is running worker with rank 0
-
-    MASTER_PORT
-      port on the MASTER_ADDR that can be used to host the tcp c10d store
-
-    WORLD_SIZE
-      total number of workers in the job
-
-    GROUP_RANK
-      rank of the worker group
-
-    RANK
-      rank of the worker within a worker group
-
-    LOCAL_RANK
-       rank of the worker within a local worker group
-
-    See `Elastic Launch <https://pytorch.org/elastic/latest/distributed.html>` for more details.
-    """
-
-    def _read_required(self, envar, target):
-        """A helper for reading required environment variables"""
-        ret = os.environ.get(envar)
-        if ret is None:
-            raise ValueError("Could not find %s -- expected in environment variable %s" % (target, envar))
-        return ret
-
-    def __init__(self):
-        self._world_size = self._read_required('WORLD_SIZE', 'world size')
-        self._local_rank = self._read_required('LOCAL_RANK', 'local rank')
-        self._node_rank = self._read_required('GROUP_RANK', 'node rank')
-        self._global_rank = self._read_required('RANK', 'global rank')
-        self._master_address = self._get_master_address()
-        self._master_port = self._get_master_port()
-
-    def _get_master_address(self):
-        """A helper for reading MASTER_ADDR environment variable
-
-        If not MASTER_POR is not found, returns 127.0.0.1
-        """
+    def master_address(self) -> str:
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ["MASTER_ADDR"] = "127.0.0.1"
@@ -75,39 +42,32 @@ class TorchElasticEnvironment(ClusterEnvironment):
         master_address = os.environ.get('MASTER_ADDR')
         return master_address
 
-    def _get_master_port(self):
-        """A helper for reading MASTER_PORT environment variable
-
-        If not MASTER_POR is not found, returns 12910
-        """
+    def master_port(self) -> int:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ["MASTER_PORT"] = "12910"
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        port = os.environ.get('MASTER_PORT')
+        port = int(os.environ.get('MASTER_PORT'))
         return port
 
-    def master_address(self):
-        """Read from environment variable MASTER_ADDR"""
-        return self._master_address
+    def world_size(self) -> Optional[int]:
+        world_size = os.environ.get('WORLD_SIZE')
+        return int(world_size) if world_size is not None else world_size
 
-    def master_port(self):
-        """Read from environment variable MASTER_PORT"""
-        return self._master_port
+    def set_world_size(self, size: int) -> None:
+        log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
-    def world_size(self):
-        """Read from environment variable WORLD_SIZE"""
-        return self._world_size
+    def global_rank(self) -> int:
+        return int(os.environ["RANK"])
 
-    def local_rank(self):
-        """Read from environment variable LOCAL_RANK"""
-        return self._local_rank
+    def set_global_rank(self, rank: int) -> None:
+        log.debug(
+            "TorchElasticEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
+        )
 
-    def node_rank(self):
-        """Read from environment variable GROUP_RANK"""
-        return self._node_rank
+    def local_rank(self) -> int:
+        return int(os.environ['LOCAL_RANK'])
 
-    def global_rank(self):
-        """Read from environment variable RANK"""
-        return self._global_rank
+    def node_rank(self) -> int:
+        return int(os.environ.get('GROUP_RANK', 0))

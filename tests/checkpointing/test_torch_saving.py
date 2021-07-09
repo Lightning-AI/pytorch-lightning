@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_model_torch_save(tmpdir):
@@ -38,7 +37,7 @@ def test_model_torch_save(tmpdir):
     trainer = torch.load(temp_path)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()
@@ -48,6 +47,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
         max_epochs=num_epochs,
         accelerator="ddp_cpu",
         num_processes=2,
+        logger=False,
     )
     temp_path = os.path.join(tmpdir, 'temp.pt')
     trainer.fit(model)
@@ -57,7 +57,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
     torch.save(trainer, temp_path)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = BoringModel()

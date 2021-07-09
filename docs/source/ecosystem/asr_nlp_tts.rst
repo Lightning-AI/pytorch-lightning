@@ -160,7 +160,7 @@ for the entire speech to text .yaml file.
         max_epochs: 5
         max_steps: null # computed at runtime if not set
         num_nodes: 1
-        distributed_backend: ddp
+        accelerator: ddp
         ...
     # configure the ASR model
     model:
@@ -270,12 +270,12 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
                 log_probs=log_probs, targets=transcript, input_lengths=encoded_len, target_lengths=transcript_len
             )
             wer_num, wer_denom = self._wer(predictions, transcript, transcript_len)
-            tensorboard_logs = {
+            self.log_dict({
                 'train_loss': loss_value,
                 'training_batch_wer': wer_num / wer_denom,
                 'learning_rate': self._optimizer.param_groups[0]['lr'],
-            }
-            return {'loss': loss_value, 'log': tensorboard_logs}
+            })
+            return loss_value
 
 Neural Types in NeMo ASR
 ------------------------
@@ -539,8 +539,8 @@ since every NeMo model is a Lightning Module.
             logits = self(input_ids=input_ids, token_type_ids=input_type_ids, attention_mask=input_mask)
 
             loss = self.loss(logits=logits, labels=labels, loss_mask=loss_mask)
-            tensorboard_logs = {'train_loss': loss, 'lr': self._optimizer.param_groups[0]['lr']}
-            return {'loss': loss, 'log': tensorboard_logs}
+            self.log_dict({'train_loss': loss, 'lr': self._optimizer.param_groups[0]['lr']})
+            return loss
         ...
 
 Neural Types in NeMo NLP
@@ -598,7 +598,7 @@ Specify TTS Model Configurations with YAML File
         gpus: -1 # number of gpus
         max_epochs: 350
         num_nodes: 1
-        distributed_backend: ddp
+        accelerator: ddp
         ...
 
     # configure the TTS model
@@ -751,13 +751,8 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 
             l_mle, l_length, logdet, loss, _ = self.step(y, y_lengths, x, x_lengths)
 
-            output = {
-                "loss": loss,  # required
-                "progress_bar": {"l_mle": l_mle, "l_length": l_length, "logdet": logdet},
-                "log": {"loss": loss, "l_mle": l_mle, "l_length": l_length, "logdet": logdet},
-            }
-
-            return output
+            self.log_dict({"l_mle": l_mle, "l_length": l_length, "logdet": logdet}, prog_bar=True)
+            return loss
         ...
 
 Neural Types in NeMo TTS

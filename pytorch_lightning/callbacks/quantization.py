@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
 
 def wrap_qat_forward_context(
     quant_cb,
-    model: pl.core.LightningModule,
+    model: 'pl.LightningModule',
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
@@ -57,7 +57,7 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
@@ -83,15 +83,6 @@ def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
 
 
 class QuantizationAwareTraining(Callback):
-    """
-    Quantization allows speeding up inference and decreasing memory requirements by performing computations
-     and storing tensors at lower bitwidths (such as INT8 or FLOAT16) than floating point precision.
-    We use native PyTorch API so for more information see
-     `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
-
-    .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
-    """
-
     OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
@@ -103,33 +94,54 @@ class QuantizationAwareTraining(Callback):
         input_compatible: bool = True,
     ) -> None:
         """
+        Quantization allows speeding up inference and decreasing memory requirements
+        by performing computations and storing tensors at lower bitwidths
+        (such as INT8 or FLOAT16) than floating point precision.
+        We use native PyTorch API so for more information
+        see `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_.
+
+        .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
+
+
         Args:
-            qconfig: define quantization configuration see: `torch.quantization.QConfig
-             <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>_`
-                or use pre-defined: 'fbgemm' for server inference and 'qnnpack' for mobile inference
+
+            qconfig: quantization configuration:
+
+                - 'fbgemm' for server inference.
+                - 'qnnpack' for mobile inference.
+                -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+
             observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
-                and ``HistogramObserver`` as "histogram" which is more computationally expensive
-            collect_quantization: count or custom function to collect quantization statistics
+                and ``HistogramObserver`` as "histogram" which is more computationally expensive.
 
-                - with default ``None`` the quantization observer is called each module forward,
-                    typical use-case can be collecting extended statistic when user uses image/data augmentation
-                - custom call count to set a fixed number of calls, starting from the beginning
-                - custom ``Callable`` function with single trainer argument,
-                    see example when you limit call only for last epoch::
+            collect_quantization: count or custom function to collect quantization statistics:
 
-                    def custom_trigger_last(trainer):
-                        return trainer.current_epoch == (trainer.max_epochs - 1)
+                - ``None`` (deafult). The quantization observer is called in each module forward
+                    (useful for collecting extended statistic when useing image/data augmentation).
+                - ``int``. Use to set a fixed number of calls, starting from the beginning.
+                - ``Callable``. Custom function with single trainer argument.
+                    See this example to trigger only the last epoch:
 
-                    QuantizationAwareTraining(collect_quantization=custom_trigger_last)
+                    .. code-block:: python
 
-            modules_to_fuse: allows you fuse a few layers together as shown in `diagram
-             <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>_`
-                to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286
+                        def custom_trigger_last(trainer):
+                            return trainer.current_epoch == (trainer.max_epochs - 1)
+
+                        QuantizationAwareTraining(collect_quantization=custom_trigger_last)
+
+            modules_to_fuse: allows you fuse a few layers together as shown in
+                `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_
+                to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
+
             input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
-                but break compatibility to torchscript
-        """
-        if not isinstance(qconfig, (str, QConfig)):
-            raise MisconfigurationException(f"Unsupported qconfig: f{qconfig}.")
+                but break compatibility to torchscript.
+
+        """  # noqa: E501
+        _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
+        if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
+            raise MisconfigurationException(
+                f"Unsupported qconfig: f{qconfig}.\nTry one of defaults: {torch.backends.quantized.supported_engines}"
+            )
         self._qconfig = qconfig
 
         if observer_type not in self.OBSERVER_TYPES:

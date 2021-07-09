@@ -17,10 +17,11 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
+from tests.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):
@@ -88,6 +89,54 @@ class MixedDtypeModel(LightningModule):
         return self.reduce(self.embed(x))
 
 
+class PartialScriptModel(LightningModule):
+    """ A model which contains scripted layers. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = torch.jit.script(nn.Linear(5, 3))
+        self.layer2 = nn.Linear(3, 2)
+        self.example_input_array = torch.rand(2, 5)
+
+    def forward(self, x):
+        return self.layer2(self.layer1(x))
+
+
+class LazyModel(LightningModule):
+    """ A model which contains lazy layers with unintialized parameters. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.LazyLinear(5)
+        self.layer2 = nn.LazyLinear(2)
+
+    def forward(self, inp):
+        return self.layer2(self.layer1(inp))
+
+
+class DeepNestedModel(LightningModule):
+    """ A model with deep nested layers. """
+
+    def __init__(self):
+        super().__init__()
+        self.branch1 = nn.Sequential(
+            nn.Linear(5, 5),
+            nn.Sequential(
+                nn.Linear(5, 5),
+                nn.Sequential(
+                    nn.Linear(5, 5),
+                    nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 3))))
+                )
+            )
+        )
+        self.branch2 = nn.Linear(5, 10)
+        self.head = UnorderedModel()
+        self.example_input_array = torch.rand(2, 5)
+
+    def forward(self, inp):
+        return self.head(self.branch1(inp), self.branch2(inp))
+
+
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
@@ -97,11 +146,8 @@ def test_invalid_weights_summmary():
         Trainer(weights_summary='temp')
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
-def test_empty_model_summary_shapes(mode):
+@pytest.mark.parametrize('mode', ["full", "top"])
+def test_empty_model_summary_shapes(mode: str):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
@@ -110,16 +156,13 @@ def test_empty_model_summary_shapes(mode):
     assert summary.param_nums == []
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize('mode', ["full", "top"])
 @pytest.mark.parametrize(['device'], [
     pytest.param(torch.device('cpu')),
     pytest.param(torch.device('cuda', 0)),
     pytest.param(torch.device('cuda', 0)),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
@@ -157,24 +200,18 @@ def test_mixed_dtype_model_summary():
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
-def test_hooks_removed_after_summarize(mode):
+@pytest.mark.parametrize('max_depth', [-1, 0])
+def test_hooks_removed_after_summarize(max_depth):
     """ Test that all hooks were properly removed after summary, even ones that were not run. """
     model = UnorderedModel()
-    summary = ModelSummary(model, mode=mode)
+    summary = ModelSummary(model, max_depth=max_depth)
     # hooks should be removed
     for _, layer in summary.summarize().items():
         handle = layer._hook_handle
         assert handle.id not in handle.hooks_dict_ref()
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()
@@ -198,10 +235,7 @@ def test_rnn_summary_shapes(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
@@ -215,10 +249,7 @@ def test_summary_parameter_count(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
@@ -232,10 +263,16 @@ def test_summary_layer_types(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', ["full", "top"])
+def test_summary_with_scripted_modules(mode):
+    model = PartialScriptModel()
+    summary = model.summarize(mode=mode)
+    assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
+    assert summary.in_sizes == [UNKNOWN_SIZE, [2, 3]]
+    assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
+
+
+@pytest.mark.parametrize('mode', ["full", "top"])
 @pytest.mark.parametrize(['example_input', 'expected_size'], [
     pytest.param([], UNKNOWN_SIZE),
     pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
@@ -269,10 +306,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     assert summary.in_sizes == [expected_size]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_model_size(mode):
     """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
@@ -280,10 +314,7 @@ def test_model_size(mode):
     assert model.pre_calculated_model_size == summary.model_size
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', ["full", "top"])
 def test_empty_model_size(mode):
     """ Test empty model size is zero. """
     model = EmptyModule()
@@ -291,12 +322,10 @@ def test_empty_model_size(mode):
     assert 0.0 == summary.model_size
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
-@pytest.mark.parametrize('precision', [16, 32])
-def test_model_size_precision(monkeypatch, tmpdir, precision):
+@RunIf(min_gpus=1, amp_native=True)
+def test_model_size_precision(tmpdir):
     """ Test model size for half and full precision. """
-    model = PreCalculatedModel(precision)
+    model = PreCalculatedModel()
 
     # fit model
     trainer = Trainer(
@@ -304,8 +333,58 @@ def test_model_size_precision(monkeypatch, tmpdir, precision):
         gpus=1,
         max_steps=1,
         max_epochs=1,
-        precision=precision,
+        precision=32,
     )
     trainer.fit(model)
     summary = model.summarize()
     assert model.pre_calculated_model_size == summary.model_size
+
+
+@RunIf(min_torch="1.8")
+def test_lazy_model_summary():
+    """ Test that the model summary can work with lazy layers. """
+    lazy_model = LazyModel()
+    summary = ModelSummary(lazy_model)
+
+    with pytest.warns(
+        UserWarning,
+        match=r"A layer with UninitializedParameter was found. "
+        r"Thus, the total number of parameters detected may be inaccurate."
+    ):
+        if _TORCH_GREATER_EQUAL_1_9:
+            assert summary.total_parameters == 0
+            assert summary.trainable_parameters == 0
+        else:
+            # bug in 1.8: the bias of a LazyLinear layer is initialized!
+            # https://github.com/pytorch/pytorch/issues/58350
+            assert summary.total_parameters == 7
+            assert summary.trainable_parameters == 7
+
+
+def test_max_depth_equals_mode_interface():
+    """Test model.summarize(full/top) interface mapping matches max_depth"""
+    model = DeepNestedModel()
+
+    summary_top = model.summarize(mode="top")
+    summary_0 = model.summarize(max_depth=1)
+    assert str(summary_top) == str(summary_0)
+
+    summary_full = model.summarize(mode="full")
+    summary_minus1 = model.summarize(max_depth=-1)
+    assert str(summary_full) == str(summary_minus1)
+
+
+@pytest.mark.parametrize('max_depth', [-1, 0, 1, 3, 999])
+def test_max_depth_param(max_depth):
+    """Test that only the modules up to the desired depth are shown"""
+    model = DeepNestedModel()
+    summary = ModelSummary(model, max_depth=max_depth)
+    for lname in summary.layer_names:
+        if max_depth >= 0:
+            assert lname.count(".") < max_depth
+
+
+@pytest.mark.parametrize('max_depth', [-99, -2, "invalid"])
+def test_raise_invalid_max_depth_value(max_depth):
+    with pytest.raises(ValueError, match=f"`max_depth` can be -1, 0 or > 0, got {max_depth}"):
+        DeepNestedModel().summarize(max_depth=max_depth)

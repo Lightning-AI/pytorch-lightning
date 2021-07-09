@@ -15,16 +15,17 @@
 Neptune Logger
 --------------
 """
+import logging
 from argparse import Namespace
 from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 from torch import is_tensor
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 
+log = logging.getLogger(__name__)
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 
 if _NEPTUNE_AVAILABLE:
@@ -171,6 +172,10 @@ class NeptuneLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `params`, `tags`, `properties`, etc. used by
             :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
+
+    Raises:
+        ImportError:
+            If required Neptune package is not installed on the device.
     """
 
     LOGGER_JOIN_CHAR = '-'
@@ -273,15 +278,13 @@ class NeptuneLogger(LightningLoggerBase):
     def name(self) -> str:
         if self.offline_mode:
             return 'offline-name'
-        else:
-            return self.experiment.name
+        return self.experiment.name
 
     @property
     def version(self) -> str:
         if self.offline_mode:
             return 'offline-id-1234'
-        else:
-            return self.experiment.id
+        return self.experiment.id
 
     @rank_zero_only
     def log_metric(
@@ -313,7 +316,10 @@ class NeptuneLogger(LightningLoggerBase):
             text: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        self.experiment.log_text(log_name, text, step=step)
+        if step is None:
+            self.experiment.log_text(log_name, text)
+        else:
+            self.experiment.log_text(log_name, x=step, y=text)
 
     @rank_zero_only
     def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:

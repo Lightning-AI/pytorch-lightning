@@ -17,10 +17,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.plugins.legacy.ddp_plugin import DDPPlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import set_random_master_port
 
 
@@ -67,7 +68,7 @@ class SyncBNModule(LightningModule):
 
 # TODO: Fatal Python error: Bus error
 @pytest.mark.skip(reason="Fatal Python error: Bus error")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2, special=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
     set_random_master_port()
@@ -102,8 +103,16 @@ def test_sync_batchnorm_ddp(tmpdir):
     dm.setup(stage=None)
 
     model = SyncBNModule(gpu_count=2, bn_targets=bn_outputs)
+    ddp = DDPSpawnPlugin(
+        parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
+        num_nodes=1,
+        sync_batchnorm=True,
+        cluster_environment=LightningEnvironment(),
+        find_unused_parameters=True
+    )
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         gpus=2,
         num_nodes=1,
         accelerator='ddp_spawn',
@@ -112,8 +121,8 @@ def test_sync_batchnorm_ddp(tmpdir):
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
-        plugins=[DDPPlugin(find_unused_parameters=True)]
+        plugins=[ddp]
     )
 
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, "Sync batchnorm failing with DDP"
+    assert trainer.state.finished, "Sync batchnorm failing with DDP"

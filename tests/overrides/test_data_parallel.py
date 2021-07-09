@@ -1,11 +1,26 @@
-from unittest.mock import MagicMock
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+import torch.nn as nn
 from torch.nn import DataParallel
 
+from pytorch_lightning import LightningModule
+from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import warning_cache
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
     python_scalar_to_tensor,
@@ -13,13 +28,22 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [
     LightningParallelModule,
     LightningDistributedModule,
 ])
-def test_lightning_wrapper_module_methods(wrapper_class):
+@pytest.mark.parametrize(
+    "stage", [
+        ("training", "training_step"),
+        ("testing", "test_step"),
+        ("validating", "validation_step"),
+        ("predicting", "predict_step"),
+    ]
+)
+def test_lightning_wrapper_module_methods(wrapper_class, stage):
     """ Test that the LightningWrapper redirects .forward() to the LightningModule methods. """
     pl_module = MagicMock()
     wrapped_module = wrapper_class(pl_module)
@@ -27,53 +51,14 @@ def test_lightning_wrapper_module_methods(wrapper_class):
     batch = torch.rand(5)
     batch_idx = 3
 
-    pl_module.running_stage = RunningStage.TRAINING
+    prop, step = stage
+    pl_module.trainer.sanity_checking = False
+
+    for p in ("training", "testing", "validating", "predicting"):
+        setattr(pl_module.trainer, p, p == prop)
+
     wrapped_module(batch, batch_idx)
-    pl_module.training_step.assert_called_with(batch, batch_idx)
-
-    pl_module.running_stage = RunningStage.TESTING
-    wrapped_module(batch, batch_idx)
-    pl_module.test_step.assert_called_with(batch, batch_idx)
-
-    pl_module.running_stage = RunningStage.EVALUATING
-    wrapped_module(batch, batch_idx)
-    pl_module.validation_step.assert_called_with(batch, batch_idx)
-
-    pl_module.running_stage = None
-    wrapped_module(batch)
-    pl_module.predict.assert_called_with(batch)
-
-
-@pytest.mark.parametrize("wrapper_class", [
-    LightningParallelModule,
-    LightningDistributedModule,
-])
-def test_lightning_wrapper_module_warn_none_output(wrapper_class):
-    """ Test that the LightningWrapper module warns about forgotten return statement. """
-    warning_cache.clear()
-    pl_module = MagicMock()
-    wrapped_module = wrapper_class(pl_module)
-
-    pl_module.training_step.return_value = None
-    pl_module.validation_step.return_value = None
-    pl_module.test_step.return_value = None
-
-    with pytest.warns(UserWarning, match="Your training_step returned None"):
-        pl_module.running_stage = RunningStage.TRAINING
-        wrapped_module()
-
-    with pytest.warns(UserWarning, match="Your test_step returned None"):
-        pl_module.running_stage = RunningStage.TESTING
-        wrapped_module()
-
-    with pytest.warns(UserWarning, match="Your validation_step returned None"):
-        pl_module.running_stage = RunningStage.EVALUATING
-        wrapped_module()
-
-    with pytest.warns(None) as record:
-        pl_module.running_stage = None
-        wrapped_module()
-        assert not record
+    getattr(pl_module, step).assert_called_with(batch, batch_idx)
 
 
 @pytest.mark.parametrize(
@@ -88,7 +73,7 @@ def test_unsqueeze_scalar_tensor(inp, expected):
     assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-gpu machine")
+@RunIf(min_gpus=2)
 def test_lightning_parallel_module_unsqueeze_scalar():
     """ Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors. """
 
@@ -103,7 +88,8 @@ def test_lightning_parallel_module_unsqueeze_scalar():
             return {"loss": loss}
 
     model = TestModel()
-    model.running_stage = RunningStage.TRAINING
+    model.trainer = Mock()
+    model.trainer.state.stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).cuda()
     batch_idx = 0
 
@@ -131,8 +117,8 @@ def test_python_scalar_to_tensor(inp, expected):
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_lightning_parallel_module_python_scalar_conversion(device):
     """ Test that LightningParallelModule can convert Python scalars to tensors. """
 
@@ -144,12 +130,77 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
             output.update({"python scalar": 12.3})
             return output
 
-    model = TestModel()
-    model.to(device)
-    model.running_stage = RunningStage.TRAINING
+    model = TestModel().to(device)
+    model.trainer = Mock()
+    model.trainer.state.stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).to(device)
     batch_idx = 0
 
     wrapped_model = LightningParallelModule(model)
     output = wrapped_model(batch, batch_idx)
     assert output["python scalar"] == torch.tensor([12.3], device=device)
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize(
+    "nest, unnest", [
+        (lambda x: x, lambda x: x),
+        (lambda x: dict(data=x), lambda x: x["data"]),
+        (lambda x: [x, (x, x)], lambda x: x[1][0]),
+    ]
+)
+def test_lightning_parallel_module_device_access(nest, unnest):
+    """ Test that self.device returns the correct value in replicas of DataParallel. """
+
+    class DeviceAccessModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(2, 3)
+
+        @auto_move_data
+        def training_step(self, batch, batch_idx):
+            batch = unnest(batch)
+            assert batch.shape == torch.Size([1, 1])
+            assert self.device.index == batch.item()
+            assert self.device == self.layer.weight.device
+            return torch.tensor(1, device=self.device)
+
+    pl_module = DeviceAccessModel()
+    # required for redirecting the forward call to training_step
+    pl_module.trainer = Mock()
+    pl_module.trainer.state.stage = RunningStage.TRAINING
+
+    root_device = torch.device("cuda", 0)
+    wrapped_module = LightningParallelModule(pl_module).to(root_device)
+    model = DataParallel(wrapped_module, device_ids=[0, 1])
+
+    data = torch.tensor([0.0, 1.0], device=root_device).view(2, 1)  # one value per gpu
+    data = data.to(root_device)
+    data = nest(data)
+    output = model(data, 0)
+    assert output.device == root_device
+    assert pl_module.device == root_device
+    assert torch.all(output.cpu().eq(torch.tensor([1, 1])))
+
+
+@RunIf(min_gpus=2)
+def test_lightning_parallel_module_device_access_warning():
+    """ Test that we show a warning when the device can't be inferred from the input. """
+
+    class DeviceAccessModel(LightningModule):
+
+        def training_step(self, batch, batch_idx):
+            pass
+
+    pl_module = DeviceAccessModel()
+    # required for redirecting the forward call to training_step
+    pl_module.trainer = Mock()
+    pl_module.trainer.state.stage = RunningStage.TRAINING
+
+    wrapped_module = LightningParallelModule(pl_module).cuda()
+    model = DataParallel(wrapped_module, device_ids=[0, 1])
+
+    data = dict(x=1)  # contains no tensors
+    with pytest.warns(UserWarning, match="Could not determine on which device the inputs are."):
+        _ = model(data, 0)

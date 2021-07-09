@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+import importlib
 import operator
 import platform
-from distutils.version import LooseVersion
+import sys
 from importlib.util import find_spec
 
 import torch
-from pkg_resources import DistributionNotFound, get_distribution
+from packaging.version import Version
+from pkg_resources import DistributionNotFound
 
 
 def _module_available(module_path: str) -> bool:
@@ -41,29 +43,61 @@ def _module_available(module_path: str) -> bool:
 
 
 def _compare_version(package: str, op, version) -> bool:
+    """
+    Compare package version with some requirements
+
+    >>> _compare_version("torch", operator.ge, "0.1")
+    True
+    """
     try:
-        pkg_version = LooseVersion(get_distribution(package).version)
-        return op(pkg_version, LooseVersion(version))
-    except DistributionNotFound:
+        pkg = importlib.import_module(package)
+    except (ModuleNotFoundError, DistributionNotFound):
         return False
+    try:
+        pkg_version = Version(pkg.__version__)
+    except TypeError:
+        # this is mock by sphinx, so it shall return True ro generate all summaries
+        return True
+    return op(pkg_version, Version(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
-
+_IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
+_TORCH_GREATER_EQUAL_1_5 = _compare_version("torch", operator.ge, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
-_TORCH_QUANTIZE_AVAILABLE = _module_available('torch.ops.quantized')
+_TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
+_TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
+_TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
+_TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
+
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available('fairscale.nn.data_parallel')
-_FAIRSCALE_PIPE_AVAILABLE = _TORCH_GREATER_EQUAL_1_6 and _compare_version("fairscale", operator.le, "0.1.3")
+_DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')
+_FAIRSCALE_AVAILABLE = _TORCH_GREATER_EQUAL_1_6 and not _IS_WINDOWS and _module_available('fairscale.nn')
+_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
+_FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.group')
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
+_KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
-_RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
+_POPTORCH_AVAILABLE = _module_available('poptorch')
+_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
+_TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.3.0")
+_TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
 _XLA_AVAILABLE = _module_available("torch_xla")
+
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
+
+_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if _POPTORCH_AVAILABLE:
+    import poptorch
+    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
+else:
+    _IPU_AVAILABLE = False
