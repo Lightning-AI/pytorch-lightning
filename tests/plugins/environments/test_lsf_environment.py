@@ -79,12 +79,10 @@ def test_attributes_from_environment_variables():
 
 
 @mock.patch("socket.gethostname", return_value="host2")
-@mock.patch.dict(
-    os.environ, {
-        "LSB_HOSTS": "batch host0 host1 host2 host3",
-        "LSB_JOBID": "1234",
-    }
-)
+@mock.patch.dict(os.environ, {
+    "LSB_HOSTS": "batch host0 host1 host2 host3",
+    "LSB_JOBID": "1234",
+})
 def test_node_rank(_):
     env = LSFEnvironment()
     assert env.node_rank() == 2
