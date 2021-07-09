@@ -33,7 +33,7 @@ ENV \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j$(nproc)"
     # MAKEFLAGS="-j1"
 
 RUN apt-get update -qq --fix-missing  && \
