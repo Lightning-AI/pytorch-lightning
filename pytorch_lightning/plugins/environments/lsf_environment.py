@@ -14,6 +14,7 @@
 
 import os
 import socket
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 
@@ -83,9 +84,7 @@ class LSFEnvironment(ClusterEnvironment):
         return int(global_rank)
 
     def set_global_rank(self, rank: int) -> None:
-        log.debug(
-            "LSFEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
-        )
+        log.debug("LSFEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self):
         """ The local rank is read from the environment variable `JSM_NAMESPACE_LOCAL_RANK`. """
