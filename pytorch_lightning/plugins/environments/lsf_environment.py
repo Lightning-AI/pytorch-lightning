@@ -51,7 +51,7 @@ class LSFEnvironment(ClusterEnvironment):
     def is_using_lsf() -> bool:
         """ Returns ``True`` if the current process was launched using the jsrun command. """
         required_env_vars = (
-            "LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "LOCAL_WORLD_SIZE", "JSM_NAMESPACE_SIZE"
+            "LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE",
         )
         return all(v in os.environ for v in required_env_vars)
 
