@@ -1930,7 +1930,8 @@ class LightningModule(
         Args:
             file_path: The path of the file the onnx model should be saved to.
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
-            model_check_fn: A custom function that conducts onnx model checks.
+            model_check_fn: A custom function that conducts onnx model checks. The default function here
+                conducts tests using the onnxruntime.
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example::
