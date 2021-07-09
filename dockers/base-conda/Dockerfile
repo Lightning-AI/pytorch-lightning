@@ -74,7 +74,7 @@ ARG PYTORCH_VERSION=1.6
 
 # conda init
 RUN conda update -n base -c defaults conda && \
-    conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit=${CUDA_VERSION} nvcc_linux-64 pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+    conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
@@ -96,8 +96,8 @@ ENV \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
+    HOROVOD_WITHOUT_GLOO=1 \
+    HOROVOD_WITH_MPI=1
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
@@ -128,6 +128,7 @@ RUN \
     pip --version && \
     conda info && \
     pip list && \
-    python -c 'from nvidia.dali.pipeline import Pipeline' && \
+    # Fixme
+    # python -c 'from nvidia.dali.pipeline import Pipeline' && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "from torch import __version__ as ver; assert '.'.join(ver.split('.')[:2]) == '$PYTORCH_VERSION', ver"

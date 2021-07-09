@@ -19,11 +19,11 @@ name:
     lightning
 
 channels:
-    - conda-forge
     - nvidia
     - pytorch
     - pytorch-test
     - pytorch-nightly
+    - conda-forge
 
 dependencies:
     - python>=3.6
