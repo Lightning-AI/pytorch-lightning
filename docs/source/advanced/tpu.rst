@@ -345,7 +345,7 @@ Sometimes, there would still be old processes running on the TPUs, which would m
         .format(len(local_devices), len(kind_devices)))
     RuntimeError: Cannot replicate if number of devices (1) is different from 8
 
-This error is raised when the XLA device is called outside the spawn process. Don't call `xm.xla_device()` outside spawn.
+This error is raised when the XLA device is called outside the spawn process. Don't call ``xm.xla_device()`` outside spawn.
 
 - **Unsupported datatype transfer to TPU**
 
