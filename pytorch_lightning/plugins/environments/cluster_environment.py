@@ -56,14 +56,3 @@ class ClusterEnvironment(ABC):
     def teardown(self) -> None:
         """ Clean up any state set after execution finishes. """
         pass
-
-    def global_rank(self):
-        pass
-
-    def node_rank(self):
-        pass
-
-    def set_ranks_to_trainer(self):
-        trainer.local_rank = self.accelerator_backend.cluster_environment.local_rank()
-        trainer.node_rank = self.accelerator_backend.cluster_environment.node_rank()
-        trainer.global_rank = self.accelerator_backend.cluster_environment.global_rank()
