@@ -19,6 +19,7 @@ Abstract base class used to build new callbacks.
 import abc
 from typing import Any, Dict, List, Optional
 
+import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -294,6 +295,10 @@ class Callback(abc.ABC):
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
             you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
         """
+        pass
+
+    def on_before_backward(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', loss: torch.Tensor) -> None:
+        """Called before ``loss.backward()``."""
         pass
 
     def on_after_backward(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:

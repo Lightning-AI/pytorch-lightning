@@ -42,7 +42,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
     ) -> torch.Tensor:
-        return self.scaler.scale(closure_loss)
+        closure_loss = self.scaler.scale(closure_loss)
+        return super().pre_backward(model, closure_loss)
 
     def pre_optimizer_step(
         self,
