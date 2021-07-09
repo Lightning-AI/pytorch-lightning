@@ -1073,8 +1073,10 @@ class Trainer(
 
         if not model_provided and ckpt_path == 'best':
             rank_zero_deprecation(
-                f'`.{fn}(ckpt_path="best")` was deprecated in v1.4 and will be removed in v1.6. Please use `.{fn}()`'
+                f'`.{fn}(ckpt_path="best")` was deprecated in v1.4 and will be removed in v1.6. Do not provide '
+                f'ckpt_path, i.e `.{fn}()` '
             )
+            ckpt_path = None
 
         if not model_provided and ckpt_path is None:
             # if user requests the best checkpoint but we don't have it, error
