@@ -41,24 +41,28 @@ def test_missing_lsb_job_id():
         LSFEnvironment()
 
 
-@mock.patch.dict(os.environ, {
-    "MASTER_PORT": "4321",
-    "LSB_JOBID": "1234",
-    "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1",
-})
+@mock.patch.dict(
+    os.environ, {
+        "MASTER_PORT": "4321",
+        "LSB_JOBID": "1234",
+        "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1",
+    }
+)
 def test_manual_master_port_and_address():
     """ Test a user can set the port manually through the MASTER_PORT env variable. """
     env = LSFEnvironment()
     assert env.master_port() == 4321
 
 
-@mock.patch.dict(os.environ, {
-    "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1 10.10.10.2 10.10.10.3",
-    "LSB_JOBID": "1234",
-    "JSM_NAMESPACE_SIZE": "4",
-    "JSM_NAMESPACE_RANK": "3",
-    "JSM_NAMESPACE_LOCAL_RANK": "1"
-})
+@mock.patch.dict(
+    os.environ, {
+        "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1 10.10.10.2 10.10.10.3",
+        "LSB_JOBID": "1234",
+        "JSM_NAMESPACE_SIZE": "4",
+        "JSM_NAMESPACE_RANK": "3",
+        "JSM_NAMESPACE_LOCAL_RANK": "1"
+    }
+)
 def test_attributes_from_environment_variables():
     """ Test that the LSF environment takes the attributes from the environment variables. """
     env = LSFEnvironment()
