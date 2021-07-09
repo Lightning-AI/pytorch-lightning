@@ -38,8 +38,7 @@ class SLURMEnvironment(ClusterEnvironment):
         root_node = self.resolve_root_node_address(root_node)
         os.environ["MASTER_ADDR"] = root_node
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        os.environ["MASTER_PORT"] = str(self._master_port)
-        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
+        return root_node
 
     def master_port(self) -> int:
         # -----------------------
@@ -55,34 +54,16 @@ class SLURMEnvironment(ClusterEnvironment):
         else:
             default_port = 12910
 
-    def _get_master_address(self):
-        """A helper for getting the master address"""
-        hosts = self._read_hosts()
-        return hosts[0]
-
-    def _get_master_port(self):
-        """A helper for getting the master port
-
-        Use the Slurm job ID so all ranks can compute the master port
-        """
-        # check for user-specified master port
-        port = os.environ.get("MASTER_PORT")
-        if not port:
-            var = "SLURM_JOB_ID"
-            jobid = os.environ.get(var)
-            if not jobid:
-                raise ValueError("Could not find job id -- expected in environment variable %s" % var)
-            else:
-                port = int(jobid)
-                # all ports should be in the 10k+ range
-                port = int(port) % 1000 + 10000
-            log.debug("calculated master port")
+        # -----------------------
+        # PORT NUMBER = MASTER_PORT
+        # -----------------------
+        # in case the user passed it in
+        if "MASTER_PORT" in os.environ:
+            default_port = os.environ["MASTER_PORT"]
         else:
-            log.debug("using externally specified master port")
-        return port
+            os.environ["MASTER_PORT"] = str(default_port)
 
-    def _get_global_rank(self):
-        """A helper function for getting the global rank
+        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         return int(default_port)
 
@@ -111,8 +92,7 @@ class SLURMEnvironment(ClusterEnvironment):
             if '-' in number:
                 number = number.split('-')[0]
 
-    def global_rank(self):
-        """
-        World size is read from the environment variable SLURM_PROCID
-        """
-        return self._global_rank
+            number = re.sub('[^0-9]', '', number)
+            root_node = name + number
+
+        return root_node
