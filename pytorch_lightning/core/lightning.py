@@ -1935,21 +1935,20 @@ class LightningModule(
             model_check_fn: custom function that conducts onnx model checks.
             **kwargs: Will be passed to torch.onnx.export function.
 
-        Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+        Example::
 
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model = SimpleModel()
-            ...     input_sample = torch.randn((1, 64))
-            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
-            ...     os.path.isfile(tmpfile.name)
-            True
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+
+            model = SimpleModel()
+            input_sample = torch.randn((1, 64))
+            model.to_onnx(tmpfile.name, input_sample, export_params=True)
         """
         mode = self.training
 
