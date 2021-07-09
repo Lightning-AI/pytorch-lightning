@@ -55,7 +55,7 @@ from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment,
+    TorchElasticEnvironment, LSFEnvironment,
 )
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -554,6 +554,8 @@ class AcceleratorConnector(object):
             env = TorchElasticEnvironment()
         elif KubeflowEnvironment.is_using_kubeflow():
             env = KubeflowEnvironment()
+        elif LSFEnvironment.is_using_lsf():
+            env = LSFEnvironment()
         else:
             env = LightningEnvironment()
         return env
