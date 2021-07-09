@@ -15,6 +15,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
@@ -303,3 +304,13 @@ def test_v1_6_0_deprecated_disable_validation():
     trainer = Trainer()
     with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
         _ = trainer.disable_validation
+
+
+def test_v1_6_0_deprecated_ckpt_best(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    for fn in (trainer.test, trainer.validate, trainer.predict):
+        with pytest.deprecated_call(match="deprecated in v1.4 and will be removed in v1.6. Do not provide"):
+            fn(ckpt_path='best')

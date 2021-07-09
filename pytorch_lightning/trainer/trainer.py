@@ -579,6 +579,7 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -588,7 +589,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.validated_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
+        self.validated_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model_provided)
 
         # run validate
         results = self._run(model)
@@ -652,6 +653,7 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -661,7 +663,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.tested_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
+        self.tested_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model_provided)
 
         # run test
         results = self._run(model)
@@ -721,6 +723,7 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -730,7 +733,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.predicted_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
+        self.predicted_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model_provided)
 
         results = self._run(model)
 
