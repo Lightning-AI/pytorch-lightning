@@ -97,7 +97,7 @@ class EarlyStopping(Callback):
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
-        check_on_train_epoch_end: bool = False,
+        check_on_train_epoch_end: bool = True,
     ):
         super().__init__()
         self.min_delta = min_delta
@@ -149,7 +149,12 @@ class EarlyStopping(Callback):
     def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[str, Any]:
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
@@ -167,7 +172,7 @@ class EarlyStopping(Callback):
         from pytorch_lightning.trainer.states import TrainerFn
         return trainer.state.fn != TrainerFn.FITTING or trainer.sanity_checking
 
-    def on_train_epoch_end(self, trainer, pl_module) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         if not self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
@@ -175,10 +180,9 @@ class EarlyStopping(Callback):
     def on_validation_end(self, trainer, pl_module) -> None:
         if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
-
         self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer) -> None:
+    def _run_early_stopping_check(self, trainer: 'pl.Trainer') -> None:
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
@@ -229,7 +233,7 @@ class EarlyStopping(Callback):
                 f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.divergence_threshold}."
                 " Signaling Trainer to stop."
             )
-        elif self.monitor_op(current - self.min_delta, self.best_score):
+        elif self.monitor_op(current - self.min_delta, self.best_score.to(current.device)):
             should_stop = False
             reason = self._improvement_message(current)
             self.best_score = current

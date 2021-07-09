@@ -152,6 +152,10 @@ def apply_to_collections(
 
     Returns:
         The resulting collection
+
+    Raises:
+        AssertionError:
+            If sequence collections have different data sizes.
     """
     if data1 is None and data2 is not None:
         # in case they were passed reversed

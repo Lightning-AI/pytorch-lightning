@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DoublePrecisionPlugin
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -123,7 +124,28 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         return DataLoader(RandomDataset(32, 64))
 
 
-@pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
+class DoublePrecisionBoringModelComplexBuffer(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+
+        self.register_buffer("complex_buffer", torch.complex(torch.rand(10), torch.rand(10)), False)
+
+    def on_fit_start(self):
+        assert self.layer.weight.dtype == torch.float64
+        assert self.complex_buffer.dtype == torch.complex64
+
+
+@pytest.mark.parametrize(
+    'boring_model', [
+        DoublePrecisionBoringModel,
+        DoublePrecisionBoringModelNoForward,
+        pytest.param(
+            DoublePrecisionBoringModelComplexBuffer,
+            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="torch.complex not available")
+        ),
+    ]
+)
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
 
