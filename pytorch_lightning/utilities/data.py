@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Mapping, Iterable, Union
-import torch
+from typing import Any, Iterable, Mapping, Union
 
+import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
 
-
 BType = Union[torch.Tensor, str, Mapping[Any, 'BType'], Iterable['BType']]
+
 
 def extract_batch_size(batch: BType) -> int:
     """

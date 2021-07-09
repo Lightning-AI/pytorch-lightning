@@ -21,13 +21,13 @@ from torchmetrics import Metric
 
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
-from pytorch_lightning.utilities.data import extract_batch_size
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
 # TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
