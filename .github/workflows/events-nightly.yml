@@ -5,8 +5,6 @@ name: Nightly events
 on:
   schedule:
     - cron: "0 0 * * *" # At the end of every day
-  # FIXME
-  push: {}
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
