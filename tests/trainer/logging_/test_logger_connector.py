@@ -34,6 +34,7 @@ def test_fx_validator(tmpdir):
     callbacks_func = [
         'on_before_backward',
         'on_after_backward',
+        'on_before_optimizer_step',
         'on_batch_end',
         'on_batch_start',
         'on_before_accelerator_backend_setup',
@@ -124,6 +125,7 @@ def test_fx_validator(tmpdir):
         # creating allowed condition
         allowed = (
             is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
+            or "optimizer_step" in func_name
         )
         allowed = (
             allowed and "pretrain" not in func_name and "predict" not in func_name

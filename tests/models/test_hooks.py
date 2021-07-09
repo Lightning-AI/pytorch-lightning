@@ -299,6 +299,10 @@ class HookedModel(BoringModel):
         using_native_amp = kwargs.get('amp_backend') == 'native'
         using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
+        on_before_optimizer_step = [
+            dict(name='Callback.on_before_optimizer_step', args=(trainer, model, ANY, 0)),
+            dict(name='on_before_optimizer_step', args=(ANY, 0)),
+        ]
         for i in range(batches):
             out.extend([
                 dict(name='on_before_batch_transfer', args=(ANY, 0)),
@@ -308,7 +312,10 @@ class HookedModel(BoringModel):
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
-                # TODO: `on_before_optimizer_step`
+                # these are before the training step because
+                # they are not part of the `training_step_and_backward` closure, however,
+                # with native amp, the closure is run first and then the optimizer step.
+                *(on_before_optimizer_step if not using_native_amp else []),
                 dict(name='forward', args=(ANY, )),
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
@@ -321,6 +328,7 @@ class HookedModel(BoringModel):
                 *([dict(name='backward', args=(ANY, ANY, 0))] if not using_deepspeed else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
                 dict(name='on_after_backward'),
+                *(on_before_optimizer_step if using_native_amp else []),
                 dict(
                     name='optimizer_step',
                     args=(current_epoch, i, ANY, 0, ANY),
@@ -354,7 +362,8 @@ class HookedModel(BoringModel):
                 dict(name='on_after_backward'),
                 # `manual_backward` calls the previous 3
                 dict(name='manual_backward', args=(ANY, )),
-                # TODO: `on_before_optimizer_step`
+                dict(name='Callback.on_before_optimizer_step', args=(trainer, model, ANY, 0)),
+                dict(name='on_before_optimizer_step', args=(ANY, 0)),
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
