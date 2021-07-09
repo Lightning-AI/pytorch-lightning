@@ -37,6 +37,7 @@ warning_cache = WarningCache()
 
 BType = Union[torch.Tensor, str, Mapping[Any, 'BType'], Iterable['BType']]
 
+
 def extract_batch_size(batch: BType) -> int:
     """
     Recursively unpack a batch to find a torch.Tensor.

@@ -23,7 +23,12 @@ from torchmetrics import Metric
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection, extract_batch_size
+from pytorch_lightning.trainer.connectors.logger_connector.result import (
+    _Sync,
+    extract_batch_size,
+    MetricSource,
+    ResultCollection,
+)
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -283,6 +288,7 @@ def test_result_collection_restoration(tmpdir):
 
         batch_idx = None
 
+
 def test_extract_batch_size():
     """Tests the behavior of extracting the batch size."""
     batch = "test string"
@@ -297,7 +303,7 @@ def test_extract_batch_size():
     batch = [torch.zeros(11, 10)]
     assert extract_batch_size(batch) == 11
 
-    batch = {'test': [{'test': [torch.zeros(11, 10 )]}]}
+    batch = {'test': [{'test': [torch.zeros(11, 10)]}]}
     assert extract_batch_size(batch) == 11
 
 
