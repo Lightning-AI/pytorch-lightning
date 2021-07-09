@@ -32,7 +32,7 @@ class HyperparametersMixin:
         ignore: Optional[Union[Sequence[str], str]] = None,
         frame: Optional[types.FrameType] = None
     ) -> None:
-        """Save model arguments to ``hparams`` attribute.
+        """Save arguments to ``hparams`` attribute.
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
