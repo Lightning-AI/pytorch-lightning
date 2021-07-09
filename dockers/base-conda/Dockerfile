@@ -114,21 +114,24 @@ RUN \
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
-    echo $CUDA_VERSION_MAJOR && \
+    py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION_MAJOR}0
+    if [ $py_ver -eq "1" ]; then \
+        pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/weekly "nvidia-dali-weekly-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
+    else \
+        pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
+    fi && \
+    python -c 'from nvidia.dali.pipeline import Pipeline'
 
 RUN \
     # install NVIDIA apex
-    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
-    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip
+    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
+    python -c "from apex import amp"
 
 RUN \
     # Show what we have
     pip --version && \
     conda info && \
     pip list && \
-    # Fixme
-    # python -c 'from nvidia.dali.pipeline import Pipeline' && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "from torch import __version__ as ver; assert '.'.join(ver.split('.')[:2]) == '$PYTORCH_VERSION', ver"

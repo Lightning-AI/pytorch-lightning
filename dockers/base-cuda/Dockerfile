@@ -102,13 +102,20 @@ RUN \
     rm -rf requirements.* requirements/
 
 RUN \
+    CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
+    py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
+    if [ $py_ver -eq "1" ]; then \
+        pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/weekly "nvidia-dali-weekly-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
+    else \
+        pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
+    fi && \
+    python -c 'from nvidia.dali.pipeline import Pipeline'
 
 RUN \
     # install NVIDIA apex
-    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
+    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
+    python -c "from apex import amp"
 
 RUN \
     # install FairScale
@@ -122,6 +129,5 @@ RUN \
     # Show what we have
     pip --version && \
     pip list && \
-    python -c 'from nvidia.dali.pipeline import Pipeline' && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"
