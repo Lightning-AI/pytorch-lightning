@@ -16,9 +16,10 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.8
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6
 
+ARG CUDA_VERSION=11.1
 
-FROM ubuntu:20.04
-#FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
+#FROM ubuntu:20.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG CONDA_VERSION=4.9.2
@@ -60,14 +61,7 @@ RUN apt-get update -qq --fix-missing && \
 ENV \
     PATH="/root/miniconda3/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
-    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU \
-    HOROVOD_GPU_OPERATIONS=NCCL \
-    HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1 \
     MAKEFLAGS="-j$(nproc)" \
     # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
@@ -78,7 +72,8 @@ COPY environment.yml environment.yml
 ARG PYTORCH_VERSION=1.6
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit nvcc_linux-64 pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+RUN conda update -n base -c defaults conda && \
+    conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit=${CUDA_VERSION} nvcc_linux-64 pytorch=${PYTORCH_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installed later
@@ -90,19 +85,25 @@ RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} cudatoolkit nvcc_
     rm environment.yml
 
 ENV \
-    PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
+    PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    CUDA_INCLUDE_DIRS="/usr/include/cuda" \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1 \
     # if you want this environment to be the default one, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
-COPY ./.github/prune-packages.py requirements_prune_packages.py
 COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
 
 RUN \
     pip list | grep torch && \
-    python requirements_prune_packages.py requirements-extra.txt "horovod" && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
     # Install remaining requirements
@@ -115,10 +116,10 @@ RUN \
     # install DALI, needed for examples
     pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION_MAJOR}0
 
-#RUN \
-#    # install NVIDIA apex
-#    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
-#    pip install --no-cache-dir --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
+RUN \
+    # install NVIDIA apex
+    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
+    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip
 
 RUN \
     # Show what we have
