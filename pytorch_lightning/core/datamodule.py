@@ -97,6 +97,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         self._has_teardown_test = False
         self._has_teardown_predict = False
 
+        self._log_hyperparams = True
+
     @property
     def train_transforms(self):
         """
