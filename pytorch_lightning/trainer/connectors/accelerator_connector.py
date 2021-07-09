@@ -204,8 +204,8 @@ class AcceleratorConnector(object):
     def validate_accelerator_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
             raise MisconfigurationException(
-                f"Mismatch between the requested {self._accelerator_type}"
-                f" and assigned {self._device_type}"
+                f"Mismatch between the requested accelerator type ({self._accelerator_type})"
+                f" and assigned device type ({self._device_type})."
             )
         self._accelerator_type = self._device_type
 
