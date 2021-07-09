@@ -13,10 +13,9 @@
 # limitations under the License.
 import copy
 import inspect
-import re
 import types
 from argparse import Namespace
-from typing import Any, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import AttributeDict
@@ -130,29 +129,3 @@ class HyperparametersMixin:
             return AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
-
-    @hparams.setter
-    def hparams(self, hp: Union[dict, Namespace, Any]):
-        hparams_assignment_name = self.__get_hparams_assignment_variable()
-        self._hparams_name = hparams_assignment_name
-        self._set_hparams(hp)
-        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
-        if not hasattr(self, "_hparams_initial"):
-            self._hparams_initial = copy.deepcopy(self._hparams)
-
-    def __get_hparams_assignment_variable(self):
-        """
-        looks at the code of the class to figure out what the user named self.hparams
-        this only happens when the user explicitly sets self.hparams
-        """
-        try:
-            class_code = inspect.getsource(self.__class__)
-            lines = class_code.split("\n")
-            for line in lines:
-                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-                if ".hparams=" in line:
-                    return line.split("=")[1]
-        except Exception:
-            return "hparams"
-
-        return None
