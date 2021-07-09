@@ -32,6 +32,7 @@ def test_fx_validator(tmpdir):
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
+        'on_before_backward',
         'on_after_backward',
         'on_batch_end',
         'on_batch_start',

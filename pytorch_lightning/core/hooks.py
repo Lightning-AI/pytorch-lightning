@@ -295,6 +295,15 @@ class ModelHooks:
             optimizer: The optimizer for which grads should be zeroed.
         """
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """
+        Called before ``loss.backward()``.
+
+        Args:
+            loss: Loss divided by number of batches for gradient accumulation and scaled if using native AMP.
+        """
+        pass
+
     def on_after_backward(self) -> None:
         """
         Called in the training loop after loss.backward() and before optimizers do anything.
