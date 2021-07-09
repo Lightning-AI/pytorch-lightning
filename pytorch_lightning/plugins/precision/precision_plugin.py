@@ -62,6 +62,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
+        model.trainer.call_hook("on_before_backward", closure_loss)
         return closure_loss
 
     def backward(

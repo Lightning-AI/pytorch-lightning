@@ -24,6 +24,10 @@ _SKLEARN_AVAILABLE = _module_available("sklearn")
 if _SKLEARN_AVAILABLE:
     from sklearn.datasets import make_classification, make_regression
     from sklearn.model_selection import train_test_split
+else:
+    make_classification = None
+    make_regression = None
+    train_test_split = None
 
 
 class MNISTDataModule(LightningDataModule):
