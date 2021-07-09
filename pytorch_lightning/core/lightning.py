@@ -19,7 +19,6 @@ import inspect
 import logging
 import numbers
 import os
-import tempfile
 import types
 import uuid
 from abc import ABC
@@ -28,8 +27,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
-import onnx
-import onnxruntime
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
@@ -48,6 +45,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _ONNX_AVAILABLE, _ONNX_RUNTIME_AVAILABLE
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
@@ -1978,6 +1976,15 @@ class LightningModule(
 
     @staticmethod
     def _default_model_check_fn(p, inp, torch_outs):
+        if _ONNX_AVAILABLE and _ONNX_RUNTIME_AVAILABLE:
+            import onnx
+            import onnxruntime
+        else:
+            raise MisconfigurationException(
+                "`LightingModule.to_onnx()` with the default `model_check_fn` requires onnx and onnxruntime."
+                " Run `pip install onnx onnxruntime` to proceed or set a custom `model_check_fn`."
+            )
+
         # generic graph integrity checks
         onnx_model = onnx.load(p)
         onnx.checker.check_model(onnx_model)
