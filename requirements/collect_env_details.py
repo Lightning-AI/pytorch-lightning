@@ -19,7 +19,6 @@ This server mainly to get detail info for better bug reporting.
 
 import os
 import platform
-import re
 import sys
 
 import numpy
