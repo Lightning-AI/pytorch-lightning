@@ -184,7 +184,7 @@ class AcceleratorConnector(object):
                 msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}")
             self._accelerator_type = DeviceType.TPU
-        elif self.distributed_backend == DeviceType.IPU or isinstance(self._training_type_plugin, IPUPlugin):
+        elif self.distributed_backend == DeviceType.IPU:
             if not self.has_ipu:
                 msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `ipus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}")
@@ -332,7 +332,7 @@ class AcceleratorConnector(object):
 
     @property
     def use_ipu(self) -> bool:
-        return self._accelerator_type == DeviceType.IPU or self.has_ipu
+        return self._accelerator_type == DeviceType.IPU and self.has_ipu
 
     @property
     def use_dp(self) -> bool:
@@ -763,7 +763,7 @@ class AcceleratorConnector(object):
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
         if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != DeviceType.IPU:
-            self._device_type == DeviceType.IPU
+            self._device_type = DeviceType.IPU
 
     def configure_slurm_ddp(self):
         # extract SLURM flag vars
