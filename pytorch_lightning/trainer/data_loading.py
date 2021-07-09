@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -35,6 +36,7 @@ from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, Fas
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -161,7 +163,9 @@ class TrainerDataLoadingMixin(ABC):
             return dataloader
 
         if is_iterable_ds:
-            return self.add_samplers_to_iterable_dataset(dataloader)
+            if fault_tolerant_enabled():
+                return self.add_samplers_to_iterable_dataset(dataloader)
+            return dataloader
 
         if not is_dataloader:
             return dataloader
@@ -201,14 +205,20 @@ class TrainerDataLoadingMixin(ABC):
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-            fast_forward_sampler = FastForwardSampler(batch_sampler)
+            if fault_tolerant_enabled():
+                fast_forward_sampler = FastForwardSampler(batch_sampler)
+            else:
+                fast_forward_sampler = batch_sampler
             dl_args['batch_sampler'] = fast_forward_sampler
             dl_args['batch_size'] = 1
             dl_args['shuffle'] = False
             dl_args['sampler'] = None
             dl_args['drop_last'] = False
         else:
-            fast_forward_sampler = FastForwardSampler(sampler)
+            if fault_tolerant_enabled():
+                fast_forward_sampler = FastForwardSampler(sampler)
+            else:
+                fast_forward_sampler = sampler
             dl_args['sampler'] = fast_forward_sampler
             dl_args['shuffle'] = False
             dl_args['batch_sampler'] = None
@@ -263,7 +273,8 @@ class TrainerDataLoadingMixin(ABC):
 
         dataloader = type(dataloader)(**dl_args)
         dataloader.multiprocessing_context = multiprocessing_context
-        dataloader.fast_forward_sampler = fast_forward_sampler
+        if isinstance(fast_forward_sampler, FastForwardSampler):
+            dataloader.fast_forward_sampler = fast_forward_sampler
         return dataloader
 
     def _get_distributed_sampler(
@@ -299,22 +310,39 @@ class TrainerDataLoadingMixin(ABC):
         # debugging
         self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
 
+        loaders = self.train_dataloader.loaders if isinstance(
+            self.train_dataloader, CombinedLoader
+        ) else self.train_dataloader
+
+        # detect iterable dataset
+        contains_iterable_dataset = False
+
+        def detect_iterable_dataset(dataloader: DataLoader):
+            nonlocal contains_iterable_dataset
+            if isinstance(dataloader.dataset, IterableDataset):
+                contains_iterable_dataset = True
+
+        apply_to_collection(loaders, DataLoader, detect_iterable_dataset)
+
         # automatically add samplers
-        self.train_dataloader = apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True
-        )
+        loaders = apply_to_collection(loaders, DataLoader, self.auto_add_sampler, shuffle=True)
 
         # check the workers recursively
-        apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
+        apply_to_collection(loaders, DataLoader, self._worker_check, 'train dataloader')
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
+        apply_to_collection(loaders, DataLoader, self.auto_add_worker_init_fn)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
+        if not isinstance(self.train_dataloader, CombinedLoader):
+            self.train_dataloader = CombinedLoader(loaders, self.data_connector.multiple_trainloader_mode)
+        else:
+            self.train_dataloader.loaders = loaders
 
         # allow accelerator to modify dataloader
         self.train_dataloader = self.accelerator.on_reset_train_dataloader(self.train_dataloader)
+
+        self.train_dataloader.contains_iterable_dataset = contains_iterable_dataset
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 

@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
+from pytorch_lightning.utilities.apply_func import _is_dataclass_instance, _is_namedtuple
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 
 
@@ -219,20 +222,56 @@ class CaptureIterableDataset(IterableDataset):
         return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: state_dicts}
 
     @staticmethod
-    def convert_batch_into_state_dict(batch) -> Dict[str, Dict[int, Any]]:
+    def _sanetize_batch_from_sampler_state(data: Any, state_dict: List):
+        elem_type = type(data)
+
+        # Recursively apply to collection items
+        if isinstance(data, Mapping):
+            out = []
+            for k, v in data.items():
+                if k == AutoRestartBatchKeys.PL_SAMPLERS:
+                    iterable_dataset_state_dict = {}
+                    batch_worker_id = v.pop("id")
+                    worker_id = batch_worker_id[-1].item()
+                    for sampler_name, sampler_state_dict in v.items():
+                        iterable_dataset_state_dict[sampler_name] = {
+                            worker_id: {
+                                "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
+                            }
+                        }
+                    state_dict.append(iterable_dataset_state_dict)
+                    return data["data"]
+                out.append((k, CaptureIterableDataset._sanetize_batch_from_sampler_state(v, state_dict)))
+            return elem_type(OrderedDict(out))
+
+        is_namedtuple = _is_namedtuple(data)
+        is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
+        if is_namedtuple or is_sequence:
+            out = []
+            for d in data:
+                v = CaptureIterableDataset._sanetize_batch_from_sampler_state(d, state_dict)
+                out.append(v)
+            return elem_type(*out) if is_namedtuple else elem_type(out)
+
+        if _is_dataclass_instance(data):
+            out = dict()
+            for field in data.__dataclass_fields__:
+                v = CaptureIterableDataset._sanetize_batch_from_sampler_state(getattr(data, field), state_dict)
+                out[field] = v
+            return elem_type(**out)
+
+        return data
+
+    @staticmethod
+    def convert_batch_into_state_dict(batch) -> List[Dict[int, Any]]:
         """
         This function is used to convert a batch into a state_dict
         """
-        state_dict = {}
-        batch_worker_id = batch[AutoRestartBatchKeys.PL_SAMPLERS].pop("id")
-        worker_id = batch_worker_id[-1].item()
-        for sampler_name, sampler_state_dict in batch[AutoRestartBatchKeys.PL_SAMPLERS].items():
-            state_dict[sampler_name] = {
-                worker_id: {
-                    "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
-                }
-            }
-        return state_dict
+        samplers_state_dict = []
+
+        batch = CaptureIterableDataset._sanetize_batch_from_sampler_state(batch, samplers_state_dict)
+
+        return batch, samplers_state_dict
 
 
 def _find_next_worker_id(iter, state_dict: Dict[str, Any], num_workers: int):
@@ -256,7 +295,7 @@ def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSa
 
 
 def fetch_previous_worker_state_dict(iter: Iterator, out: List):
-    num_workers = iter._num_workers
+    num_workers = getattr(iter, "_num_workers", 0)
     if isinstance(iter, _MultiProcessingDataLoaderIter):
         next_worker = (next(iter._worker_queue_idx_cycle)) % num_workers
         previous_worker = (next_worker - 1) % num_workers
@@ -265,7 +304,7 @@ def fetch_previous_worker_state_dict(iter: Iterator, out: List):
     else:
         previous_worker = None
 
-    out.append({"num_workers": iter._num_workers, "previous_worker": previous_worker})
+    out.append({"num_workers": num_workers, "previous_worker": previous_worker})
 
 
 def fetch_fast_forward_samplers_state_dict(dataloader: DataLoader, out: List, count: int):
@@ -277,7 +316,6 @@ def fetch_fast_forward_samplers_state_dict(dataloader: DataLoader, out: List, co
         except IndexError:
             out.append({})
         out[count]["sampler"] = fast_forward_samplers.state_dict()
-        count += 1
 
 
 def cycle_to_next_worker(iter: Iterator, state_dict: List[Dict[str, Any]], count: int):

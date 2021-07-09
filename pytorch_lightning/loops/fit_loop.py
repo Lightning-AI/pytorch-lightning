@@ -14,15 +14,14 @@
 
 import logging
 from contextlib import suppress
+from copy import deepcopy
 from typing import Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import Tracker
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 log = logging.getLogger(__name__)
 
@@ -292,7 +291,10 @@ class FitLoop(Loop):
                 cb.on_validation_end(self.trainer, model)
 
     def state_dict(self) -> Dict:
-        # return {"dataloader": self.trainer.train_dataloader.state_dict()}
+        if self.trainer.train_dataloader is not None:
+            iterable_dataset_state_dict = deepcopy(self.epoch_loop._iterable_dataset_samplers_state_dict)
+            dataloaders_state_dict = self.trainer.train_dataloader.state_dict(iterable_dataset_state_dict)
+            return {"dataloader": dataloaders_state_dict}
         return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:
@@ -300,11 +302,6 @@ class FitLoop(Loop):
             # todo (tchaton) Can we avoid creating the dataloader there ?
             self.trainer.reset_train_dataloader(self.trainer.lightning_module)
             self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
-
-            def fn(v: Tracker):
-                v.reset_on_restart()
-
-            apply_to_collection(self.progress, Tracker, fn)
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

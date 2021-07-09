@@ -15,7 +15,7 @@
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from functools import partial
-from typing import Any, Callable, Generator, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -375,7 +375,7 @@ class CombinedLoader(object):
 
         self.loaders_iter_state_dict = None
 
-    def state_dict(self):
+    def state_dict(self, iterable_dataset_state_dict: List[Dict] = None):
         from pytorch_lightning.utilities.auto_restart import (
             fetch_fast_forward_samplers_state_dict,
             fetch_previous_worker_state_dict,
@@ -385,9 +385,16 @@ class CombinedLoader(object):
         apply_to_collection(self._iterator.loader_iters, Iterator, partial(fetch_previous_worker_state_dict, out=out))
 
         count = 0
-        apply_to_collection(
-            self.loaders, DataLoader, partial(fetch_fast_forward_samplers_state_dict, out=out, count=count)
-        )
+
+        def fn(dataloader: DataLoader):
+            nonlocal out
+            nonlocal count
+            fetch_fast_forward_samplers_state_dict(dataloader, out, count)
+            if iterable_dataset_state_dict is not None and isinstance(dataloader.dataset, IterableDataset):
+                out[count].update(iterable_dataset_state_dict.pop(0))
+            count += 1
+
+        apply_to_collection(self.loaders, DataLoader, fn)
         return out
 
     def load_state_dict(self, state_dict):

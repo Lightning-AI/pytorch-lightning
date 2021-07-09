@@ -32,6 +32,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -715,37 +716,42 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
             batch_idx,
             dataloader_idx,
         ) -> None:
-            assert isinstance(trainer.train_dataloader.loaders.sampler, _InfiniteConstantSampler)
-            assert isinstance(trainer.train_dataloader.loaders.dataset, CaptureIterableDataset)
+            breakpoint()
+            samplers = trainer.train_dataloader.sampler
+            assert isinstance(samplers["a"][0], _InfiniteConstantSampler)
+            assert isinstance(samplers["a"][1], FastForwardSampler)
+            assert isinstance(samplers["b"], _InfiniteConstantSampler)
+
             assert trainer.train_dataloader.loaders.generator.initial_seed() == 42
             assert trainer.train_dataloader.loaders.dataset.initial_seed == 42
             if not self.restarting:
                 if trainer.fit_loop.batch_idx == 0:
                     t = torch.tensor([20, 16, 24])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3])
-                    assert torch.equal(batch, t)
+                    # assert torch.equal(batch, t)
                     assert torch.equal(t % 4, torch.tensor([0, 0, 0]))
                 elif trainer.fit_loop.batch_idx == 1:
                     t = torch.tensor([1, 9, 5])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [3, 3])
-                    assert torch.equal(batch, t)
+                    # assert torch.equal(batch, t)
                     assert torch.equal(t % 4, torch.tensor([1, 1, 1]))
                     raise CustomException
             else:
                 if trainer.fit_loop.batch_idx == 2:
                     t = torch.tensor([2, 14, 22])
+                    breakpoint()
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [0, 0, 3])
-                    assert torch.equal(batch, t)
+                    # assert torch.equal(batch, t)
                     assert torch.equal(t % 4, torch.tensor([2, 2, 2]))
                 elif trainer.fit_loop.batch_idx == 3:
                     t = torch.tensor([7, 11, 15])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [0, 0, 3, 3])
-                    assert torch.equal(batch, t)
+                    # assert torch.equal(batch, t)
                     assert torch.equal(t % 4, torch.tensor([3, 3, 3]))
                 elif trainer.fit_loop.batch_idx == 4:
                     t = torch.tensor([8, 4, 0])
                     self._validate_map_dl_idx_sampler_states(trainer, 1, [6, 0, 3, 3])
-                    assert torch.equal(batch, t)
+                    # assert torch.equal(batch, t)
                     assert torch.equal(t % 4, torch.tensor([0, 0, 0]))
 
     class TestModel(BoringModel):
@@ -757,9 +763,14 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
     model.training_epoch_end = None
 
     num_workers = 4
-
     dataset = CustomIterativeDataset(range(30), num_workers)
-    train_dataloader = DataLoader(dataset, batch_size=3, num_workers=num_workers)
+    loaders = CombinedLoader({
+        "a": [
+            DataLoader(dataset, batch_size=3, num_workers=num_workers),
+            DataLoader(range(30), batch_size=3, num_workers=0)
+        ],
+        "b": DataLoader(dataset, batch_size=3, num_workers=0),
+    })
     trainer_kwargs = dict(
         default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, num_sanity_val_steps=0, limit_val_batches=0
     )
@@ -768,9 +779,11 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
     callbacks = [cb, ck]
     trainer = Trainer(**trainer_kwargs, callbacks=callbacks)
     try:
-        trainer.fit(model, train_dataloader=train_dataloader)
+        trainer.fit(model, train_dataloader=loaders)
     except CustomException:
         pass
+
+    breakpoint()
 
     cb.restarting = True
 

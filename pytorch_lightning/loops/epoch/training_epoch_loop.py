@@ -21,7 +21,6 @@ from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import TrainingEpochProgress
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -55,7 +54,7 @@ class TrainingEpochLoop(loops.Loop):
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
-        self._map_dl_idx_sampler_states = {}
+        self._iterable_dataset_samplers_state_dict = {}
 
     @property
     def batch_idx(self) -> int:
@@ -459,13 +458,8 @@ class TrainingEpochLoop(loops.Loop):
             self.trainer.logger.save()
 
     def _sanetize_batch(self, batch: Any) -> Any:
-        if isinstance(batch, Dict) and AutoRestartBatchKeys.PL_SAMPLERS in batch:
-            current_iterations = CaptureIterableDataset.convert_batch_into_state_dict(batch)
-            if self._dataloader_idx not in self._map_dl_idx_sampler_states:
-                self._map_dl_idx_sampler_states[self._dataloader_idx] = current_iterations
-
-            for k in current_iterations.keys():
-                self._map_dl_idx_sampler_states[self._dataloader_idx][k].update(current_iterations[k])
-            return batch["data"]
-
+        if getattr(self.trainer.train_dataloader, "contains_iterable_dataset", False):
+            batch, self._iterable_dataset_samplers_state_dict = CaptureIterableDataset.convert_batch_into_state_dict(
+                batch
+            )
         return batch
