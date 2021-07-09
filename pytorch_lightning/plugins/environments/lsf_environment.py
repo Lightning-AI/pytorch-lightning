@@ -146,4 +146,4 @@ class LSFEnvironment(ClusterEnvironment):
             log.debug(f"calculated LSF master port: {port}")
         else:
             log.debug(f"using externally specified master port: {port}")
-        return port
+        return int(port)
