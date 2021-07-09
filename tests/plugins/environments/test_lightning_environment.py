@@ -42,12 +42,8 @@ def test_attributes_from_environment_variables():
 @pytest.mark.parametrize(
     "environ, creates_children", [
         ({}, False),
-        ({
-            "LOCAL_RANK": "2"
-        }, True),
-        ({
-            "NODE_RANK": "1"
-        }, False),
+        (dict(LOCAL_RANK="2"), True),
+        (dict(NODE_RANK="1"), False),
     ]
 )
 def test_manual_user_launch(environ, creates_children):
