@@ -53,7 +53,6 @@ class Loop(ABC):
     def __init__(self) -> None:
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
-        self._cached_state: Optional[Dict] = None
         self._loops = OrderedDict()
         self._progress = OrderedDict()
         self._has_parent: bool = False
