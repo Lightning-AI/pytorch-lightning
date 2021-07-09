@@ -90,10 +90,10 @@ This by default comes with a performance hit, and can be disabled in most cases.
         plugins=DDPPlugin(find_unused_parameters=False),
     )
 
-When using DDP on multi-node clusters, set NCCL parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When using DDP on a multi-node cluster, set NCCL parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-NCCL is the Nvidia Communication Collective Library which is used under the hood by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement training Detectron2.
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library which is used under the hood by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement training Detectron2.
 
 NCCL parameters can be adjusted via environment variables.
 
