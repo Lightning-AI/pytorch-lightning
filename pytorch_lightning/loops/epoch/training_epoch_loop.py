@@ -95,13 +95,14 @@ class TrainingEpochLoop(loops.Loop):
         """Restore the internal state of the loop for a new run"""
         self._initialize()
 
-        self.iteration_count = self.total_epoch_completed
+        self.iteration_count = self.batch_loop.current_batch_completed
         self.batches_seen = self.batch_loop.current_batch_completed
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self._initialize()
 
+        # todo (tchaton) the batch_loop should be responsible for that.
         self.batch_loop.progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
@@ -457,9 +458,18 @@ class TrainingEpochLoop(loops.Loop):
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
+    def _store_iterable_dataset_state_dict(self, iterative_datasets_state_dict):
+        if not self._iterable_dataset_samplers_state_dict:
+            self._iterable_dataset_samplers_state_dict = iterative_datasets_state_dict
+        else:
+            for attr_cache, state_dict in zip(
+                self._iterable_dataset_samplers_state_dict, iterative_datasets_state_dict
+            ):
+                for k, v in state_dict.items():
+                    attr_cache[k].update(v)
+
     def _sanetize_batch(self, batch: Any) -> Any:
         if getattr(self.trainer.train_dataloader, "contains_iterable_dataset", False):
-            batch, self._iterable_dataset_samplers_state_dict = CaptureIterableDataset.convert_batch_into_state_dict(
-                batch
-            )
+            batch, iterative_datasets_state_dict = CaptureIterableDataset.convert_batch_into_state_dict(batch)
+            self._store_iterable_dataset_state_dict(iterative_datasets_state_dict)
         return batch

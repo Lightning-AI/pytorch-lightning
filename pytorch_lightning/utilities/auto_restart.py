@@ -21,6 +21,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 
 from pytorch_lightning.utilities.apply_func import _is_dataclass_instance, _is_namedtuple
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class FastForwardSampler(Sampler):
@@ -34,13 +35,14 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Union[Sampler, Generator]) -> None:
+    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[str, Any]] = None
+        self._attr_name = attr_name
 
     def __getattr__(self, key: str) -> Any:
         if key in self.__dict__:
@@ -83,6 +85,7 @@ class FastForwardSampler(Sampler):
                     yield batch
 
         self._current_iteration = 0
+        self.restarting = False
 
     def __len__(self) -> int:
         return len(self.sampler)
@@ -116,10 +119,10 @@ class FastForwardSampler(Sampler):
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         if len(state_dict) > 1 and not workers_initialized:
             self._cached_state_dict = deepcopy(state_dict)
-            self.restarting = self._cached_state_dict[self.worker_id]["current_iteration"] > 0
+            self.restarting = True
             return
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
-        self.restarting = self._current_iteration > 0
+        self.restarting = True
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -144,11 +147,10 @@ class CaptureIterableDataset(IterableDataset):
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self.state_dict = deepcopy(state_dict)
+        print("STATE_DICT", self.state_dict)
+        self.samplers = {}
 
     def _wrap_generator_samplers(self) -> None:
-        if self.samplers is not None:
-            return
-
         self.samplers = {}
 
         # access wrapped dataset attributes
@@ -182,7 +184,7 @@ class CaptureIterableDataset(IterableDataset):
             if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a ``FastForwardSampler``
-                sampler = FastForwardSampler(generator)
+                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
                 # if ``CaptureIterableDataset`` was available, the sampler should reload its own state.
                 if self.state_dict is not None:
@@ -193,9 +195,6 @@ class CaptureIterableDataset(IterableDataset):
 
                 # replace generator with the generator from the ``FastForwardSampler``.
                 dataset_dict[generator_attr_name] = iter(sampler)
-
-        # reset state dict.
-        self.state_dict = None
 
     def reset_on_epoch(self) -> None:
         self.state_dict = None
@@ -307,7 +306,9 @@ def fetch_previous_worker_state_dict(iter: Iterator, out: List):
     out.append({"num_workers": num_workers, "previous_worker": previous_worker})
 
 
-def fetch_fast_forward_samplers_state_dict(dataloader: DataLoader, out: List, count: int):
+def fetch_fast_forward_samplers_state_dict(
+    dataloader: DataLoader, out: List, count: int, num_batches_processed: Optional[int] = None
+):
     fast_forward_samplers = find_fast_forward_samplers(dataloader)
 
     if fast_forward_samplers is not None:
@@ -315,13 +316,17 @@ def fetch_fast_forward_samplers_state_dict(dataloader: DataLoader, out: List, co
             out[count]
         except IndexError:
             out.append({})
-        out[count]["sampler"] = fast_forward_samplers.state_dict()
+        out[count]["sampler"] = fast_forward_samplers.state_dict(num_batches_processed=num_batches_processed)
 
 
 def cycle_to_next_worker(iter: Iterator, state_dict: List[Dict[str, Any]], count: int):
     current = state_dict[count]
-    num_workers = iter._num_workers
-    assert current["num_workers"] == num_workers
+    num_workers = getattr(iter, "_num_workers", 0)
+    if current["num_workers"] != num_workers:
+        raise MisconfigurationException(
+            f"The provided ``num_workers`` {num_workers} doesn't match the one used "
+            f"while generating the checkpoint: {current['num_workers']}"
+        )
     if isinstance(iter, _MultiProcessingDataLoaderIter):
         # move back to 0
         while next(iter._worker_queue_idx_cycle) != 0:
@@ -332,16 +337,16 @@ def cycle_to_next_worker(iter: Iterator, state_dict: List[Dict[str, Any]], count
         iter._reset = iter._ori_reset
         iter._reset(current["loader"], first_iter=True)
 
-    count += 1
-
 
 def fast_forward_sampler_load_state_dict(dataloader, state_dict: List[Dict[str, Any]], count: int):
-    current_state_dict = state_dict[count]["sampler"]
+    state_dict = state_dict[count]
+    keys = [k for k in state_dict if k not in ("num_workers", "previous_worker")]
+    assert len(keys) == 1
+    state_dict = state_dict[keys[0]]
     fast_forward_samplers = find_fast_forward_samplers(dataloader)
 
     if fast_forward_samplers is not None:
-        fast_forward_samplers.load_state_dict(current_state_dict)
-        count += 1
+        fast_forward_samplers.load_state_dict(state_dict)
 
 
 def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator) -> List[Dict[str, Any]]:

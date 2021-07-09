@@ -195,6 +195,7 @@ class TrainerDataLoadingMixin(ABC):
     def _resolve_batch_sampler(dl_args, dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
+        batch_size = dl_args["batch_size"]
         # checking the batch sampler type is different than PyTorch default.
 
         if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
@@ -223,9 +224,8 @@ class TrainerDataLoadingMixin(ABC):
             dl_args['shuffle'] = False
             dl_args['batch_sampler'] = None
 
-        batch_size = dl_args["batch_size"]
-
-        fast_forward_sampler.setup(batch_size)
+        if fault_tolerant_enabled():
+            fast_forward_sampler.setup(batch_size)
 
         return dl_args, fast_forward_sampler
 

@@ -80,7 +80,7 @@ class FitLoop(Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.iteration_count
+        return self.epoch_loop.batch_idx
 
     @property
     def split_idx(self) -> int:
@@ -118,6 +118,7 @@ class FitLoop(Loop):
     @property
     def total_optimizer_step(self) -> int:
         """Returns the total number of optimizer step completed"""
+        print("total_optimizer_step", self.epoch_loop.total_optimizer_step)
         return self.epoch_loop.total_optimizer_step
 
     @property
@@ -293,8 +294,13 @@ class FitLoop(Loop):
     def state_dict(self) -> Dict:
         if self.trainer.train_dataloader is not None:
             iterable_dataset_state_dict = deepcopy(self.epoch_loop._iterable_dataset_samplers_state_dict)
-            dataloaders_state_dict = self.trainer.train_dataloader.state_dict(iterable_dataset_state_dict)
-            return {"dataloader": dataloaders_state_dict}
+            dataloaders_state_dict = self.trainer.train_dataloader.state_dict(
+                iterable_dataset_state_dict, num_batches_processed=self.batch_idx + 1
+            )
+            return {
+                "dataloader": dataloaders_state_dict,
+                "iterable_dataset_state_dict": self.epoch_loop._iterable_dataset_samplers_state_dict
+            }
         return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:
@@ -302,6 +308,9 @@ class FitLoop(Loop):
             # todo (tchaton) Can we avoid creating the dataloader there ?
             self.trainer.reset_train_dataloader(self.trainer.lightning_module)
             self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
+
+        if "iterable_dataset_state_dict" in state_dict:
+            self.epoch_loop._iterable_dataset_samplers_state_dict = state_dict["iterable_dataset_state_dict"]
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

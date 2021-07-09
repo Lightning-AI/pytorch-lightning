@@ -25,6 +25,7 @@ from torch.utils.data.dataset import IterableDataset
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -375,7 +376,7 @@ class CombinedLoader(object):
 
         self.loaders_iter_state_dict = None
 
-    def state_dict(self, iterable_dataset_state_dict: List[Dict] = None):
+    def state_dict(self, iterable_dataset_state_dict: List[Dict] = None, num_batches_processed: int = None):
         from pytorch_lightning.utilities.auto_restart import (
             fetch_fast_forward_samplers_state_dict,
             fetch_previous_worker_state_dict,
@@ -389,7 +390,7 @@ class CombinedLoader(object):
         def fn(dataloader: DataLoader):
             nonlocal out
             nonlocal count
-            fetch_fast_forward_samplers_state_dict(dataloader, out, count)
+            fetch_fast_forward_samplers_state_dict(dataloader, out, count, num_batches_processed)
             if iterable_dataset_state_dict is not None and isinstance(dataloader.dataset, IterableDataset):
                 out[count].update(iterable_dataset_state_dict.pop(0))
             count += 1
@@ -412,22 +413,34 @@ class CombinedLoader(object):
 
     def on_restart(self):
         if self.loaders_iter_state_dict:
+
             from pytorch_lightning.utilities.auto_restart import (
                 cycle_to_next_worker,
                 fast_forward_sampler_load_state_dict,
             )
 
             count = 0
-            apply_to_collection(
-                self._iterator.loader_iters, Iterator,
-                partial(cycle_to_next_worker, state_dict=self.loaders_iter_state_dict, count=count)
-            )
+
+            def load_fast_forward_sampler_state_dict(dl: DataLoader):
+                nonlocal count
+                if isinstance(dl.dataset, CaptureIterableDataset):
+                    # drop loader
+                    state_dict = {k: v for k, v in self.loaders_iter_state_dict[count].items() if k != "loader"}
+                    dl.dataset.load_state_dict(state_dict)
+                else:
+                    fast_forward_sampler_load_state_dict(dl, state_dict=self.loaders_iter_state_dict, count=count)
+                count += 1
+
+            apply_to_collection(self.loaders, DataLoader, load_fast_forward_sampler_state_dict)
 
             count = 0
-            apply_to_collection(
-                self.loaders, DataLoader,
-                partial(fast_forward_sampler_load_state_dict, state_dict=self.loaders_iter_state_dict, count=count)
-            )
+
+            def _cycle_to_next_worker(iter: Iterator):
+                nonlocal count
+                cycle_to_next_worker(iter, state_dict=self.loaders_iter_state_dict, count=count)
+                count += 1
+
+            apply_to_collection(self._iterator.loader_iters, Iterator, _cycle_to_next_worker)
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
