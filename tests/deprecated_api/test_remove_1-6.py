@@ -88,6 +88,28 @@ def test_v1_6_0_ddp_spawn_sync_batchnorm():
         DDPSpawnPlugin(sync_batchnorm=False)
 
 
+def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
+
+    model = BoringModel()
+
+    with pytest.deprecated_call(match='`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed'):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=0.3,
+            limit_val_batches=0.3,
+            reload_dataloaders_every_epoch=True,
+            max_epochs=3,
+        )
+    trainer.fit(model)
+    trainer.test()
+
+    # verify the sequence
+    calls = trainer.dev_debugger.dataloader_sequence_calls
+    expected_sequence = ['val_dataloader'] + ['train_dataloader', 'val_dataloader'] * 3 + ['test_dataloader']
+    for call, expected in zip(calls, expected_sequence):
+        assert call['name'] == expected
+
+
 def test_v1_6_0_tbptt_reduce_fx(tmpdir):
 
     class TestModel(BoringModel):
@@ -275,3 +297,9 @@ def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
 
     with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
         model.summarize(mode="top")
+
+
+def test_v1_6_0_deprecated_disable_validation():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
+        _ = trainer.disable_validation

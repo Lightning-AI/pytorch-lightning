@@ -191,7 +191,7 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if self.current_epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
+        if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # TODO: specify the possible exception
@@ -235,7 +235,7 @@ class FitLoop(Loop):
 
         self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
-        did_train_only = self.trainer.disable_validation or self.epoch_loop.val_loop.skip
+        did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
         if did_train_only:
             self.global_step -= 1
             self._check_checkpoint_callback(True)
@@ -278,7 +278,7 @@ class FitLoop(Loop):
     def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
         # TODO: bake this logic into the ModelCheckpoint callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
+        if should_update:
             callbacks = self.trainer.checkpoint_callbacks
 
             if is_last and any(cb.save_last and cb.verbose for cb in callbacks):

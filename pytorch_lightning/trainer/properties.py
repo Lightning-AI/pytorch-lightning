@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -59,6 +59,7 @@ class TrainerProperties(ABC):
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
+    reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
@@ -294,8 +295,18 @@ class TrainerProperties(ABC):
         return {**standard_metrics, **pbar_metrics}
 
     @property
+    def _should_reload_dl_epoch(self) -> bool:
+        """ Check if dataloader should be reloaded in the current epoch. """
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and (not self.current_epoch % n_epochs)
+
+    @property
     def disable_validation(self) -> bool:
         """ Check if validation is disabled during training. """
+        rank_zero_deprecation(
+            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
+            " Use `not trainer.enable_validation` instead."
+        )
         return not self.enable_validation
 
     @property
