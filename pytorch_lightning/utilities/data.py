@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Mapping, Iterable, Union,
+from typing import Any, Mapping, Iterable, Union
 import torch
 
 from torch.utils.data import DataLoader, IterableDataset

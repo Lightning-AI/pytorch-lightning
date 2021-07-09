@@ -1,3 +1,5 @@
+import torch
+
 from pytorch_lightning.utilities.data import extract_batch_size
 
 def test_extract_batch_size():
