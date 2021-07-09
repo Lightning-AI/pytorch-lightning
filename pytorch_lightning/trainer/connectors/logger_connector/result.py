@@ -46,18 +46,17 @@ def extract_batch_size(batch: BType) -> int:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
     if isinstance(batch, torch.Tensor):
-        size = batch.size(0)
-    elif isinstance(batch, str):
+        return batch.size(0)
+    if isinstance(batch, str):
         return len(batch)
-    elif isinstance(batch, dict):
+    if isinstance(batch, dict):
         sample = next(iter(batch.values()), 1)
-        size = extract_batch_size(sample)
-    elif isinstance(batch, Iterable):
+        return extract_batch_size(sample)
+    if isinstance(batch, Iterable):
         sample = next(iter(batch), 1)
-        size = extract_batch_size(sample)
-    else:
-        size = 1
-    return size
+        return extract_batch_size(sample)
+
+    return 1
 
 
 class MetricSource(LightningEnum):
