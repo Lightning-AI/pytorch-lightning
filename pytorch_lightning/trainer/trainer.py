@@ -528,7 +528,7 @@ class Trainer(
         self,
         model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
         val_dataloaders=None,  # noqa TODO: remove with 1.6
@@ -542,9 +542,9 @@ class Trainer(
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
-                If ``None``, use the current weights of the model.
-                When the model is given as argument, this parameter will not apply.
+            ckpt_path: Path to the checkpoint you wish to use to validate.
+                If ``None``, use the best weights based on the checkpoint callback if the model isn't provided.
+                If model is provided and ``ckpt_path`` is ``None``, this parameter does not apply.
 
             verbose: If True, prints the validation results.
 
@@ -579,7 +579,6 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`')
 
-        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -589,8 +588,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        if not model_provided:
-            self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
+        self.validated_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
 
         # run validate
         results = self._run(model)
@@ -604,7 +602,7 @@ class Trainer(
         self,
         model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
         test_dataloaders=None,  # noqa TODO: remove with 1.6
@@ -619,9 +617,9 @@ class Trainer(
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the current weights of the model.
-                When the model is given as argument, this parameter will not apply.
+            ckpt_path: Path to the checkpoint you wish to use to test.
+                If ``None``, use the best weights based on the checkpoint callback if the model isn't provided.
+                If model is provided and ``ckpt_path`` is ``None``, this parameter does not apply.
 
             verbose: If True, prints the test results.
 
@@ -654,7 +652,6 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`')
 
-        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -664,8 +661,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        if not model_provided:
-            self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
+        self.tested_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
 
         # run test
         results = self._run(model)
@@ -681,7 +677,7 @@ class Trainer(
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
 
@@ -699,9 +695,9 @@ class Trainer(
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to use to predict.
-                If ``None``, use the current weights of the model.
-                When the model is given as argument, this parameter will not apply.
+            ckpt_path: Path to the checkpoint you wish to use to predict.
+                If ``None``, use the best weights based on the checkpoint callback if the model isn't provided.
+                If model is provided and ``ckpt_path`` is ``None``, this parameter does not apply.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -725,7 +721,6 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
-        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -735,8 +730,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        if not model_provided:
-            self.predicted_ckpt_path = self.__load_ckpt_weights(ckpt_path)
+        self.predicted_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
 
         results = self._run(model)
 
@@ -807,6 +801,15 @@ class Trainer(
 
         return result
 
+    @property
+    def ckpt_path(self) -> Optional[str]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validated_ckpt_path
+        if self.state.fn == TrainerFn.TESTING:
+            return self.tested_ckpt_path
+        if self.state.fn == TrainerFn.PREDICTING:
+            return self.predicted_ckpt_path
+
     def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
@@ -828,12 +831,15 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
-
         # restore modules after setup
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
+
+        if self.ckpt_path:
+            rank_zero_info(f"Loading checkpoint from {self.ckpt_path}")
+            self.checkpoint_connector.restore_model_weights(self.ckpt_path)
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -1059,13 +1065,18 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
-    def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
-        if ckpt_path is None:
+    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool) -> Optional[str]:
+        if model_provided and ckpt_path is None:
             return
 
         fn = self.state.fn.value
 
-        if ckpt_path == 'best':
+        if not model_provided and ckpt_path == 'best':
+            rank_zero_deprecation(
+                f'`.{fn}(ckpt_path="best")` was deprecated in v1.4 and will be removed in v1.6. Please use `.{fn}()`'
+            )
+
+        if not model_provided and ckpt_path is None:
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
@@ -1074,23 +1085,16 @@ class Trainer(
                         f' `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting.'
                     )
                 raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
+                    f'`.{fn}(ckpt_path=None)` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
             ckpt_path = self.checkpoint_callback.best_model_path
 
-        if not ckpt_path:
+        if not ckpt_path and not model_provided:
             raise MisconfigurationException(
                 f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
                 f' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
             )
-
-        # only one process running at this point for TPUs, as spawn isn't triggered yet
-        # todo: move this logic internally within the barrier.
-        if not self._device_type == DeviceType.TPU:
-            self.training_type_plugin.barrier()
-
-        self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
     def _call_setup_hook(self, model: 'pl.LightningModule') -> None:
