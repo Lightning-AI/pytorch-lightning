@@ -27,7 +27,6 @@ import numpy as np
 import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -165,17 +164,6 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-        # share ddp pids to all processes
-        self.share_pids()
-
-    def share_pids(self):
-        self.barrier()
-        pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
-        pids = ','.join(str(pid) for pid in pids.cpu().numpy().tolist())
-        os.environ["PL_INTERACTIVE_DDP_PROCS"] = pids
-        print(os.environ["PL_INTERACTIVE_DDP_PROCS"])
-        self.barrier()
-
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         assert self.local_rank == 0
@@ -189,7 +177,6 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-        os.environ["PL_TMPDIR"] = tempfile.mkdtemp()
 
         # create a temporary directory used to synchronize processes on deadlock.
         os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
@@ -373,7 +360,7 @@ class DDPPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)

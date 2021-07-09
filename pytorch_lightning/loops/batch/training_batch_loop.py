@@ -145,8 +145,8 @@ class TrainingBatchLoop(Loop):
         return super().on_advance_start(*args, **kwargs)
 
     def on_advance_end(self) -> None:
+        super().on_advance_end()
         self.progress.increment_completed()
-        return super().on_advance_end()
 
     def advance(self, batch, batch_idx, dataloader_idx):
         """Runs the train step together with optimization (if necessary) on the current batch split

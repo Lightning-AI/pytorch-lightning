@@ -14,8 +14,7 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -24,11 +23,16 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 from torch.utils.data.dataset import IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.auto_restart import (
+    CaptureIterableDataset,
+    cycle_to_next_worker_and_reset,
+    find_next_worker,
+)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 
 
 class TensorRunningAccum(object):
@@ -322,6 +326,10 @@ class CombinedDataset(object):
         return self._calc_num_data(self.datasets, self.mode)
 
 
+class DataLoaderDict(Dict):
+    pass
+
+
 class CombinedLoader(object):
     """
     Combines different dataloaders and allows sampling in parallel.
@@ -376,37 +384,31 @@ class CombinedLoader(object):
 
         self.loaders_iter_state_dict = None
 
-    def state_dict(self, iterable_dataset_state_dict: List[Dict] = None, num_batches_processed: int = None):
-        from pytorch_lightning.utilities.auto_restart import (
-            fetch_fast_forward_samplers_state_dict,
-            fetch_previous_worker_state_dict,
-        )
+    def state_dict(self, num_batches_processed: int):
+        if not fault_tolerant_enabled():
+            return {}
 
-        out = []
-        apply_to_collection(self._iterator.loader_iters, Iterator, partial(fetch_previous_worker_state_dict, out=out))
+        def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
+            nonlocal num_batches_processed
+            # find next worker if multiple workers were used
+            state = find_next_worker(iterator)
+            if isinstance(dataloader.dataset, CaptureIterableDataset):
+                # the sampler state dict are extracted in ``CombinedLoaderIterator``
+                if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
+                    state.update(iterator._sampler_state_dict[0])
+            else:
+                # fetch directly from fast forward sampler
+                state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
+            return DataLoaderDict(state)
 
-        count = 0
-
-        def fn(dataloader: DataLoader):
-            nonlocal out
-            nonlocal count
-            fetch_fast_forward_samplers_state_dict(dataloader, out, count, num_batches_processed)
-            if iterable_dataset_state_dict is not None and isinstance(dataloader.dataset, IterableDataset):
-                out[count].update(iterable_dataset_state_dict.pop(0))
-            count += 1
-
-        apply_to_collection(self.loaders, DataLoader, fn)
-        return out
+        return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)
 
     def load_state_dict(self, state_dict):
-        count = 0
-
-        def mock_reset_fn(self, loader, **__):
-            nonlocal count
-            state_dict[count]["loader"] = loader
-            count += 1
-
         self.loaders_iter_state_dict = state_dict
+
+        def mock_reset_fn(self, *_, **__):
+            pass
+
         # delay reset call.
         _MultiProcessingDataLoaderIter._ori_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
@@ -414,33 +416,20 @@ class CombinedLoader(object):
     def on_restart(self):
         if self.loaders_iter_state_dict:
 
-            from pytorch_lightning.utilities.auto_restart import (
-                cycle_to_next_worker,
-                fast_forward_sampler_load_state_dict,
-            )
-
-            count = 0
-
-            def load_fast_forward_sampler_state_dict(dl: DataLoader):
-                nonlocal count
-                if isinstance(dl.dataset, CaptureIterableDataset):
-                    # drop loader
-                    state_dict = {k: v for k, v in self.loaders_iter_state_dict[count].items() if k != "loader"}
-                    dl.dataset.load_state_dict(state_dict)
+            def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
+                if isinstance(dataloader.dataset, CaptureIterableDataset):
+                    dataloader.dataset.load_state_dict(state_dict)
                 else:
-                    fast_forward_sampler_load_state_dict(dl, state_dict=self.loaders_iter_state_dict, count=count)
-                count += 1
+                    dataloader.fast_forward_sampler.load_state_dict(state_dict)
+                iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
+                state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
+                # need to re-attach the ``state dict`` into the iterator for future collection.
+                iterator._sampler_state_dict = [state_dict]
+                return iterator
 
-            apply_to_collection(self.loaders, DataLoader, load_fast_forward_sampler_state_dict)
-
-            count = 0
-
-            def _cycle_to_next_worker(iter: Iterator):
-                nonlocal count
-                cycle_to_next_worker(iter, state_dict=self.loaders_iter_state_dict, count=count)
-                count += 1
-
-            apply_to_collection(self._iterator.loader_iters, Iterator, _cycle_to_next_worker)
+            self._iterator._loader_iters = apply_to_collections(
+                self.loaders, self.loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
+            )
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
@@ -531,7 +520,8 @@ class CombinedLoaderIterator(object):
             a collections of batch data
 
         """
-        return self.request_next_batch(self.loader_iters)
+        batch = self.request_next_batch(self.loader_iters)
+        return batch
 
     @staticmethod
     def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
@@ -545,7 +535,14 @@ class CombinedLoaderIterator(object):
             Any: a collections of batch data
 
         """
-        return apply_to_collection(loader_iters, Iterator, next)
+
+        def next_fn(iterator: Iterator):
+            batch = next(iterator)
+            batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
+            CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
+            return batch
+
+        return apply_to_collection(loader_iters, Iterator, next_fn)
 
     @staticmethod
     def create_loader_iters(
@@ -596,9 +593,6 @@ def prefetch_iterator(iterable: Iterable,
     """
     it = iter(iterable)
 
-    if trainer:
-        trainer.current_iterator = it
-
     try:
         # the iterator may be empty from the beginning
         last = next(it)
@@ -611,6 +605,3 @@ def prefetch_iterator(iterable: Iterable,
         last = val
     # yield last, no longer has next
     yield last, True
-
-    if trainer:
-        trainer.current_iterator = None

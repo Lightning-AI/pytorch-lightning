@@ -14,7 +14,6 @@
 
 import logging
 from contextlib import suppress
-from copy import deepcopy
 from typing import Dict, Optional
 
 from pytorch_lightning.loops import Loop
@@ -152,14 +151,14 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps is not None and self.total_optimizer_step >= self.max_steps
+        stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
         stop_epochs = self.max_epochs is not None and self.total_epoch_completed >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
             met_min_epochs = self.total_epoch_completed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.total_optimizer_step >= self.min_steps if self.min_steps else True
+            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 should_stop = True
             else:
@@ -293,14 +292,8 @@ class FitLoop(Loop):
 
     def state_dict(self) -> Dict:
         if self.trainer.train_dataloader is not None:
-            iterable_dataset_state_dict = deepcopy(self.epoch_loop._iterable_dataset_samplers_state_dict)
-            dataloaders_state_dict = self.trainer.train_dataloader.state_dict(
-                iterable_dataset_state_dict, num_batches_processed=self.batch_idx + 1
-            )
-            return {
-                "dataloader": dataloaders_state_dict,
-                "iterable_dataset_state_dict": self.epoch_loop._iterable_dataset_samplers_state_dict
-            }
+            dataloaders_state_dict = self.trainer.train_dataloader.state_dict(num_batches_processed=self.batch_idx + 1)
+            return {"dataloader": dataloaders_state_dict}
         return {}
 
     def load_state_dict(self, state_dict: Dict) -> None:

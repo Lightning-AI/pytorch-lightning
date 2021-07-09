@@ -20,7 +20,6 @@ from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import TrainingEpochProgress
-from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -125,7 +124,6 @@ class TrainingEpochLoop(loops.Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         _, (batch, is_last) = next(dataloader_iter)
-        batch = self._sanetize_batch(batch)
 
         self.is_last_batch = is_last
 
@@ -457,19 +455,3 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
-
-    def _store_iterable_dataset_state_dict(self, iterative_datasets_state_dict):
-        if not self._iterable_dataset_samplers_state_dict:
-            self._iterable_dataset_samplers_state_dict = iterative_datasets_state_dict
-        else:
-            for attr_cache, state_dict in zip(
-                self._iterable_dataset_samplers_state_dict, iterative_datasets_state_dict
-            ):
-                for k, v in state_dict.items():
-                    attr_cache[k].update(v)
-
-    def _sanetize_batch(self, batch: Any) -> Any:
-        if getattr(self.trainer.train_dataloader, "contains_iterable_dataset", False):
-            batch, iterative_datasets_state_dict = CaptureIterableDataset.convert_batch_into_state_dict(batch)
-            self._store_iterable_dataset_state_dict(iterative_datasets_state_dict)
-        return batch

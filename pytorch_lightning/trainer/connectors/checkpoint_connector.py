@@ -21,7 +21,6 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoaderIterator
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -387,13 +386,6 @@ class CheckpointConnector:
 
     def get_gradients_state_dict(self):
         return {n: p.grad for n, p in self.trainer.lightning_module.named_parameters()}
-
-    def get_current_worker(self):
-        iter = self.trainer.current_iterator
-        if isinstance(iter, CombinedLoaderIterator):
-            return self.trainer.train_dataloader.state_dict()
-        else:
-            raise NotImplementedError
 
     def get_loops_state_dict(self):
         return {
