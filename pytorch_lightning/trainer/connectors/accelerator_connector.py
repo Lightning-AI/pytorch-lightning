@@ -140,6 +140,7 @@ class AcceleratorConnector(object):
         self.configure_slurm_ddp()
 
         self.handle_given_plugins()
+        self.update_device_type_if_ipu_plugin()
         self.validate_accelerator_type()
 
         self._training_type_plugin_resolved = False
@@ -758,6 +759,12 @@ class AcceleratorConnector(object):
     def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
         return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+
+    def update_device_type_if_ipu_plugin(self) -> None:
+        # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,
+        # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
+        if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != DeviceType.IPU:
+            self._device_type == DeviceType.IPU
 
     def configure_slurm_ddp(self):
         # extract SLURM flag vars
