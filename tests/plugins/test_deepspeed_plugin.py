@@ -40,7 +40,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.layer = None
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
         opt.zero_grad()
@@ -518,7 +518,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         self.log('train_loss', loss, prog_bar=True)
         self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         opt.zero_grad()
