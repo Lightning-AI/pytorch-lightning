@@ -192,8 +192,9 @@ class AcceleratorConnector(object):
             self._accelerator_type = DeviceType.IPU
         elif self.distributed_backend == DeviceType.GPU:
             if not self.has_gpu:
-                msg = "GPUs are not available" if not torch.cuda.is_available(
-                ) else "you didn't pass `gpus` to `Trainer`"
+                msg = (
+                    "you didn't pass `gpus` to `Trainer`" if torch.cuda.is_available() else "GPUs are not available"
+                )
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}")
             self._accelerator_type = DeviceType.GPU
         elif self.distributed_backend == DeviceType.CPU:
