@@ -21,7 +21,7 @@ ARG CUDA_VERSION=11.1
 #FROM ubuntu:20.04
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
-ARG PYTHON_VERSION=3.7
+ARG PYTHON_VERSION=3.8
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
@@ -90,7 +90,7 @@ ENV \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
     # if you want this environment to be the default o \ne, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
-    HOROVOD_CUDA_HOME="/usr/local/cuda" \
+    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
     HOROVOD_BUILD_CUDA_CC_LIST=$TORCH_CUDA_ARCH_LIST \
     HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
@@ -116,12 +116,10 @@ RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
     py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
-    if [ $py_ver -eq "1" ]; then \
-        pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/weekly "nvidia-dali-weekly-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
-    else \
+    if [ $py_ver -eq "0" ]; then \
         pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
-    fi && \
-    python -c 'from nvidia.dali.pipeline import Pipeline'
+        python -c 'from nvidia.dali.pipeline import Pipeline' ; \
+    fi
 
 RUN \
     # install NVIDIA apex

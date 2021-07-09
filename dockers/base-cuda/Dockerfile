@@ -16,14 +16,13 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg CUDA_VERSION=10.2
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.2
 
-ARG CUDNN_VERSION=8
-ARG CUDA_VERSION=10.2
+ARG CUDA_VERSION=11.1
 
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
-ARG PYTHON_VERSION=3.7
+ARG PYTHON_VERSION=3.8
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -32,7 +31,10 @@ ENV \
     TZ=Europe/Prague \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
-    MKL_THREADING_LAYER=GNU
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
+    MKL_THREADING_LAYER=GNU \
+    MAKEFLAGS="-j$(nproc)" \
+    # MAKEFLAGS="-j1"
 
 RUN apt-get update -qq --fix-missing  && \
     apt-get install -y --no-install-recommends \
@@ -66,15 +68,14 @@ RUN apt-get update -qq --fix-missing  && \
     rm -rf /var/lib/apt/lists/*
 
 ENV \
+    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
+    HOROVOD_BUILD_CUDA_CC_LIST=$TORCH_CUDA_ARCH_LIST \
     HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1 \
-    MAKEFLAGS="-j$(nproc)" \
-    # MAKEFLAGS="-j1" \
-    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
+    HOROVOD_WITHOUT_GLOO=1 \
+    HOROVOD_WITH_MPI=1
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
@@ -105,12 +106,11 @@ RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
     py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
-    if [ $py_ver -eq "1" ]; then \
-        pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/weekly "nvidia-dali-weekly-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
-    else \
+    if [ $py_ver -eq "0" ]; then \
         pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
-    fi && \
-    python -c 'from nvidia.dali.pipeline import Pipeline'
+        python -c 'from nvidia.dali.pipeline import Pipeline' ; \
+    fi
+
 
 RUN \
     # install NVIDIA apex

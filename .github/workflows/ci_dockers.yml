@@ -62,7 +62,7 @@ jobs:
           push: false
         timeout-minutes: 50
 
-  build-cuda:
+  build-CUDA:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -91,7 +91,7 @@ jobs:
           push: false
         timeout-minutes: 50
 
-  build-conda:
+  build-Conda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -107,6 +107,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      # see: https://pytorch.org/get-started/previous-versions/
+      - run: |
+          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer(${{matrix.pytorch_version}}) > LVer('1.7') else 10.2)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
+
       - name: Build CUDA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -114,7 +120,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=10.2
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50
