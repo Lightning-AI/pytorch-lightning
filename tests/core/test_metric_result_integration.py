@@ -25,7 +25,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Sync,
-    extract_batch_size,
     MetricSource,
     ResultCollection,
 )
@@ -287,24 +286,6 @@ def test_result_collection_restoration(tmpdir):
         assert metric_c.x == metric_c._defaults['x']
 
         batch_idx = None
-
-
-def test_extract_batch_size():
-    """Tests the behavior of extracting the batch size."""
-    batch = "test string"
-    assert extract_batch_size(batch) == 11
-
-    batch = torch.zeros(11, 10, 9, 8)
-    assert extract_batch_size(batch) == 11
-
-    batch = {'test': torch.zeros(11, 10)}
-    assert extract_batch_size(batch) == 11
-
-    batch = [torch.zeros(11, 10)]
-    assert extract_batch_size(batch) == 11
-
-    batch = {'test': [{'test': [torch.zeros(11, 10)]}]}
-    assert extract_batch_size(batch) == 11
 
 
 @pytest.mark.parametrize('device', ('cpu', pytest.param('cuda', marks=RunIf(min_gpus=1))))

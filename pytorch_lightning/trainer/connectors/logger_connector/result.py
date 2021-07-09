@@ -27,6 +27,7 @@ from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.data import extract_batch_size
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
 # TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
@@ -34,29 +35,6 @@ _METRIC = Any  # Union[Metric, torch.Tensor]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 warning_cache = WarningCache()
-
-BType = Union[torch.Tensor, str, Mapping[Any, 'BType'], Iterable['BType']]
-
-
-def extract_batch_size(batch: BType) -> int:
-    """
-    Recursively unpack a batch to find a torch.Tensor.
-
-    Returns:
-        ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
-    """
-    if isinstance(batch, torch.Tensor):
-        return batch.size(0)
-    if isinstance(batch, str):
-        return len(batch)
-    if isinstance(batch, dict):
-        sample = next(iter(batch.values()), 1)
-        return extract_batch_size(sample)
-    if isinstance(batch, Iterable):
-        sample = next(iter(batch), 1)
-        return extract_batch_size(sample)
-
-    return 1
 
 
 class MetricSource(LightningEnum):
