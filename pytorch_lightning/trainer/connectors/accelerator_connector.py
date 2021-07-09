@@ -188,7 +188,7 @@ class AcceleratorConnector(object):
         elif self.distributed_backend == DeviceType.IPU:
             if not self.has_ipu:
                 msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `ipus` to `Trainer`"
-                raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}")
+                raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}.")
             self._accelerator_type = DeviceType.IPU
         elif self.distributed_backend == DeviceType.GPU:
             if not self.has_gpu:
