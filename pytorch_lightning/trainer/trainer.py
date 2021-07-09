@@ -1226,7 +1226,7 @@ class Trainer(
     def _log_device_info(self) -> None:
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
 
         num_ipus = self.ipus if self.ipus is not None else 0
