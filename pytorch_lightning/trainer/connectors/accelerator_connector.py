@@ -54,8 +54,9 @@ from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
     LightningEnvironment,
+    LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment, LSFEnvironment,
+    TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
