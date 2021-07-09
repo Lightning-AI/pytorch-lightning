@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7]
+        python_version: ["3.7"]
         xla_version: ["1.6", "1.7", "1.8", "1.9"] # todo: , "nightly"
     steps:
       - name: Checkout
@@ -189,8 +189,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.8
-            pytorch_version: 1.7
+          - python_version: "3.8"
+            pytorch_version: "1.7"
 
     steps:
       - name: Checkout

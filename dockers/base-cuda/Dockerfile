@@ -74,8 +74,8 @@ ENV \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITHOUT_GLOO=1 \
-    HOROVOD_WITH_MPI=1
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
@@ -106,6 +106,7 @@ RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
     py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
+    # todo: waiting for 1.4 - https://github.com/NVIDIA/DALI/issues/3144#issuecomment-877386691
     if [ $py_ver -eq "0" ]; then \
         pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
         python -c 'from nvidia.dali.pipeline import Pipeline' ; \
