@@ -293,7 +293,9 @@ class DDPPlugin(ParallelPlugin):
     def _register_ddp_hooks(self) -> None:
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
-        if _TORCH_GREATER_EQUAL_1_9 or (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
+        if _TORCH_GREATER_EQUAL_1_9 or (
+            _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
+        ):
             register_ddp_comm_hook(
                 model=self._model,
                 ddp_comm_state=self._ddp_comm_state,
