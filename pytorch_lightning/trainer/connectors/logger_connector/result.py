@@ -35,6 +35,29 @@ _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 warning_cache = WarningCache()
 
+BType = Union[torch.Tensor, str, Mapping[Any, 'BType'], Iterable['BType']]
+
+def extract_batch_size(batch: BType) -> int:
+    """
+    Recursively unpack a batch to find a torch.Tensor.
+
+    Returns:
+        ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+    """
+    if isinstance(batch, torch.Tensor):
+        size = batch.size(0)
+    elif isinstance(batch, str):
+        return len(batch)
+    elif isinstance(batch, dict):
+        sample = next(iter(batch.values()), 1)
+        size = extract_batch_size(sample)
+    elif isinstance(batch, Iterable):
+        sample = next(iter(batch), 1)
+        size = extract_batch_size(sample)
+    else:
+        size = 1
+    return size
+
 
 class MetricSource(LightningEnum):
     CALLBACK = "callback"
@@ -589,30 +612,9 @@ class ResultCollection(dict):
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
-            self.batch_size = self._extract_batch_size(batch)
+            self.batch_size = extract_batch_size(batch)
         except RecursionError:
             self.batch_size = 1
-
-    def _extract_batch_size(self, batch: Any) -> int:
-        """
-        Recursively unpack a batch to find a torch.Tensor.
-
-        Returns:
-            ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
-        """
-        if isinstance(batch, torch.Tensor):
-            size = batch.size(0)
-        elif isinstance(batch, str):
-            return len(batch)
-        elif isinstance(batch, dict):
-            sample = next(iter(batch.values()), 1)
-            size = self._extract_batch_size(sample)
-        elif isinstance(batch, Iterable):
-            sample = next(iter(batch), 1)
-            size = self._extract_batch_size(sample)
-        else:
-            size = 1
-        return size
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""
