@@ -37,7 +37,7 @@ There are a few different data containers used in Lightning:
      - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a DataSet.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
      - A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of a training DataLoader, validation DataLoader(s) and test DataLoader(s), along with the matching transforms and data processing/downloads steps required.
-     
+
 Why LightningDataModules
 ========================
 
