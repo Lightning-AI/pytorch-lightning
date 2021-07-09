@@ -42,11 +42,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
     ) -> torch.Tensor:
-        return self.scaler.scale(closure_loss)
+        closure_loss = self.scaler.scale(closure_loss)
+        return super().pre_backward(model, closure_loss)
 
     def pre_optimizer_step(
         self,
-        pl_module: 'pl.LightningModule',
+        model: 'pl.LightningModule',
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
@@ -57,16 +58,15 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-        # TODO: Add `on_before_optimizer_step`
-        # self.scaler.unscale_(optimizer)
-        # pl_module.trainer.call_hook("on_before_optimizer_step")
-        if pl_module.automatic_optimization:
+        result = True
+        if model.automatic_optimization:
             result = lambda_closure()
-            if result is None:
-                # lambda_closure returning None indicates that backward has been skipped
-                return False
-        self.scaler.step(optimizer)
-        self.scaler.update()
+        self.scaler.unscale_(optimizer)
+        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        # lambda_closure returning None indicates that backward has been skipped
+        if result is not None:
+            self.scaler.step(optimizer)
+            self.scaler.update()
         return False
 
     @contextmanager
