@@ -23,7 +23,7 @@ Continue reading to learn about:
 Data Containers in Lightning
 ****************************
 
-There are a few different Data containers used in Lightning:
+There are a few different data containers used in Lightning:
 
 .. list-table:: Data objects
    :widths: 20 80
@@ -37,6 +37,11 @@ There are a few different Data containers used in Lightning:
      - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a DataSet.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
      - A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of a training DataLoader, validation DataLoader(s) and test DataLoader(s), along with the matching transforms and data processing/downloads steps required.
+     
+Why LightningDataModules
+========================
+
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` were designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. DataModules make it easy to hot swap different datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Read :ref:`this <datamodules>` for more details on LightningDataModules.
 
@@ -44,12 +49,12 @@ Read :ref:`this <datamodules>` for more details on LightningDataModules.
 .. _multiple-training-dataloaders:
 
 *****************
-Multiple DataSets
+Multiple Datasets
 *****************
 
-There are a few ways to pass multiple DataSets to Lightning:
+There are a few ways to pass multiple Datasets to Lightning:
 
-1. Create a DataLoader that iterates over multiple DataSets under the hood.
+1. Create a DataLoader that iterates over multiple Datasets under the hood.
 2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
    will automatically combine the batches from different DataLoaders.
 3. In the validation and test loop you have the option to return multiple DataLoaders,
@@ -61,16 +66,14 @@ Using LightningDataModule
 You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule`, and Lightning will handle the
 combination batch under-the-hood.
 
-TODO: add code snippet.
-
 Using LightningModule hooks
 ===========================
 
 Concatenated DataSet
 --------------------
 For training with multiple datasets you can create a :class:`~torch.utils.data.dataloader` class
-which wraps your multiple DataSets (this of course also works for testing and validation
-DataSets).
+which wraps your multiple datasets (this of course also works for testing and validation
+datasets).
 
 (`reference <https://discuss.pytorch.org/t/train-simultaneously-on-two-DataSets/649/2>`_)
 
@@ -194,7 +197,7 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
 ----------
 
-Multiple validation/test datasets
+Multiple Validation/Test Datasets
 =================================
 For validation and test DataLoaders, you can pass a single DataLoader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. You can choose to pass
@@ -259,7 +262,7 @@ Packed sequences as inputs
 ==========================
 When using PackedSequence, do 2 things:
 
-1. Return either a padded tensor in DataSet or a list of variable length tensors in the DataLoader collate_fn (example shows the list implementation).
+1. Return either a padded tensor in dataset or a list of variable length tensors in the DataLoader collate_fn (example shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. testcode::
@@ -311,7 +314,7 @@ Lightning can handle TBTT automatically via this flag.
 
 ----------
 
-Iterable DataSets
+Iterable Datasets
 =================
 Lightning supports using IterableDataSets as well as map-style DataSets. IterableDataSets provide a more natural
 option when using sequential data.
@@ -321,7 +324,7 @@ option when using sequential data.
     because the IterableDataSet does not have a ``__len__`` and Lightning requires this to calculate the validation
     interval when ``val_check_interval`` is less than one. Similarly, you can set ``limit_{mode}_batches`` to a float or
     an int. If it is set to 0.0 or 0 it will set ``num_{mode}_batches`` to 0, if it is an int it will set ``num_{mode}_batches``
-    to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole DataSet, otherwise it will throw an exception.
+    to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole dataset, otherwise it will throw an exception.
     Here mode can be train/val/test.
 
 .. testcode::
@@ -338,9 +341,9 @@ option when using sequential data.
     # Setup DataLoader
     def train_dataloader(self):
         seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
-        iterable_DataSet = CustomDataSet(seq_data)
+        iterable_dataset = CustomDataSet(seq_data)
 
-        dataloader = DataLoader(DataSet=iterable_DataSet, batch_size=5)
+        dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
         return dataloader
 
 .. testcode::
