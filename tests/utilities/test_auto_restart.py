@@ -646,6 +646,7 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.6.0")
 def test_combined_dataloader_state_dict_and_reload():
     """
     This test makes sure the CombinedLoader used in the condition of Lightning properly
