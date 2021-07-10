@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -165,6 +166,8 @@ class CheckpointConnector:
 
         self.restore_optimizers_and_schedulers()
 
+        self.restore_loops()
+
     def restore_callbacks(self) -> None:
         """ Restores all callbacks from the pre-loaded checkpoint. """
         if not self._loaded_checkpoint:
@@ -249,6 +252,18 @@ class CheckpointConnector:
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
+    def restore_loops(self) -> None:
+        """ Calls hooks on the loops to give it a chance to restore its state from the checkpoint. """
+        if not self._loaded_checkpoint:
+            return
+
+        state_dict = self._loaded_checkpoint.get("loops", None)
+        if state_dict:
+            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
+
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
@@ -332,6 +347,9 @@ class CheckpointConnector:
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
+        if fault_tolerant_enabled():
+            checkpoint.update({"loops": self.get_loops_state_dict()})
+
         if not weights_only:
             # dump callbacks
             checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
@@ -369,6 +387,14 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_loops_state_dict(self):
+        return {
+            "fit_loop": self.trainer.fit_loop.state_dict(),
+            "validate_loop": self.trainer.validate_loop.state_dict(),
+            "test_loop": self.trainer.test_loop.state_dict(),
+            "predict_loop": self.trainer.predict_loop.state_dict(),
+        }
 
     def hpc_load(self, checkpoint_path: str) -> None:
         """

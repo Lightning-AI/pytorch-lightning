@@ -35,13 +35,11 @@ class BaseProgress:
 class Tracker(BaseProgress):
     """
     Track an event's progress.
-
     Args:
         ready: Intended to track the number of events ready to start.
         started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
         processed: Intended to be incremented after the event is processed.
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
-
     Attributes set to ``None`` are treated as unused and are restricted.
     """
 
@@ -88,7 +86,6 @@ class Tracker(BaseProgress):
 class Progress(BaseProgress):
     """
     Track aggregated and current progress.
-
     Args:
         total: Intended to track the total progress of an event
         current: Intended to track the current progress of an event
@@ -130,10 +127,10 @@ class Progress(BaseProgress):
         self.current.load_state_dict(state_dict["current"])
 
 
+@dataclass
 class BatchProgress(Progress):
     """
     Tracks the batch progress
-
     Args:
         total: Tracks the total epoch progress
         current: Tracks the current epoch progress
@@ -141,17 +138,41 @@ class BatchProgress(Progress):
 
 
 @dataclass
+class TrainingEpochProgress(Progress):
+    """
+    Tracks the batch progress
+    Args:
+        total: Tracks the total epoch progress
+        current: Tracks the current epoch progress
+    """
+    should_check_val: bool = False
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.should_check_val = state_dict["should_check_val"]
+
+
+@dataclass
+class DataLoaderProgress(Progress):
+
+    dataloader_idx: int = 0
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.dataloader_idx = state_dict["dataloader_idx"]
+
+
+@dataclass
 class EpochProgress(Progress):
     """
     Tracks the epoch progress
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
-
     Args:
         total: Tracks the total epoch progress
         current: Tracks the current epoch progress
         batch: Tracks batch progress.
     """
-
+    dataloader_idx: int = 0
     batch: BatchProgress = field(default_factory=BatchProgress)
 
     def reset_on_epoch(self) -> None:
@@ -160,13 +181,13 @@ class EpochProgress(Progress):
     def load_state_dict(self, state_dict: dict) -> None:
         super().load_state_dict(state_dict)
         self.batch.load_state_dict(state_dict["batch"])
+        self.dataloader_idx = state_dict["dataloader_idx"]
 
 
 @dataclass
 class OptimizerProgress(BaseProgress):
     """
     Track optimizer progress.
-
     Args:
         step: Tracks ``optimizer.step`` calls.
         zero_grad: Tracks ``optimizer.zero_grad`` calls.
@@ -188,13 +209,13 @@ class OptimizerProgress(BaseProgress):
 class OptimizationProgress(BaseProgress):
     """
     Track optimization progress.
-
     Args:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
     """
 
     # TODO: support for multiple optimizers
+    optimizer_idx: int = 0
     optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
     scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
 
@@ -213,6 +234,7 @@ class OptimizationProgress(BaseProgress):
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
         self.scheduler.load_state_dict(state_dict["scheduler"])
+        self.optimizer_idx = state_dict["optimizer_idx"]
 
 
 @dataclass
@@ -220,11 +242,9 @@ class EpochLoopProgress(BaseProgress):
     """
     Tracks epoch loop progress.
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
-
     Args:
         epoch: Tracks epochs progress.
     """
-
     epoch: EpochProgress = field(default_factory=EpochProgress)
 
     def increment_epoch_completed(self) -> None:
@@ -237,42 +257,3 @@ class EpochLoopProgress(BaseProgress):
 
     def load_state_dict(self, state_dict: dict) -> None:
         self.epoch.load_state_dict(state_dict["epoch"])
-
-
-@dataclass
-class TrainingEpochProgress(EpochProgress):
-    """
-    Extends ``EpochProgress`` with training specific attributes
-
-    Args:
-        total: Tracks the total epoch progress.
-        current: Tracks the current epoch progress.
-        batch: Tracks batch progress.
-        optim: Tracks optimization progress.
-        val: Tracks val_loop progress.
-    """
-
-    optim: OptimizationProgress = field(default_factory=OptimizationProgress)
-    val: EpochLoopProgress = field(default_factory=EpochLoopProgress)
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        super().load_state_dict(state_dict)
-        self.optim.load_state_dict(state_dict["optim"])
-        self.val.load_state_dict(state_dict["val"])
-
-
-@dataclass
-class FitLoopProgress(EpochLoopProgress):
-    """
-    Extends ``EpochLoopProgress`` with fit specific attributes
-
-    Args:
-        epoch: Tracks epochs progress.
-    """
-
-    epoch: TrainingEpochProgress = field(default_factory=TrainingEpochProgress)
-
-    def reset_on_epoch(self) -> None:
-        # do not reset `epoch.current` as it should track the number of epochs this `fit` call
-        self.epoch.reset_on_epoch()
-        self.epoch.optim.reset_on_epoch()

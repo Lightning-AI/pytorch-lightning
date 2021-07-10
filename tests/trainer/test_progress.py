@@ -11,19 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from copy import deepcopy
+from unittest import mock
 
 import pytest
+import torch
 
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import (
     BatchProgress,
     EpochLoopProgress,
     EpochProgress,
-    FitLoopProgress,
+    OptimizationProgress,
     OptimizerProgress,
     Progress,
     Tracker,
 )
+from tests.helpers import BoringModel
+
+
+class CustomException(BaseException):
+    pass
 
 
 def test_progress_geattr_setattr():
@@ -135,74 +145,9 @@ def test_optimizer_progress_default_factory():
     assert p2.step.total.completed == 0
 
 
-def test_fit_loop_progress_serialization():
-    fit_loop = FitLoopProgress()
-    _ = deepcopy(fit_loop)
-    fit_loop.epoch.increment_completed()  # check `TrainingEpochProgress.load_state_dict` calls `super`
-
-    state_dict = fit_loop.state_dict()
-    # yapf: disable
-    assert state_dict == {
-        'epoch': {
-            # number of epochs across `fit` calls
-            'total': {'completed': 1, 'processed': 0, 'ready': 0, 'started': 0},
-            # number of epochs this `fit` call
-            'current': {'completed': 1, 'processed': 0, 'ready': 0, 'started': 0},
-            'batch': {
-                # number of batches across `fit` calls
-                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                # number of batches this epoch
-                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            },
-            # `fit` optimization progress
-            'optim': {
-                # optimizers progress
-                'optimizer': {
-                    'step': {
-                        # `optimizer.step` calls across `fit` calls
-                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                        # `optimizer.step` calls this epoch
-                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                    },
-                    'zero_grad': {
-                        # `optimizer.zero_grad` calls across `fit` calls
-                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                        # `optimizer.zero_grad` calls this epoch
-                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                    },
-                },
-                'scheduler': {
-                    # `scheduler.step` calls across `fit` calls
-                    'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
-                    # `scheduler.step` calls this epoch
-                    'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
-                },
-            },
-            # `fit` validation progress
-            'val': {
-                'epoch': {
-                    # number of `validation` calls across `fit` calls
-                    'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    # number of `validation` calls this `fit` call
-                    'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    'batch': {
-                        # number of batches across `fit` `validation` calls
-                        'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                        # number of batches this `fit` `validation` call
-                        'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    },
-                }
-            },
-        }
-    }
-    # yapf: enable
-
-    new_loop = FitLoopProgress.from_state_dict(state_dict)
-    assert fit_loop == new_loop
-
-
 def test_epoch_loop_progress_serialization():
     loop = EpochLoopProgress()
+    loop.epoch.dataloader_idx = 1
     _ = deepcopy(loop)
     state_dict = loop.state_dict()
 
@@ -219,9 +164,171 @@ def test_epoch_loop_progress_serialization():
                 # number of batches this `validate` call
                 'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
             },
+            'dataloader_idx': 1
         }
     }
     # yapf: enable
 
     new_loop = EpochLoopProgress.from_state_dict(state_dict)
     assert loop == new_loop
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            if use_multiple_optimizers:
+                self.configure_optimizers = self.configure_optimizers_3
+            self.should_fail = True
+
+        def training_step(self, batch, batch_idx, optimizer_idx: int = None):
+            # breaking on global_step 4
+            if self.should_fail and self.trainer.current_epoch == 1 and batch_idx == 1 and optimizer_idx == (
+                1 if use_multiple_optimizers else None
+            ):
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers_3(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            optimizer_1 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            return [optimizer, optimizer_1, optimizer_2], \
+                   [lr_scheduler, {"scheduler": lr_scheduler_1, "interval": "step"}]
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    chk = ModelCheckpoint(dirpath=tmpdir, filename=str(use_multiple_optimizers), save_last=True)
+    chk.last_model_path = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        callbacks=chk,
+        accumulate_grad_batches=accumulate_grad_batches,
+        resume_from_checkpoint=None,
+    )
+
+    # simulate random failure in training_step
+    try:
+        trainer.fit(model)
+    except CustomException:
+        pass
+
+    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optim_progress, OptimizationProgress)
+
+    pr = trainer.fit_loop.epoch_loop.progress
+
+    assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
+    assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
+
+    pr = trainer.fit_loop.epoch_loop.batch_loop.progress
+
+    assert pr.total == Tracker(ready=5, started=5, processed=4, completed=4)
+    assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
+
+    num_optimizers = 3 if use_multiple_optimizers else 1
+
+    optim = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
+
+    # 4 optimizer steps because breaking on the second batch of the second epoch (3 + 1)
+    total = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
+
+    # we raised expection on the first optimizer
+    current = (1 if use_multiple_optimizers else 0)
+
+    if accumulate_grad_batches == 2 and use_multiple_optimizers:
+        total += 1
+
+    assert optim.optimizer.step.total == Tracker(ready=total + 1, started=total, processed=None, completed=total)
+    assert optim.optimizer.step.current == Tracker(
+        ready=current + 1, started=current, processed=None, completed=current
+    )
+
+    if accumulate_grad_batches == 2:
+        # that's weird ! todo (tchaton) investigate this
+        total = (9 if use_multiple_optimizers else 3)
+        current = 0  # same there.
+
+    assert optim.optimizer.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
+    assert optim.optimizer.zero_grad.current == Tracker(
+        ready=current, started=current, processed=None, completed=current
+    )
+
+    # for multiple optimizers: 4 batches + 1 on epoch
+    total = (5 if use_multiple_optimizers else 1) // accumulate_grad_batches
+
+    if accumulate_grad_batches == 2:
+        total += 1
+
+    assert optim.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
+    # assert optim.scheduler.current == Tracker(ready=0, started=None, processed=None, completed=0)
+
+    assert optim.optimizer_idx == (1 if use_multiple_optimizers else 0)
+
+    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
+    assert "loops" in checkpoint
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_progress_tracking_validation_multiple_datasets(tmpdir):
+
+    class ValidationModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            if self.trainer.fit_loop.epoch_loop.batch_idx == 3 and batch_idx == 1 and dataloader_idx == 1:
+                raise CustomException
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader(), super().val_dataloader()]
+
+    model = ValidationModel()
+    model.validation_epoch_end = None
+
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    chk.last_model_path = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=3,
+        callbacks=chk,
+        resume_from_checkpoint=None,
+        val_check_interval=2,
+        num_sanity_val_steps=0,
+    )
+
+    # simulate random failure in training_step
+    try:
+        trainer.fit(model)
+    except CustomException:
+        pass
+
+    pr = trainer.fit_loop.epoch_loop.val_loop.progress
+
+    assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
+    assert pr.current == Tracker(ready=1, started=1, processed=0, completed=0)
+    assert pr.dataloader_idx == 1
+
+    assert trainer.fit_loop.epoch_loop.progress.should_check_val
+
+    pr = trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress
+
+    # 3 dataloaders with 3 samples for batch_idx == 1 + first dataloader on batch_idx == 1 + failure on batch_idx = 1
+    current = 2
+    total = 3 * 3 + 3 + current
+    assert pr.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
+    assert pr.current == Tracker(ready=current, started=current, processed=current - 1, completed=current - 1)

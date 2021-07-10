@@ -21,7 +21,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EpochLoopProgress
+from pytorch_lightning.trainer.progress import DataLoaderProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -33,10 +33,8 @@ class EvaluationLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.outputs = []
-        self.progress = EpochLoopProgress()
-
+        self.progress = DataLoaderProgress()
         self.epoch_loop = EvaluationEpochLoop()
-
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
@@ -66,14 +64,10 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+        self.epoch_loop.connect(trainer)
 
     @property
     def done(self) -> bool:
@@ -96,17 +90,30 @@ class EvaluationLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
+        if self.restarting:
+            self.iteration_count = self.progress.dataloader_idx
+            self.restarting = False
+        else:
+            self.iteration_count = 0
+            # reset batch / epoch progress tracking
+            self.progress.current.reset()
+
     def on_skip(self) -> List:
         return []
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
         void(*args, **kwargs)
+
+        self.progress.increment_started()
+
         # hook
         self.on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
         self.on_evaluation_start()
         self.on_evaluation_epoch_start()
+
+        self.progress.increment_ready()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader"""
@@ -114,6 +121,8 @@ class EvaluationLoop(DataLoaderLoop):
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
+
+        self.progress.dataloader_idx = self.iteration_count
 
         dl_outputs = self.epoch_loop.run(
             dataloader_iter,
@@ -141,6 +150,8 @@ class EvaluationLoop(DataLoaderLoop):
         if len(outputs) > 0 and self.num_dataloaders == 1:
             outputs = outputs[0]
 
+        self.progress.increment_processed()
+
         # lightning module method
         self.evaluation_epoch_end(outputs)
 
@@ -158,6 +169,8 @@ class EvaluationLoop(DataLoaderLoop):
 
         # enable train mode again
         self.on_evaluation_model_train()
+
+        self.progress.increment_completed()
 
         return eval_loop_results
 

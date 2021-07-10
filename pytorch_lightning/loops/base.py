@@ -186,7 +186,6 @@ class Loop(ABC):
                 destination[prefix + k] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, prefix + k + '.')
-
         return destination
 
     def _load_from_state_dict(self, state_dict, prefix, restart_progress):

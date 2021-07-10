@@ -57,7 +57,6 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -359,10 +358,10 @@ class Trainer(
         self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self, progress=FitLoopProgress())
-        self.validate_loop.connect(self, progress=EpochLoopProgress())
-        self.test_loop.connect(self, progress=EpochLoopProgress())
-        self.predict_loop.connect(self, progress=EpochLoopProgress())
+        self.fit_loop.connect(self)
+        self.validate_loop.connect(self)
+        self.test_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:

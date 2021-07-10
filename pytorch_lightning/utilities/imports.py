@@ -14,6 +14,7 @@
 """General utilities"""
 import importlib
 import operator
+import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -101,3 +102,7 @@ if _POPTORCH_AVAILABLE:
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
+
+
+def fault_tolerant_enabled():
+    return os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
