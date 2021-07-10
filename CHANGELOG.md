@@ -149,8 +149,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `FastForwardSampler` and `CaptureIterableDataset` ([#8307](https://github.com/PyTorchLightning/pytorch-lightning/pull/8307))
 
 
-- Added `model_check_fn` argument to `LightningModule.to_onnx` for supporting a custom onnx test function ([#7458](https://github.com/PyTorchLightning/pytorch-lightning/pull/7458))
+- Added support for `save_hyperparameters` in `LightningDataModule` ([#3792](https://github.com/PyTorchLightning/pytorch-lightning/pull/3792))
 
+
+- Added `LSFEnvironment` for distributed training with the LSF resource manager `jsrun` ([#5102](https://github.com/PyTorchLightning/pytorch-lightning/pull/5102))
+
+
+- Added support for `accelerator='cpu'|'gpu'|'tpu'|'ipu'|'auto'` ([#7808](https://github.com/PyTorchLightning/pytorch-lightning/pull/7808))
+
+
+- Added `model_check_fn` argument to `LightningModule.to_onnx` for supporting a custom onnx test function ([#7458](https://github.com/PyTorchLightning/pytorch-lightning/pull/7458))
 
 
 ### Changed
