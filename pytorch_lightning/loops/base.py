@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from deprecate import void
-from torch.nn.modules.module import _IncompatibleKeys
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.progress import BaseProgress, Tracker
@@ -190,11 +189,10 @@ class Loop(ABC):
 
         return destination
 
-    def _load_from_state_dict(self, state_dict, prefix, restart_progress, missing_keys, unexpected_keys, error_msgs):
+    def _load_from_state_dict(self, state_dict, prefix, restart_progress):
         for k, v in self.__dict__.items():
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])
-
                 if restart_progress:
 
                     def restart(v: Tracker):
@@ -203,42 +201,13 @@ class Loop(ABC):
                     apply_to_collection(v, Tracker, restart)
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
+        self.restarting = True
+
+    def __load(self, state_dict, restart_progress, prefix=''):
+        self._load_from_state_dict(state_dict, prefix, restart_progress)
+        for k, v in self.__dict__.items():
+            if isinstance(v, Loop):
+                v.__load(state_dict.copy(), restart_progress, prefix + k + '.')
 
     def load_state_dict(self, state_dict: Dict, restart_progress: bool = True, strict: bool = True):
-        """
-        This function is highly inspired from ``PyTorch nn.Module``.
-        """
-        missing_keys = []
-        unexpected_keys = []
-        error_msgs = []
-
-        state_dict = state_dict.copy()
-
-        def load(loop, prefix=''):
-            if loop.restarting:
-                return
-            loop._load_from_state_dict(state_dict, prefix, restart_progress, missing_keys, unexpected_keys, error_msgs)
-            loop.restarting = True
-            for k, v in self.__dict__.items():
-                if isinstance(v, Loop):
-                    load(v, prefix + k + '.')
-
-        load(self)
-
-        if strict:
-            if len(unexpected_keys) > 0:
-                error_msgs.insert(
-                    0, 'Unexpected key(s) in state_dict: {}. '.format(
-                        ', '.join('"{}"'.format(k) for k in unexpected_keys)
-                    )
-                )
-            if len(missing_keys) > 0:
-                error_msgs.insert(
-                    0, 'Missing key(s) in state_dict: {}. '.format(', '.join('"{}"'.format(k) for k in missing_keys))
-                )
-
-        if len(error_msgs) > 0:
-            raise RuntimeError(
-                'Error(s) in loading state_dict for {}:\n\t{}'.format(self.__class__.__name__, "\n\t".join(error_msgs))
-            )
-        return _IncompatibleKeys(missing_keys, unexpected_keys)
+        self.__load(state_dict.copy(), restart_progress)

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import OrderedDict
 from copy import deepcopy
 from unittest import mock
 
@@ -146,99 +145,6 @@ def test_optimizer_progress_default_factory():
     assert p2.step.total.completed == 0
 
 
-def test_fit_loop_progress_serialization():
-    trainer = Trainer()
-    trainer.fit_loop.epoch_loop.progress.increment_completed()
-    trainer.fit_loop.epoch_loop.progress.should_check_val = True
-    state_dict = trainer.fit_loop.get_progress_state_dict()
-
-    # yapf: disable
-    expected = OrderedDict([
-        (
-            "epoch_loop.progress",
-            {
-                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 1},
-                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 1},
-                "should_check_val": True,
-            },
-        ),
-        (
-            "epoch_loop.batch_loop.progress",
-            {
-                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-            },
-        ),
-        (
-            "epoch_loop.batch_loop.optim_progress",
-            {
-                "optimizer_idx": 0,
-                "optimizer": {
-                    "step": {
-                        "total": {
-                            "ready": 0,
-                            "started": 0,
-                            "processed": None,
-                            "completed": 0,
-                        },
-                        "current": {
-                            "ready": 0,
-                            "started": 0,
-                            "processed": None,
-                            "completed": 0,
-                        },
-                    },
-                    "zero_grad": {
-                        "total": {
-                            "ready": 0,
-                            "started": 0,
-                            "processed": None,
-                            "completed": 0,
-                        },
-                        "current": {
-                            "ready": 0,
-                            "started": 0,
-                            "processed": None,
-                            "completed": 0,
-                        },
-                    },
-                },
-                "scheduler": {
-                    "total": {
-                        "ready": 0,
-                        "started": None,
-                        "processed": None,
-                        "completed": 0,
-                    },
-                    "current": {
-                        "ready": 0,
-                        "started": None,
-                        "processed": None,
-                        "completed": 0,
-                    },
-                },
-            },
-        ),
-        (
-            "epoch_loop.val_loop.progress",
-            {
-                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                "dataloader_idx": 0,
-            },
-        ),
-        (
-            "epoch_loop.val_loop.epoch_loop.progress",
-            {
-                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-            },
-        ),
-    ])
-    assert expected == state_dict
-    # yapf: enable
-
-
 def test_epoch_loop_progress_serialization():
     loop = EpochLoopProgress()
     loop.epoch.dataloader_idx = 1
@@ -268,8 +174,8 @@ def test_epoch_loop_progress_serialization():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("use_multiple_optimizers", [False])
-@pytest.mark.parametrize("accumulate_grad_batches", [1])
+@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
     class TestModel(BoringModel):
@@ -386,8 +292,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     trainer.fit(model)
 
     pr = trainer.fit_loop.epoch_loop.progress
-
-    breakpoint()
 
     assert pr.total == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.current == Tracker(ready=2, started=2, processed=2, completed=2)
