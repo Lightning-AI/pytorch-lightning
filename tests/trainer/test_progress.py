@@ -205,12 +205,14 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     model = TestModel()
     model.training_epoch_end = None
 
+    limit_train_batches = 3
+
     chk = ModelCheckpoint(dirpath=tmpdir, filename=str(use_multiple_optimizers), save_last=True)
     chk.last_model_path = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        limit_train_batches=3,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=0,
         callbacks=chk,
         accumulate_grad_batches=accumulate_grad_batches,
@@ -228,6 +230,9 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     #######################
 
     checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
+
+    num_epochs = 1
+    num_batches = 4
 
     num_optimizers = 3 if use_multiple_optimizers else 1
 
@@ -262,14 +267,34 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
         "state_dict": {},
         "epoch_loop.state_dict": {},
         "epoch_loop.progress": {
-            "total": {"ready": 2, "started": 2, "processed": 1, "completed": 1},
-            "current": {"ready": 2, "started": 2, "processed": 1, "completed": 1},
+            "total": {
+                "ready": num_epochs + 1,
+                "started": num_epochs + 1,
+                "processed": 1,
+                "completed": 1
+            },
+            "current": {
+                "ready": num_epochs + 1,
+                "started": num_epochs + 1,
+                "processed": 1,
+                "completed": 1
+            },
             "should_check_val": False,
         },
         "epoch_loop.batch_loop.state_dict": {},
         "epoch_loop.batch_loop.progress": {
-            "total": {"ready": 5, "started": 5, "processed": 4, "completed": 4},
-            "current": {"ready": 2, "started": 2, "processed": 1, "completed": 1},
+            "total": {
+                "ready": num_batches + 1,
+                "started": num_batches + 1,
+                "processed": num_batches,
+                "completed": num_batches
+            },
+            "current": {
+                "ready": num_batches - limit_train_batches + 1,
+                "started": num_batches - limit_train_batches + 1,
+                "processed": num_batches - limit_train_batches,
+                "completed": num_batches - limit_train_batches
+            },
         },
         "epoch_loop.batch_loop.optim_progress": {
             "optimizer_idx": optimizer_idx,
