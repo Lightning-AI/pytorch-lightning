@@ -237,6 +237,9 @@ class CaptureIterableDataset(IterableDataset):
 
     @staticmethod
     def _sanetize_batch_from_sampler_state(data: Any, state_dict: List):
+        """
+        This function is used to remove the sampler state dict from provided data batch.
+        """
         elem_type = type(data)
 
         # Recursively apply to collection items
@@ -289,24 +292,14 @@ class CaptureIterableDataset(IterableDataset):
 
 
 def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
+    """
+    If the ``DataLoader`` is wrapping a mapping based Dataset, return the ``FastForwardSampler``.
+    """
     if isinstance(dataloader.sampler, FastForwardSampler):
         return dataloader.sampler
 
     elif isinstance(dataloader.batch_sampler, FastForwardSampler):
         return dataloader.batch_sampler
-
-
-def fetch_previous_worker_state_dict(iter: Iterator):
-    num_workers = getattr(iter, "_num_workers", 0)
-    if isinstance(iter, _MultiProcessingDataLoaderIter):
-        next_worker = (next(iter._worker_queue_idx_cycle)) % num_workers
-        previous_worker = (next_worker - 1) % num_workers
-        while next(iter._worker_queue_idx_cycle) != previous_worker:
-            pass
-    else:
-        previous_worker = None
-
-    return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
 def fetch_fast_forward_samplers_state_dict(
@@ -323,6 +316,13 @@ def fetch_fast_forward_samplers_state_dict(
 
 
 def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str, Any]) -> Iterator:
+    """
+    This function is used to cycle back the DataLoader ``_MultiProcessingDataLoaderIter``
+    workers and call the reset function.
+
+    Returns:
+        iterator: Return the iterator generated from the provided ``DataLoader``.
+    """
     iter_dataloader = iter(dataloader)
     num_workers = getattr(iter_dataloader, "_num_workers", 0)
     if state_dict["num_workers"] != num_workers:
@@ -343,24 +343,36 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
     return iter_dataloader
 
 
-def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator) -> List[Dict[str, Any]]:
+def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator,
+                             num_batches_processed: int) -> List[Dict[str, Any]]:
+    """
+    Convert a dataloader to its associated state dict
+    """
     out = {}
     if iter is not None:
-        out.update(fetch_previous_worker_state_dict(iter))
+        out.update(find_current_worker(iter))
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
-        out.update(dataloader.fast_forward_sampler.state_dict())
+        fast_forward_sampler = find_fast_forward_samplers(dataloader)
+        if fast_forward_sampler is not None:
+            out.update(fast_forward_sampler.state_dict(num_batches_processed))
     return out
 
 
 def dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> None:
+    """
+    Reload ``DataLoader`` fast-forward sampler state dict.
+    """
     fast_forward_sampler = find_fast_forward_samplers(dataloader)
 
     if isinstance(fast_forward_sampler, Sampler):
         fast_forward_sampler.load_state_dict(state_dict[0]["sampler"])
 
 
-def find_next_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
+def find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
+    """
+    Find the current DataLoader Iterator worker if multiple workers were used..
+    """
     num_workers = getattr(iterator, "_num_workers", 0)
     if isinstance(iterator, _MultiProcessingDataLoaderIter):
         next_worker = (next(iterator._worker_queue_idx_cycle)) % num_workers

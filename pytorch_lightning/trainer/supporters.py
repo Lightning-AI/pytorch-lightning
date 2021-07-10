@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     cycle_to_next_worker_and_reset,
-    find_next_worker,
+    find_current_worker,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -372,7 +372,7 @@ class CombinedLoader(object):
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
             nonlocal num_batches_processed
             # find next worker if multiple workers were used
-            state = find_next_worker(iterator)
+            state = find_current_worker(iterator)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
                 # the sampler state dict are extracted in ``CombinedLoaderIterator``
                 if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:

@@ -31,7 +31,11 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
+from pytorch_lightning.utilities.auto_restart import (
+    CaptureIterableDataset,
+    dataloader_to_state_dict,
+    FastForwardSampler,
+)
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
@@ -838,3 +842,18 @@ def test_combined_dataloader_state_dict_and_reload():
     }
 
     assert state_dict == expected
+
+
+def test_dataloader_to_state_dict_and_reload():
+
+    dataset = range(50)
+    batch_size = 8
+    sampler = FastForwardSampler(SequentialSampler(dataset))
+    sampler.setup(batch_size)
+
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size)
+    iter_dataloader = iter(dataloader)
+    _ = next(iter_dataloader)
+
+    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader, 1)
+    assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 8}}
