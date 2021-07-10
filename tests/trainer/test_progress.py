@@ -268,8 +268,8 @@ def test_epoch_loop_progress_serialization():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("use_multiple_optimizers", [False, True])
-@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+@pytest.mark.parametrize("use_multiple_optimizers", [False])
+@pytest.mark.parametrize("accumulate_grad_batches", [1])
 def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
 
     class TestModel(BoringModel):
@@ -386,6 +386,8 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     trainer.fit(model)
 
     pr = trainer.fit_loop.epoch_loop.progress
+
+    breakpoint()
 
     assert pr.total == Tracker(ready=3, started=3, processed=3, completed=3)
     assert pr.current == Tracker(ready=2, started=2, processed=2, completed=2)

@@ -47,25 +47,20 @@ class EvaluationEpochLoop(Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.iteration_count >= self.dl_max_batches
 
-    def _initialize(self):
-        self.iteration_count = 0
+    def reset(self) -> None:
+        """Resets the loop's internal state."""
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
         self.dataloader_idx = None
         self.num_dataloaders = None
         self.outputs = []
 
-    def restore(self):
-        """Restore the loop's internal state."""
-        self._initialize()
-
-        self.iteration_count = self.progress.current.completed
-
-    def reset(self) -> None:
-        """Resets the loop's internal state."""
-        self._initialize()
-
-        self.progress.current.reset()
+        if self.restarting:
+            self.iteration_count = self.progress.current.completed
+            self.restarting = False
+        else:
+            self.iteration_count = 0
+            self.progress.current.reset()
 
     def on_run_start(
         self,

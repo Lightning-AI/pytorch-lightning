@@ -389,10 +389,10 @@ class CheckpointConnector:
 
     def get_loops_state_dict(self):
         return {
-            "fit_loop": self.trainer.fit_loop.get_state_dict(),
-            "validate_loop": self.trainer.validate_loop.get_state_dict(),
-            "test_loop": self.trainer.test_loop.get_state_dict(),
-            "predict_loop": self.trainer.predict_loop.get_state_dict(),
+            "fit_loop": self.trainer.fit_loop.state_dict(),
+            "validate_loop": self.trainer.validate_loop.state_dict(),
+            "test_loop": self.trainer.test_loop.state_dict(),
+            "predict_loop": self.trainer.predict_loop.state_dict(),
         }
 
     def get_progress_state_dict(self):

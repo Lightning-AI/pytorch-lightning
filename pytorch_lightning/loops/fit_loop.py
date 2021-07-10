@@ -176,14 +176,12 @@ class FitLoop(Loop):
         return self.done or self.trainer.num_training_batches == 0
 
     def reset(self) -> None:
-        """Resets the internal state of this loop"""
+        # reset current epoch counter to 0
+        print(self.restarting)
+        self.epoch_loop.progress.current.reset()
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
-
-        # reset current epoch counter to 0
-        self.epoch_loop.progress.current.reset()
-
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 

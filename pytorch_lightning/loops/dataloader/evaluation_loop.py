@@ -77,8 +77,8 @@ class EvaluationLoop(DataLoaderLoop):
         max_batches = self.get_max_batches()
         return sum(max_batches) == 0
 
-    def _initialize(self):
-        self.iteration_count = 0
+    def reset(self) -> None:
+        """Resets the internal state of the loop"""
         self._max_batches = self.get_max_batches()
         # bookkeeping
         self.outputs = []
@@ -86,17 +86,13 @@ class EvaluationLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
-    def restore(self) -> None:
-        self._initialize()
-
-        self.iteration_count = self.progress.dataloader_idx
-
-    def reset(self) -> None:
-        """Resets the internal state of the loop"""
-        self._initialize()
-
-        # reset batch / epoch progress tracking
-        self.progress.current.reset()
+        if self.restarting:
+            self.iteration_count = self.progress.dataloader_idx
+            self.restarting = False
+        else:
+            self.iteration_count = 0
+            # reset batch / epoch progress tracking
+            self.progress.current.reset()
 
     def on_skip(self) -> List:
         return []

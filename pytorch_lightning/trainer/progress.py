@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import asdict, dataclass, field
-from typing import Dict, Optional
+from typing import Optional
 
 
 @dataclass
@@ -29,15 +29,6 @@ class BaseProgress:
         obj = cls()
         obj.load_state_dict(state_dict)
         return obj
-
-
-class ProgressDict(Dict):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
 
 @dataclass

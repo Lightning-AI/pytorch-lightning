@@ -81,7 +81,8 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and (self.total_optimizer_step) >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def _initialize(self) -> None:
+    def reset(self) -> None:
+        """Resets the internal state of the loop for a new run"""
         self.iteration_count = 0
         self.batches_seen = 0
         self.is_last_batch = False
@@ -90,19 +91,14 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-    def restore(self) -> None:
-        """Restore the internal state of the loop for a new run"""
-        self._initialize()
-
-        self.iteration_count = self.batch_loop.current_batch_completed
-        self.batches_seen = self.batch_loop.current_batch_completed
-
-    def reset(self) -> None:
-        """Resets the internal state of the loop for a new run"""
-        self._initialize()
-
-        # todo (tchaton) the batch_loop should be responsible for that.
-        self.batch_loop.progress.current.reset()
+        if self.restarting:
+            self.iteration_count = self.batch_loop.current_batch_completed
+            self.batches_seen = self.batch_loop.current_batch_completed
+            # restarting is finished.
+            self.restarting = False
+        else:
+            # todo (tchaton) the batch_loop should be responsible for that.
+            self.batch_loop.progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         self.progress.increment_ready()

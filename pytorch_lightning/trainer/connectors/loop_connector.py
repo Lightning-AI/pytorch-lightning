@@ -56,13 +56,8 @@ class LoopConnector(object):
         trainer.test_loop.trainer = trainer
         trainer.predict_loop.trainer = trainer
 
-    def load_state_dict(self, state_dict, apply_restart: bool = True):
-        self.trainer.fit_loop._load_state_dict(state_dict["fit_loop"], apply_restart=apply_restart)
-        self.trainer.validate_loop._load_state_dict(state_dict["validate_loop"], apply_restart=apply_restart)
-        self.trainer.test_loop._load_state_dict(state_dict["test_loop"], apply_restart=apply_restart)
-        self.trainer.predict_loop._load_state_dict(state_dict["predict_loop"], apply_restart=apply_restart)
-
-        self.trainer.fit_loop.restarting = True
-        self.trainer.validate_loop.restarting = True
-        self.trainer.test_loop.restarting = True
-        self.trainer.predict_loop.restarting = True
+    def load_state_dict(self, state_dict):
+        self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+        self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+        self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+        self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
