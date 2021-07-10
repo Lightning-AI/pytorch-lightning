@@ -398,18 +398,48 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     except CustomException:
         pass
 
-    pr = trainer.fit_loop.epoch_loop.val_loop.progress
+    #######################
+    # VALIDATE CHECKPOINT #
+    #######################
 
-    assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
-    assert pr.current == Tracker(ready=1, started=1, processed=0, completed=0)
-    assert pr.dataloader_idx == 1
+    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)["loops"]["fit_loop"]
 
-    assert trainer.fit_loop.epoch_loop.progress.should_check_val
+    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)["loops"]["fit_loop"]
 
-    pr = trainer.fit_loop.epoch_loop.val_loop.epoch_loop.progress
+    expected = {
+        "total": {
+            "ready": 2,
+            "started": 2,
+            "processed": 1,
+            "completed": 1
+        },
+        "current": {
+            "ready": 1,
+            "started": 1,
+            "processed": 0,
+            "completed": 0
+        },
+        "dataloader_idx": 1,
+    }
+
+    assert checkpoint["epoch_loop.val_loop.progress"] == expected
 
     # 3 dataloaders with 3 samples for batch_idx == 1 + first dataloader on batch_idx == 1 + failure on batch_idx = 1
     current = 2
     total = 3 * 3 + 3 + current
-    assert pr.total == Tracker(ready=total, started=total, processed=total - 1, completed=total - 1)
-    assert pr.current == Tracker(ready=current, started=current, processed=current - 1, completed=current - 1)
+    expected = {
+        "total": {
+            "ready": total,
+            "started": total,
+            "processed": total - 1,
+            "completed": total - 1
+        },
+        "current": {
+            "ready": current,
+            "started": current,
+            "processed": current - 1,
+            "completed": current - 1
+        },
+    }
+
+    assert checkpoint["epoch_loop.val_loop.epoch_loop.progress"] == expected
