@@ -29,7 +29,7 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.boring_model import BoringModel
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers.runif import RunIf
 
@@ -660,6 +661,15 @@ def test_fault_tolerant_not_supported():
         _fault_tolerant_enabled()
 
 
+def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
+    dataset = RangeIterableDataset(
+        range(50), num_workers=num_workers, batch_size=batch_size, is_in_workers=True, attr_name=attr_name
+    )
+    if wrap:
+        dataset = CaptureIterableDataset(dataset)
+    return dataset
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -893,3 +903,58 @@ def test_dataloader_to_state_dict_and_reload():
 
     state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
     assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 24}}
+
+
+@pytest.mark.parametrize("use_fault_tolerant", ['0', '1'])
+def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
+    """
+    this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
+    """
+
+    class CustomBatchSampler(BatchSampler):
+        pass
+
+    dataset = range(50)
+
+    class TestModel(BoringModel):
+
+        def train_dataloader(self):
+            return {
+                "a": [
+                    DataLoader(create_iterable_dataset(3, 1, wrap=False), num_workers=0, batch_size=3),
+                    DataLoader(dataset, batch_size=8),
+                    DataLoader(
+                        dataset,
+                        batch_sampler=CustomBatchSampler(SequentialSampler(dataset), batch_size=8, drop_last=False)
+                    ),
+                ],
+                "b": DataLoader(
+                    create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler", wrap=False),
+                    num_workers=0,
+                    batch_size=2
+                )
+            }
+
+        def training_step(self, batch, batch_idx):
+            pass
+
+    class Check(Callback):
+
+        def on_train_batch_start(self, trainer, *_) -> None:
+            loaders = trainer.train_dataloader.loaders
+            if use_fault_tolerant == '1':
+                assert isinstance(loaders["a"][0].loader.dataset, CaptureIterableDataset)
+                assert isinstance(loaders["a"][1].loader.sampler, FastForwardSampler)
+                assert isinstance(loaders["a"][2].loader.batch_sampler, FastForwardSampler)
+                assert isinstance(loaders["b"].loader.dataset, CaptureIterableDataset)
+            else:
+                assert isinstance(loaders["a"][0].loader.dataset, RangeIterableDataset)
+                assert isinstance(loaders["a"][1].loader.sampler, SequentialSampler)
+                assert isinstance(loaders["a"][2].loader.batch_sampler, CustomBatchSampler)
+                assert isinstance(loaders["b"].loader.dataset, RangeIterableDataset)
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}):
+        model = TestModel()
+        model.training_epoch_end = None
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
+        trainer.fit(model)
