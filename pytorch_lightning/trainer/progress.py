@@ -60,7 +60,18 @@ class Tracker(BaseProgress):
         if self.completed is not None:
             self.completed = 0
 
+    def __setattr__(self, key: str, value: int) -> None:
+        if getattr(self, key, 0) is None:
+            raise AttributeError(f"The '{key}' attribute is meant to be unused")
+        return super().__setattr__(key, value)
+
+    def __repr__(self):
+        # hide `None` fields
+        args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
+        return f"{self.__class__.__name__}({', '.join(args)})"
+
     def reset_on_restart(self):
+        """Reset the progress on restart"""
         value = self.completed if self.processed is None else self.processed
 
         if self.ready is not None:
@@ -71,16 +82,6 @@ class Tracker(BaseProgress):
             self.processed = value
         if self.completed is not None:
             self.completed = value
-
-    def __setattr__(self, key: str, value: int) -> None:
-        if getattr(self, key, 0) is None:
-            raise AttributeError(f"The '{key}' attribute is meant to be unused")
-        return super().__setattr__(key, value)
-
-    def __repr__(self):
-        # hide `None` fields
-        args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
-        return f"{self.__class__.__name__}({', '.join(args)})"
 
 
 @dataclass
