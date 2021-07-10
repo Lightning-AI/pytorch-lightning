@@ -24,7 +24,6 @@ from pytorch_lightning.trainer.progress import (
     BatchProgress,
     EpochLoopProgress,
     EpochProgress,
-    OptimizationProgress,
     OptimizerProgress,
     Progress,
     Tracker,
@@ -224,59 +223,116 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     except CustomException:
         pass
 
-    assert isinstance(trainer.fit_loop.epoch_loop.batch_loop.optim_progress, OptimizationProgress)
+    #######################
+    # VALIDATE CHECKPOINT #
+    #######################
 
-    pr = trainer.fit_loop.epoch_loop.progress
-
-    assert pr.total == Tracker(ready=2, started=2, processed=1, completed=1)
-    assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
-
-    pr = trainer.fit_loop.epoch_loop.batch_loop.progress
-
-    assert pr.total == Tracker(ready=5, started=5, processed=4, completed=4)
-    assert pr.current == Tracker(ready=2, started=2, processed=1, completed=1)
+    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
 
     num_optimizers = 3 if use_multiple_optimizers else 1
 
-    optim = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
-
     # 4 optimizer steps because breaking on the second batch of the second epoch (3 + 1)
-    total = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
+    total_optimizer_step = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
 
     # we raised expection on the first optimizer
-    current = (1 if use_multiple_optimizers else 0)
+    current_optimize_step = (1 if use_multiple_optimizers else 0)
 
     if accumulate_grad_batches == 2 and use_multiple_optimizers:
-        total += 1
+        total_optimizer_step += 1
 
-    assert optim.optimizer.step.total == Tracker(ready=total + 1, started=total, processed=None, completed=total)
-    assert optim.optimizer.step.current == Tracker(
-        ready=current + 1, started=current, processed=None, completed=current
-    )
+    total_optimizer_zero_grad = total_optimizer_step
+    current_optimizer_zero_grad = current_optimize_step
 
     if accumulate_grad_batches == 2:
         # that's weird ! todo (tchaton) investigate this
-        total = (9 if use_multiple_optimizers else 3)
-        current = 0  # same there.
+        total_optimizer_zero_grad = (9 if use_multiple_optimizers else 3)
+        current_optimizer_zero_grad = 0  # same there.
 
-    assert optim.optimizer.zero_grad.total == Tracker(ready=total, started=total, processed=None, completed=total)
-    assert optim.optimizer.zero_grad.current == Tracker(
-        ready=current, started=current, processed=None, completed=current
-    )
+    total_scheduler_step = (5 if use_multiple_optimizers else 1) // accumulate_grad_batches
 
-    # for multiple optimizers: 4 batches + 1 on epoch
-    total = (5 if use_multiple_optimizers else 1) // accumulate_grad_batches
+    current_scheduler_step = 0
 
     if accumulate_grad_batches == 2:
-        total += 1
+        total_scheduler_step += 1
 
-    assert optim.scheduler.total == Tracker(ready=total, started=None, processed=None, completed=total)
-    # assert optim.scheduler.current == Tracker(ready=0, started=None, processed=None, completed=0)
+    optimizer_idx = (1 if use_multiple_optimizers else 0)
 
-    assert optim.optimizer_idx == (1 if use_multiple_optimizers else 0)
+    # yapf: disable
+    expected = {
+        "state_dict": {},
+        "epoch_loop.state_dict": {},
+        "epoch_loop.progress": {
+            "total": {"ready": 2, "started": 2, "processed": 1, "completed": 1},
+            "current": {"ready": 2, "started": 2, "processed": 1, "completed": 1},
+            "should_check_val": False,
+        },
+        "epoch_loop.batch_loop.state_dict": {},
+        "epoch_loop.batch_loop.progress": {
+            "total": {"ready": 5, "started": 5, "processed": 4, "completed": 4},
+            "current": {"ready": 2, "started": 2, "processed": 1, "completed": 1},
+        },
+        "epoch_loop.batch_loop.optim_progress": {
+            "optimizer_idx": optimizer_idx,
+            "optimizer": {
+                "step": {
+                    "total": {
+                        "ready": total_optimizer_step + 1,
+                        "started": total_optimizer_step,
+                        "processed": None,
+                        "completed": total_optimizer_step
+                    },
+                    "current": {
+                        "ready": current_optimize_step + 1,
+                        "started": current_optimize_step,
+                        "processed": None,
+                        "completed": current_optimize_step,
+                    },
+                },
+                "zero_grad": {
+                    "total": {
+                        "ready": total_optimizer_zero_grad,
+                        "started": total_optimizer_zero_grad,
+                        "processed": None,
+                        "completed": total_optimizer_zero_grad
+                    },
+                    "current": {
+                        "ready": current_optimizer_zero_grad,
+                        "started": current_optimizer_zero_grad,
+                        "processed": None,
+                        "completed": current_optimizer_zero_grad,
+                    },
+                },
+            },
+            "scheduler": {
+                "total": {
+                    "ready": total_scheduler_step,
+                    "started": None,
+                    "processed": None,
+                    "completed": total_scheduler_step
+                },
+                "current": {
+                    "ready": current_scheduler_step,
+                    "started": None,
+                    "processed": None,
+                    "completed": current_scheduler_step
+                },
+            },
+        },
+        "epoch_loop.val_loop.state_dict": {},
+        "epoch_loop.val_loop.progress": {
+            "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            "dataloader_idx": 0,
+        },
+        "epoch_loop.val_loop.epoch_loop.state_dict": {},
+        "epoch_loop.val_loop.epoch_loop.progress": {
+            "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+        },
+    }
+    # yapf: enable
 
-    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
-    assert "loops" in checkpoint
+    assert checkpoint["loops"]["fit_loop"] == expected
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
