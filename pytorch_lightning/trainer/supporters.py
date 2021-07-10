@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
+from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
@@ -394,7 +394,7 @@ class CombinedLoader(object):
         _MultiProcessingDataLoaderIter._ori_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
-    def on_restart(self):
+    def on_restart(self, iterator: Iterator):
         if self.loaders_iter_state_dict:
 
             def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
@@ -409,7 +409,7 @@ class CombinedLoader(object):
                     iterator._sampler_state_dict = [state_dict]
                 return iterator
 
-            self._iterator._loader_iters = apply_to_collections(
+            iterator._loader_iters = apply_to_collections(
                 self.loaders, self.loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
             )
 
@@ -438,9 +438,17 @@ class CombinedLoader(object):
         """
         Create and return an iterator, `CombinedLoaderIterator`, for the combined loader.
         """
-        self._iterator = CombinedLoaderIterator(self.loaders)
-        self.on_restart()
-        return self._iterator
+
+        # prevent ``NotImplementedError`` from PyTorch:
+        #  https://github.com/pytorch/pytorch/blob/master/torch/utils/data/dataloader.py#L541
+        def __getstate__patch__(*_):
+            return {}
+
+        _BaseDataLoaderIter.__getstate__ = __getstate__patch__
+        iterator = CombinedLoaderIterator(self.loaders)
+        self.on_restart(iterator)
+        self._iterator = iterator
+        return iterator
 
     @staticmethod
     def _calc_num_batches(loaders: Any) -> Union[int, float]:

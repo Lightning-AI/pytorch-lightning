@@ -273,8 +273,8 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     state_dict = {'iter_sampler': {}}
     for batch in batches[:2]:
-        _state_dict = CaptureIterableDataset.convert_batch_into_state_dict(batch)
-        for k, v in _state_dict.items():
+        batch, _state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
+        for k, v in _state_dict[0].items():
             state_dict[k].update(v)
 
     assert len(state_dict["iter_sampler"]) == (num_workers if num_workers > 1 else 1)
@@ -579,8 +579,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     # restarting on epoch 0 / real batch 2
     state_dict = {'iter_sampler': {}}
     for batch in epoch_results[0][2:4]:
-        metadata = CaptureIterableDataset.convert_batch_into_state_dict(batch)
-        for k, v in metadata.items():
+        batch, _state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
+        for k, v in _state_dict[0].items():
             state_dict[k].update(v)
 
     dataset = ClassificationDataset(range(dataset_length), labels)
