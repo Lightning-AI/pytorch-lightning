@@ -16,6 +16,7 @@ import os
 import random
 from collections.abc import Iterable
 from typing import Optional
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -29,6 +30,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -205,12 +207,21 @@ def test_fast_forward_on_random_sampler():
 
 class RangeIterableDataset(IterableDataset):
 
-    def __init__(self, data, num_workers: int, batch_size: int, is_in_workers: bool, state_dict=None):
+    def __init__(
+        self,
+        data,
+        num_workers: int,
+        batch_size: int,
+        is_in_workers: bool,
+        state_dict=None,
+        attr_name: str = "iter_sampler"
+    ):
         self.data = list(data)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.is_in_workers = is_in_workers
         self.state_dict = state_dict
+        self.attr_name = attr_name
 
     def __iter__(self):
         worker_info = get_worker_info()
@@ -225,11 +236,12 @@ class RangeIterableDataset(IterableDataset):
         else:
             self.user_sampler = RandomSampler(self.data)
 
-        self.iter_sampler = iter(self.user_sampler)
+        setattr(self, self.attr_name, iter(self.user_sampler))
         return self
 
     def __next__(self):
-        return self.data[next(self.iter_sampler)]
+        iter_sampler = getattr(self, self.attr_name)
+        return self.data[next(iter_sampler)]
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
@@ -625,3 +637,204 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     mp.spawn(
         _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset, args=(worldsize, ), nprocs=worldsize
     )
+
+
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_combined_dataloader_state_dict_and_reload():
+    """
+    This test makes sure the CombinedLoader used in the condition of Lightning properly
+    capture its children DataLoader states.
+    """
+
+    def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
+        dataset = RangeIterableDataset(
+            range(50), num_workers=num_workers, batch_size=batch_size, is_in_workers=True, attr_name=attr_name
+        )
+        return CaptureIterableDataset(dataset)
+
+    def create_dataloader():
+        dataset = range(50)
+        num_workers = 2
+        batch_size = 8
+        sampler = FastForwardSampler(SequentialSampler(dataset))
+        sampler.setup(batch_size)
+
+        dataloader = DataLoader(
+            dataset,
+            sampler=sampler,
+            batch_size=batch_size,
+        )
+        dataloader.fast_forward_sampler = sampler
+
+        return CombinedLoader({
+            "a": [
+                DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
+                dataloader,
+            ],
+            "b": DataLoader(
+                create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
+            )
+        })
+
+    # Lightning will wrap the iterator within a prefect function as follow.
+    def prefetch_iterator(iterable: Iterable):
+        it = iter(iterable)
+
+        try:
+            # the iterator may be empty from the beginning
+            last = next(it)
+        except StopIteration:
+            return
+
+        for val in it:
+            # yield last and has next
+            yield last, False, it
+            last = val
+        # yield last, no longer has next
+        yield last, True, it
+
+    dataloader = create_dataloader()
+
+    iter_dataloader = iter(prefetch_iterator(dataloader))
+    num_batches_processed = 4
+    for idx in range(1, num_batches_processed):
+        _, _, prefected_iterator = next(iter_dataloader)
+
+        loader_iters = prefected_iterator._loader_iters
+
+        # when deadling with IterativeDataset,
+        # the sampler state dict will be attached directly onto the iterator to simplify collection.
+
+        if idx == 1:
+            assert loader_iters["a"][0]._sampler_state_dict == [{'iter_sampler': {0: {'current_iteration': 3}}}]
+            assert loader_iters["a"][1]._sampler_state_dict == []
+            assert loader_iters["b"]._sampler_state_dict == [{'custom_sampler': {0: {'current_iteration': 2}}}]
+        elif idx == 2:
+            assert loader_iters["a"][0]._sampler_state_dict == [{
+                'iter_sampler': {
+                    0: {
+                        'current_iteration': 3
+                    },
+                    1: {
+                        'current_iteration': 3
+                    }
+                }
+            }]
+            assert loader_iters["a"][1]._sampler_state_dict == []
+            assert loader_iters["b"]._sampler_state_dict == [{'custom_sampler': {0: {'current_iteration': 4}}}]
+        else:
+            assert loader_iters["a"][0]._sampler_state_dict == [{
+                'iter_sampler': {
+                    0: {
+                        'current_iteration': 6
+                    },
+                    1: {
+                        'current_iteration': 3
+                    }
+                }
+            }]
+            assert loader_iters["a"][1]._sampler_state_dict == []
+            assert loader_iters["b"]._sampler_state_dict == [{'custom_sampler': {0: {'current_iteration': 6}}}]
+
+    state_dict = dataloader.state_dict(num_batches_processed=3)
+
+    expected = {
+        "b": {
+            "num_workers": 0,
+            "previous_worker": None,
+            "custom_sampler": {
+                0: {
+                    "current_iteration": 6
+                }
+            },
+        },
+        "a": [
+            {
+                "num_workers": 2,
+                "previous_worker": 1,
+                "iter_sampler": {
+                    0: {
+                        "current_iteration": 6
+                    },
+                    1: {
+                        "current_iteration": 3
+                    }
+                },
+            },
+            {
+                "num_workers": 0,
+                "previous_worker": None,
+                0: {
+                    "current_iteration": 24
+                }
+            },
+        ],
+    }
+    assert state_dict == expected
+
+    dataloader = create_dataloader()
+    dataloader.load_state_dict(state_dict)
+
+    iter_dataloader = iter(prefetch_iterator(dataloader))
+    _, _, prefected_iterator = next(iter_dataloader)
+
+    loader_iters = prefected_iterator._loader_iters
+
+    assert loader_iters["a"][0]._sampler_state_dict == [{
+        'num_workers': 2,
+        'iter_sampler': {
+            0: {
+                'current_iteration': 6
+            },
+            1: {
+                'current_iteration': 6
+            }
+        }
+    }]
+    assert loader_iters["a"][1]._sampler_state_dict == []
+    assert loader_iters["b"]._sampler_state_dict == [{
+        'num_workers': 0,
+        'custom_sampler': {
+            0: {
+                'current_iteration': 8
+            }
+        }
+    }]
+
+    state_dict = dataloader.state_dict(num_batches_processed=4)
+
+    expected = {
+        "a": [
+            {
+                "num_workers": 2,
+                "previous_worker": 0,
+                "iter_sampler": {
+                    0: {
+                        "current_iteration": 6
+                    },
+                    1: {
+                        "current_iteration": 6
+                    }
+                },
+            },
+            {
+                "num_workers": 0,
+                "previous_worker": None,
+                0: {
+                    "current_iteration": 32
+                }
+            },
+        ],
+        "b": {
+            "num_workers": 0,
+            "previous_worker": None,
+            "custom_sampler": {
+                0: {
+                    "current_iteration": 8
+                }
+            },
+        },
+    }
+
+    assert state_dict == expected
