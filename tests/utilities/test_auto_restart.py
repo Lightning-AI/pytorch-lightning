@@ -722,7 +722,7 @@ def test_fast_forward_sampler_iterative_dataset(tmpdir):
             assert trainer.train_dataloader.loaders["a"][0].generator.initial_seed() == 42
             assert trainer.train_dataloader.loaders["a"][0].dataset.initial_seed == 42
 
-            state_dict = trainer.fit_loop.state_dict()["dataloader"]
+            state_dict = trainer.fit_loop.on_save_checkpoint()["dataloader"]
 
             if not self.restarting:
                 if trainer.fit_loop.batch_idx == 0:
