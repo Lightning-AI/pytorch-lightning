@@ -359,6 +359,15 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     assert checkpoint["loops"]["fit_loop"] == expected
 
+    trainer = Trainer()
+    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=False)
+    assert trainer.fit_loop.state_dict() == checkpoint["loops"]["fit_loop"]
+
+    trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
+    state_dict = trainer.fit_loop.state_dict()
+    assert state_dict != checkpoint["loops"]["fit_loop"]
+    assert state_dict['epoch_loop.progress']["total"]["started"] == num_epochs
+
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_progress_tracking_validation_multiple_datasets(tmpdir):
@@ -443,3 +452,10 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     }
 
     assert checkpoint["epoch_loop.val_loop.epoch_loop.progress"] == expected
+
+    trainer = Trainer()
+    trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
+    assert trainer.fit_loop.state_dict() == checkpoint
+
+    trainer.fit_loop.load_state_dict(checkpoint)
+    assert trainer.fit_loop.state_dict() != checkpoint
