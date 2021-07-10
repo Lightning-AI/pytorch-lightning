@@ -20,7 +20,7 @@ from deprecate import void
 from torch.nn.modules.module import _IncompatibleKeys
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -62,8 +62,8 @@ class Loop(ABC):
             if isinstance(v, BaseProgress):
                 progress[k] = v
             elif isinstance(v, Loop):
-                progress[k] = ProgressDict(**v.loop_progress)
-        return ProgressDict(**progress)
+                progress[k] = v.loop_progress
+        return progress
 
     @property
     def trainer(self) -> Optional['pl.Trainer']:
@@ -196,7 +196,6 @@ class Loop(ABC):
     def _load_from_state_dict(
         self, state_dict, prefix, strict, restart_progress, missing_keys, unexpected_keys, error_msgs
     ):
-        print(state_dict, prefix)
         for k, v in self.__dict__.items():
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])

@@ -12,16 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import asdict, dataclass, field
-from typing import Dict, Optional
-
-
-class ProgressDict(Dict):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+from typing import Optional
 
 
 @dataclass

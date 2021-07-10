@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterator
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.trainer.progress import BaseProgress, ProgressDict
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.trainer import Trainer
 
 
@@ -141,16 +141,12 @@ def test_loop_hierarchy():
 
     state_dict = loop_parent.state_dict()
 
-    loop_progress: ProgressDict = loop_parent.loop_progress
+    loop_progress = loop_parent.loop_progress
     assert loop_progress["progress"] == loop_parent.progress
     assert loop_progress["loop_child"]["progress"] == loop_child.progress
 
-    assert loop_progress.progress == loop_parent.progress
-    assert loop_progress.loop_child.progress == loop_child.progress
-
     loop_progress = loop_child.loop_progress
     assert loop_progress["progress"] == loop_child.progress
-    assert loop_progress.progress == loop_child.progress
 
     loop_parent.trainer = Trainer()
     assert loop_child.trainer == loop_parent.trainer
