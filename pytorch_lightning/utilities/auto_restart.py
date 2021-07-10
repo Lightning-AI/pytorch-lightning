@@ -102,7 +102,7 @@ class FastForwardSampler(Sampler):
         else:
             current_iteration = self._current_iteration
 
-        if self._dataloader_batch_size:
+        if self._dataloader_batch_size and num_batches_processed is not None:
             current_iteration *= self._dataloader_batch_size
 
         return current_iteration
@@ -343,8 +343,9 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
     return iter_dataloader
 
 
-def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator,
-                             num_batches_processed: int) -> List[Dict[str, Any]]:
+def dataloader_to_state_dict(dataloader: DataLoader,
+                             iter: Iterator,
+                             num_batches_processed: int = None) -> List[Dict[str, Any]]:
     """
     Convert a dataloader to its associated state dict
     """
@@ -355,18 +356,21 @@ def dataloader_to_state_dict(dataloader: DataLoader, iter: Iterator,
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = find_fast_forward_samplers(dataloader)
         if fast_forward_sampler is not None:
-            out.update(fast_forward_sampler.state_dict(num_batches_processed))
+            out.update(fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed))
     return out
 
 
-def dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> None:
+def dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> DataLoader:
     """
     Reload ``DataLoader`` fast-forward sampler state dict.
     """
     fast_forward_sampler = find_fast_forward_samplers(dataloader)
 
     if isinstance(fast_forward_sampler, Sampler):
-        fast_forward_sampler.load_state_dict(state_dict[0]["sampler"])
+        state_dict = {k: v for k, v in state_dict.items() if k not in ("num_workers", "previous_worker")}
+        fast_forward_sampler.load_state_dict(state_dict)
+
+    return dataloader
 
 
 def find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:

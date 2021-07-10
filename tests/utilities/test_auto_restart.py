@@ -33,6 +33,7 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
+    dataloader_load_state_dict,
     dataloader_to_state_dict,
     FastForwardSampler,
 )
@@ -845,15 +846,30 @@ def test_combined_dataloader_state_dict_and_reload():
 
 
 def test_dataloader_to_state_dict_and_reload():
+    """
+    Note: Those utilities are used only with DataLoader wrapping a ``mapping`` based dataset.
+    """
 
-    dataset = range(50)
-    batch_size = 8
-    sampler = FastForwardSampler(SequentialSampler(dataset))
-    sampler.setup(batch_size)
+    def create_dataloader():
+        dataset = range(50)
+        batch_size = 8
+        sampler = FastForwardSampler(SequentialSampler(dataset))
+        sampler.setup(batch_size)
 
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size)
+        return DataLoader(dataset, sampler=sampler, batch_size=batch_size)
+
+    dataloader = create_dataloader()
+    iter_dataloader = iter(dataloader)
+    _ = next(iter_dataloader)
+    _ = next(iter_dataloader)
+
+    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
+    assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 16}}
+
+    dataloader = create_dataloader()
+    dataloader = dataloader_load_state_dict(dataloader, state_dict)
     iter_dataloader = iter(dataloader)
     _ = next(iter_dataloader)
 
-    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader, 1)
-    assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 8}}
+    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
+    assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 24}}
