@@ -70,6 +70,19 @@ class Tracker(BaseProgress):
         args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
         return f"{self.__class__.__name__}({', '.join(args)})"
 
+    def reset_on_restart(self):
+        """Reset the progress on restart"""
+        value = self.completed if self.processed is None else self.processed
+
+        if self.ready is not None:
+            self.ready = value
+        if self.started is not None:
+            self.started = value
+        if self.processed is not None:
+            self.processed = value
+        if self.completed is not None:
+            self.completed = value
+
 
 @dataclass
 class Progress(BaseProgress):
