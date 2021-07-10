@@ -286,13 +286,13 @@ class EvaluationLoop(DataLoaderLoop):
         for batch_idx, batch in enumerate(self.current_dataloader_iter, self.epoch_loop.iteration_count):
             yield batch_idx, batch
 
-    def state_dict(self) -> Dict:
+    def on_save_checkpoint(self) -> Dict:
         if self.dataloaders:
             dataloader = self.dataloaders[self.progress.dataloader_idx]
             return {"dataloader": dataloader_to_state_dict(dataloader, self.current_dataloader_iter)}
         return {}
 
-    def load_state_dict(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
         if self.dataloaders:
             self.reload_evaluation_dataloaders()
             dataloader = self.dataloaders[self.progress.dataloader_idx]
