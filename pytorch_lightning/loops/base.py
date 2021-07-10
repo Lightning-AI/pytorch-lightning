@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 from typing import Any, Dict, Optional
 
 from deprecate import void
@@ -177,9 +176,9 @@ class Loop(ABC):
     def on_load_checkpoint(self, state_dict: Dict):
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[OrderedDict] = None, prefix: Optional[str] = '') -> Dict:
+    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = '') -> Dict:
         if destination is None:
-            destination = OrderedDict()
+            destination = {}
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
