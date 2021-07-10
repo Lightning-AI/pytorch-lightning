@@ -22,9 +22,6 @@ from torch.nn.modules.module import _IncompatibleKeys
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
 
 
 class Loop(ABC):
