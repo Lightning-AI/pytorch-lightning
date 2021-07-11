@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 import torch
 from torchmetrics import Metric
@@ -144,7 +144,7 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
-        # reset metris state on non-rank 0
+        # reset state on non-rank 0
         if not self.trainer.is_global_zero:
             for module in self.trainer.lightning_module.modules():
                 if isinstance(module, Metric):
@@ -396,15 +396,21 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def get_lightning_module_state_dict(self):
+    def get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         if fault_tolerant_enabled():
-            if not self._persistent_metrics:
-                for _, module in self.trainer.lightning_module.named_modules():
-                    if isinstance(module, Metric):
-                        module.persistent(True)
-                self._persistent_metrics = True
+            for _, module in self.trainer.lightning_module.named_modules():
+                if isinstance(module, Metric):
+                    module.persistent(True)
+                    module.sync()
 
-        return self.trainer.accelerator.lightning_module_state_dict()
+        state_dict = self.trainer.accelerator.lightning_module_state_dict()
+
+        if fault_tolerant_enabled():
+            for _, module in self.trainer.lightning_module.named_modules():
+                if isinstance(module, Metric):
+                    module.unsync()
+
+        return state_dict
 
     def get_loops_state_dict(self):
         return {

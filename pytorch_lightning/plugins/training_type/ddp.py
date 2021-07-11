@@ -414,7 +414,7 @@ class DDPPlugin(ParallelPlugin):
         self._share_pids()
 
         # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+        self._sync_dir = os.getenv("PL_DDP_SYNC_TMPDIR")
 
     def _share_pids(self):
         """
@@ -432,7 +432,11 @@ class DDPPlugin(ParallelPlugin):
         sync_dir = self._sync_dir
 
         # save a file locally.
-        torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
+        filepath = os.path.join(sync_dir, f"{self.global_rank}.pl")
+        try:
+            torch.save(True, filepath)
+        except:
+            raise Exception(filepath)
 
         # sleep for a short time
         time.sleep(3)

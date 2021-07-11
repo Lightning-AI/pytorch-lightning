@@ -1336,6 +1336,9 @@ class DummyMetric(Metric):
     def compute(self):
         return self.sum // self.count
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
+
 
 def result_collection_reload(trainer_kwargs):
     num_processes = trainer_kwargs.get("gpus", 1)
@@ -1363,15 +1366,13 @@ def result_collection_reload(trainer_kwargs):
                     self.dummy_metric(batch_idx)
                     self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                    value = self.trainer.fit_loop._results['training_step.tracking'].value
+                    value = self.trainer.fit_loop._results['training_step.tracking_metric'].value
+                    value_2 = self.trainer.fit_loop._results['training_step.tracking'].value
                     shift = 0
                     if num_processes == 2:
                         shift = 3 if self.trainer.is_global_zero else -3
                     expected = sum(range(batch_idx + 1)) + shift
-                    assert expected == value
-
-                    value = self.trainer.fit_loop._results['training_step.tracking_2']
-                    assert expected == value
+                    assert expected == value == value_2
             else:
                 if self.trainer.current_epoch == 2:
                     return
@@ -1438,7 +1439,9 @@ def test_result_collection_reload(tmpdir):
     })
 
 
+# todo (tchaton) synchornize ResultCollection states directly.
 @RunIf(min_gpus=2, special=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload({
         "default_root_dir": tmpdir,

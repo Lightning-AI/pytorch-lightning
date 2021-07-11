@@ -182,10 +182,16 @@ class Loop(ABC):
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
         for k, v in self.__dict__.items():
-            if isinstance(v, (BaseProgress, ResultCollection)):
+            if isinstance(v, BaseProgress):
                 destination[prefix + k] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, prefix + k + '.')
+            elif isinstance(v, ResultCollection):
+                # sync / unsync metrics
+                v.sync()
+                destination[prefix + k] = v.state_dict()
+                v.unsync()
+
 
         # raise warning if some types contained within the checkpoint aren't primitives ones.
         validate_state_dict_to_primitive_types(destination, should_raise=False)
@@ -217,6 +223,9 @@ class Loop(ABC):
                         metrics=metric_attributes,
                         sync_fn=self.trainer.training_type_plugin.reduce
                     )
+
+                    if not self.trainer.is_global_zero:
+                        v.reset(metrics=False)
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True

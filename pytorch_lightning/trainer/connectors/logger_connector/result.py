@@ -256,12 +256,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         if not self.is_tensor and drop_value:
             # Avoid serializing ResultMetrics which are passed Metrics
             skip.append('value')
-        with self.sync_context(
-            should_sync=not self.meta.sync.rank_zero_only,
-            process_group=self.meta.sync.group,
-            distributed_available=distributed_available
-        ):
-            d = {k: v for k, v in self.__dict__.items() if k not in skip}
+        d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
@@ -681,6 +676,16 @@ class ResultCollection(dict):
 
         device = map_location or self.device
         self.to(device)
+
+    def sync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and not result_metric._is_synced:
+                result_metric.sync()
+    
+    def unsync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and result_metric._is_synced:
+                result_metric.unsync()
 
     def state_dict(self, drop_value: bool = True) -> dict:
         return self.__getstate__(drop_value)
