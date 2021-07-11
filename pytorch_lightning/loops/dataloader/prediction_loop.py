@@ -20,9 +20,7 @@ class PredictionLoop(DataLoaderLoop):
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
         self.progress = EpochLoopProgress()
-
         self.epoch_loop = PredictionEpochLoop()
-
         self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
 

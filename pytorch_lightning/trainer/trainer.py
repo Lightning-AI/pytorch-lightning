@@ -57,7 +57,6 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -77,6 +76,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -359,10 +359,10 @@ class Trainer(
         self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self, progress=FitLoopProgress())
-        self.validate_loop.connect(self, progress=EpochLoopProgress())
-        self.test_loop.connect(self, progress=EpochLoopProgress())
-        self.predict_loop.connect(self, progress=EpochLoopProgress())
+        self.fit_loop.connect(self)
+        self.validate_loop.connect(self)
+        self.test_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -1010,6 +1010,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
+            self.on_expection()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1249,3 +1250,8 @@ class Trainer(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
+
+    def on_expection(self):
+        if fault_tolerant_enabled():
+            # save a checkpoint for fault tolerant training
+            self.fit_loop._check_checkpoint_callback(True)

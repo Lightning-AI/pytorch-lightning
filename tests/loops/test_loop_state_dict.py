@@ -40,15 +40,136 @@ def test_loops_state_dict_structure():
         "test_loop": trainer.test_loop.state_dict(),
         "predict_loop": trainer.predict_loop.state_dict(),
     }
+    # todo (tchaton) Update this once new progress as been added.
+    # yapf: disable
     expected = {
         "fit_loop": {
-            'epoch_loop': {
-                'batch_loop': {},
-                'val_loop': {},
-            }
+            "state_dict": {},
+            "epoch_loop.state_dict": {},
+            "epoch_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "should_check_val": False,
+            },
+            "epoch_loop.batch_loop.state_dict": {},
+            "epoch_loop.batch_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            },
+            "epoch_loop.batch_loop.optim_progress": {
+                "optimizer_idx": 0,
+                "optimizer": {
+                    "step": {
+                        "total": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
+                        "current": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
+                    },
+                    "zero_grad": {
+                        "total": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
+                        "current": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": None,
+                            "completed": 0,
+                        },
+                    },
+                },
+                "scheduler": {
+                    "total": {
+                        "ready": 0,
+                        "started": None,
+                        "processed": None,
+                        "completed": 0,
+                    },
+                    "current": {
+                        "ready": 0,
+                        "started": None,
+                        "processed": None,
+                        "completed": 0,
+                    },
+                },
+            },
+            "epoch_loop.val_loop.state_dict": {},
+            "epoch_loop.val_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "dataloader_idx": 0,
+            },
+            "epoch_loop.val_loop.epoch_loop.state_dict": {},
+            "epoch_loop.val_loop.epoch_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            },
         },
-        "validate_loop": {},
-        "test_loop": {},
-        "predict_loop": {},
+        "validate_loop": {
+            "state_dict": {},
+            "progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "dataloader_idx": 0,
+            },
+            "epoch_loop.state_dict": {},
+            "epoch_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            },
+        },
+        "test_loop": {
+            "state_dict": {},
+            "progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "dataloader_idx": 0,
+            },
+            "epoch_loop.state_dict": {},
+            "epoch_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+            },
+        },
+        "predict_loop": {
+            "state_dict": {},
+            "progress": {
+                "epoch": {
+                    "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                    "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                    "dataloader_idx": 0,
+                    "batch": {
+                        "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                        "current": {
+                            "ready": 0,
+                            "started": 0,
+                            "processed": 0,
+                            "completed": 0,
+                        },
+                    },
+                }
+            },
+            "epoch_loop.state_dict": {},
+            "epoch_loop.progress": {
+                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "dataloader_idx": 0,
+                "batch": {
+                    "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                    "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                },
+            },
+        },
     }
+    # yapf: enable
     assert state_dict == expected

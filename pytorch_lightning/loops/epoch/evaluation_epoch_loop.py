@@ -21,7 +21,7 @@ from torch import Tensor
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EpochProgress
+from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -41,15 +41,11 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
-        self.progress = EpochProgress()
+        self.progress = Progress()
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
 
     @property
     def done(self) -> bool:
@@ -64,6 +60,13 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx = None
         self.num_dataloaders = None
         self.outputs = []
+
+        if self.restarting:
+            self.iteration_count = self.progress.current.completed
+            self.restarting = False
+        else:
+            self.iteration_count = 0
+            self.progress.current.reset()
 
     def on_run_start(
         self,
@@ -114,8 +117,12 @@ class EvaluationEpochLoop(Loop):
         with self.trainer.profiler.profile("evaluation_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
+        self.progress.increment_started()
+
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+        self.progress.increment_ready()
 
         # lightning module methods
         with self.trainer.profiler.profile("evaluation_step_and_end"):
@@ -130,6 +137,10 @@ class EvaluationEpochLoop(Loop):
 
         # track epoch level outputs
         self.outputs = self._track_output_for_epoch_end(self.outputs, output)
+
+        self.progress.increment_processed()
+
+        self.progress.increment_completed()
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""

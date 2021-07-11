@@ -14,13 +14,12 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -51,8 +50,6 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.progress = FitLoopProgress()
-
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
@@ -169,14 +166,10 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(
-        self, trainer: 'pl.Trainer', *args: Any, progress: Optional[FitLoopProgress] = None, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -288,12 +281,6 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
-
-    def state_dict(self) -> Dict:
-        return {"epoch_loop": self.epoch_loop.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

@@ -69,19 +69,11 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(
-        self,
-        trainer: 'pl.Trainer',
-        *args: Any,
-        progress: Optional[TrainingEpochProgress] = None,
-        **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.batch_loop.connect(trainer, progress=self.progress.batch, optim_progress=self.progress.optim)
-        self.val_loop.connect(trainer, progress=self.progress.val)
+        self.batch_loop.connect(trainer)
+        self.val_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
@@ -93,11 +85,24 @@ class TrainingEpochLoop(loops.Loop):
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
+        if self.restarting:
+            self.iteration_count = self.batch_loop.current_batch_completed
+            self.batches_seen = self.batch_loop.current_batch_completed
+            # restarting is finished.
+            self.restarting = False
+        else:
+            # todo (tchaton) the batch_loop should be responsible for that.
+            self.batch_loop.progress.current.reset()
+
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        self.progress.increment_ready()
+
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
+
+        self.progress.increment_started()
 
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -158,7 +163,10 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
+        self.progress.should_check_val = should_check_val = self._should_check_val_fx(
+            self.iteration_count, self.is_last_batch
+        )
+
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -216,10 +224,14 @@ class TrainingEpochLoop(loops.Loop):
                     'HINT: remove the return statement in training_epoch_end'
                 )
 
+        self.progress.increment_processed()
+
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
+
+        self.progress.increment_completed()
 
         epoch_output = self._epoch_output
         # free memory
@@ -430,10 +442,3 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
-
-    def state_dict(self) -> Dict:
-        return {"batch_loop": self.batch_loop.state_dict(), "val_loop": self.val_loop.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        self.batch_loop.load_state_dict(state_dict["batch_loop"])
-        self.val_loop.load_state_dict(state_dict["val_loop"])
