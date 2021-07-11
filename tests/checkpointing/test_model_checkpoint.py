@@ -1439,7 +1439,6 @@ def test_result_collection_reload(tmpdir):
     })
 
 
-# todo (tchaton) synchornize ResultCollection states directly.
 @RunIf(min_gpus=2, special=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
