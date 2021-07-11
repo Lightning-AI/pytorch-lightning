@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -23,6 +23,7 @@ from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import DataLoaderProgress
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.auto_restart import dataloader_load_state_dict, dataloader_to_state_dict
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -38,6 +39,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
+        self.current_dataloader_iter: Optional[Iterator] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -124,6 +126,8 @@ class EvaluationLoop(DataLoaderLoop):
 
         self.progress.dataloader_idx = self.iteration_count
 
+        self.current_dataloader_iter = dataloader_iter
+
         dl_outputs = self.epoch_loop.run(
             dataloader_iter,
             self.current_dataloader_idx,
@@ -190,10 +194,13 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary"""
+
+        # should always reload the dataloader when performing calling validate.
+        is_validate = self.trainer.state.fn == TrainerFn.VALIDATING
         model = self.trainer.lightning_module
         if self.trainer.testing:
             self.trainer.reset_test_dataloader(model)
-        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
+        elif is_validate or self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
             self.trainer.reset_val_dataloader(model)
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
@@ -286,3 +293,15 @@ class EvaluationLoop(DataLoaderLoop):
     def teardown(self) -> None:
         self._results.cpu()
         self.epoch_loop.teardown()
+
+    def on_save_checkpoint(self) -> Dict:
+        if self.dataloaders:
+            dataloader = self.dataloaders[self.progress.dataloader_idx]
+            return {"dataloader": dataloader_to_state_dict(dataloader, self.current_dataloader_iter)}
+        return {}
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        if self.dataloaders:
+            self.reload_evaluation_dataloaders()
+            dataloader = self.dataloaders[self.progress.dataloader_idx]
+            dataloader_load_state_dict(dataloader, state_dict["dataloader"])

@@ -26,7 +26,9 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     cycle_to_next_worker_and_reset,
+    FastForwardSampler,
     find_current_worker,
+    find_fast_forward_samplers,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -379,7 +381,9 @@ class CombinedLoader(object):
                     state.update(iterator._sampler_state_dict[0])
             else:
                 # fetch directly from fast forward sampler
-                state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
+                fast_forward_sampler = find_fast_forward_samplers(dataloader)
+                if isinstance(fast_forward_sampler, FastForwardSampler):
+                    state.update(fast_forward_sampler.state_dict(num_batches_processed))
             return DataLoaderDict(state)
 
         return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)

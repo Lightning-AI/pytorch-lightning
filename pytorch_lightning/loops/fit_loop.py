@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
@@ -281,6 +281,18 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
+
+    def on_save_checkpoint(self) -> Dict:
+        if self.trainer.train_dataloader is not None:
+            dataloaders_state_dict = self.trainer.train_dataloader.state_dict(num_batches_processed=self.batch_idx + 1)
+            return {"dataloader": dataloaders_state_dict}
+        return {}
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        if "dataloader" in state_dict:
+            # todo (tchaton) Can we avoid creating the dataloader there ?
+            self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+            self.trainer.train_dataloader.load_state_dict(state_dict["dataloader"])
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
