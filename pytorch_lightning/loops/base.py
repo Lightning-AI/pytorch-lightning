@@ -208,9 +208,15 @@ class Loop(ABC):
                         name: module
                         for name, module in self.trainer.lightning_module.named_modules() if isinstance(module, Metric)
                     }
-                else:
-                    metric_attributes = metrics or {}
-                v.load_state_dict(state_dict[prefix + k], metrics=metric_attributes)
+                    if metrics:
+                        metric_attributes.update(metrics)
+
+                    # re-attach metrics references
+                    v.load_state_dict(
+                        state_dict[prefix + k],
+                        metrics=metric_attributes,
+                        sync_fn=self.trainer.training_type_plugin.reduce
+                    )
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True

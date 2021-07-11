@@ -353,6 +353,7 @@ class CombinedLoader(object):
             raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.loaders = loaders
+        self._iterator: Optional[Iterator] = None
 
         datasets = apply_to_collection(
             self.loaders, Iterable, getattr, 'dataset', None, wrong_dtype=(Sequence, Mapping)
@@ -368,7 +369,7 @@ class CombinedLoader(object):
         self.loaders_iter_state_dict = None
 
     def state_dict(self, num_batches_processed: int):
-        if not fault_tolerant_enabled():
+        if not fault_tolerant_enabled() or self._iterator is None:
             return {}
 
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
@@ -405,7 +406,9 @@ class CombinedLoader(object):
                 if isinstance(dataloader.dataset, CaptureIterableDataset):
                     dataloader.dataset.load_state_dict(state_dict)
                 else:
-                    dataloader.fast_forward_sampler.load_state_dict(state_dict)
+                    fast_forward_sampler = find_fast_forward_samplers(dataloader)
+                    if fast_forward_sampler is not None:
+                        fast_forward_sampler.load_state_dict(state_dict)
                 iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
                 if isinstance(dataloader.dataset, CaptureIterableDataset):
                     state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}

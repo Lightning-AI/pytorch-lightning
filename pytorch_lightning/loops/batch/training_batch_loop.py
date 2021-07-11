@@ -58,6 +58,10 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
 
+    @property
+    def current_batch_completed(self) -> int:
+        return self.progress.current.completed
+
     def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)

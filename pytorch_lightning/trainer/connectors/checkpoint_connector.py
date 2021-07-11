@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import torch
+from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -36,6 +37,7 @@ class CheckpointConnector:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
         self._loaded_checkpoint = dict()
+        self._persistent_metrics = False
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -141,6 +143,12 @@ class CheckpointConnector:
 
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
+
+        # reset metris state on non-rank 0
+        if not self.trainer.is_global_zero:
+            for module in self.trainer.lightning_module.modules():
+                if isinstance(module, Metric):
+                    module.reset()
 
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
@@ -344,7 +352,7 @@ class CheckpointConnector:
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pl.__version__,
-            'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
+            'state_dict': self.get_lightning_module_state_dict(),
         }
 
         if fault_tolerant_enabled():
@@ -387,6 +395,16 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def get_lightning_module_state_dict(self):
+        if fault_tolerant_enabled():
+            if not self._persistent_metrics:
+                for _, module in self.trainer.lightning_module.named_modules():
+                    if isinstance(module, Metric):
+                        module.persistent(True)
+                self._persistent_metrics = True
+
+        return self.trainer.accelerator.lightning_module_state_dict()
 
     def get_loops_state_dict(self):
         return {
