@@ -167,6 +167,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `progress` tracking on loops ([#8362](https://github.com/PyTorchLightning/pytorch-lightning/pull/8362))
 
 
+- Added `dataloader` state_dict to `loop` state_dict ([#8370](https://github.com/PyTorchLightning/pytorch-lightning/pull/8370))
+
+
 ### Changed
 
 
