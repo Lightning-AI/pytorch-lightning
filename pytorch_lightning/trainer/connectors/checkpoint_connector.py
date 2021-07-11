@@ -15,7 +15,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 import torch
 from torchmetrics import Metric

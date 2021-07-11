@@ -192,7 +192,6 @@ class Loop(ABC):
                 destination[prefix + k] = v.state_dict()
                 v.unsync()
 
-
         # raise warning if some types contained within the checkpoint aren't primitives ones.
         validate_state_dict_to_primitive_types(destination, should_raise=False)
         return destination
