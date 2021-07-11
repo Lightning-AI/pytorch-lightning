@@ -170,6 +170,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `dataloader` state_dict to `loop` state_dict ([#8370](https://github.com/PyTorchLightning/pytorch-lightning/pull/8370))
 
 
+- Added `ResultCollection` state_dict to `loop` state_dict + validation on loop state dict compared to primitive python types ([#8371](https://github.com/PyTorchLightning/pytorch-lightning/pull/8371))
+
+
 ### Changed
 
 
