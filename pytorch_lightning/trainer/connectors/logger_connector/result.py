@@ -169,6 +169,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.is_tensor = is_tensor
         self.meta = metadata
         self.has_reset = False
+
+        self.value: Optional[Union[torch.nn.Module, torch.Tensor]] = None
+
         if is_tensor:
             self.add_state("value", torch.tensor(0, dtype=torch.float), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:

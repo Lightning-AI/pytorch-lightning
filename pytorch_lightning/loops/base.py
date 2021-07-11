@@ -16,11 +16,14 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from deprecate import void
+from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress, Tracker
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.primitives import validate_state_dict_to_primitive_types
 
 
 class Loop(ABC):
@@ -110,9 +113,6 @@ class Loop(ABC):
         Returns:
             the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
-        if self.trainer is None:
-            raise MisconfigurationException(f"The {self.__class__.__name__} Loop hasn't been attached to any Trainer.")
-
         if self.skip:
             return self.on_skip()
 
@@ -182,13 +182,16 @@ class Loop(ABC):
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
         for k, v in self.__dict__.items():
-            if isinstance(v, BaseProgress):
+            if isinstance(v, (BaseProgress, ResultCollection)):
                 destination[prefix + k] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, prefix + k + '.')
+
+        # raise warning if some types contained within the checkpoint aren't primitives ones.
+        validate_state_dict_to_primitive_types(destination, should_raise=False)
         return destination
 
-    def _load_from_state_dict(self, state_dict, prefix, restart_progress):
+    def _load_from_state_dict(self, state_dict, prefix, restart_progress, metrics: Optional[Dict[str, Metric]] = None):
         for k, v in self.__dict__.items():
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])
@@ -199,14 +202,32 @@ class Loop(ABC):
 
                     apply_to_collection(v, Tracker, restart)
 
+            elif isinstance(v, ResultCollection):
+                if isinstance(self.trainer, pl.Trainer) and getattr(self.trainer, "lightning_module", None) is not None:
+                    metric_attributes = {
+                        name: module
+                        for name, module in self.trainer.lightning_module.named_modules() if isinstance(module, Metric)
+                    }
+                else:
+                    metric_attributes = metrics or {}
+                v.load_state_dict(state_dict[prefix + k], metrics=metric_attributes)
+
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
 
-    def __load(self, state_dict, restart_progress, prefix=''):
-        self._load_from_state_dict(state_dict, prefix, restart_progress)
+    def __load(
+        self,
+        state_dict: Dict[str, Any],
+        restart_progress: bool = True,
+        prefix='',
+        metrics: Optional[Dict[str, Metric]] = None
+    ):
+        self._load_from_state_dict(state_dict, prefix, restart_progress, metrics=metrics)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
-                v.__load(state_dict.copy(), restart_progress, prefix + k + '.')
+                v.__load(state_dict.copy(), restart_progress, prefix + k + '.', metrics=metrics)
 
-    def load_state_dict(self, state_dict: Dict, restart_progress: bool = True):
-        self.__load(state_dict.copy(), restart_progress)
+    def load_state_dict(
+        self, state_dict: Dict, restart_progress: bool = True, metrics: Optional[Dict[str, Metric]] = None
+    ):
+        self.__load(state_dict.copy(), restart_progress=restart_progress, metrics=metrics)

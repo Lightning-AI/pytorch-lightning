@@ -14,57 +14,71 @@
 from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, Optional
 
+import pytest
+
+from pytorch_lightning import Trainer
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.utilities.primitives import NotPrimitiveTypes, validate_state_dict_to_primitive_types
+from tests.helpers import BoringModel
+from tests.metrics.test_metric_lightning import SumMetric
+
+
+class CustomExpection(Exception):
+    pass
+
+
+class Simple(Loop):
+
+    def __init__(self, dataset: Iterator, result_collection: Optional[ResultCollection] = None):
+        super().__init__()
+        self.dataset = dataset
+        self.result_collection = result_collection
+
+    @property
+    def skip(self) -> bool:
+        return False
+
+    @property
+    def done(self) -> bool:
+        return self.iteration_count > len(self.dataset)
+
+    def reset(self) -> None:
+        self.iter_dataset = iter(self.dataset)
+
+        if self.restarting:
+            for _ in range(self.iteration_count):
+                next(self.iter_dataset)
+            self.iteration_count += 1
+            self.restarting = False
+        else:
+            self.outputs = []
+
+    def advance(self) -> None:
+        value = next(self.iter_dataset)
+
+        if self.iteration_count == 5:
+            raise CustomExpection
+
+        if self.result_collection is not None:
+            sum_metric = self.trainer.lightning_module.sum_metric
+            self.result_collection.log("advance", "sum_value", sum_metric(value))
+            self.result_collection.log("advance", "sum_metrics", sum_metric, metric_attribute="sum_metric")
+
+        self.outputs.append(value)
+
+    def on_save_checkpoint(self) -> Dict:
+        return {"iteration_count": self.iteration_count, "outputs": self.outputs}
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        self.iteration_count = state_dict["iteration_count"]
+        self.outputs = state_dict["outputs"]
 
 
 def test_loop_restore():
-
-    class CustomExpection(Exception):
-        pass
-
-    class Simple(Loop):
-
-        def __init__(self, dataset: Iterator):
-            super().__init__()
-            self.dataset = dataset
-
-        @property
-        def skip(self) -> bool:
-            return False
-
-        @property
-        def done(self) -> bool:
-            return self.iteration_count > len(self.dataset)
-
-        def reset(self) -> None:
-            self.iter_dataset = iter(self.dataset)
-
-            if self.restarting:
-                for _ in range(self.iteration_count):
-                    next(self.iter_dataset)
-                self.iteration_count += 1
-                self.restarting = False
-            else:
-                self.outputs = []
-
-        def advance(self) -> None:
-            value = next(self.iter_dataset)
-
-            if self.iteration_count == 5:
-                raise CustomExpection
-
-            self.outputs.append(value)
-
-        def state_dict(self) -> Dict:
-            return {"iteration_count": self.iteration_count, "outputs": self.outputs}
-
-        def load_state_dict(self, state_dict: Dict) -> None:
-            self.iteration_count = state_dict["iteration_count"]
-            self.outputs = state_dict["outputs"]
 
     trainer = Trainer()
 
@@ -208,3 +222,61 @@ def test_loop_hierarchy():
 
     grand_loop_parent.trainer = Trainer()
     assert loop_child.trainer is not None
+
+
+def test_loops_with_result_collection():
+
+    class Model(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.sum_metric = SumMetric()
+
+    model = Model()
+    trainer = Trainer(fast_dev_run=True)
+    trainer.fit(model)
+
+    data = range(10)
+
+    result_collection = ResultCollection(training=True)
+    loop = Simple(data, result_collection=result_collection)
+    loop.trainer = trainer
+    try:
+        loop.run()
+        state_dict = {}
+    except CustomExpection:
+        state_dict = loop.state_dict()
+
+    with pytest.raises(NotPrimitiveTypes, match="Found <class 'tests.loops.test_loops.Simple'>"):
+        state_dict["loop"] = loop
+        validate_state_dict_to_primitive_types(state_dict)
+
+    num_batches_processed = 5
+    assert state_dict["result_collection"]["items"]["advance.sum_value"]["value"] == sum(range(num_batches_processed))
+    assert state_dict["result_collection"]["items"]["advance.sum_value"]["cumulated_batch_size"
+                                                                         ] == num_batches_processed
+
+    state_dict.pop("loop")
+
+    model_state_dict = loop.trainer.lightning_module.state_dict()
+
+    loop = Simple(data, result_collection=ResultCollection(training=True))
+    loop.trainer = trainer
+    loop.trainer.lightning_module.load_state_dict(model_state_dict)
+
+    assert loop.trainer.lightning_module.sum_metric.x == sum(range(num_batches_processed))
+
+    loop.load_state_dict(state_dict)
+    assert loop.result_collection
+    assert id(loop.result_collection["advance.sum_metrics"].value) == id(trainer.lightning_module.sum_metric)
+
+    loop.restarting = True
+    loop.run()
+
+    num_batches_processed = len(data)
+    assert not loop.restarting
+    assert loop.outputs == list(data)
+    state_dict = loop.state_dict()
+
+    assert trainer.lightning_module.sum_metric.x == sum(range(num_batches_processed))
+    assert state_dict["result_collection"]["items"]["advance.sum_value"]["value"] == sum(range(num_batches_processed))
