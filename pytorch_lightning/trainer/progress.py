@@ -35,7 +35,7 @@ class BaseProgress:
 class Tracker(BaseProgress):
     """
     Track an event's progress.
-    
+
     Args:
         ready: Intended to track the number of events ready to start.
         started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
