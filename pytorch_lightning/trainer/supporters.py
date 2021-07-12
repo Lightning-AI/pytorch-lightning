@@ -554,7 +554,7 @@ class CombinedLoaderIterator(object):
 
         Args:
             loaders: a collections of loaders
-            
+
         Returns
             a collections of iterators
         """
