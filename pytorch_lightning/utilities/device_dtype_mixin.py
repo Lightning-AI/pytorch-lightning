@@ -121,8 +121,9 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        property_device = device if isinstance(device, torch.device) else torch.device('cuda', index=device)
-        self.__update_properties(device=property_device)
+        if device is None or isinstance(device, int):
+            device = torch.device('cuda', index=device)
+        self.__update_properties(device=device)
         return super().cuda(device=device)
 
     def cpu(self) -> 'DeviceDtypeModuleMixin':
