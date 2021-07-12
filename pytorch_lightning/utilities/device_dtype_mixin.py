@@ -121,9 +121,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        property_device = (
-            device if isinstance(device, torch.device) else torch.device('cuda', index=device)  # type: ignore
-        )  # mypy expects `device` for `index` to be int, while `Optional[int]` is okay => ignore typing for now
+        property_device = device if isinstance(device, torch.device) else torch.device('cuda', index=device)
         self.__update_properties(device=property_device)
         return super().cuda(device=device)
 

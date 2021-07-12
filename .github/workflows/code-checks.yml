@@ -19,4 +19,4 @@ jobs:
         run: |
           pip install mypy
           pip list
-      - run: mypy -v
+      - run: mypy
