@@ -387,7 +387,7 @@ By using the `tpu_spawn_debug` plugin, users could create a metrics report to di
 
 The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):
 
-* how many time we issue XLA compilations and time spent on issuing.
+* how many times we issue XLA compilations and time spent on issuing.
 * how many times we execute and time spent on execution
 * how many device data handles we create/destroy etc.
 
