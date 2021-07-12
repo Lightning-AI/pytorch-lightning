@@ -31,6 +31,8 @@ allow_redefinition = "True"
 # disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
 disable_error_code = "attr-defined"
 
+
+# TODO: Fix typing for these modules
 [[tool.mypy.overrides]]
 module = [
     "pytorch_lightning.callbacks.*",
