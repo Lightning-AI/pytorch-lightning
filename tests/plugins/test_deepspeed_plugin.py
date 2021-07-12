@@ -598,18 +598,17 @@ def run_checkpoint_test(
     assert saved_results == results
 
     if automatic_optimization:
-        model_cls = ModelParallelClassificationModel()
+        model = ModelParallelClassificationModel()
     else:
-        model_cls = ManualModelParallelClassificationModel()
+        model = ManualModelParallelClassificationModel()
     if trainer.is_global_zero:
         trainer = Trainer(default_root_dir=tmpdir, gpus=1, precision=16)
-        saved_model = model_cls.load_from_checkpoint(ck.best_model_path)
 
-        results = trainer.test(saved_model, datamodule=dm)
+        results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
         assert results[0]['test_acc'] > 0.7
 
         dm.predict_dataloader = dm.test_dataloader
-        results = trainer.predict(datamodule=dm)
+        results = trainer.predict(model, datamodule=dm, ckpt_path=ck.best_model_path)
         assert results[-1] > 0.7
 
 
