@@ -104,5 +104,5 @@ else:
     _IPU_AVAILABLE = False
 
 
-def fault_tolerant_enabled():
+def _fault_tolerant_enabled():
     return os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
