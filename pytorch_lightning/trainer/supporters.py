@@ -457,7 +457,7 @@ class CombinedLoader(object):
         """
 
         # prevent ``NotImplementedError`` from PyTorch:
-        # https://github.com/pytorch/pytorch/blob/master/torch/utils/data/dataloader.py#L541
+        # https://github.com/pytorch/pytorch/blob/v1.9.0/torch/utils/data/dataloader.py#L541
         def __getstate__patch__(*_):
             return {}
 
