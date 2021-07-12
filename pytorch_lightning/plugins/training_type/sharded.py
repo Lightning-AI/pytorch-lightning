@@ -14,10 +14,9 @@
 from typing import Optional
 
 import torch
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import is_lightning_optimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
@@ -48,7 +47,7 @@ class DDPShardedPlugin(DDPPlugin):
     def _reinit_optimizers_with_oss(self):
         optimizers = self.lightning_module.trainer.optimizers
         for x, optimizer in enumerate(optimizers):
-            if is_lightning_optimizer(optimizer):
+            if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
@@ -72,7 +71,7 @@ class DDPShardedPlugin(DDPPlugin):
         self._reinit_optimizers_with_oss()
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if is_lightning_optimizer(optimizer):
+        if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
         optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
@@ -94,7 +93,7 @@ class DDPShardedPlugin(DDPPlugin):
             )
         return unwrap_lightning_module_sharded(self._model)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
     def post_training_step(self):

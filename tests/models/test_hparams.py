@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import functools
 import os
 import pickle
 from argparse import Namespace
 from dataclasses import dataclass
+from unittest import mock
 
 import cloudpickle
 import pytest
@@ -26,8 +28,10 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
@@ -738,3 +742,78 @@ def test_dataclass_lightning_module(tmpdir):
     """ Test that save_hyperparameters() works with a LightningModule as a dataclass. """
     model = DataClassModel(33, optional="cocofruit")
     assert model.hparams == dict(mandatory=33, optional="cocofruit")
+
+
+class NoHparamsModel(BoringModel):
+    """ Tests a model without hparams. """
+
+
+class DataModuleWithoutHparams(LightningDataModule):
+
+    def train_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(RandomDataset(32, 64), batch_size=32)
+
+
+class DataModuleWithHparams(LightningDataModule):
+
+    def __init__(self, hparams):
+        super().__init__()
+        self.save_hyperparameters(hparams)
+
+    def train_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(RandomDataset(32, 64), batch_size=32)
+
+
+def _get_mock_logger(tmpdir):
+    mock_logger = mock.MagicMock(name="logger")
+    mock_logger.name = "mock_logger"
+    mock_logger.save_dir = tmpdir
+    mock_logger.version = "0"
+    del mock_logger.__iter__
+    return mock_logger
+
+
+@pytest.mark.parametrize("model", (SaveHparamsModel({'arg1': 5, 'arg2': 'abc'}), NoHparamsModel()))
+@pytest.mark.parametrize("data", (DataModuleWithHparams({'data_dir': 'foo'}), DataModuleWithoutHparams()))
+def test_adding_datamodule_hparams(tmpdir, model, data):
+    """Test that hparams from datamodule and model are logged."""
+    org_model_hparams = copy.deepcopy(model.hparams_initial)
+    org_data_hparams = copy.deepcopy(data.hparams_initial)
+
+    mock_logger = _get_mock_logger(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    trainer.fit(model, datamodule=data)
+
+    # Hparams of model and data were not modified
+    assert org_model_hparams == model.hparams
+    assert org_data_hparams == data.hparams
+
+    # Merged hparams were logged
+    merged_hparams = copy.deepcopy(org_model_hparams)
+    merged_hparams.update(org_data_hparams)
+    mock_logger.log_hyperparams.assert_called_with(merged_hparams)
+
+
+def test_no_datamodule_for_hparams(tmpdir):
+    """Test that hparams model are logged if no datamodule is used."""
+    model = SaveHparamsModel({'arg1': 5, 'arg2': 'abc'})
+    org_model_hparams = copy.deepcopy(model.hparams_initial)
+    data = DataModuleWithoutHparams()
+    data.setup()
+
+    mock_logger = _get_mock_logger(tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    trainer.fit(model, datamodule=data)
+
+    # Merged hparams were logged
+    mock_logger.log_hyperparams.assert_called_with(org_model_hparams)
+
+
+def test_colliding_hparams(tmpdir):
+
+    model = SaveHparamsModel({'data_dir': 'abc', 'arg2': 'abc'})
+    data = DataModuleWithHparams({'data_dir': 'foo'})
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    with pytest.raises(MisconfigurationException, match=r'Error while merging hparams:'):
+        trainer.fit(model, datamodule=data)

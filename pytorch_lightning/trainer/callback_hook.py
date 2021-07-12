@@ -17,6 +17,8 @@ from copy import deepcopy
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Type
 
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
@@ -313,12 +315,24 @@ class TrainerCallbackHookMixin(ABC):
                 else:
                     callback.on_load_checkpoint(self, self.lightning_module, state)
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """Called before ``loss.backward()``."""
+        for callback in self.callbacks:
+            callback.on_before_backward(self, self.lightning_module, loss)
+
     def on_after_backward(self):
         """
         Called after loss.backward() and before optimizers do anything.
         """
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
+
+    def on_before_optimizer_step(self, optimizer, optimizer_idx):
+        """
+        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
+        """
+        for callback in self.callbacks:
+            callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
         """

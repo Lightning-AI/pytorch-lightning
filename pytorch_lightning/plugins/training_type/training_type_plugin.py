@@ -111,10 +111,10 @@ class TrainingTypePlugin(Plugin, ABC):
         """Reduce the early stopping decision across all processes"""
         return decision
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
 
-    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def post_backward(self, closure_loss: torch.Tensor) -> None:
         """Run after precision plugin executes backward"""
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:

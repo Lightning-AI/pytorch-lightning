@@ -1297,8 +1297,8 @@ Note:
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-reload_dataloaders_every_epoch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+reload_dataloaders_every_n_epochs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -1308,19 +1308,20 @@ reload_dataloaders_every_epoch
 
 |
 
-Set to True to reload dataloaders every epoch.
+Set to a postive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
-    # if False (default)
+    # if 0 (default)
     train_loader = model.train_dataloader()
     for epoch in epochs:
         for batch in train_loader:
             ...
 
-    # if True
+    # if a positive integer
     for epoch in epochs:
-        train_loader = model.train_dataloader()
+        if not epoch % reload_dataloaders_every_n_epochs:
+            train_loader = model.train_dataloader()
         for batch in train_loader:
 
 .. _replace-sampler-ddp:

@@ -118,7 +118,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
-        torch.cuda.set_device(self.root_device)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:

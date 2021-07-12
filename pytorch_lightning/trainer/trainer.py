@@ -17,7 +17,7 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -61,11 +61,13 @@ from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgres
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    device_parser,
     DeviceType,
     parsing,
     rank_zero_deprecation,
@@ -144,6 +146,7 @@ class Trainer(
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
+        reload_dataloaders_every_n_epochs: int = 0,
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -272,7 +275,14 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
 
+            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: 0
+
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
+
+                .. deprecated:: v1.4
+                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
+                    Please use ``reload_dataloaders_every_n_epochs``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -324,6 +334,7 @@ class Trainer(
         Trainer._log_api_event("init")
         self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
+        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -332,8 +343,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, ipus, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
-            benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, tpu_cores, ipus, distributed_backend, gpus, gpu_ids, num_nodes, sync_batchnorm, benchmark,
+            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -382,7 +393,8 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch,
+            prepare_data_per_node
         )
 
         # init training tricks
@@ -532,7 +544,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None``, use the current weights of the model.
-                When the model is given as argument, this parameter will not apply.
+                When the model is given as argument, we load the ckpt path.
 
             verbose: If True, prints the validation results.
 
@@ -567,7 +579,6 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`')
 
-        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -577,8 +588,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        if not model_provided:
-            self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
+        self.validated_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
 
         # run validate
         results = self._run(model)
@@ -609,7 +619,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the current weights of the model.
-                When the model is given as argument, this parameter will not apply.
+                When the model is given as argument, we load the ckpt path.
 
             verbose: If True, prints the test results.
 
@@ -642,7 +652,6 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`')
 
-        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -652,8 +661,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        if not model_provided:
-            self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
+        self.tested_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
 
         # run test
         results = self._run(model)
@@ -687,9 +695,9 @@ class Trainer(
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to use to predict.
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
                 If ``None``, use the current weights of the model.
-                When the model is given as argument, this parameter will not apply.
+                When the model is given as argument, we load the ckpt path.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -713,7 +721,6 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
-        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -723,8 +730,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        if not model_provided:
-            self.predicted_ckpt_path = self.__load_ckpt_weights(ckpt_path)
+        self.predicted_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
 
         results = self._run(model)
 
@@ -795,6 +801,15 @@ class Trainer(
 
         return result
 
+    @property
+    def ckpt_path(self) -> Optional[str]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validated_ckpt_path
+        if self.state.fn == TrainerFn.TESTING:
+            return self.tested_ckpt_path
+        if self.state.fn == TrainerFn.PREDICTING:
+            return self.predicted_ckpt_path
+
     def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
@@ -822,6 +837,15 @@ class Trainer(
         self.checkpoint_connector.restore_model()
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
+
+        if self.ckpt_path:
+            # only one process running at this point for TPUs, as spawn isn't triggered yet
+            # todo: move this logic internally within the barrier.
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
+
+            rank_zero_info(f"Loading checkpoint from {self.ckpt_path}")
+            self.checkpoint_connector.restore_model_weights(self.ckpt_path)
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -891,11 +915,24 @@ class Trainer(
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
+        self._log_hyperparams()
 
+    def _log_hyperparams(self):
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
+            lightning_hparams = self.lightning_module.hparams_initial
+            colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
+            if colliding_keys:
+                raise MisconfigurationException(
+                    f"Error while merging hparams: the keys {colliding_keys} are present "
+                    "in both the LightningModule's and LightningDataModule's hparams."
+                )
+
+            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+
+            self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
@@ -958,8 +995,6 @@ class Trainer(
             self.progress_bar_callback.disable()
 
         self._run_sanity_check(self.lightning_module)
-
-        self.checkpoint_connector.has_trained = False
 
         # enable train mode
         self.model.train()
@@ -1049,13 +1084,13 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
-    def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
-        if ckpt_path is None:
+    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool) -> Optional[str]:
+        if model_provided and ckpt_path is None:
             return
 
         fn = self.state.fn.value
 
-        if ckpt_path == 'best':
+        if model_provided and ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
@@ -1074,13 +1109,6 @@ class Trainer(
                 f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
                 f' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
             )
-
-        # only one process running at this point for TPUs, as spawn isn't triggered yet
-        # todo: move this logic internally within the barrier.
-        if not self._device_type == DeviceType.TPU:
-            self.training_type_plugin.barrier()
-
-        self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
     def _call_setup_hook(self, model: 'pl.LightningModule') -> None:
@@ -1161,6 +1189,18 @@ class Trainer(
 
         return output
 
+    def _parse_devices(
+        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
+                                                                                                            str, int]]
+    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+        if auto_select_gpus and isinstance(gpus, int):
+            gpus = pick_multiple_gpus(gpus)
+
+        # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
+        gpu_ids = device_parser.parse_gpu_ids(gpus)
+        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        return gpu_ids, tpu_cores
+
     @staticmethod
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
@@ -1191,7 +1231,7 @@ class Trainer(
     def _log_device_info(self) -> None:
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
 
         num_ipus = self.ipus if self.ipus is not None else 0
