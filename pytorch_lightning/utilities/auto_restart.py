@@ -255,22 +255,9 @@ class CaptureIterableDataset(IterableDataset):
             out = []
             for k, v in data.items():
                 if k == AutoRestartBatchKeys.PL_SAMPLERS:
-                    iterable_dataset_state_dict = {}
-                    for sampler_name, sampler_state_dict in v.items():
-                        iterable_dataset_state_dict[sampler_name] = {
-                            worker_id: {
-                                # each sampler in the worker process tracks the current iteration
-                                # we return all of them to the main process as part of the sample and
-                                # the default collate_fn will convert them to a Tensor
-                                # the real current iteration is the one of the last sample in the batch
-                                "current_iteration": sampler_state_dict[worker_id]["current_iteration"]
-                            }
-                            for worker_id in sampler_state_dict.keys()
-                        }
-                    state_dicts.append(iterable_dataset_state_dict)
+                    state_dicts.append(v)
                     return data["data"]
                 out.append((k, CaptureIterableDataset._sanetize_batch_from_sampler_state(v, state_dicts)))
-
             return out
 
         return apply_to_collection(data, Mapping, _sanetize)
