@@ -370,7 +370,6 @@ class CombinedLoader(object):
             return {}
 
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
-            nonlocal num_batches_processed
             # find next worker if multiple workers were used
             state = find_current_worker(iterator)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
