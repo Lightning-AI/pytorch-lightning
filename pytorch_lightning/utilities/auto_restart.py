@@ -227,7 +227,7 @@ class CaptureIterableDataset(IterableDataset):
                 iterator._sampler_state_dict_cache = sampler_state_dict
 
     @staticmethod
-    def _sanetize_batch_from_sampler_state(data: Any, state_dicts: List):
+    def _sanitize_batch_from_sampler_state(data: Any, state_dicts: List):
         """
         This function is used to remove the sampler state dict from provided data batch.
         The custom data has this format:
@@ -251,16 +251,16 @@ class CaptureIterableDataset(IterableDataset):
         will extract the current iteration as part of the metadata returned by a custom batch.
         """
 
-        def _sanetize(data: Mapping):
+        def _sanitize(data: Mapping):
             out = []
             for k, v in data.items():
                 if k == AutoRestartBatchKeys.PL_SAMPLERS:
                     state_dicts.append(v)
                     return data["data"]
-                out.append((k, CaptureIterableDataset._sanetize_batch_from_sampler_state(v, state_dicts)))
+                out.append((k, CaptureIterableDataset._sanitize_batch_from_sampler_state(v, state_dicts)))
             return out
 
-        return apply_to_collection(data, Mapping, _sanetize)
+        return apply_to_collection(data, Mapping, _sanitize)
 
     @staticmethod
     def extract_samplers_state_dict_from_batch(batch) -> List[Dict[int, Any]]:
@@ -269,7 +269,7 @@ class CaptureIterableDataset(IterableDataset):
         """
         samplers_state_dict = []
 
-        batch = CaptureIterableDataset._sanetize_batch_from_sampler_state(batch, samplers_state_dict)
+        batch = CaptureIterableDataset._sanitize_batch_from_sampler_state(batch, samplers_state_dict)
 
         return batch, samplers_state_dict
 
