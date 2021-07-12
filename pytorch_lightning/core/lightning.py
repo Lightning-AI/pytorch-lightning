@@ -108,7 +108,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
-        self._log_hyperparams = True
         self._metric_attributes: Optional[Dict[int, str]] = None
 
         # deprecated, will be removed in 1.6
