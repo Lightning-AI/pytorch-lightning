@@ -50,6 +50,7 @@ module = [
     "pytorch_lightning.utilities.*",
     "pl_examples.*",
     "benchmarks.*",
+    "tests.helpers.*"
 ]
 ignore_errors = "True"
 
