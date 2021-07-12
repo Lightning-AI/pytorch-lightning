@@ -277,7 +277,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     initial_seed = seed_everything(42)
     generator.manual_seed(initial_seed)
-    dataset = RangeIterableDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
+    dataset = RangeIterableDataset(range(20), num_workers, batch_size, state_dict=state_dict)
     dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
@@ -377,7 +377,7 @@ class MetaLearningDataset(IterableDataset):
         num_workers: Optional[int] = None,
         global_rank: Optional[int] = None,
         world_size: Optional[int] = None,
-        initial_seed: Optional[torch.Generator] = None,
+        initial_seed: Optional[int] = None,
         shuffle: bool = True,
         debugging: bool = False,
     ):
@@ -712,11 +712,11 @@ def test_combined_dataloader_state_dict_and_reload():
     iter_dataloader = iter(prefetch_iterator(dataloader))
     num_batches_processed = 4
     for idx in range(1, num_batches_processed):
-        _, _, prefected_iterator = next(iter_dataloader)
+        _, _, prefetched_iterator = next(iter_dataloader)
 
-        loader_iters = prefected_iterator._loader_iters
+        loader_iters = prefetched_iterator._loader_iters
 
-        # when deadling with IterativeDataset,
+        # when dealing with IterativeDataset,
         # the sampler state dict will be attached directly onto the iterator to simplify collection.
 
         if idx == 1:
@@ -791,9 +791,9 @@ def test_combined_dataloader_state_dict_and_reload():
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
-    _, _, prefected_iterator = next(iter_dataloader)
+    _, _, prefetched_iterator = next(iter_dataloader)
 
-    loader_iters = prefected_iterator._loader_iters
+    loader_iters = prefetched_iterator._loader_iters
 
     assert loader_iters["a"][0]._sampler_state_dict == [{
         'num_workers': 2,

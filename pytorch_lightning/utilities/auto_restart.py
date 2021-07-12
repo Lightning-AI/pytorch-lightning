@@ -13,9 +13,9 @@
 # limitations under the License.
 from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, Dict, Generator, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
 
-from torch.utils.data import get_worker_info, Sampler
+from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -373,7 +373,7 @@ def find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
-def sampler_metadata_collate(samples: List[Any], dataset, default_collate):
+def sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
     """
     A collate function that adds the state dict of all samplers used in the worker processes.
 
