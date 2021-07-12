@@ -1081,7 +1081,8 @@ class Trainer(
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         if model_provided and ckpt_path is None:
-            return  # use passed model to function without loading weights
+            # use passed model to function without loading weights
+            return
 
         fn = self.state.fn.value
 
