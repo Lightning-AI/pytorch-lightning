@@ -40,8 +40,8 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -906,7 +906,7 @@ def test_dataloader_to_state_dict_and_reload():
 
 
 @pytest.mark.parametrize("use_fault_tolerant", ['0', '1'])
-@RunIf(min_torch="1.6.0")
+@RunIf(min_torch="1.7.0")
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """
     this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.

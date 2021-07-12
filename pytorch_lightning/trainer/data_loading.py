@@ -32,8 +32,11 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, FastForwardSampler
-from pytorch_lightning.utilities.auto_restart import sampler_metadata_collate
+from pytorch_lightning.utilities.auto_restart import (
+    CaptureIterableDataset,
+    FastForwardSampler,
+    sampler_metadata_collate,
+)
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -180,7 +183,7 @@ class TrainerDataLoadingMixin(ABC):
             dl_args['drop_last'] = False
         else:
             if should_use_forward_sampler:
-                fast_forward_sampler = sampler = FastForwardSampler(sampler)
+                sampler = FastForwardSampler(sampler)
 
             dl_args['sampler'] = sampler
             dl_args['shuffle'] = False
@@ -189,7 +192,7 @@ class TrainerDataLoadingMixin(ABC):
         if should_use_forward_sampler:
             # the forward sampler need to be informed about
             batch_size = dl_args["batch_size"]
-            fast_forward_sampler.setup(batch_size)
+            sampler.setup(batch_size)
 
         return dl_args
 
