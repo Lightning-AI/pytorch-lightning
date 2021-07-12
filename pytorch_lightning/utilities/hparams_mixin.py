@@ -27,6 +27,7 @@ class HyperparametersMixin(object):
     __jit_unused_properties__ = ["hparams", "hparams_initial"]
 
     def __init__(self) -> None:
+        super().__init__()
         self._log_hyperparams = True
 
     def save_hyperparameters(
