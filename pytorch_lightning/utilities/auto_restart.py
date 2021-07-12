@@ -232,6 +232,7 @@ class CaptureIterableDataset(IterableDataset):
 
     @staticmethod
     def _sanetize_batch_from_sampler_state(data: Any, state_dicts: List):
+
         def _sanetize(data: Mapping):
             out = []
             for k, v in data.items():
@@ -245,7 +246,8 @@ class CaptureIterableDataset(IterableDataset):
                                 # the default collate_fn will convert them to a Tensor
                                 # the real current iteration is the one of the last sample in the batch
                                 "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
-                            } for worker_id in sampler_state_dict.keys()
+                            }
+                            for worker_id in sampler_state_dict.keys()
                         }
                     state_dicts.append(iterable_dataset_state_dict)
                     return data["data"]
