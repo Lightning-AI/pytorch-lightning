@@ -23,7 +23,7 @@ To run the test set after training completes, use this method.
     trainer.test()
 
     # (2) don't load a checkpoint, instead use the model with the latest weights
-    trainer.test(ckpt_path=None)
+    trainer.test(model)
 
     # (3) test using a specific checkpoint
     trainer.test(ckpt_path='/path/to/my_checkpoint.ckpt')

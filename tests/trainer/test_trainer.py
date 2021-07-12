@@ -1314,9 +1314,9 @@ def test_trainer_setup_call(tmpdir, stage):
     if stage == "fit":
         trainer.fit(model)
     elif stage == "validate":
-        trainer.validate(model, ckpt_path=None)
+        trainer.validate(model)
     else:
-        trainer.test(model, ckpt_path=None)
+        trainer.test(model)
 
     assert trainer.stage == stage
     assert trainer.lightning_module.stage == stage
