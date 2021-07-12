@@ -319,6 +319,7 @@ class CombinedDataset(object):
 
 
 class DataLoaderDict(Dict):
+    # behaves exactly like a dict, just necessary for more specific typechecks.
     pass
 
 
