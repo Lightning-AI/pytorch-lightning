@@ -19,7 +19,7 @@ from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
-from pytorch_lightning.utilities.apply_func import _is_dataclass_instance, _is_namedtuple
+from pytorch_lightning.utilities.apply_func import _is_dataclass_instance, _is_namedtuple, apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -211,13 +211,8 @@ class CaptureIterableDataset(IterableDataset):
         # fetch next data
         data = next(self.iter_data)
 
-        # create current samplers state_dict
-        worker_info = get_worker_info()
-        state_dicts = {"id": worker_info.id if worker_info is not None else 0}
-        state_dicts.update({k: v.state_dict() for k, v in self.samplers.items()})
-
         # return both current data and samplers ``state_dict``.
-        return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: state_dicts}
+        return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: {k: v.state_dict() for k, v in self.samplers.items()}}
 
     @staticmethod
     def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
@@ -236,20 +231,12 @@ class CaptureIterableDataset(IterableDataset):
                 iterator._sampler_state_dict_cache = sampler_state_dict
 
     @staticmethod
-    def _sanetize_batch_from_sampler_state(data: Any, state_dict: List):
-        """
-        This function is used to remove the sampler state dict from provided data batch.
-        """
-        elem_type = type(data)
-
-        # Recursively apply to collection items
-        if isinstance(data, Mapping):
+    def _sanetize_batch_from_sampler_state(data: Any, state_dicts: List):
+        def _sanetize(data: Mapping):
             out = []
             for k, v in data.items():
                 if k == AutoRestartBatchKeys.PL_SAMPLERS:
                     iterable_dataset_state_dict = {}
-                    batch_worker_id = v.pop("id")
-                    worker_id = batch_worker_id[-1].item()
                     for sampler_name, sampler_state_dict in v.items():
                         iterable_dataset_state_dict[sampler_name] = {
                             worker_id: {
@@ -258,30 +245,15 @@ class CaptureIterableDataset(IterableDataset):
                                 # the default collate_fn will convert them to a Tensor
                                 # the real current iteration is the one of the last sample in the batch
                                 "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
-                            }
+                            } for worker_id in sampler_state_dict.keys()
                         }
-                    state_dict.append(iterable_dataset_state_dict)
+                    state_dicts.append(iterable_dataset_state_dict)
                     return data["data"]
-                out.append((k, CaptureIterableDataset._sanetize_batch_from_sampler_state(v, state_dict)))
-            return elem_type(OrderedDict(out))
+                out.append((k, CaptureIterableDataset._sanetize_batch_from_sampler_state(v, state_dicts)))
 
-        is_namedtuple = _is_namedtuple(data)
-        is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
-        if is_namedtuple or is_sequence:
-            out = []
-            for d in data:
-                v = CaptureIterableDataset._sanetize_batch_from_sampler_state(d, state_dict)
-                out.append(v)
-            return elem_type(*out) if is_namedtuple else elem_type(out)
+            return out
 
-        if _is_dataclass_instance(data):
-            out = dict()
-            for field in data.__dataclass_fields__:
-                v = CaptureIterableDataset._sanetize_batch_from_sampler_state(getattr(data, field), state_dict)
-                out[field] = v
-            return elem_type(**out)
-
-        return data
+        return apply_to_collection(data, Mapping, _sanetize)
 
     @staticmethod
     def extract_samplers_state_dict_from_batch(batch) -> List[Dict[int, Any]]:
