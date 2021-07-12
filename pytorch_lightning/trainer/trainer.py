@@ -458,15 +458,10 @@ class Trainer(
         self.test_dataloaders = None
         self.val_dataloaders = None
 
-        # .validate() and .test() set this when they load a checkpoint
-        self.validated_ckpt_path = None
-        self.tested_ckpt_path = None
-
         # when true, print evaluation results in .validate() and .test()
         self.verbose_evaluate = True
 
         self.num_predict_batches = []
-        self.predicted_ckpt_path = None
 
     def fit(
         self,
@@ -810,15 +805,6 @@ class Trainer(
 
         return result
 
-    @property
-    def ckpt_path(self) -> Optional[str]:
-        if self.state.fn == TrainerFn.VALIDATING:
-            return self.validated_ckpt_path
-        if self.state.fn == TrainerFn.TESTING:
-            return self.tested_ckpt_path
-        if self.state.fn == TrainerFn.PREDICTING:
-            return self.predicted_ckpt_path
-
     def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
@@ -850,14 +836,14 @@ class Trainer(
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
-        if self.ckpt_path:
+        if self._ckpt_path:
             # only one process running at this point for TPUs, as spawn isn't triggered yet
             # todo: move this logic internally within the barrier.
             if not self._device_type == DeviceType.TPU:
                 self.training_type_plugin.barrier()
 
-            rank_zero_info(f"Loading checkpoint from {self.ckpt_path}")
-            self.checkpoint_connector.restore_model_weights(self.ckpt_path)
+            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
+            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1094,11 +1080,11 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
-        if model_provided and (ckpt_path in ('best', None)):
-            return  # use passed model to function without loading weights
-
         if model_connected and ckpt_path is None:
             return  # use connected model without loading weights
+
+        if model_provided and ckpt_path in ('best', None):
+            return  # use passed model to function without loading weights
 
         fn = self.state.fn.value
 
