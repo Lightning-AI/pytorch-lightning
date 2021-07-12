@@ -367,7 +367,7 @@ class CombinedLoader(object):
 
     def state_dict(self, num_batches_processed: int):
         if not fault_tolerant_enabled():
-            return {}
+            return DateLoaderDict()
 
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
             # find next worker if multiple workers were used
