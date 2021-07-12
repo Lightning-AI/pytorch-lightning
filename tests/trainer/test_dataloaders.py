@@ -741,7 +741,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     ):
         if stage == 'test':
             if ckpt_path == 'specific':
-                trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
+                trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
             ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == 'specific' else ckpt_path
             trainer.test(model, test_dataloaders=train_dl, ckpt_path=ckpt_path)
         else:
