@@ -99,9 +99,6 @@ class Loop(ABC):
         Returns:
             the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
-        if self.trainer is None:
-            raise MisconfigurationException(f"The {self.__class__.__name__} Loop hasn't been attached to any Trainer.")
-
         if self.skip:
             return self.on_skip()
 
