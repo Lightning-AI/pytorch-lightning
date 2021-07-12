@@ -601,7 +601,7 @@ def test_invalid_trigger_combination(tmpdir):
 def test_none_every_n_train_steps_val_epochs(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
     assert checkpoint_callback.period == 1
-    assert checkpoint_callback._every_n_val_epochs == 1
+    assert checkpoint_callback._every_n_epochs == 1
     assert checkpoint_callback._every_n_train_steps == 0
 
 
@@ -892,6 +892,8 @@ def test_model_checkpoint_save_last_warning(
         default_root_dir=tmpdir,
         callbacks=[ckpt],
         max_epochs=max_epochs,
+        limit_train_batches=1,
+        limit_val_batches=1,
     )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
@@ -910,6 +912,8 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
+        limit_train_batches=2,
+        limit_val_batches=2,
     )
     trainer.fit(model)
 
