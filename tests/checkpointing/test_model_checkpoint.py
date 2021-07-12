@@ -558,44 +558,42 @@ def test_none_monitor_save_last(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
 
-def test_invalid_every_n_val_epochs(tmpdir):
-    """ Make sure that a MisconfigurationException is raised for a negative every_n_val_epochs argument. """
+def test_invalid_every_n_epochs(tmpdir):
+    """ Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument. """
     with pytest.raises(MisconfigurationException, match=r'.*Must be >= 0'):
-        ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=-3)
+        ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-3)
     # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=0)
-    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=1)
-    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=2)
 
 
 def test_invalid_every_n_train_steps(tmpdir):
-    """ Make sure that a MisconfigurationException is raised for a negative every_n_val_epochs argument. """
+    """ Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument. """
     with pytest.raises(MisconfigurationException, match=r'.*Must be >= 0'):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=-3)
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0)
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1)
-    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
+    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=2)
 
 
 def test_invalid_trigger_combination(tmpdir):
     """
     Test that a MisconfigurationException is raised if more than one of
-    every_n_val_epochs, every_n_train_steps, and train_time_interval are enabled together.
+    every_n_epochs, every_n_train_steps, and train_time_interval are enabled together.
     """
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
-        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
+        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_epochs=2)
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
-        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
+        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_epochs=2)
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
         ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
 
     # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=3)
-    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_val_epochs=0)
-    ModelCheckpoint(
-        dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=0, train_time_interval=timedelta(minutes=1)
-    )
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_epochs=3)
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_epochs=0)
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_epochs=0, train_time_interval=timedelta(minutes=1))
 
 
 def test_none_every_n_train_steps_val_epochs(tmpdir):
@@ -659,12 +657,12 @@ def test_model_checkpoint_period(tmpdir, period: int):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
-def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
+@pytest.mark.parametrize("every_n_epochs", list(range(4)))
+def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_val_epochs=every_n_val_epochs
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -677,22 +675,17 @@ def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs)
-                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
-def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epochs):
-    """ Tests that if period is set, it takes precedence over every_n_val_epochs for backwards compatibility. """
+@pytest.mark.parametrize("every_n_epochs", list(range(4)))
+def test_model_checkpoint_every_n_epochs_and_period(tmpdir, every_n_epochs):
+    """ Tests that if period is set, it takes precedence over every_n_epochs for backwards compatibility. """
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir,
-        filename='{epoch}',
-        save_top_k=-1,
-        every_n_val_epochs=(2 * every_n_val_epochs),
-        period=every_n_val_epochs
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=(2 * every_n_epochs), period=every_n_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -705,8 +698,7 @@ def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epoc
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs)
-                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -719,7 +711,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(
         filename="{step}",
-        every_n_val_epochs=0,
+        every_n_epochs=0,
         every_n_train_steps=every_n_train_steps,
         dirpath=tmpdir,
         save_top_k=-1,
