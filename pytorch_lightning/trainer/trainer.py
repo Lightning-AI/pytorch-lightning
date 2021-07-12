@@ -838,6 +838,9 @@ class Trainer(
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
 
+        self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
+        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+
         if self.ckpt_path:
             # only one process running at this point for TPUs, as spawn isn't triggered yet
             # todo: move this logic internally within the barrier.
@@ -846,9 +849,6 @@ class Trainer(
 
             rank_zero_info(f"Loading checkpoint from {self.ckpt_path}")
             self.checkpoint_connector.restore_model_weights(self.ckpt_path)
-
-        self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
-        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
