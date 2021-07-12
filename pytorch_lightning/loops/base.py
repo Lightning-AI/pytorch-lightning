@@ -210,8 +210,8 @@ class Loop(ABC):
                 v.load_state_dict(state_dict[prefix + k])
                 if restart_progress:
 
-                    def restart(v: Tracker):
-                        v.reset_on_restart()
+                    def restart(tracker: Tracker):
+                        tracker.reset_on_restart()
 
                     apply_to_collection(v, Tracker, restart)
 
