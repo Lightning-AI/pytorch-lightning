@@ -73,7 +73,6 @@ class TrainerProperties(ABC):
     validated_ckpt_path: str = None
     tested_ckpt_path: str = None
     predicted_ckpt_path: str = None
-
     """
     Accelerator properties
     """
