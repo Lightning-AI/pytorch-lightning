@@ -324,7 +324,7 @@ And for the old TPU + 2VM architecture, you could set it by:
 
 .. code-block:: bash
 
-    export TPU_IP_ADDRESS=10.39.209.42  # You could get the IP Address on GCP TPUs section
+    export TPU_IP_ADDRESS=10.39.209.42  # You could get the IP Address in the GCP TPUs section
     export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 
 - **How to clear up the programs using TPUs in the background**
@@ -345,7 +345,8 @@ Sometimes, there can still be old programs running on the TPUs, which would make
         .format(len(local_devices), len(kind_devices)))
     RuntimeError: Cannot replicate if number of devices (1) is different from 8
 
-This error is raised when the XLA device is called outside the spawn process. Don't call ``xm.xla_device()`` outside spawn.
+This error is raised when the XLA device is called outside the spawn process. Internally in `TPUSpawn` Plugin for training on multiple tpu cores, we use XLA's `xmp.spawn`.
+Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 - **Unsupported datatype transfer to TPU**
 
