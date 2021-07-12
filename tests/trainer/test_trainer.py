@@ -689,8 +689,7 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             trainer_fn(model, ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
-        # ckpt_path is None, meaning we don't load any checkpoints and
-        # use the model
+        # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
         trainer_fn(model, ckpt_path=ckpt_path)
         assert getattr(trainer, path_attr) is None
 
