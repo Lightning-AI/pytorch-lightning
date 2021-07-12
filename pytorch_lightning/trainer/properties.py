@@ -70,9 +70,9 @@ class TrainerProperties(ABC):
     predict_loop: PredictionLoop
 
     # .validate() and .test() set this when they load a checkpoint
-    validated_ckpt_path: str = None
-    tested_ckpt_path: str = None
-    predicted_ckpt_path: str = None
+    validated_ckpt_path: Optional[str] = None
+    tested_ckpt_path: Optional[str] = None
+    predicted_ckpt_path: Optional[str] = None
     """
     Accelerator properties
     """
