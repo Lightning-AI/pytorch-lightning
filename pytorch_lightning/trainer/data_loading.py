@@ -211,7 +211,7 @@ class TrainerDataLoadingMixin(ABC):
         contains_iterable_dataset = has_iterable_dataset(dataloader)
         if not contains_iterable_dataset:
             dl_args = self._resolve_batch_sampler(
-                dl_args, dataloader, sampler, mode=mode, should_use_forward_sampler=fault_tolerant_enabled()
+                dl_args, dataloader, sampler, mode=mode, should_use_forward_sampler=_fault_tolerant_enabled()
             )
 
         multiprocessing_context = dataloader.multiprocessing_context
@@ -240,7 +240,7 @@ class TrainerDataLoadingMixin(ABC):
             dl_args.pop('dataset')
         else:
             # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
-            if fault_tolerant_enabled() and isinstance(dl_args["dataset"], IterableDataset):
+            if _fault_tolerant_enabled() and isinstance(dl_args["dataset"], IterableDataset):
                 # force the seed in the ``Dataset``
                 seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch + self.global_rank
 
