@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
@@ -162,15 +161,20 @@ def test_loop_hierarchy():
     loop_parent.trainer = Trainer()
     assert loop_child.trainer == loop_parent.trainer
 
-    assert state_dict == OrderedDict([('state_dict', {
-        'a': 1
-    }), ('progress', {
-        'increment': 0
-    }), ('loop_child.state_dict', {
-        'a': 2
-    }), ('loop_child.progress', {
-        'increment': 0
-    })])
+    assert state_dict == {
+        'state_dict': {
+            'a': 1
+        },
+        'progress': {
+            'increment': 0
+        },
+        'loop_child.state_dict': {
+            'a': 2
+        },
+        'loop_child.progress': {
+            'increment': 0
+        }
+    }
 
     loop_parent.progress
 
@@ -190,15 +194,20 @@ def test_loop_hierarchy():
     assert not loop_parent.restarting
 
     state_dict = loop_parent.state_dict()
-    assert state_dict == OrderedDict([('state_dict', {
-        'a': 1
-    }), ('progress', {
-        'increment': 1
-    }), ('loop_child.state_dict', {
-        'a': 3
-    }), ('loop_child.progress', {
-        'increment': 0
-    })])
+    assert state_dict == {
+        'state_dict': {
+            'a': 1
+        },
+        'progress': {
+            'increment': 1
+        },
+        'loop_child.state_dict': {
+            'a': 3
+        },
+        'loop_child.progress': {
+            'increment': 0
+        }
+    }
 
     loop_parent = Simple(1)
     loop_child = Simple(2)
@@ -209,7 +218,7 @@ def test_loop_hierarchy():
 
     del loop_parent.loop_child
     state_dict = loop_parent.state_dict()
-    assert state_dict == OrderedDict([('state_dict', {'a': 1}), ('progress', {'increment': 1})])
+    assert state_dict == {'state_dict': {'a': 1}, 'progress': {'increment': 1}}
 
     grand_loop_parent = Simple(0)
     loop_parent = Simple(1)
