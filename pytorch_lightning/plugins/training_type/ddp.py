@@ -27,7 +27,6 @@ import numpy as np
 import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -361,7 +360,7 @@ class DDPPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)

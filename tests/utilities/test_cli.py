@@ -761,7 +761,8 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     cli_args = [
         f'--trainer.default_root_dir={tmpdir}',
         '--trainer.max_epochs=1',
-        '--optim2={"class_path": "torch.optim.SGD", "init_args": {"lr": 0.01}}',
+        '--optim2.class_path=torch.optim.SGD',
+        '--optim2.init_args.lr=0.01',
         '--lr_scheduler.gamma=0.2',
     ]
 

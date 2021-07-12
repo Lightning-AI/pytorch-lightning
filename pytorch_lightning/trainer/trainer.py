@@ -903,11 +903,24 @@ class Trainer(
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
+        self._log_hyperparams()
 
+    def _log_hyperparams(self):
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
+            lightning_hparams = self.lightning_module.hparams_initial
+            colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
+            if colliding_keys:
+                raise MisconfigurationException(
+                    f"Error while merging hparams: the keys {colliding_keys} are present "
+                    "in both the LightningModule's and LightningDataModule's hparams."
+                )
+
+            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+
+            self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
@@ -1213,7 +1226,7 @@ class Trainer(
     def _log_device_info(self) -> None:
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
 
         num_ipus = self.ipus if self.ipus is not None else 0
