@@ -335,7 +335,7 @@ def dataloader_to_state_dict(
     """
     out = {}
     if iterator is not None:
-        out.update(find_current_worker(iterator))
+        out.update(_find_current_worker(iterator))
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = find_fast_forward_samplers(dataloader)
@@ -357,10 +357,8 @@ def dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str
     return dataloader
 
 
-def find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
-    """
-    Find the current DataLoader Iterator worker if multiple workers were used..
-    """
+def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
+    """Find the current DataLoader Iterator worker if multiple workers were used."""
     num_workers = getattr(iterator, "_num_workers", 0)
     if isinstance(iterator, _MultiProcessingDataLoaderIter):
         next_worker = (next(iterator._worker_queue_idx_cycle)) % num_workers
