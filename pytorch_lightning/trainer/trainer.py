@@ -589,7 +589,9 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.validated_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None)
+        self.validated_ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        )
 
         # run validate
         results = self._run(model)
@@ -663,7 +665,9 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.tested_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None)
+        self.tested_ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        )
 
         # run test
         results = self._run(model)
@@ -733,7 +737,9 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.predicted_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None)
+        self.predicted_ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        )
 
         results = self._run(model)
 
@@ -1087,7 +1093,7 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
-    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected:bool) -> Optional[str]:
+    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         """
         If a user passes the model, we want to use this regardless.
         If a user passes the model, with best weights ckpt_path being something other than best or None, we load the weight
