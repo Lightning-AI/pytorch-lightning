@@ -189,6 +189,9 @@ class Loop(ABC):
 
         return destination
 
+    def load_state_dict(self, state_dict: Dict, restart_progress: bool = True):
+        self.__load(state_dict.copy(), restart_progress)
+
     def _load_from_state_dict(self, state_dict, prefix, restart_progress):
         for k, v in self.__dict__.items():
             if isinstance(v, BaseProgress):
@@ -208,6 +211,3 @@ class Loop(ABC):
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
                 v.__load(state_dict.copy(), restart_progress, prefix + k + '.')
-
-    def load_state_dict(self, state_dict: Dict, restart_progress: bool = True):
-        self.__load(state_dict.copy(), restart_progress)
