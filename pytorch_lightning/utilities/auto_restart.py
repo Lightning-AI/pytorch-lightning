@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
+import torch
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
@@ -123,6 +124,15 @@ class FastForwardSampler(Sampler):
             return
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
         self.restarting = True
+
+    def _get_rng_states(self):
+
+        def _collect(gen: torch.Generator):
+            return gen.get_state()
+
+        states = apply_to_collection(self.__dict__, torch.Generator, _collect)
+        states["__global"] = torch.get_rng_state()
+        return states
 
 
 class CaptureIterableDataset(IterableDataset):
