@@ -29,8 +29,9 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     dataloader_load_state_dict,
@@ -263,7 +264,10 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator.manual_seed(initial_seed)
     dataset = RangeIterableDataset(range(20), num_workers, batch_size, True)
     dataset = CaptureIterableDataset(dataset, num_workers)
+
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
+
     iter_dataloader = iter(dataloader)
     batches = []
     for _ in range(5):
@@ -285,6 +289,8 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
+
     iter_dataloader = iter(dataloader)
     batches_restart = []
     for _ in range(3):
@@ -539,6 +545,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     )
     dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
 
     epoch_results = []
     for _ in range(2):
@@ -561,8 +568,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert torch.equal(
             epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"]
         )
-        assert epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 0
-        assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
+        assert 0 in epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["iter_sampler"]  # worker id 0
+        assert 1 in epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["iter_sampler"]  # worker id 1
         assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
     else:
         first_task_metadata = all_gather(epoch_results[0][0]["data"]["task_length"], worldsize)
@@ -599,6 +606,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
 
     epoch_results_restart = []
     for _ in range(2):
@@ -701,6 +709,7 @@ def test_combined_dataloader_state_dict_and_reload():
         yield last, True, it
 
     dataloader = create_dataloader()
+    apply_to_collection(dataloader, DataLoader, Trainer._add_sampler_metadata_collate)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
     num_batches_processed = 4
@@ -780,6 +789,7 @@ def test_combined_dataloader_state_dict_and_reload():
     assert state_dict == expected
 
     dataloader = create_dataloader()
+    apply_to_collection(dataloader, DataLoader, Trainer._add_sampler_metadata_collate)
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))

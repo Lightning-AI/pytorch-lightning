@@ -19,6 +19,7 @@ from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import torch
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -30,6 +31,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import sampler_metadata_collate
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -259,6 +261,9 @@ class TrainerDataLoadingMixin(ABC):
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
+        # add collate_fn to collect metadata for fault tolerant training
+        apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
+
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
 
@@ -482,3 +487,9 @@ class TrainerDataLoadingMixin(ABC):
                 dataloaders = list(dataloaders)
 
         return dataloaders
+
+    @staticmethod
+    def _add_sampler_metadata_collate(dataloader: DataLoader):
+        default_collate = dataloader.collate_fn
+        dataset = dataloader.dataset
+        dataloader.collate_fn = partial(sampler_metadata_collate, dataset=dataset, default_collate=default_collate)

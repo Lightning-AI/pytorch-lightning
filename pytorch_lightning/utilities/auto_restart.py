@@ -208,11 +208,7 @@ class CaptureIterableDataset(IterableDataset):
         return self
 
     def __next__(self) -> Dict[str, Any]:
-        # fetch next data
-        data = next(self.iter_data)
-
-        # return both current data and samplers ``state_dict``.
-        return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: {k: v.state_dict() for k, v in self.samplers.items()}}
+        return next(self.iter_data)
 
     @staticmethod
     def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
@@ -261,7 +257,7 @@ class CaptureIterableDataset(IterableDataset):
                                 # we return all of them to the main process as part of the sample and
                                 # the default collate_fn will convert them to a Tensor
                                 # the real current iteration is the one of the last sample in the batch
-                                "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
+                                "current_iteration": sampler_state_dict[worker_id]["current_iteration"]
                             }
                             for worker_id in sampler_state_dict.keys()
                         }
@@ -383,3 +379,25 @@ def find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
         previous_worker = None
 
     return {"num_workers": num_workers, "previous_worker": previous_worker}
+
+
+def sampler_metadata_collate(samples: List[Any], dataset, default_collate):
+    """
+    A collate function that adds the state dict of all samplers used in the worker processes.
+
+    The structure will be:
+
+    .. code-block:: python
+
+        {
+            "data": data returned by Dataset
+            "__pl_samplers__": {
+                "sampler_name0": state_dict
+                "sampler_name1": state_dict
+            }
+        }
+    """
+    batch = default_collate(samples)
+    if not isinstance(dataset, CaptureIterableDataset):
+        return batch
+    return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: {k: v.state_dict() for k, v in dataset.samplers.items()}}
