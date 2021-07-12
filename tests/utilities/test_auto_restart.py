@@ -214,19 +214,10 @@ def test_fast_forward_on_random_sampler():
 
 class RangeIterableDataset(IterableDataset):
 
-    def __init__(
-        self,
-        data,
-        num_workers: int,
-        batch_size: int,
-        is_in_workers: bool,
-        state_dict=None,
-        attr_name: str = "iter_sampler"
-    ):
+    def __init__(self, data, num_workers: int, batch_size: int, state_dict=None, attr_name: str = "iter_sampler"):
         self.data = list(data)
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.is_in_workers = is_in_workers
         self.state_dict = state_dict
         self.attr_name = attr_name
 
@@ -670,9 +661,7 @@ def test_combined_dataloader_state_dict_and_reload():
     """
 
     def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
-        dataset = RangeIterableDataset(
-            range(50), num_workers=num_workers, batch_size=batch_size, is_in_workers=True, attr_name=attr_name
-        )
+        dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
         return CaptureIterableDataset(dataset)
 
     def create_dataloader():
