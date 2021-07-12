@@ -176,6 +176,14 @@ class Loop(ABC):
         """Called when loading a model checkpoint, use to reload loop state."""
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = '') -> Dict:
+        """
+        The state dict is determined by the state and progress of this loop and all its children.
+
+        Args:
+            destination: An existing dictionary to update with this loop's state. By default a new dictionary
+                is returned.
+            prefix: A prefix for each key in the state dictionary
+        """
         if destination is None:
             destination = {}
 
@@ -190,6 +198,7 @@ class Loop(ABC):
         return destination
 
     def load_state_dict(self, state_dict: Dict, restart_progress: bool = True):
+        """ Loads the state of this loop and all its children. """
         self.__load(state_dict.copy(), restart_progress)
 
     def _load_from_state_dict(self, state_dict, prefix, restart_progress):
