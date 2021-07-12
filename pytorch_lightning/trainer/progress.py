@@ -143,7 +143,7 @@ class BatchProgress(Progress):
 @dataclass
 class TrainingEpochProgress(Progress):
     """
-    Tracks the batch progress
+    Tracks the epoch progress
 
     Args:
         total: Tracks the total epoch progress
