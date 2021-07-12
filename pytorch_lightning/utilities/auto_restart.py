@@ -232,6 +232,23 @@ class CaptureIterableDataset(IterableDataset):
 
     @staticmethod
     def _sanetize_batch_from_sampler_state(data: Any, state_dicts: List):
+        """
+        This function is used to remove the sampler state dict from provided data batch.
+        The custom data has this format:
+
+        {
+            "batch": data returned by DataLoader
+            AutoRestartBatchKeys.PL_SAMPLERS: {
+                "sampler0": {
+                    0: { "current_iteration": ... }
+                    1: { "current_iteration": ... }
+                    ...
+                }
+                "sampler1": ...
+            }
+        }
+        """
+    
         def _sanetize(data: Mapping):
             out = []
             for k, v in data.items():
