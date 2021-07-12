@@ -41,7 +41,7 @@ class HyperparametersMixin:
             ignore: an argument name or a list of argument names from
                 class ``__init__`` to be ignored
             frame: a frame object. Default is None
-            logger: Whether to save hyperparameters by logger. Default: True
+            logger: Whether to send the hyperparameters to the logger. Default: True
 
         Example::
             >>> class ManuallyArgsModel(HyperparametersMixin):
