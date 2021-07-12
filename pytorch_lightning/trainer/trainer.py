@@ -538,8 +538,8 @@ class Trainer(
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
-                If ``None``, use the current weights of the model if provided, or the best model from ``trainer.fit``.
-                When the model and the ckpt path are passed as arguments, we load the ckpt path.
+                If ``None`` and the model instance was passed, use the current weights.
+                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
 
             verbose: If True, prints the validation results.
 
@@ -616,8 +616,8 @@ class Trainer(
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the current weights of the model if provided, or the best model from ``trainer.fit``.
-                When the model and the ckpt path are passed as arguments, we load the ckpt path.
+                If ``None`` and the model instance was passed, use the current weights.
+                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
 
             verbose: If True, prints the test results.
 
@@ -697,8 +697,8 @@ class Trainer(
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
-                If ``None``, use the current weights of the model.
-                When the model is given as argument, we load the ckpt path.
+                If ``None`` and the model instance was passed, use the current weights.
+                Otherwise, the best model from the previous ``trainer.fit`` call will be loaded.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
