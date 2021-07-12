@@ -248,7 +248,7 @@ class CaptureIterableDataset(IterableDataset):
             }
         }
         """
-    
+
         def _sanetize(data: Mapping):
             out = []
             for k, v in data.items():
