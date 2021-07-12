@@ -911,9 +911,12 @@ class Trainer(
 
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            if self.lightning_module._log_hyperparams and self.datamodule._log_hyperparams:
-                datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
+            datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
+
+            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+                datamodule_hparams = self.datamodule.hparams_initial
                 lightning_hparams = self.lightning_module.hparams_initial
+
                 colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
                 if colliding_keys:
                     raise MisconfigurationException(
