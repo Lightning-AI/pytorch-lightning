@@ -14,7 +14,7 @@
 import pickle
 from argparse import Namespace
 from typing import Optional
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -294,16 +294,8 @@ def test_np_sanitization():
 
 
 @pytest.mark.parametrize("logger", [True, False])
-def test_log_hyperparams_being_called(tmpdir, logger):
-
-    class TestLogger(DummyLogger):
-
-        def __init__(self):
-            super().__init__()
-            self.log_hyperparams_called = False
-
-        def log_hyperparams(self, *args, **kwargs):
-            self.log_hyperparams_called = True
+@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
 
     class TestModel(BoringModel):
 
@@ -311,12 +303,9 @@ def test_log_hyperparams_being_called(tmpdir, logger):
             super().__init__()
             self.save_hyperparameters(logger=logger)
 
-    test_logger = TestLogger()
     model = TestModel("pytorch", "lightning")
-
     trainer = Trainer(
         default_root_dir=tmpdir,
-        logger=test_logger,
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -324,4 +313,7 @@ def test_log_hyperparams_being_called(tmpdir, logger):
     )
     trainer.fit(model)
 
-    assert logger == test_logger.log_hyperparams_called
+    if logger:
+        log_hyperparams_mock.assert_called()
+    else:
+        log_hyperparams_mock.assert_not_called()
