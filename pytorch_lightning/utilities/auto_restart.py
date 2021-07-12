@@ -347,9 +347,11 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
     return iter_dataloader
 
 
-def dataloader_to_state_dict(dataloader: DataLoader,
-                             iter: Iterator,
-                             num_batches_processed: int = None) -> List[Dict[str, Any]]:
+def dataloader_to_state_dict(
+    dataloader: DataLoader,
+    iter: Iterator,
+    num_batches_processed: int = None,
+) -> List[Dict[str, Any]]:
     """
     Convert a dataloader to its associated state dict
     """
