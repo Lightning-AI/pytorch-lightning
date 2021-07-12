@@ -1,4 +1,4 @@
-name: "Check typing with Mypy"
+name: "Check code"
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
@@ -8,6 +8,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
   python-typing-mypy:
+    name: Python typing Mypy check
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
