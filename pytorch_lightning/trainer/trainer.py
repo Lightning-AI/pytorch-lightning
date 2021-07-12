@@ -831,6 +831,7 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+
         # restore modules after setup
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
