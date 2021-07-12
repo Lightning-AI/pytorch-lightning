@@ -391,7 +391,7 @@ The report includes things like (`XLA Reference <https://github.com/pytorch/xla/
 * how many times we execute and time spent on execution
 * how many device data handles we create/destroy etc.
 
-- **TPU Pod Training Setup**
+- **TPU Pod Training Startup script**
 
 All TPU VMs in a Pod setup are required to access the model code and data.
 One easy way to achieve this is to use the following startup script when creating the TPU VM pod.
