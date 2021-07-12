@@ -370,7 +370,7 @@ class CombinedLoader(object):
         if self.mode == 'max_size_cycle':
             self._wrap_loaders_max_size_cycle()
 
-        self.loaders_iter_state_dict = None
+        self._loaders_iter_state_dict = None
         self._iterator = None  # assigned in __iter__
 
     def state_dict(self, num_batches_processed: int):
@@ -389,7 +389,7 @@ class CombinedLoader(object):
             # find next worker if multiple workers were used
             state = find_current_worker(iterator)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # the sampler state dict are extracted in ``CombinedLoaderIterator``
+                # the sampler state dict are extracted in `CombinedLoaderIterator`
                 if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
                     state.update(iterator._sampler_state_dict[0])
             else:
@@ -406,7 +406,7 @@ class CombinedLoader(object):
             pass
 
         # delay reset call, will be reset in on_restart
-        _MultiProcessingDataLoaderIter._ori_reset = _MultiProcessingDataLoaderIter._reset
+        _MultiProcessingDataLoaderIter._original_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
     def on_restart(self, iterator: Iterator):
@@ -421,7 +421,7 @@ class CombinedLoader(object):
             iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
                 state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
-                # need to re-attach the ``state dict`` into the iterator for future collection.
+                # need to re-attach the state dict into the iterator for future collection.
                 iterator._sampler_state_dict = [state_dict]
             return iterator
 
@@ -521,8 +521,7 @@ class CombinedLoaderIterator(object):
         Returns:
             a collections of batch data
         """
-        batch = self.request_next_batch(self.loader_iters)
-        return batch
+        return self.request_next_batch(self.loader_iters)
 
     @staticmethod
     def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
