@@ -539,7 +539,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None``, use the current weights of the model.
-                When the model is given as argument, we load the ckpt path.
+                When the model and the ckpt path are passed as arguments, we load the ckpt path.
 
             verbose: If True, prints the validation results.
 
@@ -1094,7 +1094,7 @@ class Trainer(
             )
             ckpt_path = 'best'
 
-        if (model_connected or model_provided) and ckpt_path == 'best':
+        if ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
