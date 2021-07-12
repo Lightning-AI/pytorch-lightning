@@ -523,7 +523,7 @@ class Trainer(
         self,
         model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
         val_dataloaders=None,  # noqa TODO: remove with 1.6
@@ -538,7 +538,7 @@ class Trainer(
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
-                If ``None``, use the current weights of the model.
+                If ``None``, use the current weights of the model if provided, or the best model from ``trainer.fit``.
                 When the model and the ckpt path are passed as arguments, we load the ckpt path.
 
             verbose: If True, prints the validation results.
@@ -600,7 +600,7 @@ class Trainer(
         self,
         model: Optional['pl.LightningModule'] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
         test_dataloaders=None,  # noqa TODO: remove with 1.6
@@ -616,8 +616,8 @@ class Trainer(
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the current weights of the model.
-                When the model is given as argument, we load the ckpt path.
+                If ``None``, use the current weights of the model if provided, or the best model from ``trainer.fit``.
+                When the model and the ckpt path are passed as arguments, we load the ckpt path.
 
             verbose: If True, prints the test results.
 
@@ -678,7 +678,7 @@ class Trainer(
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = 'best',
+        ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
 
