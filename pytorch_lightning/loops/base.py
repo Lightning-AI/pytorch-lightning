@@ -217,4 +217,3 @@ class Loop(ABC):
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
-
