@@ -28,7 +28,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import OptimizationProgress, Progress
+from pytorch_lightning.trainer.progress import BatchProgress, OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -50,7 +50,7 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self.progress = Progress()
+        self.progress = BatchProgress()
         self.optim_progress = OptimizationProgress()
         self._warning_cache: WarningCache = WarningCache()
         self._hiddens: Optional[Tensor] = None
@@ -441,6 +441,7 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
+        self.optim_progress.optimizer.step.increment_processed()
         self.optim_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
@@ -724,3 +725,9 @@ class TrainingBatchLoop(Loop):
         if lightning_module.truncated_bptt_steps > 0:
             return lightning_module.truncated_bptt_steps
         return self.trainer.truncated_bptt_steps or 0
+
+    def increment_scheduler_ready(self):
+        self.optim_progress.scheduler.increment_ready()
+
+    def increment_scheduler_completed(self):
+        self.optim_progress.scheduler.increment_completed()

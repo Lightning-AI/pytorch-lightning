@@ -394,6 +394,7 @@ class TrainingEpochLoop(loops.Loop):
         """updates the lr schedulers based on the given interval"""
         if interval == "step" and self.batch_loop.should_accumulate():
             return
+
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
             update_plateau_schedulers=update_plateau_schedulers,
