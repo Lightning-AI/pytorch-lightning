@@ -30,7 +30,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import sampler_metadata_collate
+from pytorch_lightning.utilities.auto_restart import _sampler_metadata_collate
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -485,5 +485,5 @@ class TrainerDataLoadingMixin(ABC):
     @staticmethod
     def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
         dataloader.collate_fn = partial(
-            sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+            _sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
         )

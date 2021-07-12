@@ -137,7 +137,7 @@ class CaptureIterableDataset(IterableDataset):
     def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None) -> None:
         super().__init__()
         self.dataset = deepcopy(dataset)
-        self.state_dict: Optional[Dict[int, Any]] = None
+        self._state_dict: Optional[Dict[int, Any]] = None
         self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
 
@@ -145,8 +145,11 @@ class CaptureIterableDataset(IterableDataset):
     def sampler(self) -> Sampler:
         return self.dataset.sampler
 
+    def state_dict(self) -> Dict[str, Any]:
+        return {k: v.state_dict() for k, v in self.samplers.items()}
+
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
-        self.state_dict = deepcopy(state_dict)
+        self._state_dict = deepcopy(state_dict)
 
     def _wrap_generator_samplers(self) -> None:
         self.samplers = {}
@@ -185,8 +188,8 @@ class CaptureIterableDataset(IterableDataset):
                 sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
                 # if ``CaptureIterableDataset`` was available, the sampler should reload its own state.
-                if self.state_dict is not None:
-                    sampler.load_state_dict(self.state_dict[generator_attr_name])
+                if self._state_dict is not None:
+                    sampler.load_state_dict(self._state_dict[generator_attr_name])
 
                 # store the samplers
                 self.samplers[generator_attr_name] = sampler
@@ -195,7 +198,7 @@ class CaptureIterableDataset(IterableDataset):
                 dataset_dict[generator_attr_name] = iter(sampler)
 
     def reset_on_epoch(self) -> None:
-        self.state_dict = None
+        self._state_dict = None
 
     def __iter__(self) -> Iterator:
         # create a generator from the wrapped Iterative Dataset
@@ -246,7 +249,7 @@ class CaptureIterableDataset(IterableDataset):
             }
 
         Each sampler in the worker process tracks the current iteration. We return all of them to the main process
-        as part of the sample and then a special collate function :func:`sampler_metadata_collate`
+        as part of the sample and then a special collate function :func:`_sampler_metadata_collate`
         will extract the current iteration as part of the metadata returned by a custom batch.
         """
 
@@ -273,7 +276,7 @@ class CaptureIterableDataset(IterableDataset):
         return batch, samplers_state_dict
 
 
-def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
+def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
     """
     If the ``DataLoader`` is wrapping a mapping based Dataset, return the ``FastForwardSampler``.
     """
@@ -284,20 +287,7 @@ def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSa
         return dataloader.batch_sampler
 
 
-def fetch_fast_forward_samplers_state_dict(
-    dataloader: DataLoader, out: List, count: int, num_batches_processed: Optional[int] = None
-):
-    fast_forward_samplers = find_fast_forward_samplers(dataloader)
-
-    if fast_forward_samplers is not None:
-        try:
-            out[count]
-        except IndexError:
-            out.append({})
-        out[count]["sampler"] = fast_forward_samplers.state_dict(num_batches_processed=num_batches_processed)
-
-
-def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str, Any]) -> Iterator:
+def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str, Any]) -> Iterator:
     """
     This function is used to cycle back the DataLoader ``_MultiProcessingDataLoaderIter``
     workers and call the reset function.
@@ -325,7 +315,7 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
     return iter_dataloader
 
 
-def dataloader_to_state_dict(
+def _dataloader_to_state_dict(
     dataloader: DataLoader,
     iterator: Iterator,
     num_batches_processed: int = None,
@@ -338,17 +328,17 @@ def dataloader_to_state_dict(
         out.update(_find_current_worker(iterator))
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
-        fast_forward_sampler = find_fast_forward_samplers(dataloader)
+        fast_forward_sampler = _find_fast_forward_samplers(dataloader)
         if fast_forward_sampler is not None:
             out.update(fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed))
     return out
 
 
-def dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> DataLoader:
+def _dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> DataLoader:
     """
     Reload ``DataLoader`` fast-forward sampler state dict.
     """
-    fast_forward_sampler = find_fast_forward_samplers(dataloader)
+    fast_forward_sampler = _find_fast_forward_samplers(dataloader)
 
     if isinstance(fast_forward_sampler, Sampler):
         state_dict = {k: v for k, v in state_dict.items() if k not in ("num_workers", "previous_worker")}
@@ -371,7 +361,7 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
-def sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
+def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
     """
     A collate function that adds the state dict of all samplers used in the worker processes.
 
@@ -390,4 +380,4 @@ def sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: C
     batch = default_collate(samples)
     if not isinstance(dataset, CaptureIterableDataset):
         return batch
-    return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: {k: v.state_dict() for k, v in dataset.samplers.items()}}
+    return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: dataset.state_dict()}

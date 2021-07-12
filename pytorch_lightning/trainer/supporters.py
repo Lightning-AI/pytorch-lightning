@@ -24,9 +24,9 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
+    _cycle_to_next_worker_and_reset,
     _find_current_worker,
     CaptureIterableDataset,
-    cycle_to_next_worker_and_reset,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -419,7 +419,7 @@ class CombinedLoader(object):
                 dataloader.dataset.load_state_dict(state_dict)
             else:
                 dataloader.fast_forward_sampler.load_state_dict(state_dict)
-            iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
+            iterator = _cycle_to_next_worker_and_reset(dataloader, state_dict)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
                 state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
                 # need to re-attach the state dict into the iterator for future collection.

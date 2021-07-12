@@ -33,9 +33,9 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
+    _dataloader_load_state_dict,
+    _dataloader_to_state_dict,
     CaptureIterableDataset,
-    dataloader_load_state_dict,
-    dataloader_to_state_dict,
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -651,6 +651,56 @@ def test_fault_tolerant_not_supported():
         _fault_tolerant_enabled()
 
 
+def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
+    dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
+    return CaptureIterableDataset(dataset)
+
+
+def create_dataloader():
+    dataset = range(50)
+    num_workers = 2
+    batch_size = 8
+    sampler = FastForwardSampler(SequentialSampler(dataset))
+    sampler.setup(batch_size)
+
+    dataloader = DataLoader(
+        dataset,
+        sampler=sampler,
+        batch_size=batch_size,
+    )
+    dataloader.fast_forward_sampler = sampler
+
+    loader_dict = {
+        "a": [
+            DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
+            dataloader,
+        ],
+        "b": DataLoader(
+            create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
+        )
+    }
+    apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
+    return CombinedLoader(loader_dict)
+
+
+# Lightning will wrap the iterator within a prefect function as follow.
+def prefetch_iterator(iterable: Iterable):
+    it = iter(iterable)
+
+    try:
+        # the iterator may be empty from the beginning
+        last = next(it)
+    except StopIteration:
+        return
+
+    for val in it:
+        # yield last and has next
+        yield last, False, it
+        last = val
+    # yield last, no longer has next
+    yield last, True, it
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -659,53 +709,6 @@ def test_combined_dataloader_state_dict_and_reload():
     This test makes sure the CombinedLoader used in the condition of Lightning properly
     capture its children DataLoader states.
     """
-
-    def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
-        dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
-        return CaptureIterableDataset(dataset)
-
-    def create_dataloader():
-        dataset = range(50)
-        num_workers = 2
-        batch_size = 8
-        sampler = FastForwardSampler(SequentialSampler(dataset))
-        sampler.setup(batch_size)
-
-        dataloader = DataLoader(
-            dataset,
-            sampler=sampler,
-            batch_size=batch_size,
-        )
-        dataloader.fast_forward_sampler = sampler
-
-        loader_dict = {
-            "a": [
-                DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
-                dataloader,
-            ],
-            "b": DataLoader(
-                create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
-            )
-        }
-        apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
-        return CombinedLoader(loader_dict)
-
-    # Lightning will wrap the iterator within a prefect function as follow.
-    def prefetch_iterator(iterable: Iterable):
-        it = iter(iterable)
-
-        try:
-            # the iterator may be empty from the beginning
-            last = next(it)
-        except StopIteration:
-            return
-
-        for val in it:
-            # yield last and has next
-            yield last, False, it
-            last = val
-        # yield last, no longer has next
-        yield last, True, it
 
     dataloader = create_dataloader()
 
@@ -872,13 +875,13 @@ def test_dataloader_to_state_dict_and_reload():
     _ = next(iter_dataloader)
     _ = next(iter_dataloader)
 
-    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
+    state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
     assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 16}}
 
     dataloader = create_dataloader()
-    dataloader = dataloader_load_state_dict(dataloader, state_dict)
+    dataloader = _dataloader_load_state_dict(dataloader, state_dict)
     iter_dataloader = iter(dataloader)
     _ = next(iter_dataloader)
 
-    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
+    state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
     assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 24}}
