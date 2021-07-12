@@ -579,6 +579,7 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -588,7 +589,9 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.validated_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
+        self.validated_ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        )
 
         # run validate
         results = self._run(model)
@@ -652,6 +655,7 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -661,7 +665,9 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.tested_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
+        self.tested_ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        )
 
         # run test
         results = self._run(model)
@@ -721,6 +727,7 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
             raise MisconfigurationException(
@@ -730,7 +737,9 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.predicted_ckpt_path = self.__set_ckpt_path(ckpt_path, model_provided=model is not None)
+        self.predicted_ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        )
 
         results = self._run(model)
 
@@ -1084,13 +1093,16 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
-    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool) -> Optional[str]:
-        if model_provided and ckpt_path is None:
-            return
+    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+        if model_provided and (ckpt_path in ('best', None)):
+            return  # use passed model to function without loading weights
+
+        if model_connected and ckpt_path is None:
+            return  # use connected model without loading weights
 
         fn = self.state.fn.value
 
-        if model_provided and ckpt_path == 'best':
+        if model_connected and ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
