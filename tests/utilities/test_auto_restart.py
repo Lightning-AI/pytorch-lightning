@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 from tests.helpers.runif import RunIf
 
 
@@ -652,9 +653,16 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     )
 
 
+@mock.patch.dict(os.environ, {'PL_FAULT_TOLERANT_TRAINING': "1"})
+@RunIf(max_torch="1.6")
+def test_fault_tolerant_not_supported():
+    with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
+        fault_tolerant_enabled()
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.6.0")
+@RunIf(min_torch="1.7.0")
 def test_combined_dataloader_state_dict_and_reload():
     """
     This test makes sure the CombinedLoader used in the condition of Lightning properly
