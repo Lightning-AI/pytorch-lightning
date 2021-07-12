@@ -926,7 +926,7 @@ class Trainer(
                 hparams_initial = {**lightning_hparams, **datamodule_hparams}
             elif self.lightning_module._log_hyperparams:
                 hparams_initial = self.lightning_module.hparams_initial
-            elif self.datamodule._log_hyperparams:
+            elif datamodule_log_hyperparams:
                 hparams_initial = self.datamodule.hparams_initial
 
             if hparams_initial is not None:
