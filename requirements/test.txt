@@ -5,7 +5,7 @@ flake8>=3.6
 check-manifest
 twine==3.2
 isort>=5.6.4
-mypy>=0.9
+mypy>=0.900
 pre-commit>=1.0
 
 cloudpickle>=1.3
