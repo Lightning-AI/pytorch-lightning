@@ -390,7 +390,7 @@ class CombinedLoader(object):
         def mock_reset_fn(self, *_, **__):
             pass
 
-        # delay reset call.
+        # delay reset call, will be reset in on_restart
         _MultiProcessingDataLoaderIter._ori_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
@@ -441,7 +441,7 @@ class CombinedLoader(object):
         """
 
         # prevent ``NotImplementedError`` from PyTorch:
-        #  https://github.com/pytorch/pytorch/blob/master/torch/utils/data/dataloader.py#L541
+        # https://github.com/pytorch/pytorch/blob/master/torch/utils/data/dataloader.py#L541
         def __getstate__patch__(*_):
             return {}
 
