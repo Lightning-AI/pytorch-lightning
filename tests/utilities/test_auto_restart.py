@@ -681,7 +681,7 @@ def test_combined_dataloader_state_dict_and_reload():
         )
         dataloader.fast_forward_sampler = sampler
 
-        return CombinedLoader({
+        loader_dict = {
             "a": [
                 DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
                 dataloader,
@@ -689,7 +689,9 @@ def test_combined_dataloader_state_dict_and_reload():
             "b": DataLoader(
                 create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
             )
-        })
+        }
+        apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
+        return CombinedLoader(loader_dict)
 
     # Lightning will wrap the iterator within a prefect function as follow.
     def prefetch_iterator(iterable: Iterable):
@@ -709,7 +711,6 @@ def test_combined_dataloader_state_dict_and_reload():
         yield last, True, it
 
     dataloader = create_dataloader()
-    apply_to_collection(dataloader, DataLoader, Trainer._add_sampler_metadata_collate)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
     num_batches_processed = 4
