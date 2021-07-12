@@ -839,6 +839,11 @@ class Trainer(
         self.checkpoint_connector.restore_callbacks()
 
         if self.ckpt_path:
+            # only one process running at this point for TPUs, as spawn isn't triggered yet
+            # todo: move this logic internally within the barrier.
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
+
             rank_zero_info(f"Loading checkpoint from {self.ckpt_path}")
             self.checkpoint_connector.restore_model_weights(self.ckpt_path)
 
@@ -1072,7 +1077,7 @@ class Trainer(
 
         fn = self.state.fn.value
 
-        if model_provided and ckpt_path is 'best':
+        if model_provided and ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
@@ -1081,12 +1086,12 @@ class Trainer(
                         f' `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting.'
                     )
                 raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path=None)` is set but `ModelCheckpoint` is not configured to save the best model.'
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
             ckpt_path = self.checkpoint_callback.best_model_path
 
-        if ckpt_path is None:
+        if not ckpt_path:
             raise MisconfigurationException(
                 f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
                 f' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
