@@ -333,7 +333,7 @@ And for the old TPU + 2VM architecture, you could set it by:
 
     lsof -w /lib/libtpu.so | grep "python" |  awk '{print $2}' | xargs -r kill -9
 
-Sometimes, there would still be old processes running on the TPUs, which would make the TPUs unavailable to use. You could use the above command in the terminal to clear up the running programs.
+Sometimes, there can still be old programs running on the TPUs, which would make the TPUs unavailable to use. You could use the above command in the terminal to kill the running processes.
 
 - **Replication issue**
 
