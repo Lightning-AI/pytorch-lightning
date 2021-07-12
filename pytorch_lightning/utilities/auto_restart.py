@@ -280,7 +280,7 @@ def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSa
     if isinstance(dataloader.sampler, FastForwardSampler):
         return dataloader.sampler
 
-    elif isinstance(dataloader.batch_sampler, FastForwardSampler):
+    if isinstance(dataloader.batch_sampler, FastForwardSampler):
         return dataloader.batch_sampler
 
 
@@ -327,15 +327,15 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
 
 def dataloader_to_state_dict(
     dataloader: DataLoader,
-    iter: Iterator,
+    iterator: Iterator,
     num_batches_processed: int = None,
 ) -> List[Dict[str, Any]]:
     """
     Convert a dataloader to its associated state dict
     """
     out = {}
-    if iter is not None:
-        out.update(find_current_worker(iter))
+    if iterator is not None:
+        out.update(find_current_worker(iterator))
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = find_fast_forward_samplers(dataloader)

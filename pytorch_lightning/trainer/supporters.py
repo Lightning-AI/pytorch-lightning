@@ -371,6 +371,7 @@ class CombinedLoader(object):
             self._wrap_loaders_max_size_cycle()
 
         self.loaders_iter_state_dict = None
+        self._iterator = None  # assigned in __iter__
 
     def state_dict(self, num_batches_processed: int):
         """
