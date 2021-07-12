@@ -51,17 +51,6 @@ class Loop(ABC):
         self._trainer: Optional['pl.Trainer'] = None
 
     @property
-    def loop_progress(self) -> Dict[str, Any]:
-        """Return the progress for the current loop and children loop."""
-        progress = {}
-        for k, v in self.__dict__.items():
-            if isinstance(v, BaseProgress):
-                progress[k] = v
-            elif isinstance(v, Loop):
-                progress[k] = v.loop_progress
-        return progress
-
-    @property
     def trainer(self) -> Optional['pl.Trainer']:
         return self._trainer
 
