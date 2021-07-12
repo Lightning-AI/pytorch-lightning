@@ -47,8 +47,8 @@ class Loop(ABC):
 
     def __init__(self) -> None:
         self.iteration_count: int = 0
-        self._trainer: Optional['pl.Trainer'] = None
         self.restarting = False
+        self._trainer: Optional['pl.Trainer'] = None
 
     @property
     def loop_progress(self) -> Dict[str, Any]:
