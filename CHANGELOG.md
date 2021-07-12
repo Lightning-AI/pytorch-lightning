@@ -339,7 +339,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `optimizer` argument in `LightningModule.manual_backward()`; Toggling optimizers in manual optimization should be done using `LightningModule.{un}toggle_optimizer()` ([#8287](https://github.com/PyTorchLightning/pytorch-lightning/pull/8287))
 
 
-- Removed `Loop restore` function to give more control for loop restart ([#8334](https://github.com/PyTorchLightning/pytorch-lightning/pull/8334))
 
 
 ### Fixed
