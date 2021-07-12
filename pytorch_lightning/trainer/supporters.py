@@ -366,6 +366,7 @@ class CombinedLoader(object):
         self.loaders_iter_state_dict = None
 
     def state_dict(self, num_batches_processed: int):
+        """ num_batch_processed is passed in here because prefetching already fetched more samples and we need to known how many we processed"""
         if not fault_tolerant_enabled():
             return DateLoaderDict()
 
@@ -394,23 +395,24 @@ class CombinedLoader(object):
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
     def on_restart(self, iterator: Iterator):
-        if self.loaders_iter_state_dict:
+        if not self.loaders_iter_state_dict:
+            return
 
-            def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
-                if isinstance(dataloader.dataset, CaptureIterableDataset):
-                    dataloader.dataset.load_state_dict(state_dict)
-                else:
-                    dataloader.fast_forward_sampler.load_state_dict(state_dict)
-                iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
-                if isinstance(dataloader.dataset, CaptureIterableDataset):
-                    state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
-                    # need to re-attach the ``state dict`` into the iterator for future collection.
-                    iterator._sampler_state_dict = [state_dict]
-                return iterator
+        def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
+            if isinstance(dataloader.dataset, CaptureIterableDataset):
+                dataloader.dataset.load_state_dict(state_dict)
+            else:
+                dataloader.fast_forward_sampler.load_state_dict(state_dict)
+            iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
+            if isinstance(dataloader.dataset, CaptureIterableDataset):
+                state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
+                # need to re-attach the ``state dict`` into the iterator for future collection.
+                iterator._sampler_state_dict = [state_dict]
+            return iterator
 
-            iterator._loader_iters = apply_to_collections(
-                self.loaders, self.loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
-            )
+        iterator._loader_iters = apply_to_collections(
+            self.loaders, self.loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
+        )
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
