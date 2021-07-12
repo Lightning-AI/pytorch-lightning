@@ -383,7 +383,7 @@ def sampler_metadata_collate(samples: List[Any], dataset, default_collate):
 
         {
             "data": data returned by Dataset
-            "__pl_samplers__": {
+            "__pl_samplers": {
                 "sampler_name0": state_dict
                 "sampler_name1": state_dict
             }
