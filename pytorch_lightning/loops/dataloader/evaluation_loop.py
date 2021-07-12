@@ -35,6 +35,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.outputs = []
         self.progress = DataLoaderProgress()
         self.epoch_loop = EvaluationEpochLoop()
+
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False

@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -347,7 +347,7 @@ class CheckpointConnector:
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
-        if fault_tolerant_enabled():
+        if _fault_tolerant_enabled():
             checkpoint.update({"loops": self.get_loops_state_dict()})
 
         if not weights_only:

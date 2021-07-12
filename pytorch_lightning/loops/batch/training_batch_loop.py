@@ -52,6 +52,7 @@ class TrainingBatchLoop(Loop):
         self.split_idx: Optional[int] = None
         self.progress = BatchProgress()
         self.optim_progress = OptimizationProgress()
+
         self._warning_cache: WarningCache = WarningCache()
         self._hiddens: Optional[Tensor] = None
         self._optimizer_freq_cumsum: Optional[int] = None
