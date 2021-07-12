@@ -262,7 +262,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # add collate_fn to collect metadata for fault tolerant training
-        if fault_tolerant_enabled():
+        if _fault_tolerant_enabled():
             apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
