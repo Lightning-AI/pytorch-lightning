@@ -56,33 +56,6 @@ class Loop(ABC):
 
     @trainer.setter
     def trainer(self, trainer: 'pl.Trainer'):
-        """Connect the Trainer to this loop and all children."""
-        if not isinstance(trainer, pl.Trainer) and trainer is not None:
-            raise MisconfigurationException(
-                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
-            )
-        self._trainer = trainer
-        for v in self.__dict__.values():
-            if isinstance(v, Loop):
-                v.trainer = trainer
-
-    @property
-    def loop_progress(self) -> Dict[str, Any]:
-        """Return the progress for the current loop and children loop."""
-        progress = {}
-        for k, v in self.__dict__.items():
-            if isinstance(v, BaseProgress):
-                progress[k] = v
-            elif isinstance(v, Loop):
-                progress[k] = v.loop_progress
-        return progress
-
-    @property
-    def trainer(self) -> Optional['pl.Trainer']:
-        return self._trainer
-
-    @trainer.setter
-    def trainer(self, trainer: 'pl.Trainer'):
         """Connect the Trainer to itself and all its children loops"""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
@@ -126,9 +99,6 @@ class Loop(ABC):
         Returns:
             the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
-        if self.trainer is None:
-            raise MisconfigurationException(f"The {self.__class__.__name__} Loop hasn't been attached to any Trainer.")
-
         if self.skip:
             return self.on_skip()
 
