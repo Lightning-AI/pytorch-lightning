@@ -85,7 +85,7 @@ log = logging.getLogger(__name__)
 # warnings to ignore in trainer
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, '
-    'please use torch.distributed.ReduceOp instead'
+                      'please use torch.distributed.ReduceOp instead'
 )
 
 
@@ -102,64 +102,65 @@ class Trainer(
 
     @_defaults_from_env_vars
     def __init__(
-        self,
-        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-        checkpoint_callback: bool = True,
-        callbacks: Optional[Union[List[Callback], Callback]] = None,
-        default_root_dir: Optional[str] = None,
-        gradient_clip_val: float = 0.0,
-        gradient_clip_algorithm: str = 'norm',
-        process_position: int = 0,
-        num_nodes: int = 1,
-        num_processes: int = 1,
-        gpus: Optional[Union[List[int], str, int]] = None,
-        auto_select_gpus: bool = False,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,
-        ipus: Optional[int] = None,
-        log_gpu_memory: Optional[str] = None,
-        progress_bar_refresh_rate: Optional[int] = None,
-        overfit_batches: Union[int, float] = 0.0,
-        track_grad_norm: Union[int, float, str] = -1,
-        check_val_every_n_epoch: int = 1,
-        fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-        max_epochs: Optional[int] = None,
-        min_epochs: Optional[int] = None,
-        max_steps: Optional[int] = None,
-        min_steps: Optional[int] = None,
-        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
-        limit_train_batches: Union[int, float] = 1.0,
-        limit_val_batches: Union[int, float] = 1.0,
-        limit_test_batches: Union[int, float] = 1.0,
-        limit_predict_batches: Union[int, float] = 1.0,
-        val_check_interval: Union[int, float] = 1.0,
-        flush_logs_every_n_steps: int = 100,
-        log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        sync_batchnorm: bool = False,
-        precision: int = 32,
-        weights_summary: Optional[str] = 'top',
-        weights_save_path: Optional[str] = None,
-        num_sanity_val_steps: int = 2,
-        truncated_bptt_steps: Optional[int] = None,
-        resume_from_checkpoint: Optional[Union[Path, str]] = None,
-        profiler: Optional[Union[BaseProfiler, str]] = None,
-        benchmark: bool = False,
-        deterministic: bool = False,
-        reload_dataloaders_every_n_epochs: int = 0,
-        reload_dataloaders_every_epoch: bool = False,
-        auto_lr_find: Union[bool, str] = False,
-        replace_sampler_ddp: bool = True,
-        terminate_on_nan: bool = False,
-        auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
-        plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
-        amp_backend: str = 'native',
-        amp_level: str = 'O2',
-        distributed_backend: Optional[str] = None,
-        move_metrics_to_cpu: bool = False,
-        multiple_trainloader_mode: str = 'max_size_cycle',
-        stochastic_weight_avg: bool = False
+            self,
+            logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+            checkpoint_callback: bool = True,
+            callbacks: Optional[Union[List[Callback], Callback]] = None,
+            default_root_dir: Optional[str] = None,
+            gradient_clip_val: float = 0.0,
+            gradient_clip_algorithm: str = 'norm',
+            process_position: int = 0,
+            num_nodes: int = 1,
+            num_processes: int = 1,
+            gpus: Optional[Union[List[int], str, int]] = None,
+            auto_select_gpus: bool = False,
+            tpu_cores: Optional[Union[List[int], str, int]] = None,
+            ipus: Optional[int] = None,
+            log_gpu_memory: Optional[str] = None,
+            progress_bar_refresh_rate: Optional[int] = None,
+            overfit_batches: Union[int, float] = 0.0,
+            track_grad_norm: Union[int, float, str] = -1,
+            check_val_every_n_epoch: int = 1,
+            fast_dev_run: Union[int, bool] = False,
+            accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+            max_epochs: Optional[int] = None,
+            min_epochs: Optional[int] = None,
+            max_steps: Optional[int] = None,
+            min_steps: Optional[int] = None,
+            max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
+            limit_train_batches: Union[int, float] = 1.0,
+            limit_val_batches: Union[int, float] = 1.0,
+            limit_test_batches: Union[int, float] = 1.0,
+            limit_predict_batches: Union[int, float] = 1.0,
+            val_check_interval: Union[int, float] = 1.0,
+            flush_logs_every_n_steps: int = 100,
+            log_every_n_steps: int = 50,
+            accelerator: Optional[Union[str, Accelerator]] = None,
+            sync_batchnorm: bool = False,
+            precision: int = 32,
+            weights_summary: Optional[str] = 'top',
+            weights_save_path: Optional[str] = None,
+            num_sanity_val_steps: int = 2,
+            truncated_bptt_steps: Optional[int] = None,
+            resume_from_checkpoint: Optional[Union[Path, str]] = None,
+            profiler: Optional[Union[BaseProfiler, str]] = None,
+            benchmark: bool = False,
+            deterministic: bool = False,
+            reload_dataloaders_every_n_epochs: int = 0,
+            reload_dataloaders_every_epoch: bool = False,
+            auto_lr_find: Union[bool, str] = False,
+            replace_sampler_ddp: bool = True,
+            terminate_on_nan: bool = False,
+            auto_scale_batch_size: Union[str, bool] = False,
+            prepare_data_per_node: bool = True,
+            plugins: Optional[
+                Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
+            amp_backend: str = 'native',
+            amp_level: str = 'O2',
+            distributed_backend: Optional[str] = None,
+            move_metrics_to_cpu: bool = False,
+            multiple_trainloader_mode: str = 'max_size_cycle',
+            stochastic_weight_avg: bool = False
     ):
         r"""
         Customize every aspect of training via flags
@@ -437,8 +438,8 @@ class Trainer(
         self.on_init_end()
 
     def _setup_on_init(
-        self,
-        num_sanity_val_steps: int,
+            self,
+            num_sanity_val_steps: int,
     ) -> None:
         self._log_device_info()
 
@@ -464,12 +465,12 @@ class Trainer(
         self.num_predict_batches = []
 
     def fit(
-        self,
-        model: 'pl.LightningModule',
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+            self,
+            model: 'pl.LightningModule',
+            train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+            val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            datamodule: Optional[LightningDataModule] = None,
+            train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -520,13 +521,13 @@ class Trainer(
         self.training = False
 
     def validate(
-        self,
-        model: Optional['pl.LightningModule'] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = 'best',
-        verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # noqa TODO: remove with 1.6
+            self,
+            model: Optional['pl.LightningModule'] = None,
+            dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+            ckpt_path: Optional[str] = 'best',
+            verbose: bool = True,
+            datamodule: Optional[LightningDataModule] = None,
+            val_dataloaders=None,  # noqa TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -597,13 +598,13 @@ class Trainer(
         return results
 
     def test(
-        self,
-        model: Optional['pl.LightningModule'] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = 'best',
-        verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # noqa TODO: remove with 1.6
+            self,
+            model: Optional['pl.LightningModule'] = None,
+            dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+            ckpt_path: Optional[str] = 'best',
+            verbose: bool = True,
+            datamodule: Optional[LightningDataModule] = None,
+            test_dataloaders=None,  # noqa TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
@@ -673,12 +674,12 @@ class Trainer(
         return results
 
     def predict(
-        self,
-        model: Optional['pl.LightningModule'] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = 'best',
+            self,
+            model: Optional['pl.LightningModule'] = None,
+            dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+            datamodule: Optional[LightningDataModule] = None,
+            return_predictions: Optional[bool] = None,
+            ckpt_path: Optional[str] = 'best',
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
 
@@ -744,14 +745,14 @@ class Trainer(
         return results
 
     def tune(
-        self,
-        model: 'pl.LightningModule',
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
-        lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+            self,
+            model: 'pl.LightningModule',
+            train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+            val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            datamodule: Optional[LightningDataModule] = None,
+            scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
+            lr_find_kwargs: Optional[Dict[str, Any]] = None,
+            train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -1080,15 +1081,21 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
-        if model_connected and ckpt_path is None:
-            return  # use connected model without loading weights
-
-        if model_provided and ckpt_path in ('best', None):
+        if model_provided and ckpt_path is None:
             return  # use passed model to function without loading weights
 
         fn = self.state.fn.value
 
-        if model_connected and ckpt_path == 'best':
+        if model_connected and ckpt_path is None:
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model. "
+                f"The best model of the previous `fit` call will be used. "
+                f"You can pass `ckpt_path='best'` to avoid this warning "
+                f"or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
+            )
+            ckpt_path = 'best'
+
+        if (model_connected or model_provided) and ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
@@ -1188,8 +1195,9 @@ class Trainer(
         return output
 
     def _parse_devices(
-        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
-                                                                                                            str, int]]
+            self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool,
+            tpu_cores: Optional[Union[List[int],
+                                      str, int]]
     ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
         if auto_select_gpus and isinstance(gpus, int):
             gpus = pick_multiple_gpus(gpus)

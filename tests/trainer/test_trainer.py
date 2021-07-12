@@ -680,14 +680,25 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
                 trainer_fn(ckpt_path=ckpt_path)
+            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+                trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+
+            trainer_fn(model, ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
-        # use the weights from the end of training
-        trainer_fn(ckpt_path=ckpt_path)
+        # use the model
+        trainer_fn(model, ckpt_path=ckpt_path)
         assert getattr(trainer, path_attr) is None
+
+        if save_top_k > 0:
+            # ckpt_path is None with no model provided means load the best weights
+            with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
+                trainer_fn(ckpt_path=ckpt_path)
+                assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
