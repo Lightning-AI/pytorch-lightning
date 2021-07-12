@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.auto_restart import sampler_metadata_collate
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -262,7 +263,8 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # add collate_fn to collect metadata for fault tolerant training
-        apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
+        if fault_tolerant_enabled():
+            apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
