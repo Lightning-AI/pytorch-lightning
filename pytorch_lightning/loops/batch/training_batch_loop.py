@@ -278,20 +278,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
-    def _on_after_backward(self, batch_idx: int, untouched_loss: Tensor) -> None:
-        """Calls ``on_after_backward`` hook and tracks loss history
-
-        Args:
-            batch_idx: the index of the current batch
-            untouched_loss: the original loss value
-        """
-
-        # insert after step hook
-        self.trainer.call_hook("on_after_backward")
-
-        # when in dev debugging track the losses
-        self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
-
     def _check_training_step_output(self, training_step_output: STEP_OUTPUT) -> None:
         """Sanity checks that training produced a valid output and optimizer step has already been called in manual
         optimization.
@@ -586,10 +572,8 @@ class TrainingBatchLoop(Loop):
                     with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
 
-                    # hook - call this hook only
-                    # when gradients have finished to accumulate
-                    if not self.should_accumulate():
-                        self._on_after_backward(batch_idx, result.loss)
+                    # when in dev debugging track the losses
+                    self.trainer.dev_debugger.track_train_loss_history(batch_idx, result.loss)
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
@@ -614,26 +598,26 @@ class TrainingBatchLoop(Loop):
         detect_nan_parameters(model)
 
     def backward(
-        self, result: STEP_OUTPUT, optimizer: torch.optim.Optimizer, opt_idx: int, *args: Any, **kwargs: Any
+        self,
+        result: STEP_OUTPUT,
+        optimizer: Optional[torch.optim.Optimizer],
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Performs the backward step.
 
         Args:
             result: The output of the trainstep (including the loss value)
-            optimizer: The optimizer optimizing the gradients to call backward for
-            opt_idx: the index of the current optimizer
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
         """
-        should_accumulate = self.should_accumulate()
-
         # backward can be called manually in the training loop
         if isinstance(result, Tensor):
-            self.trainer.accelerator.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
+            self.trainer.accelerator.backward(result, optimizer, *args, **kwargs)
         else:
-            result.closure_loss = self.trainer.accelerator.backward(
-                result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
-            )
+            result.closure_loss = self.trainer.accelerator.backward(result.closure_loss, optimizer, *args, **kwargs)
 
-        if not should_accumulate:
+        if not self.should_accumulate():
             # track gradients
             grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
             if grad_norm_dict:

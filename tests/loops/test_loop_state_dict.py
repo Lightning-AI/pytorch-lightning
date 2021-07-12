@@ -40,7 +40,6 @@ def test_loops_state_dict_structure():
         "test_loop": trainer.test_loop.state_dict(),
         "predict_loop": trainer.predict_loop.state_dict(),
     }
-    # todo (tchaton) Update this once new progress as been added.
     # yapf: disable
     expected = {
         "fit_loop": {

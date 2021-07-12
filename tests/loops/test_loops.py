@@ -21,6 +21,17 @@ from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.trainer import Trainer
 
 
+def _collect_loop_progress(loop: Loop) -> Dict[str, Any]:
+    """Return the progress for the current loop and its children."""
+    progress = {}
+    for k, v in loop.__dict__.items():
+        if isinstance(v, BaseProgress):
+            progress[k] = v
+        elif isinstance(v, Loop):
+            progress[k] = _collect_loop_progress(v)
+    return progress
+
+
 def test_loop_restore():
 
     class CustomExpection(Exception):
@@ -141,11 +152,11 @@ def test_loop_hierarchy():
 
     state_dict = loop_parent.state_dict()
 
-    loop_progress = loop_parent.loop_progress
+    loop_progress = _collect_loop_progress(loop_parent)
     assert loop_progress["progress"] == loop_parent.progress
     assert loop_progress["loop_child"]["progress"] == loop_child.progress
 
-    loop_progress = loop_child.loop_progress
+    loop_progress = _collect_loop_progress(loop_child)
     assert loop_progress["progress"] == loop_child.progress
 
     loop_parent.trainer = Trainer()

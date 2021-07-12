@@ -71,7 +71,7 @@ def test_amp_apex_ddp(
 
 class GradientUnscaleBoringModel(BoringModel):
 
-    def on_after_backward(self):
+    def on_before_optimizer_step(self, *_):
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
