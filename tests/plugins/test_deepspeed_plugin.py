@@ -601,15 +601,10 @@ def run_checkpoint_test(
         model = ModelParallelClassificationModel()
     else:
         model = ManualModelParallelClassificationModel()
-    if trainer.is_global_zero:
-        trainer = Trainer(default_root_dir=tmpdir, gpus=1, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, precision=16)
 
-        results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
-        assert results[0]['test_acc'] > 0.7
-
-        dm.predict_dataloader = dm.test_dataloader
-        results = trainer.predict(model, datamodule=dm, ckpt_path=ck.best_model_path)
-        assert results[-1] > 0.7
+    results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
+    assert results[0]['test_acc'] > 0.7
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
