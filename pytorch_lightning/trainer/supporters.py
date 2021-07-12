@@ -381,7 +381,7 @@ class CombinedLoader(object):
 
         Args:
             num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
-                may have already prefetched more batches by the time a state dict is requrested.
+                may have already prefetched more batches by the time a state dict is requested.
         """
         if not _fault_tolerant_enabled():
             return DataLoaderDict()
