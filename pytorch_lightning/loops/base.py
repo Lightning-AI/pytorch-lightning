@@ -175,7 +175,7 @@ class Loop(ABC):
     def on_load_checkpoint(self, state_dict: Dict):
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = '') -> Dict:
+    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
         """
         The state dict is determined by the state and progress of this loop and all its children.
 
@@ -197,9 +197,12 @@ class Loop(ABC):
 
         return destination
 
-    def load_state_dict(self, state_dict: Dict, restart_progress: bool = True):
+    def load_state_dict(self, state_dict: Dict, prefix="", restart_progress: bool = True):
         """ Loads the state of this loop and all its children. """
-        self.__load(state_dict.copy(), restart_progress)
+        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress)
+        for k, v in self.__dict__.items():
+            if isinstance(v, Loop):
+                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
 
     def _load_from_state_dict(self, state_dict, prefix, restart_progress):
         for k, v in self.__dict__.items():
@@ -215,8 +218,3 @@ class Loop(ABC):
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
 
-    def __load(self, state_dict, restart_progress, prefix=''):
-        self._load_from_state_dict(state_dict, prefix, restart_progress)
-        for k, v in self.__dict__.items():
-            if isinstance(v, Loop):
-                v.__load(state_dict.copy(), restart_progress, prefix + k + '.')
