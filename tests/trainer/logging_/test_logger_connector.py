@@ -202,7 +202,7 @@ def test_epoch_results_cache_dp(tmpdir):
         max_epochs=1,
     )
     trainer.fit(model)
-    trainer.test(model, ckpt_path=None)
+    trainer.test(model)
 
 
 def test_can_return_tensor_with_more_than_one_element(tmpdir):

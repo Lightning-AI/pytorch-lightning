@@ -68,6 +68,11 @@ class TrainerProperties(ABC):
     validate_loop: EvaluationLoop
     test_loop: EvaluationLoop
     predict_loop: PredictionLoop
+
+    # .validate() and .test() set this when they load a checkpoint
+    validated_ckpt_path: Optional[str] = None
+    tested_ckpt_path: Optional[str] = None
+    predicted_ckpt_path: Optional[str] = None
     """
     Accelerator properties
     """
@@ -547,6 +552,15 @@ class TrainerProperties(ABC):
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+
+    @property
+    def _ckpt_path(self) -> Optional[str]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validated_ckpt_path
+        if self.state.fn == TrainerFn.TESTING:
+            return self.tested_ckpt_path
+        if self.state.fn == TrainerFn.PREDICTING:
+            return self.predicted_ckpt_path
 
     """
     Logging properties
