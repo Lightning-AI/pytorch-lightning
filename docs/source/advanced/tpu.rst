@@ -358,7 +358,7 @@ Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
         result.__dict__[k] = v
     TypeError: 'mappingproxy' object does not support item assignment
 
-PyTorch XLA only supports Tensor objects for CPU to TPU data transfer.
+PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cause issues if the User is trying to send some non-tensor objects through the DataLoader or during saving states.
 
 - **Using `tpu_spawn_debug` Plugin**
 
