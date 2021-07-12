@@ -701,6 +701,9 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             trainer_fn(ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == ckpt_path
 
+            trainer_fn(model, ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == ckpt_path
+
 
 def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
