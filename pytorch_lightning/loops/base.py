@@ -56,7 +56,7 @@ class Loop(ABC):
 
     @trainer.setter
     def trainer(self, trainer: 'pl.Trainer'):
-        """Connect the Trainer to itself and all its children loops"""
+        """Connect the Trainer to this loop and all children."""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
                 f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
