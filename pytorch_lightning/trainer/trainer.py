@@ -1088,9 +1088,9 @@ class Trainer(
         if model_connected and ckpt_path is None:
             rank_zero_warn(
                 f"`.{fn}(ckpt_path=None)` was called without a model. "
-                f"The best model of the previous `fit` call will be used. "
-                f"You can pass `ckpt_path='best'` to avoid this warning "
-                f"or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
+                "The best model of the previous `fit` call will be used. "
+                f"You can pass `{fn}(ckpt_path='best')` to avoid this warning "
+                "or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
             )
             ckpt_path = 'best'
 
