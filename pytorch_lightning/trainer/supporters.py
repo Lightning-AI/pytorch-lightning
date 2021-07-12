@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 
 
 class TensorRunningAccum(object):
@@ -382,7 +382,7 @@ class CombinedLoader(object):
             num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
                 may have already prefetched more batches by the time a state dict is requrested.
         """
-        if not fault_tolerant_enabled():
+        if not _fault_tolerant_enabled():
             return DataLoaderDict()
 
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
@@ -400,7 +400,7 @@ class CombinedLoader(object):
         return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)
 
     def load_state_dict(self, state_dict):
-        self.loaders_iter_state_dict = state_dict
+        self._loaders_iter_state_dict = state_dict
 
         def mock_reset_fn(self, *_, **__):
             pass
@@ -410,7 +410,7 @@ class CombinedLoader(object):
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
     def on_restart(self, iterator: Iterator):
-        if not self.loaders_iter_state_dict:
+        if not self._loaders_iter_state_dict:
             return
 
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
@@ -426,7 +426,7 @@ class CombinedLoader(object):
             return iterator
 
         iterator._loader_iters = apply_to_collections(
-            self.loaders, self.loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
+            self.loaders, self._loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
         )
 
     @property
@@ -537,7 +537,7 @@ class CombinedLoaderIterator(object):
 
         def next_fn(iterator: Iterator):
             batch = next(iterator)
-            if not fault_tolerant_enabled():
+            if not _fault_tolerant_enabled():
                 return batch
             batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
             CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)

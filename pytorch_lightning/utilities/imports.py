@@ -104,7 +104,7 @@ else:
     _IPU_AVAILABLE = False
 
 
-def fault_tolerant_enabled():
+def _fault_tolerant_enabled():
     env_var = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
     if env_var and not _TORCH_GREATER_EQUAL_1_7:
         from pytorch_lightning.utilities.exceptions import MisconfigurationException

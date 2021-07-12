@@ -320,7 +320,7 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
         if isinstance(state_dict["previous_worker"], int):
             for _ in range(state_dict["previous_worker"] - 1):
                 next(iter_dataloader._worker_queue_idx_cycle)
-        iter_dataloader._reset = iter_dataloader._ori_reset
+        iter_dataloader._reset = iter_dataloader._original_reset
         iter_dataloader._reset(dataloader, first_iter=True)
     return iter_dataloader
 

@@ -40,7 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers.runif import RunIf
 
 
@@ -657,7 +657,7 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
 @RunIf(max_torch="1.6")
 def test_fault_tolerant_not_supported():
     with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
-        fault_tolerant_enabled()
+        _fault_tolerant_enabled()
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
