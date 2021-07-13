@@ -61,7 +61,8 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
+        lightning_class: Union[Callable[..., Union[Trainer, LightningModule, LightningDataModule, Callback]],
+                               Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
         nested_key: str,
         subclass_mode: bool = False
     ) -> List[str]:
@@ -69,20 +70,30 @@ class LightningArgumentParser(ArgumentParser):
         Adds arguments from a lightning class to a nested key of the parser
 
         Args:
-            lightning_class: Any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
+            lightning_class: A callable or any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback))
-        if issubclass(lightning_class, Callback):
-            self.callback_keys.append(nested_key)
-        if subclass_mode:
-            return self.add_subclass_arguments(lightning_class, nested_key, required=True)
-        return self.add_class_arguments(
-            lightning_class,
-            nested_key,
-            fail_untyped=False,
-            instantiate=not issubclass(lightning_class, Trainer),
+        if issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)):
+            if issubclass(lightning_class, Callback):
+                self.callback_keys.append(nested_key)
+            if subclass_mode:
+                return self.add_subclass_arguments(lightning_class, nested_key, required=True)
+            return self.add_class_arguments(
+                lightning_class,
+                nested_key,
+                fail_untyped=False,
+                instantiate=not issubclass(lightning_class, Trainer),
+            )
+        elif isinstance(lightning_class, Callable):
+            return self.add_function_arguments(
+                lightning_class,
+                nested_key,
+                fail_untyped=False,
+            )
+        raise MisconfigurationException(
+            f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
+            "Trainer, LightningModule, LightningDataModule, or Callback."
         )
 
     def add_optimizer_args(
@@ -196,12 +207,12 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: Type[LightningModule],
-        datamodule_class: Type[LightningDataModule] = None,
+        model_class: Union[Type[LightningModule], Callable[..., LightningModule]],
+        datamodule_class: Optional[Union[Type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = 'config.yaml',
         save_config_overwrite: bool = False,
-        trainer_class: Type[Trainer] = Trainer,
+        trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',

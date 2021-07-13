@@ -220,44 +220,49 @@ def test_init_from_argparse_args(cli_args, extra_args):
         Trainer.from_argparse_args(Namespace(**cli_args), **extra_args, **unknown_args)
 
 
-@pytest.mark.parametrize(['cli_args', 'expected_model', 'expected_trainer'], [(
-    ['--model.model_param=7', '--trainer.limit_train_batches=100'],
-    dict(model_param=7),
-    dict(limit_train_batches=100),
-)])
-def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
+class TestModel(LightningModule):
+
+    def __init__(self, model_param: int):
+        super().__init__()
+        self.model_param = model_param
+
+
+def test_model(model_param: int):
+    return TestModel(model_param)
+
+
+def trainer_builder(limit_train_batches: int):
+    return Trainer(limit_train_batches=limit_train_batches)
+
+
+@pytest.mark.parametrize(['trainer_class', 'model_class'], [(Trainer, TestModel), (trainer_builder, test_model)])
+def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
 
+    expected_model = dict(model_param=7)
+    expected_trainer = dict(limit_train_batches=100)
+
     def fit(trainer, model):
-        for k, v in model.expected_model.items():
+        for k, v in expected_model.items():
             assert getattr(model, k) == v
-        for k, v in model.expected_trainer.items():
+        for k, v in expected_trainer.items():
             assert getattr(trainer, k) == v
         save_callback = [x for x in trainer.callbacks if isinstance(x, SaveConfigCallback)]
         assert len(save_callback) == 1
         save_callback[0].on_train_start(trainer, model)
 
-    def on_train_start(callback, trainer, model):
+    def on_train_start(callback, trainer, _):
         config_dump = callback.parser.dump(callback.config, skip_none=False)
-        for k, v in model.expected_model.items():
+        for k, v in expected_model.items():
             assert f'  {k}: {v}' in config_dump
-        for k, v in model.expected_trainer.items():
+        for k, v in expected_trainer.items():
             assert f'  {k}: {v}' in config_dump
         trainer.ran_asserts = True
 
     monkeypatch.setattr(Trainer, 'fit', fit)
     monkeypatch.setattr(SaveConfigCallback, 'on_train_start', on_train_start)
 
-    class TestModel(LightningModule):
-
-        def __init__(self, model_param: int):
-            super().__init__()
-            self.model_param = model_param
-
-    TestModel.expected_model = expected_model
-    TestModel.expected_trainer = expected_trainer
-
-    with mock.patch('sys.argv', ['any.py'] + cli_args):
+    with mock.patch('sys.argv', ['any.py', '--model.model_param=7', '--trainer.limit_train_batches=100']):
         cli = LightningCLI(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
         assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
 
