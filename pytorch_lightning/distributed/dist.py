@@ -14,7 +14,6 @@
 from typing import Any
 
 import torch
-from torch.distributed import Backend, get_backend
 
 from pytorch_lightning.overrides.torch_distributed import (
     _object_to_tensor,
@@ -99,16 +98,16 @@ def _broadcast_object_list(object_list, rank, src=0, group=None):
     else:
         object_sizes_tensor = torch.LongTensor(len(object_list))
 
-    group_backend = get_backend(group)
-    is_nccl_backend = group_backend == Backend.NCCL
-    current_device = torch.device("cpu")
-    if is_nccl_backend:
-        # See note about using torch.cuda.current_device() here in docstring.
-        # We cannot simply use my_rank since rank == device is not necessarily
-        # true.
-        current_device = torch.device('cuda', torch.cuda.current_device())
-        object_sizes_tensor = object_sizes_tensor.to(current_device)
-        object_sizes_tensor = object_sizes_tensor.to(current_device)
+    # group_backend = get_backend(group)
+    # is_nccl_backend = group_backend == Backend.NCCL
+    # current_device = torch.device("cpu")
+    # if is_nccl_backend:
+    #     # See note about using torch.cuda.current_device() here in docstring.
+    #     # We cannot simply use my_rank since rank == device is not necessarily
+    #     # true.
+    #     current_device = torch.device('cuda', torch.cuda.current_device())
+    #     object_sizes_tensor = object_sizes_tensor.to(current_device)
+    #     object_sizes_tensor = object_sizes_tensor.to(current_device)
 
     # Broadcast object sizes
     sm_dist.broadcast(object_sizes_tensor, src=src, group=group)
@@ -119,8 +118,8 @@ def _broadcast_object_list(object_list, rank, src=0, group=None):
     else:
         object_tensor = torch.ByteTensor(torch.sum(object_sizes_tensor).item())
 
-    if is_nccl_backend:
-        object_tensor = object_tensor.to(current_device)
+    # if is_nccl_backend:
+    #     object_tensor = object_tensor.to(current_device)
 
     sm_dist.broadcast(object_tensor, src=src, group=group)
 
