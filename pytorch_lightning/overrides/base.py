@@ -18,7 +18,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
