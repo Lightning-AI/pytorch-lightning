@@ -1028,7 +1028,10 @@ def test_global_rng_states():
     dataloader = DataLoader(dataset, sampler=ff_sampler)
     dataloader_iter = iter(dataloader)
 
+    assert torch.equal(random_sampler.generator.get_state(), prev_state)
+
     # same 2 random batches fetched
     next(dataloader_iter)
+
     batch = next(dataloader_iter)
     assert torch.equal(last_batch, batch)

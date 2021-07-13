@@ -71,17 +71,13 @@ class FastForwardSampler(Sampler):
             self._load_non_random_state(self._cached_state_dict)
             self._cached_state_dict = None
 
-        # TODO: Load non-random part here
         i = 0
-
         sampler_iter = iter(self._sampler)
         while i < self._current_iteration:
             next(sampler_iter)
             i += 1
             
         # here: i == self._current_iteration
-        # TODO: Load random stuff
-        # if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
         if self._cached_state_dict is not None:
             self._load_rng_states(self._cached_state_dict)
 
@@ -96,37 +92,6 @@ class FastForwardSampler(Sampler):
         self._current_iteration = 0
         self.restarting = False
 
-
-        # split restart logic to avoid user with tempering with "fast-forwarding"
-
-        # if not self.restarting:
-        #     for batch_indices in self._sampler:
-        #         self._current_iteration += 1
-        #         yield batch_indices
-        #
-        # else:
-        #     for i, batch_indices in enumerate(self._sampler):
-        #
-        #         # the `state dict` was cached as workers were available before.
-        #         if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
-        #
-        #             # reload the current state dict
-        #             self.load_state_dict(self._cached_state_dict, workers_initialized=True)
-        #             self._cached_state_dict = None
-        #
-        #         # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
-        #         if self._current_iteration <= i:
-        #             if self._current_iteration == i:
-        #
-        #                 self.restarting = False
-        #             self._current_iteration += 1
-        #             yield batch_indices
-        #
-        #     # here, fast forward ended
-        #     #
-        #
-
-    # TODO: typing?
     def __len__(self) -> int:
         return len(self._sampler)
 
@@ -152,8 +117,7 @@ class FastForwardSampler(Sampler):
             self.worker_id:
                 {
                     "current_iteration": self._compute_current_iteration(num_batches_processed),
-                    "rng_states": {}
-                    # "rng_states": self._get_rng_states(),
+                    "rng_states": self._get_rng_states(),
                     # "torch_rng_state": torch.get_rng_state(),
                 }
         }
@@ -191,28 +155,6 @@ class FastForwardSampler(Sampler):
         states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator)
         # states["__global"] = torch.get_rng_state()
         return states
-
-
-def _set_rng_state(obj: Any, state: Dict):
-
-    for k, v in obj.__dict__:
-        if k in state:
-
-            _set_rng_state(v, state[k])
-
-
-def _get_rng_states(obj: Union[torch.utils.data.Sampler, torch.nn.Module, "pl.LightningDataModule", torch.utils.data.Dataset]):
-    states = {}
-
-    def _collect(gen: torch.Generator):
-        return gen.get_state()
-    states.update(apply_to_collection(obj, torch.Generator, _collect, object_dict=True))
-
-    states['__global_torch'] = torch.get_rng_state()
-    states['__global_numpy'] = np.random.get_state()
-    states['__global_python'] = random.getstate()
-
-
 
 
 class CaptureIterableDataset(IterableDataset):
