@@ -3,7 +3,7 @@ codecov>=2.1
 pytest>=6.0
 check-manifest
 twine==3.2
-mypy>=0.720, <0.800
+mypy>=0.900
 pre-commit>=1.0
 
 cloudpickle>=1.3
