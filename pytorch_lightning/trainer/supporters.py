@@ -386,7 +386,7 @@ class CombinedLoader(object):
         if not _fault_tolerant_enabled():
             return DataLoaderDict()
 
-        def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
+        def state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator]) -> Dict:
             # find next worker if multiple workers were used
             state = _find_current_worker(iterator)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
