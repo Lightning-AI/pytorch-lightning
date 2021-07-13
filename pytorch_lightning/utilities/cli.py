@@ -350,10 +350,12 @@ class LightningCLI:
         self.config_init = self.parser.instantiate_classes(self.config)
 
         datamodule_config = self.config_init.get('data')
-        if isinstance(self.datamodule_class, type) or datamodule_config is None:
+        if isinstance(self.datamodule_class, type):
             self.datamodule = datamodule_config
+        elif self.datamodule_class is not None and datamodule_config is not None:
+            self.datamodule = self.datamodule_class(**datamodule_config)
         else:
-            self.datamodule_class(**datamodule_config)
+            self.datamodule = None
 
         model_config = self.config_init['model']
         if isinstance(self.model_class, type):
