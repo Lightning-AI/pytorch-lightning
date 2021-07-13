@@ -262,8 +262,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # add collate_fn to collect metadata for fault tolerant training
-        if _fault_tolerant_enabled():
-            apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
+        apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
@@ -484,6 +483,10 @@ class TrainerDataLoadingMixin(ABC):
 
     @staticmethod
     def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
-        dataloader.collate_fn = partial(
-            _sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
-        )
+        """
+        Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
+        """
+        if _fault_tolerant_enabled():
+            dataloader.collate_fn = partial(
+                _sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+            )

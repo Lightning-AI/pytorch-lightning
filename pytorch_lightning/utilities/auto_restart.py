@@ -214,6 +214,12 @@ class CaptureIterableDataset(IterableDataset):
 
     @staticmethod
     def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
+        """
+        This function is used to store and update sampler state dict on its associated iterator.
+
+        In Lightning, as the iterator is wrapped into a prefecting function,
+        we needed to introduce a cache to delay updating the ``sampler_state_dict``.
+        """
         iterator_state_dict = getattr(iterator, "_sampler_state_dict", None)
         iterator_state_dict_cache = getattr(iterator, "_sampler_state_dict_cache", None)
         # handle the logic this way due Trainer prefecting.
@@ -295,13 +301,19 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     Returns:
         iterator: Return the iterator generated from the provided ``DataLoader``.
     """
+    # create iterator from dataloader
     iter_dataloader = iter(dataloader)
+    # get current num workers
     num_workers = getattr(iter_dataloader, "_num_workers", 0)
+    # as ``state_dict``` are workers dependent, Lightning doesn't support changing
+    # the ``num_workers`` for fault tolerant training
     if state_dict["num_workers"] != num_workers:
         raise MisconfigurationException(
             f"The provided ``num_workers`` {num_workers} doesn't match the one used "
             f"while generating the checkpoint: {state_dict['num_workers']}"
         )
+    # when using multiple workers, we will cycle back the worker queue idx to
+    # start back on the failed worker.
     if isinstance(iter_dataloader, _MultiProcessingDataLoaderIter):
         # move back to 0
         while next(iter_dataloader._worker_queue_idx_cycle) != 0:
@@ -310,8 +322,11 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
         if isinstance(state_dict["previous_worker"], int):
             for _ in range(state_dict["previous_worker"] - 1):
                 next(iter_dataloader._worker_queue_idx_cycle)
+
+        # we can finally call reset and apply prefecthing.
         iter_dataloader._reset = iter_dataloader._original_reset
         iter_dataloader._reset(dataloader, first_iter=True)
+    # return the iterator
     return iter_dataloader
 
 
@@ -349,15 +364,21 @@ def _dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[st
 
 def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     """Find the current DataLoader Iterator worker if multiple workers were used."""
+    # get the current number of workers
     num_workers = getattr(iterator, "_num_workers", 0)
     if isinstance(iterator, _MultiProcessingDataLoaderIter):
+        # fetch next worker
         next_worker = (next(iterator._worker_queue_idx_cycle)) % num_workers
+        # get the current worker from next one
         previous_worker = (next_worker - 1) % num_workers
+        # reset back the ``worker_queue_idx`` to current one, so we can keep
+        # going without perturbation.
         while next(iterator._worker_queue_idx_cycle) != previous_worker:
             pass
     else:
         previous_worker = None
 
+    # return the captured metadata.
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
