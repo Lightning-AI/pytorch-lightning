@@ -916,7 +916,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
-    assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
+
+    assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
+    assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
 
     ch_type = type(model_checkpoint)
     assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
