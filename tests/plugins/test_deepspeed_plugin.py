@@ -196,7 +196,7 @@ def test_deepspeed_with_invalid_config_path(tmpdir):
     """
 
     with pytest.raises(
-            MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
+        MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
         DeepSpeedPlugin(config='invalid_path.json')
 
@@ -234,7 +234,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
         plugins='deepspeed',
     )
     with pytest.raises(
-            MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
+        MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
     ):
         trainer.fit(model)
 
@@ -570,7 +570,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 
 
 def run_checkpoint_test(
-        tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
+    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
 ):
     seed_everything(1)
     if automatic_optimization:
@@ -652,17 +652,20 @@ def test_deepspeed_multigpu_stage_3_full_weights_warns_resume_training(tmpdir):
     )
     trainer.fit(model, datamodule=dm)
     model = ModelParallelClassificationModel()
-    with pytest.warns(UserWarning, match="A single checkpoint file was saved using ZeRO Stage 3. "
-                                         "This means optimizer states and scheduler states can not be restored"):
-            trainer = Trainer(
-                default_root_dir=tmpdir,
-                fast_dev_run=True,
-                plugins='deepspeed_stage_3',
-                gpus=1,
-                precision=16,
-                resume_from_checkpoint=ck.best_model_path
-            )
-            trainer.fit(model, datamodule=dm)
+    with pytest.warns(
+        UserWarning,
+        match="A single checkpoint file was saved using ZeRO Stage 3. "
+        "This means optimizer states and scheduler states can not be restored"
+    ):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            plugins='deepspeed_stage_3',
+            gpus=1,
+            precision=16,
+            resume_from_checkpoint=ck.best_model_path
+        )
+        trainer.fit(model, datamodule=dm)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
@@ -688,14 +691,15 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     initial_trainer.fit(initial_model, datamodule=dm)
 
     class TestCallback(Callback):
+
         def on_train_batch_start(
-        self,
-        trainer: 'pl.Trainer',
-        pl_module: 'pl.LightningModule',
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
-    ) -> None:
+            self,
+            trainer: 'pl.Trainer',
+            pl_module: 'pl.LightningModule',
+            batch: Any,
+            batch_idx: int,
+            dataloader_idx: int,
+        ) -> None:
             original_deepspeed_plugin = initial_trainer.accelerator.training_type_plugin
             current_deepspeed_plugin = trainer.accelerator.training_type_plugin
 
@@ -704,7 +708,9 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
             # assert optimizer states are the correctly loaded
             original_optimizer_dict = original_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
             current_optimizer_dict = current_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
-            for orig_tensor, current_tensor in zip(original_optimizer_dict['fp32_flat_groups'], current_optimizer_dict['fp32_flat_groups']):
+            for orig_tensor, current_tensor in zip(
+                original_optimizer_dict['fp32_flat_groups'], current_optimizer_dict['fp32_flat_groups']
+            ):
                 assert torch.all(orig_tensor.eq(current_tensor))
             # assert model state is loaded correctly
             for current_param, initial_param in zip(pl_module.parameters(), initial_model.parameters()):
@@ -754,7 +760,7 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
             self.on_train_batch_start_called = False
 
         def on_train_batch_start(
-                self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+            self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps

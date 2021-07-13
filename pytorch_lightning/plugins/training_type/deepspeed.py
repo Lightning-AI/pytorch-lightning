@@ -723,6 +723,7 @@ class DeepSpeedPlugin(DDPPlugin):
             for name, child in module._modules.items():
                 if child is not None:
                     load(child, prefix + name + ".")
+
         load(self.lightning_module, prefix="")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
