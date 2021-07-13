@@ -107,7 +107,7 @@ def parse_env_variables(cls: Type['pl.Trainer'], template: str = "PL_%(cls_name)
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls: Union[Type['pl.Trainer'], Any]) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
