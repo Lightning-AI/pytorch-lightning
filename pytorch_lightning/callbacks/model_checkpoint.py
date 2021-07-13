@@ -302,12 +302,10 @@ class ModelCheckpoint(Callback):
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         trainer.train_loop.global_step -= 1
         if (
-            self._should_skip_saving_checkpoint(trainer) or not self._save_on_train_epoch_end
-            or self._every_n_epochs < 1 or (trainer.current_epoch + 1) % self._every_n_epochs != 0
+            not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end
+            and self._every_n_epochs > 0 and (trainer.current_epoch + 1) % self._every_n_epochs == 0
         ):
-            trainer.train_loop.global_step += 1
-            return
-        self.save_checkpoint(trainer)
+            self.save_checkpoint(trainer)
         trainer.train_loop.global_step += 1
 
     def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
