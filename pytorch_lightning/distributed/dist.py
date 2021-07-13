@@ -48,7 +48,7 @@ class LightningDistributed:
 
 class SMLightningDistributed(LightningDistributed):
 
-    def broadcast(self, obj: Any, group=_group.WORLD):
+    def broadcast(self, obj: Any, group=sm_dist.group.WORLD):
         # always wrap into a list so list can be brodcasted.
         obj = [obj]
 
@@ -57,7 +57,7 @@ class SMLightningDistributed(LightningDistributed):
         if self.rank != 0:
             obj = [None] * len(obj)
 
-        _broadcast_object_list(obj, self.rank, 0, group=group or _group.WORLD)
+        _broadcast_object_list(obj, self.rank, 0, group=group)
 
         return obj[0]
 
