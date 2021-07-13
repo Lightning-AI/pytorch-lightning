@@ -347,7 +347,7 @@ class CheckpointConnector:
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
         if _fault_tolerant_enabled():
-            checkpoint["loops"] = self.get_loops_state_dict()
+            checkpoint["loops"] = self._get_loops_state_dict()
 
         if not weights_only:
             # dump callbacks
@@ -386,14 +386,6 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
-
-    def get_loops_state_dict(self):
-        return {
-            "fit_loop": self.trainer.fit_loop.state_dict(),
-            "validate_loop": self.trainer.validate_loop.state_dict(),
-            "test_loop": self.trainer.test_loop.state_dict(),
-            "predict_loop": self.trainer.predict_loop.state_dict(),
-        }
 
     def hpc_load(self, checkpoint_path: str) -> None:
         """
@@ -453,3 +445,11 @@ class CheckpointConnector:
         """
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
+
+    def _get_loops_state_dict(self):
+        return {
+            "fit_loop": self.trainer.fit_loop.state_dict(),
+            "validate_loop": self.trainer.validate_loop.state_dict(),
+            "test_loop": self.trainer.test_loop.state_dict(),
+            "predict_loop": self.trainer.predict_loop.state_dict(),
+        }
