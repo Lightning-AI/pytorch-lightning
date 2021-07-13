@@ -194,12 +194,13 @@ class OptimizationProgress(BaseProgress):
     Args:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
+        optimizer_idx: The index of the current optimizer.
     """
 
     # TODO: support for multiple optimizers
-    optimizer_idx: int = 0
     optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
     scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
+    optimizer_idx: int = 0
 
     @property
     def optimizer_steps(self) -> int:
