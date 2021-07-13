@@ -23,9 +23,9 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.smdist_environment import SMDistributedEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _SMDIST_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _SMDIST_AVAILABLE:
     import smdistributed.dataparallel.torch.distributed as dist
@@ -64,21 +64,32 @@ class DDPSMPlugin(DDPPlugin):
         self._ddp_kwargs = kwargs
         self.dist = SMLightningDistributed()
 
-    def setup(self, model):
-        self._model = model
+    def setup_environment(self) -> None:
+        self.setup_distributed()
+
+    def setup_distributed(self) -> None:
+        reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        # set warning rank
+        rank_zero_only.rank = self.global_rank
+
+        self.init_ddp_connection(self.global_rank, self.world_size)
+
+        # # set the ranks and devices
+        self.dist.rank = self.global_rank
+        self.dist.device = self.root_device
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
 
         self.node_rank = self.cluster_environment.node_rank()
         self.local_rank = self.cluster_environment.local_rank()
         self.global_rank = self.cluster_environment.global_rank()
         self.world_size = self.cluster_environment.world_size()
-
-        rank_zero_only.rank = self.global_rank
-        self.model_to_device()
-
-    def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def configure_ddp(self):
         self.pre_configure_ddp()
@@ -94,34 +105,14 @@ class DDPSMPlugin(DDPPlugin):
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             dist.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
+            rank_zero_info(
+                f"{'-' * 100}\n"
+                f"distributed_backend={self.torch_distributed_backend}\n"
+                f"All DDP processes registered. Starting smddp with {world_size} processes\n"
+                f"{'-' * 100}\n"
+            )
+
     def pre_dispatch(self):
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
-
-        # TODO: we moved it to the trainer.fit after calling pre_dispatch
-        #   ... need to double check that it is the correct place
-        # self.trainer.call_setup_hook(self.model)
-
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not dist.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.distributed_backend}")
-            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
-            log.info("-" * 100)
-
-        # # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
 
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
