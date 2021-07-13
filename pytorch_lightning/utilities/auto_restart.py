@@ -11,15 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import random
 from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any, Dict, Generator, Iterator, List, Optional, Union
 
+import numpy as np
 import torch
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection, recursively_traverse_for_dtype
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -61,35 +64,71 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        # split restart logic to avoid user with tempering with "fast-forwarding"
 
-        if not self.restarting:
-            for batch in self._sampler:
-                self._current_iteration += 1
-                yield batch
+        # the `state dict` was cached as workers were available before.
+        if self._cached_state_dict is not None: # and self.worker_id in self._cached_state_dict:
+            # reload the current state dict
+            self._load_non_random_state(self._cached_state_dict)
+            self._cached_state_dict = None
 
-        else:
-            for i, batch in enumerate(self._sampler):
+        # TODO: Load non-random part here
+        i = 0
 
-                # the `state dict` was cached as workers were available before.
-                if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
+        sampler_iter = iter(self._sampler)
+        while i < self._current_iteration:
+            next(sampler_iter)
+            i += 1
+            
+        # here: i == self._current_iteration
+        # TODO: Load random stuff
+        # if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
+        if self._cached_state_dict is not None:
+            self._load_rng_states(self._cached_state_dict)
 
-                    # reload the current state dict
-                    self.load_state_dict(self._cached_state_dict, workers_initialized=True)
-                    self._cached_state_dict = None
-
-                # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
-                if self._current_iteration <= i:
-                    if self._current_iteration == i:
-                        self.restarting = False
-                    self._current_iteration += 1
-                    yield batch
+        # recreate iterator to be sure loading is reflected there as well
+        while True:
+            self._current_iteration += 1
+            try:
+                yield next(sampler_iter)
+            except StopIteration:
+                break
 
         self._current_iteration = 0
         self.restarting = False
 
+
+        # split restart logic to avoid user with tempering with "fast-forwarding"
+
+        # if not self.restarting:
+        #     for batch_indices in self._sampler:
+        #         self._current_iteration += 1
+        #         yield batch_indices
+        #
+        # else:
+        #     for i, batch_indices in enumerate(self._sampler):
+        #
+        #         # the `state dict` was cached as workers were available before.
+        #         if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
+        #
+        #             # reload the current state dict
+        #             self.load_state_dict(self._cached_state_dict, workers_initialized=True)
+        #             self._cached_state_dict = None
+        #
+        #         # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
+        #         if self._current_iteration <= i:
+        #             if self._current_iteration == i:
+        #
+        #                 self.restarting = False
+        #             self._current_iteration += 1
+        #             yield batch_indices
+        #
+        #     # here, fast forward ended
+        #     #
+        #
+
+    # TODO: typing?
     def __len__(self) -> int:
-        return len(self.sampler)
+        return len(self._sampler)
 
     def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
         """
@@ -109,7 +148,15 @@ class FastForwardSampler(Sampler):
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
-        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
+        return {
+            self.worker_id:
+                {
+                    "current_iteration": self._compute_current_iteration(num_batches_processed),
+                    "rng_states": {}
+                    # "rng_states": self._get_rng_states(),
+                    # "torch_rng_state": torch.get_rng_state(),
+                }
+        }
 
     def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
         """
@@ -118,21 +165,54 @@ class FastForwardSampler(Sampler):
         The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
         """
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
-        if len(state_dict) > 1 and not workers_initialized:
-            self._cached_state_dict = deepcopy(state_dict)
-            self.restarting = True
-            return
-        self._current_iteration = state_dict[self.worker_id]["current_iteration"]
+        # if len(state_dict) > 1 and not workers_initialized:
+        self._cached_state_dict = deepcopy(state_dict)
         self.restarting = True
+            # return
+        # self._current_iteration = state_dict[self.worker_id]["current_iteration"]
+        # self.restarting = True
+
+    def _load_non_random_state(self, state_dict):
+        self._current_iteration = state_dict[self.worker_id]["current_iteration"]
+        # self.restarting = True
+
+    def _load_rng_states(self, state_dict: Dict[int, Any]):
+        # torch.set_rng_state(state_dict[self.worker_id]["torch_rng_state"])
+        for k, v in state_dict[self.worker_id]['rng_states'].items():
+            attr = getattr(self._sampler, k)
+            if isinstance(attr, torch.Generator):
+                attr.set_state(v)
 
     def _get_rng_states(self):
 
         def _collect(gen: torch.Generator):
             return gen.get_state()
 
-        states = apply_to_collection(self.__dict__, torch.Generator, _collect)
-        states["__global"] = torch.get_rng_state()
+        states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator)
+        # states["__global"] = torch.get_rng_state()
         return states
+
+
+def _set_rng_state(obj: Any, state: Dict):
+
+    for k, v in obj.__dict__:
+        if k in state:
+
+            _set_rng_state(v, state[k])
+
+
+def _get_rng_states(obj: Union[torch.utils.data.Sampler, torch.nn.Module, "pl.LightningDataModule", torch.utils.data.Dataset]):
+    states = {}
+
+    def _collect(gen: torch.Generator):
+        return gen.get_state()
+    states.update(apply_to_collection(obj, torch.Generator, _collect, object_dict=True))
+
+    states['__global_torch'] = torch.get_rng_state()
+    states['__global_numpy'] = np.random.get_state()
+    states['__global_python'] = random.getstate()
+
+
 
 
 class CaptureIterableDataset(IterableDataset):

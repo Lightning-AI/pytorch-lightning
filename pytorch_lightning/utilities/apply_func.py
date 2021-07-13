@@ -14,7 +14,7 @@
 import dataclasses
 import operator
 from abc import ABC
-from collections import OrderedDict
+from collections import OrderedDict, Collection
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
@@ -66,6 +66,40 @@ def _is_dataclass_instance(obj):
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
+def _remove_empty_collection(coll: Collection):
+    if bool(coll):
+        return coll
+    return None
+
+
+def recursively_traverse_for_dtype(obj, func, dtype):
+
+    if isinstance(obj, dtype):
+        return func(obj)
+    if isinstance(obj, Collection) and not isinstance(obj, str):
+        updated = apply_to_collection(obj, object, partial(recursively_traverse_for_dtype, func=func, dtype=dtype,), wrong_dtype=Collection, include_none=False)
+    else:
+        updated = {}
+        try:
+            for k, v in obj.__dict__.items():
+                if isinstance(v, dtype):
+                    updated[k] = func(v)
+                else:
+                    try:
+                        updated[k] = recursively_traverse_for_dtype(v, func, dtype)
+
+                    except AttributeError:
+                        pass
+        except AttributeError:
+            pass
+
+    # may also convert current dict (`updated`) to None
+    new_updated = apply_to_collection(updated, Collection, _remove_empty_collection, include_none=False)
+    # remove all NoneTypes
+    new_updated = apply_to_collection(new_updated, type(None), _remove_empty_collection, include_none=False)
+    return new_updated
+
+
 def apply_to_collection(
     data: Any,
     dtype: Union[type, tuple],
@@ -101,7 +135,7 @@ def apply_to_collection(
     if isinstance(data, Mapping):
         out = []
         for k, v in data.items():
-            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs)
             if include_none or v is not None:
                 out.append((k, v))
         return elem_type(OrderedDict(out))
@@ -111,7 +145,7 @@ def apply_to_collection(
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
-            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs)
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
@@ -119,7 +153,7 @@ def apply_to_collection(
     if _is_dataclass_instance(data):
         out = dict()
         for field in data.__dataclass_fields__:
-            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs)
             if include_none or v is not None:
                 out[field] = v
         return elem_type(**out)
