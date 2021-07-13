@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from torch.nn import Module
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
@@ -632,9 +633,6 @@ class DeepSpeedPlugin(DDPPlugin):
             cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
-    def _filepath_to_dir(self, filepath: str) -> str:
-        return os.path.dirname(filepath)
-
     @property
     def deepspeed_engine(self):
         return self.model
@@ -659,27 +657,23 @@ class DeepSpeedPlugin(DDPPlugin):
 
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
         # dump states as a checkpoint dictionary object
-        save_dir = self._filepath_to_dir(filepath)
         _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-        self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
+        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
         if self.save_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint_file(checkpoint_path)
 
-        # Rely on deepspeed to load the checkpoint and necessary information
+        # Rely on deepspeed completely to load the checkpoint and necessary information
         from pytorch_lightning.trainer.states import TrainerFn
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-        save_dir = self._filepath_to_dir(checkpoint_path)
-
         _, client_state = self.deepspeed_engine.load_checkpoint(
-            save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
+            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
         )
-        return client_state
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`

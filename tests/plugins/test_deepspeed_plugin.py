@@ -581,7 +581,6 @@ def run_checkpoint_test(
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
         max_epochs=10,
         plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         gpus=2,
@@ -628,6 +627,100 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     where we save the full weights to one file.
     """
     run_checkpoint_test(tmpdir, save_full_weights=True)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_full_weights_warns_resume_training(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning
+    that the optimizer state and scheduler states cannot be restored.
+    """
+    model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
+
+    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        plugins=DeepSpeedPlugin(stage=3),
+        gpus=1,
+        precision=16,
+        callbacks=[ck]
+    )
+    trainer.fit(model, datamodule=dm)
+    model = ModelParallelClassificationModel()
+    with pytest.warns(UserWarning, match="A single checkpoint file was saved using ZeRO Stage 3. "
+                                         "This means optimizer states and scheduler states can not be restored"):
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                fast_dev_run=True,
+                plugins='deepspeed_stage_3',
+                gpus=1,
+                precision=16,
+                resume_from_checkpoint=ck.best_model_path
+            )
+            trainer.fit(model, datamodule=dm)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can resume training if save_full_weights is false.
+    """
+    initial_model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
+
+    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
+    initial_trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        plugins=DeepSpeedPlugin(stage=3, save_full_weights=False),
+        gpus=1,
+        precision=16,
+        callbacks=[ck]
+    )
+    initial_trainer.fit(initial_model, datamodule=dm)
+
+    class TestCallback(Callback):
+        def on_train_batch_start(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
+            original_deepspeed_plugin = initial_trainer.accelerator.training_type_plugin
+            current_deepspeed_plugin = trainer.accelerator.training_type_plugin
+
+            assert isinstance(original_deepspeed_plugin, DeepSpeedPlugin)
+            assert isinstance(current_deepspeed_plugin, DeepSpeedPlugin)
+            # assert optimizer states are the correctly loaded
+            original_optimizer_dict = original_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
+            current_optimizer_dict = current_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
+            for orig_tensor, current_tensor in zip(original_optimizer_dict['fp32_flat_groups'], current_optimizer_dict['fp32_flat_groups']):
+                assert torch.all(orig_tensor.eq(current_tensor))
+            # assert model state is loaded correctly
+            for current_param, initial_param in zip(pl_module.parameters(), initial_model.parameters()):
+                assert torch.equal(current_param.cpu(), initial_param.cpu())
+
+    model = ModelParallelClassificationModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        plugins=DeepSpeedPlugin(stage=3, save_full_weights=False),
+        gpus=1,
+        precision=16,
+        resume_from_checkpoint=ck.best_model_path,
+        callbacks=TestCallback()
+    )
+    trainer.fit(model, datamodule=dm)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
