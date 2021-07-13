@@ -57,3 +57,14 @@ repos:
     hooks:
       - id: flake8
         name: Check PEP8
+
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.0.0
+    hooks:
+      - id: pydocstyle
+        exclude: |
+            (?x)(
+                tests/|
+                benchmarks/
+            )
+        name: Check docstrings
