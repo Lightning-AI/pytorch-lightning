@@ -117,7 +117,7 @@ def apply_to_collection(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        out = dict()
+        out = {}
         for field in data.__dataclass_fields__:
             v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
