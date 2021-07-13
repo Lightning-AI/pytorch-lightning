@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.trainer.progress import EpochLoopProgress
+from pytorch_lightning.trainer.progress import DataLoaderProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
@@ -19,7 +19,7 @@ class PredictionLoop(DataLoaderLoop):
         super().__init__()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
-        self.progress = EpochLoopProgress()
+        self.progress = DataLoaderProgress()
         self.epoch_loop = PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
@@ -75,14 +75,10 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
