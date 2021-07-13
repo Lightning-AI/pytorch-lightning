@@ -73,9 +73,6 @@ class DDPSMPlugin(DDPPlugin):
         # determine which process we are and world size
         self.set_world_ranks()
 
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
         self.init_ddp_connection(self.global_rank, self.world_size)
 
         # # set the ranks and devices
@@ -85,11 +82,8 @@ class DDPSMPlugin(DDPPlugin):
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
-
-        self.node_rank = self.cluster_environment.node_rank()
-        self.local_rank = self.cluster_environment.local_rank()
-        self.global_rank = self.cluster_environment.global_rank()
-        self.world_size = self.cluster_environment.world_size()
+        # set warning rank
+        rank_zero_only.rank = self.global_rank
 
     def configure_ddp(self):
         self.pre_configure_ddp()
