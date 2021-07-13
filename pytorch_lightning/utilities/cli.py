@@ -74,7 +74,8 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        if issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)):
+        if isinstance(lightning_class,
+                      type) and issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)):
             if issubclass(lightning_class, Callback):
                 self.callback_keys.append(nested_key)
             if subclass_mode:
@@ -85,7 +86,7 @@ class LightningArgumentParser(ArgumentParser):
                 fail_untyped=False,
                 instantiate=not issubclass(lightning_class, Trainer),
             )
-        elif isinstance(lightning_class, Callable):
+        elif callable(lightning_class):
             return self.add_function_arguments(
                 lightning_class,
                 nested_key,
@@ -268,10 +269,10 @@ class LightningCLI:
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
         """
-        assert issubclass(trainer_class, Trainer)
-        assert issubclass(model_class, LightningModule)
+        assert issubclass(trainer_class, Trainer) if isinstance(trainer_class, type) else True
+        assert issubclass(model_class, LightningModule) if isinstance(model_class, type) else True
         if datamodule_class is not None:
-            assert issubclass(datamodule_class, LightningDataModule)
+            assert issubclass(datamodule_class, LightningDataModule) if isinstance(datamodule_class, type) else True
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
