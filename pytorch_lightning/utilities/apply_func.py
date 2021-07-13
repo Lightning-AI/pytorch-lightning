@@ -94,7 +94,7 @@ def recursively_traverse_for_dtype(obj, func, dtype):
             pass
 
     # may also convert current dict (`updated`) to None
-    new_updated = apply_to_collection(updated, Collection, _remove_empty_collection, include_none=False)
+    new_updated = apply_to_collection(updated, Collection, _remove_empty_collection, include_none=False, wrong_dtype=(torch.Tensor, np.ndarray))
     # remove all NoneTypes
     new_updated = apply_to_collection(new_updated, type(None), _remove_empty_collection, include_none=False)
     return new_updated

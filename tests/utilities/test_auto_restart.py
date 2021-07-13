@@ -17,6 +17,8 @@ import random
 from collections.abc import Iterable
 from typing import Optional
 from unittest import mock
+import random as python_random
+
 
 import numpy as np
 import pytest
@@ -962,76 +964,119 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
 
 
 
-class RngStateBoringModel(BoringModel):
+# class RngStateBoringModel(BoringModel):
+#
+#     def __init__(self):
+#         super().__init__()
+#         self.generator = torch.Generator().manual_seed(0)
+#
+#     def training_step(self, batch, batch_idx):
+#         output = super().training_step(batch, batch_idx)
+#         output.update({"random": torch.rand()})
+#         return output
+#
+#
+# class RngStateDataset(Dataset):
+#
+#     def __init__(self):
+#         self.gen0 = torch.Generator().manual_seed(0)
+#         self.gen1 = torch.Generator().manual_seed(1)
+#
+#     def __getitem__(self, item):
+#         return item + torch.rand((1, ), generator=self.gen0)
 
-    def __init__(self):
-        super().__init__()
-        self.generator = torch.Generator().manual_seed(0)
+class SequentialGetItemDataset(Dataset):
 
-    def training_step(self, batch, batch_idx):
-        output = super().training_step(batch, batch_idx)
-        output.update({"random": torch.rand()})
-        return output
-
-
-class RngStateDataset(Dataset):
-
-    def __init__(self):
-        self.gen0 = torch.Generator().manual_seed(0)
-        self.gen1 = torch.Generator().manual_seed(1)
-
-    def __getitem__(self, item):
-        return item + torch.rand((1, ), generator=self.gen0)
-
-
-class RandomGetItemDataset(Dataset):
-
-    def __init__(self, size, length):
+    def __init__(self, length, *_):
         self.len = length
-        self.size = size
 
     def __getitem__(self, index):
-        return torch.randn((self.size, ))
+        return index
 
     def __len__(self):
         return self.len
 
 
-def test_global_rng_states():
+class RandomTorchGetItemDataset(Dataset):
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+
+    def __getitem__(self, index):
+        return torch.rand(self.size,)
+
+    def __len__(self):
+        return self.len
+
+
+class RandomNumpyGetItemDataset(RandomTorchGetItemDataset):
+    def __getitem__(self, index):
+        return np.random.rand(self.size, )
+
+
+class RandomPythonGetItemDataset(RandomTorchGetItemDataset):
+    def __getitem__(self, index):
+        return torch.tensor([python_random.random() for _ in range(self.size)])
+
+
+class RandomGeneratorGetItemDataset(Dataset):
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+        self.generator = torch.Generator()
+
+    def __getitem__(self, index):
+        return torch.rand(self.size, generator=self.generator)
+
+    def __len__(self):
+        return self.len
+
+
+# TODO: num_workers
+@pytest.mark.parametrize("dataset_class", [
+    SequentialGetItemDataset,
+    RandomTorchGetItemDataset,
+    RandomNumpyGetItemDataset,
+    RandomPythonGetItemDataset,
+    # RandomGeneratorGetItemDataset,
+])
+def test_global_rng_states(dataset_class):
+    # set the manual seed initially
     torch.manual_seed(1)
 
-    dataset = RandomGetItemDataset(2, 64)
+    dataset = dataset_class(8, 8)
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
     dataloader = DataLoader(dataset, sampler=ff_sampler)
     dataloader_iter = iter(dataloader)
 
-    # state = ff_sampler.state_dict(2)
-    # assert torch.equal(torch.get_rng_state(), state[0]["torch_rng_state"])
+    # fetch 2 batches
+    batch00 = next(dataloader_iter)
+    batch01 = next(dataloader_iter)
 
-    next(dataloader_iter)
-    last_batch = next(dataloader_iter)
-
+    # (A) capture the state after fetching 2 batches
     state = ff_sampler.state_dict(2)
-    prev_state = random_sampler.generator.get_state()
-    # assert isinstance(state[0]["torch_rng_state"], torch.ByteTensor)
 
-    # reload
-    dataset = RandomGetItemDataset(2, 64)
+    # (B) simulate 2 additional batches
+    batch02 = next(dataloader_iter)
+    batch03 = next(dataloader_iter)
+
+    # start reloading
+    dataset = dataset_class(8, 8)
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
 
-    # load state dict of sampler
+    # load the state dict saved at (A)
     ff_sampler.load_state_dict(state)
-    # assert torch.equal(torch.get_rng_state(), state[0]["torch_rng_state"])
 
     dataloader = DataLoader(dataset, sampler=ff_sampler)
     dataloader_iter = iter(dataloader)
 
-    assert torch.equal(random_sampler.generator.get_state(), prev_state)
+    # fetch 2 random batches, these should match exactly the batches seen at (B)
+    batch10 = next(dataloader_iter)
+    batch11 = next(dataloader_iter)
 
-    # same 2 random batches fetched
-    next(dataloader_iter)
-
-    batch = next(dataloader_iter)
-    assert torch.equal(last_batch, batch)
+    assert torch.equal(batch02, batch10)
+    assert torch.equal(batch03, batch11)

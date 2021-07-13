@@ -15,6 +15,7 @@ import random
 from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any, Dict, Generator, Iterator, List, Optional, Union
+from random import getstate as python_get_rng_state, setstate as python_set_rng_state
 
 import numpy as np
 import torch
@@ -44,6 +45,7 @@ class FastForwardSampler(Sampler):
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[str, Any]] = None
+        self._initial_rng_state = self._get_rng_states()
         self._attr_name = attr_name
 
     def __getattr__(self, key: str) -> Any:
@@ -64,22 +66,22 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-
         # the `state dict` was cached as workers were available before.
-        if self._cached_state_dict is not None: # and self.worker_id in self._cached_state_dict:
+        if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
             # reload the current state dict
             self._load_non_random_state(self._cached_state_dict)
-            self._cached_state_dict = None
+            self._set_rng_states(self._initial_rng_state)
 
         i = 0
         sampler_iter = iter(self._sampler)
         while i < self._current_iteration:
             next(sampler_iter)
             i += 1
-            
+
         # here: i == self._current_iteration
         if self._cached_state_dict is not None:
-            self._load_rng_states(self._cached_state_dict)
+            rng_state = self._cached_state_dict[self.worker_id]['rng_states']
+            self._set_rng_states(rng_state)
 
         # recreate iterator to be sure loading is reflected there as well
         while True:
@@ -90,6 +92,7 @@ class FastForwardSampler(Sampler):
                 break
 
         self._current_iteration = 0
+        self._cached_state_dict = None
         self.restarting = False
 
     def __len__(self) -> int:
@@ -118,34 +121,34 @@ class FastForwardSampler(Sampler):
                 {
                     "current_iteration": self._compute_current_iteration(num_batches_processed),
                     "rng_states": self._get_rng_states(),
+                    "initial_rng_state": self._initial_rng_state,
                     # "torch_rng_state": torch.get_rng_state(),
                 }
         }
 
-    def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
+    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         """
         Loads the saved state for the wrapped sampler.
         If the ``state_dict`` contains multiple states, it means there were multiple workers.
         The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
         """
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
-        # if len(state_dict) > 1 and not workers_initialized:
         self._cached_state_dict = deepcopy(state_dict)
         self.restarting = True
-            # return
-        # self._current_iteration = state_dict[self.worker_id]["current_iteration"]
-        # self.restarting = True
 
     def _load_non_random_state(self, state_dict):
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
         # self.restarting = True
 
-    def _load_rng_states(self, state_dict: Dict[int, Any]):
-        # torch.set_rng_state(state_dict[self.worker_id]["torch_rng_state"])
-        for k, v in state_dict[self.worker_id]['rng_states'].items():
+    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
+        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
+        np.random.set_state(rng_state_dict.pop("__global_numpy"))
+        python_set_rng_state(rng_state_dict.pop("__global_python"))
+        for k, v in rng_state_dict.items():
             attr = getattr(self._sampler, k)
             if isinstance(attr, torch.Generator):
                 attr.set_state(v)
+                setattr(self._sampler, k, attr)
 
     def _get_rng_states(self):
 
@@ -153,7 +156,9 @@ class FastForwardSampler(Sampler):
             return gen.get_state()
 
         states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator)
-        # states["__global"] = torch.get_rng_state()
+        states["__global_torch"] = torch.get_rng_state()
+        states["__global_numpy"] = np.random.get_state()
+        states["__global_python"] = python_get_rng_state()
         return states
 
 
