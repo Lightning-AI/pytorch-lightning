@@ -223,12 +223,11 @@ class LightningCLI:
         subclass_mode_data: bool = False
     ) -> None:
         """
-        Receives as input pytorch-lightning classes, which are instantiated
-        using a parsed configuration file and/or command line args and then runs
-        trainer.fit. Parsing of configuration from environment variables can
-        be enabled by setting ``env_parse=True``. A full configuration yaml would
-        be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed from
-        variables named for example ``PL_TRAINER__MAX_EPOCHS``.
+        Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which are
+        called / instantiated using a parsed configuration file and / or command line args and then runs trainer.fit.
+        Parsing of configuration from environment variables can be enabled by setting ``env_parse=True``. A full
+        configuration yaml would be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed from variables
+        named for example ``PL_TRAINER__MAX_EPOCHS``.
 
         Example, first implement the ``trainer.py`` tool as::
 
@@ -245,12 +244,16 @@ class LightningCLI:
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
         Args:
-            model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on.
-            datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class.
+            model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on or a callable
+                which returns a :class:`~pytorch_lightning.core.lightning.LightningModule` instance when called.
+            datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
+                callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
+                called.
             save_config_callback: A callback class to save the training config.
             save_config_filename: Filename for the config file.
             save_config_overwrite: Whether to overwrite an existing config file.
-            trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
+            trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
+                callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
