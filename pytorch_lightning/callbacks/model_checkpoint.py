@@ -319,11 +319,10 @@ class ModelCheckpoint(Callback):
 
     def on_train_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """
-        Save a checkpoint at the very end of training.
+        Save a checkpoint when training stops.
 
-        This will only save a checkpoint if `save_last` is also enabled
-        as the monitor metrics logged during training/validation steps or end of epochs
-        are not guaranteed to be available at this stage.
+        This will only save a checkpoint if `save_last` is also enabled as the monitor metrics logged during
+        training/validation steps or end of epochs are not guaranteed to be available at this stage.
         """
         if self._should_skip_saving_checkpoint(trainer):
             return
