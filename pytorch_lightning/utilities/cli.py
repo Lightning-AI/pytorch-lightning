@@ -348,8 +348,19 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_classes(self.config)
-        self.datamodule = self.config_init.get('data')
-        self.model = self.config_init['model']
+
+        datamodule_config = self.config_init.get('data')
+        if isinstance(self.datamodule_class, type) or datamodule_config is None:
+            self.datamodule = datamodule_config
+        else:
+            self.datamodule_class(**datamodule_config)
+
+        model_config = self.config_init['model']
+        if isinstance(self.model_class, type):
+            self.model = model_config
+        else:
+            self.model = self.model_class(**model_config)
+
         self.instantiate_trainer()
 
     def instantiate_trainer(self) -> None:

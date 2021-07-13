@@ -20,7 +20,7 @@ import sys
 from argparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
-from typing import List, Optional
+from typing import List, Optional, Union
 from unittest import mock
 
 import pytest
@@ -28,7 +28,7 @@ import torch
 import yaml
 from packaging import version
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -220,22 +220,24 @@ def test_init_from_argparse_args(cli_args, extra_args):
         Trainer.from_argparse_args(Namespace(**cli_args), **extra_args, **unknown_args)
 
 
-class TestModel(LightningModule):
+class Model(LightningModule):
 
     def __init__(self, model_param: int):
         super().__init__()
         self.model_param = model_param
 
 
-def test_model(model_param: int):
-    return TestModel(model_param)
+def model_builder(model_param: int):
+    return Model(model_param)
 
 
-def trainer_builder(limit_train_batches: int):
-    return Trainer(limit_train_batches=limit_train_batches)
+def trainer_builder(
+    limit_train_batches: int, fast_dev_run: bool = False, callbacks: Optional[Union[List[Callback], Callback]] = None
+):
+    return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
 
 
-@pytest.mark.parametrize(['trainer_class', 'model_class'], [(Trainer, TestModel), (trainer_builder, test_model)])
+@pytest.mark.parametrize(['trainer_class', 'model_class'], [(Trainer, Model), (trainer_builder, model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
 
@@ -263,7 +265,7 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
     monkeypatch.setattr(SaveConfigCallback, 'on_train_start', on_train_start)
 
     with mock.patch('sys.argv', ['any.py', '--model.model_param=7', '--trainer.limit_train_batches=100']):
-        cli = LightningCLI(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
+        cli = LightningCLI(model_class, trainer_class=trainer_class, save_config_callback=SaveConfigCallback)
         assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
 
 
