@@ -20,9 +20,9 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
+from pytorch_lightning.core.mixin import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
-from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
