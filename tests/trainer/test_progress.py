@@ -21,12 +21,12 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import (
-    BatchProgress,
-    EpochLoopProgress,
-    EpochProgress,
+    DataLoaderProgress,
+    OptimizationProgress,
     OptimizerProgress,
     Progress,
     Tracker,
+    TrainingEpochProgress,
 )
 from tests.helpers import BoringModel
 
@@ -79,20 +79,9 @@ def test_base_progress_from_defaults():
     assert actual == expected
 
 
-def test_epoch_loop_progress_increment_epoch():
-    p = EpochLoopProgress()
-    p.increment_epoch_completed()
-    p.increment_epoch_completed()
-    assert p.epoch.total == Tracker(completed=2)
-    assert p.epoch.current == Tracker()
-    assert p.epoch.batch.current == Tracker()
-
-
 def test_epoch_loop_progress_increment_sequence():
     """Test sequences for incrementing batches reads and epochs."""
-    batch = BatchProgress(total=Tracker(started=None))
-    epoch = EpochProgress(batch=batch)
-    loop = EpochLoopProgress(epoch=epoch)
+    batch = Progress(total=Tracker(started=None))
 
     batch.increment_ready()
     assert batch.total == Tracker(ready=1, started=None)
@@ -110,26 +99,6 @@ def test_epoch_loop_progress_increment_sequence():
     assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
     assert batch.current == Tracker(ready=1, processed=1, completed=1)
 
-    assert epoch.total == Tracker()
-    assert epoch.current == Tracker()
-    loop.increment_epoch_completed()
-    assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert batch.current == Tracker()
-    assert epoch.total == Tracker(completed=1)
-    assert epoch.current == Tracker()
-
-    batch.increment_ready()
-    assert batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert batch.current == Tracker(ready=1)
-    assert epoch.total == Tracker(completed=1)
-    assert epoch.current == Tracker()
-
-    loop.reset_on_epoch()
-    assert batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert batch.current == Tracker()
-    assert epoch.total == Tracker(completed=1)
-    assert epoch.current == Tracker()
-
 
 def test_optimizer_progress_default_factory():
     """
@@ -144,32 +113,13 @@ def test_optimizer_progress_default_factory():
     assert p2.step.total.completed == 0
 
 
-def test_epoch_loop_progress_serialization():
-    loop = EpochLoopProgress()
-    loop.epoch.dataloader_idx = 1
-    _ = deepcopy(loop)
-    state_dict = loop.state_dict()
-
-    # yapf: disable
-    assert state_dict == {
-        'epoch': {
-            # number of times `validate` has been called
-            'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            # either 0 or 1 as `max_epochs` does not apply to the `validate` loop
-            'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            'batch': {
-                # number of batches across `validate` calls
-                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                # number of batches this `validate` call
-                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            },
-            'dataloader_idx': 1
-        }
-    }
-    # yapf: enable
-
-    new_loop = EpochLoopProgress.from_state_dict(state_dict)
-    assert loop == new_loop
+def test_deepcopy():
+    _ = deepcopy(Tracker())
+    _ = deepcopy(Progress())
+    _ = deepcopy(TrainingEpochProgress())
+    _ = deepcopy(DataLoaderProgress())
+    _ = deepcopy(OptimizerProgress())
+    _ = deepcopy(OptimizationProgress())
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
