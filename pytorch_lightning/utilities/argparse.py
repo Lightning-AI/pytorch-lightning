@@ -47,7 +47,7 @@ def from_argparse_args(cls: Type['pl.Trainer'], args: Union[Namespace, ArgumentP
 
     # we only want to pass in valid Trainer args, the rest may be user specific
     valid_kwargs = inspect.signature(cls.__init__).parameters
-    trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+    trainer_kwargs = {name: params[name] for name in valid_kwargs if name in params}
     trainer_kwargs.update(**kwargs)
 
     return cls(**trainer_kwargs)
@@ -140,9 +140,8 @@ def _get_abbrev_qualified_cls_name(cls: Type['pl.Trainer']) -> str:
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
         return f"pl.{cls.__name__}"
-    else:
-        # Fully qualified.
-        return f"{cls.__module__}.{cls.__qualname__}"
+    # Fully qualified.
+    return f"{cls.__module__}.{cls.__qualname__}"
 
 
 def add_argparse_args(
@@ -259,8 +258,7 @@ def add_argparse_args(
 
     if use_argument_group:
         return parent_parser
-    else:
-        return parser
+    return parser
 
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
@@ -289,8 +287,7 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
 def _gpus_allowed_type(x: str) -> Union[int, str]:
     if ',' in x:
         return str(x)
-    else:
-        return int(x)
+    return int(x)
 
 
 def _gpus_arg_default(x: str) -> Union[int, str]:  # pragma: no-cover
@@ -303,5 +300,4 @@ def _gpus_arg_default(x: str) -> Union[int, str]:  # pragma: no-cover
 def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
     if '.' in str(x):
         return float(x)
-    else:
-        return int(x)
+    return int(x)

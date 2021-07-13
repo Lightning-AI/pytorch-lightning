@@ -339,8 +339,6 @@ class DeepSpeedPlugin(DDPPlugin):
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
 
     def pre_dispatch(self):
         self.init_deepspeed()
@@ -700,10 +698,9 @@ class DeepSpeedPlugin(DDPPlugin):
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
             return super().update_global_step(total_batch_idx, current_global_step)
-        else:
-            if total_batch_idx % self._original_accumulate_grad_batches == 0:
-                current_global_step += 1
-            return current_global_step
+        if total_batch_idx % self._original_accumulate_grad_batches == 0:
+            current_global_step += 1
+        return current_global_step
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

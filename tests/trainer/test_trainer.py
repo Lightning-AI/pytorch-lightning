@@ -39,7 +39,7 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
@@ -373,7 +373,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     for i, loss in enumerate(losses):
         trainer.fit_loop.current_epoch = i
         trainer.fit_loop.global_step = i
-        trainer.logger_connector.callback_metrics.update({"checkpoint_on": loss})
+        trainer.callback_metrics.update({"checkpoint_on": loss})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
@@ -1101,9 +1101,9 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
 
     with patch.object(
-        trainer.fit_loop.val_loop.epoch_loop,
+        trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
         "evaluation_step",
-        wraps=trainer.fit_loop.val_loop.epoch_loop.evaluation_step
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple_mixed_length()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1131,9 +1131,9 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == float("inf")
 
     with patch.object(
-        trainer.fit_loop.val_loop.epoch_loop,
+        trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
         "evaluation_step",
-        wraps=trainer.fit_loop.val_loop.epoch_loop.evaluation_step
+        wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop.evaluation_step
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1937,3 +1937,35 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.test()
     with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
         trainer.predict()
+
+
+@RunIf(min_gpus=2, special=True)
+def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
+    """ Test that DDP kills the remaining processes when only one rank is throwing an exception. """
+
+    class CustomException(Exception):
+        pass
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 1 and self.trainer.is_global_zero:
+                # rank 0: raises an exception
+                # rank 1: continues training but will hang on the next barrier in the training loop
+                raise CustomException
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        gpus=2,
+        accelerator="ddp",
+    )
+
+    # simulate random failure in training_step on rank 0
+    with pytest.raises(DeadlockDetectedException, match="CustomException"):
+        trainer.fit(model)

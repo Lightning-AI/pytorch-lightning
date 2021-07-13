@@ -162,13 +162,44 @@ def test_pruning_callback(
 
 
 @RunIf(special=True, min_gpus=2)
-@pytest.mark.parametrize("parameters_to_prune", [False, True])
-@pytest.mark.parametrize("use_global_unstructured", [False, True])
-def test_pruning_callback_ddp(tmpdir, use_global_unstructured: bool, parameters_to_prune: bool):
+def test_pruning_callback_ddp_0(tmpdir):
     train_with_pruning_callback(
         tmpdir,
-        parameters_to_prune=parameters_to_prune,
-        use_global_unstructured=use_global_unstructured,
+        parameters_to_prune=False,
+        use_global_unstructured=False,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_1(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=False,
+        use_global_unstructured=True,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_2(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=True,
+        use_global_unstructured=False,
+        accelerator="ddp",
+        gpus=2,
+    )
+
+
+@RunIf(special=True, min_gpus=2)
+def test_pruning_callback_ddp_3(tmpdir):
+    train_with_pruning_callback(
+        tmpdir,
+        parameters_to_prune=True,
+        use_global_unstructured=True,
         accelerator="ddp",
         gpus=2,
     )
@@ -273,22 +304,29 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     assert not has_pruning if make_pruning_permanent else has_pruning
 
 
-@pytest.mark.parametrize("on_train_epoch_end", (False, True))
-def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog, on_train_epoch_end):
+@pytest.mark.parametrize("prune_on_train_epoch_end", (False, True))
+@pytest.mark.parametrize("save_on_train_epoch_end", (False, True))
+def test_permanent_when_model_is_saved_multiple_times(
+    tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
+):
     """
     When a model is saved multiple times and make_permanent=True, we need to
     make sure a copy is pruned and not the trained model if we want to continue
     with the same pruning buffers.
     """
+    if prune_on_train_epoch_end and save_on_train_epoch_end:
+        pytest.xfail(
+            "Pruning sets the `grad_fn` of the parameters so we can't save"
+            " right after as pruning has not been made permanent"
+        )
 
     class TestPruning(ModelPruning):
 
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            had_buffers = hasattr(pl_module.layer.mlp_3, "weight_orig")
             super().on_save_checkpoint(trainer, pl_module, checkpoint)
-            if not on_train_epoch_end:
-                # these checks only work if pruning on `validation_epoch_end`
-                # because `on_save_checkpoint` is called before `on_train_epoch_end`
-                assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
+            assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
+            if had_buffers:
                 assert hasattr(pl_module.layer.mlp_3, "weight_orig")
 
     model = TestModel()
@@ -297,9 +335,11 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog, on_train_e
         parameters_to_prune=[(model.layer.mlp_3, "weight")],
         verbose=1,
         make_pruning_permanent=True,
-        prune_on_train_epoch_end=on_train_epoch_end,
+        prune_on_train_epoch_end=prune_on_train_epoch_end,
     )
-    ckpt_callback = ModelCheckpoint(monitor="test", save_top_k=2, save_last=True)
+    ckpt_callback = ModelCheckpoint(
+        monitor="test", save_top_k=2, save_last=True, save_on_train_epoch_end=save_on_train_epoch_end
+    )
     trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, progress_bar_refresh_rate=0)
     with caplog.at_level(INFO):
         trainer.fit(model)

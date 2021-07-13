@@ -135,6 +135,10 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     return gathered_result
 
 
+def distributed_available() -> bool:
+    return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+
+
 def sync_ddp_if_available(
     result: Union[torch.Tensor],
     group: Optional[Any] = None,
@@ -151,7 +155,7 @@ def sync_ddp_if_available(
     Return:
         reduced value
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed():
+    if distributed_available():
         return sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
@@ -230,12 +234,11 @@ def all_gather_ddp_if_available(
         A tensor of shape (world_size, batch, ...)
     """
     group = group if group is not None else torch.distributed.group.WORLD
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if distributed_available():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
-        else:
-            with torch.no_grad():
-                return AllGatherGrad.apply(tensor, group)
+        with torch.no_grad():
+            return AllGatherGrad.apply(tensor, group)
     return tensor
 
 
@@ -339,6 +342,4 @@ def register_ddp_comm_hook(
 
 
 def tpu_distributed() -> bool:
-    if _TPU_AVAILABLE:
-        return xm.xrt_world_size() > 1
-    return False
+    return _TPU_AVAILABLE and xm.xrt_world_size() > 1

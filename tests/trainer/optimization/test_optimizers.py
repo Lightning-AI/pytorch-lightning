@@ -662,7 +662,8 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
     assert model.on_save_checkpoint_called
 
 
-def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
+@pytest.mark.parametrize("save_on_train_epoch_end", (False, True))
+def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on_train_epoch_end):
     batches = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -671,7 +672,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
         max_epochs=1,
         limit_train_batches=batches,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir)]
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=save_on_train_epoch_end)]
     )
 
     class TestModel(BoringModel):
@@ -693,8 +694,8 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
 
         def on_save_checkpoint(self, checkpoint):
             lr_dict_1 = checkpoint['lr_schedulers'][0]
-            # since plateau schedulers are updated after saving checkpoint, last_epoch should be 3
-            assert lr_dict_1['last_epoch'] == batches - 1  # last epoch starts at 0
+            last_epoch = lr_dict_1['last_epoch']
+            assert last_epoch == batches - (not save_on_train_epoch_end)  # last epoch starts at 0
 
             lr_dict_2 = checkpoint['lr_schedulers'][1]
             assert lr_dict_2['_step_count'] - 1 == batches  # step count starts at 1

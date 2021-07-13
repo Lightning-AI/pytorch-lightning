@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torch.distributed
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -385,6 +386,35 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
+@RunIf(special=True)
+def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
+    """ Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin. """
+    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
+
+
+@RunIf(special=True)
+def test_accelerator_choice_ddp_cpu_and_plugin_spawn(tmpdir):
+    """ Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin. """
+    _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPSpawnPlugin)
+
+
+def _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class):
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[ddp_plugin_class(find_unused_parameters=True)],
+        fast_dev_run=True,
+        accelerator='ddp_cpu',
+        num_processes=2,
+    )
+    assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.training_type_plugin.num_processes == 2
+    assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
+    trainer.fit(model)
+
+
 @mock.patch.dict(
     os.environ, {
         "SLURM_NTASKS": "2",
@@ -396,11 +426,8 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=0)
-@mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
-def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock, setup_distributed_mock):
-    """
-    Test that we choose the custom cluster even when SLURM or TE flags are around
-    """
+def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
+    """ Test that we choose the custom cluster even when SLURM or TE flags are around """
 
     class CustomCluster(LightningEnvironment):
 
@@ -410,25 +437,16 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock, setup_dist
         def creates_children(self) -> bool:
             return True
 
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         plugins=[CustomCluster()],
         fast_dev_run=True,
         accelerator='ddp_cpu',
         num_processes=2,
-        callbacks=[CB()],
     )
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
 
 
 @mock.patch.dict(
@@ -569,3 +587,55 @@ def test_accelerator_choice_multi_node_gpu(
         gpus=gpus,
     )
     assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't require GPU")
+def test_accelerator_cpu():
+
+    trainer = Trainer(accelerator="cpu")
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
+        trainer = Trainer(accelerator="gpu")
+
+    with pytest.raises(MisconfigurationException, match="You requested GPUs:"):
+        trainer = Trainer(accelerator="cpu", gpus=1)
+
+
+@RunIf(min_gpus=1)
+def test_accelerator_gpu():
+
+    trainer = Trainer(accelerator="gpu", gpus=1)
+
+    assert trainer._device_type == "gpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='gpu'`, but you didn't pass `gpus` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="gpu")
+
+    trainer = Trainer(accelerator="auto", gpus=1)
+
+    assert trainer._device_type == "gpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+
+
+@RunIf(min_gpus=1)
+def test_accelerator_cpu_with_gpus_flag():
+
+    trainer = Trainer(accelerator="cpu", gpus=1)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(min_gpus=2)
+def test_accelerator_cpu_with_multiple_gpus():
+
+    trainer = Trainer(accelerator="cpu", gpus=2)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)

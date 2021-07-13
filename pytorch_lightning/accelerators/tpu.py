@@ -20,16 +20,11 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_5, _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-
-    # the patch is not required after 1.5.0
-    if _TORCH_GREATER_EQUAL_1_5:
-        from torch_xla._patched_functions import _apply_patches
-        _apply_patches()  # patches `torch.nn.utils.clip_grad_norm_`
 
 
 class TPUAccelerator(Accelerator):

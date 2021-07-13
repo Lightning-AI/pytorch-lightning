@@ -19,10 +19,11 @@ import torch
 import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import IPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -110,6 +111,19 @@ def test_accelerator_selected(tmpdir):
     assert isinstance(trainer.accelerator, IPUAccelerator)
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, accelerator='ipu')
     assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_warning_if_ipus_not_used(tmpdir):
+    with pytest.warns(UserWarning, match="IPU available but not used. Set the `ipus` flag in your trainer"):
+        Trainer(default_root_dir=tmpdir)
+
+
+@RunIf(ipu=True)
+def test_no_warning_plugin(tmpdir):
+    with pytest.warns(None) as record:
+        Trainer(default_root_dir=tmpdir, plugins=IPUPlugin(training_opts=poptorch.Options()))
+    assert len(record) == 0
 
 
 @RunIf(ipu=True)
@@ -364,100 +378,71 @@ def test_manual_poptorch_opts(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_manual_poptorch_opts_ipu_count(tmpdir):
+def test_manual_poptorch_opts_custom(tmpdir):
     """
-    Ensure if the user passes manual poptorch Options
-    and the number of ipus do not match, we warn and we set it for the user.
-    """
-
-    manual_ipus = 1
-    expected_ipus = 2
-    model = IPUModel()
-    inference_opts = poptorch.Options()
-    inference_opts.replicationFactor(manual_ipus)
-
-    training_opts = poptorch.Options()
-    training_opts.replicationFactor(manual_ipus)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        ipus=expected_ipus,
-        fast_dev_run=True,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
-    )
-    with pytest.warns(
-        UserWarning,
-        match=f"Manual poptorch.Options set replicationFactor to {manual_ipus} "
-        f"which differs to the ipus={expected_ipus} flag passed to the Trainer. "
-        f"Setting to {expected_ipus} in the poptorch.Options."
-    ):
-        trainer.fit(model)
-        assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-        assert trainer.accelerator.training_type_plugin.training_opts.replication_factor == 2
-        assert trainer.accelerator.training_type_plugin.inference_opts.replication_factor == 2
-
-
-@RunIf(ipu=True)
-def test_manual_poptorch_opts_inference_grad_accum(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options
-    and grad accumulation is set greater than 1 for inference, we warn and set to 1.
+    Ensure if the user passes manual poptorch Options with custom parameters set,
+    we respect them in our poptorch options and the dataloaders.
     """
 
     model = IPUModel()
-    inference_opts = poptorch.Options()
-    inference_opts.Training.gradientAccumulation(4)
-
     training_opts = poptorch.Options()
-    training_opts.Training.gradientAccumulation(1)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        ipus=1,
-        fast_dev_run=True,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
-    )
-    with pytest.warns(
-        UserWarning,
-        match="Inference poptorch.Options should set gradientAccumulation to 1. "
-        "Setting gradientAccumulation to 1 for inference options.",
-    ):
-        trainer.fit(model)
-        assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-        assert trainer.accelerator.training_type_plugin.inference_opts.Training.gradient_accumulation == 1
-
-
-@RunIf(ipu=True)
-def test_manual_poptorch_opts_train_grad_accum(tmpdir):
-    """
-    Ensure if the user passes manual poptorch Options
-    and grad accumulation differs to accumulate_grad_batches, we
-    """
-
-    model = IPUModel()
-    inference_opts = poptorch.Options()
-    inference_opts.Training.gradientAccumulation(1)
-
-    training_opts = poptorch.Options()
+    training_opts.deviceIterations(8)
+    training_opts.replicationFactor(2)
     training_opts.Training.gradientAccumulation(2)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        ipus=1,
-        fast_dev_run=True,
-        accumulate_grad_batches=1,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
-    )
-    with pytest.warns(
-        UserWarning,
-        match=f"Training poptorch.Options set gradientAccumulation to {2}. "
-        f"This is different to accumulate_grad_batches which was set to {1}. "
-        f"To change gradientAccumulation, please set accumulate_grad_batches in the Trainer. "
-        f"Setting poptorch.Options gradientAccumulation to {1}",
-    ):
-        trainer.fit(model)
-        assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-        assert trainer.accelerator.training_type_plugin.inference_opts.Training.gradient_accumulation == 1
+    inference_opts = poptorch.Options()
+    inference_opts.deviceIterations(16)
+    inference_opts.replicationFactor(1)
+    inference_opts.Training.gradientAccumulation(1)
+
+    class TestCallback(Callback):
+
+        def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+            # ensure dataloaders were correctly set up during training.
+            plugin = trainer.accelerator.training_type_plugin
+            assert isinstance(plugin, IPUPlugin)
+            assert plugin.training_opts.replication_factor == 2
+            assert plugin.inference_opts.replication_factor == 1
+
+            val_dataloader = trainer.val_dataloaders[0]
+            train_dataloader = trainer.train_dataloader
+            assert isinstance(train_dataloader, CombinedLoader)
+            train_dataloader = train_dataloader.loaders
+            assert isinstance(val_dataloader, poptorch.DataLoader)
+            assert isinstance(train_dataloader, poptorch.DataLoader)
+            assert train_dataloader.options.replication_factor == 2
+            assert val_dataloader.options.replication_factor == 1
+
+    plugin = IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    # ensure we default to the training options replication factor
+    assert plugin.replication_factor == 2
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin, callbacks=TestCallback())
+    trainer.fit(model)
+
+    plugin = trainer.accelerator.training_type_plugin
+    assert isinstance(plugin, IPUPlugin)
+
+    training_opts = plugin.training_opts
+    assert training_opts.device_iterations == 8
+    assert training_opts.replication_factor == 2
+    assert training_opts.Training.gradient_accumulation == 2
+
+    inference_opts = plugin.inference_opts
+    assert inference_opts.device_iterations == 16
+    assert inference_opts.replication_factor == 1
+    assert inference_opts.Training.gradient_accumulation == 1
+
+
+@RunIf(ipu=True)
+def test_replication_factor(tmpdir):
+    """
+    Ensure if the user passes manual poptorch Options with custom parameters set,
+    we set them correctly in the dataloaders.
+    """
+
+    plugin = IPUPlugin()
+    trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
+    assert trainer.ipus == 2
 
 
 @RunIf(ipu=True)
@@ -506,3 +491,31 @@ def test_precision_plugin(tmpdir):
 
     plugin = IPUPrecisionPlugin(precision=16)
     assert plugin.precision == 16
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=1)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='ipu'`, but you didn't pass `ipus` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="ipu")
+
+    trainer = Trainer(accelerator="auto", ipus=8)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_cpu_with_ipus_flag():
+
+    trainer = Trainer(accelerator="cpu", ipus=1)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)

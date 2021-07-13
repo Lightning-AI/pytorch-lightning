@@ -14,13 +14,13 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.epoch.training_epoch_loop import TrainingEpochLoop
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import FitLoopProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -51,16 +51,9 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.val_loop = EvaluationLoop()
+        self.progress = FitLoopProgress()
 
-    @property
-    def results(self) -> ResultCollection:
-        if self.trainer.training:
-            return self.epoch_loop.results
-        elif self.trainer.validating:
-            return self.val_loop.results
-        raise RuntimeError("`FitLoop.results` property isn't defined. Accessed outside of scope")
+        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
     def current_epoch(self) -> int:
@@ -103,6 +96,12 @@ class FitLoop(Loop):
         """Returns the minimum numnber of steps to run"""
         return self.epoch_loop.min_steps
 
+    @min_steps.setter
+    def min_steps(self, value: int) -> None:
+        """Sets the minimum number of steps (forwards to epoch_loop)"""
+        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        self.epoch_loop.min_steps = value
+
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run"""
@@ -128,6 +127,14 @@ class FitLoop(Loop):
     def _skip_backward(self, value: bool) -> None:
         """ Determines whether the loop will skip backward during automatic optimization. """
         self.epoch_loop.batch_loop._skip_backward = value
+
+    @property
+    def _results(self) -> ResultCollection:
+        if self.trainer.training:
+            return self.epoch_loop._results
+        if self.trainer.validating:
+            return self.epoch_loop.val_loop._results
+        raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
     def done(self) -> bool:
@@ -162,18 +169,21 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
+    def connect(
+        self, trainer: 'pl.Trainer', *args: Any, progress: Optional[FitLoopProgress] = None, **kwargs: Any
+    ) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
-        self.val_loop.connect(trainer)
+        if progress is not None:
+            self.progress = progress
+        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
-        self.results.to(device=self.trainer.lightning_module.device)
+        self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self) -> None:
@@ -181,7 +191,7 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if self.current_epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
+        if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # TODO: specify the possible exception
@@ -225,14 +235,14 @@ class FitLoop(Loop):
 
         self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
-        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.skip
+        did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
         if did_train_only:
             self.global_step -= 1
             self._check_checkpoint_callback(True)
             self.global_step += 1
 
     def on_run_end(self) -> None:
-        """Runs teardown logic and calls the ``on_train_end`` hook"""
+        """Calls the ``on_train_end`` hook"""
         # NOTE: the iteration_count/current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
@@ -261,9 +271,6 @@ class FitLoop(Loop):
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
-        # reset bookkeeping
-        self.trainer._running_stage = None
-
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
         return self.epoch_loop.batch_loop.should_accumulate()
@@ -271,7 +278,7 @@ class FitLoop(Loop):
     def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
         """Checks if checkpointing needs to be done"""
         # TODO: bake this logic into the ModelCheckpoint callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
+        if should_update:
             callbacks = self.trainer.checkpoint_callbacks
 
             if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
@@ -281,3 +288,12 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
+
+    def state_dict(self) -> Dict:
+        return {"epoch_loop": self.epoch_loop.state_dict()}
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
+
+    def teardown(self) -> None:
+        self.epoch_loop.teardown()
