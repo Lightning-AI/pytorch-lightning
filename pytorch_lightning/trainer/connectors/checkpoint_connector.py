@@ -257,7 +257,7 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        state_dict = self._loaded_checkpoint.get("loops", None)
+        state_dict = self._loaded_checkpoint.get("loops")
         if state_dict:
             self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
@@ -346,9 +346,8 @@ class CheckpointConnector:
             'pytorch-lightning_version': pl.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
-
         if _fault_tolerant_enabled():
-            checkpoint.update({"loops": self.get_loops_state_dict()})
+            checkpoint["loops"] = self.get_loops_state_dict()
 
         if not weights_only:
             # dump callbacks
