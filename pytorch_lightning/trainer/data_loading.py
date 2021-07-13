@@ -183,7 +183,7 @@ class TrainerDataLoadingMixin(ABC):
             dl_args['drop_last'] = False
         else:
             if should_use_forward_sampler:
-                sampler = FastForwardSampler(sampler)
+                fast_forward_sampler = sampler = FastForwardSampler(sampler)
 
             dl_args['sampler'] = sampler
             dl_args['shuffle'] = False
@@ -192,7 +192,7 @@ class TrainerDataLoadingMixin(ABC):
         if should_use_forward_sampler:
             # the forward sampler need to be informed about
             batch_size = dl_args["batch_size"]
-            sampler.setup(batch_size)
+            fast_forward_sampler.setup(batch_size)
 
         return dl_args
 
