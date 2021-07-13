@@ -161,12 +161,10 @@ class CheckpointConnector:
 
         # restore precision plugin (scaler etc.)
         self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
-        # restore progress (loops etc.)
-        self.restore_progress()
+        # restore loops and their progress
+        self.restore_loops()
 
         self.restore_optimizers_and_schedulers()
-
-        self.restore_loops()
 
     def restore_callbacks(self) -> None:
         """ Restores all callbacks from the pre-loaded checkpoint. """
@@ -182,10 +180,10 @@ class CheckpointConnector:
             )
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
-    def restore_progress(self) -> None:
+    def restore_loops(self) -> None:
         """
-        Restores the training progress from the pre-loaded checkpoint. This currently includes only the global step
-        and current epoch.
+        Restores the loop progress from the pre-loaded checkpoint.
+        Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
         """
         if not self._loaded_checkpoint:
             return
@@ -211,6 +209,13 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
+
+        state_dict = self._loaded_checkpoint.get("loops")
+        if state_dict:
+            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
@@ -251,18 +256,6 @@ class CheckpointConnector:
         lr_schedulers = self._loaded_checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
-
-    def restore_loops(self) -> None:
-        """ Calls hooks on the loops to give it a chance to restore its state from the checkpoint. """
-        if not self._loaded_checkpoint:
-            return
-
-        state_dict = self._loaded_checkpoint.get("loops")
-        if state_dict:
-            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
-            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
-            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
-            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
     # ----------------------------------
     # PRIVATE OPS
