@@ -171,22 +171,6 @@ def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
             attr.set_state(v)
 
 
-
-
-# ADRIAN
-# def _set_recursive(obj, state):
-#
-#     if isinstance(obj, torch.Generator):
-#         # abbruchbedingung
-#         obj.set_state(state)
-#         return
-#
-#     assert isinstance(state, dict)
-#
-#     for k, v in state.items():
-#         _set_recursive(getattr(obj, k), state[k])
-
-
 class CaptureIterableDataset(IterableDataset):
     """
     The ``CaptureIterableDataset`` is used to wrap an :class:`torch.utils.data.IterableDataset`.
