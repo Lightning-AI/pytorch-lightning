@@ -676,10 +676,6 @@ class DeepSpeedPlugin(DDPPlugin):
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
         save_dir = self._filepath_to_dir(checkpoint_path)
 
-        if self.zero_stage_3:
-            # TODO: Currently required as this call is missing within the deepspeed engine.
-            self.deepspeed_engine.optimizer._partition_all_parameters()
-
         _, client_state = self.deepspeed_engine.load_checkpoint(
             save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
         )
@@ -688,7 +684,52 @@ class DeepSpeedPlugin(DDPPlugin):
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
         if self.save_full_weights and self.zero_stage_3:
-            self.lightning_module.load_state_dict(checkpoint['state_dict'])
+            self.model_to_device()
+            self._restore_zero_state(checkpoint)
+
+    def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
+        """
+        Overrides the normal load_state_dict behaviour in PyTorch to ensure
+        we gather parameters that may be sharded across processes before loading
+        the state dictionary when using ZeRO stage 3.
+        This is then automatically synced across processes.
+        Args:
+            ckpt: The ckpt file.
+        """
+
+        def load(module: torch.nn.Module, prefix=""):
+
+            missing_keys = []
+            unexpected_keys = []
+            error_msgs = []
+            state_dict = ckpt['state_dict']
+
+            # copy state_dict so _load_from_state_dict can modify it
+            metadata = getattr(state_dict, '_metadata', None)
+            state_dict = state_dict.copy()
+            if metadata is not None:
+                state_dict._metadata = metadata
+
+            local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
+            # because zero3 puts placeholders in model params, this context
+            # manager gathers (unpartitions) the params of the current layer, then loads from
+            # the state dict and then re-partitions them again
+            with deepspeed.zero.GatheredParameters(list(module.parameters(recurse=False)), modifier_rank=0):
+                if self.is_global_zero:
+                    module._load_from_state_dict(
+                        state_dict=state_dict,
+                        prefix=prefix,
+                        local_metadata=local_metadata,
+                        strict=True,
+                        missing_keys=missing_keys,
+                        unexpected_keys=unexpected_keys,
+                        error_msgs=error_msgs
+                    )
+
+            for name, child in module._modules.items():
+                if child is not None:
+                    load(child, prefix + name + ".")
+        load(self.lightning_module, prefix="")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`

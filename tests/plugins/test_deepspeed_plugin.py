@@ -196,7 +196,7 @@ def test_deepspeed_with_invalid_config_path(tmpdir):
     """
 
     with pytest.raises(
-        MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
+            MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
         DeepSpeedPlugin(config='invalid_path.json')
 
@@ -234,7 +234,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
         plugins='deepspeed',
     )
     with pytest.raises(
-        MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
+            MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
     ):
         trainer.fit(model)
 
@@ -570,7 +570,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 
 
 def run_checkpoint_test(
-    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
+        tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
 ):
     seed_everything(1)
     if automatic_optimization:
@@ -591,7 +591,7 @@ def run_checkpoint_test(
     )
     trainer.fit(model, datamodule=dm)
 
-    results = trainer.test(model, datamodule=dm)
+    results = trainer.test(ckpt_path='best', datamodule=dm)
     assert results[0]['test_acc'] > 0.7
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results[0]['test_acc'] > 0.7
@@ -601,7 +601,12 @@ def run_checkpoint_test(
         model = ModelParallelClassificationModel()
     else:
         model = ManualModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=2,
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
+        precision=16
+    )
 
     results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]['test_acc'] > 0.7
@@ -616,7 +621,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     run_checkpoint_test(tmpdir, save_full_weights=False)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=False)
+@RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
@@ -656,7 +661,7 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
             self.on_train_batch_start_called = False
 
         def on_train_batch_start(
-            self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+                self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
