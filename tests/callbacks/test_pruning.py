@@ -315,8 +315,10 @@ def test_permanent_when_model_is_saved_multiple_times(
     with the same pruning buffers.
     """
     if prune_on_train_epoch_end and save_on_train_epoch_end:
-        # TODO: is this expected?
-        pytest.xfail("`pytorch_prune.global_unstructured` sets the `grad_fn` so we can't deepcopy on save")
+        pytest.xfail(
+            "Pruning sets the `grad_fn` of the parameters so we can't save"
+            " right after as pruning has not been made permanent"
+        )
 
     class TestPruning(ModelPruning):
 

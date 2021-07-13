@@ -256,7 +256,7 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self._save_function = trainer.save_checkpoint
         if self._save_on_train_epoch_end is None:
-            # if the user runs validation before multiple times per training epoch, we try to save checkpoint after
+            # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
 
@@ -299,15 +299,13 @@ class ModelCheckpoint(Callback):
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', unused: Optional = None
     ) -> None:
         """ Save a checkpoint at the end of the training epoch. """
-        if (
-            self._should_skip_saving_checkpoint(trainer) or not self._save_on_train_epoch_end
-            or self._every_n_epochs < 1 or (trainer.current_epoch + 1) % self._every_n_epochs != 0
-        ):
-            return
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        # FIXME: last_global_step_saved wrong
         trainer.train_loop.global_step -= 1
-        self.save_checkpoint(trainer)
+        if (
+            not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end
+            and self._every_n_epochs > 0 and (trainer.current_epoch + 1) % self._every_n_epochs == 0
+        ):
+            self.save_checkpoint(trainer)
         trainer.train_loop.global_step += 1
 
     def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:

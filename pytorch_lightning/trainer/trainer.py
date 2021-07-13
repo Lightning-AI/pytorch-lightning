@@ -907,20 +907,30 @@ class Trainer(
 
     def _log_hyperparams(self):
         # log hyper-parameters
+        hparams_initial = None
+
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
-            lightning_hparams = self.lightning_module.hparams_initial
-            colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
-            if colliding_keys:
-                raise MisconfigurationException(
-                    f"Error while merging hparams: the keys {colliding_keys} are present "
-                    "in both the LightningModule's and LightningDataModule's hparams."
-                )
+            datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
-            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+                datamodule_hparams = self.datamodule.hparams_initial
+                lightning_hparams = self.lightning_module.hparams_initial
 
-            self.logger.log_hyperparams(hparams_initial)
+                colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
+                if colliding_keys:
+                    raise MisconfigurationException(
+                        f"Error while merging hparams: the keys {colliding_keys} are present "
+                        "in both the LightningModule's and LightningDataModule's hparams."
+                    )
+                hparams_initial = {**lightning_hparams, **datamodule_hparams}
+            elif self.lightning_module._log_hyperparams:
+                hparams_initial = self.lightning_module.hparams_initial
+            elif datamodule_log_hyperparams:
+                hparams_initial = self.datamodule.hparams_initial
+
+            if hparams_initial is not None:
+                self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
