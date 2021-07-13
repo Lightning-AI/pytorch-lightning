@@ -256,7 +256,7 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self._save_function = trainer.save_checkpoint
         if self._save_on_train_epoch_end is None:
-            # if the user runs validation before multiple times per training epoch, we try to save checkpoint after
+            # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
 
