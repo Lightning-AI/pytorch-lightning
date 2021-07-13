@@ -106,7 +106,7 @@ class CallbackConnector:
                 'You added multiple progress bar callbacks to the Trainer, but currently only one'
                 ' progress bar is supported.'
             )
-        elif len(progress_bars) == 1:
+        if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
             progress_bar_callback = ProgressBar(
