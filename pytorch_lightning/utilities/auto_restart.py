@@ -140,16 +140,6 @@ class FastForwardSampler(Sampler):
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
         # self.restarting = True
 
-    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
-        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
-        np.random.set_state(rng_state_dict.pop("__global_numpy"))
-        python_set_rng_state(rng_state_dict.pop("__global_python"))
-        for k, v in rng_state_dict.items():
-            attr = getattr(self._sampler, k)
-            if isinstance(attr, torch.Generator):
-                attr.set_state(v)
-                setattr(self._sampler, k, attr)
-
     def _get_rng_states(self):
 
         def _collect(gen: torch.Generator):
@@ -160,6 +150,40 @@ class FastForwardSampler(Sampler):
         states["__global_numpy"] = np.random.get_state()
         states["__global_python"] = python_get_rng_state()
         return states
+
+    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
+        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
+        np.random.set_state(rng_state_dict.pop("__global_numpy"))
+        python_set_rng_state(rng_state_dict.pop("__global_python"))
+
+        _set_rng_states_on_obj(self._sampler, rng_state_dict)
+
+
+def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
+
+    for k, v in rng_state_dict.items():
+        attr = getattr(obj, k)
+        if isinstance(v, Mapping):
+            _set_rng_states_on_obj(attr, v)
+
+        elif isinstance(attr, torch.Generator):
+            attr.set_state(v)
+
+
+
+
+# ADRIAN
+# def _set_recursive(obj, state):
+#
+#     if isinstance(obj, torch.Generator):
+#         # abbruchbedingung
+#         obj.set_state(state)
+#         return
+#
+#     assert isinstance(state, dict)
+#
+#     for k, v in state.items():
+#         _set_recursive(getattr(obj, k), state[k])
 
 
 class CaptureIterableDataset(IterableDataset):

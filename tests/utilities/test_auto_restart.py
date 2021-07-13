@@ -1036,20 +1036,23 @@ class RandomGeneratorGetItemDataset(Dataset):
 
 # TODO: num_workers
 @pytest.mark.parametrize("dataset_class", [
-    SequentialGetItemDataset,
     RandomTorchGetItemDataset,
+
+    SequentialGetItemDataset,
+
     RandomNumpyGetItemDataset,
     RandomPythonGetItemDataset,
-    # RandomGeneratorGetItemDataset,
+    RandomGeneratorGetItemDataset,
 ])
 def test_global_rng_states(dataset_class):
     # set the manual seed initially
     torch.manual_seed(1)
+    num_workers = 0
 
     dataset = dataset_class(8, 8)
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
-    dataloader = DataLoader(dataset, sampler=ff_sampler)
+    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
     dataloader_iter = iter(dataloader)
 
     # fetch 2 batches
@@ -1057,7 +1060,7 @@ def test_global_rng_states(dataset_class):
     batch01 = next(dataloader_iter)
 
     # (A) capture the state after fetching 2 batches
-    state = ff_sampler.state_dict(2)
+    state = ff_sampler.state_dict(2)  # main process
 
     # (B) simulate 2 additional batches
     batch02 = next(dataloader_iter)
@@ -1071,7 +1074,7 @@ def test_global_rng_states(dataset_class):
     # load the state dict saved at (A)
     ff_sampler.load_state_dict(state)
 
-    dataloader = DataLoader(dataset, sampler=ff_sampler)
+    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
     dataloader_iter = iter(dataloader)
 
     # fetch 2 random batches, these should match exactly the batches seen at (B)
