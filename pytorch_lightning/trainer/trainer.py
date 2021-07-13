@@ -836,15 +836,6 @@ class Trainer(
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
-        if self._ckpt_path:
-            # only one process running at this point for TPUs, as spawn isn't triggered yet
-            # todo: move this logic internally within the barrier.
-            if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
-
-            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
-            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
-
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
@@ -882,6 +873,15 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
+
+        if self._ckpt_path:
+            # only one process running at this point for TPUs, as spawn isn't triggered yet
+            # todo: move this logic internally within the barrier.
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
+
+            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
+            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()
