@@ -157,10 +157,6 @@ class SchedulerProgress(Progress):
     total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
     current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
 
-    @property
-    def scheduler_steps(self) -> int:
-        return self.total.completed
-
 
 @dataclass
 class OptimizerProgress(BaseProgress):
@@ -203,7 +199,7 @@ class OptimizationProgress(BaseProgress):
         return self.optimizer.step.total.completed
 
     def reset_on_epoch(self) -> None:
-        self.optimizer.current.reset()
+        self.optimizer.reset_on_epoch()
         self.optimizer_idx = 0
 
     def load_state_dict(self, state_dict: dict) -> None:
