@@ -26,7 +26,7 @@ COPY ./ /home/pytorch-lightning/
 # install dependencies
 RUN \
     cd /home && \
-    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
