@@ -23,8 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7]
-        pytorch_version: [1.6, 1.8]
+        python_version: ["3.8"]
+        pytorch_version: ["1.6", "1.8"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -45,8 +45,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7]
-        xla_version: [1.6, 1.8, "nightly"]
+        python_version: ["3.7"]
+        xla_version: ["1.6", "1.8", "nightly"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -62,18 +62,17 @@ jobs:
           push: false
         timeout-minutes: 50
 
-  build-cuda:
+  build-CUDA:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.7
-            pytorch_version: 1.6
-          - python_version: 3.8
-            pytorch_version: 1.8
-          - python_version: 3.9
-            pytorch_version: 1.9
+          # todo: see notes in Dockerfile
+          - python_version: "3.7"
+            pytorch_version: "1.6"
+          - python_version: "3.9"
+            pytorch_version: "1.9"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -90,21 +89,27 @@ jobs:
           push: false
         timeout-minutes: 50
 
-  build-conda:
+  build-Conda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.6
-            pytorch_version: 1.6
-          - python_version: 3.8
-            pytorch_version: 1.8
-          - python_version: 3.9
-            pytorch_version: 1.9
+          - python_version: "3.7"
+            pytorch_version: "1.6"
+          - python_version: "3.8"
+            pytorch_version: "1.9"
+          - python_version: "3.9"
+            pytorch_version: "1.10"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      # see: https://pytorch.org/get-started/previous-versions/
+      - run: |
+          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
 
       - name: Build CUDA Docker
         # publish master/release
@@ -113,7 +118,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=10.2
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50
@@ -139,8 +144,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.8
-            pytorch_version: 1.7
+          - python_version: "3.8"
+            pytorch_version: "1.7"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
