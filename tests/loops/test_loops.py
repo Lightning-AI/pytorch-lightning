@@ -57,7 +57,7 @@ def test_loop_restore():
                 for _ in range(self.iteration_count):
                     next(self.iter_dataset)
                 self.iteration_count += 1
-                self.restarting = False
+                # self.restarting = False
             else:
                 self.outputs = []
 
@@ -132,8 +132,8 @@ def test_loop_hierarchy():
         def done(self) -> bool:
             return self.iteration_count > 0
 
-        def reset(self) -> None:
-            self.restarting = False
+        # def reset(self) -> None:
+        #     self.restarting = False
 
         def on_save_checkpoint(self) -> Dict:
             return {"a": self.a}

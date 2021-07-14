@@ -85,10 +85,7 @@ class TrainingEpochLoop(loops.Loop):
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
         if self.restarting:
-            self.iteration_count = self.batch_loop.current_batch_completed
-            self.batches_seen = self.batch_loop.current_batch_completed
-            # restarting is finished.
-            self.restarting = False
+            self.iteration_count = self.batches_seen = self.batch_progress.current.completed
         else:
             # todo (tchaton) the batch_loop should be responsible for that.
             self.batch_loop.split_progress.current.reset()

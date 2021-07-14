@@ -58,9 +58,7 @@ class EvaluationEpochLoop(Loop):
         self.num_dataloaders = None
         self.outputs = []
 
-        if self.restarting:
-            self.restarting = False
-        else:
+        if not self.restarting:
             self.batch_progress.current.reset()
 
     def on_run_start(

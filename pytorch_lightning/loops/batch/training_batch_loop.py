@@ -149,7 +149,6 @@ class TrainingBatchLoop(Loop):
                 if self.restarting:
                     if opt_idx < self.optim_progress.optimizer_idx:
                         continue
-                    self.restarting = False
 
                 # track optimizer_idx
                 self.optim_progress.optimizer_idx = opt_idx
