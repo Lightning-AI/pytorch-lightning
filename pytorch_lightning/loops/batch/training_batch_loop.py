@@ -150,7 +150,7 @@ class TrainingBatchLoop(Loop):
 
                 # handle optimization restart
                 if self.restarting:
-                    if len(active_optimizers) > 1 and opt_idx < self.progress.current.completed:
+                    if opt_idx < self.optim_progress.optimizer_idx:
                         continue
                     self.restarting = False
 
