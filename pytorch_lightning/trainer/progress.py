@@ -133,7 +133,7 @@ class Progress(BaseProgress):
 @dataclass
 class DataLoaderProgress(Progress):
     """
-    Tracks the data-loader progress
+    Tracks the dataloader progress
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
@@ -142,6 +142,24 @@ class DataLoaderProgress(Progress):
     """
     total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
     current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
+
+
+class SchedulerProgress(Progress):
+    """
+    Tracks the scheduler progress
+    These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
+
+    Args:
+        total: Tracks the total scheduler progress
+        current: Tracks the current scheduler progress
+    """
+
+    total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
+    current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
+
+    @property
+    def scheduler_steps(self) -> int:
+        return self.total.completed
 
 
 @dataclass
@@ -191,21 +209,3 @@ class OptimizationProgress(BaseProgress):
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
         self.optimizer_idx = state_dict["optimizer_idx"]
-
-
-class SchedulerProgress(BaseProgress):
-    """
-    Track scheduler progress.
-
-    Args:
-        scheduler: Tracks scheduler progress.
-    """
-
-    scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
-
-    @property
-    def scheduler_steps(self) -> int:
-        return self.scheduler.total.completed
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        self.scheduler.load_state_dict(state_dict["scheduler"])

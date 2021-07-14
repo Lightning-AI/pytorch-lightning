@@ -222,15 +222,13 @@ class FitLoop(Loop):
             # TODO(@carmocca): deprecate and rename so users don't get confused
             self.global_step -= 1
             # log epoch metrics
+            # FIXME: was this wrong???
             self.trainer.logger_connector.update_train_epoch_metrics()
             self.global_step += 1
 
     def on_advance_end(self) -> None:
         """Updates the LR schedulers and does some internal bookkeeping"""
-
         if self.epoch_loop.batches_seen != 0:
-            self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
-
             did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
             if did_train_only:
                 self.global_step -= 1

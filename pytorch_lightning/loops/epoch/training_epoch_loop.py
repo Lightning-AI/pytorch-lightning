@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -45,6 +45,7 @@ class TrainingEpochLoop(loops.Loop):
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()
+        self.scheduler_progress = SchedulerProgress()
 
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
@@ -229,6 +230,8 @@ class TrainingEpochLoop(loops.Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
+
+        self.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
         epoch_output = self._epoch_output
         # free memory

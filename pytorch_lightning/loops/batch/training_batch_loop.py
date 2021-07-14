@@ -150,7 +150,6 @@ class TrainingBatchLoop(Loop):
                     if opt_idx < self.optim_progress.optimizer_idx:
                         continue
 
-                # track optimizer_idx
                 self.optim_progress.optimizer_idx = opt_idx
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
@@ -416,6 +415,7 @@ class TrainingBatchLoop(Loop):
         # FIXME: why does it not fail?
         # self.optim_progress.optimizer.step.increment_processed()
         self.optim_progress.optimizer.step.increment_completed()
+        self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
