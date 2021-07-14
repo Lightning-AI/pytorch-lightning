@@ -803,6 +803,14 @@ class Trainer(
 
         return result
 
+    def _restore_training(self) -> None:
+        # restore modules after setup
+        self.checkpoint_connector.resume_start()
+        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
+
     def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
@@ -824,6 +832,12 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+
+        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._restore_training()
+
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -866,15 +880,8 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        # restore modules after setup
-        self.checkpoint_connector.resume_start()
-        self.checkpoint_connector.restore_datamodule()
-        self.checkpoint_connector.restore_model()
-        # restore callback states
-        self.checkpoint_connector.restore_callbacks()
-
-        # restore optimizers, etc.
-        self.checkpoint_connector.restore_training_state()
+        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._restore_training()
 
         if self._ckpt_path:
             # only one process running at this point for TPUs, as spawn isn't triggered yet
