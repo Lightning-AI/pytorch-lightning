@@ -38,11 +38,10 @@ class TrainingEpochLoop(loops.Loop):
         self.global_step: int = 0
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
-        # the current batch index in the loop that runs over the dataloader(s)
-        self.iteration_count: int = 0
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         # the number of batches seen this run, updates immediately after batch_loop.run()
+        # TODO: replace by progress tracking
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()

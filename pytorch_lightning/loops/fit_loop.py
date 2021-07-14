@@ -57,12 +57,12 @@ class FitLoop(Loop):
     @property
     def current_epoch(self) -> int:
         """Return the current epoch"""
-        return self.iteration_count
+        return self.epoch_progress.current.completed
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
         """Setter for the current epoch"""
-        self.iteration_count = value
+        self.epoch_progress.current.completed = value
 
     @property
     def global_step(self) -> int:
@@ -82,7 +82,7 @@ class FitLoop(Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.iteration_count
+        return self.epoch_loop.batch_progress.current.ready - 1
 
     @property
     def split_idx(self) -> int:
@@ -227,16 +227,15 @@ class FitLoop(Loop):
 
     def on_advance_end(self) -> None:
         """Updates the LR schedulers and does some internal bookkeeping"""
-        if self.epoch_loop.batches_seen == 0:
-            return
 
-        self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
+        if self.epoch_loop.batches_seen != 0:
+            self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
 
-        did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
-        if did_train_only:
-            self.global_step -= 1
-            self._check_checkpoint_callback(True)
-            self.global_step += 1
+            did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
+            if did_train_only:
+                self.global_step -= 1
+                self._check_checkpoint_callback(True)
+                self.global_step += 1
 
         self.epoch_progress.increment_completed()
 

@@ -46,6 +46,7 @@ class Loop(ABC):
     """
 
     def __init__(self) -> None:
+        # TODO: replace by progress tracking
         self.iteration_count: int = 0
         self.restarting = False
         self._trainer: Optional['pl.Trainer'] = None
