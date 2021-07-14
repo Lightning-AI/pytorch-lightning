@@ -141,40 +141,37 @@ def train_with_swa(
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0", special=True)
+@RunIf(min_gpus=2, special=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0")
+@RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(min_torch="1.6.0", skip_windows=True)
+@RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 
 
-@RunIf(min_gpus=1, min_torch="1.6.0")
+@RunIf(min_gpus=1)
 def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, gpus=1)
 
 
-@RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
 @pytest.mark.parametrize('iterable_dataset', (True, False))
 def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
     train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
-@RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("interval", ("epoch", "step"))
 def test_swa_callback_scheduler_step(tmpdir, interval: str):
     train_with_swa(tmpdir, interval=interval)
 
 
-@RunIf(min_torch="1.6.0")
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
@@ -183,7 +180,6 @@ def test_swa_warns(tmpdir, caplog):
     assert "Swapping scheduler" in caplog.text
 
 
-@RunIf(min_torch="1.6.0")
 def test_swa_raises():
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
@@ -197,7 +193,6 @@ def test_swa_raises():
 
 @pytest.mark.parametrize('stochastic_weight_avg', [False, True])
 @pytest.mark.parametrize('use_callbacks', [False, True])
-@RunIf(min_torch="1.6.0")
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
 

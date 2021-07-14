@@ -114,7 +114,7 @@ class LSFEnvironment(ClusterEnvironment):
         the environment variable `LSB_HOSTS`.
         """
         hosts = self._read_hosts()
-        count = dict()
+        count = {}
         for host in hosts:
             if "batch" in host or "login" in host:
                 continue
