@@ -34,7 +34,7 @@ class LightningEnum(str, Enum):
     def __hash__(self) -> int:
         # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
-        return hash(self.name)
+        return hash(self.value)
 
 
 class AMPType(LightningEnum):
