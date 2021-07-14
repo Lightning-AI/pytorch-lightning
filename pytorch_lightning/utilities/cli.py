@@ -370,7 +370,7 @@ class LightningCLI:
         callbacks = [self.config_init[c] for c in self.parser.callback_keys]
         self.config_init['trainer']['callbacks'].extend(callbacks)
         if 'callbacks' in self.trainer_defaults:
-            if inspect.isclass(self.trainer_defaults['callbacks']):
+            if isinstance(self.trainer_defaults['callbacks'], list):
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
