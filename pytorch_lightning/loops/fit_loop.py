@@ -28,18 +28,13 @@ log = logging.getLogger(__name__)
 
 
 class FitLoop(Loop):
-    """This Loop iterates over the epochs to run the training
+    """
+    This Loop iterates over the epochs to run the training.
 
     Args:
         min_epochs: The minimum number of epochs
         max_epochs: The maximum number of epochs
-
-    .. note::
-        If neither the minimum epochs nor steps are specified the minimum number of epochs is set to 1
-        and if neither the maximum steps nor epochs are specified, the maximum epochs are set to 1000.
     """
-
-    # FIXME: update the note above
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
         self.max_epochs = max_epochs
