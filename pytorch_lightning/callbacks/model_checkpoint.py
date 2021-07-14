@@ -122,6 +122,8 @@ class ModelCheckpoint(Callback):
             ``Trainer(max_epochs=N, check_val_every_n_epoch=M)``
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
+        save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
+            If this is ``False``, then the check runs at the end of the validation.
         period: Interval (number of epochs) between checkpoints.
 
             .. warning::
@@ -213,6 +215,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Optional[int] = None,
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
+        save_on_train_epoch_end: Optional[bool] = None,
         period: Optional[int] = None,
         every_n_val_epochs: Optional[int] = None,
     ):
@@ -223,6 +226,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
+        self._save_on_train_epoch_end = save_on_train_epoch_end
         self._last_global_step_saved = -1
         self._last_time_checked: Optional[float] = None
         self.current_score = None
@@ -251,6 +255,10 @@ class ModelCheckpoint(Callback):
         """
         self.__resolve_ckpt_dir(trainer)
         self._save_function = trainer.save_checkpoint
+        if self._save_on_train_epoch_end is None:
+            # if the user runs validation multiple times per training epoch, we try to save checkpoint after
+            # validation instead of on train epoch end
+            self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
 
     def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._last_time_checked = time.monotonic()
@@ -287,10 +295,23 @@ class ModelCheckpoint(Callback):
 
         self.save_checkpoint(trainer)
 
+    def on_train_epoch_end(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', unused: Optional = None
+    ) -> None:
+        """ Save a checkpoint at the end of the training epoch. """
+        # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
+        trainer.train_loop.global_step -= 1
+        if (
+            not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end
+            and self._every_n_epochs > 0 and (trainer.current_epoch + 1) % self._every_n_epochs == 0
+        ):
+            self.save_checkpoint(trainer)
+        trainer.train_loop.global_step += 1
+
     def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """ Save a checkpoint at the end of the validation stage. """
         if (
-            self._should_skip_saving_checkpoint(trainer) or self._every_n_epochs < 1
+            self._should_skip_saving_checkpoint(trainer) or self._save_on_train_epoch_end or self._every_n_epochs < 1
             or (trainer.current_epoch + 1) % self._every_n_epochs != 0
         ):
             return

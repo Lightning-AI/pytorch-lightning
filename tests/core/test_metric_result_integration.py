@@ -329,7 +329,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert new_results['validation_step.v'].value.device.type == 'cpu'
 
     model = LoggingModel()
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=False)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
