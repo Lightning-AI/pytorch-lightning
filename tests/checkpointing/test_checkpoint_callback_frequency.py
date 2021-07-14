@@ -118,7 +118,7 @@ def test_top_k_ddp_0(save_mock, tmpdir):
 @mock.patch('torch.save')
 @RunIf(special=True, min_gpus=2)
 def test_top_k_ddp_1(save_mock, tmpdir):
-    _top_k_ddp(save_mock, tmpdir, k=2, epochs=2, val_check_interval=0.3, expected=5)
+    _top_k_ddp(save_mock, tmpdir, k=2, epochs=2, val_check_interval=0.3, expected=4)
 
 
 def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
