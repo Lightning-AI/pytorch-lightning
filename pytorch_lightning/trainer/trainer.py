@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import os
 import traceback
 import warnings
 from datetime import timedelta
@@ -1010,7 +1011,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
-            self.on_expection()
+            self._on_expection()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1251,7 +1252,10 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def on_expection(self):
-        if _fault_tolerant_enabled():
-            # save a checkpoint for fault tolerant training
-            self.fit_loop._check_checkpoint_callback(True)
+    def _on_expection(self):
+        if not self.is_global_zero or not _fault_tolerant_enabled():
+            return
+
+        # save a checkpoint for fault tolerant training
+        file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
+        self.save_checkpoint(file_path)
