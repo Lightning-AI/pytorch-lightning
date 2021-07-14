@@ -16,7 +16,7 @@ import os
 import warnings
 from argparse import Namespace
 from types import MethodType
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 
 from torch.optim import Optimizer
 
@@ -76,9 +76,9 @@ class LightningArgumentParser(ArgumentParser):
             subclass_mode: Whether allow any subclass of the given class.
         """
         if inspect.isclass(lightning_class) and issubclass(
-            lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)
+            cast(type, lightning_class), (Trainer, LightningModule, LightningDataModule, Callback)
         ):
-            if issubclass(lightning_class, Callback):
+            if issubclass(cast(type, lightning_class), Callback):
                 self.callback_keys.append(nested_key)
             if subclass_mode:
                 return self.add_subclass_arguments(lightning_class, nested_key, required=True)
@@ -86,7 +86,7 @@ class LightningArgumentParser(ArgumentParser):
                 lightning_class,
                 nested_key,
                 fail_untyped=False,
-                instantiate=not issubclass(lightning_class, Trainer),
+                instantiate=not issubclass(cast(type, lightning_class), Trainer),
             )
         elif callable(lightning_class):
             return self.add_function_arguments(
