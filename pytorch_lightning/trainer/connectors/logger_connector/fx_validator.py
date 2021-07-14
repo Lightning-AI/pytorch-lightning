@@ -21,7 +21,9 @@ class FxValidator:
     functions: Dict[str, Optional[Dict[str, Tuple[bool]]]] = dict(
         on_before_accelerator_backend_setup=None,
         on_configure_sharded_model=None,
+        on_before_backward=dict(on_step=(False, True), on_epoch=(False, True)),
         on_after_backward=dict(on_step=(False, True), on_epoch=(False, True)),
+        on_before_optimizer_step=dict(on_step=(False, True), on_epoch=(False, True)),
         on_before_zero_grad=dict(on_step=(False, True), on_epoch=(False, True)),
         on_init_start=None,
         on_init_end=None,

@@ -22,6 +22,7 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -551,3 +552,15 @@ def test_dm_init_from_datasets_dataloaders(iterable):
             call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
         ])
+
+
+class DataModuleWithHparams(LightningDataModule):
+
+    def __init__(self, arg0, arg1, kwarg0=None):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+def test_simple_hyperparameters_saving():
+    data = DataModuleWithHparams(10, "foo", kwarg0="bar")
+    assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
