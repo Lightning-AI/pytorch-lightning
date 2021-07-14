@@ -15,7 +15,7 @@ from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -133,6 +133,7 @@ class HorovodPlugin(ParallelPlugin):
 
     def model_to_device(self):
         if self.on_gpu:
+            # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
@@ -194,7 +195,7 @@ class HorovodPlugin(ParallelPlugin):
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
 
-    def post_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.
         for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()

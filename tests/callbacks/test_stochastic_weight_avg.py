@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
 from unittest import mock
 
 import pytest
@@ -21,6 +20,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -101,17 +102,15 @@ if _TORCH_GREATER_EQUAL_1_6:
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 
-            # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.dev_debugger.count_events(
-                "backward_call"
-            ) == trainer.max_epochs * trainer.limit_train_batches
+            if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+                # check backward call count. the batchnorm update epoch should not backward
+                assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
             # check call counts
             assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
             assert self.transfer_weights_calls == 1
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def train_with_swa(
     tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
 ):
@@ -134,46 +133,45 @@ def train_with_swa(
         gpus=gpus,
         num_processes=num_processes
     )
-    trainer.fit(model)
+
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward):
+        trainer.fit(model)
 
     # check the model is the expected
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0", special=True)
+@RunIf(min_gpus=2, special=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0")
+@RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(min_torch="1.6.0", skip_windows=True)
+@RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 
 
-@RunIf(min_gpus=1, min_torch="1.6.0")
+@RunIf(min_gpus=1)
 def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, gpus=1)
 
 
-@RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
 @pytest.mark.parametrize('iterable_dataset', (True, False))
 def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
     train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
-@RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("interval", ("epoch", "step"))
 def test_swa_callback_scheduler_step(tmpdir, interval: str):
     train_with_swa(tmpdir, interval=interval)
 
 
-@RunIf(min_torch="1.6.0")
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
@@ -182,7 +180,6 @@ def test_swa_warns(tmpdir, caplog):
     assert "Swapping scheduler" in caplog.text
 
 
-@RunIf(min_torch="1.6.0")
 def test_swa_raises():
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
@@ -196,7 +193,6 @@ def test_swa_raises():
 
 @pytest.mark.parametrize('stochastic_weight_avg', [False, True])
 @pytest.mark.parametrize('use_callbacks', [False, True])
-@RunIf(min_torch="1.6.0")
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
 

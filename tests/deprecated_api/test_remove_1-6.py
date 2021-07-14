@@ -15,6 +15,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
@@ -303,3 +304,8 @@ def test_v1_6_0_deprecated_disable_validation():
     trainer = Trainer()
     with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
         _ = trainer.disable_validation
+
+
+def test_v1_6_0_every_n_val_epochs():
+    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
+        _ = ModelCheckpoint(every_n_val_epochs=1)

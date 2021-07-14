@@ -27,7 +27,6 @@ import numpy as np
 import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -294,7 +293,7 @@ class DDPPlugin(ParallelPlugin):
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
+        if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self._model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -321,7 +320,7 @@ class DDPPlugin(ParallelPlugin):
         world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if not torch.distributed.is_initialized():
+        if torch.distributed.is_available() and not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch.distributed.init_process_group(
                 self.torch_distributed_backend, rank=global_rank, world_size=world_size
@@ -361,7 +360,7 @@ class DDPPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)

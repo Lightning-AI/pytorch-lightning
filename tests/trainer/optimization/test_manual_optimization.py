@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import collections
-import os
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import ANY, call, patch
@@ -23,6 +22,7 @@ import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -65,7 +65,6 @@ class ManualOptModel(BoringModel):
         return optimizer, optimizer_2
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_no_return(tmpdir):
 
     class TestModel(ManualOptModel):
@@ -92,13 +91,11 @@ def test_multiple_optimizers_manual_no_return(tmpdir):
         weights_summary=None,
     )
 
-    trainer.fit(model)
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
 
-    num_manual_backward_calls = 3
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_return(tmpdir):
 
     class TestModel(ManualOptModel):
@@ -124,13 +121,11 @@ def test_multiple_optimizers_manual_return(tmpdir):
         weights_summary=None,
     )
 
-    trainer.fit(model)
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
 
-    num_manual_backward_calls = 3
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_log(tmpdir):
 
     class TestModel(ManualOptModel):
@@ -155,15 +150,12 @@ def test_multiple_optimizers_manual_log(tmpdir):
         weights_summary=None,
     )
 
-    trainer.fit(model)
-
-    num_manual_backward_calls = 3
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
-
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
     assert set(trainer.logged_metrics) == {'a_step', 'a_epoch', 'epoch'}
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1)
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     model = ManualOptModel()
@@ -181,13 +173,11 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         gpus=1,
     )
 
-    trainer.fit(model)
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
 
-    num_manual_backward_calls = 3
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
 def test_multiple_optimizers_manual_apex_no_return(tmpdir):
 
@@ -219,10 +209,9 @@ def test_multiple_optimizers_manual_apex_no_return(tmpdir):
         gpus=1
     )
 
-    trainer.fit(model)
-
-    num_manual_backward_calls = 3
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
 
 
 class ManualOptimizationExtendedModel(BoringModel):
@@ -429,7 +418,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
     trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1)
 def test_multiple_optimizers_step(tmpdir):
     """
@@ -496,14 +484,12 @@ def test_multiple_optimizers_step(tmpdir):
         gpus=1,
     )
 
-    trainer.fit(model)
-
-    num_manual_backward_calls = 3
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
     assert model.called
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_step_with_optimizer_closure(tmpdir):
     """
     Tests that `step` works with optimizer_closure
@@ -518,8 +504,6 @@ def test_step_with_optimizer_closure(tmpdir):
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
-            # manual
-
             # make sure there are no grads
             if self.layer.weight.grad is not None:
                 assert torch.all(self.layer.weight.grad == 0)
@@ -573,13 +557,13 @@ def test_step_with_optimizer_closure(tmpdir):
         log_every_n_steps=1,
     )
 
-    trainer.fit(model)
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 2
     assert trainer.progress_bar_metrics["train_loss_step"] == model._losses[-1]
     assert trainer.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
     Tests that `step` works with optimizer_closure and accumulated_grad
@@ -632,8 +616,9 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
         log_every_n_steps=1,
     )
 
-    trainer.fit(model)
-    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 2
 
 
 @patch("torch.optim.SGD.step")
@@ -1032,7 +1017,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
     assert lr_step.call_count == 1
 
 
-@RunIf(min_torch="1.6.0", min_gpus=1)
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("precision", [16, 32])
 def test_multiple_optimizers_logging(precision, tmpdir):
     """

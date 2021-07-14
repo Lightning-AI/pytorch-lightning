@@ -19,6 +19,8 @@ from deprecate import void
 from onnx.backend.test.case.node.loop import Loop
 
 import pytorch_lightning as pl
+from pytorch_lightning.trainer.progress import BaseProgress, Tracker
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -47,15 +49,23 @@ class Loop(ABC):
     def __init__(self) -> None:
         self.iteration_count: int = 0
         self.restarting = False
-        self._trainer = None
+        self._trainer: Optional['pl.Trainer'] = None
 
     @property
-    def trainer(self) -> "pl.Trainer":
+    def trainer(self) -> Optional['pl.Trainer']:
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: "pl.Trainer"):
+    def trainer(self, trainer: 'pl.Trainer'):
+        """Connect the Trainer to this loop and all children."""
+        if not isinstance(trainer, pl.Trainer) and trainer is not None:
+            raise MisconfigurationException(
+                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
+            )
         self._trainer = trainer
+        for v in self.__dict__.values():
+            if isinstance(v, Loop):
+                v.trainer = trainer
 
     @property
     @abstractmethod
@@ -69,11 +79,6 @@ class Loop(ABC):
 
     def connect(self, **kwargs: "Loop") -> None:
         """Optionally connect one or multiple loops to this one. Linked loops should form a tree."""
-        # if not isinstance(trainer, pl.Trainer):
-        #     raise MisconfigurationException(
-        #         f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
-        #     )
-        # raise NotImplementedError(f"{self.__class__.__name__} does connect any child loops.")
 
     def on_skip(self) -> Optional[Any]:
         """
@@ -96,11 +101,7 @@ class Loop(ABC):
         if self.skip:
             return self.on_skip()
 
-        if self.restarting:
-            self.restore()
-            self.restarting = False
-        else:
-            self.reset()
+        self.reset()
 
         self.on_run_start(*args, **kwargs)
 
@@ -115,9 +116,6 @@ class Loop(ABC):
 
         output = self.on_run_end()
         return output
-
-    def restore(self) -> None:
-        """Restore the internal state of the loop the beginning of run if restarting is ``True``."""
 
     @abstractmethod
     def reset(self) -> None:
@@ -150,9 +148,57 @@ class Loop(ABC):
     def teardown(self) -> None:
         """Use to release memory etc."""
 
-    def load_state_dict(self, state_dict: Dict) -> None:
-        """Restore the loop state from the provided state_dict."""
+    def on_save_checkpoint(self) -> Dict:
+        """
+        Called when saving a model checkpoint, use to persist loop state.
 
-    def state_dict(self) -> Dict:
-        """Return the loop current states."""
+        Returns:
+            The current loop state.
+        """
         return {}
+
+    def on_load_checkpoint(self, state_dict: Dict):
+        """Called when loading a model checkpoint, use to reload loop state."""
+
+    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
+        """
+        The state dict is determined by the state and progress of this loop and all its children.
+
+        Args:
+            destination: An existing dictionary to update with this loop's state. By default a new dictionary
+                is returned.
+            prefix: A prefix for each key in the state dictionary
+        """
+        if destination is None:
+            destination = {}
+
+        destination[prefix + "state_dict"] = self.on_save_checkpoint()
+
+        for k, v in self.__dict__.items():
+            if isinstance(v, BaseProgress):
+                destination[prefix + k] = v.state_dict()
+            elif isinstance(v, Loop):
+                v.state_dict(destination, prefix + k + '.')
+
+        return destination
+
+    def load_state_dict(self, state_dict: Dict, prefix="", restart_progress: bool = True):
+        """ Loads the state of this loop and all its children. """
+        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress)
+        for k, v in self.__dict__.items():
+            if isinstance(v, Loop):
+                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
+
+    def _load_from_state_dict(self, state_dict, prefix, restart_progress):
+        for k, v in self.__dict__.items():
+            if isinstance(v, BaseProgress):
+                v.load_state_dict(state_dict[prefix + k])
+                if restart_progress:
+
+                    def restart(tracker: Tracker):
+                        tracker.reset_on_restart()
+
+                    apply_to_collection(v, Tracker, restart)
+
+        self.on_load_checkpoint(state_dict[prefix + "state_dict"])
+        self.restarting = True

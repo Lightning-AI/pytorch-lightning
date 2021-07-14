@@ -14,18 +14,15 @@
 """The LightningModule - an nn.Module with many additional features."""
 
 import collections
-import copy
 import inspect
 import logging
 import numbers
 import os
 import tempfile
-import types
 import uuid
 from abc import ABC
-from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -38,7 +35,7 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
+from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -46,7 +43,8 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
+from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
+from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -58,6 +56,7 @@ log = logging.getLogger(__name__)
 class LightningModule(
     ABC,
     DeviceDtypeModuleMixin,
+    HyperparametersMixin,
     GradInformation,
     ModelIO,
     ModelHooks,
@@ -70,8 +69,6 @@ class LightningModule(
     __jit_unused_properties__ = [
         "datamodule",
         "example_input_array",
-        "hparams",
-        "hparams_initial",
         "on_gpu",
         "current_epoch",
         "global_step",
@@ -82,7 +79,7 @@ class LightningModule(
         "automatic_optimization",
         "truncated_bptt_steps",
         "loaded_optimizer_states_dict",
-    ] + DeviceDtypeModuleMixin.__jit_unused_properties__
+    ] + DeviceDtypeModuleMixin.__jit_unused_properties__ + HyperparametersMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -1447,9 +1444,11 @@ class LightningModule(
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
-        self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
+        self.trainer.fit_loop.epoch_loop.batch_loop.backward(loss, None, None, *args, **kwargs)
 
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+    def backward(
+        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
+    ) -> None:
         """
         Called to perform backward on the loss returned in :meth:`training_step`.
         Override this hook with your own implementation if you need to.
@@ -1457,8 +1456,8 @@ class LightningModule(
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
                 holds the normalized value (scaled by 1 / accumulation steps).
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
+            optimizer: Current optimizer being used. ``None`` if using manual optimization.
+            optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
 
         Example::
 
@@ -1830,92 +1829,6 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(
-        self,
-        *args,
-        ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None
-    ) -> None:
-        """Save model arguments to the ``hparams`` attribute.
-
-        Args:
-            args: single object of type :class:`dict`, :class:`~argparse.Namespace`, `OmegaConf`
-                or strings representing the argument names in ``__init__``.
-            ignore: an argument name or a list of argument names in ``__init__`` to be ignored
-            frame: a frame object. Default is ``None``.
-
-        Example::
-
-            >>> class ManuallyArgsModel(LightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # manually assign arguments
-            ...         self.save_hyperparameters('arg1', 'arg3')
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg3": 3.14
-
-            >>> class AutomaticArgsModel(LightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # equivalent automatic
-            ...         self.save_hyperparameters()
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg2": abc
-            "arg3": 3.14
-
-            >>> class SingleArgModel(LightningModule):
-            ...     def __init__(self, params):
-            ...         super().__init__()
-            ...         # manually assign single argument
-            ...         self.save_hyperparameters(params)
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-            >>> model.hparams
-            "p1": 1
-            "p2": abc
-            "p3": 3.14
-
-            >>> class ManuallyArgsModel(LightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # pass argument(s) to ignore as a string or in a list
-            ...         self.save_hyperparameters(ignore='arg2')
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg3": 3.14
-        """
-        # the frame needs to be created in this file.
-        if not frame:
-            frame = inspect.currentframe().f_back
-        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
-
-    def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
-        if isinstance(hp, Namespace):
-            hp = vars(hp)
-        if isinstance(hp, dict):
-            hp = AttributeDict(hp)
-        elif isinstance(hp, PRIMITIVE_TYPES):
-            raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
-        elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
-            raise ValueError(f"Unsupported config type of {type(hp)}.")
-
-        if isinstance(hp, dict) and isinstance(self.hparams, dict):
-            self.hparams.update(hp)
-        else:
-            self._hparams = hp
-
     @torch.no_grad()
     def to_onnx(
         self,
@@ -2046,27 +1959,6 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
-
-    @property
-    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
-        """
-        The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
-        For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
-        """
-        if not hasattr(self, "_hparams"):
-            self._hparams = AttributeDict()
-        return self._hparams
-
-    @property
-    def hparams_initial(self) -> AttributeDict:
-        """
-        The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only.
-        Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`.
-        """
-        if not hasattr(self, "_hparams_initial"):
-            return AttributeDict()
-        # prevent any change
-        return copy.deepcopy(self._hparams_initial)
 
     @property
     def model_size(self) -> float:

@@ -61,7 +61,7 @@ class EarlyStopping(Callback):
         stopping_threshold: Stop training immediately once the monitored quantity reaches this threshold.
         divergence_threshold: Stop training as soon as the monitored quantity becomes worse than this threshold.
         check_on_train_epoch_end: whether to run early stopping at the end of the training epoch.
-            If this is ``False``, then the check runs at the end of the validation epoch.
+            If this is ``False``, then the check runs at the end of the validation.
 
     Raises:
         MisconfigurationException:

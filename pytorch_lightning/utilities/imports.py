@@ -63,8 +63,6 @@ def _compare_version(package: str, op, version) -> bool:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
-_TORCH_GREATER_EQUAL_1_5 = _compare_version("torch", operator.ge, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")

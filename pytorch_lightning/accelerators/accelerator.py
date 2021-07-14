@@ -174,6 +174,8 @@ class Accelerator:
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
+        device = device or self.root_device
+
         if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
             # no need to transfer batch to device in DP mode
             return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
@@ -274,9 +276,6 @@ class Accelerator:
     def backward(
         self,
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -284,17 +283,16 @@ class Accelerator:
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            should_accumulate: whether to accumulate gradients
         """
-        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        self.training_type_plugin.pre_backward(closure_loss)
+        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
-        )
+        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
 
-        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        self.training_type_plugin.post_backward(closure_loss)
 
-        return output
+        return closure_loss
 
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         """performs the actual optimizer step.
@@ -362,7 +360,7 @@ class Accelerator:
         model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
-        self.schedulers = schedulers
+        self.lr_schedulers = schedulers
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
