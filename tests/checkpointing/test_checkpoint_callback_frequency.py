@@ -76,7 +76,8 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
     (2, 1, 0.25, 4),
     (2, 2, 0.3, 6),
 ])
-def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float, expected: int):
+@pytest.mark.parametrize("save_last", (False, True))
+def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float, expected: int, save_last: bool):
 
     class TestModel(BoringModel):
 
@@ -94,7 +95,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
     model = TestModel()
     trainer = Trainer(
-        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k)],
+        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k, save_last=save_last)],
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,
@@ -102,7 +103,9 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
     )
     trainer.fit(model)
 
-    # make sure types are correct
+    if save_last:
+        # last epochs are saved every step (so double the save calls) and once `on_train_end`
+        expected = expected * 2 + 1
     assert save_mock.call_count == expected
 
 
