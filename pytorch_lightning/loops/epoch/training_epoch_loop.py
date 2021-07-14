@@ -88,8 +88,7 @@ class TrainingEpochLoop(loops.Loop):
         if self.restarting:
             self.iteration_count = self.batches_seen = self.batch_progress.current.completed
         else:
-            # todo (tchaton) the batch_loop should be responsible for that.
-            self.batch_loop.split_progress.current.reset()
+            self.batch_progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # hook
