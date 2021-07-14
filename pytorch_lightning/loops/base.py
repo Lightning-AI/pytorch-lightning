@@ -113,8 +113,7 @@ class Loop(ABC):
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
                 self.iteration_count += 1
-                if self.restarting:
-                    self.restarting = False
+                self.restarting = False
             except StopIteration:
                 break
 
