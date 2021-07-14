@@ -31,7 +31,6 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -90,7 +89,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer: Optional['pl.Trainer'] = None
+        self.trainer = None
 
         self._distrib_type = None
         self._device_type = None
