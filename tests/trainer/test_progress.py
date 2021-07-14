@@ -229,19 +229,17 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
             },
         },
         "epoch_loop.scheduler_progress": {
-            "scheduler": {
-                "total": {
-                    "ready": total_scheduler_step,
-                    "started": None,
-                    "processed": None,
-                    "completed": total_scheduler_step,
-                },
-                "current": {
-                    "ready": current_scheduler_step,
-                    "started": None,
-                    "processed": None,
-                    "completed": current_scheduler_step,
-                },
+            "total": {
+                "ready": total_scheduler_step,
+                "started": None,
+                "processed": None,
+                "completed": total_scheduler_step,
+            },
+            "current": {
+                "ready": current_scheduler_step,
+                "started": None,
+                "processed": None,
+                "completed": current_scheduler_step,
             },
         },
         "epoch_loop.batch_loop.state_dict": {},
@@ -296,7 +294,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
         "epoch_loop.val_loop.dataloader_progress": {
             "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
             "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
-            "dataloader_idx": 0,
         },
         "epoch_loop.val_loop.epoch_loop.state_dict": {},
         "epoch_loop.val_loop.epoch_loop.batch_progress": {
