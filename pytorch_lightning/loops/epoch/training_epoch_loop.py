@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import TrainingEpochProgress, Progress
+from pytorch_lightning.trainer.progress import Progress, TrainingEpochProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -168,9 +168,7 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(
-            self.iteration_count, self.is_last_batch
-        )
+        should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
 
         if should_check_val:
             self.trainer.validating = True

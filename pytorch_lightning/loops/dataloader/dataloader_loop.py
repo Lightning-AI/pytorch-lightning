@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import abstractmethod
-from typing import Sequence, Any
+from typing import Any, Sequence
 
 from torch.utils.data import DataLoader
 
