@@ -156,7 +156,7 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
+        if not self.cluster_environment.creates_children():
             self._call_children_scripts()
 
         # set the task idx
@@ -207,8 +207,6 @@ class DDPPlugin(ParallelPlugin):
         # but forward the GPUs selected via environment variables
         if self.parallel_devices is None:
             raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
-
-        os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
