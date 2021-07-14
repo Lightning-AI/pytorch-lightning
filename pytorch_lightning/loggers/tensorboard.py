@@ -266,16 +266,14 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._version
 
     def _get_next_version(self):
-        root_dir = self.root_dir
+        root_dir = os.path.join(self.save_dir, self.name)
 
-        try:
-            listdir_info = self._fs.listdir(root_dir)
-        except OSError:
+        if not self._fs.isdir(root_dir):
             log.warning('Missing logger folder: %s', root_dir)
             return 0
 
         existing_versions = []
-        for listing in listdir_info:
+        for listing in self._fs.listdir(root_dir):
             d = listing["name"]
             bn = os.path.basename(d)
             if self._fs.isdir(d) and bn.startswith("version_"):
