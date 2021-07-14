@@ -412,8 +412,6 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-        # FIXME: why does it not fail?
-        # self.optim_progress.optimizer.step.increment_processed()
         self.optim_progress.optimizer.step.increment_completed()
         self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 

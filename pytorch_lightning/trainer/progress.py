@@ -98,26 +98,18 @@ class Progress(BaseProgress):
     current: Tracker = field(default_factory=Tracker)
 
     def increment_ready(self) -> None:
-        if self.total.ready is None or self.current.ready is None:
-            return
         self.total.ready += 1
         self.current.ready += 1
 
     def increment_started(self) -> None:
-        if self.total.started is None or self.current.started is None:
-            return
         self.total.started += 1
         self.current.started += 1
 
     def increment_processed(self) -> None:
-        if self.total.processed is None or self.current.processed is None:
-            return
         self.total.processed += 1
         self.current.processed += 1
 
     def increment_completed(self) -> None:
-        if self.total.completed is None or self.current.completed is None:
-            return
         self.total.completed += 1
         self.current.completed += 1
 
