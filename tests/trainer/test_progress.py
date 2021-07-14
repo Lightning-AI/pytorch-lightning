@@ -141,13 +141,17 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers_3(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            optimizer_0 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             optimizer_1 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            return [optimizer, optimizer_1, optimizer_2], \
-                   [lr_scheduler, {"scheduler": lr_scheduler_1, "interval": "step"}]
+            optimizers = [optimizer_0, optimizer_1, optimizer_2]
+
+            lr_scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizer_0, step_size=1)
+            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            # no scheduler for optimizer_2
+            lr_schedulers = [lr_scheduler_0, {"scheduler": lr_scheduler_1, "interval": "step"}]
+
+            return optimizers, lr_schedulers
 
     model = TestModel()
     model.training_epoch_end = None
@@ -177,15 +181,15 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     num_optimizers = 3 if use_multiple_optimizers else 1
 
     # 4 optimizer steps because breaking on the second batch of the second epoch (3 + 1)
-    total_optimizer_step = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
+    completed_optimizer_steps = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
 
     # we raised expection on the first optimizer
     current_optimizer_step = (1 if use_multiple_optimizers else 0)
 
     if accumulate_grad_batches == 2 and use_multiple_optimizers:
-        total_optimizer_step += 1
+        completed_optimizer_steps += 1
 
-    total_optimizer_zero_grad = total_optimizer_step
+    total_optimizer_zero_grad = completed_optimizer_steps
     current_optimizer_zero_grad = current_optimizer_step
 
     if accumulate_grad_batches == 2:
@@ -254,10 +258,10 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
             "optimizer": {
                 "step": {
                     "total": {
-                        "ready": total_optimizer_step + 1,
+                        "ready": completed_optimizer_steps + 1,
                         "started": None,
                         "processed": None,
-                        "completed": total_optimizer_step,
+                        "completed": completed_optimizer_steps,
                     },
                     "current": {
                         "ready": current_optimizer_step + 1,
