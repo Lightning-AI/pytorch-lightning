@@ -131,11 +131,10 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
             super().__init__()
             if use_multiple_optimizers:
                 self.configure_optimizers = self.configure_optimizers_3
-            self.should_fail = True
 
         def training_step(self, batch, batch_idx, optimizer_idx: int = None):
             # simulate failure during the the 5-th training step, 2nd epoch (global_step = 4)
-            if self.should_fail and self.trainer.current_epoch == 1 and batch_idx == 1 and optimizer_idx == (
+            if self.trainer.current_epoch == 1 and batch_idx == 1 and optimizer_idx == (
                 1 if use_multiple_optimizers else None
             ):
                 raise CustomException
@@ -155,16 +154,12 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
 
     limit_train_batches = 3
 
-    chk = ModelCheckpoint(dirpath=tmpdir, filename=str(use_multiple_optimizers), save_last=True)
-    chk.last_model_path = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
-        callbacks=chk,
         accumulate_grad_batches=accumulate_grad_batches,
-        resume_from_checkpoint=None,
     )
 
     # simulate random failure in training_step
@@ -178,9 +173,6 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     #######################
 
     checkpoint = torch.load(str(tmpdir / ".pl_auto_save.ckpt"))
-
-    num_epochs = 1
-    num_batches = 4
 
     num_optimizers = 3 if use_multiple_optimizers else 1
 
