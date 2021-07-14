@@ -53,8 +53,8 @@ class TrainingEpochLoop(loops.Loop):
         self.is_last_batch: Optional[bool] = None
         self.progress = TrainingEpochProgress()
 
-        self.batch_loop = None
-        self.val_loop = None
+        self.batch_loop = Optional[TrainingBatchLoop]
+        self.val_loop = Optional["loops.EvaluationLoop"]
 
         self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
