@@ -43,18 +43,13 @@ class EvaluationEpochLoop(Loop):
         self.outputs: List[STEP_OUTPUT] = []
         self.progress = EpochProgress()
 
-    # def connect(
-    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
-    # ) -> None:
-    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-    #     super().connect(trainer, *args, **kwargs)
-    #     if progress is not None:
-    #         self.progress = progress
-
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.iteration_count >= self.dl_max_batches
+
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
         """Resets the loop's internal state."""

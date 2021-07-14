@@ -47,11 +47,6 @@ class FitLoop(Loop):
         self.epoch_loop = None
         self.progress: Optional[FitLoopProgress] = None
 
-    @Loop.trainer.setter
-    def trainer(self, trainer):
-        self._trainer = trainer
-        self.epoch_loop.trainer = trainer
-
     @property
     def current_epoch(self) -> int:
         """Return the current epoch"""
@@ -169,8 +164,6 @@ class FitLoop(Loop):
     def connect(self, epoch_loop: TrainingEpochLoop):
         """Connects a training epoch loop to this fit loop."""
         self.epoch_loop = epoch_loop
-        if self.trainer is not None:
-            self.epoch_loop.trainer = self.trainer
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""

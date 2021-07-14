@@ -3,7 +3,6 @@ from typing import Any, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
@@ -24,11 +23,6 @@ class PredictionLoop(DataLoaderLoop):
 
         self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
-
-    @DataLoaderLoop.trainer.setter
-    def trainer(self, trainer):
-        self._trainer = trainer
-        self.epoch_loop.trainer = trainer
 
     @property
     def return_predictions(self) -> bool:
@@ -81,18 +75,8 @@ class PredictionLoop(DataLoaderLoop):
         return sum(self.max_batches) == 0
 
     def connect(self, epoch_loop: PredictionEpochLoop):
+        """Connect the prediction epoch loop with this loop."""
         self.epoch_loop = epoch_loop
-        if self.trainer is not None:
-            self.epoch_loop.trainer = self.trainer
-
-    # def connect(
-    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    # ) -> None:
-    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-    #     super().connect(trainer, *args, **kwargs)
-    #     if progress is not None:
-    #         self.progress = progress
-    #     self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

@@ -370,15 +370,19 @@ class Trainer(
 
         # default .fit() loop
         self.fit_loop = fit_loop
+        self.fit_loop.trainer = self
 
         # default .validate() loop
         self.validate_loop = EvaluationLoop()
+        self.fit_loop.trainer = self
 
         # default .test() loop
         self.test_loop = EvaluationLoop()
+        self.fit_loop.trainer = self
 
         # default .predict() loop
         self.predict_loop = PredictionLoop()
+        self.fit_loop.trainer = self
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -1056,6 +1060,8 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         try:
+            # reset trainer on this loop and all child loops in case user connected a custom loop
+            self.fit_loop.trainer = self
             self.fit_loop.run()
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -1085,6 +1091,9 @@ class Trainer(
         # reload dataloaders
         self._evaluation_loop.reload_evaluation_dataloaders()
 
+        # reset trainer on this loop and all child loops in case user connected a custom loop
+        self._evaluation_loop.trainer = self
+
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
             eval_loop_results = self._evaluation_loop.run()
 
@@ -1099,6 +1108,8 @@ class Trainer(
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         self.reset_predict_dataloader(self.lightning_module)
+        # reset trainer on this loop and all child loops in case user connected a custom loop
+        self.predict_loop.trainer = self
         with torch.no_grad():
             return self.predict_loop.run()
 

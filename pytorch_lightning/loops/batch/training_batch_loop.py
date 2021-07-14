@@ -59,21 +59,6 @@ class TrainingBatchLoop(Loop):
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
 
-    # def connect(
-    #     self,
-    #     trainer: 'pl.Trainer',
-    #     *args: Any,
-    #     progress: Optional[BatchProgress] = None,
-    #     optim_progress: Optional[OptimizationProgress] = None,
-    #     **kwargs: Any
-    # ) -> None:
-    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-    #     super().connect(trainer, *args, **kwargs)
-    #     if progress is not None:
-    #         self.progress = progress
-    #     if optim_progress is not None:
-    #         self.optim_progress = optim_progress
-
     @property
     def done(self) -> bool:
         """Returns if all batch splits have been processed already"""
@@ -85,6 +70,9 @@ class TrainingBatchLoop(Loop):
         if self._optimizer_freq_cumsum is None:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
+
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks

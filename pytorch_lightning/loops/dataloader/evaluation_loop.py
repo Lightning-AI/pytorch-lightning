@@ -40,11 +40,6 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self._has_run: bool = False
 
-    @DataLoaderLoop.trainer.setter
-    def trainer(self, trainer):
-        self._trainer = trainer
-        self.epoch_loop.trainer = trainer
-
     @property
     def num_dataloaders(self) -> int:
         """Returns the total number of dataloaders"""
@@ -73,17 +68,6 @@ class EvaluationLoop(DataLoaderLoop):
     def connect(self, epoch_loop: EvaluationEpochLoop):
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
-        if self.trainer is not None:
-            self.epoch_loop.trainer = self.trainer
-
-    # def connect(
-    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    # ) -> None:
-    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-    #     super().connect(trainer, *args, **kwargs)
-    #     if progress is not None:
-    #         self.progress = progress
-    #     self.epoch_loop.connect(trainer, progress=self.progress.epoch)
 
     @property
     def done(self) -> bool:

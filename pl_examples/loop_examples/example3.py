@@ -37,12 +37,16 @@ def run():
     # call connect on the existing, default fit_loop.epoch_loop
     trainer.fit_loop.epoch_loop.connect(batch_loop=new_batch_loop, val_loop=new_val_loop)
 
-    # the new batch loop is registered and the trainer got linked internally
-    assert trainer.fit_loop.epoch_loop.batch_loop == new_batch_loop
-    assert trainer.fit_loop.epoch_loop.batch_loop.trainer == trainer
+    # the new batch loop is registered
+    assert trainer.fit_loop.epoch_loop.batch_loop is new_batch_loop
+
+    # the trainer is not yet registered, will be done by the trainer internally
+    assert trainer.fit_loop.epoch_loop.batch_loop.trainer is None
 
     # this uses the new custom batch loop
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+
+    assert trainer.fit_loop.epoch_loop.batch_loop.trainer is trainer
 
 
 if __name__ == '__main__':

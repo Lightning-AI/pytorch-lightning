@@ -25,14 +25,6 @@ class PredictionEpochLoop(Loop):
         self._warning_cache = WarningCache()
         self._all_batch_indices: List[int] = []
 
-    # def connect(
-    #     self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochProgress] = None, **kwargs: Any
-    # ) -> None:
-    #     """Called by the Trainer. Connects a Loop with all the necessary components like progress, etc."""
-    # super().connect(trainer, *args, **kwargs)
-    # if progress is not None:
-    #     self.progress = progress
-
     @property
     def done(self) -> bool:
         """Ends prediction when the iteration count exceeds the total number of available batches"""
@@ -43,6 +35,9 @@ class PredictionEpochLoop(Loop):
         """Whether the predictions should be stored for later usage (e.g. aggregation or returning)"""
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
+
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
         """Resets the loops internal state"""
