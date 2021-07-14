@@ -29,7 +29,13 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingEpochLoop(loops.Loop):
-    """ Runs over all batches in a dataloader (one epoch). """
+    """
+    Runs over all batches in a dataloader (one epoch).
+
+    Args:
+        min_steps: The minimum number of steps (batches) to process
+        max_steps: The maximum number of steps (batches) to process
+    """
 
     def __init__(self, min_steps: int, max_steps: int):
         super().__init__()
@@ -80,7 +86,7 @@ class TrainingEpochLoop(loops.Loop):
         batch_loop: Optional[TrainingBatchLoop] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
-        """Optionally connect a custom batch or validation loop to this training epoch loop."""
+        """Optionally connect a custom batch- or validation loop to this training epoch loop."""
         if batch_loop is not None:
             self.batch_loop = batch_loop
         if val_loop is not None:
