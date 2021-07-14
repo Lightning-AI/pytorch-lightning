@@ -20,13 +20,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.progress import (
-    DataLoaderProgress,
-    OptimizationProgress,
-    OptimizerProgress,
-    Progress,
-    Tracker,
-)
+from pytorch_lightning.trainer.progress import BaseProgress, OptimizerProgress, Progress, Tracker
 from tests.helpers import BoringModel
 
 
@@ -113,11 +107,9 @@ def test_optimizer_progress_default_factory():
 
 
 def test_deepcopy():
-    _ = deepcopy(Tracker())
+    _ = deepcopy(BaseProgress())
     _ = deepcopy(Progress())
-    _ = deepcopy(DataLoaderProgress())
-    _ = deepcopy(OptimizerProgress())
-    _ = deepcopy(OptimizationProgress())
+    _ = deepcopy(Tracker())
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
