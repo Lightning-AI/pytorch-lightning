@@ -38,7 +38,6 @@ class EvaluationEpochLoop(Loop):
         self.predictions: Optional[PredictionCollection] = None
         self.dataloader: Optional[Iterator] = None
         self.dl_max_batches: Optional[int] = None
-        self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
         self.batch_progress = Progress()
@@ -56,7 +55,6 @@ class EvaluationEpochLoop(Loop):
         """Resets the loop's internal state."""
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
-        self.dataloader_idx = None
         self.num_dataloaders = None
         self.outputs = []
 
@@ -80,10 +78,8 @@ class EvaluationEpochLoop(Loop):
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter)
-
+        void(dataloader_iter, dataloader_idx)
         self.dl_max_batches = dl_max_batches
-        self.dataloader_idx = dataloader_idx
         self.num_dataloaders = num_dataloaders
 
     def advance(
