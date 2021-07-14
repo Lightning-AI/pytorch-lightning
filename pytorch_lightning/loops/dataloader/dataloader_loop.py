@@ -56,7 +56,6 @@ class DataLoaderLoop(Loop):
     def reset(self) -> None:
         """Resets the internal state"""
         if not self.restarting:
-            # reset batch / epoch progress tracking
             self.dataloader_progress.current.reset()
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:

@@ -119,8 +119,6 @@ class TrainingEpochLoop(loops.Loop):
 
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
-
-            # TODO: remove with progress tracking
             self.batches_seen += 1
 
         self.batch_progress.increment_processed()
@@ -165,7 +163,6 @@ class TrainingEpochLoop(loops.Loop):
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
-
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -393,7 +390,6 @@ class TrainingEpochLoop(loops.Loop):
         """updates the lr schedulers based on the given interval"""
         if interval == "step" and self.batch_loop.should_accumulate():
             return
-
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
             update_plateau_schedulers=update_plateau_schedulers,
