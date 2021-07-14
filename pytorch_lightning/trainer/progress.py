@@ -153,15 +153,11 @@ class DataLoaderProgress(Progress):
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        total: Tracks the total epoch progress
-        current: Tracks the current epoch progress
-        dataloader_idx: The index of the current dataloader.
+        total: Tracks the total dataloader progress
+        current: Tracks the current dataloader progress
     """
-    dataloader_idx: int = 0
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        super().load_state_dict(state_dict)
-        self.dataloader_idx = state_dict["dataloader_idx"]
+    total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
+    current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
 
 
 @dataclass

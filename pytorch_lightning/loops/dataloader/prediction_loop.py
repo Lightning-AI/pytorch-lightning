@@ -7,7 +7,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.trainer.progress import DataLoaderProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
@@ -19,7 +18,6 @@ class PredictionLoop(DataLoaderLoop):
         super().__init__()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
-        self.progress = DataLoaderProgress()
         self.epoch_loop = PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
@@ -65,11 +63,6 @@ class PredictionLoop(DataLoaderLoop):
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders"""
         return self.trainer.predict_dataloaders
-
-    @property
-    def done(self) -> bool:
-        """Whether prediction is finished: Max batches run or all dataloaders processed"""
-        return self.current_dataloader_idx >= len(self.dataloaders)
 
     @property
     def skip(self) -> bool:
