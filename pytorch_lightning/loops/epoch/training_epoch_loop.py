@@ -75,7 +75,11 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(self, batch_loop: TrainingBatchLoop = None, val_loop: "loops.EvaluationLoop" = None) -> None:
+    def connect(
+        self,
+        batch_loop: Optional[TrainingBatchLoop] = None,
+        val_loop: Optional["loops.EvaluationLoop"] = None,
+    ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
         if batch_loop is not None:
             self.batch_loop = batch_loop
