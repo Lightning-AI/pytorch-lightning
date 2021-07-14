@@ -167,6 +167,7 @@ class SaveConfigCallback(Callback):
         # save the config in `setup` because (1) we want it to save regardless of the trainer function run
         # and we want to save before processes are spawned
         log_dir = trainer.log_dir
+        assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
         if not self.overwrite and os.path.isfile(config_path):
             raise RuntimeError(
