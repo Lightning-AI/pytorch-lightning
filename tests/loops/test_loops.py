@@ -20,17 +20,6 @@ from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.trainer import Trainer
 
 
-def _collect_loop_progress(loop: Loop) -> Dict[str, Any]:
-    """Return the progress for the current loop and its children."""
-    progress = {}
-    for k, v in loop.__dict__.items():
-        if isinstance(v, BaseProgress):
-            progress[k] = v
-        elif isinstance(v, Loop):
-            progress[k] = _collect_loop_progress(v)
-    return progress
-
-
 def test_loop_restore():
 
     class CustomExpection(Exception):
@@ -52,12 +41,10 @@ def test_loop_restore():
 
         def reset(self) -> None:
             self.iter_dataset = iter(self.dataset)
-
             if self.restarting:
                 for _ in range(self.iteration_count):
                     next(self.iter_dataset)
                 self.iteration_count += 1
-                # self.restarting = False
             else:
                 self.outputs = []
 
@@ -101,14 +88,7 @@ def test_loop_hierarchy():
 
     @dataclass
     class SimpleProgress(BaseProgress):
-
         increment: int = 0
-
-        def state_dict(self):
-            return {"increment": self.increment}
-
-        def load_state_dict(self, state_dict):
-            self.increment = state_dict["increment"]
 
     class Simple(Loop):
 
@@ -122,18 +102,16 @@ def test_loop_hierarchy():
             if not loop:
                 return
             loop.run()
+
+        def on_advance_end(self):
             self.progress.increment += 1
 
         @property
-        def skip(self) -> bool:
-            return False
-
-        @property
         def done(self) -> bool:
-            return self.iteration_count > 0
+            return self.progress.increment > 0
 
-        # def reset(self) -> None:
-        #     self.restarting = False
+        def reset(self) -> None:
+            ...
 
         def on_save_checkpoint(self) -> Dict:
             return {"a": self.a}
@@ -141,26 +119,15 @@ def test_loop_hierarchy():
         def on_load_checkpoint(self, state_dict: Dict) -> None:
             self.a = state_dict["a"]
 
-    grand_loop_parent = Simple(0)
     loop_parent = Simple(1)
     loop_child = Simple(2)
-
     loop_parent.loop_child = loop_child
 
-    assert not loop_parent.skip
+    # check the trainer reference is propagated
+    loop_parent.trainer = Trainer()
+    assert loop_child.trainer is loop_parent.trainer
 
     state_dict = loop_parent.state_dict()
-
-    loop_progress = _collect_loop_progress(loop_parent)
-    assert loop_progress["progress"] == loop_parent.progress
-    assert loop_progress["loop_child"]["progress"] == loop_child.progress
-
-    loop_progress = _collect_loop_progress(loop_child)
-    assert loop_progress["progress"] == loop_child.progress
-
-    loop_parent.trainer = Trainer()
-    assert loop_child.trainer == loop_parent.trainer
-
     assert state_dict == {
         'state_dict': {
             'a': 1
@@ -176,23 +143,14 @@ def test_loop_hierarchy():
         }
     }
 
-    loop_parent.progress
-
     state_dict["loop_child.state_dict"]["a"] = 3
-
+    # check restarting after `load_state_dict`
     loop_parent.load_state_dict(state_dict)
     assert loop_parent.restarting
 
     loop_parent.run()
 
-    loop_parent_copy = deepcopy(loop_parent)
-    assert loop_parent_copy.state_dict() == loop_parent.state_dict()
-
-    assert loop_parent_copy.on_save_checkpoint() == {'a': 1}
-    assert loop_parent_copy.loop_child.on_save_checkpoint() == {'a': 3}
-
-    assert not loop_parent.restarting
-
+    # check the new state after `run`
     state_dict = loop_parent.state_dict()
     assert state_dict == {
         'state_dict': {
@@ -205,26 +163,23 @@ def test_loop_hierarchy():
             'a': 3
         },
         'loop_child.progress': {
-            'increment': 0
+            'increment': 1
         }
     }
+
+    loop_parent_copy = deepcopy(loop_parent)
+    assert loop_parent_copy.state_dict() == loop_parent.state_dict()
+
+    assert loop_parent_copy.on_save_checkpoint() == state_dict['state_dict']
+    assert loop_parent_copy.loop_child.on_save_checkpoint() == state_dict['loop_child.state_dict']
 
     loop_parent = Simple(1)
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
     loop_parent.load_state_dict(state_dict)
     assert loop_parent.progress.increment == 1
-    assert loop_parent.loop_child.progress.increment == 0
+    assert loop_parent.loop_child.progress.increment == 1
 
     del loop_parent.loop_child
     state_dict = loop_parent.state_dict()
     assert state_dict == {'state_dict': {'a': 1}, 'progress': {'increment': 1}}
-
-    grand_loop_parent = Simple(0)
-    loop_parent = Simple(1)
-    loop_child = Simple(2)
-    grand_loop_parent.loop_child = loop_parent
-    loop_parent.loop_child = loop_child
-
-    grand_loop_parent.trainer = Trainer()
-    assert loop_child.trainer is not None
