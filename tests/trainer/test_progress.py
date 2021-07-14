@@ -74,23 +74,23 @@ def test_base_progress_from_defaults():
 
 def test_epoch_loop_progress_increment_sequence():
     """Test sequences for incrementing batches reads and epochs."""
-    batch = Progress(total=Tracker(started=None))
+    batch = Progress()
 
     batch.increment_ready()
-    assert batch.total == Tracker(ready=1, started=None)
+    assert batch.total == Tracker(ready=1)
     assert batch.current == Tracker(ready=1)
 
     batch.increment_started()
-    assert batch.total == Tracker(ready=1, started=None)
-    assert batch.current == Tracker(ready=1)
+    assert batch.total == Tracker(ready=1, started=1)
+    assert batch.current == Tracker(ready=1, started=1)
 
     batch.increment_processed()
-    assert batch.total == Tracker(ready=1, started=None, processed=1)
-    assert batch.current == Tracker(ready=1, processed=1)
+    assert batch.total == Tracker(ready=1, started=1, processed=1)
+    assert batch.current == Tracker(ready=1, started=1, processed=1)
 
     batch.increment_completed()
-    assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert batch.current == Tracker(ready=1, processed=1, completed=1)
+    assert batch.total == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert batch.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
 
 def test_optimizer_progress_default_factory():
