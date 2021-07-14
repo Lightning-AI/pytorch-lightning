@@ -154,7 +154,7 @@ class OptimizerProgress(BaseProgress):
         zero_grad: Tracks ``optimizer.zero_grad`` calls.
     """
 
-    step: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
+    step: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
     zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(processed=None))
 
     def reset_on_epoch(self) -> None:
@@ -173,28 +173,39 @@ class OptimizationProgress(BaseProgress):
 
     Args:
         optimizer: Tracks optimizer progress.
-        scheduler: Tracks scheduler progress.
         optimizer_idx: The index of the current optimizer.
     """
 
     # TODO: support for multiple optimizers
     optimizer: OptimizerProgress = field(default_factory=OptimizerProgress)
-    scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
     optimizer_idx: int = 0
 
     @property
     def optimizer_steps(self) -> int:
         return self.optimizer.step.total.completed
 
+    def reset_on_epoch(self) -> None:
+        self.optimizer.current.reset()
+        self.optimizer_idx = 0
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.optimizer.load_state_dict(state_dict["optimizer"])
+        self.optimizer_idx = state_dict["optimizer_idx"]
+
+
+class SchedulerProgress(BaseProgress):
+    """
+    Track scheduler progress.
+
+    Args:
+        scheduler: Tracks scheduler progress.
+    """
+
+    scheduler: Progress = field(default_factory=lambda: Progress.from_defaults(started=None, processed=None))
+
     @property
     def scheduler_steps(self) -> int:
         return self.scheduler.total.completed
 
-    def reset_on_epoch(self) -> None:
-        self.optimizer.reset_on_epoch()
-        self.scheduler.current.reset()
-
     def load_state_dict(self, state_dict: dict) -> None:
-        self.optimizer.load_state_dict(state_dict["optimizer"])
         self.scheduler.load_state_dict(state_dict["scheduler"])
-        self.optimizer_idx = state_dict["optimizer_idx"]

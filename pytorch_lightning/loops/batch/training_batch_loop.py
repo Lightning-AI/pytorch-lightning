@@ -245,11 +245,6 @@ class TrainingBatchLoop(Loop):
         result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         if result is not None:
             return_result.update(result)
-
-            # this should be done only if result.loss exists and ``optimizer step`` is being run
-            if not self.should_accumulate():
-                self.optim_progress.optimizer.step.increment_started()
-
             return return_result.loss
 
     def _make_closure(self, *closure_args: Any, **closure_kwargs: Any) -> Callable:
@@ -419,7 +414,8 @@ class TrainingBatchLoop(Loop):
             using_lbfgs=is_lbfgs,
         )
 
-        self.optim_progress.optimizer.step.increment_processed()
+        # FIXME: why does it not fail?
+        # self.optim_progress.optimizer.step.increment_processed()
         self.optim_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
@@ -441,7 +437,6 @@ class TrainingBatchLoop(Loop):
             opt_idx: the index of the current optimizer
         """
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
-
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
     def _track_and_norm_grad(self, optimizer: torch.optim.Optimizer) -> Dict[str, Tensor]:
@@ -701,9 +696,3 @@ class TrainingBatchLoop(Loop):
         if lightning_module.truncated_bptt_steps > 0:
             return lightning_module.truncated_bptt_steps
         return self.trainer.truncated_bptt_steps or 0
-
-    def increment_scheduler_ready(self):
-        self.optim_progress.scheduler.increment_ready()
-
-    def increment_scheduler_completed(self):
-        self.optim_progress.scheduler.increment_completed()
