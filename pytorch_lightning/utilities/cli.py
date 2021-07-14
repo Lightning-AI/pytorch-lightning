@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import warnings
 from argparse import Namespace
@@ -74,8 +75,9 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        if isinstance(lightning_class,
-                      type) and issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)):
+        if inspect.isclass(lightning_class) and issubclass(
+            lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)
+        ):
             if issubclass(lightning_class, Callback):
                 self.callback_keys.append(nested_key)
             if subclass_mode:
@@ -269,10 +271,6 @@ class LightningCLI:
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
         """
-        assert issubclass(trainer_class, Trainer) if isinstance(trainer_class, type) else True
-        assert issubclass(model_class, LightningModule) if isinstance(model_class, type) else True
-        if datamodule_class is not None:
-            assert issubclass(datamodule_class, LightningDataModule) if isinstance(datamodule_class, type) else True
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
@@ -350,7 +348,7 @@ class LightningCLI:
         self.config_init = self.parser.instantiate_classes(self.config)
 
         datamodule_config = self.config_init.get('data')
-        if isinstance(self.datamodule_class, type):
+        if inspect.isclass(self.datamodule_class):
             self.datamodule = datamodule_config
         elif self.datamodule_class is not None and datamodule_config is not None:
             self.datamodule = self.datamodule_class(**datamodule_config)
@@ -358,7 +356,7 @@ class LightningCLI:
             self.datamodule = None
 
         model_config = self.config_init['model']
-        if isinstance(self.model_class, type):
+        if inspect.isclass(self.model_class):
             self.model = model_config
         else:
             self.model = self.model_class(**model_config)
@@ -372,7 +370,7 @@ class LightningCLI:
         callbacks = [self.config_init[c] for c in self.parser.callback_keys]
         self.config_init['trainer']['callbacks'].extend(callbacks)
         if 'callbacks' in self.trainer_defaults:
-            if isinstance(self.trainer_defaults['callbacks'], list):
+            if inspect.isclass(self.trainer_defaults['callbacks']):
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
