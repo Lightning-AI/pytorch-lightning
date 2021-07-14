@@ -35,6 +35,7 @@ class FitLoop(Loop):
         min_epochs: The minimum number of epochs
         max_epochs: The maximum number of epochs
     """
+
     def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
         self.max_epochs = max_epochs
