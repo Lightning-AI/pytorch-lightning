@@ -20,6 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -51,6 +52,7 @@ class FitLoop(Loop):
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        self.epoch_progress = Progress()
 
     @property
     def current_epoch(self) -> int:
@@ -200,6 +202,8 @@ class FitLoop(Loop):
             window_length=self.trainer.accumulate_grad_batches
         )
 
+        self.epoch_progress.increment_ready()
+
     def advance(self) -> None:
         """Runs one whole epoch."""
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
@@ -233,6 +237,8 @@ class FitLoop(Loop):
             self.global_step -= 1
             self._check_checkpoint_callback(True)
             self.global_step += 1
+
+        self.epoch_progress.increment_completed()
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""

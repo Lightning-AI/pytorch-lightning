@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import TrainingEpochProgress
+from pytorch_lightning.trainer.progress import TrainingEpochProgress, Progress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -45,7 +45,7 @@ class TrainingEpochLoop(loops.Loop):
         # the number of batches seen this run, updates immediately after batch_loop.run()
         self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
-        self.progress = TrainingEpochProgress()
+        self.batch_progress = Progress()
 
         self.batch_loop = TrainingBatchLoop()
         self.val_loop = loops.EvaluationLoop()
@@ -92,17 +92,14 @@ class TrainingEpochLoop(loops.Loop):
             self.restarting = False
         else:
             # todo (tchaton) the batch_loop should be responsible for that.
-            self.batch_loop.progress.current.reset()
+            self.batch_loop.split_progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        self.progress.increment_ready()
-
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
-
-        self.progress.increment_started()
+        self.trainer.fit_loop.epoch_progress.increment_started()
 
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -122,9 +119,15 @@ class TrainingEpochLoop(loops.Loop):
         with self.trainer.profiler.profile("training_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
 
+        self.batch_progress.increment_ready()
+
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
+
+            # TODO: remove with progress tracking
             self.batches_seen += 1
+
+        self.batch_progress.increment_processed()
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -146,6 +149,8 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.call_hook('on_batch_end')
         self.trainer.logger_connector.on_batch_end()
 
+        self.batch_progress.increment_completed()
+
         # figure out what to track for epoch end
         self._track_epoch_end_reduce_metrics(self._epoch_output, batch_end_outputs)
 
@@ -163,7 +168,7 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        self.progress.should_check_val = should_check_val = self._should_check_val_fx(
+        should_check_val = self._should_check_val_fx(
             self.iteration_count, self.is_last_batch
         )
 
@@ -224,14 +229,12 @@ class TrainingEpochLoop(loops.Loop):
                     'HINT: remove the return statement in training_epoch_end'
                 )
 
-        self.progress.increment_processed()
+        self.trainer.fit_loop.epoch_progress.increment_processed()
 
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
-
-        self.progress.increment_completed()
 
         epoch_output = self._epoch_output
         # free memory

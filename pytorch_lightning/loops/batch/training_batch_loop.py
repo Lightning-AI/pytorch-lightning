@@ -50,7 +50,8 @@ class TrainingBatchLoop(Loop):
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
-        self.progress = Progress()
+        # TODO: add progress updates for batch splits
+        self.split_progress = Progress()
         self.optim_progress = OptimizationProgress()
 
         self._warning_cache: WarningCache = WarningCache()
@@ -87,8 +88,6 @@ class TrainingBatchLoop(Loop):
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(signal=0, training_step_output=[[]])
 
-        self.progress.increment_ready()
-
         # hook
         self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")
@@ -99,6 +98,8 @@ class TrainingBatchLoop(Loop):
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
             return AttributeDict(signal=-1)
+
+        self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
         super().run(batch, batch_idx, dataloader_idx)
         output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
@@ -123,10 +124,6 @@ class TrainingBatchLoop(Loop):
         """
         void(batch_idx, dataloader_idx)
         self._remaining_splits = list(enumerate(self._tbptt_split_batch(batch)))
-
-    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        super().on_advance_start(*args, **kwargs)
-        self.progress.increment_started()
 
     def advance(self, batch, batch_idx, dataloader_idx):
         """Runs the train step together with optimization (if necessary) on the current batch split
@@ -165,12 +162,6 @@ class TrainingBatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
-
-        self.progress.increment_processed()
-
-    def on_advance_end(self) -> None:
-        super().on_advance_end()
-        self.progress.increment_completed()
 
     def teardown(self) -> None:
         # release memory
