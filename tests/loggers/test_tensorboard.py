@@ -26,10 +26,8 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
-@RunIf(min_torch="1.5.0")
 def test_tensorboard_hparams_reload(tmpdir):
 
     class CustomModel(BoringModel):

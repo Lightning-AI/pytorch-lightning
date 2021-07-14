@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel
 
 
-@pytest.mark.parametrize("observe", ['average', pytest.param('histogram', marks=RunIf(min_torch="1.5"))])
+@pytest.mark.parametrize("observe", ['average', 'histogram'])
 @pytest.mark.parametrize("fuse", [True, False])
 @RunIf(quantization=True)
 def test_quantization(tmpdir, observe: str, fuse: bool):

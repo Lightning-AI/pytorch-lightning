@@ -284,7 +284,6 @@ def test_pytorch_profiler_raises(pytorch_profiler):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
 
 
-@RunIf(min_torch="1.6.0")
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
     model = BoringModel()
@@ -447,7 +446,6 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_torch="1.5.0")
 def test_register_record_function(tmpdir):
 
     use_cuda = torch.cuda.is_available()
