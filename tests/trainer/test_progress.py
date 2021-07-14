@@ -326,7 +326,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
-    assert state_dict['epoch_loop.progress']["total"]["started"] == num_epochs
+    assert state_dict["epoch_progress"]["total"]["started"] == 1
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
