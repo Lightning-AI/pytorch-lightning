@@ -135,7 +135,7 @@ def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls: Type['pl.Trainer']) -> str:
+def _get_abbrev_qualified_cls_name(cls: Any) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
