@@ -458,9 +458,9 @@ class AcceleratorConnector(object):
                     raise MisconfigurationException(
                         "You have asked for native AMP on CPU, but AMP is only available on GPU."
                     )
-                elif not _NATIVE_AMP_AVAILABLE:
+                if not _NATIVE_AMP_AVAILABLE:
                     msg = "You have asked for native AMP but your PyTorch version does not support it." \
-                          " Consider upgrading with `pip install torch>=1.6`."
+                                          " Consider upgrading with `pip install torch>=1.6`."
                     if _APEX_AVAILABLE:
                         self.amp_type = AMPType.APEX
                         msg += " We will attempt to use NVIDIA Apex for this session."
@@ -518,11 +518,6 @@ class AcceleratorConnector(object):
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
             use_ddp_fully_sharded = self._distrib_type == DistributedType.DDP_FULLY_SHARDED
-
-            # TODO: decouple from TE
-            # ddp script mode uses the same flags as TE
-            if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
-                use_torchelastic_ddp = False
 
             if use_tpu_spawn:
                 ddp_plugin_cls = TPUSpawnPlugin
