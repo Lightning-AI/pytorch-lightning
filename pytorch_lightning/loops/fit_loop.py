@@ -222,7 +222,6 @@ class FitLoop(Loop):
             # TODO(@carmocca): deprecate and rename so users don't get confused
             self.global_step -= 1
             # log epoch metrics
-            # FIXME: was this wrong???
             self.trainer.logger_connector.update_train_epoch_metrics()
             self.global_step += 1
 
