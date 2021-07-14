@@ -34,7 +34,7 @@ class CustomException(BaseException):
     pass
 
 
-def test_progress_geattr_setattr():
+def test_progress_getattr_setattr():
     p = Tracker(ready=10, completed=None)
     # can read
     assert p.completed is None
@@ -134,7 +134,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
             self.should_fail = True
 
         def training_step(self, batch, batch_idx, optimizer_idx: int = None):
-            # breaking on global_step 4
+            # simulate failure during the the 5-th training step, 2nd epoch (global_step = 4)
             if self.should_fail and self.trainer.current_epoch == 1 and batch_idx == 1 and optimizer_idx == (
                 1 if use_multiple_optimizers else None
             ):
@@ -177,7 +177,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     # VALIDATE CHECKPOINT #
     #######################
 
-    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)
+    checkpoint = torch.load(str(tmpdir / ".pl_auto_save.ckpt"))
 
     num_epochs = 1
     num_batches = 4
@@ -188,13 +188,13 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     total_optimizer_step = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
 
     # we raised expection on the first optimizer
-    current_optimize_step = (1 if use_multiple_optimizers else 0)
+    current_optimizer_step = (1 if use_multiple_optimizers else 0)
 
     if accumulate_grad_batches == 2 and use_multiple_optimizers:
         total_optimizer_step += 1
 
     total_optimizer_zero_grad = total_optimizer_step
-    current_optimizer_zero_grad = current_optimize_step
+    current_optimizer_zero_grad = current_optimizer_step
 
     if accumulate_grad_batches == 2:
         # that's weird ! todo (tchaton) investigate this
@@ -214,34 +214,49 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     expected = {
         "state_dict": {},
         "epoch_loop.state_dict": {},
-        "epoch_loop.progress": {
+        "epoch_loop.batch_progress": {
             "total": {
-                "ready": num_epochs + 1,
-                "started": num_epochs + 1,
-                "processed": 1,
-                "completed": 1
+                "ready": 5,
+                "started": 5,
+                "processed": 4,
+                "completed": 4,
             },
             "current": {
-                "ready": num_epochs + 1,
-                "started": num_epochs + 1,
+                "ready": 2,
+                "started": 2,
                 "processed": 1,
-                "completed": 1
+                "completed": 1,
             },
-            "should_check_val": False,
+        },
+        "epoch_loop.scheduler_progress": {
+            "scheduler": {
+                "total": {
+                    "ready": total_scheduler_step,
+                    "started": None,
+                    "processed": None,
+                    "completed": total_scheduler_step,
+                },
+                "current": {
+                    "ready": current_scheduler_step,
+                    "started": None,
+                    "processed": None,
+                    "completed": current_scheduler_step,
+                },
+            },
         },
         "epoch_loop.batch_loop.state_dict": {},
-        "epoch_loop.batch_loop.progress": {
+        "epoch_loop.batch_loop.split_progress": {
             "total": {
-                "ready": num_batches + 1,
-                "started": num_batches + 1,
-                "processed": num_batches,
-                "completed": num_batches
+                "ready": 0,
+                "started": 0,
+                "processed": 0,
+                "completed": 0,
             },
             "current": {
-                "ready": num_batches - limit_train_batches + 1,
-                "started": num_batches - limit_train_batches + 1,
-                "processed": num_batches - limit_train_batches,
-                "completed": num_batches - limit_train_batches
+                "ready": 0,
+                "started": 0,
+                "processed": 0,
+                "completed": 0,
             },
         },
         "epoch_loop.batch_loop.optim_progress": {
@@ -250,15 +265,15 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
                 "step": {
                     "total": {
                         "ready": total_optimizer_step + 1,
-                        "started": total_optimizer_step,
+                        "started": None,
                         "processed": None,
-                        "completed": total_optimizer_step
+                        "completed": total_optimizer_step,
                     },
                     "current": {
-                        "ready": current_optimize_step + 1,
-                        "started": current_optimize_step,
+                        "ready": current_optimizer_step + 1,
+                        "started": None,
                         "processed": None,
-                        "completed": current_optimize_step,
+                        "completed": current_optimizer_step,
                     },
                 },
                 "zero_grad": {
@@ -266,7 +281,7 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
                         "ready": total_optimizer_zero_grad,
                         "started": total_optimizer_zero_grad,
                         "processed": None,
-                        "completed": total_optimizer_zero_grad
+                        "completed": total_optimizer_zero_grad,
                     },
                     "current": {
                         "ready": current_optimizer_zero_grad,
@@ -276,31 +291,31 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
                     },
                 },
             },
-            "scheduler": {
-                "total": {
-                    "ready": total_scheduler_step,
-                    "started": None,
-                    "processed": None,
-                    "completed": total_scheduler_step
-                },
-                "current": {
-                    "ready": current_scheduler_step,
-                    "started": None,
-                    "processed": None,
-                    "completed": current_scheduler_step
-                },
-            },
         },
         "epoch_loop.val_loop.state_dict": {},
-        "epoch_loop.val_loop.progress": {
-            "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-            "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+        "epoch_loop.val_loop.dataloader_progress": {
+            "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
+            "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
             "dataloader_idx": 0,
         },
         "epoch_loop.val_loop.epoch_loop.state_dict": {},
-        "epoch_loop.val_loop.epoch_loop.progress": {
+        "epoch_loop.val_loop.epoch_loop.batch_progress": {
             "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
             "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+        },
+        "epoch_progress": {
+            "total": {
+                "ready": 2,
+                "started": 2,
+                "processed": 1,
+                "completed": 1,
+            },
+            "current": {
+                "ready": 2,
+                "started": 2,
+                "processed": 1,
+                "completed": 1,
+            },
         },
     }
     # yapf: enable
