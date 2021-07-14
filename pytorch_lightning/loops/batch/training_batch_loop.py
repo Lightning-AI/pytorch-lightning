@@ -140,9 +140,7 @@ class TrainingBatchLoop(Loop):
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
         if self.trainer.lightning_module.automatic_optimization:
-            active_optimizers = self.get_active_optimizers(batch_idx)
-            for opt_idx, optimizer in active_optimizers:
-
+            for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                 # handle optimization restart
                 if self.restarting:
                     if opt_idx < self.optim_progress.optimizer_idx:
