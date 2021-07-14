@@ -370,19 +370,15 @@ class Trainer(
 
         # default .fit() loop
         self.fit_loop = fit_loop
-        self.fit_loop.trainer = self
 
         # default .validate() loop
         self.validate_loop = EvaluationLoop()
-        self.fit_loop.trainer = self
 
         # default .test() loop
         self.test_loop = EvaluationLoop()
-        self.fit_loop.trainer = self
 
         # default .predict() loop
         self.predict_loop = PredictionLoop()
-        self.fit_loop.trainer = self
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
