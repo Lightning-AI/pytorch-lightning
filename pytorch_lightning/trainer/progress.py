@@ -131,22 +131,6 @@ class Progress(BaseProgress):
 
 
 @dataclass
-class TrainingEpochProgress(Progress):
-    """
-    Tracks the epoch progress
-
-    Args:
-        total: Tracks the total epoch progress
-        current: Tracks the current epoch progress
-    """
-    should_check_val: bool = False
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        super().load_state_dict(state_dict)
-        self.should_check_val = state_dict["should_check_val"]
-
-
-@dataclass
 class DataLoaderProgress(Progress):
     """
     Tracks the data-loader progress

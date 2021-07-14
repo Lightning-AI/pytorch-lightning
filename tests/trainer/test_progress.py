@@ -26,7 +26,6 @@ from pytorch_lightning.trainer.progress import (
     OptimizerProgress,
     Progress,
     Tracker,
-    TrainingEpochProgress,
 )
 from tests.helpers import BoringModel
 
@@ -116,7 +115,6 @@ def test_optimizer_progress_default_factory():
 def test_deepcopy():
     _ = deepcopy(Tracker())
     _ = deepcopy(Progress())
-    _ = deepcopy(TrainingEpochProgress())
     _ = deepcopy(DataLoaderProgress())
     _ = deepcopy(OptimizerProgress())
     _ = deepcopy(OptimizationProgress())
