@@ -41,7 +41,7 @@ class EvaluationEpochLoop(Loop):
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
-        self.progress = Progress()
+        self.batch_progress = Progress()
 
     def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
@@ -50,11 +50,10 @@ class EvaluationEpochLoop(Loop):
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
-        return self.iteration_count >= self.dl_max_batches
+        return self.batch_progress.current.completed >= self.dl_max_batches
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
-        self.iteration_count = 0
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
         self.dataloader_idx = None
@@ -62,11 +61,9 @@ class EvaluationEpochLoop(Loop):
         self.outputs = []
 
         if self.restarting:
-            self.iteration_count = self.progress.current.completed
             self.restarting = False
         else:
-            self.iteration_count = 0
-            self.progress.current.reset()
+            self.batch_progress.current.reset()
 
     def on_run_start(
         self,
@@ -117,30 +114,30 @@ class EvaluationEpochLoop(Loop):
         with self.trainer.profiler.profile("evaluation_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
-        self.progress.increment_started()
+        self.batch_progress.increment_ready()
 
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
-        self.progress.increment_ready()
+        self.batch_progress.increment_started()
 
         # lightning module methods
         with self.trainer.profiler.profile("evaluation_step_and_end"):
             output = self.evaluation_step(batch, batch_idx, dataloader_idx)
             output = self.evaluation_step_end(output)
 
+        self.batch_progress.increment_processed()
+
         # hook + store predictions
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
+
+        self.batch_progress.increment_completed()
 
         # log batch metrics
         self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
         self.outputs = self._track_output_for_epoch_end(self.outputs, output)
-
-        self.progress.increment_processed()
-
-        self.progress.increment_completed()
 
     def on_run_end(self) -> List[STEP_OUTPUT]:
         """Returns the outputs of the whole run"""
