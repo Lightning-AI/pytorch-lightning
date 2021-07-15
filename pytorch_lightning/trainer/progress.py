@@ -136,6 +136,7 @@ class DataLoaderProgress(Progress):
     current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
 
 
+@dataclass
 class SchedulerProgress(Progress):
     """
     Tracks the scheduler progress

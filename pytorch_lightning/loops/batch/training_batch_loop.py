@@ -409,7 +409,6 @@ class TrainingBatchLoop(Loop):
         )
 
         self.optim_progress.optimizer.step.increment_completed()
-        self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
