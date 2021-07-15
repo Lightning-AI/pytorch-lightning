@@ -160,7 +160,7 @@ class Loop(ABC):
         """
         return {}
 
-    def on_load_checkpoint(self, state_dict: Dict):
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
@@ -185,14 +185,14 @@ class Loop(ABC):
 
         return destination
 
-    def load_state_dict(self, state_dict: Dict, prefix="", restart_progress: bool = True):
+    def load_state_dict(self, state_dict: Dict, prefix: str = "", restart_progress: bool = True) -> None:
         """ Loads the state of this loop and all its children. """
         self._load_from_state_dict(state_dict.copy(), prefix, restart_progress)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
 
-    def _load_from_state_dict(self, state_dict, prefix, restart_progress):
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, restart_progress: bool) -> None:
         for k, v in self.__dict__.items():
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])
