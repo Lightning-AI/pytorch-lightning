@@ -37,9 +37,8 @@ class EvaluationEpochLoop(Loop):
         super().__init__()
         self.predictions: Optional[PredictionCollection] = None
         self.dataloader: Optional[Iterator] = None
-        self.dl_max_batches: Optional[int] = None
-        self.dataloader_idx: Optional[int] = None
-        self.num_dataloaders: Optional[int] = None
+        self._dl_max_batches: Optional[int] = None
+        self._num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
         self.progress = EpochProgress()
 
@@ -54,15 +53,14 @@ class EvaluationEpochLoop(Loop):
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
-        return self.iteration_count >= self.dl_max_batches
+        return self.iteration_count >= self._dl_max_batches
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self.iteration_count = 0
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
-        self.dl_max_batches = None
-        self.dataloader_idx = None
-        self.num_dataloaders = None
+        self._dl_max_batches = None
+        self._num_dataloaders = None
         self.outputs = []
 
     def on_run_start(
@@ -80,11 +78,9 @@ class EvaluationEpochLoop(Loop):
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter)
-
-        self.dl_max_batches = dl_max_batches
-        self.dataloader_idx = dataloader_idx
-        self.num_dataloaders = num_dataloaders
+        void(dataloader_iter, dataloader_idx)
+        self._dl_max_batches = dl_max_batches
+        self._num_dataloaders = num_dataloaders
 
     def advance(
         self,
@@ -182,8 +178,8 @@ class EvaluationEpochLoop(Loop):
         """
         self.trainer.logger_connector.on_batch_start()
 
-        assert self.num_dataloaders is not None
-        self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
+        assert self._num_dataloaders is not None
+        self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self._num_dataloaders)
 
         if self.trainer.testing:
             self.trainer.call_hook("on_test_batch_start", batch, batch_idx, dataloader_idx)
@@ -243,8 +239,8 @@ class EvaluationEpochLoop(Loop):
         # make dataloader_idx arg in validation_step optional
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
 
-        multiple_val_loaders = not self.trainer.testing and self.num_dataloaders > 1
-        multiple_test_loaders = self.trainer.testing and self.num_dataloaders > 1
+        multiple_val_loaders = not self.trainer.testing and self._num_dataloaders > 1
+        multiple_test_loaders = self.trainer.testing and self._num_dataloaders > 1
 
         if multiple_test_loaders or multiple_val_loaders:
             step_kwargs["dataloader_idx"] = dataloader_idx
