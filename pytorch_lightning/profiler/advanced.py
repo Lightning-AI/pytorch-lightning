@@ -87,6 +87,6 @@ class AdvancedProfiler(BaseProfiler):
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (
             self.__class__,
-            tuple(),
+            (),
             dict(dirpath=self.dirpath, filename=self.filename, line_count_restriction=self.line_count_restriction),
         )

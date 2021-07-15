@@ -512,7 +512,7 @@ def merge_dicts(
          'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
          'v': 2.3}
     """
-    agg_key_funcs = agg_key_funcs or dict()
+    agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
     d_out = {}
     for k in keys:

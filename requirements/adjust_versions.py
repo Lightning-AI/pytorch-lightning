@@ -4,16 +4,13 @@ import sys
 from typing import Dict, Optional
 
 VERSIONS = [
-    dict(torch="1.10.0", torchvision="", torchtext=""),  # nightly
+    dict(torch="1.10.0", torchvision="0.11.0", torchtext=""),  # nightly
     dict(torch="1.9.0", torchvision="0.10.0", torchtext="0.10.0"),
     dict(torch="1.8.1", torchvision="0.9.1", torchtext="0.9.1"),
     dict(torch="1.8.0", torchvision="0.9.0", torchtext="0.9.0"),
     dict(torch="1.7.1", torchvision="0.8.2", torchtext="0.8.1"),
     dict(torch="1.7.0", torchvision="0.8.1", torchtext="0.8.0"),
     dict(torch="1.6.0", torchvision="0.7.0", torchtext="0.7"),
-    dict(torch="1.5.1", torchvision="0.6.1", torchtext="0.6"),
-    dict(torch="1.5.0", torchvision="0.6.0", torchtext="0.6"),
-    dict(torch="1.4.0", torchvision="0.5.0", torchtext="0.5"),
 ]
 VERSIONS.sort(key=lambda v: v["torch"], reverse=True)
 

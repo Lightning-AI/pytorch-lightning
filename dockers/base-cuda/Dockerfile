@@ -15,17 +15,14 @@
 # Existing images:
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg CUDA_VERSION=10.2
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.2
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg CUDA_VERSION=10.2
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg CUDA_VERSION=10.1
 
-ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=10.2
 
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
-ARG PYTHON_VERSION=3.7
+ARG PYTHON_VERSION=3.8
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -34,9 +31,12 @@ ENV \
     TZ=Europe/Prague \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
-    MKL_THREADING_LAYER=GNU
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
+    MKL_THREADING_LAYER=GNU \
+    MAKEFLAGS="-j$(nproc)"
+    # MAKEFLAGS="-j1"
 
-RUN apt-get update -qq && \
+RUN apt-get update -qq --fix-missing  && \
     apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
@@ -68,15 +68,14 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 ENV \
+    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
+    HOROVOD_BUILD_CUDA_CC_LIST=$TORCH_CUDA_ARCH_LIST \
     HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1 \
-    MAKEFLAGS="-j$(nproc)" \
-    # MAKEFLAGS="-j1" \
-    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
+    HOROVOD_WITHOUT_MPI=1
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
@@ -104,13 +103,20 @@ RUN \
     rm -rf requirements.* requirements/
 
 RUN \
+    CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
+    py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
+    # todo: waiting for 1.4 - https://github.com/NVIDIA/DALI/issues/3144#issuecomment-877386691
+    if [ $py_ver -eq "0" ]; then \
+        pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
+        python -c 'from nvidia.dali.pipeline import Pipeline' ; \
+    fi
+
 
 RUN \
     # install NVIDIA apex
-    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
+    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
+    python -c "from apex import amp"
 
 RUN \
     # install FairScale
@@ -124,6 +130,5 @@ RUN \
     # Show what we have
     pip --version && \
     pip list && \
-    python -c 'from nvidia.dali.pipeline import Pipeline' && \
-    python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
+    python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"
