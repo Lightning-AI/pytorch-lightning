@@ -332,6 +332,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         accumulate_grad_batches=accumulate_grad_batches,
         progress_bar_refresh_rate=0,
         logger=False,
+        checkpoint_callback=False,
     )
 
     # simulate a failure
@@ -346,46 +347,46 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
     scheduler_progress = trainer.fit_loop.epoch_loop.scheduler_progress
 
-    # `nb_`: non-breaking, as in, no exception will be raised. `b_`: breaking
-    nb_epoch_batches_completed = stop_epoch * n_batches
-    b_epoch_batches_completed = stop_batch
-    b_epoch_batches_ready = stop_batch + 1
+    # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
+    nbe_batches_completed = stop_epoch * n_batches
+    be_batches_completed = stop_batch
+    be_batches_ready = stop_batch + 1
     # lightning applies leftover accumulated gradients when the epoch ends
     has_leftover_accumulation_batches = n_batches % accumulate_grad_batches != 0
-    nb_stepping_batches = nb_epoch_batches_completed // accumulate_grad_batches
-    b_stepping_batches = b_epoch_batches_completed // accumulate_grad_batches
+    # number of batches that will call `optimizer.step()` during non-breaking and breaking epochs
+    nbe_stepping_batches = nbe_batches_completed // accumulate_grad_batches
+    be_stepping_batches = be_batches_completed // accumulate_grad_batches
 
-    nb_total_optimizer_steps = (nb_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    should_last_batch_step = b_epoch_batches_ready % accumulate_grad_batches == 0
-    b_total_optimizer_steps = b_stepping_batches * n_optimizers + should_last_batch_step * stop_optimizer
-    has_optimizer_step_in_b_epoch = accumulate_grad_batches == 1 or n_batches % accumulate_grad_batches != 0
-    assert optim_progress.optimizer_steps == nb_total_optimizer_steps + b_total_optimizer_steps
-    assert optim_progress.optimizer.step.current.completed == b_total_optimizer_steps
+    nbe_total_opt_steps = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
+    is_last_batch_stepping = be_batches_ready % accumulate_grad_batches == 0
+    be_total_opt_steps = be_stepping_batches * n_optimizers + is_last_batch_stepping * stop_optimizer
+    assert optim_progress.optimizer_steps == nbe_total_opt_steps + be_total_opt_steps
+    assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
+    has_opt_stepped_in_be = accumulate_grad_batches == 1 or n_batches % accumulate_grad_batches != 0
 
-    nb_total_zero_grad = (nb_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    # FIXME: What the hell
+    nbe_total_zero_grad = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
     if accumulate_grad_batches > 1:
         # FIXME: ready or completed? 0 or stop_optimizer?
-        b_total_zero_grad = (
-            n_optimizers + (b_epoch_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) *
+        be_total_zero_grad = (
+            n_optimizers + (be_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) *
             (n_optimizers - 1) + 0
         )
-        # b_total_zero_grad = b_epoch_batches_ready // accumulate_grad_batches * n_optimizers + 0
+        # be_total_zero_grad = be_epoch_batches_ready // accumulate_grad_batches * n_optimizers + 0
     else:
-        b_total_zero_grad = b_stepping_batches * n_optimizers + stop_optimizer
-    assert optim_progress.optimizer.zero_grad.total.completed == nb_total_zero_grad + b_total_zero_grad
-    assert optim_progress.optimizer.zero_grad.current.completed == b_total_zero_grad
+        be_total_zero_grad = be_stepping_batches * n_optimizers + stop_optimizer
+    assert optim_progress.optimizer.zero_grad.total.completed == nbe_total_zero_grad + be_total_zero_grad
+    assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
 
-    nb_scheduler_steps = stop_epoch
-    b_scheduler_steps = 0  # the current epoch did not complete
+    nbe_scheduler_steps = stop_epoch
+    be_scheduler_steps = 0  # the current epoch did not complete
     if n_optimizers > 1:
         # assumes that the scheduler config is unchanged
         # `* 1` because there is only one step-level scheduler
-        nb_scheduler_steps = stop_epoch + nb_stepping_batches + has_leftover_accumulation_batches * 1
+        nbe_scheduler_steps = stop_epoch + nbe_stepping_batches + has_leftover_accumulation_batches * 1
         # `0 +` for the epoch-level scheduler
-        b_scheduler_steps = 0 + b_stepping_batches
-    assert scheduler_progress.total.completed == nb_scheduler_steps + b_scheduler_steps
-    assert scheduler_progress.current.completed == b_scheduler_steps
+        be_scheduler_steps = 0 + be_stepping_batches
+    assert scheduler_progress.total.completed == nbe_scheduler_steps + be_scheduler_steps
+    assert scheduler_progress.current.completed == be_scheduler_steps
 
     # yapf: disable
     expected = {
@@ -407,10 +408,10 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.state_dict": {},
         "epoch_loop.batch_progress": {
             "total": {
-                "ready": nb_epoch_batches_completed + b_epoch_batches_completed + 1,
-                "started": nb_epoch_batches_completed + b_epoch_batches_completed + 1,
-                "processed": nb_epoch_batches_completed + b_epoch_batches_completed,
-                "completed": nb_epoch_batches_completed + b_epoch_batches_completed,
+                "ready": nbe_batches_completed + be_batches_completed + 1,
+                "started": nbe_batches_completed + be_batches_completed + 1,
+                "processed": nbe_batches_completed + be_batches_completed,
+                "completed": nbe_batches_completed + be_batches_completed,
             },
             "current": {
                 "ready": stop_batch + 1,
@@ -421,16 +422,16 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         },
         "epoch_loop.scheduler_progress": {
             "total": {
-                "ready": nb_scheduler_steps + b_scheduler_steps,
+                "ready": nbe_scheduler_steps + be_scheduler_steps,
                 "started": None,
                 "processed": None,
-                "completed": nb_scheduler_steps + b_scheduler_steps,
+                "completed": nbe_scheduler_steps + be_scheduler_steps,
             },
             "current": {
-                "ready": b_scheduler_steps,
+                "ready": be_scheduler_steps,
                 "started": None,
                 "processed": None,
-                "completed": b_scheduler_steps,
+                "completed": be_scheduler_steps,
             },
         },
         "epoch_loop.batch_loop.state_dict": {},
@@ -439,30 +440,30 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             "optimizer": {
                 "step": {
                     "total": {
-                        "ready": nb_total_optimizer_steps + b_total_optimizer_steps + has_optimizer_step_in_b_epoch,
+                        "ready": nbe_total_opt_steps + be_total_opt_steps + has_opt_stepped_in_be,
                         "started": None,
                         "processed": None,
-                        "completed": nb_total_optimizer_steps + b_total_optimizer_steps,
+                        "completed": nbe_total_opt_steps + be_total_opt_steps,
                     },
                     "current": {
-                        "ready": b_total_optimizer_steps + has_optimizer_step_in_b_epoch,
+                        "ready": be_total_opt_steps + has_opt_stepped_in_be,
                         "started": None,
                         "processed": None,
-                        "completed": b_total_optimizer_steps,
+                        "completed": be_total_opt_steps,
                     },
                 },
                 "zero_grad": {
                     "total": {
-                        "ready": nb_total_zero_grad + b_total_zero_grad,
-                        "started": nb_total_zero_grad + b_total_zero_grad,
+                        "ready": nbe_total_zero_grad + be_total_zero_grad,
+                        "started": nbe_total_zero_grad + be_total_zero_grad,
                         "processed": None,
-                        "completed": nb_total_zero_grad + b_total_zero_grad,
+                        "completed": nbe_total_zero_grad + be_total_zero_grad,
                     },
                     "current": {
-                        "ready": b_total_zero_grad,
-                        "started": b_total_zero_grad,
+                        "ready": be_total_zero_grad,
+                        "started": be_total_zero_grad,
                         "processed": None,
-                        "completed": b_total_zero_grad,
+                        "completed": be_total_zero_grad,
                     },
                 },
             },
