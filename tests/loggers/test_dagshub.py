@@ -1,9 +1,11 @@
-import tempfile
 import os.path
 import re
+import tempfile
+
 import yaml
 
 from pytorch_lightning.loggers.dagshub import DAGsHubLogger
+
 
 def in_tmp_dir(f):
     with tempfile.TemporaryDirectory() as d:
@@ -11,7 +13,9 @@ def in_tmp_dir(f):
         hparams_path = os.path.join(d, 'hparams.yml')
         f(metrics_path, hparams_path)
 
+
 def test_context_manager_no_eager_logging():
+
     def f(metrics_path, hparams_path):
         with DAGsHubLogger(metrics_path=metrics_path, hparams_path=hparams_path, eager_logging=False) as logger:
             logger.log_metrics({'a': 1, 'b': 2})
@@ -39,6 +43,7 @@ def test_context_manager_no_eager_logging():
 
 
 def test_eager_logging():
+
     def f(metrics_path, hparams_path):
         logger = DAGsHubLogger(metrics_path=metrics_path, hparams_path=hparams_path, eager_logging=True)
         assert os.path.exists(metrics_path)
@@ -49,9 +54,16 @@ def test_eager_logging():
 
 
 def test_forbidden_csv_chars_in_metric_names():
+
     def f(metrics_path, hparams_path):
         with DAGsHubLogger(metrics_path=metrics_path, hparams_path=hparams_path) as logger:
-            logger.log_metrics({'this/is/forbidden': 1, 'so,is,this': 2, 'and "this"': 3, 'also \n this': 4, 'normal': 5})
+            logger.log_metrics({
+                'this/is/forbidden': 1,
+                'so,is,this': 2,
+                'and "this"': 3,
+                'also \n this': 4,
+                'normal': 5
+            })
 
         lines = list(open(metrics_path))
         assert lines[0] == "Name,Value,Timestamp,Step\n"

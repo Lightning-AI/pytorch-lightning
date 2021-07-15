@@ -2,11 +2,10 @@
 DagsHub Logger
 """
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.utilities import _module_available
-from pytorch_lightning.loggers.base import rank_zero_only
-
 from argparse import Namespace
+
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_only
+from pytorch_lightning.utilities import _module_available
 
 _DAGSHUB_AVAILABLE = _module_available("dagshub")
 try:
@@ -18,15 +17,16 @@ except:
 
 class DAGsHubLogger(LightningLoggerBase):
 
-    def __init__(self,
-                 metrics_path: str = 'metrics.csv',
-                 should_log_metrics: bool = True,
-                 hparams_path: str = 'params.yml',
-                 should_log_hparams: bool = True,
-                 should_make_dirs: bool = True,
-                 status_hyperparam_name: str = 'status',
-                 eager_logging: bool = False
-                 ):
+    def __init__(
+        self,
+        metrics_path: str = 'metrics.csv',
+        should_log_metrics: bool = True,
+        hparams_path: str = 'params.yml',
+        should_log_hparams: bool = True,
+        should_make_dirs: bool = True,
+        status_hyperparam_name: str = 'status',
+        eager_logging: bool = False
+    ):
         """
         Args:
             :param metrics_path: Where to save the single metrics CSV file.
@@ -47,12 +47,14 @@ class DAGsHubLogger(LightningLoggerBase):
         """
         super().__init__()
         self.status_hyperparam_name = status_hyperparam_name
-        self.logger = Logger(metrics_path=metrics_path,
-                             should_log_metrics=should_log_metrics,
-                             hparams_path=hparams_path,
-                             should_log_hparams=should_log_hparams,
-                             should_make_dirs=should_make_dirs,
-                             eager_logging=eager_logging)
+        self.logger = Logger(
+            metrics_path=metrics_path,
+            should_log_metrics=should_log_metrics,
+            hparams_path=hparams_path,
+            should_log_hparams=should_log_hparams,
+            should_make_dirs=should_make_dirs,
+            eager_logging=eager_logging
+        )
 
     @rank_zero_only
     def log_metrics(self, metrics: dict, step_num: int):
@@ -75,6 +77,3 @@ class DAGsHubLogger(LightningLoggerBase):
         if self.status_hyperparam_name is not None and self.status_hyperparam_name not in self.logger.hparams:
             self.logger.log_hyperparams({self.status_hyperparam_name: status})
         self.logger.save_hparams()
-
-
-
