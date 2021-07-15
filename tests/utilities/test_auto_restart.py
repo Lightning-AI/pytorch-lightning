@@ -963,28 +963,6 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
         trainer.fit(model)
 
 
-
-# class RngStateBoringModel(BoringModel):
-#
-#     def __init__(self):
-#         super().__init__()
-#         self.generator = torch.Generator().manual_seed(0)
-#
-#     def training_step(self, batch, batch_idx):
-#         output = super().training_step(batch, batch_idx)
-#         output.update({"random": torch.rand()})
-#         return output
-#
-#
-# class RngStateDataset(Dataset):
-#
-#     def __init__(self):
-#         self.gen0 = torch.Generator().manual_seed(0)
-#         self.gen1 = torch.Generator().manual_seed(1)
-#
-#     def __getitem__(self, item):
-#         return item + torch.rand((1, ), generator=self.gen0)
-
 class SequentialGetItemDataset(Dataset):
 
     def __init__(self, length, *_):
