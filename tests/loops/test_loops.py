@@ -358,8 +358,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     be_stepping_batches = be_batches_completed // accumulate_grad_batches
 
     nbe_total_opt_steps = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    is_last_batch_stepping = be_batches_ready % accumulate_grad_batches == 0
-    be_total_opt_steps = be_stepping_batches * n_optimizers + is_last_batch_stepping * stop_optimizer
+    is_last_be_batch_stepping = be_batches_ready % accumulate_grad_batches == 0 or has_leftover_accumulation_batches
+    be_total_opt_steps = be_stepping_batches * n_optimizers + is_last_be_batch_stepping * stop_optimizer
     assert optim_progress.optimizer_steps == nbe_total_opt_steps + be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     has_opt_stepped_in_be = accumulate_grad_batches == 1 or n_batches % accumulate_grad_batches != 0
