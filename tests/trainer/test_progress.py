@@ -336,14 +336,12 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
     model = ValidationModel()
     model.validation_epoch_end = None
 
-    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    chk.last_model_path = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=3,
-        callbacks=chk,
+        callbacks=ModelCheckpoint(dirpath=tmpdir, save_last=True),
         resume_from_checkpoint=None,
         val_check_interval=2,
         num_sanity_val_steps=0,
@@ -354,12 +352,6 @@ def test_progress_tracking_validation_multiple_datasets(tmpdir):
         trainer.fit(model)
     except CustomException:
         pass
-
-    #######################
-    # VALIDATE CHECKPOINT #
-    #######################
-
-    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)["loops"]["fit_loop"]
 
     checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)["loops"]["fit_loop"]
 
