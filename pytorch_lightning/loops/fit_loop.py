@@ -233,8 +233,6 @@ class FitLoop(Loop):
         if self.epoch_loop.batches_seen == 0:
             return
 
-        self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
-
         did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
         if did_train_only:
             self.global_step -= 1

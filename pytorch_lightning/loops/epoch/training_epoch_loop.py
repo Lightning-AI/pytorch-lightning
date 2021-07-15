@@ -221,6 +221,8 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
 
+        self.update_lr_schedulers('epoch', update_plateau_schedulers=True)
+
         epoch_output = self._epoch_output
         # free memory
         self._epoch_output = None
