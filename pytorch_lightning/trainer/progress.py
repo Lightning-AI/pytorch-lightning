@@ -132,6 +132,7 @@ class DataLoaderProgress(Progress):
         total: Tracks the total dataloader progress
         current: Tracks the current dataloader progress
     """
+
     total: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
     current: Tracker = field(default_factory=lambda: Tracker(started=None, processed=None))
 
