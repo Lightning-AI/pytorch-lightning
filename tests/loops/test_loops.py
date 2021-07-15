@@ -289,7 +289,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2))  # FIXME: 3 is broken
+@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, ))  # FIXME: 2 is broken
@@ -358,22 +358,16 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     be_stepping_batches = be_batches_completed // accumulate_grad_batches
 
     nbe_total_opt_steps = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    is_last_be_batch_stepping = be_batches_ready % accumulate_grad_batches == 0 or has_leftover_accumulation_batches
-    be_total_opt_steps = be_stepping_batches * n_optimizers + is_last_be_batch_stepping * stop_optimizer
+    does_last_be_batch_step = be_batches_ready % accumulate_grad_batches == 0 or has_leftover_accumulation_batches
+    be_total_opt_steps = be_stepping_batches * n_optimizers + does_last_be_batch_step * stop_optimizer
     assert optim_progress.optimizer_steps == nbe_total_opt_steps + be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     has_opt_stepped_in_be = accumulate_grad_batches == 1 or n_batches % accumulate_grad_batches != 0
 
     nbe_total_zero_grad = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
-    if accumulate_grad_batches > 1:
-        # FIXME: ready or completed? 0 or stop_optimizer?
-        be_total_zero_grad = (
-            n_optimizers + (be_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) *
-            (n_optimizers - 1) + 0
-        )
-        # be_total_zero_grad = be_epoch_batches_ready // accumulate_grad_batches * n_optimizers + 0
-    else:
-        be_total_zero_grad = be_stepping_batches * n_optimizers + stop_optimizer
+    does_last_be_batch_zero_grad = be_batches_completed % accumulate_grad_batches == 0
+    # `max` because the first batch always zero-grads
+    be_total_zero_grad = max(1, be_stepping_batches) * n_optimizers + stop_optimizer * does_last_be_batch_zero_grad
     assert optim_progress.optimizer.zero_grad.total.completed == nbe_total_zero_grad + be_total_zero_grad
     assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
 
