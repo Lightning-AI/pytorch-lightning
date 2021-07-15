@@ -29,6 +29,7 @@ from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # 
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE, NeptuneLogger  # noqa: F401
 from pytorch_lightning.loggers.test_tube import _TESTTUBE_AVAILABLE, TestTubeLogger  # noqa: F401
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE, WandbLogger  # noqa: F401
+from pytorch_lightning.loggers.dagshub import _DAGSHUB_AVAILABLE, DAGsHubLogger  # noqa: F401
 
 if _COMET_AVAILABLE:
     __all__.append('CometLogger')
@@ -46,3 +47,6 @@ if _TESTTUBE_AVAILABLE:
 
 if _WANDB_AVAILABLE:
     __all__.append('WandbLogger')
+
+if _DAGSHUB_AVAILABLE:
+    __all__.append('DAGsHubLogger')
