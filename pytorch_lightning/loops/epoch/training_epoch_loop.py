@@ -89,6 +89,7 @@ class TrainingEpochLoop(loops.Loop):
             self.iteration_count = self.batches_seen = self.batch_progress.current.completed
         else:
             self.batch_progress.current.reset()
+            self.scheduler_progress.current.reset()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # hook
