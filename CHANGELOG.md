@@ -459,6 +459,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed missing call to `LightningModule.untoggle_optimizer` in training loop when running gradient accumulation with multiple optimizers ([#8284](https://github.com/PyTorchLightning/pytorch-lightning/pull/8284))
 
+- Fixed hash of LightningEnum to work with value instead of name.
 
 ## [1.3.8] - 2021-07-01
 
