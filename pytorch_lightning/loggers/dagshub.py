@@ -11,7 +11,7 @@ _DAGSHUB_AVAILABLE = _module_available("dagshub")
 try:
     import dagshub
     from dagshub.logger import DAGsHubLogger as Logger
-except:
+except ImportError:
     dagshub, Logger = None, None
 
 
