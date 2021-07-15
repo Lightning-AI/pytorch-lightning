@@ -212,7 +212,7 @@ def test_loop_restart_progress_multiple_datasets(tmpdir):
             return super().validation_step(batch, batch_idx)
 
         def val_dataloader(self):
-            return [super().val_dataloader()] * n_dataloaders
+            return [super(ValidationModel, self).val_dataloader() for _ in range(n_dataloaders)]
 
     model = ValidationModel()
     model.validation_epoch_end = None
@@ -303,21 +303,18 @@ def test_loop_state_on_exception(use_multiple_optimizers, accumulate_grad_batche
         def __init__(self):
             super().__init__()
             if use_multiple_optimizers:
-                self.configure_optimizers = self.configure_optimizers_3
+                self.configure_optimizers = self.configure_optimizers_multiple
 
         def training_step(self, batch, batch_idx, optimizer_idx=0):
             if self.trainer.current_epoch == stop_epoch and batch_idx == stop_batch and optimizer_idx == stop_optimizer:
                 raise CustomException
             return super().training_step(batch, batch_idx)
 
-        def configure_optimizers_3(self):
-            optimizer_0 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_1 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            optimizers = [optimizer_0, optimizer_1, optimizer_2]
+        def configure_optimizers_multiple(self):
+            optimizers = [torch.optim.Adam(self.layer.parameters(), lr=0.1) for _ in range(n_optimizers)]
 
-            lr_scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizer_0, step_size=1)
-            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            lr_scheduler_0 = torch.optim.lr_scheduler.StepLR(optimizers[0], step_size=1)
+            lr_scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizers[1], step_size=1)
             # no scheduler for optimizer_2
             lr_schedulers = [lr_scheduler_0, {"scheduler": lr_scheduler_1, "interval": "step"}]
 

@@ -48,8 +48,8 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
             },
             "epoch_loop.scheduler_progress": {
-                "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-                "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
+                "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
             },
 
             "epoch_loop.batch_loop.optim_progress": {
