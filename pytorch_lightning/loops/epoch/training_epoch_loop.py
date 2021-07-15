@@ -90,6 +90,7 @@ class TrainingEpochLoop(loops.Loop):
         else:
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
+            self.batch_loop.optim_progress.reset_on_epoch()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # hook
