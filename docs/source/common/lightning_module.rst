@@ -252,7 +252,7 @@ The matching pseudocode is:
         # forward
         out = training_step(val_batch)
         outs.append(out)
-        
+
         # clear gradients
         optimizer.zero_grad()
 
