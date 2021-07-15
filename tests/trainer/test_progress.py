@@ -19,7 +19,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.progress import BaseProgress, OptimizerProgress, Progress, Tracker
 from tests.helpers import BoringModel
 
@@ -315,87 +314,3 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == 1
-
-
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_progress_tracking_validation_multiple_datasets(tmpdir):
-
-    class ValidationModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            if self.trainer.fit_loop.epoch_loop.batch_idx == 3 and batch_idx == 1 and dataloader_idx == 1:
-                raise CustomException
-            return super().validation_step(batch, batch_idx)
-
-        def val_dataloader(self):
-            return [super().val_dataloader(), super().val_dataloader(), super().val_dataloader()]
-
-    model = ValidationModel()
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        limit_val_batches=3,
-        callbacks=ModelCheckpoint(dirpath=tmpdir, save_last=True),
-        resume_from_checkpoint=None,
-        val_check_interval=2,
-        num_sanity_val_steps=0,
-    )
-
-    # simulate random failure in training_step
-    try:
-        trainer.fit(model)
-    except CustomException:
-        pass
-
-    checkpoint = torch.load(trainer.checkpoint_callback.last_model_path)["loops"]["fit_loop"]
-
-    expected = {
-        "total": {
-            "ready": 2,
-            "started": 2,
-            "processed": 1,
-            "completed": 1
-        },
-        "current": {
-            "ready": 1,
-            "started": 1,
-            "processed": 0,
-            "completed": 0
-        },
-        "dataloader_idx": 1,
-    }
-
-    assert checkpoint["epoch_loop.val_loop.progress"] == expected
-
-    # 3 dataloaders with 3 samples for batch_idx == 1 + first dataloader on batch_idx == 1 + failure on batch_idx = 1
-    current = 2
-    total = 3 * 3 + 3 + current
-    expected = {
-        "total": {
-            "ready": total,
-            "started": total,
-            "processed": total - 1,
-            "completed": total - 1
-        },
-        "current": {
-            "ready": current,
-            "started": current,
-            "processed": current - 1,
-            "completed": current - 1
-        },
-    }
-
-    assert checkpoint["epoch_loop.val_loop.epoch_loop.progress"] == expected
-
-    trainer = Trainer()
-    trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
-    assert trainer.fit_loop.state_dict() == checkpoint
-
-    trainer.fit_loop.load_state_dict(checkpoint)
-    assert trainer.fit_loop.state_dict() != checkpoint

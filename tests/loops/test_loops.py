@@ -11,19 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
+from unittest import mock
 
+import torch
+
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.trainer import Trainer
+from tests.helpers import BoringModel
+
+
+class CustomException(Exception):
+    pass
 
 
 def test_loop_restore():
-
-    class CustomExpection(Exception):
-        pass
 
     class Simple(Loop):
 
@@ -52,7 +59,7 @@ def test_loop_restore():
             value = next(self.iter_dataset)
 
             if self.iteration_count == 5:
-                raise CustomExpection
+                raise CustomException
 
             self.outputs.append(value)
 
@@ -71,7 +78,7 @@ def test_loop_restore():
     try:
         loop.run()
         state_dict = {}
-    except CustomExpection:
+    except CustomException:
         state_dict = loop.state_dict()
 
     loop = Simple(data)
@@ -183,3 +190,97 @@ def test_loop_hierarchy():
     del loop_parent.loop_child
     state_dict = loop_parent.state_dict()
     assert state_dict == {'state_dict': {'a': 1}, 'progress': {'increment': 1}}
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_loop_restart_progress_multiple_datasets(tmpdir):
+    stop_epoch = stop_batch = stop_dataloader = 1
+    n_dataloaders = 3
+    n_batches = 3
+    n_epochs = 2
+
+    class ValidationModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            if self.current_epoch == stop_epoch and batch_idx == stop_batch and dataloader_idx == stop_dataloader:
+                raise CustomException
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [super().val_dataloader()] * n_dataloaders
+
+    model = ValidationModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=n_epochs,
+        limit_train_batches=1,
+        limit_val_batches=n_batches,
+        callbacks=ModelCheckpoint(dirpath=tmpdir, save_last=True),
+        num_sanity_val_steps=0,
+    )
+
+    # simulate random failure in training_step
+    try:
+        trainer.fit(model)
+    except CustomException:
+        pass
+
+    ckpt_path = str(tmpdir / '.pl_auto_save.ckpt')
+    checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
+
+    total = (n_epochs - 1) * n_dataloaders + stop_dataloader
+    expected = {
+        "total": {
+            "ready": total + 1,
+            "started": None,
+            "processed": None,
+            "completed": total
+        },
+        "current": {
+            "ready": stop_dataloader + 1,
+            "started": None,
+            "processed": None,
+            "completed": stop_dataloader,
+        },
+    }
+    assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
+
+    trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
+    total = n_dataloaders * n_batches + n_batches + stop_epoch
+    expected = {
+        "total": {
+            "ready": total + 1,
+            "started": total + 1,
+            "processed": total,
+            "completed": total
+        },
+        "current": {
+            "ready": stop_batch + 1,
+            "started": stop_batch + 1,
+            "processed": stop_batch,
+            "completed": stop_batch
+        },
+    }
+    assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
+
+    trainer.fit_loop.load_state_dict(checkpoint)
+    expected = {
+        "total": {
+            "ready": total,
+            "started": total,
+            "processed": total,
+            "completed": total
+        },
+        "current": {
+            "ready": stop_batch,
+            "started": stop_batch,
+            "processed": stop_batch,
+            "completed": stop_batch
+        },
+    }
+    assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
