@@ -23,7 +23,6 @@ from deprecate import void
 from torch import Tensor
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
@@ -57,10 +56,6 @@ class TrainingBatchLoop(Loop):
         self._optimizer_freq_cumsum: Optional[int] = None
         self._remaining_splits: Optional[List[Any]] = None
         self._skip_backward: bool = False
-
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
 
     @property
     def done(self) -> bool:

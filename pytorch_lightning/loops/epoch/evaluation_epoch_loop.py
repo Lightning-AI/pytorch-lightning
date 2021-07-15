@@ -18,7 +18,6 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 from deprecate import void
 from torch import Tensor
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
@@ -41,10 +40,6 @@ class EvaluationEpochLoop(Loop):
         self._num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
         self.batch_progress = Progress()
-
-    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
 
     @property
     def done(self) -> bool:
