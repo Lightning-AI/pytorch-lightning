@@ -1022,7 +1022,7 @@ class RandomGeneratorGetItemDataset(Dataset):
     RandomPythonGetItemDataset,
     RandomGeneratorGetItemDataset,
 ])
-def test_global_rng_states(dataset_class):
+def test_dataset_rng_states_restart(dataset_class):
     # set the manual seed initially
     torch.manual_seed(1)
     num_workers = 0
