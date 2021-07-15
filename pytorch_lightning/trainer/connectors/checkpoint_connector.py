@@ -35,7 +35,7 @@ class CheckpointConnector:
     def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        self._loaded_checkpoint = dict()
+        self._loaded_checkpoint = {}
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -76,7 +76,7 @@ class CheckpointConnector:
         if self.resume_checkpoint_path:
             rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
-        self._loaded_checkpoint = dict()
+        self._loaded_checkpoint = {}
 
         # clear cache after restore
         torch.cuda.empty_cache()

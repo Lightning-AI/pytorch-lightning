@@ -213,7 +213,6 @@ def test_wandb_log_model(wandb, tmpdir):
                 'save_top_k': 1,
                 'save_weights_only': False,
                 '_every_n_train_steps': 0,
-                '_every_n_val_epochs': 1
             }
         }
     )
