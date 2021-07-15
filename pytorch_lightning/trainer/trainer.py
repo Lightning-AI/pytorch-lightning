@@ -88,8 +88,7 @@ from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT,
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    'ignore', message='torch.distributed.reduce_op is deprecated, '
-    'please use torch.distributed.ReduceOp instead'
+    "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
 )
 
 

@@ -70,10 +70,7 @@ class _TrainingTypePluginsRegistry(UserDict):
             raise TypeError(f'`name` must be a str, found {name}')
 
         if name in self and not override:
-            raise MisconfigurationException(
-                f"'{name}' is already present in the registry."
-                " HINT: Use `override=True`."
-            )
+            raise MisconfigurationException(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
 
         data: Dict[str, Any] = {}
         data["description"] = description if description is not None else ""

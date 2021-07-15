@@ -108,10 +108,9 @@ def test_fx_validator(tmpdir):
         "teardown",
     ]
 
-    assert funcs_name == sorted(callbacks_func), (
-        "Detected new callback function. Need to add its logging"
-        " permission to FxValidator and update this test"
-    )
+    assert funcs_name == sorted(
+        callbacks_func
+    ), "Detected new callback function. Need to add its logging permission to FxValidator and update this test"
 
     validator = FxValidator()
 

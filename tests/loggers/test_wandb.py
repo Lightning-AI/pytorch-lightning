@@ -89,8 +89,7 @@ def test_wandb_pickle(wandb, tmpdir):
     """
 
     class Experiment:
-        """ """
-        id = 'the_id'
+        id = "the_id"
         step = 0
         dir = 'wandb'
 

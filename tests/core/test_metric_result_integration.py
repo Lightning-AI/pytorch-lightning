@@ -189,7 +189,7 @@ def my_sync_dist(x, *_, **__):
 
 
 def test_result_collection_restoration(tmpdir):
-    """"
+    """
     This test make sure metrics are properly reloaded on failure.
     """
 

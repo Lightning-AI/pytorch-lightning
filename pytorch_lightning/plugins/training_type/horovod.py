@@ -155,10 +155,7 @@ class HorovodPlugin(ParallelPlugin):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if group is not None:
-            raise ValueError(
-                "Horovod does not support allreduce using a subcommunicator at this time. "
-                "Unset `group`."
-            )
+            raise ValueError("Horovod does not support allreduce using a subcommunicator at this time. Unset `group`.")
 
         if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average
@@ -178,10 +175,7 @@ class HorovodPlugin(ParallelPlugin):
         sync_grads: bool = False
     ) -> torch.Tensor:
         if group is not None and group != dist_group.WORLD:
-            raise ValueError(
-                "Horovod does not support allgather using a subcommunicator at this time. "
-                "Unset `group`."
-            )
+            raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
 
         if len(result.shape) == 0:
             # Convert scalars to single dimension tensors

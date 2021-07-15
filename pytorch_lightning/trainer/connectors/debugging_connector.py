@@ -42,8 +42,7 @@ class DebuggingConnector:
 
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
-                f'fast_dev_run={fast_dev_run} is not a'
-                ' valid configuration. It should be >= 0.'
+                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
         self.trainer.fast_dev_run = fast_dev_run

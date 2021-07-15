@@ -78,8 +78,7 @@ class CallbackConnector:
             raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
-                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
-                " in callbacks list."
+                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:

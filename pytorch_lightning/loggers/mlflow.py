@@ -119,8 +119,7 @@ class MLFlowLogger(LightningLoggerBase):
     ):
         if mlflow is None:
             raise ImportError(
-                'You want to use `mlflow` logger which is not installed yet,'
-                ' install it with `pip install mlflow`.'
+                "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."
             )
         super().__init__()
         if not tracking_uri:

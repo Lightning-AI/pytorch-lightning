@@ -570,8 +570,7 @@ class LightningModule(
             Will be removed in v1.5.0.
         """
         rank_zero_deprecation(
-            'LightningModule method `write_prediction` was deprecated in v1.3'
-            ' and will be removed in v1.5.'
+            "LightningModule method `write_prediction` was deprecated in v1.3 and will be removed in v1.5."
         )
 
         self.trainer._evaluation_loop.predictions._add_prediction(name, value, filename)
@@ -597,8 +596,7 @@ class LightningModule(
             Will be removed in v1.5.0.
         """
         rank_zero_deprecation(
-            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
-            ' will be removed in v1.5.'
+            "LightningModule method `write_prediction_dict` was deprecated in v1.3 and will be removed in v1.5."
         )
 
         for k, v in predictions_dict.items():

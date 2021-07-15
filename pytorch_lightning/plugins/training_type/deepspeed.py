@@ -258,8 +258,7 @@ class DeepSpeedPlugin(DDPPlugin):
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
-                "To use the DeepSpeed plugin, you must have DeepSpeed installed."
-                " pip install deepspeed"
+                "To use the DeepSpeed plugin, you must have DeepSpeed installed. pip install deepspeed"
             )
 
         if cpu_offload or cpu_offload_params or cpu_offload_use_pin_memory:

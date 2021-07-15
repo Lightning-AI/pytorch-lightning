@@ -21,26 +21,16 @@ import torch
 
 from pl_examples import _DALI_AVAILABLE
 
-ARGS_DEFAULT = """
---trainer.default_root_dir %(tmpdir)s \
---trainer.max_epochs 1 \
---trainer.limit_train_batches 2 \
---trainer.limit_val_batches 2 \
---data.batch_size 32 \
-"""
-
-ARGS_GPU = ARGS_DEFAULT + """
---trainer.gpus 1 \
-"""
-
-ARGS_DP = ARGS_DEFAULT + """
---trainer.gpus 2 \
---trainer.accelerator dp \
-"""
-
-ARGS_AMP = """
---trainer.precision 16 \
-"""
+ARGS_DEFAULT = (
+    "--trainer.default_root_dir %(tmpdir)s "
+    "--trainer.max_epochs 1 "
+    "--trainer.limit_train_batches 2 "
+    "--trainer.limit_val_batches 2 "
+    "--data.batch_size 32 "
+)
+ARGS_GPU = ARGS_DEFAULT + "--trainer.gpus 1 "
+ARGS_DP = ARGS_DEFAULT + "--trainer.gpus 2 --trainer.accelerator dp "
+ARGS_AMP = "--trainer.precision 16 "
 
 
 @pytest.mark.parametrize(

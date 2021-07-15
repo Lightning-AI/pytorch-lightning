@@ -48,7 +48,7 @@ def test_wrong_configure_optimizers(tmpdir):
 
 
 def test_fit_val_loop_config(tmpdir):
-    """"
+    """
     When either val loop or val data are missing raise warning
     """
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -67,7 +67,7 @@ def test_fit_val_loop_config(tmpdir):
 
 
 def test_test_loop_config(tmpdir):
-    """"
+    """
     When either test loop or test data are missing
     """
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -86,7 +86,7 @@ def test_test_loop_config(tmpdir):
 
 
 def test_val_loop_config(tmpdir):
-    """"
+    """
     When either validation loop or validation data are missing
     """
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
