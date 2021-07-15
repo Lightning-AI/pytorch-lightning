@@ -16,6 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -225,7 +226,7 @@ def test_loop_restart_progress_multiple_datasets(tmpdir):
         num_sanity_val_steps=0,
     )
 
-    # simulate random failure in training_step
+    # simulate a failure
     try:
         trainer.fit(model)
     except CustomException:
@@ -290,7 +291,12 @@ def test_loop_restart_progress_multiple_datasets(tmpdir):
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("use_multiple_optimizers", [False, True])
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
-def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
+def test_loop_state_on_exception(use_multiple_optimizers, accumulate_grad_batches, tmpdir):
+    stop_epoch = stop_batch = 1
+    stop_optimizer = 1 if use_multiple_optimizers else 0
+    n_optimizers = 3 if use_multiple_optimizers else 1
+    n_epochs = 2
+    n_batches = 3
 
     class TestModel(BoringModel):
 
@@ -299,11 +305,8 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
             if use_multiple_optimizers:
                 self.configure_optimizers = self.configure_optimizers_3
 
-        def training_step(self, batch, batch_idx, optimizer_idx: int = None):
-            # simulate failure during the the 5-th training step, 2nd epoch (global_step = 4)
-            if self.trainer.current_epoch == 1 and batch_idx == 1 and optimizer_idx == (
-                1 if use_multiple_optimizers else None
-            ):
+        def training_step(self, batch, batch_idx, optimizer_idx=0):
+            if self.trainer.current_epoch == stop_epoch and batch_idx == stop_batch and optimizer_idx == stop_optimizer:
                 raise CustomException
             return super().training_step(batch, batch_idx)
 
@@ -323,118 +326,102 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
     model = TestModel()
     model.training_epoch_end = None
 
-    limit_train_batches = 3
-
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=limit_train_batches,
+        max_epochs=n_epochs,
+        limit_train_batches=n_batches,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
     )
 
-    # simulate random failure in training_step
+    # simulate a failure
     try:
         trainer.fit(model)
     except CustomException:
         pass
 
-    #######################
-    # VALIDATE CHECKPOINT #
-    #######################
+    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    checkpoint = torch.load(ckpt_path)
 
-    checkpoint = torch.load(str(tmpdir / ".pl_auto_save.ckpt"))
+    batches_seen = (n_epochs - stop_epoch) * n_batches + stop_batch
+    total_optimizer_steps = batches_seen // accumulate_grad_batches * n_optimizers + stop_optimizer
 
-    num_optimizers = 3 if use_multiple_optimizers else 1
-
-    # 4 optimizer steps because breaking on the second batch of the second epoch (3 + 1)
-    completed_optimizer_steps = (4 * num_optimizers + (1 if use_multiple_optimizers else 0)) // accumulate_grad_batches
-
-    # we raised expection on the first optimizer
-    current_optimizer_step = (1 if use_multiple_optimizers else 0)
-
-    if accumulate_grad_batches == 2 and use_multiple_optimizers:
-        completed_optimizer_steps += 1
-
-    total_optimizer_zero_grad = completed_optimizer_steps
-    current_optimizer_zero_grad = current_optimizer_step
-
+    total_optimizer_zero_grad = total_optimizer_steps
+    current_optimizer_zero_grad = stop_optimizer
     if accumulate_grad_batches == 2:
-        # that's weird ! todo (tchaton) investigate this
+        # FIXME: that's weird !
         total_optimizer_zero_grad = (9 if use_multiple_optimizers else 3)
         current_optimizer_zero_grad = 0  # same there.
 
-    total_scheduler_step = (5 if use_multiple_optimizers else 1) // accumulate_grad_batches
-
-    current_scheduler_step = 0
-
-    if accumulate_grad_batches == 2:
-        total_scheduler_step += 1
-
-    optimizer_idx = (1 if use_multiple_optimizers else 0)
+    total_scheduler_steps = n_epochs - stop_epoch
+    current_scheduler_steps = 0  # the current epoch did not complete
+    if use_multiple_optimizers:
+        # 1 for the epoch-interval scheduler and `batches_seen` for the batch-interval scheduler
+        total_scheduler_steps = 1 + batches_seen // accumulate_grad_batches
+        current_scheduler_steps = stop_batch // accumulate_grad_batches
 
     # yapf: disable
     expected = {
         "state_dict": {},
+        "epoch_progress": {
+            "total": {
+                "ready": stop_epoch + 1,
+                "started": stop_epoch + 1,
+                "processed": stop_epoch,
+                "completed": stop_epoch,
+            },
+            "current": {
+                "ready": stop_epoch + 1,
+                "started": stop_epoch + 1,
+                "processed": stop_epoch,
+                "completed": stop_epoch,
+            },
+        },
         "epoch_loop.state_dict": {},
         "epoch_loop.batch_progress": {
             "total": {
-                "ready": 5,
-                "started": 5,
-                "processed": 4,
-                "completed": 4,
+                "ready": batches_seen + 1,
+                "started": batches_seen + 1,
+                "processed": batches_seen,
+                "completed": batches_seen,
             },
             "current": {
-                "ready": 2,
-                "started": 2,
-                "processed": 1,
-                "completed": 1,
+                "ready": stop_batch + 1,
+                "started": stop_batch + 1,
+                "processed": stop_batch,
+                "completed": stop_batch,
             },
         },
         "epoch_loop.scheduler_progress": {
             "total": {
-                "ready": total_scheduler_step,
+                "ready": total_scheduler_steps,
                 "started": None,
                 "processed": None,
-                "completed": total_scheduler_step,
+                "completed": total_scheduler_steps,
             },
             "current": {
-                "ready": current_scheduler_step,
+                "ready": current_scheduler_steps,
                 "started": None,
                 "processed": None,
-                "completed": current_scheduler_step,
+                "completed": current_scheduler_steps,
             },
         },
         "epoch_loop.batch_loop.state_dict": {},
-        "epoch_loop.batch_loop.split_progress": {
-            "total": {
-                "ready": 0,
-                "started": 0,
-                "processed": 0,
-                "completed": 0,
-            },
-            "current": {
-                "ready": 0,
-                "started": 0,
-                "processed": 0,
-                "completed": 0,
-            },
-        },
         "epoch_loop.batch_loop.optim_progress": {
-            "optimizer_idx": optimizer_idx,
+            "optimizer_idx": stop_optimizer,
             "optimizer": {
                 "step": {
                     "total": {
-                        "ready": completed_optimizer_steps + 1,
+                        "ready": total_optimizer_steps + 1,
                         "started": None,
                         "processed": None,
-                        "completed": completed_optimizer_steps,
+                        "completed": total_optimizer_steps,
                     },
                     "current": {
-                        "ready": current_optimizer_step + 1,
+                        "ready": stop_optimizer + 1,
                         "started": None,
                         "processed": None,
-                        "completed": current_optimizer_step,
+                        "completed": stop_optimizer,
                     },
                 },
                 "zero_grad": {
@@ -453,36 +440,14 @@ def test_progress_tracking(use_multiple_optimizers, accumulate_grad_batches, tmp
                 },
             },
         },
-        "epoch_loop.val_loop.state_dict": {},
-        "epoch_loop.val_loop.dataloader_progress": {
-            "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
-            "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
-        },
-        "epoch_loop.val_loop.epoch_loop.state_dict": {},
-        "epoch_loop.val_loop.epoch_loop.batch_progress": {
-            "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-            "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
-        },
-        "epoch_progress": {
-            "total": {
-                "ready": 2,
-                "started": 2,
-                "processed": 1,
-                "completed": 1,
-            },
-            "current": {
-                "ready": 2,
-                "started": 2,
-                "processed": 1,
-                "completed": 1,
-            },
-        },
+        "epoch_loop.val_loop.state_dict": ANY,
+        "epoch_loop.val_loop.dataloader_progress": ANY,
+        "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
+        "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
     }
     # yapf: enable
-
     assert checkpoint["loops"]["fit_loop"] == expected
 
-    trainer = Trainer()
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=False)
     assert trainer.fit_loop.state_dict() == checkpoint["loops"]["fit_loop"]
 
