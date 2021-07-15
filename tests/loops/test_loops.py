@@ -345,7 +345,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     checkpoint = torch.load(ckpt_path)
 
     optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
-    scheduler_progress = trainer.fit_loop.epoch_loop.scheduler_progress
+    sch_progress = trainer.fit_loop.epoch_loop.scheduler_progress
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
     nbe_batches_completed = stop_epoch * n_batches
@@ -368,8 +368,9 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     if accumulate_grad_batches > 1:
         # FIXME: ready or completed? 0 or stop_optimizer?
         be_total_zero_grad = (
-            n_optimizers + (be_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) *
-            (n_optimizers - 1) + 0
+            n_optimizers
+            + (be_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) * (n_optimizers - 1)
+            + 0
         )
         # be_total_zero_grad = be_epoch_batches_ready // accumulate_grad_batches * n_optimizers + 0
     else:
@@ -377,16 +378,16 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert optim_progress.optimizer.zero_grad.total.completed == nbe_total_zero_grad + be_total_zero_grad
     assert optim_progress.optimizer.zero_grad.current.completed == be_total_zero_grad
 
-    nbe_scheduler_steps = stop_epoch
-    be_scheduler_steps = 0  # the current epoch did not complete
+    nbe_sch_steps = stop_epoch
+    be_sch_steps = 0  # the current epoch did not complete
     if n_optimizers > 1:
         # assumes that the scheduler config is unchanged
         # `* 1` because there is only one step-level scheduler
-        nbe_scheduler_steps = stop_epoch + nbe_stepping_batches + has_leftover_accumulation_batches * 1
+        nbe_sch_steps = stop_epoch + nbe_stepping_batches + has_leftover_accumulation_batches * 1
         # `0 +` for the epoch-level scheduler
-        be_scheduler_steps = 0 + be_stepping_batches
-    assert scheduler_progress.total.completed == nbe_scheduler_steps + be_scheduler_steps
-    assert scheduler_progress.current.completed == be_scheduler_steps
+        be_sch_steps = 0 + be_stepping_batches
+    assert sch_progress.total.completed == nbe_sch_steps + be_sch_steps
+    assert sch_progress.current.completed == be_sch_steps
 
     # yapf: disable
     expected = {
@@ -422,16 +423,16 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         },
         "epoch_loop.scheduler_progress": {
             "total": {
-                "ready": nbe_scheduler_steps + be_scheduler_steps,
+                "ready": nbe_sch_steps + be_sch_steps,
                 "started": None,
                 "processed": None,
-                "completed": nbe_scheduler_steps + be_scheduler_steps,
+                "completed": nbe_sch_steps + be_sch_steps,
             },
             "current": {
-                "ready": be_scheduler_steps,
+                "ready": be_sch_steps,
                 "started": None,
                 "processed": None,
-                "completed": be_scheduler_steps,
+                "completed": be_sch_steps,
             },
         },
         "epoch_loop.batch_loop.state_dict": {},
