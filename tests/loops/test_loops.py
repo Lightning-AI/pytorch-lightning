@@ -368,9 +368,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     if accumulate_grad_batches > 1:
         # FIXME: ready or completed? 0 or stop_optimizer?
         be_total_zero_grad = (
-            n_optimizers
-            + (be_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) * (n_optimizers - 1)
-            + 0
+            n_optimizers + (be_batches_ready // accumulate_grad_batches - (accumulate_grad_batches > 1)) *
+            (n_optimizers - 1) + 0
         )
         # be_total_zero_grad = be_epoch_batches_ready // accumulate_grad_batches * n_optimizers + 0
     else:
