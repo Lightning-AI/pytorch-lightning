@@ -227,13 +227,6 @@ class FitLoop(Loop):
             self.trainer.logger_connector.update_train_epoch_metrics()
             self.global_step += 1
 
-    def on_advance_end(self) -> None:
-        """Updates the LR schedulers and does some internal bookkeeping"""
-        if self.epoch_loop.batches_seen == 0:
-            return
-
-        self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
-
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
         # NOTE: the iteration_count/current_epoch is already incremented
