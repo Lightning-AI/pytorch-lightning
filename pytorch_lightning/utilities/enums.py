@@ -93,8 +93,6 @@ class DeviceType(LightningEnum):
     >>> # which is case invariant
     >>> DeviceType.TPU in ('tpu', 'CPU')
     True
-    >>> DeviceType.TPU in {'tpu', 'CPU'}
-    True
     """
     CPU = 'CPU'
     GPU = 'GPU'
