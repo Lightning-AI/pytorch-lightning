@@ -363,3 +363,4 @@ The following are loggers we support
     TensorBoardLogger
     TestTubeLogger
     WandbLogger
+    DAGsHubLogger
