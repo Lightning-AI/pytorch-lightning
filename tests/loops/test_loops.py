@@ -195,11 +195,12 @@ def test_loop_hierarchy():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_loop_restart_progress_multiple_dataloaders(tmpdir):
-    stop_epoch = stop_batch = stop_dataloader = 1
-    n_dataloaders = 3
-    n_batches = 3
-    n_epochs = 2
+@pytest.mark.parametrize("stop_epoch", (1, 2))
+@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
+def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
+    n_batches = 5
+    n_epochs = 3
 
     class ValidationModel(BoringModel):
 
@@ -222,7 +223,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir):
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
-        callbacks=ModelCheckpoint(dirpath=tmpdir, save_last=True),
         num_sanity_val_steps=0,
     )
 
@@ -235,13 +235,13 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir):
     ckpt_path = str(tmpdir / '.pl_auto_save.ckpt')
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
-    total = (n_epochs - 1) * n_dataloaders + stop_dataloader
+    total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
     expected = {
         "total": {
-            "ready": total + 1,
+            "ready": total_dataloader + 1,
             "started": None,
             "processed": None,
-            "completed": total
+            "completed": total_dataloader
         },
         "current": {
             "ready": stop_dataloader + 1,
@@ -253,13 +253,17 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir):
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
 
     trainer.fit_loop.load_state_dict(checkpoint, restart_progress=False)
-    total = n_dataloaders * n_batches + n_batches + stop_epoch
+
+    # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
+    nbe_total_val_batch = stop_epoch * n_dataloaders * n_batches
+    be_total_val_batch = stop_dataloader * n_batches + stop_batch
+    total_val_batch = nbe_total_val_batch + be_total_val_batch
     expected = {
         "total": {
-            "ready": total + 1,
-            "started": total + 1,
-            "processed": total,
-            "completed": total
+            "ready": total_val_batch + 1,
+            "started": total_val_batch + 1,
+            "processed": total_val_batch,
+            "completed": total_val_batch
         },
         "current": {
             "ready": stop_batch + 1,
@@ -273,10 +277,10 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir):
     trainer.fit_loop.load_state_dict(checkpoint)
     expected = {
         "total": {
-            "ready": total,
-            "started": total,
-            "processed": total,
-            "completed": total
+            "ready": total_val_batch,
+            "started": total_val_batch,
+            "processed": total_val_batch,
+            "completed": total_val_batch
         },
         "current": {
             "ready": stop_batch,
