@@ -453,42 +453,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    @property
-    def fit_loop(self):
-        return self._fit_loop
-
-    @fit_loop.setter
-    def fit_loop(self, loop: FitLoop):
-        loop.trainer = self
-        self._fit_loop = loop
-
-    @property
-    def validate_loop(self):
-        return self._validate_loop
-
-    @validate_loop.setter
-    def validate_loop(self, loop: EvaluationLoop):
-        loop.trainer = self
-        self._validate_loop = loop
-
-    @property
-    def test_loop(self):
-        return self._test_loop
-
-    @test_loop.setter
-    def test_loop(self, loop: EvaluationLoop):
-        loop.trainer = self
-        self._test_loop = loop
-
-    @property
-    def predict_loop(self):
-        return self._predict_loop
-
-    @predict_loop.setter
-    def predict_loop(self, loop: PredictionLoop):
-        loop.trainer = self
-        self._predict_loop = loop
-
     def _setup_on_init(
         self,
         num_sanity_val_steps: int,
