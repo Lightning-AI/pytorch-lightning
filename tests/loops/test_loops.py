@@ -384,7 +384,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     # yapf: disable
     expected = {
-        "state_dict": {},
+        "state_dict": ANY,
         "epoch_progress": {
             "total": {
                 "ready": stop_epoch + 1,
@@ -399,7 +399,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "completed": stop_epoch,
             },
         },
-        "epoch_loop.state_dict": {},
+        "epoch_loop.state_dict": ANY,
         "epoch_loop.batch_progress": {
             "total": {
                 "ready": nbe_batches_completed + be_batches_completed + 1,
@@ -428,7 +428,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "completed": be_sch_steps,
             },
         },
-        "epoch_loop.batch_loop.state_dict": {},
+        "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optim_progress": {
             "optimizer_idx": stop_optimizer,
             "optimizer": {
