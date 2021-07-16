@@ -117,15 +117,19 @@ class DataConnector:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloaders is not None:
+            self.trainer.train_dataloader = None
             model.train_dataloader = _PatchDataLoader(train_dataloaders)
 
         if val_dataloaders is not None:
+            self.trainer.val_dataloaders = None
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
+            self.trainer.test_dataloaders = None
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
         if predict_dataloaders is not None:
+            self.trainer.predict_dataloaders = None
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
     def attach_datamodule(
