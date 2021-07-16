@@ -56,9 +56,9 @@ class TrainerProperties(ABC):
     _lightning_optimizers = None
     _predict_loop: PredictionLoop
     _progress_bar_callback: ProgressBarBase
+    _test_loop: EvaluationLoop
     _validate_loop: EvaluationLoop
     _weights_save_path: str
-    _test_loop: EvaluationLoop
 
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
