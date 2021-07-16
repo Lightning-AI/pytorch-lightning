@@ -18,7 +18,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import SingleTPUPlugin, TPUSpawnPlugin
+from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -152,13 +152,12 @@ def test_accelerator_tpu_with_auto():
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize(["devices", "plugin"], [([1], SingleTPUPlugin), (8, TPUSpawnPlugin)])
-def test_accelerator_tpu_with_devices(devices, plugin):
+def test_accelerator_tpu_with_devices():
 
-    trainer = Trainer(accelerator="tpu", devices=devices)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
-    assert trainer.tpu_cores == devices
-    assert isinstance(trainer.training_type_plugin, plugin)
+    assert trainer.tpu_cores == 8
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
 
