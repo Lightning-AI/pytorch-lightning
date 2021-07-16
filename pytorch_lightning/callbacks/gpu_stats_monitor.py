@@ -179,14 +179,10 @@ class GPUStatsMonitor(Callback):
     @staticmethod
     def _get_gpu_ids(device_ids: List[int]) -> List[str]:
         """Get the unmasked real GPU IDs"""
-
         # All devices if `CUDA_VISIBLE_DEVICES` unset
-        cuda_visible_devices: List[str] = os.getenv(
-            'CUDA_VISIBLE_DEVICES', default=','.join(map(str, range(torch.cuda.device_count())))
-        ).split(',')
-
-        gpu_ids = map(str.strip, map(cuda_visible_devices.__getitem__, device_ids))
-        return list(gpu_ids)
+        default = ','.join(str(i) for i in range(torch.cuda.device_count()))
+        cuda_visible_devices: List[str] = os.getenv('CUDA_VISIBLE_DEVICES', default=default).split(',')
+        return [cuda_visible_devices[device_id].strip() for device_id in device_ids]
 
     def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
         """Run nvidia-smi to get the gpu stats"""
