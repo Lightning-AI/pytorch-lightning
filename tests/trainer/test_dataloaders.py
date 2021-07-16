@@ -1504,18 +1504,17 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
+    """
+    Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
+    attaching the new one.
+    """
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        limit_predict_batches=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
     assert trainer.train_dataloader.loaders is dataloader_0
@@ -1526,17 +1525,17 @@ def test_dataloaders_reset_and_attach(tmpdir):
     assert trainer.val_dataloaders[0] is dataloader_3
 
     # 1st validate
-    trainer.validate(model, val_dataloaders=dataloader_0)
+    trainer.validate(model, dataloaders=dataloader_0)
     assert trainer.val_dataloaders[0] is dataloader_0
     # 2nd validate
-    trainer.validate(model, val_dataloaders=dataloader_1)
+    trainer.validate(model, dataloaders=dataloader_1)
     assert trainer.val_dataloaders[0] is dataloader_1
 
     # 1st test
-    trainer.test(model, test_dataloaders=dataloader_0)
+    trainer.test(model, dataloaders=dataloader_0)
     assert trainer.test_dataloaders[0] is dataloader_0
     # 2nd test
-    trainer.test(model, test_dataloaders=dataloader_1)
+    trainer.test(model, dataloaders=dataloader_1)
     assert trainer.test_dataloaders[0] is dataloader_1
 
     # 1st predict
