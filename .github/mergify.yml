@@ -47,7 +47,7 @@ pull_request_rules:
       label:
         add: [ "0:] Ready-To-Go" ]
 
-  - name: Need some work
+  - name: Not ready yet
     conditions:
       - or:
         - "#approved-reviews-by==0" # number of review approvals
