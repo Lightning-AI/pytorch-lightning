@@ -647,7 +647,6 @@ def test_accelerator_cpu_with_devices(devices, plugin):
     trainer = Trainer(accelerator="cpu", devices=devices)
 
     assert trainer.num_processes == devices
-
     assert isinstance(trainer.training_type_plugin, plugin)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
@@ -657,5 +656,33 @@ def test_accelerator_cpu_with_num_processes_priority():
 
     num_processes = 5
     trainer = Trainer(accelerator="cpu", devices=8, num_processes=num_processes)
-
     assert trainer.num_processes == num_processes
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (2, DDPSpawnPlugin)])
+def test_accelerator_gpu_with_devices(devices, plugin):
+
+    trainer = Trainer(accelerator="gpu", devices=devices)
+
+    assert trainer.gpus == devices
+    assert isinstance(trainer.training_type_plugin, plugin)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+
+
+@RunIf(min_gpus=1)
+def test_accelerator_auto_with_devices_gpu():
+
+    trainer = Trainer(accelerator="auto", devices=1)
+
+    assert trainer._device_type == "gpu"
+    assert trainer.gpus == 1
+
+
+@RunIf(min_gpus=1)
+def test_accelerator_gpu_with_gpus_priority():
+    """ Test for checking `gpus` flag takes priority over `devices`. """
+
+    gpus = 1
+    trainer = Trainer(accelerator="gpu", devices=4, gpus=gpus)
+    assert trainer.gpus == gpus

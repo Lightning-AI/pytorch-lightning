@@ -358,7 +358,8 @@ class AcceleratorConnector(object):
             self.ipus = self.devices
             return True
         elif accelerator == DeviceType.GPU and torch.cuda.is_available():
-            self.gpus = device_parser.parse_gpu_ids(self.devices)
+            self.gpus = self.devices
+            self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
         elif accelerator == DeviceType.CPU:
             self.num_processes = self.devices
