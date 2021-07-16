@@ -3,10 +3,9 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from deprecate import void
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.trainer.progress import EpochProgress
+from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -18,7 +17,7 @@ class PredictionEpochLoop(Loop):
         self.return_predictions: bool = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
-        self.progress = EpochProgress()
+        self.batch_progress = Progress()
 
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
@@ -28,7 +27,7 @@ class PredictionEpochLoop(Loop):
     @property
     def done(self) -> bool:
         """Ends prediction when the iteration count exceeds the total number of available batches"""
-        return self.iteration_count >= self._dl_max_batches
+        return self.batch_progress.current.completed >= self._dl_max_batches
 
     @property
     def should_store_predictions(self) -> bool:
@@ -41,9 +40,9 @@ class PredictionEpochLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loops internal state"""
-        self.iteration_count = 0
         self._all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
+        self.batch_progress.current.reset()
 
     def on_run_start(
         self,
@@ -93,6 +92,8 @@ class PredictionEpochLoop(Loop):
         with self.trainer.profiler.profile("predict_batch_to_device"):
             batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
+        self.batch_progress.increment_ready()
+
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 
@@ -124,13 +125,19 @@ class PredictionEpochLoop(Loop):
 
         self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
+        self.batch_progress.increment_started()
+
         model_ref._current_fx_name = "predict_step"
         predictions = self.trainer.accelerator.predict_step(step_kwargs)
+
+        self.batch_progress.increment_processed()
 
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
         self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+
+        self.batch_progress.increment_completed()
 
         if self.should_store_predictions:
             self.predictions.append(predictions)

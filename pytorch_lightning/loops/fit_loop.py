@@ -14,13 +14,13 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress
+from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 
@@ -41,17 +41,17 @@ class FitLoop(Loop):
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
         self.epoch_loop = None
-        self.progress: Optional[FitLoopProgress] = None
+        self.epoch_progress = Progress()
 
     @property
     def current_epoch(self) -> int:
         """Return the current epoch"""
-        return self.iteration_count
+        return self.epoch_progress.current.completed
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
         """Setter for the current epoch"""
-        self.iteration_count = value
+        self.epoch_progress.current.completed = value
 
     @property
     def global_step(self) -> int:
@@ -71,7 +71,7 @@ class FitLoop(Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.iteration_count
+        return self.epoch_loop.batch_progress.current.ready - 1
 
     @property
     def split_idx(self) -> int:
@@ -190,6 +190,8 @@ class FitLoop(Loop):
             window_length=self.trainer.accumulate_grad_batches
         )
 
+        self.epoch_progress.increment_ready()
+
     def advance(self) -> None:
         """Runs one whole epoch."""
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
@@ -213,16 +215,14 @@ class FitLoop(Loop):
 
     def on_advance_end(self) -> None:
         """Updates the LR schedulers and does some internal bookkeeping"""
-        if self.epoch_loop.batches_seen == 0:
-            return
+        if self.epoch_loop.batches_seen != 0:
+            did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
+            if did_train_only:
+                self.global_step -= 1
+                self._check_checkpoint_callback(True)
+                self.global_step += 1
 
-        self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
-
-        did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
-        if did_train_only:
-            self.global_step -= 1
-            self._check_checkpoint_callback(True)
-            self.global_step += 1
+        self.epoch_progress.increment_completed()
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
@@ -271,12 +271,6 @@ class FitLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
-
-    def state_dict(self) -> Dict:
-        return {"epoch_loop": self.epoch_loop.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
