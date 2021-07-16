@@ -17,7 +17,7 @@ import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -457,7 +457,7 @@ class TrainerDataLoadingMixin(ABC):
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model)
 
-    def request_dataloader(self, model: 'pl.LightningModule', stage: str) -> DataLoader:
+    def request_dataloader(self, model: 'pl.LightningModule', stage: str) -> Union[DataLoader, List[DataLoader]]:
         """Handles downloading data in the GPU or TPU case.
 
         Args:
@@ -467,18 +467,8 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         self.call_hook(f"on_{stage}_dataloader")
-        dataloader: DataLoader = getattr(model, f'{stage}_dataloader')()
-        dataloader = self._flatten_dl_only(dataloader)
+        dataloader = getattr(model, f'{stage}_dataloader')()
+        if isinstance(dataloader, tuple):
+            dataloader = list(dataloader)
         self.accelerator.barrier('get_dataloaders')
         return dataloader
-
-    def _flatten_dl_only(self, dataloaders):
-        # handles user error when they return:
-        # return dl1, dl2  vs  return (dl1, dl2)
-        if isinstance(dataloaders, tuple):
-            all_dls = [isinstance(x, Iterable) for x in dataloaders]
-            all_dls = all(all_dls)
-            if all_dls:
-                dataloaders = list(dataloaders)
-
-        return dataloaders
