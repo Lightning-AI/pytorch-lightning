@@ -292,7 +292,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir):
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 @pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, ))  # FIXME: 2 is broken
+@pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("stop_optimizer", (1, 2))
 def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer, n_optimizers, tmpdir):
     stop_optimizer = stop_optimizer if stop_optimizer < n_optimizers else 0
@@ -362,7 +362,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     be_total_opt_steps = be_stepping_batches * n_optimizers + does_last_be_batch_step * stop_optimizer
     assert optim_progress.optimizer_steps == nbe_total_opt_steps + be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
-    has_opt_stepped_in_be = accumulate_grad_batches == 1 or n_batches % accumulate_grad_batches != 0
+    has_opt_stepped_in_be = stop_batch + 1 >= accumulate_grad_batches
 
     nbe_total_zero_grad = (nbe_stepping_batches + has_leftover_accumulation_batches) * n_optimizers
     does_last_be_batch_zero_grad = be_batches_completed % accumulate_grad_batches == 0
