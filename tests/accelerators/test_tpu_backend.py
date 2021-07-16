@@ -152,7 +152,7 @@ def test_accelerator_tpu_with_auto():
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize(["devices", "plugin"], [([0], SingleTPUPlugin), (8, TPUSpawnPlugin)])
+@pytest.mark.parametrize(["devices", "plugin"], [([1], SingleTPUPlugin), (8, TPUSpawnPlugin)])
 def test_accelerator_tpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="tpu", devices=devices)
