@@ -660,8 +660,11 @@ def test_accelerator_cpu_with_num_processes_priority():
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), ([1], SingleDevicePlugin),
-                                                 (2, DDPSpawnPlugin)])
+@pytest.mark.parametrize(["devices", "plugin"], [
+    (1, SingleDevicePlugin),
+    ([1], SingleDevicePlugin),
+    (2, DDPSpawnPlugin),
+])
 def test_accelerator_gpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="gpu", devices=devices)
