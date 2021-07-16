@@ -541,7 +541,7 @@ class DeepSpeedPlugin(DDPPlugin):
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision
-        if precision == 16:
+        if precision in (16, 'mixed'):
             if "fp16" not in self.config and amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -559,8 +559,6 @@ class DeepSpeedPlugin(DDPPlugin):
                     "enabled": True,
                     "opt_level": amp_level,
                 }
-        if "zero_optimization" in self.config and not ("amp" in self.config or "fp16" in self.config):
-            raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
         self,
