@@ -18,6 +18,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
+from pytorch_lightning.plugins import SingleTPUPlugin, TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -148,3 +149,32 @@ def test_accelerator_tpu_with_auto():
 
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
+
+
+@RunIf(tpu=True)
+@pytest.mark.parametrize(["devices", "plugin"], [([0], SingleTPUPlugin), (8, TPUSpawnPlugin)])
+def test_accelerator_tpu_with_devices(devices, plugin):
+
+    trainer = Trainer(accelerator="tpu", devices=devices)
+
+    assert trainer.tpu_cores == devices
+    assert isinstance(trainer.training_type_plugin, plugin)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+
+
+@RunIf(tpu=True)
+def test_accelerator_auto_with_devices_tpu():
+
+    trainer = Trainer(accelerator="auto", devices=8)
+
+    assert trainer._device_type == "tpu"
+    assert trainer.tpu_cores == 8
+
+
+@RunIf(tpu=True)
+def test_accelerator_tpu_with_tpu_cores_priority():
+    """ Test for checking `tpu_cores` flag takes priority over `devices`. """
+
+    tpu_cores = 8
+    trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
+    assert trainer.tpu_cores == tpu_cores

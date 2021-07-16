@@ -519,3 +519,31 @@ def test_accelerator_cpu_with_ipus_flag():
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_devices():
+
+    trainer = Trainer(accelerator="ipu", devices=8)
+
+    assert trainer.ipus == 8
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_auto_with_devices_ipu():
+
+    trainer = Trainer(accelerator="auto", devices=8)
+
+    assert trainer._device_type == "ipu"
+    assert trainer.ipus == 8
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_ipus_priority():
+    """ Test for checking `ipus` flag takes priority over `devices`. """
+
+    ipus = 8
+    trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
+    assert trainer.ipus == ipus
