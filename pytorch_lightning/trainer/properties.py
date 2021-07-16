@@ -68,7 +68,6 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
-
     """
     Accelerator properties
     """
