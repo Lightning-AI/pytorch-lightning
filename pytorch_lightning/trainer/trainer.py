@@ -112,6 +112,7 @@ class Trainer(
         process_position: int = 0,
         num_nodes: int = 1,
         num_processes: int = 1,
+        devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
@@ -206,6 +207,9 @@ class Trainer(
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             deterministic: If true enables cudnn.deterministic.
+
+            devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
+                based on the accelerator type.
 
             distributed_backend: deprecated. Please use 'accelerator'
 
@@ -343,8 +347,8 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, ipus, distributed_backend, gpus, gpu_ids, num_nodes, sync_batchnorm, benchmark,
-            replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
+            num_processes, devices, tpu_cores, ipus, distributed_backend, gpus, gpu_ids, num_nodes, sync_batchnorm,
+            benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)

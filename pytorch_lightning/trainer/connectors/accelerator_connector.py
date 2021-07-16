@@ -85,6 +85,7 @@ class AcceleratorConnector(object):
     def __init__(
         self,
         num_processes,
+        devices,
         tpu_cores,
         ipus,
         distributed_backend,
@@ -106,6 +107,7 @@ class AcceleratorConnector(object):
         self._accelerator_type = None
 
         self.num_processes = num_processes
+        self.devices = devices
         # `gpus` is the input passed to the Trainer, whereas `gpu_ids` is a list of parsed gpu ids.
         self.gpus = gpus
         self.parallel_device_ids = gpu_ids
@@ -291,6 +293,8 @@ class AcceleratorConnector(object):
 
     @property
     def has_cpu(self) -> bool:
+        if self.num_processes is not None:
+            self._map_devices_to_accelerator(DeviceType.CPU)
         return True
 
     @property
@@ -302,7 +306,9 @@ class AcceleratorConnector(object):
         # Here, we are not checking for GPU availability, but instead if User has passed
         # `gpus` to Trainer for training.
         gpus = self.parallel_device_ids
-        return gpus is not None and len(gpus) > 0
+        if gpus is not None and len(gpus) > 0:
+            return True
+        return self._map_devices_to_accelerator(DeviceType.GPU)
 
     @property
     def use_gpu(self) -> bool:
@@ -312,7 +318,9 @@ class AcceleratorConnector(object):
     def has_tpu(self) -> bool:
         # Here, we are not checking for TPU availability, but instead if User has passed
         # `tpu_cores` to Trainer for training.
-        return self.tpu_cores is not None
+        if self.tpu_cores is not None:
+            return True
+        return self._map_devices_to_accelerator(DeviceType.TPU)
 
     @property
     def use_tpu(self) -> bool:
@@ -328,11 +336,30 @@ class AcceleratorConnector(object):
     def has_ipu(self) -> bool:
         # Here, we are not checking for IPU availability, but instead if User has passed
         # `ipus` to Trainer for training.
-        return self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin)
+        if self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin):
+            return True
+        return self._map_devices_to_accelerator(DeviceType.IPU)
 
     @property
     def use_ipu(self) -> bool:
         return self._accelerator_type == DeviceType.IPU and self.has_ipu
+
+    def _map_devices_to_accelerator(self, accelerator: str) -> bool:
+        if self.devices is not None:
+            return False
+        if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+            self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
+            return True
+        elif accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+            self.ipus = self.devices
+            return True
+        elif accelerator == DeviceType.GPU and torch.cuda.is_available():
+            self.gpus = device_parser.parse_gpu_ids(self.devices)
+            return True
+        elif accelerator == DeviceType.CPU:
+            self.num_processes = self.devices
+            return True
+        return False
 
     @property
     def use_dp(self) -> bool:
