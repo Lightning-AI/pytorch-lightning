@@ -639,3 +639,23 @@ def test_accelerator_cpu_with_multiple_gpus():
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPSpawnPlugin)])
+def test_accelerator_cpu_with_devices(devices, plugin):
+
+    trainer = Trainer(accelerator="cpu", devices=devices)
+
+    assert trainer.num_processes == devices
+
+    assert isinstance(trainer.training_type_plugin, plugin)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+def test_accelerator_cpu_with_num_processes_priority():
+    """ Test for checking num_processes takes priority over devices. """
+
+    num_processes = 5
+    trainer = Trainer(accelerator="cpu", devices=8, num_processes=num_processes)
+
+    assert trainer.num_processes == num_processes
