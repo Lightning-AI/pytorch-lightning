@@ -311,7 +311,7 @@ def test_v1_6_0_every_n_val_epochs():
         _ = ModelCheckpoint(every_n_val_epochs=1)
 
 
-def test_v1_4_0_deprecated_hpc_load(tmpdir):
+def test_v1_6_0_deprecated_hpc_load(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
