@@ -181,6 +181,7 @@ class AcceleratorConnector(object):
             elif self.has_gpu:
                 self._accelerator_type = DeviceType.GPU
             else:
+                self._set_devices_to_cpu_num_processes()
                 self._accelerator_type = DeviceType.CPU
         elif self.distributed_backend == DeviceType.TPU:
             if not self.has_tpu:
@@ -198,6 +199,7 @@ class AcceleratorConnector(object):
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}.")
             self._accelerator_type = DeviceType.GPU
         elif self.distributed_backend == DeviceType.CPU:
+            self._set_devices_to_cpu_num_processes()
             self._accelerator_type = DeviceType.CPU
 
         if self.distributed_backend in ["auto"] + list(DeviceType):
@@ -293,8 +295,6 @@ class AcceleratorConnector(object):
 
     @property
     def has_cpu(self) -> bool:
-        if self.num_processes is not None:
-            self._map_devices_to_accelerator(DeviceType.CPU)
         return True
 
     @property
@@ -344,8 +344,12 @@ class AcceleratorConnector(object):
     def use_ipu(self) -> bool:
         return self._accelerator_type == DeviceType.IPU and self.has_ipu
 
+    def _set_devices_to_cpu_num_processes(self) -> None:
+        if self.num_processes <= 1:
+            self._map_devices_to_accelerator(DeviceType.CPU)
+
     def _map_devices_to_accelerator(self, accelerator: str) -> bool:
-        if self.devices is not None:
+        if self.devices is None:
             return False
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
