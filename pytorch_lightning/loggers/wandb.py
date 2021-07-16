@@ -169,6 +169,7 @@ class WandbLogger(LightningLoggerBase):
         state = self.__dict__.copy()
         # args needed to reload correct experiment
         state['_id'] = self._experiment.id if self._experiment is not None else None
+        state['_init_attach'] = getattr(self.experiment, "_attach_id", None) if self._experiment is not None else None
 
         # cannot be pickled
         state['_experiment'] = None
@@ -190,7 +191,11 @@ class WandbLogger(LightningLoggerBase):
         if self._experiment is None:
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
-            self._experiment = wandb.init(**self._wandb_init) if wandb.run is None else wandb.run
+            d = self._wandb_init.copy()
+            attach_id = getattr(self, "_init_attach", None)
+            if attach_id:
+                d["attach"] = attach_id
+            self._experiment = wandb.init(**d) if wandb.run is None else wandb.run
 
         # define default x-axis (for latest wandb versions)
         if getattr(self._experiment, "define_metric", None):
