@@ -138,6 +138,7 @@ class AcceleratorConnector(object):
 
         self.plugins = plugins
 
+        self.validate_accelerator_and_devices()
         self.select_accelerator_type()
         self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -145,6 +146,7 @@ class AcceleratorConnector(object):
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
         self.validate_accelerator_type()
+        self.set_devices_if_none()
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
@@ -205,6 +207,14 @@ class AcceleratorConnector(object):
         if self.distributed_backend in ["auto"] + list(DeviceType):
             self.distributed_backend = None
 
+    def validate_accelerator_and_devices(self) -> None:
+        if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
+            raise MisconfigurationException(
+                f"You passed `devices={self.devices}` but haven't specified"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu') for the devices mapping"
+                f" but passed `accelerator={self.distributed_backend}`"
+            )
+
     def validate_accelerator_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
             raise MisconfigurationException(
@@ -212,6 +222,18 @@ class AcceleratorConnector(object):
                 f" and assigned device type ({self._device_type})."
             )
         self._accelerator_type = self._device_type
+
+    def set_devices_if_none(self) -> None:
+        if self.devices is not None:
+            return
+        if self._accelerator_type == DeviceType.TPU:
+            self.devices = self.tpu_cores
+        elif self._accelerator_type == DeviceType.IPU:
+            self.devices = self.ipus
+        elif self._accelerator_type == DeviceType.GPU:
+            self.devices = self.gpus
+        elif self._accelerator_type == DeviceType.CPU:
+            self.devices = self.num_processes
 
     def handle_given_plugins(self) -> None:
 
