@@ -177,3 +177,10 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     tpu_cores = 8
     trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
     assert trainer.tpu_cores == tpu_cores
+
+
+@RunIf(tpu=True)
+def test_set_devices_if_none_tpu():
+
+    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    assert trainer.devices == 8

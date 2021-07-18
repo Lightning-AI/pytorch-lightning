@@ -547,3 +547,10 @@ def test_accelerator_ipu_with_ipus_priority():
     ipus = 8
     trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
     assert trainer.ipus == ipus
+
+
+@RunIf(ipu=True)
+def test_set_devices_if_none_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=8)
+    assert trainer.devices == 8

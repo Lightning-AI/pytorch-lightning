@@ -145,6 +145,10 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.num_gpus
 
     @property
+    def devices(self) -> Optional[Union[List[int], str, int]]:
+        return self.accelerator_connector.devices
+
+    @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
         return self.accelerator_connector.parallel_device_ids
 
