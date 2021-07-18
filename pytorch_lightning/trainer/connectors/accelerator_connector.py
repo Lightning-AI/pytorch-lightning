@@ -139,6 +139,8 @@ class AcceleratorConnector(object):
         self.plugins = plugins
 
         self.validate_accelerator_and_devices()
+        self.warn_if_devices_flag_ignored()
+
         self.select_accelerator_type()
         self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -222,6 +224,32 @@ class AcceleratorConnector(object):
                 f" and assigned device type ({self._device_type})."
             )
         self._accelerator_type = self._device_type
+
+    def warn_if_devices_flag_ignored(self) -> None:
+        if self.devices is None:
+            return
+        devices_warning = f"`devices={self.devices}` will be ignored, as you have set"
+        if self.distributed_backend == "auto":
+            if self.tpu_cores is not None:
+                rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
+            elif self.ipus is not None:
+                rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
+            elif self.gpus is not None:
+                rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
+            elif self.num_processes == 1:
+                rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
+        elif self.distributed_backend == DeviceType.TPU:
+            if self.tpu_cores is not None:
+                rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
+        elif self.distributed_backend == DeviceType.IPU:
+            if self.ipus is not None:
+                rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
+        elif self.distributed_backend == DeviceType.GPU:
+            if self.gpus is not None:
+                rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
+        elif self.distributed_backend == DeviceType.CPU:
+            if self.num_processes == 1:
+                rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
 
     def set_devices_if_none(self) -> None:
         if self.devices is not None:
@@ -367,7 +395,7 @@ class AcceleratorConnector(object):
         return self._accelerator_type == DeviceType.IPU and self.has_ipu
 
     def _set_devices_to_cpu_num_processes(self) -> None:
-        if self.num_processes <= 1:
+        if self.num_processes == 1:
             self._map_devices_to_accelerator(DeviceType.CPU)
 
     def _map_devices_to_accelerator(self, accelerator: str) -> bool:
