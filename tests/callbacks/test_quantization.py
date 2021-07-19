@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import os
 from typing import Callable, Union
 
 import pytest
@@ -56,12 +57,12 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert quant_calls == qcb._forward_calls
     quant_score = torch.mean(torch.tensor([mean_relative_error(qmodel(x), y) for x, y in dm.test_dataloader()]))
     # test that the test score is almost the same as with pure training
-    assert torch.allclose(org_score, quant_score, atol=0.35)
-    model_path = str(trainer.checkpoint_callback.best_model_path)
+    assert torch.allclose(org_score, quant_score, atol=0.4)
+    model_path = trainer.checkpoint_callback.best_model_path
 
     trainer_args.update(dict(max_epochs=1, checkpoint_callback=False))
     if not convert:
-        trainer = Trainer(**trainer_args)
+        trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
         trainer.fit(qmodel, datamodule=dm)
         qmodel.eval()
         torch.quantization.convert(qmodel, inplace=True)
@@ -73,13 +74,13 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
     # todo: make it work also with strict loading
     qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
-    # quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-    # assert torch.allclose(quant_score, quant2_score, atol=0.01)
+    quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
+    assert torch.allclose(org_score, quant2_score, atol=0.4)
 
     trainer = Trainer(**trainer_args)
     trainer.fit(qmodel2, datamodule=dm)
 
-    trainer = Trainer(callbacks=[qcb], **trainer_args)
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
     trainer.fit(qmodel2, datamodule=dm)
 
 
@@ -91,6 +92,8 @@ def test_quantize_torchscript(tmpdir):
     qcb = QuantizationAwareTraining(input_compatible=False)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
+
+    torch.save(qmodel, os.path.join(tmpdir, 'quantized-model.pt'))
 
     batch = iter(dm.test_dataloader()).next()
     qmodel(qmodel.quant(batch[0]))
