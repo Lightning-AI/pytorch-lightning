@@ -59,7 +59,8 @@ references:
      name: Deploy the job on the kubernetes cluster
      command: |
        export PATH=$PATH:$HOME/go/bin
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER')
+        fff = fff.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(fff)"
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
