@@ -52,8 +52,12 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 class TrainerProperties(ABC):
 
     _default_root_dir: str
+    _fit_loop: FitLoop
     _lightning_optimizers = None
+    _predict_loop: PredictionLoop
     _progress_bar_callback: ProgressBarBase
+    _test_loop: EvaluationLoop
+    _validate_loop: EvaluationLoop
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
@@ -64,10 +68,6 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
-    fit_loop: FitLoop
-    validate_loop: EvaluationLoop
-    test_loop: EvaluationLoop
-    predict_loop: PredictionLoop
     """
     Accelerator properties
     """
@@ -532,6 +532,59 @@ class TrainerProperties(ABC):
     @property
     def is_last_batch(self) -> bool:
         return self.fit_loop.epoch_loop.is_last_batch
+
+    @property
+    def fit_loop(self):
+        return self._fit_loop
+
+    @fit_loop.setter
+    def fit_loop(self, loop: FitLoop):
+        """
+        Attach a custom fit loop to this Trainer. It will run with
+        :meth:`~pytorch_lighting.trainer.trainer.Trainer.fit`.
+        """
+        loop.trainer = self
+        self._fit_loop = loop
+
+    @property
+    def validate_loop(self):
+        return self._validate_loop
+
+    @validate_loop.setter
+    def validate_loop(self, loop: EvaluationLoop):
+        """
+        Attach a custom validation loop to this Trainer. It will run with
+        :meth:`~pytorch_lighting.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
+        running during training inside the :meth:`pytorch_lightning.trainer.trainer.Trainer.fit` call.
+        """
+        loop.trainer = self
+        self._validate_loop = loop
+
+    @property
+    def test_loop(self):
+        return self._test_loop
+
+    @test_loop.setter
+    def test_loop(self, loop: EvaluationLoop):
+        """
+        Attach a custom test loop to this Trainer. It will run with
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
+        """
+        loop.trainer = self
+        self._test_loop = loop
+
+    @property
+    def predict_loop(self):
+        return self._predict_loop
+
+    @predict_loop.setter
+    def predict_loop(self, loop: PredictionLoop):
+        """
+        Attach a custom prediction loop to this Trainer. It will run with
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
+        """
+        loop.trainer = self
+        self._predict_loop = loop
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:

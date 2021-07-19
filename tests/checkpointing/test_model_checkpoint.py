@@ -247,14 +247,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
 
-    # on_train_end ckpt callback is called which creates an additional ckpt in case no ckpt is created at the
-    # end of epoch, thus if val_check_interval doesn't align with the training steps we create an additional ckpt
-    additional_ckpt, additional_ckpt_path = False, None
-    if not epoch_aligned:
-        additional_ckpt_path = [f for f in ckpt_files if 'v1' in f.stem][0]
-        additional_ckpt = True
-
-    assert len(ckpt_files) == len(model.scores) + additional_ckpt == per_epoch_val_checks * max_epochs + additional_ckpt
+    assert len(ckpt_files) == len(model.scores) == per_epoch_val_checks * max_epochs
     assert len(lr_scheduler_debug) == max_epochs
 
     def _make_assertions(epoch, ix, version=''):
@@ -296,10 +289,6 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
         assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)
-
-    # check the ckpt file saved on_train_end
-    if additional_ckpt_path:
-        _make_assertions(max_epochs - 1, per_epoch_val_checks - 1, version='-v1')
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
@@ -1240,7 +1229,7 @@ def test_hparams_type(tmpdir, hparams_type):
         assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], hparams_type)
     else:
         # make sure it's not AttributeDict
-        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
+        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) is hparams_type
 
 
 def test_ckpt_version_after_rerun_new_trainer(tmpdir):
