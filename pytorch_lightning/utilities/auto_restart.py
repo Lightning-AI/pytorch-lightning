@@ -223,16 +223,15 @@ class CaptureIterableDataset(IterableDataset):
         iterator_state_dict = getattr(iterator, "_sampler_state_dict", None)
         iterator_state_dict_cache = getattr(iterator, "_sampler_state_dict_cache", None)
         # handle the logic this way due Trainer prefetching.
-        if not iterator_state_dict:
+        if iterator_state_dict is None:
             iterator._sampler_state_dict = sampler_state_dict
+        elif iterator_state_dict_cache is None:
+            iterator._sampler_state_dict_cache = sampler_state_dict
         else:
-            if iterator_state_dict_cache is None:
-                iterator._sampler_state_dict_cache = sampler_state_dict
-            else:
-                for attr_cache, state_dict in zip(iterator_state_dict, iterator._sampler_state_dict_cache):
-                    for k, v in state_dict.items():
-                        attr_cache[k].update(v)
-                iterator._sampler_state_dict_cache = sampler_state_dict
+            for attr_cache, state_dict in zip(iterator_state_dict, iterator._sampler_state_dict_cache):
+                for k, v in state_dict.items():
+                    attr_cache[k].update(v)
+            iterator._sampler_state_dict_cache = sampler_state_dict
 
     @staticmethod
     def _sanitize_batch_from_sampler_state(data: Any, state_dicts: List):

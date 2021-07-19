@@ -14,6 +14,7 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import partial
 from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
 
 import torch
@@ -374,6 +375,19 @@ class CombinedLoader(object):
         self._loaders_iter_state_dict = None
         self._iterator = None  # assigned in __iter__
 
+    @staticmethod
+    def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], num_batches_processed: int) -> Dict:
+        # find next worker if multiple workers were used
+        state = _find_current_worker(iterator)
+        if isinstance(dataloader.dataset, CaptureIterableDataset):
+            # the sampler state dict are extracted in `CombinedLoaderIterator`
+            if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
+                state.update(iterator._sampler_state_dict[0])
+        else:
+            # fetch directly from fast forward sampler
+            state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
+        return DataLoaderDict(state)
+
     def state_dict(self, num_batches_processed: int) -> Dict:
         """
         The state dict includes all states from wrapped dataloaders and their samplers through the
@@ -386,17 +400,7 @@ class CombinedLoader(object):
         if not _fault_tolerant_enabled():
             return DataLoaderDict()
 
-        def state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator]) -> Dict:
-            # find next worker if multiple workers were used
-            state = _find_current_worker(iterator)
-            if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # the sampler state dict are extracted in `CombinedLoaderIterator`
-                if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
-                    state.update(iterator._sampler_state_dict[0])
-            else:
-                # fetch directly from fast forward sampler
-                state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
-            return DataLoaderDict(state)
+        state_dict_fn = partial(self._state_dict_fn, num_batches_processed=num_batches_processed)
 
         return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)
 
