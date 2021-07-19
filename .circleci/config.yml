@@ -52,15 +52,15 @@ references:
     run:
       name: Update jsonnet
       command: |
-        echo "Update jsonnet"
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
+       fff = fff.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(fff)"
+       cat dockers/tpu-tests/tpu_test_cases.jsonnet
 
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
      command: |
        export PATH=$PATH:$HOME/go/bin
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER')
-       fff = fff.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(fff)"
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
@@ -101,6 +101,7 @@ jobs:
       - image: circleci/python:3.7
     environment:
       - XLA_VER: 1.8
+      - PYTHON_VER: 3.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
