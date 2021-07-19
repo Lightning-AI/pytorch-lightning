@@ -21,7 +21,6 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.trainer import Trainer
