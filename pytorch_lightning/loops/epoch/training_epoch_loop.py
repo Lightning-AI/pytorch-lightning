@@ -16,7 +16,6 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection

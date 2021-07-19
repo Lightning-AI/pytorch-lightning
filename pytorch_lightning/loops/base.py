@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from deprecate import void
-from onnx.backend.test.case.node.loop import Loop
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.progress import BaseProgress, Tracker

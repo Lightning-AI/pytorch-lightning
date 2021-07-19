@@ -17,7 +17,6 @@ from typing import Any, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection

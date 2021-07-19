@@ -14,9 +14,8 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Optional
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
