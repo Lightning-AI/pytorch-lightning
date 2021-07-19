@@ -214,8 +214,8 @@ class AcceleratorConnector(object):
         if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
-                f" but passed `accelerator={self.distributed_backend}`"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
+                f" got `accelerator={self.distributed_backend}`."
             )
 
     def _validate_accelerator_type(self) -> None:
