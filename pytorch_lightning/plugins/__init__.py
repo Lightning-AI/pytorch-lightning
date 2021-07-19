@@ -46,7 +46,7 @@ __all__ = [
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
-    "FullyShardedNativeMixedPrecisionPlugin"
+    "FullyShardedNativeMixedPrecisionPlugin",
     "SingleDevicePlugin",
     "SingleTPUPlugin",
     "TPUHalfPrecisionPlugin",
@@ -55,7 +55,7 @@ __all__ = [
     "ParallelPlugin",
     "Plugin",
     "DDPShardedPlugin",
-    "DDPSpawnShardedPlugin",
+    "DDPSpawnShardedPlugin"
 ]
 
 from pathlib import Path
