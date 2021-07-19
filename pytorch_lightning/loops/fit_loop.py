@@ -14,15 +14,14 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import FitLoopProgress
+from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_info
 
 log = logging.getLogger(__name__)
 
@@ -51,19 +50,19 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.progress = FitLoopProgress()
+        self.epoch_progress = Progress()
 
         self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
     def current_epoch(self) -> int:
         """Return the current epoch"""
-        return self.iteration_count
+        return self.epoch_progress.current.completed
 
     @current_epoch.setter
     def current_epoch(self, value: int) -> None:
         """Setter for the current epoch"""
-        self.iteration_count = value
+        self.epoch_progress.current.completed = value
 
     @property
     def global_step(self) -> int:
@@ -83,7 +82,7 @@ class FitLoop(Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.iteration_count
+        return self.epoch_loop.batch_progress.current.ready - 1
 
     @property
     def split_idx(self) -> int:
@@ -169,14 +168,10 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(
-        self, trainer: 'pl.Trainer', *args: Any, progress: Optional[FitLoopProgress] = None, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
@@ -207,6 +202,8 @@ class FitLoop(Loop):
             window_length=self.trainer.accumulate_grad_batches
         )
 
+        self.epoch_progress.increment_ready()
+
     def advance(self) -> None:
         """Runs one whole epoch."""
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
@@ -229,17 +226,7 @@ class FitLoop(Loop):
             self.global_step += 1
 
     def on_advance_end(self) -> None:
-        """Updates the LR schedulers and does some internal bookkeeping"""
-        if self.epoch_loop.batches_seen == 0:
-            return
-
-        self.epoch_loop.update_lr_schedulers('epoch', update_plateau_schedulers=True)
-
-        did_train_only = not self.trainer.enable_validation or self.epoch_loop.val_loop.skip
-        if did_train_only:
-            self.global_step -= 1
-            self._check_checkpoint_callback(True)
-            self.global_step += 1
+        self.epoch_progress.increment_completed()
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
@@ -248,13 +235,6 @@ class FitLoop(Loop):
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
         self.current_epoch -= 1
-
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.epoch_loop.global_step -= 1
-        # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
-        self._check_checkpoint_callback(should_update=True, is_last=True)
-        self.epoch_loop.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -274,26 +254,6 @@ class FitLoop(Loop):
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
         return self.epoch_loop.batch_loop.should_accumulate()
-
-    def _check_checkpoint_callback(self, should_update: bool, is_last: bool = False):
-        """Checks if checkpointing needs to be done"""
-        # TODO: bake this logic into the ModelCheckpoint callback
-        if should_update:
-            callbacks = self.trainer.checkpoint_callbacks
-
-            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
-                rank_zero_info("Saving latest checkpoint...")
-
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
-
-    def state_dict(self) -> Dict:
-        return {"epoch_loop": self.epoch_loop.state_dict()}
-
-    def load_state_dict(self, state_dict: Dict) -> None:
-        self.epoch_loop.load_state_dict(state_dict["epoch_loop"])
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
