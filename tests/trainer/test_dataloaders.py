@@ -1508,6 +1508,7 @@ def test_dataloaders_reset_and_attach(tmpdir):
     Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
     attaching the new one.
     """
+    # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
@@ -1517,33 +1518,33 @@ def test_dataloaders_reset_and_attach(tmpdir):
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
-    assert trainer.train_dataloader.loaders is dataloader_0
-    assert trainer.val_dataloaders[0] is dataloader_1
+    assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
+    assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
-    assert trainer.train_dataloader.loaders is dataloader_2
-    assert trainer.val_dataloaders[0] is dataloader_3
+    assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
+    assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
 
     # 1st validate
     trainer.validate(model, dataloaders=dataloader_0)
-    assert trainer.val_dataloaders[0] is dataloader_0
+    assert trainer.val_dataloaders[0].dataset is dataloader_0.dataset
     # 2nd validate
     trainer.validate(model, dataloaders=dataloader_1)
-    assert trainer.val_dataloaders[0] is dataloader_1
+    assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
 
     # 1st test
     trainer.test(model, dataloaders=dataloader_0)
-    assert trainer.test_dataloaders[0] is dataloader_0
+    assert trainer.test_dataloaders[0].dataset is dataloader_0.dataset
     # 2nd test
     trainer.test(model, dataloaders=dataloader_1)
-    assert trainer.test_dataloaders[0] is dataloader_1
+    assert trainer.test_dataloaders[0].dataset is dataloader_1.dataset
 
     # 1st predict
     trainer.predict(model, dataloaders=dataloader_0)
-    assert trainer.predict_dataloaders[0] is dataloader_0
+    assert trainer.predict_dataloaders[0].dataset is dataloader_0.dataset
     # 2nd predict
     trainer.predict(model, dataloaders=dataloader_1)
-    assert trainer.predict_dataloaders[0] is dataloader_1
+    assert trainer.predict_dataloaders[0].dataset is dataloader_1.dataset
 
 
 def test_replace_sampler_with_multiprocessing_context(tmpdir):
