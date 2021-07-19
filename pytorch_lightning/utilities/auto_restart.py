@@ -14,16 +14,12 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
-from random import getstate as python_get_rng_state
-from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
 
-import numpy as np
-import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection, recursively_traverse_for_dtype
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
