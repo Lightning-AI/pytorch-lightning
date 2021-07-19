@@ -102,7 +102,8 @@ jobs:
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
-      - setup_remote_docker
+      - *install_jsonnet
+      - *update_jsonnet
       - *deploy_cluster
       - *stats
       - codecov/upload:
