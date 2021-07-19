@@ -14,11 +14,13 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Generator, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -100,8 +102,7 @@ class TensorRunningAccum(object):
         if self.last_idx is not None:
             if self.rotated:
                 return getattr(self.memory, how)()
-            else:
-                return getattr(self.memory[:self.current_idx], how)()
+            return getattr(self.memory[:self.current_idx], how)()
 
 
 class PredictionCollection(object):
@@ -156,7 +157,7 @@ class PredictionCollection(object):
             # Switch predictions so each entry has its own dict
             outputs = []
             for values in zip(*predictions.values()):
-                output_element = {k: v for k, v in zip(predictions.keys(), values)}
+                output_element = dict(zip(predictions.keys(), values))
                 outputs.append(output_element)
 
             # Write predictions for current file to disk
@@ -260,8 +261,7 @@ class CombinedDataset(object):
     def min_len(self) -> Union[int, float]:
         return self._calc_num_data(self.datasets, 'min_size')
 
-    @staticmethod
-    def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
+    def _calc_num_data(self, datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
         """
         Compute the length of `CombinedDataset` according to the `mode`.
 
@@ -279,9 +279,7 @@ class CombinedDataset(object):
             raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         # extract the lengths
-        all_lengths = apply_to_collection(
-            datasets, (Dataset, Iterable, type(None)), get_len, wrong_dtype=(Sequence, Mapping)
-        )
+        all_lengths = self._get_len_recursive(datasets)
 
         compute_func = CombinedDataset.COMPUTE_FUNCS[mode]
 
@@ -291,6 +289,30 @@ class CombinedDataset(object):
             length = _nested_calc_num_data(all_lengths, compute_func)
 
         return length
+
+    def _get_len_recursive(self, data) -> int:
+        if isinstance(data, Dataset):
+            return len(data)
+
+        if isinstance(data, (float, int)):
+            return data
+
+        if isinstance(data, Mapping):
+            if any(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data.values()):
+                return {k: self._get_len_recursive(v) for k, v in data.items()}
+        elif isinstance(data, Sequence):
+            data = list(data)
+            if any(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data):
+                return [self._get_len_recursive(v) for v in data]
+
+        return self._get_len(data)
+
+    @staticmethod
+    def _get_len(dataset) -> int:
+        try:
+            return len(dataset)
+        except (TypeError, NotImplementedError):
+            return float('inf')
 
     def __len__(self) -> int:
         """Return the minimum length of the datasets."""
@@ -333,6 +355,9 @@ class CombinedLoader(object):
                 'max_size_cycle' which stops if the longest loader is exhausted and cycles through the smaller ones.
 
         """
+        if mode not in self.SUPPORTED_MODES:
+            raise MisconfigurationException(f"Invalid Mode: {mode}")
+
         self.loaders = loaders
 
         datasets = apply_to_collection(
@@ -340,9 +365,6 @@ class CombinedLoader(object):
         )
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         self.dataset = CombinedDataset(datasets, mode)
-
-        if mode not in self.SUPPORTED_MODES:
-            raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.mode = mode
 
@@ -352,7 +374,7 @@ class CombinedLoader(object):
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
@@ -364,27 +386,13 @@ class CombinedLoader(object):
         """
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
 
-        if isinstance(all_lengths, (int, float)):
-            length = all_lengths
+        length = _nested_calc_num_data(all_lengths, max)
 
-        elif isinstance(all_lengths, Mapping):
-            length = max(all_lengths.values())
-
-        elif isinstance(all_lengths, Sequence):
-            length = max(all_lengths)
-
-        if isinstance(self.loaders, Mapping):
-            self.loaders = type(self.loaders)({k: CycleIterator(v, length=length) for k, v in self.loaders.items()})
-
-        elif isinstance(self.loaders, Sequence):
-            self.loaders = type(self.loaders)([CycleIterator(v, length=length) for v in self.loaders])
-
-        # dataloaders are iterable but not sequence
-        elif isinstance(self.loaders, Iterable):
-            # only one dataloader, just keep it the same.
-            pass
-        else:
-            raise ValueError(f'Invalid Datatype for loaders: {type(self.loaders).__name__}')
+        # multiple loaders
+        if isinstance(self.loaders, (Sequence, Mapping)):
+            self.loaders = apply_to_collection(
+                self.loaders, Iterable, CycleIterator, length=length, wrong_dtype=(Sequence, Mapping)
+            )
 
     def __iter__(self) -> Any:
         """
@@ -408,9 +416,7 @@ class CombinedLoader(object):
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
-
-        else:
-            return _nested_calc_num_data(all_lengths, min)
+        return _nested_calc_num_data(all_lengths, min)
 
     def __len__(self) -> int:
         return self._calc_num_batches(self.loaders)
@@ -488,7 +494,7 @@ class CombinedLoaderIterator(object):
 
 def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
 
-    if isinstance(data, int):
+    if isinstance(data, (float, int)):
         return data
 
     if isinstance(data, Mapping):
@@ -506,3 +512,25 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
             new_data.append(x)
 
     return compute_func(new_data)
+
+
+def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, None]:
+    """
+    Returns an iterator that pre-fetches and caches the next item.
+    The values are passed through from the given iterable with an added boolean indicating if this is the last item.
+    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
+    """
+    it = iter(iterable)
+
+    try:
+        # the iterator may be empty from the beginning
+        last = next(it)
+    except StopIteration:
+        return
+
+    for val in it:
+        # yield last and has next
+        yield last, False
+        last = val
+    # yield last, no longer has next
+    yield last, True

@@ -12,11 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Any, Iterable, Mapping, Union
 
+import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
+
+BType = Union[torch.Tensor, str, Mapping[Any, 'BType'], Iterable['BType']]
+
+
+def extract_batch_size(batch: BType) -> int:
+    """
+    Recursively unpack a batch to find a torch.Tensor.
+
+    Returns:
+        ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+    """
+    if isinstance(batch, torch.Tensor):
+        return batch.size(0)
+    if isinstance(batch, str):
+        return len(batch)
+    if isinstance(batch, dict):
+        sample = next(iter(batch.values()), 1)
+        return extract_batch_size(sample)
+    if isinstance(batch, Iterable):
+        sample = next(iter(batch), 1)
+        return extract_batch_size(sample)
+
+    return 1
 
 
 def has_iterable_dataset(dataloader: DataLoader):
@@ -24,8 +48,14 @@ def has_iterable_dataset(dataloader: DataLoader):
 
 
 def has_len(dataloader: DataLoader) -> bool:
-    """ Checks if a given Dataloader has __len__ method implemented i.e. if
-    it is a finite dataloader or infinite dataloader. """
+    """
+    Checks if a given Dataloader has ``__len__`` method implemented i.e. if
+    it is a finite dataloader or infinite dataloader.
+
+    Raises:
+        ValueError:
+            If the length of Dataloader is 0, as it requires at least one batch
+    """
 
     try:
         # try getting the length
@@ -40,8 +70,9 @@ def has_len(dataloader: DataLoader) -> bool:
     if has_len and has_iterable_dataset(dataloader):
         rank_zero_warn(
             'Your `IterableDataset` has `__len__` defined.'
-            ' In combination with multi-processing data loading (e.g. batch size > 1),'
-            ' this can lead to unintended side effects since the samples will be duplicated.'
+            ' In combination with multi-process data loading (when num_workers > 1),'
+            ' `__len__` could be inaccurate if each worker is not configured independently'
+            ' to avoid having duplicate data.'
         )
     return has_len
 

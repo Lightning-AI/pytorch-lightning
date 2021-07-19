@@ -11,16 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
+
 import pytest
 import torch
 from torch import nn
-from torch.optim import SGD
+from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning
+from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
+
+
+class TestBackboneFinetuningCallback(BackboneFinetuning):
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
+        epoch = trainer.current_epoch
+        if self.unfreeze_backbone_at_epoch <= epoch:
+            optimizer = trainer.optimizers[0]
+            current_lr = optimizer.param_groups[0]['lr']
+            backbone_lr = self.previous_backbone_lr
+            if epoch < 6:
+                assert backbone_lr <= current_lr
+            else:
+                assert backbone_lr == current_lr
 
 
 def test_finetuning_callback(tmpdir):
@@ -54,24 +71,11 @@ def test_finetuning_callback(tmpdir):
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    class TestCallback(BackboneFinetuning):
-
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
-            epoch = trainer.current_epoch
-            if self.unfreeze_backbone_at_epoch <= epoch:
-                optimizer = trainer.optimizers[0]
-                current_lr = optimizer.param_groups[0]['lr']
-                backbone_lr = self.previous_backbone_lr
-                if epoch < 6:
-                    assert backbone_lr <= current_lr
-                else:
-                    assert backbone_lr == current_lr
-
     model = FinetuningBoringModel()
-    callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
+    callback = TestBackboneFinetuningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     trainer = Trainer(
-        limit_train_batches=1,
+        limit_train_batches=4,
         default_root_dir=tmpdir,
         callbacks=[callback],
         max_epochs=8,
@@ -79,6 +83,17 @@ def test_finetuning_callback(tmpdir):
     trainer.fit(model)
 
     assert model.backbone.has_been_used
+
+
+class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
+
+    def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+        """Called when the epoch begins."""
+
+        if epoch == 0:
+            self.unfreeze_and_add_param_group(
+                pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
+            )
 
 
 def test_finetuning_callback_warning(tmpdir):
@@ -111,30 +126,24 @@ def test_finetuning_callback_warning(tmpdir):
             optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
             return optimizer
 
-    class TestCallback(BackboneFinetuning):
-
-        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
-            """Called when the epoch begins."""
-
-            if epoch == 0:
-                self.unfreeze_and_add_param_group(
-                    pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
-                )
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = FinetuningBoringModel()
     model.validation_step = None
-    callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
+    callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
         trainer = Trainer(
             limit_train_batches=1,
             default_root_dir=tmpdir,
-            callbacks=[callback],
+            callbacks=[callback, chk],
             max_epochs=2,
         )
         trainer.fit(model)
 
     assert model.backbone.has_been_used
+    trainer = Trainer(max_epochs=3, resume_from_checkpoint=chk.last_model_path)
+    trainer.fit(model)
 
 
 def test_freeze_unfreeze_function(tmpdir):
@@ -218,6 +227,59 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
             assert torch.equal(optimizer.param_groups[2]["params"][2], model.backbone[4].weight)
 
 
+class OnEpochLayerFinetuning(BaseFinetuning):
+
+    def freeze_before_training(self, pl_module: LightningModule):
+        self.freeze(pl_module.layer)
+
+    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+        self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
+
+
+def test_base_finetuning_internal_state(tmpdir):
+    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks"""
+
+    seed_everything(42)
+
+    class FreezeModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Sequential(
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 32, bias=True),
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 32, bias=True),
+                nn.Linear(32, 32, bias=False),
+                nn.Linear(32, 2, bias=True),
+            )
+
+        def forward(self, x):
+            return self.layer(x)
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer[0].parameters(), lr=0.1)
+
+    cb = OnEpochLayerFinetuning()
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    model = FreezeModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
+    trainer.fit(model)
+    assert len(cb._internal_state[0]) == 6
+    assert cb._internal_state[0][0]["params"] == ['layer.0.weight']
+    assert cb._internal_state[0][1]["params"] == ['layer.1.weight', 'layer.1.bias']
+    assert cb._internal_state[0][2]["params"] == ['layer.2.weight']
+    assert cb._internal_state[0][3]["params"] == ['layer.3.weight', 'layer.3.bias']
+    assert cb._internal_state[0][4]["params"] == ['layer.4.weight']
+    assert cb._internal_state[0][5]["params"] == ['layer.5.weight', 'layer.5.bias']
+
+    model = FreezeModel()
+    cb = OnEpochLayerFinetuning()
+    trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
+    with pytest.raises(ValueError, match="loaded state dict has a different number of parameter groups"):
+        trainer.fit(model)
+
+
 def test_on_before_accelerator_backend_setup(tmpdir):
     """
     `on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before
@@ -244,3 +306,62 @@ def test_on_before_accelerator_backend_setup(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[callback], fast_dev_run=True)
     trainer.fit(model)
+
+
+def test_complex_nested_model():
+    """
+    Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
+    directly themselves rather than exclusively their submodules containing parameters.
+    """
+
+    class ConvBlock(nn.Module):
+
+        def __init__(self, in_channels, out_channels):
+            super().__init__()
+            self.conv = nn.Conv2d(in_channels, out_channels, 3)
+            self.act = nn.ReLU()
+            self.bn = nn.BatchNorm2d(out_channels)
+
+        def forward(self, x):
+            x = self.conv(x)
+            x = self.act(x)
+            return self.bn(x)
+
+    class ConvBlockParam(nn.Module):
+
+        def __init__(self, in_channels, out_channels):
+            super().__init__()
+            self.module_dict = nn.ModuleDict({
+                "conv": nn.Conv2d(in_channels, out_channels, 3),
+                "act": nn.ReLU(),
+            })
+            # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
+            self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
+            self.bn = nn.BatchNorm2d(out_channels)
+
+        def forward(self, x):
+            x = self.module_dict["conv"](x)
+            x = self.module_dict["act"](x)
+            return self.bn(x)
+
+    model = nn.Sequential(
+        OrderedDict([
+            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+            ("decoder", ConvBlock(128, 10)),
+        ])
+    )
+
+    # There are 10 leaf modules or parent modules w/ parameters in the test model
+    assert len(BaseFinetuning.flatten_modules(model)) == 10
+
+    BaseFinetuning.freeze(model.encoder, train_bn=True)
+    assert not model.encoder[0].module_dict["conv"].weight.requires_grad  # Validate a leaf module parameter is frozen
+    assert not model.encoder[0].parent_param.requires_grad  # Validate the parent module parameter is frozen
+    assert model.encoder[0].bn.weight.requires_grad
+
+    BaseFinetuning.make_trainable(model)
+    encoder_params = list(BaseFinetuning.filter_params(model.encoder, train_bn=True))
+    # The 9 parameters of the encoder are:
+    # conv0.weight, conv0.bias, bn0.weight, bn0.bias, parent_param
+    # conv1.weight, conv1.bias, bn1.weight, bn1.bias
+    assert len(encoder_params) == 9

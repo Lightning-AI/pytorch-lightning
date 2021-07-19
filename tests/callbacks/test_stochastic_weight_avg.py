@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+import logging
 from unittest import mock
 
 import pytest
@@ -20,23 +20,29 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
+    from torch.optim.swa_utils import SWALR
+
     from pytorch_lightning.callbacks import StochasticWeightAveraging
 
     class SwaTestModel(BoringModel):
 
-        def __init__(self, batchnorm: bool = True):
+        def __init__(self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False):
             super().__init__()
             layers = [nn.Linear(32, 32)]
             if batchnorm:
                 layers.append(nn.BatchNorm1d(32))
             layers += [nn.ReLU(), nn.Linear(32, 2)]
             self.layer = nn.Sequential(*layers)
+            self.interval = interval
+            self.iterable_dataset = iterable_dataset
 
         def training_step(self, batch, batch_idx):
             output = self.forward(batch)
@@ -44,7 +50,21 @@ if _TORCH_GREATER_EQUAL_1_6:
             return {"loss": loss}
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+            dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
+            dset = dset_cls(32, 64)
+
+            return DataLoader(dset, batch_size=2)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
+                    "interval": self.interval,
+                }
+            }
 
     class SwaTestCallback(StochasticWeightAveraging):
         update_parameters_calls: int = 0
@@ -60,7 +80,11 @@ if _TORCH_GREATER_EQUAL_1_6:
 
         def on_train_epoch_start(self, trainer, *args):
             super().on_train_epoch_start(trainer, *args)
-            assert trainer.train_loop._skip_backward == (trainer.current_epoch > self.swa_end)
+            assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
+            if self.swa_start <= trainer.current_epoch:
+                assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
+                assert trainer.lr_schedulers[0]["interval"] == "epoch"
+                assert trainer.lr_schedulers[0]["frequency"] == 1
 
         def on_train_epoch_end(self, trainer, *args):
             super().on_train_epoch_end(trainer, *args)
@@ -74,23 +98,23 @@ if _TORCH_GREATER_EQUAL_1_6:
             super().on_train_end(trainer, pl_module)
 
             # make sure these are correctly set again
-            assert not trainer.train_loop._skip_backward
+            assert not trainer.fit_loop._skip_backward
             assert trainer.accumulate_grad_batches == 2
             assert trainer.num_training_batches == 5
 
-            # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.dev_debugger.count_events(
-                "backward_call"
-            ) == trainer.max_epochs * trainer.limit_train_batches
+            if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+                # check backward call count. the batchnorm update epoch should not backward
+                assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
             # check call counts
             assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
             assert self.transfer_weights_calls == 1
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1):
-    model = SwaTestModel(batchnorm=batchnorm)
+def train_with_swa(
+    tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+):
+    model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
@@ -99,6 +123,7 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=max_epochs,
         limit_train_batches=5,
         limit_val_batches=0,
@@ -108,39 +133,53 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
         gpus=gpus,
         num_processes=num_processes
     )
-    trainer.fit(model)
+
+    with mock.patch.object(Accelerator, 'backward', wraps=trainer.accelerator.backward):
+        trainer.fit(model)
 
     # check the model is the expected
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0", special=True)
+@RunIf(min_gpus=2, special=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 
 
-@RunIf(min_gpus=2, min_torch="1.6.0")
+@RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@RunIf(min_torch="1.6.0", skip_windows=True)
+@RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 
 
-@RunIf(min_gpus=1, min_torch="1.6.0")
+@RunIf(min_gpus=1)
 def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, gpus=1)
 
 
-@RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
-def test_swa_callback(tmpdir, batchnorm: bool):
-    train_with_swa(tmpdir, batchnorm=batchnorm)
+@pytest.mark.parametrize('iterable_dataset', (True, False))
+def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
+    train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
-@RunIf(min_torch="1.6.0")
+@pytest.mark.parametrize("interval", ("epoch", "step"))
+def test_swa_callback_scheduler_step(tmpdir, interval: str):
+    train_with_swa(tmpdir, interval=interval)
+
+
+def test_swa_warns(tmpdir, caplog):
+    model = SwaTestModel(interval="step")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
+    with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
+        trainer.fit(model)
+    assert "Swapping scheduler" in caplog.text
+
+
 def test_swa_raises():
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
@@ -154,7 +193,6 @@ def test_swa_raises():
 
 @pytest.mark.parametrize('stochastic_weight_avg', [False, True])
 @pytest.mark.parametrize('use_callbacks', [False, True])
-@RunIf(min_torch="1.6.0")
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
 

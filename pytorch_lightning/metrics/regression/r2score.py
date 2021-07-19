@@ -15,7 +15,7 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import R2Score as _R2Score
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class R2Score(_R2Score):
@@ -37,3 +37,4 @@ class R2Score(_R2Score):
         .. deprecated::
             Use :class:`~torchmetrics.R2Score`. Will be removed in v1.5.0.
         """
+        void(num_outputs, adjusted, multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

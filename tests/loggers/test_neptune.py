@@ -76,7 +76,7 @@ def test_neptune_additional_methods(neptune):
     created_experiment.log_metric.reset_mock()
 
     logger.log_text('test', 'text')
-    created_experiment.log_text.assert_called_once_with('test', 'text', step=None)
+    created_experiment.log_text.assert_called_once_with('test', 'text')
     created_experiment.log_text.reset_mock()
 
     logger.log_image('test', 'image file')

@@ -26,9 +26,6 @@ class ConfigureOptimizersPool(ABC):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
-    def configure_optimizers__empty(self):
-        return None
-
     def configure_optimizers__lbfgs(self):
         """
         return whatever optimizers we want here.
@@ -40,14 +37,6 @@ class ConfigureOptimizersPool(ABC):
     def configure_optimizers__adagrad(self):
         optimizer = optim.Adagrad(self.parameters(), lr=self.learning_rate)
         return optimizer
-
-    def configure_optimizers__multiple_optimizers_frequency(self):
-        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        return [
-            dict(optimizer=optimizer1, frequency=1),
-            dict(optimizer=optimizer2, frequency=5),
-        ]
 
     def configure_optimizers__single_scheduler(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)

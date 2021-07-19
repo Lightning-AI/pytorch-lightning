@@ -33,7 +33,8 @@ local tputests = base.BaseTest {
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
-          pytorch_lightning/utilities/xla_device_utils.py \
+          tests/profiler/test_xla_profiler.py \
+          pytorch_lightning/utilities/xla_device.py \
           tests/accelerators/test_tpu_backend.py \
           tests/models/test_tpu.py
       test_exit_code=$?

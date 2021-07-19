@@ -14,14 +14,14 @@
 import pickle
 from argparse import Namespace
 from typing import Optional
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers import BoringModel
 
@@ -60,6 +60,7 @@ class CustomLogger(LightningLoggerBase):
         self.hparams_logged = None
         self.metrics_logged = {}
         self.finalized = False
+        self.after_save_checkpoint_called = False
 
     @property
     def experiment(self):
@@ -93,6 +94,9 @@ class CustomLogger(LightningLoggerBase):
     def version(self):
         return "1"
 
+    def after_save_checkpoint(self, checkpoint_callback):
+        self.after_save_checkpoint_called = True
+
 
 def test_custom_logger(tmpdir):
 
@@ -113,9 +117,10 @@ def test_custom_logger(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
+    assert logger.after_save_checkpoint_called
     assert logger.finalized_status == "success"
 
 
@@ -140,7 +145,7 @@ def test_multiple_loggers(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert logger1.hparams_logged == model.hparams
     assert logger1.metrics_logged != {}
@@ -170,7 +175,7 @@ def test_adding_step_key(tmpdir):
 
     class CustomTensorBoardLogger(TensorBoardLogger):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.logged_step = 0
 
@@ -286,3 +291,29 @@ def test_np_sanitization():
     }
     logger.log_hyperparams(Namespace(**np_params))
     assert logger.logged_params == sanitized_params
+
+
+@pytest.mark.parametrize("logger", [True, False])
+@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
+
+    class TestModel(BoringModel):
+
+        def __init__(self, param_one, param_two):
+            super().__init__()
+            self.save_hyperparameters(logger=logger)
+
+    model = TestModel("pytorch", "lightning")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+
+    if logger:
+        log_hyperparams_mock.assert_called()
+    else:
+        log_hyperparams_mock.assert_not_called()

@@ -24,7 +24,7 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_6:
@@ -62,6 +62,8 @@ class StochasticWeightAveraging(Callback):
         .. warning:: ``StochasticWeightAveraging`` is in beta and subject to change.
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
+
+        .. warning:: ``StochasticWeightAveraging`` is currently only supported on every epoch.
 
         SWA can easily be activated directly from the Trainer as follow:
 
@@ -157,7 +159,7 @@ class StochasticWeightAveraging(Callback):
         self._max_epochs = trainer.max_epochs
         if self._model_contains_batch_norm:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
-            trainer.max_epochs += 1
+            trainer.fit_loop.max_epochs += 1
 
     def on_train_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         if trainer.current_epoch == self.swa_start:
@@ -187,15 +189,18 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
             )
+            default_scheduler_cfg = _get_default_scheduler_config()
+            assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
+            default_scheduler_cfg["scheduler"] = self._swa_scheduler
 
             if trainer.lr_schedulers:
-                lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
-                rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
-                trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
+                scheduler_cfg = trainer.lr_schedulers[0]
+                if scheduler_cfg["interval"] != "epoch" or scheduler_cfg["frequency"] != 1:
+                    rank_zero_warn(f"SWA is currently only supported every epoch. Found {scheduler_cfg}")
+                rank_zero_info(f"Swapping scheduler {scheduler_cfg['scheduler']} for {self._swa_scheduler}")
+                trainer.lr_schedulers[0] = default_scheduler_cfg
             else:
-                _scheduler_config = _get_default_scheduler_config()
-                _scheduler_config["scheduler"] = self._swa_scheduler
-                trainer.lr_schedulers.append(_scheduler_config)
+                trainer.lr_schedulers.append(default_scheduler_cfg)
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
@@ -215,19 +220,20 @@ class StochasticWeightAveraging(Callback):
             # performing only one pass over the train data-loader to compute activation statistics
             # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
             trainer.num_training_batches += 1
-            trainer.train_loop._skip_backward = True
+            trainer.fit_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
-            trainer.accumulate_grad_batches = len(trainer.train_dataloader)
+
+            trainer.accumulate_grad_batches = trainer.num_training_batches
 
     def on_train_epoch_end(self, trainer: 'pl.Trainer', *args):
-        trainer.train_loop._skip_backward = False
+        trainer.fit_loop._skip_backward = False
 
     def on_train_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
-            trainer.max_epochs -= 1
+            trainer.fit_loop.max_epochs -= 1
             self.reset_momenta()
         elif trainer.current_epoch == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module
@@ -260,7 +266,7 @@ class StochasticWeightAveraging(Callback):
         """
         Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165
         """
-        for bn_module in self.momenta.keys():
+        for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
 
     @staticmethod

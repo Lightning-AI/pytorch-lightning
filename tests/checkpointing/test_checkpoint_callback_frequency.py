@@ -60,6 +60,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,
+        limit_val_batches=1,
         progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
@@ -107,8 +108,17 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
 @mock.patch('torch.save')
 @RunIf(special=True, min_gpus=2)
-@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
-def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+def test_top_k_ddp_0(save_mock, tmpdir):
+    _top_k_ddp(save_mock, tmpdir, k=1, epochs=1, val_check_interval=1.0, expected=1)
+
+
+@mock.patch('torch.save')
+@RunIf(special=True, min_gpus=2)
+def test_top_k_ddp_1(save_mock, tmpdir):
+    _top_k_ddp(save_mock, tmpdir, k=2, epochs=2, val_check_interval=0.3, expected=5)
+
+
+def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
 
@@ -118,6 +128,9 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
             return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
+            local_rank = int(os.getenv("LOCAL_RANK"))
+            if self.trainer.is_global_zero:
+                self.log('my_loss_2', (1 + local_rank), on_epoch=True, rank_zero_only=True)
             data = str(self.global_rank)
             obj = [[data], (data, ), set(data)]
             out = self.trainer.training_type_plugin.broadcast(obj)
@@ -128,6 +141,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     trainer = Trainer(
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss_step', save_top_k=k, mode="max")],
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,
@@ -136,9 +150,6 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         limit_train_batches=64,
         limit_val_batches=32,
     )
+    trainer.fit(model)
     if os.getenv("LOCAL_RANK") == "0":
-        with pytest.raises(UserWarning, match="The value associated to the key my_loss_epoch: [15.5, 31.0]"):
-            trainer.fit(model)
         assert save_mock.call_count == expected
-    else:
-        trainer.fit(model)

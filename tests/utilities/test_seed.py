@@ -2,6 +2,7 @@ import os
 from unittest import mock
 
 import pytest
+import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
 
@@ -53,3 +54,23 @@ def test_out_of_bounds_seed(seed):
     with pytest.warns(UserWarning, match="is not in bounds"):
         actual = seed_utils.seed_everything(seed)
     assert actual == 123
+
+
+def test_reset_seed_no_op():
+    """ Test that the reset_seed function is a no-op when seed_everything() was not used. """
+    assert "PL_GLOBAL_SEED" not in os.environ
+    seed_before = torch.initial_seed()
+    seed_utils.reset_seed()
+    assert torch.initial_seed() == seed_before
+    assert "PL_GLOBAL_SEED" not in os.environ
+
+
+def test_reset_seed_everything():
+    """ Test that we can reset the seed to the initial value set by seed_everything() """
+    assert "PL_GLOBAL_SEED" not in os.environ
+    seed_utils.seed_everything(123)
+    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    before = torch.rand(1)
+    seed_utils.reset_seed()
+    after = torch.rand(1)
+    assert torch.allclose(before, after)

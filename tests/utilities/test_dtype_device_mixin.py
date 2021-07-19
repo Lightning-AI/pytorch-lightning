@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -34,7 +34,7 @@ class SubModule(nn.Module):
 
 class TopModule(BoringModel):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.module = SubModule()
 

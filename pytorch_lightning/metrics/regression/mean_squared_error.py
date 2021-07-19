@@ -15,7 +15,7 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import MeanSquaredError as _MeanSquaredError
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class MeanSquaredError(_MeanSquaredError):
@@ -34,3 +34,4 @@ class MeanSquaredError(_MeanSquaredError):
         .. deprecated::
             Use :class:`~torchmetrics.MeanSquaredError`. Will be removed in v1.5.0.
         """
+        void(compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

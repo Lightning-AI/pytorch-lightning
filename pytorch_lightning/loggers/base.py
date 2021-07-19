@@ -20,11 +20,13 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from weakref import ReferenceType
 
 import numpy as np
 import torch
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -70,6 +72,15 @@ class LightningLoggerBase(ABC):
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
+
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+        """
+        Called after model checkpoint callback saves a new checkpoint
+
+        Args:
+            model_checkpoint: the model checkpoint callback instance
+        """
+        pass
 
     def update_agg_funcs(
         self,
@@ -289,7 +300,7 @@ class LightningLoggerBase(ABC):
             kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         """
         Record model graph
 
@@ -355,7 +366,11 @@ class LoggerCollection(LightningLoggerBase):
         self._logger_iterable = logger_iterable
 
     def __getitem__(self, index: int) -> LightningLoggerBase:
-        return [logger for logger in self._logger_iterable][index]
+        return list(self._logger_iterable)[index]
+
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+        for logger in self._logger_iterable:
+            logger.after_save_checkpoint(checkpoint_callback)
 
     def update_agg_funcs(
         self,
@@ -381,7 +396,7 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
@@ -497,7 +512,7 @@ def merge_dicts(
          'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
          'v': 2.3}
     """
-    agg_key_funcs = agg_key_funcs or dict()
+    agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
     d_out = {}
     for k in keys:

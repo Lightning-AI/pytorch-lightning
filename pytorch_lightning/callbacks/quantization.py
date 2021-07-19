@@ -25,12 +25,11 @@ from torch.quantization import QConfig
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
 
 
 def wrap_qat_forward_context(
     quant_cb,
-    model: pl.core.LightningModule,
+    model: 'pl.LightningModule',
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
@@ -57,7 +56,7 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
@@ -148,8 +147,6 @@ class QuantizationAwareTraining(Callback):
             raise MisconfigurationException(
                 f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.'
             )
-        elif observer_type == 'histogram' and _TORCH_LOWER_EQUAL_1_4:
-            raise MisconfigurationException(f'For using {observer_type} you need to be using pytorch>=1.5.')
         self._observer_type = observer_type
 
         if collect_quantization is not None and not isinstance(collect_quantization, (int, Callable)):

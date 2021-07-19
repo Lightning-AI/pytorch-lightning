@@ -17,6 +17,4 @@ from typing import Callable
 
 def is_param_in_hook_signature(hook_fx: Callable, param: str) -> bool:
     hook_params = list(inspect.signature(hook_fx).parameters)
-    if "args" in hook_params or param in hook_params:
-        return True
-    return False
+    return "args" in hook_params or param in hook_params

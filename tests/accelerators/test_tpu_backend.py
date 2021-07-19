@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
 import pytest
 import torch
 from torch import nn
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -67,7 +68,7 @@ def test_resume_training_on_cpu(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(tpu=True)
@@ -94,8 +95,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
     with pytest.warns(UserWarning, match=r'The model layers do not match after moving to the target device.'):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
 
 
 @RunIf(tpu=True)
@@ -114,9 +114,37 @@ def test_if_weights_tied(tmpdir, capsys=None):
     model = Model()
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
-    with pytest.warns(UserWarning) as warnings:
-        result = trainer.fit(model)
-        assert result
+    with pytest.warns(UserWarning, match="The model layers do not match"):
+        trainer.fit(model)
 
-    assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))
-    assert len(trainer.test(model)) == 1
+
+@RunIf(tpu=True)
+def test_accelerator_tpu():
+
+    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+
+    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `tpu_cores` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="tpu")
+
+
+@RunIf(tpu=True)
+def test_accelerator_cpu_with_tpu_cores_flag():
+
+    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(tpu=True)
+def test_accelerator_tpu_with_auto():
+
+    trainer = Trainer(accelerator="auto", tpu_cores=8)
+
+    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)

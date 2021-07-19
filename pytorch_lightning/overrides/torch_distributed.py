@@ -3,7 +3,7 @@ import pickle
 
 import torch
 
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +88,14 @@ def _broadcast_object_list(object_list, src=0, group=None):
             object_list[i] = _tensor_to_object(obj_view, obj_size)
 
 
-if _TORCH_GREATER_EQUAL_1_7 and torch.distributed.is_available():
+if not torch.distributed.is_available():
+    # avoid failures on early PyTorch versions for Windows where
+    # not all functions used in `broadcast_object_list` are available.
+    def _broadcast_noop(obj, *_, **__):
+        return obj
+
+    broadcast_object_list = _broadcast_noop
+elif _TORCH_GREATER_EQUAL_1_8:
     from torch.distributed.distributed_c10d import broadcast_object_list
 else:
     broadcast_object_list = _broadcast_object_list
