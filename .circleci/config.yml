@@ -33,6 +33,18 @@ references:
        git checkout stable
        cd ..
 
+  install_jsonnet: &install_jsonnet
+    run:
+      name: Install jsonnet
+      command: |
+        go get github.com/google/go-jsonnet/cmd/jsonnet
+
+  update_jsonnet: &update_jsonnet
+    run:
+      name: Update jsonnet
+      command: |
+        echo "Update jsonnet"
+
   build_push_docker: &build_push_docker
     run:
       name: Build and push Docker image
@@ -48,7 +60,6 @@ references:
    run:
      name: Deploy the job on the kubernetes cluster
      command: |
-       go get github.com/google/go-jsonnet/cmd/jsonnet
        export PATH=$PATH:$HOME/go/bin
        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
