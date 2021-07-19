@@ -39,6 +39,8 @@ references:
       command: |
         export PR_NUMBER=$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
         export SHA=$(git rev-parse --short HEAD)"
+        echo $PR_NUMBER
+        echo $SHA
 
   install_jsonnet: &install_jsonnet
     run:
@@ -108,6 +110,7 @@ jobs:
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
+      - *set_pr_and_commit_sha_env
       - *install_jsonnet
       - *update_jsonnet
       - *deploy_cluster
