@@ -38,7 +38,7 @@ references:
       name: Set PR number & Commit SHA env variables
       command: |
         export PR_NUMBER=$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
-        export SHA=$(git rev-parse --short HEAD)"
+        export SHA=$(git rev-parse --short HEAD)
         echo $PR_NUMBER
         echo $SHA
 
