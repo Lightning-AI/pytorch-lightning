@@ -136,7 +136,7 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
 
 
 def distributed_available() -> bool:
-    return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+    return torch.distributed.is_initialized() if torch.distributed.is_available() else tpu_distributed()
 
 
 def sync_ddp_if_available(
