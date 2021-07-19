@@ -63,6 +63,8 @@ jobs:
 
     - bash: |
         bash tests/special_tests.sh
+      env:
+        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: special'
 
     - bash: |
