@@ -367,7 +367,7 @@ class TrainerDataLoadingMixin(ABC):
                         ' this off for val/test/predict dataloaders.'
                     )
 
-        if any([dl is None for dl in dataloaders]):
+        if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
