@@ -83,12 +83,16 @@ class OptimizerConnector:
                 # update LR
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
+                self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
+
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
 
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
+                self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
