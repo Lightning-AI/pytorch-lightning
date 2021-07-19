@@ -29,7 +29,10 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import EvaluationLoop, FitLoop, PredictionLoop
+from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
+from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
+from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
@@ -356,14 +359,27 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        self.fit_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
+        fit_loop = FitLoop(
+            min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
+            max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
+        )
+        training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        training_batch_loop = TrainingBatchLoop()
+        training_validation_loop = EvaluationLoop()
+        training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
+        fit_loop.connect(epoch_loop=training_epoch_loop)
+
+        # default .fit() loop
+        self.fit_loop = fit_loop
+
+        # default .validate() loop
         self.validate_loop = EvaluationLoop()
+
+        # default .test() loop
         self.test_loop = EvaluationLoop()
+
+        # default .predict() loop
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self)
-        self.validate_loop.connect(self)
-        self.test_loop.connect(self)
-        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -1005,6 +1021,8 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         try:
+            # reset trainer on this loop and all child loops in case user connected a custom loop
+            self.fit_loop.trainer = self
             self.fit_loop.run()
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -1035,6 +1053,9 @@ class Trainer(
         # reload dataloaders
         self._evaluation_loop.reload_evaluation_dataloaders()
 
+        # reset trainer on this loop and all child loops in case user connected a custom loop
+        self._evaluation_loop.trainer = self
+
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
             eval_loop_results = self._evaluation_loop.run()
 
@@ -1049,6 +1070,8 @@ class Trainer(
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         self.reset_predict_dataloader(self.lightning_module)
+        # reset trainer on this loop and all child loops in case user connected a custom loop
+        self.predict_loop.trainer = self
         with torch.no_grad():
             return self.predict_loop.run()
 

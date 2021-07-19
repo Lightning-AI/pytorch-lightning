@@ -77,10 +77,8 @@ class Loop(ABC):
         """Determine whether to return immediately from the call to :meth:`run`."""
         return False
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects Loop with all the necessary things like connectors and accelerators."""
-        # TODO(@justusschock): Make the trainer a weakref/proxy
-        self.trainer = trainer
+    def connect(self, **kwargs: "Loop") -> None:
+        """Optionally connect one or multiple loops to this one. Linked loops should form a tree."""
 
     def on_skip(self) -> Optional[Any]:
         """

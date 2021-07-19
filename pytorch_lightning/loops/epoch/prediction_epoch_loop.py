@@ -35,6 +35,9 @@ class PredictionEpochLoop(Loop):
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+
     def reset(self) -> None:
         """Resets the loops internal state"""
         self._all_batch_indices: List[int] = []

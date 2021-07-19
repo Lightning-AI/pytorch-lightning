@@ -17,7 +17,6 @@ from typing import Any, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
@@ -63,10 +62,9 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+    def connect(self, epoch_loop: EvaluationEpochLoop):
+        """Connect the evaluation epoch loop with this loop."""
+        self.epoch_loop = epoch_loop
 
     @property
     def done(self) -> bool:
