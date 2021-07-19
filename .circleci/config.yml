@@ -51,7 +51,7 @@ references:
      command: |
        export PATH=$PATH:$HOME/go/bin
        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
-       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
        echo "Waiting on kubernetes job: $job_name"
@@ -72,7 +72,6 @@ references:
        # First portion is the test logs. Print these to Github Action stdout.
        cat xx00 && \
        echo "Done with log retrieval attempt." && \
-       gcloud container images delete "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" --force-delete-tags && \
        exit $status_code
 
   stats: &stats
