@@ -33,6 +33,13 @@ references:
        git checkout stable
        cd ..
 
+  set_pr_and_commit_sha_env: &set_pr_and_commit_sha_env
+    run:
+      name: Set PR number & Commit SHA env variables
+      command: |
+        export PR_NUMBER=$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
+        export SHA=$(git rev-parse --short HEAD)"
+
   install_jsonnet: &install_jsonnet
     run:
       name: Install jsonnet
@@ -51,7 +58,7 @@ references:
      command: |
        export PATH=$PATH:$HOME/go/bin
        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
-       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH | kubectl create -f -)
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
        echo "Waiting on kubernetes job: $job_name"
