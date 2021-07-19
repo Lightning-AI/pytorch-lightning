@@ -46,7 +46,7 @@ def test_xla_stats_monitor(tmpdir):
     fields = ['avg. free memory (MB)', 'avg. peak memory (MB)']
 
     for f in fields:
-        assert any([f in h for h in met_data.dtype.names])
+        assert any(f in h for h in met_data.dtype.names)
 
 
 @RunIf(tpu=True)

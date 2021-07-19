@@ -64,7 +64,7 @@ def test_gpu_stats_monitor(tmpdir):
     ]
 
     for f in fields:
-        assert any([f in h for h in met_data.dtype.names])
+        assert any(f in h for h in met_data.dtype.names)
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")

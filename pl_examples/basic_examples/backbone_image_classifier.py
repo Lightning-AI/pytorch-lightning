@@ -24,16 +24,13 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, cli_lightning_logo
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
-    from tests.helpers.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):

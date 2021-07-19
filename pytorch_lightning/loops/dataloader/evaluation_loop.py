@@ -21,7 +21,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EpochLoopProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -33,8 +32,6 @@ class EvaluationLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.outputs = []
-        self.progress = EpochLoopProgress()
-
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)
@@ -66,19 +63,15 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    ) -> None:
+    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+        self.epoch_loop.connect(trainer)
 
     @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
-        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.skip
+        return super().done or self.skip
 
     @property
     def skip(self) -> bool:
@@ -88,13 +81,14 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop"""
-        self.iteration_count = 0
         self._max_batches = self.get_max_batches()
         # bookkeeping
         self.outputs = []
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
+
+        super().reset()
 
     def on_skip(self) -> List:
         return []
