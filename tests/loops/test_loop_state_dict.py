@@ -35,7 +35,6 @@ def test_loops_state_dict():
 def test_loops_state_dict_structure():
     trainer = Trainer()
     state_dict = trainer.checkpoint_connector._get_loops_state_dict()
-    # yapf: disable
     expected = {
         "fit_loop": {
             "state_dict": {},
@@ -120,5 +119,4 @@ def test_loops_state_dict_structure():
             },
         },
     }
-    # yapf: enable
     assert state_dict == expected

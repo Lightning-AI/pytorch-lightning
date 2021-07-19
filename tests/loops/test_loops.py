@@ -461,7 +461,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert sch_progress.total.completed == nbe_sch_steps + be_sch_steps
     assert sch_progress.current.completed == be_sch_steps
 
-    # yapf: disable
     expected = {
         "state_dict": ANY,
         "epoch_progress": {
@@ -546,7 +545,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
     }
-    # yapf: enable
     assert checkpoint["loops"]["fit_loop"] == expected
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=False)
