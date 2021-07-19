@@ -66,6 +66,7 @@ jobs:
         unzip -o legacy/checkpoints.zip -d legacy/
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
+
     - bash: |
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'

@@ -29,13 +29,13 @@ if _TORCHVISION_AVAILABLE:
 _TORCHVISION_MNIST_AVAILABLE = not bool(os.getenv("PL_USE_MOCKED_MNIST", False))
 if _TORCHVISION_MNIST_AVAILABLE:
     try:
-        from torchvision.datasets.mnist import MNIST
+        from torchvision.datasets import MNIST
         MNIST(_DATASETS_PATH, download=True)
     except HTTPError as e:
-        print(f"Error {e} downloading torchvision.MNIST")
+        print(f"Error {e} downloading `torchvision.datasets.MNIST`")
         _TORCHVISION_MNIST_AVAILABLE = False
 if not _TORCHVISION_MNIST_AVAILABLE:
-    print("torchvision MNIST not available. Using our own")
+    print("`torchvision.datasets.MNIST` not available. Using our hosted version")
     from tests.helpers.datasets import MNIST
 
 
