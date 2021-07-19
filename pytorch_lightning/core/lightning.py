@@ -34,16 +34,15 @@ from torchmetrics import Metric
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
@@ -107,7 +106,7 @@ class LightningModule(
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
-        self._param_requires_grad_state = dict()
+        self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
 
         # deprecated, will be removed in 1.6
@@ -1517,7 +1516,7 @@ class LightningModule(
                         if param in self._param_requires_grad_state:
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
-        self._param_requires_grad_state = dict()
+        self._param_requires_grad_state = {}
 
     def optimizer_step(
         self,

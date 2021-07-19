@@ -87,7 +87,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     with open(path_csv, 'r') as fp:
         lines = fp.readlines()
     assert len(lines) == 2
-    assert all([n in lines[0] for n in metrics])
+    assert all(n in lines[0] for n in metrics)
 
 
 def test_file_logger_log_hyperparams(tmpdir):
@@ -111,4 +111,4 @@ def test_file_logger_log_hyperparams(tmpdir):
 
     path_yaml = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
     params = load_hparams_from_yaml(path_yaml)
-    assert all([n in params for n in hparams])
+    assert all(n in params for n in hparams)

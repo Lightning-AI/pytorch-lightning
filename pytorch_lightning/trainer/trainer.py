@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import os
 import traceback
 import warnings
 from datetime import timedelta
@@ -57,7 +58,6 @@ from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.progress import EpochLoopProgress, FitLoopProgress
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -77,6 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -359,10 +360,10 @@ class Trainer(
         self.validate_loop = EvaluationLoop()
         self.test_loop = EvaluationLoop()
         self.predict_loop = PredictionLoop()
-        self.fit_loop.connect(self, progress=FitLoopProgress())
-        self.validate_loop.connect(self, progress=EpochLoopProgress())
-        self.test_loop.connect(self, progress=EpochLoopProgress())
-        self.predict_loop.connect(self, progress=EpochLoopProgress())
+        self.fit_loop.connect(self)
+        self.validate_loop.connect(self)
+        self.test_loop.connect(self)
+        self.predict_loop.connect(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -907,20 +908,30 @@ class Trainer(
 
     def _log_hyperparams(self):
         # log hyper-parameters
+        hparams_initial = None
+
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            datamodule_hparams = self.datamodule.hparams_initial if self.datamodule is not None else {}
-            lightning_hparams = self.lightning_module.hparams_initial
-            colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
-            if colliding_keys:
-                raise MisconfigurationException(
-                    f"Error while merging hparams: the keys {colliding_keys} are present "
-                    "in both the LightningModule's and LightningDataModule's hparams."
-                )
+            datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
-            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+                datamodule_hparams = self.datamodule.hparams_initial
+                lightning_hparams = self.lightning_module.hparams_initial
 
-            self.logger.log_hyperparams(hparams_initial)
+                colliding_keys = lightning_hparams.keys() & datamodule_hparams.keys()
+                if colliding_keys:
+                    raise MisconfigurationException(
+                        f"Error while merging hparams: the keys {colliding_keys} are present "
+                        "in both the LightningModule's and LightningDataModule's hparams."
+                    )
+                hparams_initial = {**lightning_hparams, **datamodule_hparams}
+            elif self.lightning_module._log_hyperparams:
+                hparams_initial = self.lightning_module.hparams_initial
+            elif datamodule_log_hyperparams:
+                hparams_initial = self.datamodule.hparams_initial
+
+            if hparams_initial is not None:
+                self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
@@ -1010,6 +1021,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
+            self._on_expection()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1249,3 +1261,10 @@ class Trainer(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
+
+    def _on_expection(self):
+        if not self.is_global_zero or not _fault_tolerant_enabled():
+            return
+        # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
+        file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
+        self.save_checkpoint(file_path)

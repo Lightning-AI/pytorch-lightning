@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, Fas
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -210,7 +210,7 @@ class TrainerDataLoadingMixin(ABC):
         contains_iterable_dataset = has_iterable_dataset(dataloader)
         if not contains_iterable_dataset:
             dl_args = self._resolve_batch_sampler(
-                dl_args, dataloader, sampler, mode=mode, should_use_forward_sampler=fault_tolerant_enabled()
+                dl_args, dataloader, sampler, mode=mode, should_use_forward_sampler=_fault_tolerant_enabled()
             )
 
         multiprocessing_context = dataloader.multiprocessing_context
@@ -239,7 +239,7 @@ class TrainerDataLoadingMixin(ABC):
             dl_args.pop('dataset')
         else:
             # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
-            if fault_tolerant_enabled() and isinstance(dl_args["dataset"], IterableDataset):
+            if _fault_tolerant_enabled() and isinstance(dl_args["dataset"], IterableDataset):
                 # force the seed in the ``Dataset``
                 seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch + self.global_rank
 
@@ -401,7 +401,7 @@ class TrainerDataLoadingMixin(ABC):
                         ' this off for val/test/predict dataloaders.'
                     )
 
-        if any([dl is None for dl in dataloaders]):
+        if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers

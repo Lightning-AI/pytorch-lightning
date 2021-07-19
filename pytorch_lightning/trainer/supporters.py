@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 
 
 class TensorRunningAccum(object):
@@ -366,7 +366,7 @@ class CombinedLoader(object):
         self.loaders_iter_state_dict = None
 
     def state_dict(self, num_batches_processed: int):
-        if not fault_tolerant_enabled():
+        if not _fault_tolerant_enabled():
             return {}
 
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
@@ -516,7 +516,7 @@ class CombinedLoaderIterator(object):
 
         def next_fn(iterator: Iterator):
             batch = next(iterator)
-            if not fault_tolerant_enabled():
+            if not _fault_tolerant_enabled():
                 return batch
             batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
             CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)

@@ -1,7 +1,7 @@
 # the default package dependencies
 
 numpy>=1.17.2
-torch>=1.4
+torch>=1.6
 future>=0.17.1  # required for builtins in setup.py
 tqdm>=4.41.0
 PyYAML>=5.1
