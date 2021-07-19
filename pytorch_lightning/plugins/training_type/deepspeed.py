@@ -325,7 +325,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]
-        if isinstance(config, str) or isinstance(config, Path):
+        if isinstance(config, (str, Path)):
             if not os.path.isfile(config):
                 raise MisconfigurationException(
                     f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
