@@ -653,9 +653,7 @@ def test_fault_tolerant_not_supported():
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
-    dataset = RangeIterableDataset(
-        range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name
-    )
+    dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
     if wrap:
         dataset = CaptureIterableDataset(dataset)
     return dataset
