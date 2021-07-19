@@ -13,13 +13,11 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
@@ -28,16 +26,19 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """ Accelerator for GPU devices. """
 
+    def setup_environment(self) -> None:
+        super().setup_environment()
+        if "cuda" not in str(self.root_device):
+            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
+        torch.cuda.set_device(self.root_device)
+
     def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         self.set_nvidia_flags(trainer.local_rank)
-        torch.cuda.set_device(self.root_device)
         return super().setup(trainer, model)
 
     def on_train_start(self) -> None:
@@ -51,11 +52,3 @@ class GPUAccelerator(Accelerator):
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
-
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        # no need to transfer batch to device in DP mode
-        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
-        if not isinstance(self.training_type_plugin, DataParallelPlugin):
-            step_kwargs = super().to_device(step_kwargs)
-
-        return step_kwargs

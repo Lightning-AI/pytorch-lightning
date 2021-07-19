@@ -117,7 +117,7 @@ def apply_to_collection(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        out = dict()
+        out = {}
         for field in data.__dataclass_fields__:
             v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
@@ -245,7 +245,11 @@ def move_data_to_device(batch: Any, device: torch.device):
             return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
-        return data.to(device, **kwargs)
+        data_output = data.to(device, **kwargs)
+        if data_output is not None:
+            return data_output
+        # user wrongly implemented the ``TransferableDataType`` and forgot to return ``self``.
+        return data
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)

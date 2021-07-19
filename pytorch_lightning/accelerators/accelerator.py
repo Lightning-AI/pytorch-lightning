@@ -22,6 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -173,8 +174,10 @@ class Accelerator:
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
+        device = device or self.root_device
 
-        if model is not None:
+        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
+            # no need to transfer batch to device in DP mode
             return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
 
         return move_data_to_device(batch, device)
@@ -195,8 +198,6 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
@@ -215,8 +216,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
@@ -232,8 +231,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
@@ -249,8 +246,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
@@ -281,9 +276,6 @@ class Accelerator:
     def backward(
         self,
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -291,17 +283,16 @@ class Accelerator:
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            should_accumulate: whether to accumulate gradients
         """
-        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        self.training_type_plugin.pre_backward(closure_loss)
+        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
-        )
+        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
 
-        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        self.training_type_plugin.post_backward(closure_loss)
 
-        return output
+        return closure_loss
 
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         """performs the actual optimizer step.
@@ -369,14 +360,7 @@ class Accelerator:
         model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
-        self.schedulers = schedulers
-
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        """Pushes the batch to the root device"""
-        step_kwargs['batch'] = self.batch_to_device(
-            step_kwargs['batch'], self.root_device, dataloader_idx=step_kwargs.get('dataloader_idx', None)
-        )
-        return step_kwargs
+        self.lr_schedulers = schedulers
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:

@@ -1,14 +1,13 @@
 # the default package dependencies
 
 numpy>=1.17.2
-torch>=1.4
+torch>=1.6
 future>=0.17.1  # required for builtins in setup.py
 tqdm>=4.41.0
-PyYAML>=5.1,<=5.4.1
+PyYAML>=5.1
 fsspec[http]>=2021.05.0, !=2021.06.0
 tensorboard>=2.2.0, !=2.5.0  # 2.5.0 GPU CI error: 'Couldn't build proto file into descriptor pool!'
 torchmetrics>=0.4.0
 pyDeprecate==0.3.1
 packaging>=17.0
 typing-extensions  # TypedDict support for python<3.8
-pillow!=8.3.0  # TODO: delete line after https://github.com/python-pillow/Pillow/issues/5571

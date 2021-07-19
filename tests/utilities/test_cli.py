@@ -35,6 +35,7 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import instantiate_class, LightningArgumentParser, LightningCLI, SaveConfigCallback
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.runif import RunIf
 
 torchvision_version = version.parse('0')
 if _TORCHVISION_AVAILABLE:
@@ -605,6 +606,42 @@ def test_lightning_cli_link_arguments(tmpdir):
     assert cli.model.num_classes == 5
 
 
+class EarlyExitTestModel(BoringModel):
+
+    def on_fit_start(self):
+        raise KeyboardInterrupt()
+
+
+@pytest.mark.parametrize('logger', (False, True))
+@pytest.mark.parametrize(
+    'trainer_kwargs', (
+        dict(accelerator='ddp_cpu'),
+        dict(accelerator='ddp_cpu', plugins="ddp_find_unused_parameters_false"),
+        pytest.param({'tpu_cores': 1}, marks=RunIf(tpu=True)),
+    )
+)
+def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, trainer_kwargs):
+    with mock.patch('sys.argv', ['any.py']), pytest.raises(KeyboardInterrupt):
+        LightningCLI(
+            EarlyExitTestModel,
+            trainer_defaults={
+                'default_root_dir': str(tmpdir),
+                'logger': logger,
+                'max_steps': 1,
+                'max_epochs': 1,
+                **trainer_kwargs,
+            }
+        )
+    if logger:
+        config_dir = tmpdir / 'lightning_logs'
+        # no more version dirs should get created
+        assert os.listdir(config_dir) == ['version_0']
+        config_path = config_dir / 'version_0' / 'config.yaml'
+    else:
+        config_path = tmpdir / 'config.yaml'
+    assert os.path.isfile(config_path)
+
+
 def test_cli_config_overwrite(tmpdir):
     trainer_defaults = {'default_root_dir': str(tmpdir), 'logger': False, 'max_steps': 1, 'max_epochs': 1}
 
@@ -724,7 +761,8 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     cli_args = [
         f'--trainer.default_root_dir={tmpdir}',
         '--trainer.max_epochs=1',
-        '--optim2={"class_path": "torch.optim.SGD", "init_args": {"lr": 0.01}}',
+        '--optim2.class_path=torch.optim.SGD',
+        '--optim2.init_args.lr=0.01',
         '--lr_scheduler.gamma=0.2',
     ]
 

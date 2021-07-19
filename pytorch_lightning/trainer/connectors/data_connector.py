@@ -16,6 +16,7 @@ from typing import Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import prefetch_iterator
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -28,7 +29,11 @@ class DataConnector:
         self.multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
-        self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+        self,
+        check_val_every_n_epoch: int,
+        reload_dataloaders_every_n_epochs: int,
+        reload_dataloaders_every_epoch: bool,
+        prepare_data_per_node: bool,
     ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
@@ -39,7 +44,21 @@ class DataConnector:
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
-        self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
+
+        if reload_dataloaders_every_epoch:
+            reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
+            rank_zero_deprecation(
+                "`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed in v1.6."
+                " Please use `reload_dataloaders_every_n_epochs` in Trainer."
+            )
+
+        if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
+            raise MisconfigurationException(
+                "`reload_dataloaders_every_n_epochs` should be an int >= 0,"
+                f" got {reload_dataloaders_every_n_epochs}."
+            )
+
+        self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader):
@@ -60,7 +79,7 @@ class DataConnector:
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
         if self.trainer.datamodule is not None and is_overridden('prepare_data', self.trainer.datamodule):
-            should_call_dm_prepare_data = not self.trainer.datamodule.has_prepared_data
+            should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
         if self.trainer.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
@@ -98,15 +117,19 @@ class DataConnector:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloaders is not None:
+            self.trainer.train_dataloader = None
             model.train_dataloader = _PatchDataLoader(train_dataloaders)
 
         if val_dataloaders is not None:
+            self.trainer.val_dataloaders = None
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
+            self.trainer.test_dataloaders = None
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
         if predict_dataloaders is not None:
+            self.trainer.predict_dataloaders = None
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
     def attach_datamodule(

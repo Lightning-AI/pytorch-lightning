@@ -40,7 +40,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.layer = None
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
         opt.zero_grad()
@@ -256,7 +256,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         gpus=1,
         precision=16,
     )
-    with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
+    with pytest.warns(UserWarning, match='will be ignored since DeepSpeed handles the backward'):
         trainer.fit(model)
 
 
@@ -518,7 +518,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         self.log('train_loss', loss, prog_bar=True)
         self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         opt.zero_grad()
@@ -657,14 +657,19 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
 
     class VerificationCallback(Callback):
 
+        def __init__(self):
+            self.on_train_batch_start_called = False
+
         def on_train_batch_start(
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
+            self.on_train_batch_start_called = True
 
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
+    verification_callback = VerificationCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -674,9 +679,10 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
-        callbacks=[VerificationCallback()]
+        callbacks=[verification_callback]
     )
     trainer.fit(model, datamodule=dm)
+    assert verification_callback.on_train_batch_start_called
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)

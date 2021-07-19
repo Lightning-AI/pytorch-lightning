@@ -143,8 +143,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert len(trainer.logger_connector.callback_metrics) == 0
-    assert len(trainer.logger_connector.progress_bar_metrics) == 0
+    assert len(trainer.callback_metrics) == 0
+    assert len(trainer.progress_bar_metrics) == 0
 
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
@@ -221,8 +221,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert len(trainer.logger_connector.callback_metrics) == 0
-    assert len(trainer.logger_connector.progress_bar_metrics) == 0
+    assert len(trainer.callback_metrics) == 0
+    assert len(trainer.progress_bar_metrics) == 0
 
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected

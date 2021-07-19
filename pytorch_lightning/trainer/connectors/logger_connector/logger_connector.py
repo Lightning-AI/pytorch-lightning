@@ -46,7 +46,7 @@ class LoggerConnector:
 
     def on_trainer_init(
         self,
-        logger: LightningLoggerBase,
+        logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]],
         flush_logs_every_n_steps: int,
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
@@ -66,7 +66,7 @@ class LoggerConnector:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, Iterable, LightningLoggerBase]) -> None:
+    def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
@@ -312,9 +312,3 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
-
-    def teardown(self):
-        self.trainer.fit_loop.epoch_loop._results.cpu()
-        self.trainer.fit_loop.epoch_loop.val_loop._results.cpu()
-        self.trainer.validate_loop._results.cpu()
-        self.trainer.test_loop._results.cpu()

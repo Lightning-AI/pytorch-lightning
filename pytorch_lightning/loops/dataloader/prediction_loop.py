@@ -18,8 +18,7 @@ class PredictionLoop(DataLoaderLoop):
         super().__init__()
         self.predictions: Optional[List[List[Any]]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
-
-        self.epoch_loop: PredictionEpochLoop = PredictionEpochLoop()
+        self.epoch_loop = PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
@@ -66,18 +65,13 @@ class PredictionLoop(DataLoaderLoop):
         return self.trainer.predict_dataloaders
 
     @property
-    def done(self) -> bool:
-        """Whether prediction is finished: Max batches run or all dataloaders processed"""
-        return self.current_dataloader_idx >= len(self.dataloaders)
-
-    @property
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with all necessary things (like trainer)"""
+    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
+        """Connects the loop with necessary arguments like the trainer"""
         super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer, *args, **kwargs)
+        self.epoch_loop.connect(trainer)
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

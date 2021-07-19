@@ -15,6 +15,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
@@ -86,6 +87,28 @@ def test_v1_6_0_ddp_spawn_num_nodes():
 def test_v1_6_0_ddp_spawn_sync_batchnorm():
     with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(sync_batchnorm=False)
+
+
+def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
+
+    model = BoringModel()
+
+    with pytest.deprecated_call(match='`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed'):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=0.3,
+            limit_val_batches=0.3,
+            reload_dataloaders_every_epoch=True,
+            max_epochs=3,
+        )
+    trainer.fit(model)
+    trainer.test()
+
+    # verify the sequence
+    calls = trainer.dev_debugger.dataloader_sequence_calls
+    expected_sequence = ['val_dataloader'] + ['train_dataloader', 'val_dataloader'] * 3 + ['test_dataloader']
+    for call, expected in zip(calls, expected_sequence):
+        assert call['name'] == expected
 
 
 def test_v1_6_0_tbptt_reduce_fx(tmpdir):
@@ -275,3 +298,27 @@ def test_v1_6_0_deprecated_model_summary_mode(tmpdir):
 
     with pytest.deprecated_call(match="Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"):
         model.summarize(mode="top")
+
+
+def test_v1_6_0_deprecated_disable_validation():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
+        _ = trainer.disable_validation
+
+
+def test_v1_6_0_every_n_val_epochs():
+    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
+        _ = ModelCheckpoint(every_n_val_epochs=1)
+
+
+def test_v1_6_0_deprecated_hpc_load(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+    trainer.fit(model)
+    trainer.checkpoint_connector.hpc_save(tmpdir, trainer.logger)
+    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(str(tmpdir))
+    with pytest.deprecated_call(match=r"`CheckpointConnector.hpc_load\(\)` was deprecated in v1.4"):
+        trainer.checkpoint_connector.hpc_load(checkpoint_path)

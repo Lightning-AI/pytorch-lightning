@@ -14,6 +14,7 @@
 """General utilities"""
 import importlib
 import operator
+import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -63,8 +64,6 @@ def _compare_version(package: str, op, version) -> bool:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
-_TORCH_GREATER_EQUAL_1_5 = _compare_version("torch", operator.ge, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
@@ -101,3 +100,15 @@ if _POPTORCH_AVAILABLE:
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
+
+
+def _fault_tolerant_enabled():
+    env_var = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
+    # the ``reset`` function from ``_MultiProcessingDataLoaderIter``
+    # was introduced in PyTorch 1.7 and we need to mock for Fault Tolerant
+    # Support for earlier version will be added later on.
+    if env_var and not _TORCH_GREATER_EQUAL_1_7:
+        from pytorch_lightning.utilities.exceptions import MisconfigurationException
+        raise MisconfigurationException(f'Restart is only supported with torch >= 1.7.0. Found {torch.__version__}')
+
+    return env_var

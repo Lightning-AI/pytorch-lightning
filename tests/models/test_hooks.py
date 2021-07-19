@@ -256,15 +256,22 @@ class HookedModel(BoringModel):
     def __init__(self, called):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
+        # remove non-hooks
+        pl_module_hooks.difference_update({'optimizers'})
         # remove most `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
-        pl_module_hooks.difference_update(module_hooks - {'forward', 'zero_grad', 'train'})
+        module_hooks.difference_update({'forward', 'zero_grad', 'train'})
+        pl_module_hooks.difference_update(module_hooks)
 
         def call(hook, fn, *args, **kwargs):
             out = fn(*args, **kwargs)
             d = {'name': hook}
             if args:
                 d['args'] = args
+            elif hook == 'train':
+                # DeepSpeed calls `train(mode)` but we do not. Standardize
+                # https://github.com/microsoft/DeepSpeed/pull/571
+                d['args'] = (True, )
             if kwargs:
                 d['kwargs'] = kwargs
             called.append(d)
@@ -282,33 +289,50 @@ class HookedModel(BoringModel):
         # `BoringModel` does not have a return for `test_step_end` so this would fail
         pass
 
+    def _train_batch(self, *args, **kwargs):
+        if self.automatic_optimization:
+            return self._auto_train_batch(*args, **kwargs)
+        return self._manual_train_batch(*args, **kwargs)
+
     @staticmethod
-    def _train_batch(trainer, model, batches, current_epoch=0):
+    def _auto_train_batch(trainer, model, batches, device=torch.device('cpu'), current_epoch=0, **kwargs):
+        using_native_amp = kwargs.get('amp_backend') == 'native'
+        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
         out = []
+        on_before_optimizer_step = [
+            dict(name='Callback.on_before_optimizer_step', args=(trainer, model, ANY, 0)),
+            dict(name='on_before_optimizer_step', args=(ANY, 0)),
+        ]
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `on_batch_{start,end}`
                 dict(name='Callback.on_batch_start', args=(trainer, model)),
                 dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_train_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
+                # these are before the training step because
+                # they are not part of the `training_step_and_backward` closure, however,
+                # with native amp, the closure is run first and then the optimizer step.
+                *(on_before_optimizer_step if not using_native_amp else []),
                 dict(name='forward', args=(ANY, )),
                 dict(name='training_step', args=(ANY, i)),
                 dict(name='training_step_end', args=(dict(loss=ANY), )),
                 dict(name='Callback.on_before_zero_grad', args=(trainer, model, ANY)),
                 dict(name='on_before_zero_grad', args=(ANY, )),
                 dict(name='optimizer_zero_grad', args=(current_epoch, i, ANY, 0)),
-                # TODO: `on_before_backward`
-                dict(name='backward', args=(ANY, ANY, 0)),
+                dict(name='Callback.on_before_backward', args=(trainer, model, ANY)),
+                dict(name='on_before_backward', args=(ANY, )),
+                # DeepSpeed handles backward internally
+                *([dict(name='backward', args=(ANY, ANY, 0))] if not using_deepspeed else []),
                 dict(name='Callback.on_after_backward', args=(trainer, model)),
                 dict(name='on_after_backward'),
-                # TODO: `on_before_optimizer_step`
+                *(on_before_optimizer_step if using_native_amp else []),
                 dict(
                     name='optimizer_step',
                     args=(current_epoch, i, ANY, 0, ANY),
-                    kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=False)
+                    kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp)
                 ),
                 dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
                 dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
@@ -317,14 +341,46 @@ class HookedModel(BoringModel):
         return out
 
     @staticmethod
-    def _eval_epoch(fn, trainer, model, batches, key):
+    def _manual_train_batch(trainer, model, batches, device=torch.device('cpu'), **kwargs):
+        using_deepspeed = kwargs.get('plugins') == 'deepspeed'
+        out = []
+        for i in range(batches):
+            out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
+                # TODO: `on_batch_{start,end}`
+                dict(name='Callback.on_batch_start', args=(trainer, model)),
+                dict(name='Callback.on_train_batch_start', args=(trainer, model, ANY, i, 0)),
+                dict(name='on_train_batch_start', args=(ANY, i, 0)),
+                dict(name='forward', args=(ANY, )),
+                dict(name='Callback.on_before_backward', args=(trainer, model, ANY)),
+                dict(name='on_before_backward', args=(ANY, )),
+                # DeepSpeed handles backward internally
+                *([dict(name='backward', args=(ANY, None, None))] if not using_deepspeed else []),
+                dict(name='Callback.on_after_backward', args=(trainer, model)),
+                dict(name='on_after_backward'),
+                # `manual_backward` calls the previous 3
+                dict(name='manual_backward', args=(ANY, )),
+                dict(name='Callback.on_before_optimizer_step', args=(trainer, model, ANY, 0)),
+                dict(name='on_before_optimizer_step', args=(ANY, 0)),
+                dict(name='training_step', args=(ANY, i)),
+                dict(name='training_step_end', args=(dict(loss=ANY), )),
+                dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
+                dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
+                dict(name='Callback.on_batch_end', args=(trainer, model)),
+            ])
+        return out
+
+    @staticmethod
+    def _eval_epoch(fn, trainer, model, batches, key, device=torch.device('cpu')):
         outputs = {key: ANY}
         return [
             dict(name='Callback.on_epoch_start', args=(trainer, model)),
             dict(name='on_epoch_start'),
             dict(name=f'Callback.on_{fn}_epoch_start', args=(trainer, model)),
             dict(name=f'on_{fn}_epoch_start'),
-            *HookedModel._eval_batch(fn, trainer, model, batches, key),
+            *HookedModel._eval_batch(fn, trainer, model, batches, key, device=device),
             dict(name=f'{fn}_epoch_end', args=([outputs] * batches, )),
             dict(name=f'Callback.on_{fn}_epoch_end', args=(trainer, model)),
             dict(name=f'on_{fn}_epoch_end'),
@@ -333,17 +389,17 @@ class HookedModel(BoringModel):
         ]
 
     @staticmethod
-    def _eval_batch(fn, trainer, model, batches, key):
+    def _eval_batch(fn, trainer, model, batches, key, device=torch.device('cpu')):
         out = []
         outputs = {key: ANY}
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, device, 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name=f'Callback.on_{fn}_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name=f'on_{fn}_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name=f'{fn}_step', args=(ANY, i)),
                 dict(name=f'{fn}_step_end', args=(outputs, )),
@@ -357,12 +413,12 @@ class HookedModel(BoringModel):
         out = []
         for i in range(batches):
             out.extend([
+                dict(name='on_before_batch_transfer', args=(ANY, 0)),
+                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+                dict(name='on_after_batch_transfer', args=(ANY, 0)),
                 # TODO: `{,Callback}.on_batch_{start,end}`
                 dict(name='Callback.on_predict_batch_start', args=(trainer, model, ANY, i, 0)),
                 dict(name='on_predict_batch_start', args=(ANY, i, 0)),
-                dict(name='on_before_batch_transfer', args=(ANY, None)),
-                dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-                dict(name='on_after_batch_transfer', args=(ANY, None)),
                 dict(name='forward', args=(ANY, )),
                 dict(name='predict_step', args=(ANY, i)),
                 # TODO: `predict_step_end`
@@ -372,9 +428,37 @@ class HookedModel(BoringModel):
         return out
 
 
-def test_trainer_model_hook_system_fit(tmpdir):
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {},
+        # these precision plugins modify the optimization flow, so testing them explicitly
+        pytest.param(dict(gpus=1, precision=16, plugins='deepspeed'), marks=RunIf(deepspeed=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend='native'), marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param(dict(gpus=1, precision=16, amp_backend='apex'), marks=RunIf(amp_apex=True, min_gpus=1)),
+    ]
+)
+@pytest.mark.parametrize('automatic_optimization', (True, False))
+def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     called = []
-    model = HookedModel(called)
+
+    class TestModel(HookedModel):
+
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.automatic_optimization = automatic_optimization
+
+        def training_step(self, batch, batch_idx):
+            if self.automatic_optimization:
+                return super().training_step(batch, batch_idx)
+            loss = self.step(batch[0])
+            opt = self.optimizers()
+            opt.zero_grad()
+            self.manual_backward(loss)
+            opt.step()
+            return {'loss': loss}
+
+    model = TestModel(called)
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
@@ -385,13 +469,17 @@ def test_trainer_model_hook_system_fit(tmpdir):
         limit_val_batches=val_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
-        callbacks=[callback]
+        callbacks=[callback],
+        **kwargs,
     )
+
     assert called == [
         dict(name='Callback.on_init_start', args=(trainer, )),
         dict(name='Callback.on_init_end', args=(trainer, )),
     ]
+
     trainer.fit(model)
+
     saved_ckpt = {
         'callbacks': ANY,
         'epoch': 1,
@@ -401,19 +489,31 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'pytorch-lightning_version': __version__,
         'state_dict': ANY,
     }
+    if kwargs.get('amp_backend') == 'native':
+        saved_ckpt['native_amp_scaling_state'] = ANY
+    elif kwargs.get('amp_backend') == 'apex':
+        saved_ckpt['amp_scaling_state'] = ANY
+    device = torch.device('cuda:0' if 'gpus' in kwargs else 'cpu')
+
     expected = [
         dict(name='Callback.on_init_start', args=(trainer, )),
         dict(name='Callback.on_init_end', args=(trainer, )),
         dict(name='prepare_data'),
         dict(name='configure_callbacks'),
         dict(name='Callback.on_before_accelerator_backend_setup', args=(trainer, model)),
+        # DeepSpeed needs the batch size to figure out throughput logging
+        *([dict(name='train_dataloader')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.setup', args=(trainer, model), kwargs=dict(stage='fit')),
         dict(name='setup', kwargs=dict(stage='fit')),
         dict(name='configure_sharded_model'),
         dict(name='Callback.on_configure_sharded_model', args=(trainer, model)),
-        dict(name='configure_optimizers'),
+        # DeepSpeed skips initializing optimizers here as they are handled via config
+        *([dict(name='configure_optimizers')] if kwargs.get('plugins') != 'deepspeed' else []),
         dict(name='Callback.on_fit_start', args=(trainer, model)),
         dict(name='on_fit_start'),
+        # TODO: explore whether DeepSpeed can have the same flow for optimizers
+        # DeepSpeed did not find any optimizer in the config so they are loaded here
+        *([dict(name='configure_optimizers')] if kwargs.get('plugins') == 'deepspeed' else []),
         dict(name='Callback.on_pretrain_routine_start', args=(trainer, model)),
         dict(name='on_pretrain_routine_start'),
         dict(name='Callback.on_pretrain_routine_end', args=(trainer, model)),
@@ -426,14 +526,14 @@ def test_trainer_model_hook_system_fit(tmpdir):
         dict(name='zero_grad'),
         dict(name='Callback.on_validation_start', args=(trainer, model)),
         dict(name='on_validation_start'),
-        *model._eval_epoch('validation', trainer, model, val_batches, 'x'),
+        *model._eval_epoch('validation', trainer, model, val_batches, 'x', device=device),
         dict(name='Callback.on_validation_end', args=(trainer, model)),
         dict(name='on_validation_end'),
-        dict(name='train'),
+        dict(name='train', args=(True, )),
         dict(name='on_validation_model_train'),
         dict(name='Callback.on_sanity_check_end', args=(trainer, model)),
         # duplicate `train` because `_run_train` calls it again in case validation wasn't run
-        dict(name='train'),
+        dict(name='train', args=(True, )),
         dict(name='on_train_dataloader'),
         dict(name='train_dataloader'),
         dict(name='Callback.on_train_start', args=(trainer, model)),
@@ -442,22 +542,22 @@ def test_trainer_model_hook_system_fit(tmpdir):
         dict(name='on_epoch_start'),
         dict(name='Callback.on_train_epoch_start', args=(trainer, model)),
         dict(name='on_train_epoch_start'),
-        *model._train_batch(trainer, model, train_batches),
+        *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
         dict(name='train', args=(False, )),
         dict(name='on_validation_model_eval'),
         dict(name='zero_grad'),
         dict(name='Callback.on_validation_start', args=(trainer, model)),
         dict(name='on_validation_start'),
-        *model._eval_epoch('validation', trainer, model, val_batches, 'x'),
+        *model._eval_epoch('validation', trainer, model, val_batches, 'x', device=device),
         dict(name='Callback.on_validation_end', args=(trainer, model)),
-        # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_validation_end`
-        dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
-        dict(name='on_save_checkpoint', args=(saved_ckpt, )),
         dict(name='on_validation_end'),
-        dict(name='train'),
+        dict(name='train', args=(True, )),
         dict(name='on_validation_model_train'),
         dict(name='training_epoch_end', args=([dict(loss=ANY)] * train_batches, )),
         dict(name='Callback.on_train_epoch_end', args=(trainer, model, [dict(loss=ANY)] * train_batches)),
+        # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_train_epoch_end`
+        dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
+        dict(name='on_save_checkpoint', args=(saved_ckpt, )),
         dict(name='on_train_epoch_end', args=([dict(loss=ANY)] * train_batches, )),
         dict(name='Callback.on_epoch_end', args=(trainer, model)),
         dict(name='on_epoch_end'),
@@ -542,7 +642,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name='on_pretrain_routine_start'),
         dict(name='Callback.on_pretrain_routine_end', args=(trainer, model)),
         dict(name='on_pretrain_routine_end'),
-        dict(name='train'),
+        dict(name='train', args=(True, )),
         dict(name='on_train_dataloader'),
         dict(name='train_dataloader'),
         # even though no validation runs, we initialize the val dataloader for properties like `num_val_batches`
@@ -562,11 +662,11 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
             model,
             [dict(loss=ANY)] * train_batches,
         )),
+        dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
+        dict(name='on_save_checkpoint', args=(saved_ckpt, )),
         dict(name='on_train_epoch_end', args=([dict(loss=ANY)] * train_batches, )),
         dict(name='Callback.on_epoch_end', args=(trainer, model)),
         dict(name='on_epoch_end'),
-        dict(name='Callback.on_save_checkpoint', args=(trainer, model, saved_ckpt)),
-        dict(name='on_save_checkpoint', args=(saved_ckpt, )),
         dict(name='Callback.on_train_end', args=(trainer, model)),
         dict(name='on_train_end'),
         dict(name='Callback.on_fit_end', args=(trainer, model)),
@@ -610,7 +710,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         *model._eval_epoch(noun, trainer, model, batches, key),
         dict(name=f'Callback.on_{noun}_end', args=(trainer, model)),
         dict(name=f'on_{noun}_end'),
-        dict(name='train'),
+        dict(name='train', args=(True, )),
         dict(name=f'on_{noun}_model_train'),
     ]
     expected = [
@@ -777,9 +877,9 @@ def test_trainer_datamodule_hook_system(tmpdir):
     dm = HookedDataModule(called)
     trainer.fit(model, datamodule=dm)
     batch_transfer = [
-        dict(name='on_before_batch_transfer', args=(ANY, None)),
-        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), None)),
-        dict(name='on_after_batch_transfer', args=(ANY, None)),
+        dict(name='on_before_batch_transfer', args=(ANY, 0)),
+        dict(name='transfer_batch_to_device', args=(ANY, torch.device('cpu'), 0)),
+        dict(name='on_after_batch_transfer', args=(ANY, 0)),
     ]
     expected = [
         dict(name='prepare_data'),

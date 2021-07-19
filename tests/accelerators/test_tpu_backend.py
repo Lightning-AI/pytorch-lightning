@@ -16,6 +16,9 @@ import torch
 from torch import nn
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -113,3 +116,35 @@ def test_if_weights_tied(tmpdir, capsys=None):
 
     with pytest.warns(UserWarning, match="The model layers do not match"):
         trainer.fit(model)
+
+
+@RunIf(tpu=True)
+def test_accelerator_tpu():
+
+    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+
+    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `tpu_cores` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="tpu")
+
+
+@RunIf(tpu=True)
+def test_accelerator_cpu_with_tpu_cores_flag():
+
+    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(tpu=True)
+def test_accelerator_tpu_with_auto():
+
+    trainer = Trainer(accelerator="auto", tpu_cores=8)
+
+    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)

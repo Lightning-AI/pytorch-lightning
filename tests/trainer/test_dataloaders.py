@@ -582,7 +582,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
         assert trainer.max_epochs == 1
 
         trainer.fit(model)
-        assert not trainer.disable_validation
+        assert trainer.enable_validation
         assert trainer.num_training_batches == fast_dev_run
         assert trainer.num_val_batches == [fast_dev_run] * len(trainer.val_dataloaders)
 
@@ -1304,7 +1304,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         val_check_interval=0.3,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
     )
     trainer.fit(model)
@@ -1368,17 +1368,16 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_dataloaders_load_every_epoch(tmpdir):
+@pytest.mark.parametrize("n", [1, 2])
+def test_dataloaders_load_every_n_epochs(tmpdir, n):
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0.3,
         limit_val_batches=0.3,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
     trainer.fit(model)
@@ -1386,24 +1385,27 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = [
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'test_dataloader',
-    ]
+    expected_sequence = ['val_dataloader']
+    if n == 1:
+        expected_sequence += ['train_dataloader', 'val_dataloader'] * 3
+    elif n == 2:
+        expected_sequence += ['train_dataloader', 'val_dataloader'] * 2
+    expected_sequence += ['test_dataloader']
+
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
+
+
+@pytest.mark.parametrize("n", ['test', -1])
+def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
+
+    with pytest.raises(MisconfigurationException, match='should be an int >'):
+        Trainer(
+            default_root_dir=tmpdir,
+            reload_dataloaders_every_n_epochs=n,
+        )
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -1426,7 +1428,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         limit_train_batches=0.3,
         limit_val_batches=0.3,
         num_sanity_val_steps=0,
-        reload_dataloaders_every_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
@@ -1501,6 +1503,49 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
         assert call['name'] == expected
 
 
+def test_dataloaders_reset_and_attach(tmpdir):
+    """
+    Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
+    attaching the new one.
+    """
+    dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
+    # 1st fit
+    trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
+    assert trainer.train_dataloader.loaders is dataloader_0
+    assert trainer.val_dataloaders[0] is dataloader_1
+    # 2nd fit
+    trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
+    assert trainer.train_dataloader.loaders is dataloader_2
+    assert trainer.val_dataloaders[0] is dataloader_3
+
+    # 1st validate
+    trainer.validate(model, dataloaders=dataloader_0)
+    assert trainer.val_dataloaders[0] is dataloader_0
+    # 2nd validate
+    trainer.validate(model, dataloaders=dataloader_1)
+    assert trainer.val_dataloaders[0] is dataloader_1
+
+    # 1st test
+    trainer.test(model, dataloaders=dataloader_0)
+    assert trainer.test_dataloaders[0] is dataloader_0
+    # 2nd test
+    trainer.test(model, dataloaders=dataloader_1)
+    assert trainer.test_dataloaders[0] is dataloader_1
+
+    # 1st predict
+    trainer.predict(model, dataloaders=dataloader_0)
+    assert trainer.predict_dataloaders[0] is dataloader_0
+    # 2nd predict
+    trainer.predict(model, dataloaders=dataloader_1)
+    assert trainer.predict_dataloaders[0] is dataloader_1
+
+
 def test_replace_sampler_with_multiprocessing_context(tmpdir):
     """
     This test verifies that replace_sampler conserves multiprocessing context
@@ -1533,7 +1578,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
             if self.trainer.training:
-                assert dataloader_idx is None
+                assert dataloader_idx == 0
             elif self.trainer.validating:
                 assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:

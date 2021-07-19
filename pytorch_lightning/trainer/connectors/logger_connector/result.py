@@ -14,14 +14,15 @@
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
 
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -589,30 +590,9 @@ class ResultCollection(dict):
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
-            self.batch_size = self._extract_batch_size(batch)
+            self.batch_size = extract_batch_size(batch)
         except RecursionError:
             self.batch_size = 1
-
-    def _extract_batch_size(self, batch: Any) -> int:
-        """
-        Recursively unpack a batch to find a torch.Tensor.
-
-        Returns:
-            ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
-        """
-        if isinstance(batch, torch.Tensor):
-            size = batch.size(0)
-        elif isinstance(batch, str):
-            return len(batch)
-        elif isinstance(batch, dict):
-            sample = next(iter(batch.values()), 1)
-            size = self._extract_batch_size(sample)
-        elif isinstance(batch, Iterable):
-            sample = next(iter(batch), 1)
-            size = self._extract_batch_size(sample)
-        else:
-            size = 1
-        return size
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""

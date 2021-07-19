@@ -31,9 +31,10 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -126,7 +127,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def is_distributed(self) -> bool:
-        return self.world_size != 1
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
@@ -177,8 +179,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
-        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
+        if self.is_distributed:
             rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
@@ -211,6 +212,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
+        if not self.is_distributed:
+            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
@@ -281,6 +284,26 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
+
+    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+        self._pod_progress_bar_force_stdout()
+        return output
+
+    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+        self._pod_progress_bar_force_stdout()
+        return output
+
+    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+        self._pod_progress_bar_force_stdout()
+        return output
+
+    def _pod_progress_bar_force_stdout(self) -> None:
+        # Why is it required? The way `pytorch_xla.distributed` streams logs
+        # from different vms to the master worker doesn't work well with tqdm
+        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
+        # The print statement seems to force tqdm to flush stdout.
+        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+            print()
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

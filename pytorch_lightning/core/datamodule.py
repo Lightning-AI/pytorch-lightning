@@ -20,11 +20,12 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 
 
-class LightningDataModule(CheckpointHooks, DataHooks):
+class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -62,10 +63,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
     * **test_dataloader** the test dataloader(s).
     * **teardown** (things to do on every accelerator in distributed mode when finished)
 
-
-    This allows you to share a full dataset without explaining how to download,
-    split transform and process the data
-
+    This allows you to share a full dataset without explaining how to download, split, transform, and process the data
     """
 
     name: str = ...
@@ -380,7 +378,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
     def __new__(cls, *args: Any, **kwargs: Any) -> 'LightningDataModule':
         obj = super().__new__(cls)
-        # track `DataHooks` calls and run `prepare_data` only on rank zero
+        # track `DataHooks` calls
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
