@@ -62,6 +62,15 @@ jobs:
       displayName: 'Env details'
 
     - bash: |
+        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
+        unzip -o legacy/checkpoints.zip -d legacy/
+        ls -l legacy/checkpoints/
+      displayName: 'Get legacy checkpoints'
+    - bash: |
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+      displayName: 'Testing: standard'
+
+    - bash: |
         bash tests/special_tests.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
@@ -91,10 +100,6 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
       condition: succeededOrFailed()
 
-    - bash: |
-        python -m pytest benchmarks -v --maxfail=2 --durations=0
-      displayName: 'Testing: benchmarks'
-
     - script: |
         set -e
         python -m pytest pl_examples -v --maxfail=2 --durations=0
@@ -104,3 +109,7 @@ jobs:
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'
+
+    - bash: |
+        python -m pytest benchmarks -v --maxfail=2 --durations=0
+      displayName: 'Testing: benchmarks'

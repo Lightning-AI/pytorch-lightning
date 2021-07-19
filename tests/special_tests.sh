@@ -62,7 +62,7 @@ for i in "${!files_arr[@]}"; do
 
       # run the test
       report+="Ran\t$file:$lineno::$test_name\n"
-      #python ${defaults} "${file}::${test_name}"
+      python ${defaults} "${file}::${test_name}"
       break
     fi
   done < <(echo "$test_code")
