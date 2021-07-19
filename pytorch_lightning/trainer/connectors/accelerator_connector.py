@@ -138,8 +138,8 @@ class AcceleratorConnector(object):
 
         self.plugins = plugins
 
-        self.validate_accelerator_and_devices()
-        self.warn_if_devices_flag_ignored()
+        self._validate_accelerator_and_devices()
+        self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
         self.set_distributed_mode()
@@ -147,8 +147,9 @@ class AcceleratorConnector(object):
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
-        self.validate_accelerator_type()
-        self.set_devices_if_none()
+
+        self._validate_accelerator_type()
+        self._set_devices_if_none()
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
@@ -209,7 +210,7 @@ class AcceleratorConnector(object):
         if self.distributed_backend in ["auto"] + list(DeviceType):
             self.distributed_backend = None
 
-    def validate_accelerator_and_devices(self) -> None:
+    def _validate_accelerator_and_devices(self) -> None:
         if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
@@ -217,7 +218,7 @@ class AcceleratorConnector(object):
                 f" but passed `accelerator={self.distributed_backend}`"
             )
 
-    def validate_accelerator_type(self) -> None:
+    def _validate_accelerator_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
             raise MisconfigurationException(
                 f"Mismatch between the requested accelerator type ({self._accelerator_type})"
@@ -225,7 +226,7 @@ class AcceleratorConnector(object):
             )
         self._accelerator_type = self._device_type
 
-    def warn_if_devices_flag_ignored(self) -> None:
+    def _warn_if_devices_flag_ignored(self) -> None:
         if self.devices is None:
             return
         devices_warning = f"`devices={self.devices}` will be ignored, as you have set"
@@ -251,7 +252,7 @@ class AcceleratorConnector(object):
             if self.num_processes == 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
 
-    def set_devices_if_none(self) -> None:
+    def _set_devices_if_none(self) -> None:
         if self.devices is not None:
             return
         if self._accelerator_type == DeviceType.TPU:
