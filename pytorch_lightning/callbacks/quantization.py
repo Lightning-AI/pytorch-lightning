@@ -124,7 +124,7 @@ class QuantizationAwareTraining(Callback):
             to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
 
         input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
-            but break compatibility to torchscript.
+            but break compatibility to torchscript and export with ``torch.save``.
 
         convert_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted model canot be put in training again.
