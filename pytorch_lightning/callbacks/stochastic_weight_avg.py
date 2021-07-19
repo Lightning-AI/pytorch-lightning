@@ -15,6 +15,7 @@ r"""
 Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import Callable, Optional, Union
 
@@ -137,9 +138,32 @@ class StochasticWeightAveraging(Callback):
     def pl_module_contains_batch_norm(pl_module: 'pl.LightningModule'):
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
+    @contextmanager
+    def prevent_data_deepcopy(self, pl_module: 'pl.LightningModule'):
+        """
+        This function is used to prevent deepcopy of dataloaders / trainer while deepcopying the ``LightningModule``.
+        """
+        train_dataloader = pl_module.train_dataloader
+        val_dataloader = pl_module.val_dataloader
+        test_dataloader = pl_module.test_dataloader
+        predict_dataloader = pl_module.predict_dataloader
+        trainer = pl_module.trainer
+        pl_module.train_dataloader = None
+        pl_module.val_dataloader = None
+        pl_module.test_dataloader = None
+        pl_module.predict_dataloader = None
+        pl_module.trainer = None
+        yield
+        pl_module.train_dataloader = train_dataloader
+        pl_module.val_dataloader = val_dataloader
+        pl_module.test_dataloader = test_dataloader
+        pl_module.predict_dataloader = predict_dataloader
+        pl_module.trainer = trainer
+
     def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         # copy the model before moving it to accelerator device.
-        self._average_model = deepcopy(pl_module)
+        with self.prevent_data_deepcopy(pl_module):
+            self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         optimizers = trainer.optimizers
