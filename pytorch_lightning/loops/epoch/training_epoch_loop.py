@@ -52,8 +52,8 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop = Optional[TrainingBatchLoop]
-        self.val_loop = Optional["loops.EvaluationLoop"]
+        self.batch_loop: Optional[TrainingBatchLoop] = None
+        self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
@@ -79,7 +79,7 @@ class TrainingEpochLoop(loops.Loop):
         batch_loop: Optional[TrainingBatchLoop] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
-        """Optionally connect a custom batch- or validation loop to this training epoch loop."""
+        """Optionally connect a custom batch or validation loop to this training epoch loop."""
         if batch_loop is not None:
             self.batch_loop = batch_loop
         if val_loop is not None:
