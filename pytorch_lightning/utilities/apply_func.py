@@ -245,7 +245,11 @@ def move_data_to_device(batch: Any, device: torch.device):
             return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
-        return data.to(device, **kwargs)
+        data_output = data.to(device, **kwargs)
+        if data_output is not None:
+            return data_output
+        # user wrongly implemented the ``TransferableDataType`` and forgot to return ``self``.
+        return data
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
