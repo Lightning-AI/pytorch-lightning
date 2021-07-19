@@ -303,7 +303,7 @@ class TrainingEpochLoop(loops.Loop):
         """
         return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
 
-    def should_accumulate(self) -> bool:
+    def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
@@ -404,7 +404,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval"""
-        if interval == "step" and self.should_accumulate():
+        if interval == "step" and self._should_accumulate():
             return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
@@ -414,7 +414,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def _increment_accumulated_grad_global_step(self) -> None:
         """Increments global step according to grads progress"""
-        if not self.should_accumulate():
+        if not self._should_accumulate():
             self.global_step = self.trainer.accelerator.update_global_step(
                 self.total_batch_idx, self.trainer.global_step
             )
