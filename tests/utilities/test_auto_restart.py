@@ -728,9 +728,9 @@ def test_combined_dataloader_state_dict_and_reload():
     iter_dataloader = iter(prefetch_iterator(dataloader))
     num_batches_processed = 4
     for idx in range(1, num_batches_processed):
-        _, _, prefeched_iterator = next(iter_dataloader)
+        _, _, prefetched_iterator = next(iter_dataloader)
 
-        loader_iters = prefeched_iterator._loader_iters
+        loader_iters = prefetched_iterator._loader_iters
 
         # when dealing with IterativeDataset,
         # the sampler state dict will be attached directly onto the iterator to simplify collection.
@@ -807,9 +807,9 @@ def test_combined_dataloader_state_dict_and_reload():
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
-    _, _, prefeched_iterator = next(iter_dataloader)
+    _, _, prefetched_iterator = next(iter_dataloader)
 
-    loader_iters = prefeched_iterator._loader_iters
+    loader_iters = prefetched_iterator._loader_iters
 
     assert loader_iters["a"][0]._sampler_state_dict == [{
         'num_workers': 2,
