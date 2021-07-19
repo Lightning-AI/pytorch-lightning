@@ -22,7 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import Loop, TrainingEpochLoop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests.helpers import BoringModel
 
@@ -80,6 +80,24 @@ def test_connect_loops_recursive():
     trainer.fit_loop = main_loop
     assert child0.trainer is trainer
     assert child1.trainer is trainer
+
+
+def test_connect_subloops(tmpdir):
+    """ Test connecting individual subloops by calling `trainer.x.y.connect()` """
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
+
+    epoch_loop = trainer.fit_loop.epoch_loop
+    new_batch_loop = TrainingBatchLoop()
+    epoch_loop.connect(batch_loop=new_batch_loop)
+    assert epoch_loop.batch_loop is new_batch_loop
+    assert new_batch_loop.trainer is None
+
+    trainer.fit(model)
+    assert new_batch_loop.trainer is trainer
 
 
 class CustomException(Exception):

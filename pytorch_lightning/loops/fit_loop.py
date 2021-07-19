@@ -39,7 +39,7 @@ class FitLoop(Loop):
         super().__init__()
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
-        self.epoch_loop = None
+        self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
 
     @property
