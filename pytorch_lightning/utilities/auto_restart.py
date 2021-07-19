@@ -40,7 +40,7 @@ class FastForwardSampler(Sampler):
         self.restarting: bool = False
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
-        self._cached_state_dict: Optional[Dict[str, Any]] = None
+        self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
 
     def __getattr__(self, key: str) -> Any:
@@ -61,10 +61,9 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        # the `state dict` was cached as workers were unavailable before.
-        if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
-            # reload the current state dict
-            self._load_non_random_state(self._cached_state_dict)
+        # the `state dict` was cached as workers were unavailable before
+        # reload it now
+        self._load_cached_state()
 
         i = 0
         sampler_iter = iter(self._sampler)
@@ -73,7 +72,6 @@ class FastForwardSampler(Sampler):
             i += 1
 
         # here: i == self._current_iteration
-
         # recreate iterator to be sure loading is reflected there as well
         while True:
             self._current_iteration += 1
@@ -83,7 +81,6 @@ class FastForwardSampler(Sampler):
                 break
 
         self._current_iteration = 0
-        self._cached_state_dict = None
         self.restarting = False
 
     def __len__(self) -> int:
@@ -124,9 +121,12 @@ class FastForwardSampler(Sampler):
         self._cached_state_dict = state_dict
         self.restarting = True
 
-    def _load_non_random_state(self, state_dict):
-        self._current_iteration = state_dict[self.worker_id]["current_iteration"]
-        # self.restarting = True
+    def _load_cached_state(self):
+        if self._cached_state_dict is None or self.worker_id not in self._cached_state_dict:
+            return
+        self._current_iteration = self._cached_state_dict[self.worker_id]["current_iteration"]
+        # delete cached state, prevent reloading every time iter() is called
+        self._cached_state_dict = None
 
 
 class CaptureIterableDataset(IterableDataset):
