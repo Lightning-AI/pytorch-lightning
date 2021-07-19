@@ -229,7 +229,7 @@ class AcceleratorConnector(object):
     def _warn_if_devices_flag_ignored(self) -> None:
         if self.devices is None:
             return
-        devices_warning = f"`devices={self.devices}` will be ignored, as you have set"
+        devices_warning = f"The flag `devices={self.devices}` will be ignored, as you have set"
         if self.distributed_backend == "auto":
             if self.tpu_cores is not None:
                 rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
@@ -237,7 +237,7 @@ class AcceleratorConnector(object):
                 rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
             elif self.gpus is not None:
                 rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
-            elif self.num_processes == 1:
+            elif self.num_processes != 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
         elif self.distributed_backend == DeviceType.TPU:
             if self.tpu_cores is not None:
@@ -249,7 +249,7 @@ class AcceleratorConnector(object):
             if self.gpus is not None:
                 rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
         elif self.distributed_backend == DeviceType.CPU:
-            if self.num_processes == 1:
+            if self.num_processes != 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
 
     def _set_devices_if_none(self) -> None:

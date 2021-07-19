@@ -545,7 +545,9 @@ def test_accelerator_ipu_with_ipus_priority():
     """ Test for checking `ipus` flag takes priority over `devices`. """
 
     ipus = 8
-    trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
+    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
+        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
+
     assert trainer.ipus == ipus
 
 

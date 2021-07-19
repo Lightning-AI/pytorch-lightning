@@ -175,7 +175,9 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     """ Test for checking `tpu_cores` flag takes priority over `devices`. """
 
     tpu_cores = 8
-    trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
+    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
+        trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
+
     assert trainer.tpu_cores == tpu_cores
 
 

@@ -655,7 +655,9 @@ def test_accelerator_cpu_with_num_processes_priority():
     """ Test for checking num_processes takes priority over devices. """
 
     num_processes = 5
-    trainer = Trainer(accelerator="cpu", devices=8, num_processes=num_processes)
+    with pytest.warns(UserWarning, match="The flag `devices=8` will be ignored,"):
+        trainer = Trainer(accelerator="cpu", devices=8, num_processes=num_processes)
+
     assert trainer.num_processes == num_processes
 
 
@@ -688,7 +690,9 @@ def test_accelerator_gpu_with_gpus_priority():
     """ Test for checking `gpus` flag takes priority over `devices`. """
 
     gpus = 1
-    trainer = Trainer(accelerator="gpu", devices=4, gpus=gpus)
+    with pytest.warns(UserWarning, match="The flag `devices=4` will be ignored,"):
+        trainer = Trainer(accelerator="gpu", devices=4, gpus=gpus)
+
     assert trainer.gpus == gpus
 
 
