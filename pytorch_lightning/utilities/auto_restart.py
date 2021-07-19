@@ -217,12 +217,12 @@ class CaptureIterableDataset(IterableDataset):
         """
         This function is used to store and update sampler state dict on its associated iterator.
 
-        In Lightning, as the iterator is wrapped into a prefecting function,
+        In Lightning, as the iterator is wrapped into a prefetching function,
         we needed to introduce a cache to delay updating the ``sampler_state_dict``.
         """
         iterator_state_dict = getattr(iterator, "_sampler_state_dict", None)
         iterator_state_dict_cache = getattr(iterator, "_sampler_state_dict_cache", None)
-        # handle the logic this way due Trainer prefecting.
+        # handle the logic this way due Trainer prefetching.
         if not iterator_state_dict:
             iterator._sampler_state_dict = sampler_state_dict
         else:

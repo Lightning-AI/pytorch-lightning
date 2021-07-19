@@ -374,7 +374,7 @@ class CombinedLoader(object):
         self._loaders_iter_state_dict = None
         self._iterator = None  # assigned in __iter__
 
-    def state_dict(self, num_batches_processed: int):
+    def state_dict(self, num_batches_processed: int) -> Dict:
         """
         The state dict includes all states from wrapped dataloaders and their samplers through the
         ``CaptureIterableDataset`` and fast-forward samplers.
