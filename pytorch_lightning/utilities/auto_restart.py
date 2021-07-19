@@ -86,22 +86,6 @@ class FastForwardSampler(Sampler):
     def __len__(self) -> int:
         return len(self._sampler)
 
-    def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
-        """
-        This function is used to compute the effective iteration.
-        As DataLoader can perform ``prefecthing`` or training can fail while processing a batch,
-        the current iteration needs to be computed using the ``num_batches_processed`` processed information.
-        """
-        if num_batches_processed is not None:
-            current_iteration = num_batches_processed
-        else:
-            current_iteration = self._current_iteration
-
-        if self._dataloader_batch_size and num_batches_processed is not None:
-            current_iteration *= self._dataloader_batch_size
-
-        return current_iteration
-
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {
@@ -120,6 +104,22 @@ class FastForwardSampler(Sampler):
         state_dict = deepcopy(state_dict)
         self._cached_state_dict = state_dict
         self.restarting = True
+
+    def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
+        """
+        This function is used to compute the effective iteration.
+        As DataLoader can perform ``prefecthing`` or training can fail while processing a batch,
+        the current iteration needs to be computed using the ``num_batches_processed`` processed information.
+        """
+        if num_batches_processed is not None:
+            current_iteration = num_batches_processed
+        else:
+            current_iteration = self._current_iteration
+
+        if self._dataloader_batch_size and num_batches_processed is not None:
+            current_iteration *= self._dataloader_batch_size
+
+        return current_iteration
 
     def _load_cached_state(self):
         if self._cached_state_dict is None or self.worker_id not in self._cached_state_dict:
