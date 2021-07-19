@@ -103,4 +103,9 @@ else:
 
 
 def _fault_tolerant_enabled():
-    return os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
+    env_var = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
+    if env_var and not _TORCH_GREATER_EQUAL_1_7:
+        from pytorch_lightning.utilities.exceptions import MisconfigurationException
+        raise MisconfigurationException(f'Restart is only supported with torch >= 1.7.0. Found {torch.__version__}')
+
+    return env_var

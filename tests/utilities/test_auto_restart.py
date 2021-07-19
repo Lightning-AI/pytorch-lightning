@@ -14,6 +14,7 @@
 import math
 import os
 import random
+import random as python_random
 from collections.abc import Iterable
 from typing import Optional
 from unittest import mock
@@ -31,6 +32,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     dataloader_load_state_dict,
@@ -39,6 +41,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -264,7 +267,10 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator.manual_seed(initial_seed)
     dataset = RangeIterableDataset(range(20), num_workers, batch_size, True)
     dataset = CaptureIterableDataset(dataset, num_workers)
+
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
+
     iter_dataloader = iter(dataloader)
     batches = []
     for _ in range(5):
@@ -286,6 +292,8 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
+
     iter_dataloader = iter(dataloader)
     batches_restart = []
     for _ in range(3):
@@ -540,6 +548,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     )
     dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
 
     epoch_results = []
     for _ in range(2):
@@ -562,8 +571,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert torch.equal(
             epoch_results[0][0]["data"]["selected_indexes"], epoch_results[0][1]["data"]["selected_indexes"]
         )
-        assert epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 0
-        assert epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["id"] == 1
+        assert 0 in epoch_results[0][2][AutoRestartBatchKeys.PL_SAMPLERS]["iter_sampler"]  # worker id 0
+        assert 1 in epoch_results[0][3][AutoRestartBatchKeys.PL_SAMPLERS]["iter_sampler"]  # worker id 1
         assert not torch.equal(epoch_results[0][2]["data"][0], epoch_results[0][3]["data"][0])
     else:
         first_task_metadata = all_gather(epoch_results[0][0]["data"]["task_length"], worldsize)
@@ -600,6 +609,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
     dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
+    Trainer._add_sampler_metadata_collate(dataloader)
 
     epoch_results_restart = []
     for _ in range(2):
@@ -645,6 +655,13 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     )
 
 
+@mock.patch.dict(os.environ, {'PL_FAULT_TOLERANT_TRAINING': "1"})
+@RunIf(max_torch="1.6")
+def test_fault_tolerant_not_supported():
+    with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
+        _fault_tolerant_enabled()
+
+
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
     dataset = RangeIterableDataset(
         range(50), num_workers=num_workers, batch_size=batch_size, is_in_workers=True, attr_name=attr_name
@@ -656,7 +673,7 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.6.0")
+@RunIf(min_torch="1.7.0")
 def test_combined_dataloader_state_dict_and_reload():
     """
     This test makes sure the CombinedLoader used in the condition of Lightning properly
@@ -683,7 +700,7 @@ def test_combined_dataloader_state_dict_and_reload():
         )
         dataloader.fast_forward_sampler = sampler
 
-        return CombinedLoader({
+        loader_dict = {
             "a": [
                 DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
                 dataloader,
@@ -691,7 +708,9 @@ def test_combined_dataloader_state_dict_and_reload():
             "b": DataLoader(
                 create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
             )
-        })
+        }
+        apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
+        return CombinedLoader(loader_dict)
 
     # Lightning will wrap the iterator within a prefect function as follow.
     def prefetch_iterator(iterable: Iterable):
@@ -790,6 +809,7 @@ def test_combined_dataloader_state_dict_and_reload():
     assert state_dict == expected
 
     dataloader = create_dataloader()
+    apply_to_collection(dataloader, DataLoader, Trainer._add_sampler_metadata_collate)
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
@@ -887,7 +907,7 @@ def test_dataloader_to_state_dict_and_reload():
 
 
 @pytest.mark.parametrize("use_fault_tolerant", ['0', '1'])
-@RunIf(min_torch="1.6.0")
+@RunIf(min_torch="1.7.0")
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """
     this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
@@ -940,3 +960,105 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
         model.training_epoch_end = None
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
         trainer.fit(model)
+
+
+class SequentialGetItemDataset(Dataset):
+
+    def __init__(self, length, *_):
+        self.len = length
+
+    def __getitem__(self, index):
+        return index
+
+    def __len__(self):
+        return self.len
+
+
+class RandomTorchGetItemDataset(Dataset):
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+
+    def __getitem__(self, index):
+        return torch.rand(self.size, )
+
+    def __len__(self):
+        return self.len
+
+
+class RandomNumpyGetItemDataset(RandomTorchGetItemDataset):
+
+    def __getitem__(self, index):
+        return np.random.rand(self.size, )
+
+
+class RandomPythonGetItemDataset(RandomTorchGetItemDataset):
+
+    def __getitem__(self, index):
+        return torch.tensor([python_random.random() for _ in range(self.size)])
+
+
+class RandomGeneratorGetItemDataset(Dataset):
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+        self.generator = torch.Generator()
+
+    def __getitem__(self, index):
+        return torch.rand(self.size, generator=self.generator)
+
+    def __len__(self):
+        return self.len
+
+
+# TODO: num_workers
+@pytest.mark.parametrize(
+    "dataset_class", [
+        RandomTorchGetItemDataset,
+        SequentialGetItemDataset,
+        RandomNumpyGetItemDataset,
+        RandomPythonGetItemDataset,
+        RandomGeneratorGetItemDataset,
+    ]
+)
+def test_dataset_rng_states_restart(dataset_class):
+    # set the manual seed initially
+    torch.manual_seed(1)
+    num_workers = 0
+
+    dataset = dataset_class(8, 8)
+    random_sampler = RandomSampler(dataset, generator=torch.Generator())
+    ff_sampler = FastForwardSampler(random_sampler)
+    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
+    dataloader_iter = iter(dataloader)
+
+    # fetch 2 batches
+    _ = next(dataloader_iter)
+    _ = next(dataloader_iter)
+
+    # (A) capture the state after fetching 2 batches
+    state = ff_sampler.state_dict(2)  # main process
+
+    # (B) simulate 2 additional batches
+    batch02 = next(dataloader_iter)
+    batch03 = next(dataloader_iter)
+
+    # start reloading
+    dataset = dataset_class(8, 8)
+    random_sampler = RandomSampler(dataset, generator=torch.Generator())
+    ff_sampler = FastForwardSampler(random_sampler)
+
+    # load the state dict saved at (A)
+    ff_sampler.load_state_dict(state)
+
+    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
+    dataloader_iter = iter(dataloader)
+
+    # fetch 2 random batches, these should match exactly the batches seen at (B)
+    batch10 = next(dataloader_iter)
+    batch11 = next(dataloader_iter)
+
+    assert torch.equal(batch02, batch10)
+    assert torch.equal(batch03, batch11)

@@ -11,15 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
-from collections.abc import Mapping, Sequence
+import random
+from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any, Dict, Generator, Iterator, List, Optional, Union
+from random import getstate as python_get_rng_state, setstate as python_set_rng_state
 
+import numpy as np
+import torch
 from torch.utils.data import get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
-from pytorch_lightning.utilities.apply_func import _is_dataclass_instance, _is_namedtuple
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection, recursively_traverse_for_dtype
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -41,6 +45,7 @@ class FastForwardSampler(Sampler):
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[str, Any]] = None
+        self._initial_rng_state = self._get_rng_states()
         self._attr_name = attr_name
 
     def __getattr__(self, key: str) -> Any:
@@ -61,35 +66,37 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        # split restart logic to avoid user with tempering with "fast-forwarding"
+        # the `state dict` was cached as workers were available before.
+        if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
+            # reload the current state dict
+            self._load_non_random_state(self._cached_state_dict)
+            self._set_rng_states(self._cached_state_dict[self.worker_id]["initial_rng_state"])
 
-        if not self.restarting:
-            for batch in self._sampler:
-                self._current_iteration += 1
-                yield batch
+        i = 0
+        sampler_iter = iter(self._sampler)
+        while i < self._current_iteration:
+            next(sampler_iter)
+            i += 1
 
-        else:
-            for i, batch in enumerate(self._sampler):
+        # here: i == self._current_iteration
+        if self._cached_state_dict is not None:
+            rng_state = self._cached_state_dict[self.worker_id]["rng_states"]
+            self._set_rng_states(rng_state)
 
-                # the `state dict` was cached as workers were available before.
-                if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
-
-                    # reload the current state dict
-                    self.load_state_dict(self._cached_state_dict, workers_initialized=True)
-                    self._cached_state_dict = None
-
-                # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
-                if self._current_iteration <= i:
-                    if self._current_iteration == i:
-                        self.restarting = False
-                    self._current_iteration += 1
-                    yield batch
+        # recreate iterator to be sure loading is reflected there as well
+        while True:
+            self._current_iteration += 1
+            try:
+                yield next(sampler_iter)
+            except StopIteration:
+                break
 
         self._current_iteration = 0
+        self._cached_state_dict = None
         self.restarting = False
 
     def __len__(self) -> int:
-        return len(self.sampler)
+        return len(self._sampler)
 
     def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
         """
@@ -109,21 +116,59 @@ class FastForwardSampler(Sampler):
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
-        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
+        return {
+            self.worker_id:
+                {
+                    "current_iteration": self._compute_current_iteration(num_batches_processed),
+                    "rng_states": self._get_rng_states(),
+                    "initial_rng_state": self._initial_rng_state,
+                    # "torch_rng_state": torch.get_rng_state(),
+                }
+        }
 
-    def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
+    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         """
         Loads the saved state for the wrapped sampler.
         If the ``state_dict`` contains multiple states, it means there were multiple workers.
         The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
         """
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
-        if len(state_dict) > 1 and not workers_initialized:
-            self._cached_state_dict = deepcopy(state_dict)
-            self.restarting = True
-            return
-        self._current_iteration = state_dict[self.worker_id]["current_iteration"]
+        state_dict = deepcopy(state_dict)
+        self._cached_state_dict = state_dict
         self.restarting = True
+
+    def _load_non_random_state(self, state_dict):
+        self._current_iteration = state_dict[self.worker_id]["current_iteration"]
+        # self.restarting = True
+
+    def _get_rng_states(self):
+
+        def _collect(gen: torch.Generator):
+            return gen.get_state()
+
+        states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator) or {}
+        states["__global_torch"] = torch.get_rng_state()
+        states["__global_numpy"] = np.random.get_state()
+        states["__global_python"] = python_get_rng_state()
+        return states
+
+    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
+        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
+        np.random.set_state(rng_state_dict.pop("__global_numpy"))
+        python_set_rng_state(rng_state_dict.pop("__global_python"))
+
+        _set_rng_states_on_obj(self._sampler, rng_state_dict)
+
+
+def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
+
+    for k, v in rng_state_dict.items():
+        attr = getattr(obj, k)
+        if isinstance(v, Mapping):
+            _set_rng_states_on_obj(attr, v)
+
+        elif isinstance(attr, torch.Generator):
+            attr.set_state(v)
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -208,16 +253,7 @@ class CaptureIterableDataset(IterableDataset):
         return self
 
     def __next__(self) -> Dict[str, Any]:
-        # fetch next data
-        data = next(self.iter_data)
-
-        # create current samplers state_dict
-        worker_info = get_worker_info()
-        state_dicts = {"id": worker_info.id if worker_info is not None else 0}
-        state_dicts.update({k: v.state_dict() for k, v in self.samplers.items()})
-
-        # return both current data and samplers ``state_dict``.
-        return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: state_dicts}
+        return next(self.iter_data)
 
     @staticmethod
     def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
@@ -236,48 +272,40 @@ class CaptureIterableDataset(IterableDataset):
                 iterator._sampler_state_dict_cache = sampler_state_dict
 
     @staticmethod
-    def _sanetize_batch_from_sampler_state(data: Any, state_dict: List):
+    def _sanitize_batch_from_sampler_state(data: Any, state_dicts: List):
         """
         This function is used to remove the sampler state dict from provided data batch.
-        """
-        elem_type = type(data)
+        The custom data has this format:
 
-        # Recursively apply to collection items
-        if isinstance(data, Mapping):
+        .. code-block:: python
+
+            {
+                "batch": data returned by DataLoader
+                "__pl_samplers": {
+                    "sampler0": {
+                        0: { "current_iteration": ... }
+                        1: { "current_iteration": ... }
+                        ...
+                    }
+                    "sampler1": ...
+                }
+            }
+
+        Each sampler in the worker process tracks the current iteration. We return all of them to the main process
+        as part of the sample and then a special collate function :func:`sampler_metadata_collate`
+        will extract the current iteration as part of the metadata returned by a custom batch.
+        """
+
+        def _sanitize(data: Mapping):
             out = []
             for k, v in data.items():
                 if k == AutoRestartBatchKeys.PL_SAMPLERS:
-                    iterable_dataset_state_dict = {}
-                    batch_worker_id = v.pop("id")
-                    worker_id = batch_worker_id[-1].item()
-                    for sampler_name, sampler_state_dict in v.items():
-                        iterable_dataset_state_dict[sampler_name] = {
-                            worker_id: {
-                                "current_iteration": sampler_state_dict[worker_id]["current_iteration"][-1].item()
-                            }
-                        }
-                    state_dict.append(iterable_dataset_state_dict)
+                    state_dicts.append(v)
                     return data["data"]
-                out.append((k, CaptureIterableDataset._sanetize_batch_from_sampler_state(v, state_dict)))
-            return elem_type(OrderedDict(out))
+                out.append((k, CaptureIterableDataset._sanitize_batch_from_sampler_state(v, state_dicts)))
+            return out
 
-        is_namedtuple = _is_namedtuple(data)
-        is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
-        if is_namedtuple or is_sequence:
-            out = []
-            for d in data:
-                v = CaptureIterableDataset._sanetize_batch_from_sampler_state(d, state_dict)
-                out.append(v)
-            return elem_type(*out) if is_namedtuple else elem_type(out)
-
-        if _is_dataclass_instance(data):
-            out = dict()
-            for field in data.__dataclass_fields__:
-                v = CaptureIterableDataset._sanetize_batch_from_sampler_state(getattr(data, field), state_dict)
-                out[field] = v
-            return elem_type(**out)
-
-        return data
+        return apply_to_collection(data, Mapping, _sanitize)
 
     @staticmethod
     def extract_samplers_state_dict_from_batch(batch) -> List[Dict[int, Any]]:
@@ -286,7 +314,7 @@ class CaptureIterableDataset(IterableDataset):
         """
         samplers_state_dict = []
 
-        batch = CaptureIterableDataset._sanetize_batch_from_sampler_state(batch, samplers_state_dict)
+        batch = CaptureIterableDataset._sanitize_batch_from_sampler_state(batch, samplers_state_dict)
 
         return batch, samplers_state_dict
 
@@ -298,7 +326,7 @@ def find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSa
     if isinstance(dataloader.sampler, FastForwardSampler):
         return dataloader.sampler
 
-    elif isinstance(dataloader.batch_sampler, FastForwardSampler):
+    if isinstance(dataloader.batch_sampler, FastForwardSampler):
         return dataloader.batch_sampler
 
 
@@ -338,20 +366,22 @@ def cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str,
         if isinstance(state_dict["previous_worker"], int):
             for _ in range(state_dict["previous_worker"] - 1):
                 next(iter_dataloader._worker_queue_idx_cycle)
-        iter_dataloader._reset = iter_dataloader._ori_reset
+        iter_dataloader._reset = iter_dataloader._original_reset
         iter_dataloader._reset(dataloader, first_iter=True)
     return iter_dataloader
 
 
-def dataloader_to_state_dict(dataloader: DataLoader,
-                             iter: Iterator,
-                             num_batches_processed: int = None) -> List[Dict[str, Any]]:
+def dataloader_to_state_dict(
+    dataloader: DataLoader,
+    iterator: Iterator,
+    num_batches_processed: int = None,
+) -> List[Dict[str, Any]]:
     """
     Convert a dataloader to its associated state dict
     """
     out = {}
-    if iter is not None:
-        out.update(find_current_worker(iter))
+    if iterator is not None:
+        out.update(find_current_worker(iterator))
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = find_fast_forward_samplers(dataloader)
@@ -387,3 +417,25 @@ def find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
         previous_worker = None
 
     return {"num_workers": num_workers, "previous_worker": previous_worker}
+
+
+def sampler_metadata_collate(samples: List[Any], dataset, default_collate):
+    """
+    A collate function that adds the state dict of all samplers used in the worker processes.
+
+    The structure will be:
+
+    .. code-block:: python
+
+        {
+            "data": data returned by Dataset
+            "__pl_samplers": {
+                "sampler_name0": state_dict
+                "sampler_name1": state_dict
+            }
+        }
+    """
+    batch = default_collate(samples)
+    if not isinstance(dataset, CaptureIterableDataset):
+        return batch
+    return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: {k: v.state_dict() for k, v in dataset.samplers.items()}}

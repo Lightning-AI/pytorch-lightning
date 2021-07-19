@@ -37,6 +37,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 class TensorRunningAccum(object):
     """Tracks a running accumulation values (min, max, mean) without graph
     references.
+
     Examples:
         >>> accum = TensorRunningAccum(5)
         >>> accum.last(), accum.mean()
@@ -193,6 +194,7 @@ class CycleIterator(object):
     def __iter__(self) -> Any:
         """
         Creates the internal iterator and returns self
+
         Returns:
             CycleIterator: self
         """
@@ -204,8 +206,10 @@ class CycleIterator(object):
         """
         Fetches the next batch from internal dataloader and restarts
         it if necessary
+
         Returns:
             Any: the resulting batch
+
         Raises:
             StopIteration: if more then :attr:`length` batches have been returned
         """
@@ -260,11 +264,13 @@ class CombinedDataset(object):
     def _calc_num_data(self, datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
         """
         Compute the length of `CombinedDataset` according to the `mode`.
+
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.data.Dataset,
                 Iterable or even None.
             mode: Determine `CombinedDataset`'s length is the maximum or minimum of
                 the datasets.
+
         Returns:
             length: the length of `CombinedDataset`
         """
@@ -313,6 +319,7 @@ class CombinedDataset(object):
 
 
 class DataLoaderDict(Dict):
+    # behaves exactly like a dict, just necessary for more specific typechecks.
     pass
 
 
@@ -323,6 +330,7 @@ class CombinedLoader(object):
     (the one with the lowest number of batches) is done, and 'max_size_cycle` which raises
     StopIteration after the longest loader (the one with most batches) is done, while cycling
     through the shorter loaders.
+
     Examples:
         >>> loaders = {'a': torch.utils.data.DataLoader(range(6), batch_size=4),
         ...            'b': torch.utils.data.DataLoader(range(15), batch_size=5)}
@@ -363,18 +371,26 @@ class CombinedLoader(object):
         if self.mode == 'max_size_cycle':
             self._wrap_loaders_max_size_cycle()
 
-        self.loaders_iter_state_dict = None
+        self._loaders_iter_state_dict = None
+        self._iterator = None  # assigned in __iter__
 
     def state_dict(self, num_batches_processed: int):
+        """
+        The state dict includes all states from wrapped dataloaders and their samplers through the
+        ``CaptureIterableDataset`` and fast-forward samplers.
+
+        Args:
+            num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
+                may have already prefetched more batches by the time a state dict is requrested.
+        """
         if not _fault_tolerant_enabled():
-            return {}
+            return DataLoaderDict()
 
         def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
-            nonlocal num_batches_processed
             # find next worker if multiple workers were used
             state = find_current_worker(iterator)
             if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # the sampler state dict are extracted in ``CombinedLoaderIterator``
+                # the sampler state dict are extracted in `CombinedLoaderIterator`
                 if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
                     state.update(iterator._sampler_state_dict[0])
             else:
@@ -385,33 +401,34 @@ class CombinedLoader(object):
         return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)
 
     def load_state_dict(self, state_dict):
-        self.loaders_iter_state_dict = state_dict
+        self._loaders_iter_state_dict = state_dict
 
         def mock_reset_fn(self, *_, **__):
             pass
 
-        # delay reset call.
-        _MultiProcessingDataLoaderIter._ori_reset = _MultiProcessingDataLoaderIter._reset
+        # delay reset call, will be reset in on_restart
+        _MultiProcessingDataLoaderIter._original_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
     def on_restart(self, iterator: Iterator):
-        if self.loaders_iter_state_dict:
+        if not self._loaders_iter_state_dict:
+            return
 
-            def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
-                if isinstance(dataloader.dataset, CaptureIterableDataset):
-                    dataloader.dataset.load_state_dict(state_dict)
-                else:
-                    dataloader.fast_forward_sampler.load_state_dict(state_dict)
-                iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
-                if isinstance(dataloader.dataset, CaptureIterableDataset):
-                    state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
-                    # need to re-attach the ``state dict`` into the iterator for future collection.
-                    iterator._sampler_state_dict = [state_dict]
-                return iterator
+        def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
+            if isinstance(dataloader.dataset, CaptureIterableDataset):
+                dataloader.dataset.load_state_dict(state_dict)
+            else:
+                dataloader.fast_forward_sampler.load_state_dict(state_dict)
+            iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
+            if isinstance(dataloader.dataset, CaptureIterableDataset):
+                state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
+                # need to re-attach the state dict into the iterator for future collection.
+                iterator._sampler_state_dict = [state_dict]
+            return iterator
 
-            iterator._loader_iters = apply_to_collections(
-                self.loaders, self.loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
-            )
+        iterator._loader_iters = apply_to_collections(
+            self.loaders, self._loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
+        )
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
@@ -421,6 +438,7 @@ class CombinedLoader(object):
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
+
         Returns:
             the wrapped loaders
         """
@@ -440,7 +458,7 @@ class CombinedLoader(object):
         """
 
         # prevent ``NotImplementedError`` from PyTorch:
-        #  https://github.com/pytorch/pytorch/blob/master/torch/utils/data/dataloader.py#L541
+        # https://github.com/pytorch/pytorch/blob/v1.9.0/torch/utils/data/dataloader.py#L541
         def __getstate__patch__(*_):
             return {}
 
@@ -454,8 +472,10 @@ class CombinedLoader(object):
     def _calc_num_batches(loaders: Any) -> Union[int, float]:
         """
         Compute the length (aka the number of batches) of `CombinedLoader`.
+
         Args:
             loaders: a collections of loaders.
+
         Returns:
             length: the minimum length of loaders
         """
@@ -498,18 +518,20 @@ class CombinedLoaderIterator(object):
     def __next__(self) -> Any:
         """
         Fetches the next batch from multiple data loaders
+
         Returns:
             a collections of batch data
         """
-        batch = self.request_next_batch(self.loader_iters)
-        return batch
+        return self.request_next_batch(self.loader_iters)
 
     @staticmethod
     def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
         """
         Return the batch of data from multiple iterators.
+
         Args:
             loader_iters: a collections of iterators
+
         Returns
             Any: a collections of batch data
         """
@@ -530,8 +552,10 @@ class CombinedLoaderIterator(object):
     ) -> Union[Any, Iterator, Sequence, Mapping]:
         """
         Create and return a collection of iterators from loaders.
+
         Args:
             loaders: a collections of loaders
+
         Returns
             a collections of iterators
         """
