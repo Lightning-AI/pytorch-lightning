@@ -166,7 +166,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 @RunIf(amp_native=True, deepspeed=True)
 @pytest.mark.parametrize("precision", [
     16,
-    'mixed',
+    'mixed'
 ])
 @pytest.mark.parametrize(
     "amp_backend", [
