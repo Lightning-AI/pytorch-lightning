@@ -448,6 +448,13 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@RunIf(min_gpus=1, deepspeed=True)
+def test_deepspeed_fp32_works(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins='deepspeed_stage_3', fast_dev_run=True)
+    trainer.fit(model)
+
+
 class ModelParallelClassificationModel(LightningModule):
 
     def __init__(self, lr: float = 0.01, num_blocks: int = 5):
