@@ -62,6 +62,15 @@ def test_quantization(tmpdir, observe: str, fuse: bool):
     # test that the test score is almost the same as with pure training
     assert torch.allclose(org_score, quant_score, atol=0.45)
 
+    qmodel2 = RegressionModel.load_from_checkpoint(str(trainer.checkpoint_callback.last_model_path))
+
+    trainer_args.update(dict(max_epochs=2))
+    trainer = Trainer(**trainer_args)
+    trainer.fit(qmodel2, datamodule=dm)
+
+    trainer = Trainer(callbacks=[qcb], **trainer_args)
+    trainer.fit(qmodel2, datamodule=dm)
+
 
 @RunIf(quantization=True)
 def test_quantize_torchscript(tmpdir):
