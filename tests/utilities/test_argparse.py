@@ -76,7 +76,7 @@ def test_parse_args_from_docstring_normal():
 
     expected_args = ['root', 'train', 'normalize', 'download', 'num_samples', 'digits']
     assert len(args_help.keys()) == len(expected_args)
-    assert all([x == y for x, y in zip(args_help.keys(), expected_args)])
+    assert all(x == y for x, y in zip(args_help.keys(), expected_args))
     assert args_help['root'] == 'Root directory of dataset where ``MNIST/processed/training.pt``' \
                                 ' and  ``MNIST/processed/test.pt`` exist.'
     assert args_help['normalize'] == 'mean and std deviation of the MNIST dataset.'
