@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 from deprecate import void
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress, Tracker
+from pytorch_lightning.trainer.progress import BaseProgress, Progress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -195,11 +195,6 @@ class Loop(ABC):
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])
                 if restart_progress:
-
-                    def restart(tracker: Tracker):
-                        tracker.reset_on_restart()
-
-                    apply_to_collection(v, Tracker, restart)
-
+                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True

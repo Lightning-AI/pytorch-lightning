@@ -351,8 +351,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     trainer.fit_loop.load_state_dict(checkpoint)
     expected = {
         "total": {
-            "ready": total_val_batch,
-            "started": total_val_batch,
+            "ready": total_val_batch + 1,
+            "started": total_val_batch + 1,
             "processed": total_val_batch,
             "completed": total_val_batch
         },
@@ -555,6 +555,5 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
-    # TODO(@carmocca): do not reset for total
-    assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch
+    assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
