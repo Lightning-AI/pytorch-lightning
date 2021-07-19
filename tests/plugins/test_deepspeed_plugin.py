@@ -164,13 +164,17 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(amp_native=True, deepspeed=True)
+@pytest.mark.parametrize("precision", [
+    16,
+    'mixed',
+])
 @pytest.mark.parametrize(
     "amp_backend", [
         pytest.param("native", marks=RunIf(amp_native=True)),
         pytest.param("apex", marks=RunIf(amp_apex=True)),
     ]
 )
-def test_deepspeed_precision_choice(amp_backend, tmpdir):
+def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """
     Test to ensure precision plugin is also correctly chosen.
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -181,12 +185,12 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
         default_root_dir=tmpdir,
         plugins='deepspeed',
         amp_backend=amp_backend,
-        precision=16,
+        precision=precision,
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == 16
+    assert trainer.accelerator.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
