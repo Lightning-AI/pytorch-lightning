@@ -733,12 +733,8 @@ def test_combined_dataloader_state_dict_and_reload():
         elif idx == 2:
             assert loader_iters["a"][0]._sampler_state_dict == [{
                 'iter_sampler': {
-                    0: {
-                        'current_iteration': 3
-                    },
-                    1: {
-                        'current_iteration': 3
-                    }
+                    0: dict(current_iteration=3),
+                    1: dict(current_iteration=3)
                 }
             }]
             assert loader_iters["a"][1]._sampler_state_dict == []
@@ -746,12 +742,8 @@ def test_combined_dataloader_state_dict_and_reload():
         else:
             assert loader_iters["a"][0]._sampler_state_dict == [{
                 'iter_sampler': {
-                    0: {
-                        'current_iteration': 6
-                    },
-                    1: {
-                        'current_iteration': 3
-                    }
+                    0: dict(current_iteration=6),
+                    1: dict(current_iteration=3)
                 }
             }]
             assert loader_iters["a"][1]._sampler_state_dict == []
@@ -764,9 +756,7 @@ def test_combined_dataloader_state_dict_and_reload():
             "num_workers": 0,
             "previous_worker": None,
             "custom_sampler": {
-                0: {
-                    "current_iteration": 6
-                }
+                0: dict(current_iteration=6)
             },
         },
         "a": [
@@ -774,20 +764,14 @@ def test_combined_dataloader_state_dict_and_reload():
                 "num_workers": 2,
                 "previous_worker": 1,
                 "iter_sampler": {
-                    0: {
-                        "current_iteration": 6
-                    },
-                    1: {
-                        "current_iteration": 3
-                    }
+                    0: dict(current_iteration=6),
+                    1: dict(current_iteration=3)
                 },
             },
             {
                 "num_workers": 0,
                 "previous_worker": None,
-                0: {
-                    "current_iteration": 24
-                }
+                0: dict(current_iteration=24)
             },
         ],
     }
@@ -805,21 +789,15 @@ def test_combined_dataloader_state_dict_and_reload():
     assert loader_iters["a"][0]._sampler_state_dict == [{
         'num_workers': 2,
         'iter_sampler': {
-            0: {
-                'current_iteration': 6
-            },
-            1: {
-                'current_iteration': 6
-            }
+            0: dict(current_iteration=6),
+            1: dict(current_iteration=6)
         }
     }]
     assert loader_iters["a"][1]._sampler_state_dict == []
     assert loader_iters["b"]._sampler_state_dict == [{
         'num_workers': 0,
         'custom_sampler': {
-            0: {
-                'current_iteration': 8
-            }
+            0: dict(current_iteration=8)
         }
     }]
 
@@ -831,29 +809,21 @@ def test_combined_dataloader_state_dict_and_reload():
                 "num_workers": 2,
                 "previous_worker": 0,
                 "iter_sampler": {
-                    0: {
-                        "current_iteration": 6
-                    },
-                    1: {
-                        "current_iteration": 6
-                    }
+                    0: dict(current_iteration=6),
+                    1: dict(current_iteration=6)
                 },
             },
             {
                 "num_workers": 0,
                 "previous_worker": None,
-                0: {
-                    "current_iteration": 32
-                }
+                0: dict(current_iteration=32)
             },
         ],
         "b": {
             "num_workers": 0,
             "previous_worker": None,
             "custom_sampler": {
-                0: {
-                    "current_iteration": 8
-                }
+                0: dict(current_iteration=8)
             },
         },
     }
