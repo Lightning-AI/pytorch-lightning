@@ -14,6 +14,7 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from functools import partial
 from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
 
 import torch
@@ -24,9 +25,9 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
+    _cycle_to_next_worker_and_reset,
+    _find_current_worker,
     CaptureIterableDataset,
-    cycle_to_next_worker_and_reset,
-    find_current_worker,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -319,7 +320,7 @@ class CombinedDataset(object):
 
 
 class DataLoaderDict(Dict):
-    # behaves exactly like a dict, just necessary for more specific typechecks.
+    # behaves exactly like a dict, this is used to simplify apply_to_collection.
     pass
 
 
@@ -374,39 +375,46 @@ class CombinedLoader(object):
         self._loaders_iter_state_dict = None
         self._iterator = None  # assigned in __iter__
 
-    def state_dict(self, num_batches_processed: int):
+    @staticmethod
+    def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], num_batches_processed: int) -> Dict:
+        # find next worker if multiple workers were used
+        state = _find_current_worker(iterator)
+        if isinstance(dataloader.dataset, CaptureIterableDataset):
+            # the sampler state dict are extracted in `CombinedLoaderIterator`
+            if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
+                state.update(iterator._sampler_state_dict[0])
+        else:
+            # fetch directly from fast forward sampler
+            state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
+        return DataLoaderDict(state)
+
+    def state_dict(self, num_batches_processed: int) -> Dict:
         """
         The state dict includes all states from wrapped dataloaders and their samplers through the
         ``CaptureIterableDataset`` and fast-forward samplers.
 
         Args:
             num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
-                may have already prefetched more batches by the time a state dict is requrested.
+                may have already prefetched more batches by the time a state dict is requested.
         """
         if not _fault_tolerant_enabled():
             return DataLoaderDict()
 
-        def state_dict_fn(dataloader: DataLoader, iterator: Iterator) -> Dict:
-            # find next worker if multiple workers were used
-            state = find_current_worker(iterator)
-            if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # the sampler state dict are extracted in `CombinedLoaderIterator`
-                if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
-                    state.update(iterator._sampler_state_dict[0])
-            else:
-                # fetch directly from fast forward sampler
-                state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
-            return DataLoaderDict(state)
+        state_dict_fn = partial(self._state_dict_fn, num_batches_processed=num_batches_processed)
 
         return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)
 
     def load_state_dict(self, state_dict):
+        # store the samplers state.
+        # They would be reloaded once the ``CombinedIterator`` as been created
+        # and the workers are created.
         self._loaders_iter_state_dict = state_dict
 
         def mock_reset_fn(self, *_, **__):
             pass
 
-        # delay reset call, will be reset in on_restart
+        # mock reset call, so we can rotate the ``_worker_queue_idx_cycle`` to failed worker
+        # and get the first batch from it
         _MultiProcessingDataLoaderIter._original_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
 
@@ -414,18 +422,30 @@ class CombinedLoader(object):
         if not self._loaders_iter_state_dict:
             return
 
+        # this happen inside the workers if any were specificied.
+
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
             if isinstance(dataloader.dataset, CaptureIterableDataset):
+                # provide the ``state_dict`` to the ``CaptureIterableDataset``
+                # as it is responsible for passing down the state to associated ``FastForwardSampler``
                 dataloader.dataset.load_state_dict(state_dict)
             else:
+                # for ``Mapping-based`` dataset, the ``fast_forward_sampler`` was attached
+                # on the dataloader for simplicity
                 dataloader.fast_forward_sampler.load_state_dict(state_dict)
-            iterator = cycle_to_next_worker_and_reset(dataloader, state_dict)
+
+            # cycle back the iterator to the failed worker if multiple workers were provided
+            iterator = _cycle_to_next_worker_and_reset(dataloader, state_dict)
+
             if isinstance(dataloader.dataset, CaptureIterableDataset):
+                # remove keys related to iterator
                 state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
                 # need to re-attach the state dict into the iterator for future collection.
                 iterator._sampler_state_dict = [state_dict]
             return iterator
 
+        # apply the ``create_loader_iters`` on the collection of ``DataLoader / Iterator``.
+        # each ``Iterator``` was created from the ``DataLoader``.
         iterator._loader_iters = apply_to_collections(
             self.loaders, self._loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
         )
@@ -464,6 +484,7 @@ class CombinedLoader(object):
 
         _BaseDataLoaderIter.__getstate__ = __getstate__patch__
         iterator = CombinedLoaderIterator(self.loaders)
+        # handle fault tolerant restart logic.
         self.on_restart(iterator)
         self._iterator = iterator
         return iterator
@@ -540,7 +561,13 @@ class CombinedLoaderIterator(object):
             batch = next(iterator)
             if not _fault_tolerant_enabled():
                 return batch
+            # when fault tolerant is enabled, the iterator will return
+            # ``FastForwardSampler`` state_dict metadata
+            # along side with the user data.
+            # the metadata are extracted and store directly on the iterator
+            # to simplify the collection on ``state_dict`` call.
             batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
+            # store the ``sampler_state_dict`` on the iterator
             CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
             return batch
 

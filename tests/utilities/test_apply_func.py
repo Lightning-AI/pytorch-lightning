@@ -233,3 +233,23 @@ def test_apply_to_collections():
     assert reduced1 == reduced2 == [1, 4, 9]
     reduced = apply_to_collections(None, None, int, lambda x: x * x)
     assert reduced is None
+
+
+@pytest.mark.parametrize('should_return', [False, True])
+def test_wrongly_implemented_transferable_data_type(should_return):
+
+    class TensorObject:
+
+        def __init__(self, tensor: torch.Tensor, should_return: bool = True):
+            self.tensor = tensor
+            self.should_return = should_return
+
+        def to(self, device):
+            self.tensor.to(device)
+            # simulate a user forgets to return self
+            if self.should_return:
+                return self
+
+    tensor = torch.tensor(0.1)
+    obj = TensorObject(tensor, should_return)
+    assert obj == move_data_to_device(obj, torch.device("cpu"))

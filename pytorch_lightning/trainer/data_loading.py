@@ -34,8 +34,7 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
-    FastForwardSampler,
-    sampler_metadata_collate,
+    FastForwardSampler, _sampler_metadata_collate,
 )
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -508,9 +507,6 @@ class TrainerDataLoadingMixin(ABC):
     def request_dataloader(self, model: 'pl.LightningModule', stage: str) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
 
-        Args:
-            dataloader_fx: The bound dataloader getter
-
         Returns:
             The dataloader
         """
@@ -522,17 +518,16 @@ class TrainerDataLoadingMixin(ABC):
 
     def _flatten_dl_only(self, dataloaders):
         # handles user error when they return:
-        # return dl1, dl2  vs  return (dl1, dl2)
-        if isinstance(dataloaders, tuple):
-            all_dls = [isinstance(x, Iterable) for x in dataloaders]
-            all_dls = all(all_dls)
-            if all_dls:
-                dataloaders = list(dataloaders)
-
+        # `return dl1, dl2` vs `return (dl1, dl2)`
+        if isinstance(dataloaders, tuple) and all(isinstance(x, Iterable) for x in dataloaders):
+            return list(dataloaders)
         return dataloaders
 
     @staticmethod
-    def _add_sampler_metadata_collate(dataloader: DataLoader):
-        default_collate = dataloader.collate_fn
-        dataset = dataloader.dataset
-        dataloader.collate_fn = partial(sampler_metadata_collate, dataset=dataset, default_collate=default_collate)
+    def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
+        """
+        Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
+        """
+        dataloader.collate_fn = partial(
+            _sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        )

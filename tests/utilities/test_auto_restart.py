@@ -34,9 +34,9 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
+    _dataloader_load_state_dict,
+    _dataloader_to_state_dict,
     CaptureIterableDataset,
-    dataloader_load_state_dict,
-    dataloader_to_state_dict,
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
@@ -228,7 +228,6 @@ class RangeIterableDataset(IterableDataset):
         self.data = list(data)
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.is_in_workers = is_in_workers
         self.state_dict = state_dict
         self.attr_name = attr_name
 
@@ -288,7 +287,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
 
     initial_seed = seed_everything(42)
     generator.manual_seed(initial_seed)
-    dataset = RangeIterableDataset(range(20), num_workers, batch_size, True, state_dict=state_dict)
+    dataset = RangeIterableDataset(range(20), num_workers, batch_size, state_dict=state_dict)
     dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
@@ -388,7 +387,7 @@ class MetaLearningDataset(IterableDataset):
         num_workers: Optional[int] = None,
         global_rank: Optional[int] = None,
         world_size: Optional[int] = None,
-        initial_seed: Optional[torch.Generator] = None,
+        initial_seed: Optional[int] = None,
         shuffle: bool = True,
         debugging: bool = False,
     ):
@@ -894,15 +893,15 @@ def test_dataloader_to_state_dict_and_reload():
     _ = next(iter_dataloader)
     _ = next(iter_dataloader)
 
-    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
+    state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
     assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 16}}
 
     dataloader = create_dataloader()
-    dataloader = dataloader_load_state_dict(dataloader, state_dict)
+    dataloader = _dataloader_load_state_dict(dataloader, state_dict)
     iter_dataloader = iter(dataloader)
     _ = next(iter_dataloader)
 
-    state_dict = dataloader_to_state_dict(dataloader, iter_dataloader)
+    state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
     assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 24}}
 
 
