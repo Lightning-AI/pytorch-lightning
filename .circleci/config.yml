@@ -5,6 +5,19 @@ orbs:
   go: circleci/go@1.3.0
   codecov: codecov/codecov@1.1.0
 
+# Workflow Steps:
+#  1. Checkout
+#  2. Install GO
+#  3. Checkout ml-testing-accelerators
+#  4. GCP GKE install
+#  5. Update Kubeconfig with credintials
+#  6. Install jsonnet
+#  7. Update jsonnet
+#  8. Deploy the job on the kubernetes cluster
+#  9. Statistics
+#  10. Upload coverage results
+#  11. Upload coverage to Codecov
+
 references:
 
   make_docs: &make_docs

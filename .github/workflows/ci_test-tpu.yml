@@ -1,31 +1,22 @@
 name: TPU tests
 
-# Workflow Steps:
-#  1. Setup gcloud CLI
-#  2. Checkout Pytorch Lightning
-#  3. Set up Python
-#  4. Set up Python 3.7
-#  5. Get Current PR Number
-#  6. Checkout ml-testing-accelerators
-#  7. Install jsonnet
-#  8. Get Cluster Credentials
-#  9. Deploy the job on the kubernetes cluster
-#  10. Statistics
-#  11. Upload coverage results
-#  12. Upload coverage to Codecov
-
 on:
   push:
     branches: [master, "release/*"]
+# TODO: temporal disable TPU testing until we find way how to pass credentials to forked PRs
+#  pull_request:
+#    branches:
+#      - master
 
 env:
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
+  IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
   MAX_CHECKS: 360
   CHECK_SPEEP: 5
 
 jobs:
-  setup-deploy:
+  setup-build-publish-deploy:
     name: tpu-testing-job
     runs-on: ubuntu-20.04
     strategy:
@@ -37,35 +28,22 @@ jobs:
     timeout-minutes: 50
 
     steps:
-    - name: Setup gcloud CLI
-      uses: google-github-actions/setup-gcloud@master
-      with:
-        version: '290.0.1'
-        service_account_key: ${{ secrets.GKE_SA_KEY_BASE64 }}
-        project_id: ${{ secrets.GKE_PROJECT }}
-        export_default_credentials: true
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Get Current PR & SHA Number
-      id: vars
-      shell: bash
-      run: |
-        echo ::set-output name=PR_NUMBER::$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
-        echo "::set-output name=SHA::$(git rev-parse --short HEAD)"
-
+    - name: Set IMAGETAG
+      run: echo "IMAGETAG=$(date +%s)_${{ matrix.python-version }}" >> $GITHUB_ENV
     - name: Install Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.14.x
-
     - name: Set up Python 3.7
       uses: actions/setup-python@v2
       with:
         python-version: 3.7
+
+    - name: Checkout Pytorch Lightning
+      uses: actions/checkout@v2
+      with:
+        repository: PyTorchLightning/pytorch-lightning
+        ref: ${{ github.event.pull_request.head.sha }}
 
     - name: Checkout ml-testing-accelerators
       uses: actions/checkout@v2
@@ -74,36 +52,45 @@ jobs:
         path: ml-testing-accelerators
         ref: 5e88ac24f631c27045e62f0e8d5dfcf34e425e25
 
+    - name: Setup gcloud CLI
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '290.0.1'
+        service_account_key: ${{ secrets.GKE_SA_KEY_BASE64 }}
+        project_id: ${{ secrets.GKE_PROJECT }}
+        export_default_credentials: true
+
+    # Configure Docker to use the gcloud command-line tool as a credential helper for authentication.
+    - name: Configure Docker
+      run: |-
+        gcloud --quiet auth configure-docker
+      shell: bash
+    - name: Build and Push Docker Image
+      env:
+        PYTHON_VER: ${{ matrix.python-version }}
+        XLA_VER: ${{ matrix.xla-version }}
+      run: |
+        #cd dockers/tpu-tests
+        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
+        docker push "$IMAGE:$IMAGETAG"
+      shell: bash
+
     - name: Install jsonnet
       run: |-
         go get github.com/google/go-jsonnet/cmd/jsonnet
       shell: bash
-
     # Get the GKE credentials so we can deploy to the cluster
     # Use either zone or region depending on cluster setup.
-    - name: Get Cluster Credentials
-      run: |-
+    - run: |-
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
       shell: bash
-
-    - name: Update jsonnet file
-      run: |-
-        fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet'
-        tt = open(fname).read()
-        tt = tt.replace('{PYTORCH_VERSION}', '$XLA_VER')
-        tt = tt.replace('{PYTHON_VERSION}', '$PYTHON_VER')
-        tt = tt.replace('{PR_NUMBER}', '${{ steps.vars.outputs.PR_NUMBER }}')
-        tt = tt.replace('{SHA}', '${{ steps.vars.outputs.SHA }}')
-        open(fname, 'w').write(ttt)
-      shell: python
 
     - name: Deploy the job on the kubernetes cluster
       env:
         XLA_VER: ${{ matrix.xla-version }}
-        PYTHON_VER: ${{ matrix.xla-version }}
       run: |-
-        cat dockers/tpu-tests/tpu_test_cases.jsonnet
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
+        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; ttt = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(ttt)"
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$IMAGETAG | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
@@ -124,6 +111,7 @@ jobs:
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
+        gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
         echo "Status code: $status_code"
         exit $status_code
       shell: bash
