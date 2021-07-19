@@ -219,30 +219,27 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
 
 
-def test_trainer_stochastic_weight_averaging_deepcopy(tmpdir):
-    """Test to ensure SWA Callback doesn't deecopy dataloaders and datamodule potentially leading to OOM"""
+def test_swa_deepcopy(tmpdir):
+    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM"""
 
-    train_dataloader = DataLoader(RandomDataset(32, 64))
+    class TestSWA(StochasticWeightAveraging):
 
-    class TestModel(BoringModel):
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer
-
-    class StochasticWeightAveragingCheck(StochasticWeightAveraging):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.on_before_accelerator_backend_setup_called = False
 
         def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule'):
             super().on_before_accelerator_backend_setup(trainer, pl_module)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
-            assert not hasattr(self._average_model, "trainer")
+            assert self._average_model.trainer is None
+            self.on_before_accelerator_backend_setup_called = True
 
-    model = TestModel()
+    model = BoringModel()
+    swa = TestSWA()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=StochasticWeightAveragingCheck(swa_lrs=1e-3),
-        limit_train_batches=4,
-        limit_val_batches=4,
-        max_epochs=2,
+        callbacks=swa,
+        fast_dev_run=True,
     )
-    trainer.fit(model, train_dataloader=train_dataloader)
+    trainer.fit(model)
+    assert swa.on_before_accelerator_backend_setup_called
