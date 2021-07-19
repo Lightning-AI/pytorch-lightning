@@ -66,7 +66,7 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        # the `state dict` was cached as workers were available before.
+        # the `state dict` was cached as workers were unavailable before.
         if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
             # reload the current state dict
             self._load_non_random_state(self._cached_state_dict)
