@@ -224,21 +224,6 @@ def test_deepspeed_defaults(tmpdir):
     assert isinstance(plugin.config["zero_optimization"], dict)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
-def test_invalid_deepspeed_defaults_no_precision(tmpdir):
-    """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins='deepspeed',
-    )
-    with pytest.raises(
-        MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
-    ):
-        trainer.fit(model)
-
-
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_warn_deepspeed_override_backward(tmpdir):
     """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
