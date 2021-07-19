@@ -307,7 +307,7 @@ def test_lr_candidates_between_min_and_max(tmpdir):
         num_training=3,
     )
     lr_candidates = lr_finder.results["lr"]
-    assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
+    assert all(lr_min <= lr <= lr_max for lr in lr_candidates)
 
 
 def test_lr_finder_ends_before_num_training(tmpdir):
