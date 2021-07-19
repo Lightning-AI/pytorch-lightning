@@ -98,7 +98,8 @@ class QuantizationAwareTraining(Callback):
 
             - 'fbgemm' for server inference.
             - 'qnnpack' for mobile inference.
-            -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+            -  a custom `torch.quantization.QConfig
+                <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
 
         observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
             and ``HistogramObserver`` as "histogram" which is more computationally expensive.
