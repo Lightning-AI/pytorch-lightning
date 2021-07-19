@@ -1998,3 +1998,10 @@ class LightningModule(
         self.trainer.callback_metrics.update(
             apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
         )
+
+    def __getstate__(self) -> Dict[str, Any]:
+        # prevent copying data
+        skipped_keys = (
+            "trainer", "train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader", "datamodule"
+        )
+        return {k: v for k, v in self.__dict__.items() if k not in skipped_keys}

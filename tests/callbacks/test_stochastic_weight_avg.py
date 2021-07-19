@@ -234,13 +234,8 @@ def test_trainer_stochastic_weight_averaging_deepcopy(tmpdir):
 
         def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule'):
             super().on_before_accelerator_backend_setup(trainer, pl_module)
-            assert self._average_model.train_dataloader is None
-            assert self._average_model.val_dataloader is None
-            assert self._average_model.test_dataloader is None
-            assert self._average_model.predict_dataloader is None
-            assert self._average_model.trainer is None
-            assert pl_module.train_dataloader is not None
-            assert pl_module.trainer is not None
+            assert self._average_model.train_dataloader is not pl_module.train_dataloader
+            assert not hasattr(self._average_model, "trainer")
 
     model = TestModel()
     trainer = Trainer(
