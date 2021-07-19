@@ -144,14 +144,16 @@ def test_logdir_custom_logger(tmpdir):
 
 def test_logdir_logger_collection(tmpdir):
     """Tests that the logdir equals the default_root_dir when the logger is a LoggerCollection"""
-    expected = tmpdir
-    model = TestModel(expected)
-
+    default_root_dir = tmpdir / "default_root_dir"
+    save_dir = tmpdir / "save_dir"
+    model = TestModel(default_root_dir)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=2, logger=[TensorBoardLogger(save_dir=tmpdir, name='custom_logs')]
+        default_root_dir=default_root_dir,
+        max_steps=2,
+        logger=[TensorBoardLogger(save_dir=save_dir, name='custom_logs')]
     )
-
     assert isinstance(trainer.logger, LoggerCollection)
-    assert trainer.log_dir == expected
+    assert trainer.log_dir == default_root_dir
+
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.log_dir == default_root_dir
