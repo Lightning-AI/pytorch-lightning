@@ -60,7 +60,7 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch"
       displayName: 'Env details'
 

@@ -223,7 +223,7 @@ class LearningRateMonitor(Callback):
         unique = set(names)
         if len(names) == len(unique):
             return set()
-        return set(n for n in names if names.count(n) > 1)
+        return {n for n in names if names.count(n) > 1}
 
     def _find_names(self, lr_schedulers: List, add_lr_sch_names: bool = True) -> List[str]:
         # Create unique names in the case we have multiple of the same learning

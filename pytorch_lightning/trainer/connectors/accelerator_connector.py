@@ -214,8 +214,8 @@ class AcceleratorConnector(object):
         if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
-                f" but passed `accelerator={self.distributed_backend}`"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
+                f" got `accelerator={self.distributed_backend}`."
             )
 
     def _validate_accelerator_type(self) -> None:
@@ -405,14 +405,14 @@ class AcceleratorConnector(object):
         if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
-        elif accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+        if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
             self.ipus = self.devices
             return True
-        elif accelerator == DeviceType.GPU and torch.cuda.is_available():
+        if accelerator == DeviceType.GPU and torch.cuda.is_available():
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
-        elif accelerator == DeviceType.CPU:
+        if accelerator == DeviceType.CPU:
             self.num_processes = self.devices
             return True
         return False
