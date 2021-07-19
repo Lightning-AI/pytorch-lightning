@@ -173,7 +173,7 @@ def test_fast_forward_on_random_sampler():
 
     dataset = range(15)
     generator = torch.Generator().manual_seed(seed)
-    values = [v for v in RandomSampler(dataset, generator=generator)]
+    values = list(RandomSampler(dataset, generator=generator))
 
     generator = torch.Generator().manual_seed(seed)
     random_sampler = RandomSampler(dataset, generator=generator)
