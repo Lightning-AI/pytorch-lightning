@@ -45,17 +45,6 @@ references:
       command: |
         echo "Update jsonnet"
 
-  build_push_docker: &build_push_docker
-    run:
-      name: Build and push Docker image
-      environment:
-        - PYTHON_VER: 3.7
-      command: |
-        gcloud --quiet auth configure-docker
-        #cd dockers/tpu-tests
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
-        docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
-
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
@@ -114,7 +103,6 @@ jobs:
           cluster: $GKE_CLUSTER
           perform-login: true
       - setup_remote_docker
-      - *build_push_docker
       - *deploy_cluster
       - *stats
       - codecov/upload:
