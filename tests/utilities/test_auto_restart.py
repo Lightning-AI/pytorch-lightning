@@ -670,6 +670,51 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
+def create_dataloader():
+    dataset = range(50)
+    num_workers = 2
+    batch_size = 8
+    sampler = FastForwardSampler(SequentialSampler(dataset))
+    sampler.setup(batch_size)
+
+    dataloader = DataLoader(
+        dataset,
+        sampler=sampler,
+        batch_size=batch_size,
+    )
+    dataloader.fast_forward_sampler = sampler
+
+    loader_dict = {
+        "a": [
+            DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
+            dataloader,
+        ],
+        "b": DataLoader(
+            create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
+        )
+    }
+    apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
+    return CombinedLoader(loader_dict)
+
+
+# Lightning will wrap the iterator within a prefect function as follow.
+def prefetch_iterator(iterable: Iterable):
+    it = iter(iterable)
+
+    try:
+        # the iterator may be empty from the beginning
+        last = next(it)
+    except StopIteration:
+        return
+
+    for val in it:
+        # yield last and has next
+        yield last, False, it
+        last = val
+    # yield last, no longer has next
+    yield last, True, it
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -678,66 +723,16 @@ def test_combined_dataloader_state_dict_and_reload():
     This test makes sure the CombinedLoader used in the condition of Lightning properly
     capture its children DataLoader states.
     """
-
-    def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
-        dataset = RangeIterableDataset(
-            range(50), num_workers=num_workers, batch_size=batch_size, is_in_workers=True, attr_name=attr_name
-        )
-        return CaptureIterableDataset(dataset)
-
-    def create_dataloader():
-        dataset = range(50)
-        num_workers = 2
-        batch_size = 8
-        sampler = FastForwardSampler(SequentialSampler(dataset))
-        sampler.setup(batch_size)
-
-        dataloader = DataLoader(
-            dataset,
-            sampler=sampler,
-            batch_size=batch_size,
-        )
-        dataloader.fast_forward_sampler = sampler
-
-        loader_dict = {
-            "a": [
-                DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3),
-                dataloader,
-            ],
-            "b": DataLoader(
-                create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
-            )
-        }
-        apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
-        return CombinedLoader(loader_dict)
-
-    # Lightning will wrap the iterator within a prefect function as follow.
-    def prefetch_iterator(iterable: Iterable):
-        it = iter(iterable)
-
-        try:
-            # the iterator may be empty from the beginning
-            last = next(it)
-        except StopIteration:
-            return
-
-        for val in it:
-            # yield last and has next
-            yield last, False, it
-            last = val
-        # yield last, no longer has next
-        yield last, True, it
-
     dataloader = create_dataloader()
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
     num_batches_processed = 4
     for idx in range(1, num_batches_processed):
-        _, _, prefected_iterator = next(iter_dataloader)
+        _, _, prefeched_iterator = next(iter_dataloader)
 
-        loader_iters = prefected_iterator._loader_iters
+        loader_iters = prefeched_iterator._loader_iters
 
-        # when deadling with IterativeDataset,
+        # when dealing with IterativeDataset,
         # the sampler state dict will be attached directly onto the iterator to simplify collection.
 
         if idx == 1:
@@ -812,9 +807,9 @@ def test_combined_dataloader_state_dict_and_reload():
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
-    _, _, prefected_iterator = next(iter_dataloader)
+    _, _, prefeched_iterator = next(iter_dataloader)
 
-    loader_iters = prefected_iterator._loader_iters
+    loader_iters = prefeched_iterator._loader_iters
 
     assert loader_iters["a"][0]._sampler_state_dict == [{
         'num_workers': 2,
@@ -959,105 +954,3 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
         model.training_epoch_end = None
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
         trainer.fit(model)
-
-
-class SequentialGetItemDataset(Dataset):
-
-    def __init__(self, length, *_):
-        self.len = length
-
-    def __getitem__(self, index):
-        return index
-
-    def __len__(self):
-        return self.len
-
-
-class RandomTorchGetItemDataset(Dataset):
-
-    def __init__(self, length, size):
-        self.size = size
-        self.len = length
-
-    def __getitem__(self, index):
-        return torch.rand(self.size, )
-
-    def __len__(self):
-        return self.len
-
-
-class RandomNumpyGetItemDataset(RandomTorchGetItemDataset):
-
-    def __getitem__(self, index):
-        return np.random.rand(self.size, )
-
-
-class RandomPythonGetItemDataset(RandomTorchGetItemDataset):
-
-    def __getitem__(self, index):
-        return torch.tensor([python_random.random() for _ in range(self.size)])
-
-
-class RandomGeneratorGetItemDataset(Dataset):
-
-    def __init__(self, length, size):
-        self.size = size
-        self.len = length
-        self.generator = torch.Generator()
-
-    def __getitem__(self, index):
-        return torch.rand(self.size, generator=self.generator)
-
-    def __len__(self):
-        return self.len
-
-
-# TODO: num_workers
-@pytest.mark.parametrize(
-    "dataset_class", [
-        RandomTorchGetItemDataset,
-        SequentialGetItemDataset,
-        RandomNumpyGetItemDataset,
-        RandomPythonGetItemDataset,
-        RandomGeneratorGetItemDataset,
-    ]
-)
-def test_dataset_rng_states_restart(dataset_class):
-    # set the manual seed initially
-    torch.manual_seed(1)
-    num_workers = 0
-
-    dataset = dataset_class(8, 8)
-    random_sampler = RandomSampler(dataset, generator=torch.Generator())
-    ff_sampler = FastForwardSampler(random_sampler)
-    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
-    dataloader_iter = iter(dataloader)
-
-    # fetch 2 batches
-    _ = next(dataloader_iter)
-    _ = next(dataloader_iter)
-
-    # (A) capture the state after fetching 2 batches
-    state = ff_sampler.state_dict(2)  # main process
-
-    # (B) simulate 2 additional batches
-    batch02 = next(dataloader_iter)
-    batch03 = next(dataloader_iter)
-
-    # start reloading
-    dataset = dataset_class(8, 8)
-    random_sampler = RandomSampler(dataset, generator=torch.Generator())
-    ff_sampler = FastForwardSampler(random_sampler)
-
-    # load the state dict saved at (A)
-    ff_sampler.load_state_dict(state)
-
-    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
-    dataloader_iter = iter(dataloader)
-
-    # fetch 2 random batches, these should match exactly the batches seen at (B)
-    batch10 = next(dataloader_iter)
-    batch11 = next(dataloader_iter)
-
-    assert torch.equal(batch02, batch10)
-    assert torch.equal(batch03, batch11)

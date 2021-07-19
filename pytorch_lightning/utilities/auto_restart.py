@@ -46,7 +46,6 @@ class FastForwardSampler(Sampler):
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[str, Any]] = None
         self._attr_name = attr_name
-        self._initial_rng_state = self._get_rng_states()
 
     def __getattr__(self, key: str) -> Any:
         if key in self.__dict__:
@@ -70,7 +69,6 @@ class FastForwardSampler(Sampler):
         if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
             # reload the current state dict
             self._load_non_random_state(self._cached_state_dict)
-            self._set_rng_states(self._cached_state_dict[self.worker_id]["initial_rng_state"])
 
         i = 0
         sampler_iter = iter(self._sampler)
@@ -79,9 +77,6 @@ class FastForwardSampler(Sampler):
             i += 1
 
         # here: i == self._current_iteration
-        if self._cached_state_dict is not None:
-            rng_state = self._cached_state_dict[self.worker_id]["rng_states"]
-            self._set_rng_states(rng_state)
 
         # recreate iterator to be sure loading is reflected there as well
         while True:
@@ -119,9 +114,6 @@ class FastForwardSampler(Sampler):
         return {
             self.worker_id: {
                 "current_iteration": self._compute_current_iteration(num_batches_processed),
-                "rng_states": self._get_rng_states(),
-                "initial_rng_state": self._initial_rng_state,
-                # "torch_rng_state": torch.get_rng_state(),
             }
         }
 
@@ -139,35 +131,6 @@ class FastForwardSampler(Sampler):
     def _load_non_random_state(self, state_dict):
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
         # self.restarting = True
-
-    def _get_rng_states(self):
-
-        def _collect(gen: torch.Generator):
-            return gen.get_state()
-
-        states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator) or {}
-        states["__global_torch"] = torch.get_rng_state()
-        states["__global_numpy"] = np.random.get_state()
-        states["__global_python"] = python_get_rng_state()
-        return states
-
-    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
-        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
-        np.random.set_state(rng_state_dict.pop("__global_numpy"))
-        python_set_rng_state(rng_state_dict.pop("__global_python"))
-
-        _set_rng_states_on_obj(self._sampler, rng_state_dict)
-
-
-def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
-
-    for k, v in rng_state_dict.items():
-        attr = getattr(obj, k)
-        if isinstance(v, Mapping):
-            _set_rng_states_on_obj(attr, v)
-
-        elif isinstance(attr, torch.Generator):
-            attr.set_state(v)
 
 
 class CaptureIterableDataset(IterableDataset):
