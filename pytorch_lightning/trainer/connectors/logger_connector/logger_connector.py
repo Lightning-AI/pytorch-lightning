@@ -315,11 +315,7 @@ class LoggerConnector:
         return self._progress_bar_metrics
 
     def teardown(self):
-        args = (
-            torch.Tensor,
-            move_data_to_device,
-            "cpu",
-        )
+        args = (torch.Tensor, move_data_to_device, "cpu")
         self._logged_metrics = apply_to_collection(self._logged_metrics, *args)
         self._progress_bar_metrics = apply_to_collection(self._progress_bar_metrics, *args)
         self._callback_metrics = apply_to_collection(self._callback_metrics, *args)

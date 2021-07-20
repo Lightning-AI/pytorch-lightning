@@ -456,4 +456,4 @@ class DDPPlugin(ParallelPlugin):
             # clean up memory
             torch.cuda.empty_cache()
             # delete ``ddp wrapper`` as the reducer is holding some cuda memory back.
-            self._model = None
+            self.model = None

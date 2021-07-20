@@ -18,7 +18,6 @@ import pickle
 import sys
 from argparse import Namespace
 from copy import deepcopy
-from functools import partial
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -30,7 +29,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Callback, callbacks, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -1980,14 +1979,6 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     class TestModel(BoringModel):
 
-        def __init__(self):
-            super().__init__()
-            self._example_input_array = torch.zeros((2, 32))
-
-        @property
-        def example_input_array(self):
-            return self._example_input_array
-
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
             self.log("train_loss", loss["loss"])
@@ -2005,7 +1996,6 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert model._example_input_array.device == torch.device("cpu")
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics['train_loss'].device == torch.device("cpu")
 

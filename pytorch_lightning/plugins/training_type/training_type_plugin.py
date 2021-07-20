@@ -39,7 +39,7 @@ class TrainingTypePlugin(Plugin, ABC):
     """
 
     def __init__(self) -> None:
-        self._model = None
+        self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
 
@@ -126,7 +126,7 @@ class TrainingTypePlugin(Plugin, ABC):
         return self._model
 
     @model.setter
-    def model(self, new_model: Module) -> None:
+    def model(self, new_model: Optional[Module]) -> None:
         self._model = new_model
 
     @property
