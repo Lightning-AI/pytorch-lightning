@@ -322,3 +322,9 @@ def test_v1_6_0_deprecated_hpc_load(tmpdir):
     checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(str(tmpdir))
     with pytest.deprecated_call(match=r"`CheckpointConnector.hpc_load\(\)` was deprecated in v1.4"):
         trainer.checkpoint_connector.hpc_load(checkpoint_path)
+
+
+def test_v1_6_0_deprecated_model_size():
+    model = BoringModel()
+    with pytest.deprecated_call(match="The `LightningModule.model_size` property was deprecated in v1.4 and will be removed in v1.6."):
+        _ = model.model_size
