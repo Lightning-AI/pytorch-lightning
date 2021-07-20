@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -222,27 +223,19 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
 def test_trainer_stochastic_weight_averaging_deepcopy(tmpdir):
     """Test to ensure SWA Callback doesn't deecopy dataloaders and datamodule potentially leading to OOM"""
 
-    train_dataloader = DataLoader(RandomDataset(32, 64))
-
-    class TestModel(BoringModel):
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer
-
     class StochasticWeightAveragingCheck(StochasticWeightAveraging):
 
         def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule'):
             super().on_before_accelerator_backend_setup(trainer, pl_module)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
+            assert self._average_model.train_dataloader.__self__ == self._average_model
+            assert isinstance(pl_module.train_dataloader, _PatchDataLoader)
             assert not hasattr(self._average_model, "trainer")
 
-    model = TestModel()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=StochasticWeightAveragingCheck(swa_lrs=1e-3),
-        limit_train_batches=4,
-        limit_val_batches=4,
-        max_epochs=2,
+        fast_dev_run=True,
     )
-    trainer.fit(model, train_dataloader=train_dataloader)
+    trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 64)))

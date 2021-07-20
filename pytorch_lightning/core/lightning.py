@@ -21,6 +21,7 @@ import os
 import tempfile
 import uuid
 from abc import ABC
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
@@ -111,6 +112,8 @@ class LightningModule(
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
+
+        self._prevent_trainer_and_dataloaders_deepcopy: bool = False
 
     def optimizers(
         self,
@@ -1999,9 +2002,16 @@ class LightningModule(
             apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
         )
 
+    @contextmanager
+    def prevent_trainer_and_dataloaders_deepcopy(self) -> None:
+        self._prevent_trainer_and_dataloaders_deepcopy = True
+        yield
+        self._prevent_trainer_and_dataloaders_deepcopy = False
+
     def __getstate__(self) -> Dict[str, Any]:
-        # prevent copying data
-        skipped_keys = (
-            "trainer", "train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader", "datamodule"
-        )
-        return {k: v for k, v in self.__dict__.items() if k not in skipped_keys}
+        skip_keys = set()
+        if self._prevent_trainer_and_dataloaders_deepcopy:
+            skip_keys.update({
+                "trainer", "train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader", "datamodule"
+            })
+        return {k: v for k, v in self.__dict__.items() if k not in skip_keys}

@@ -29,6 +29,7 @@ from typing_extensions import TypedDict
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -407,6 +408,27 @@ class ModelPruning(Callback):
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
 
+    def _make_state_dict_permanent(self, checkpoint: Dict[str, Any], pl_module: LightningModule) -> Dict[str, Any]:
+        state_dict_checkpoint = {}
+        state_dict = pl_module.state_dict()
+
+        # find the mask and the original weights.
+        map_params_to_mask = {k.replace("_mask", "_orig"): k for k in state_dict.keys() if k.endswith("_mask")}
+        for param_name, mask_name in map_params_to_mask.items():
+            param = state_dict.pop(param_name)
+            mask = state_dict.pop(mask_name)
+            # make weights permanent
+            state_dict_checkpoint[param_name.replace("_orig", "")] = param * mask
+
+        # add the parameters left in the state dict
+        state_dict_checkpoint.update(state_dict)
+
+        def move_to_cpu(tensor: torch.Tensor) -> torch.Tensor:
+            # deepcopy each tensor and move them on cpu
+            return deepcopy(tensor).cpu()
+
+        checkpoint["state_dict"] = apply_to_collection(state_dict_checkpoint, torch.Tensor, move_to_cpu)
+
     def on_save_checkpoint(
         self,
         trainer: 'pl.Trainer',
@@ -415,13 +437,8 @@ class ModelPruning(Callback):
     ) -> Dict[str, Any]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
-            prev_device = pl_module.device
             # prune a copy so training can continue with the same buffers
-            copy = deepcopy(pl_module.to("cpu"))
-            self.make_pruning_permanent(copy)
-            checkpoint["state_dict"] = copy.state_dict()
-            pl_module.to(prev_device)
-
+            self._make_state_dict_permanent(checkpoint, pl_module)
         return checkpoint
 
     @staticmethod
