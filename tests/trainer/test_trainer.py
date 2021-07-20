@@ -21,6 +21,8 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
+from torch.nn.parallel.distributed import DistributedDataParallel
+
 import cloudpickle
 import pytest
 import torch
@@ -1987,15 +1989,21 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         def configure_optimizers(self):
             return torch.optim.Adam(self.layer.parameters(), lr=0.1)
 
+    class Check(Callback):
+
+        def on_epoch_start(self, trainer, *_):
+            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
+
     initial = torch.cuda.memory_allocated(0)
 
     model = TestModel()
     trainer_kwargs = dict(
-        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp", progress_bar_refresh_rate=0
+        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp", progress_bar_refresh_rate=0, callbacks=Check()
     )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
+    assert trainer.training_type_plugin.model is None
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics['train_loss'].device == torch.device("cpu")
 

@@ -139,6 +139,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             # clean up memory
             torch.cuda.empty_cache()
 
-        if not isinstance(self.model, pl.LightningModule):
+        if isinstance(self.model, DistributedDataParallel):
             # Un-reference the wrapper as the reducer can hold cuda memory.
             self.model = None
