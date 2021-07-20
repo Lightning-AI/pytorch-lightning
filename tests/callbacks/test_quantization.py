@@ -49,7 +49,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     org_score = torch.mean(torch.tensor([mean_relative_error(model(x), y) for x, y in dm.test_dataloader()]))
 
     fusing_layers = [(f'layer_{i}', f'layer_{i}a') for i in range(3)] if fuse else None
-    qcb = QuantizationAwareTraining(observer_type=observe, modules_to_fuse=fusing_layers, convert_on_fit_end=convert)
+    qcb = QuantizationAwareTraining(observer_type=observe, modules_to_fuse=fusing_layers, quantize_on_fit_end=convert)
     trainer = Trainer(callbacks=[qcb], **trainer_args)
     trainer.fit(qmodel, datamodule=dm)
 

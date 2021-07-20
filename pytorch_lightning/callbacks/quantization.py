@@ -126,7 +126,7 @@ class QuantizationAwareTraining(Callback):
         input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
             but break compatibility to torchscript and export with ``torch.save``.
 
-        convert_on_fit_end: perform the quantization in `on_fit_end`.
+        quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
     """
@@ -139,7 +139,7 @@ class QuantizationAwareTraining(Callback):
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
-        convert_on_fit_end: bool = True,
+        quantize_on_fit_end: bool = True,
     ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
@@ -162,7 +162,7 @@ class QuantizationAwareTraining(Callback):
 
         self.modules_to_fuse = modules_to_fuse
         self._input_compatible = input_compatible
-        self._convert_on_fit_end = convert_on_fit_end
+        self._convert_on_fit_end = quantize_on_fit_end
         self._forward_calls = 0
 
     def _check_feasible_fuse(self, model):
