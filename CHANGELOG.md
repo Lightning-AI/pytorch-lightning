@@ -496,6 +496,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed memory leaks on GPU by moving `optimizer_states` and `ResultCollection extras` to `cpu` ([#8490](https://github.com/PyTorchLightning/pytorch-lightning/pull/8490))
 
 
+- Fixed DeepSpeed Windows support ([#8488](https://github.com/PyTorchLightning/pytorch-lightning/pull/8488))
+
+
 ## [1.3.8] - 2021-07-01
 
 ### Fixed
