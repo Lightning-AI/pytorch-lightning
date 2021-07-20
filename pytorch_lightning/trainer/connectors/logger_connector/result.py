@@ -605,6 +605,9 @@ class ResultCollection(dict):
         if self.minimize is not None:
             self.minimize = self.minimize.to(*args, **kwargs)
         self._batch_size = self._batch_size.to(*args, **kwargs)
+
+        self['_extra'] = apply_to_collection(self.extra, (torch.Tensor), to_, *args, **kwargs)
+
         if 'device' in kwargs:
             self.device = kwargs['device']
         return self

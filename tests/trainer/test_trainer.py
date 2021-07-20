@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from enum import Enum
 import logging
 import math
 import os
 import pickle
+from pytorch_lightning.utilities.enums import LightningEnum
 import sys
 from argparse import Namespace
-from copy import deepcopy
+from copy import deepcopy, _deepcopy_dispatch
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -36,7 +38,7 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
@@ -1969,3 +1971,49 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     # simulate random failure in training_step on rank 0
     with pytest.raises(DeadlockDetectedException, match="CustomException"):
         trainer.fit(model)
+
+
+@RunIf(min_gpu=1)
+def test_multiple_trainer_constant_memory_allocated(tmpdir):
+    """
+    This tests ensures calling the trainer several times doesn't increase memory allocated.    
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self._example_input_array = torch.zeros((2, 32))
+
+        @property
+        def example_input_array(self):
+            return self._example_input_array
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    initial = torch.cuda.memory_allocated(0)
+
+    model = TestModel()
+    trainer_kwargs = dict(default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp")
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    assert model._example_input_array.device == torch.device("cpu")
+    assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
+    assert trainer.optimizers[0].state
+
+    before = torch.cuda.memory_allocated(0)
+    deepcopy(trainer)
+    after = torch.cuda.memory_allocated(0)
+    torch.cuda.empty_cache()
+    assert before == after
+
+    trainer_2 = Trainer(**trainer_kwargs)
+    trainer_2.fit(model)
+    after_2 = torch.cuda.memory_allocated(0)
+
+    # todo: (tchaton) Still some memory leaks, could not find the source.
+    assert initial + 2048 == before + 1024 == after_2

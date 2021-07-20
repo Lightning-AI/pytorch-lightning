@@ -13,9 +13,9 @@
 # limitations under the License.
 import logging
 import os
-
+from typing import Any, Dict, Mapping
 import torch
-
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -52,3 +52,14 @@ class GPUAccelerator(Accelerator):
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
+
+    def teardown(self) -> None:
+        super().teardown()
+
+        for optimizer in self.optimizers:
+            for k, v in optimizer.state.items():
+                if isinstance(v, Mapping):
+                    optimizer.state[k] = {
+                        n: value.cpu() if isinstance(value, torch.Tensor) else value
+                        for n, value in v.items()
+                    }
