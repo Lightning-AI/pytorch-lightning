@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from pprint import pprint
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 import torch
@@ -312,3 +313,11 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
+
+    def teardown(self):
+        self._logged_metrics = apply_to_collection(
+            self._logged_metrics, torch.Tensor, move_data_to_device, torch.device("cpu"))
+        self._progress_bar_metrics = apply_to_collection(
+            self._progress_bar_metrics, torch.Tensor, move_data_to_device, torch.device("cpu"))
+        self._callback_metrics = apply_to_collection(
+            self._callback_metrics, torch.Tensor, move_data_to_device, torch.device("cpu"))
