@@ -31,7 +31,7 @@ class TrainerOptimizersMixin(ABC):
 
     def init_optimizers(self, model: 'pl.LightningModule') -> Tuple[List, List, List]:
         self._lightning_optimizers = None
-        optim_conf = model.configure_optimizers()
+        optim_conf = self.call_hook("configure_optimizers")
         if optim_conf is None:
             rank_zero_warn(
                 '`LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer',

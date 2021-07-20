@@ -400,7 +400,26 @@ class LightningModule(
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
         results = self.trainer._results
-        assert results is not None
+        if results is None:
+            caller = inspect.stack()[1][3]
+            raise MisconfigurationException(
+                f'You are trying to `self.log()` inside `{caller}` but the loop `ResultCollection` is not registered'
+                ' yet. This is most likely because you are trying to log in a `predict` hook, but it does'
+                ' not support logging.'
+            )
+        if self.trainer.lightning_module is None:
+            # this is to avoid `lightning_module.log` in callback hooks which have the lightning module available as a
+            # parameter but the reference in the trainer has not been set yet
+            caller = inspect.stack()[1][3]
+            raise MisconfigurationException(
+                f'You are trying to `self.log()` inside `{caller}` but the'
+                ' `LightningModule` is not registered yet for the trainer.'
+            )
+        if self._current_fx_name is None:
+            caller = inspect.stack()[1][3]
+            raise MisconfigurationException(
+                f'You are trying to `self.log()` inside `{caller}` but it is not managed by the `Trainer` control flow'
+            )
         assert self._current_fx_name is not None
         FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 

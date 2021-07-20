@@ -41,7 +41,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model.configure_callbacks.return_value = []
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
     cb_connector = CallbackConnector(trainer)
-    cb_connector._attach_model_callbacks(model, trainer)
+    cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
 
     # with model-specific callbacks that substitute ones in Trainer
@@ -49,7 +49,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model.configure_callbacks.return_value = [checkpoint1, early_stopping, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
     cb_connector = CallbackConnector(trainer)
-    cb_connector._attach_model_callbacks(model, trainer)
+    cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [progress_bar, lr_monitor, early_stopping, checkpoint1, checkpoint2]
 
 
@@ -96,7 +96,7 @@ def test_attach_model_callbacks():
         model.configure_callbacks.return_value = model_callbacks
         trainer = Trainer(checkpoint_callback=False, progress_bar_refresh_rate=0, callbacks=trainer_callbacks)
         cb_connector = CallbackConnector(trainer)
-        cb_connector._attach_model_callbacks(model, trainer)
+        cb_connector._attach_model_callbacks()
         assert trainer.callbacks == expected
 
     early_stopping = EarlyStopping()
@@ -149,6 +149,6 @@ def test_attach_model_callbacks_override_info(caplog):
     trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
-        cb_connector._attach_model_callbacks(model, trainer)
+        cb_connector._attach_model_callbacks()
 
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text

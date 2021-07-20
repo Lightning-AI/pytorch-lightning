@@ -273,9 +273,11 @@ class TrainingEpochLoop(loops.Loop):
         with self.trainer.profiler.profile(hook_name):
 
             # first call trainer hook
-            if hasattr(self.trainer, hook_name):
+            if hook_name not in ("setup", ) and hasattr(self.trainer, hook_name):
                 trainer_hook = getattr(self.trainer, hook_name)
-                trainer_hook(processed_epoch_output)
+                if trainer_hook is not None:
+                    # `train_dataloader` is a function for the `LightningModule` but an attribute for the `Trainer`
+                    trainer_hook(processed_epoch_output)
 
             # next call hook in lightningModule
             model_ref = self.trainer.lightning_module
@@ -292,7 +294,7 @@ class TrainingEpochLoop(loops.Loop):
                     model_ref.on_train_epoch_end()
 
             # call the accelerator hook
-            if hasattr(self.trainer.accelerator, hook_name):
+            if hook_name not in ("setup", "teardown") and hasattr(self.trainer.accelerator, hook_name):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 

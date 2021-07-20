@@ -235,7 +235,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        self.train_dataloader = self.request_dataloader(model, "train")
+        self.train_dataloader = self.request_dataloader("train")
 
         if self.overfit_batches > 0:
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
@@ -332,7 +332,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         # always get the loaders first so we can count how many there are
         loader_name = f'{mode}_dataloader'
-        dataloaders = self.request_dataloader(model, mode)
+        dataloaders = self.request_dataloader(mode)
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
@@ -341,7 +341,7 @@ class TrainerDataLoadingMixin(ABC):
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
-            train_dataloader = self.request_dataloader(model, 'train')
+            train_dataloader = self.request_dataloader('train')
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
@@ -463,14 +463,13 @@ class TrainerDataLoadingMixin(ABC):
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model)
 
-    def request_dataloader(self, model: 'pl.LightningModule', stage: str) -> Union[DataLoader, List[DataLoader]]:
+    def request_dataloader(self, stage: str) -> Union[DataLoader, List[DataLoader]]:
         """Handles downloading data in the GPU or TPU case.
 
         Returns:
             The dataloader
         """
-        self.call_hook(f"on_{stage}_dataloader")
-        dataloader = getattr(model, f'{stage}_dataloader')()
+        dataloader = self.call_hook(f"{stage}_dataloader")
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.accelerator.barrier('get_dataloaders')

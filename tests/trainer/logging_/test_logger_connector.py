@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -26,9 +27,10 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import MetricS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.models.test_hooks import get_members
 
 
-def test_fx_validator(tmpdir):
+def test_fx_validator():
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
@@ -143,6 +145,114 @@ def test_fx_validator(tmpdir):
 
     with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
         validator.check_logging("foo", False, False)
+
+
+class HookedCallback(Callback):
+
+    def __init__(self, not_supported):
+
+        def call(hook, *args, **_):
+            # `on_init_{start,end}` do not have the `LightningModule` available
+            lightning_module = [m for m in args if isinstance(m, LightningModule)]
+            if not lightning_module:
+                return
+            lightning_module = lightning_module[0]
+
+            if hook in not_supported:
+                with pytest.raises(MisconfigurationException, match='self.log'):
+                    lightning_module.log('anything', 1)
+            else:
+                lightning_module.log(hook, 1)
+
+        for h in get_members(Callback):
+            setattr(self, h, partial(call, h))
+
+
+class HookedModel(BoringModel):
+
+    def __init__(self, not_supported):
+        super().__init__()
+        pl_module_hooks = get_members(LightningModule)
+        pl_module_hooks.difference_update({
+            'log',
+            'log_dict',
+            # the following are problematic as they do have `self._current_fx_name` defined some times but
+            # not others depending on where they were called. So we cannot reliably `self.log` in them
+            'on_before_batch_transfer',
+            'transfer_batch_to_device',
+            'on_after_batch_transfer',
+            'get_progress_bar_dict',
+        })
+        # remove `nn.Module` hooks
+        module_hooks = get_members(torch.nn.Module)
+        pl_module_hooks.difference_update(module_hooks)
+
+        def call(hook, fn, *args, **kwargs):
+            out = fn(*args, **kwargs)
+
+            if hook in not_supported:
+                with pytest.raises(MisconfigurationException, match=''):
+                    self.log('anything', 1)
+            else:
+                self.log(hook, 1)
+            return out
+
+        for h in pl_module_hooks:
+            attr = getattr(self, h)
+            setattr(self, h, partial(call, h, attr))
+
+
+def test_fx_validator_integration(tmpdir):
+    """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors"""
+    not_supported = [
+        'on_before_accelerator_backend_setup',
+        'setup',
+        'configure_sharded_model',
+        'on_configure_sharded_model',
+        'configure_optimizers',
+        'on_fit_start',
+        'on_pretrain_routine_start',
+        'on_pretrain_routine_end',
+        'on_train_dataloader',
+        'train_dataloader',
+        'val_dataloader',
+        'on_validation_end',
+        'on_train_end',
+        'on_fit_end',
+        'teardown',
+        'on_sanity_check_start',
+        'on_sanity_check_end',
+        'prepare_data',
+        'configure_callbacks',
+        'test_dataloader',
+        'on_validation_model_eval',
+        'on_test_model_eval',
+        'on_test_end',
+        'predict_dataloader',
+        'on_predict_model_eval',
+        'on_predict_start',
+        'on_predict_epoch_start',
+        'on_predict_batch_start',
+        'predict_step',
+        'on_predict_batch_end',
+        'on_predict_epoch_end',
+        'on_predict_end',
+        'summarize',
+    ]
+    model = HookedModel(not_supported)
+    callback = HookedCallback(not_supported)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        callbacks=callback
+    )
+    trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model)
 
 
 @RunIf(min_gpus=2)

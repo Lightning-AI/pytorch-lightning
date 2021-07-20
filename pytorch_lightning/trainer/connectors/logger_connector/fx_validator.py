@@ -77,12 +77,15 @@ class FxValidator:
         training_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
         validation_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
         test_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        on_before_batch_transfer=None,
-        transfer_batch_to_device=None,
-        on_after_batch_transfer=None,
-        backward=None,
-        optimizer_step=None,
-        # TODO(@carmocca): some {step,epoch}_{start,end} are missing
+        configure_optimizers=None,
+        on_train_dataloader=None,
+        train_dataloader=None,
+        val_dataloader=None,
+        prepare_data=None,
+        configure_callbacks=None,
+        test_dataloader=None,
+        on_validation_model_eval=None,
+        on_test_model_eval=None,
     )
 
     @classmethod
@@ -95,7 +98,7 @@ class FxValidator:
             )
         allowed = cls.functions[fx_name]
         if allowed is None:
-            raise MisconfigurationException(f"{fx_name} function doesn't support logging using `self.log()`")
+            raise MisconfigurationException(f"`{fx_name}` function doesn't support logging using `self.log()`")
 
         m = "You can't `self.log({}={})` inside `{}`, must be one of {}"
         if on_step not in allowed["on_step"]:

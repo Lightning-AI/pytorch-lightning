@@ -15,7 +15,6 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
@@ -136,8 +135,7 @@ class CallbackConnector:
             callback.log = model.log
             callback.log_dict = model.log_dict
 
-    @staticmethod
-    def _attach_model_callbacks(model: 'pl.LightningModule', trainer) -> None:
+    def _attach_model_callbacks(self) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several
@@ -150,11 +148,11 @@ class CallbackConnector:
                 :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
             trainer: The trainer on which the callbacks get attached/merged.
         """
-        model_callbacks = model.configure_callbacks()
+        model_callbacks = self.trainer.call_hook('configure_callbacks')
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}
-        trainer_callback_types = {type(c) for c in trainer.callbacks}
+        trainer_callback_types = {type(c) for c in self.trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
         if override_types:
             rank_zero_info(
@@ -163,11 +161,11 @@ class CallbackConnector:
                 f" {', '.join(sorted(t.__name__ for t in override_types))}"
             )
         # remove all callbacks with a type that occurs in model callbacks
-        all_callbacks = [c for c in trainer.callbacks if type(c) not in override_types]
+        all_callbacks = [c for c in self.trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
         all_callbacks = CallbackConnector._reorder_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
-        trainer.callbacks = all_callbacks
+        self.trainer.callbacks = all_callbacks
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
