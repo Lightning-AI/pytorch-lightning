@@ -416,6 +416,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed DeepSpeed FP16 Exception as FP32 is now supported ([#8462](https://github.com/PyTorchLightning/pytorch-lightning/pull/8462))
 
 
+- Removed environment variable `PL_EXP_VERSION` from DDP subprocesses ([7403](https://github.com/PyTorchLightning/pytorch-lightning/pull/7403))
+
+
 ### Fixed
 
 - Fixed the `GPUStatsMonitor` callbacks to use the correct GPU IDs if `CUDA_VISIBLE_DEVICES` set ([#8260](https://github.com/PyTorchLightning/pytorch-lightning/pull/8260))
@@ -491,6 +494,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed clearing dataloader references before attaching new dataloaders in consecutive `Trainer.{fit,validate,test,predict}´ runs ([#8442](https://github.com/PyTorchLightning/pytorch-lightning/pull/8442))
+
+
+- Fixed experiment version and log-dir divergence in DDP when using multiple `Trainer` instances in sequence ([7403](https://github.com/PyTorchLightning/pytorch-lightning/pull/7403))
 
 
 ## [1.3.8] - 2021-07-01
