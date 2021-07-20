@@ -326,5 +326,7 @@ def test_v1_6_0_deprecated_hpc_load(tmpdir):
 
 def test_v1_6_0_deprecated_model_size():
     model = BoringModel()
-    with pytest.deprecated_call(match="The `LightningModule.model_size` property was deprecated in v1.4 and will be removed in v1.6."):
+    with pytest.deprecated_call(
+        match="The `LightningModule.model_size` property was deprecated in v1.4 and will be removed in v1.6."
+    ):
         _ = model.model_size
