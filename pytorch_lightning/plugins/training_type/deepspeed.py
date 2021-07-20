@@ -347,11 +347,11 @@ class DeepSpeedPlugin(DDPPlugin):
             global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
             world_size = world_size if world_size is not None else self.cluster_environment.world_size()
             self._set_node_environment_variables(global_rank, world_size)
-        log.info(
-            f"initializing deepspeed distributed: "
-            f"GLOBAL_RANK: {global_rank}, "
-            f"MEMBER: {global_rank + 1}/{world_size}"
-        )
+            log.info(
+                f"initializing deepspeed distributed: "
+                f"GLOBAL_RANK: {global_rank}, "
+                f"MEMBER: {global_rank + 1}/{world_size}"
+            )
         deepspeed.init_distributed(
             self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
         )

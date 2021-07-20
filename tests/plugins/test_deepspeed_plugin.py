@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, Dict
+from unittest import mock
 
 import pytest
 import torch
@@ -692,6 +693,28 @@ def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
         precision=16,
     )
     trainer.test(model)
+
+
+@RunIf(deepspeed=True)
+@mock.patch('platform.system', return_value='Windows')
+@mock.patch('deepspeed.init_distributed', autospec=True)
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_deepspeed_plugin_windows(mock_deepspeed_distributed, tmpdir):
+    """
+    Test to ensure that we setup distributed communication using windows.
+    When using windows, ranks environment variables should not be set, and deepspeed should handle this.
+    """
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
+        gpus=2,
+        fast_dev_run=True,
+    )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    plugin.init_ddp_connection()
+    mock_deepspeed_distributed.assert_called()
+    assert len(os.environ) == 0
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
