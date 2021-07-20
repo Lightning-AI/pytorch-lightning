@@ -195,7 +195,7 @@ class HorovodPlugin(ParallelPlugin):
             optimizer.synchronize()
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
-        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
+        """ Wraps optimizers to perform gradient aggregation via allreduce. """
         h_optimizers = []
         for optimizer in optimizers:
             if "horovod" not in str(optimizer.__class__):
