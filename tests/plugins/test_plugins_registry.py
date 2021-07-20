@@ -14,7 +14,13 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DeepSpeedPlugin, TPUSpawnPlugin, TrainingTypePluginsRegistry
+from pytorch_lightning.plugins import (
+    DDPPlugin,
+    DDPSpawnPlugin,
+    DeepSpeedPlugin,
+    TPUSpawnPlugin,
+    TrainingTypePluginsRegistry,
+)
 from tests.helpers.runif import RunIf
 
 
@@ -107,3 +113,19 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
     trainer = Trainer(plugins=plugin)
 
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+
+
+def test_ddp_spawn_training_type_plugins_registry(tmpdir):
+
+    plugin_name = "ddp_spawn_find_unused_parameters_false"
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=plugin_name,
+    )
+
+    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+
+    assert plugin_name in TrainingTypePluginsRegistry
+    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
+    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DDPSpawnPlugin
