@@ -843,6 +843,7 @@ class Trainer(
 
         # hook
         self.data_connector.prepare_data()
+        # FIXME: need the `lightning_module` reference to be set
         self.callback_connector._attach_model_callbacks()
 
         # ----------------------------

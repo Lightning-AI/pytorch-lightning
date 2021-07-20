@@ -142,11 +142,6 @@ class CallbackConnector:
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
-
-        Args:
-            model: A model which may or may not define new callbacks in
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
-            trainer: The trainer on which the callbacks get attached/merged.
         """
         model_callbacks = self.trainer.call_hook('configure_callbacks')
         if not model_callbacks:
