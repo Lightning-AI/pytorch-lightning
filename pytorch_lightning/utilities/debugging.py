@@ -51,6 +51,7 @@ class InternalDebugger(object):
         self.test_dataloader_calls = []
         self.dataloader_sequence_calls = []
 
+    @enabled_only
     def track_event(
         self,
         evt_type: str,
@@ -67,15 +68,6 @@ class InternalDebugger(object):
             "local_rank": local_rank,
             "comment": comment,
         })
-
-    def count_events(self, evt_type: str, strict=False) -> int:
-        count = 0
-        for evt in self.events:
-            if strict and evt["event"] == evt_type:
-                count += 1
-            elif not strict and evt_type in evt["event"]:
-                count += 1
-        return count
 
     @enabled_only
     def track_load_dataloader_call(self, name, dataloaders):

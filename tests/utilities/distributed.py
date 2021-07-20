@@ -20,12 +20,13 @@ from subprocess import TimeoutExpired
 import pytorch_lightning
 
 
-def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
+def call_training_script(module_file, cli_args, method, tmpdir, timeout=60, as_module=False):
     file = Path(module_file.__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
     cli_args += ['--trainer_method', method]
-    command = [sys.executable, str(file)] + cli_args
+    file_args = ["-m", module_file.__spec__.name] if as_module else [str(file)]
+    command = [sys.executable] + file_args + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
     env = os.environ.copy()

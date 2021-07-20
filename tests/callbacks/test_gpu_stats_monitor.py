@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -64,7 +65,7 @@ def test_gpu_stats_monitor(tmpdir):
     ]
 
     for f in fields:
-        assert any([f in h for h in met_data.dtype.names])
+        assert any(f in h for h in met_data.dtype.names)
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
@@ -116,6 +117,38 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
 
 
 def test_gpu_stats_monitor_parse_gpu_stats():
-    logs = GPUStatsMonitor._parse_gpu_stats('1,2', [[3, 4, 5], [6, 7]], [('gpu', 'a'), ('memory', 'b')])
-    expected = {'gpu_id: 1/gpu (a)': 3, 'gpu_id: 1/memory (b)': 4, 'gpu_id: 2/gpu (a)': 6, 'gpu_id: 2/memory (b)': 7}
+    logs = GPUStatsMonitor._parse_gpu_stats([1, 2], [[3, 4, 5], [6, 7]], [('gpu', 'a'), ('memory', 'b')])
+    expected = {
+        'device_id: 1/gpu (a)': 3,
+        'device_id: 1/memory (b)': 4,
+        'device_id: 2/gpu (a)': 6,
+        'device_id: 2/memory (b)': 7
+    }
     assert logs == expected
+
+
+@mock.patch.dict(os.environ, {})
+@mock.patch('torch.cuda.is_available', return_value=True)
+@mock.patch('torch.cuda.device_count', return_value=2)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset(device_count_mock, is_available_mock):
+    gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 0])
+    expected = ['1', '0']
+    assert gpu_ids == expected
+
+
+@mock.patch.dict(os.environ, {'CUDA_VISIBLE_DEVICES': '3,2,4'})
+@mock.patch('torch.cuda.is_available', return_value=True)
+@mock.patch('torch.cuda.device_count', return_value=3)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_integers(device_count_mock, is_available_mock):
+    gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
+    expected = ['2', '4']
+    assert gpu_ids == expected
+
+
+@mock.patch.dict(os.environ, {'CUDA_VISIBLE_DEVICES': 'GPU-01a23b4c,GPU-56d78e9f,GPU-02a46c8e'})
+@mock.patch('torch.cuda.is_available', return_value=True)
+@mock.patch('torch.cuda.device_count', return_value=3)
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_uuids(device_count_mock, is_available_mock):
+    gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
+    expected = ['GPU-56d78e9f', 'GPU-02a46c8e']
+    assert gpu_ids == expected

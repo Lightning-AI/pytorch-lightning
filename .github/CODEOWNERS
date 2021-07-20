@@ -25,6 +25,7 @@
 /pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
 /pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
 /pytorch_lightning/loggers              @tchaton @awaelchli @borda
+/pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
 /pytorch_lightning/overrides            @tchaton @SeanNaren @borda
 /pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
 /pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
@@ -32,6 +33,10 @@
 /pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
 /pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
+
+# Specifics
+/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
+/pytorch_lightning/trainer/progress.py  @tchaton @awaelchli @carmocca
 
 # Metrics
 /pytorch_lightning/metrics/             @SkafteNicki @ananyahjha93 @justusschock

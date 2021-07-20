@@ -5,6 +5,19 @@ orbs:
   go: circleci/go@1.3.0
   codecov: codecov/codecov@1.1.0
 
+# Workflow Steps:
+#  1. Checkout
+#  2. Install GO
+#  3. Checkout ml-testing-accelerators
+#  4. GCP GKE install
+#  5. Update Kubeconfig with credintials
+#  6. Install jsonnet
+#  7. Update jsonnet
+#  8. Deploy the job on the kubernetes cluster
+#  9. Statistics
+#  10. Upload coverage results
+#  11. Upload coverage to Codecov
+
 references:
 
   make_docs: &make_docs
@@ -33,25 +46,28 @@ references:
        git checkout stable
        cd ..
 
-  build_push_docker: &build_push_docker
+  install_jsonnet: &install_jsonnet
     run:
-      name: Build and push Docker image
-      environment:
-        - PYTHON_VER: 3.7
+      name: Install jsonnet
       command: |
-        gcloud --quiet auth configure-docker
-        #cd dockers/tpu-tests
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
-        docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
+        go get github.com/google/go-jsonnet/cmd/jsonnet
+
+  update_jsonnet: &update_jsonnet
+    run:
+      name: Update jsonnet
+      command: |
+       export PR_NUMBER=$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
+       export SHA=$(git rev-parse --short HEAD)
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
+       data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
+       cat dockers/tpu-tests/tpu_test_cases.jsonnet
 
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
      command: |
-       go get github.com/google/go-jsonnet/cmd/jsonnet
        export PATH=$PATH:$HOME/go/bin
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
-       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
        echo "Waiting on kubernetes job: $job_name"
@@ -72,7 +88,6 @@ references:
        # First portion is the test logs. Print these to Github Action stdout.
        cat xx00 && \
        echo "Done with log retrieval attempt." && \
-       gcloud container images delete "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" --force-delete-tags && \
        exit $status_code
 
   stats: &stats
@@ -91,7 +106,8 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.7
+      - XLA_VER: 1.8
+      - PYTHON_VER: 3.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -102,8 +118,8 @@ jobs:
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
-      - setup_remote_docker
-      - *build_push_docker
+      - *install_jsonnet
+      - *update_jsonnet
       - *deploy_cluster
       - *stats
       - codecov/upload:
@@ -119,6 +135,10 @@ jobs:
       - image: readthedocs/build:latest
     steps:
       - checkout
+      - run:
+          command: |
+            git submodule update --init --recursive
+          name: Init git submodule
       - *make_docs
       - store_artifacts:
           # allows us to preview the generated html pages
@@ -127,7 +147,7 @@ jobs:
 
 workflows:
   version: 2
-  tpu-tests:
+  ci-tests:
     jobs:
       - build-Docs
       - TPU-tests

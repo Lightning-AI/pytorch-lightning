@@ -21,9 +21,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -118,7 +123,7 @@ class LayerSummary(object):
     @property
     def num_parameters(self) -> int:
         """ Returns the number of parameters in this module. """
-        return sum(np.prod(p.shape) for p in self._module.parameters())
+        return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary(object):
@@ -126,11 +131,17 @@ class ModelSummary(object):
     Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
     Args:
-        model: The model to summarize (also referred to as the root module)
+        model: The model to summarize (also referred to as the root module).
         mode: Can be one of
 
-             - `top` (default): only the top-level modules will be recorded (the children of the root module)
-             - `full`: summarizes all layers and their submodules in the root module
+            - `top` (default): only the top-level modules will be recorded (the children of the root module)
+            - `full`: summarizes all layers and their submodules in the root module
+
+            .. deprecated:: v1.4
+                This parameter was deprecated in v1.4 in favor of `max_depth` and will be removed in v1.6.
+
+        max_depth: Maximum depth of modules to show. Use -1 to show all modules or 0 to show no
+            summary. Defaults to 1.
 
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
@@ -155,7 +166,7 @@ class ModelSummary(object):
         ...         return self.net(x)
         ...
         >>> model = LitModel()
-        >>> ModelSummary(model, mode='top')  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
@@ -164,7 +175,7 @@ class ModelSummary(object):
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
-        >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
         0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
@@ -177,14 +188,28 @@ class ModelSummary(object):
         0.530     Total estimated model params size (MB)
     """
 
-    MODE_TOP = "top"
-    MODE_FULL = "full"
-    MODE_DEFAULT = MODE_TOP
-    MODES = [MODE_FULL, MODE_TOP]
+    MODES = dict(top=1, full=-1)  # TODO: remove in v1.6
 
-    def __init__(self, model, mode: str = MODE_DEFAULT):
+    def __init__(self, model, mode: Optional[str] = None, max_depth: Optional[int] = 1):
         self._model = model
-        self._mode = mode
+
+        #  temporary mapping from mode to max_depth
+        if max_depth is None or mode is not None:
+            if mode in ModelSummary.MODES:
+                max_depth = ModelSummary.MODES[mode]
+                from pytorch_lightning.utilities import rank_zero_deprecation
+                rank_zero_deprecation(
+                    f"Argument `mode` in `ModelSummary` is deprecated in v1.4"
+                    f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behaviour."
+                )
+            else:
+                from pytorch_lightning.utilities.exceptions import MisconfigurationException
+                raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
+
+        if not isinstance(max_depth, int) or max_depth < -1:
+            raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
+
+        self._max_depth = max_depth
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precisin_megabytes in case of mixed precision?
@@ -193,14 +218,14 @@ class ModelSummary(object):
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
-        if self._mode == ModelSummary.MODE_FULL:
-            mods = self._model.named_modules()
-            mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self._mode == ModelSummary.MODE_TOP:
+        if self._max_depth == 0:
+            mods = []
+        elif self._max_depth == 1:
             # the children are the top-level modules
             mods = self._model.named_children()
         else:
-            mods = []
+            mods = self._model.named_modules()
+            mods = list(mods)[1:]  # do not include root module (LightningModule)
         return list(mods)
 
     @property
@@ -225,11 +250,13 @@ class ModelSummary(object):
 
     @property
     def total_parameters(self) -> int:
-        return sum(p.numel() for p in self._model.parameters())
+        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+        return sum(
+            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
+        )
 
     @property
     def model_size(self) -> float:
@@ -242,6 +269,12 @@ class ModelSummary(object):
             self._forward_example_input()
         for layer in summary.values():
             layer.detach_hook()
+
+        if self._max_depth >= 1:
+            # remove summary entries with depth > max_depth
+            for k in [k for k in summary if k.count(".") >= self._max_depth]:
+                del summary[k]
+
         return summary
 
     def _forward_example_input(self) -> None:
@@ -438,3 +471,15 @@ def get_human_readable_count(number: int) -> str:
         return f"{int(number):,d} {labels[index]}"
 
     return f"{number:,.1f} {labels[index]}"
+
+
+def _is_lazy_weight_tensor(p: Tensor) -> bool:
+    if _TORCH_GREATER_EQUAL_1_8:
+        from torch.nn.parameter import UninitializedParameter
+        if isinstance(p, UninitializedParameter):
+            warning_cache.warn(
+                "A layer with UninitializedParameter was found. "
+                "Thus, the total number of parameters detected may be inaccurate."
+            )
+            return True
+    return False

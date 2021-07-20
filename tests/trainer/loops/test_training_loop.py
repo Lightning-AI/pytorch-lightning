@@ -108,10 +108,10 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
     trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
-        assert trainer.train_loop.batch_idx == trainer.num_training_batches - 1
+        assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
         assert trainer.global_step == trainer.num_training_batches * max_epochs
     else:
-        assert trainer.train_loop.batch_idx == batch_idx_
+        assert trainer.fit_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
 
 
@@ -150,12 +150,12 @@ def test_should_stop_mid_epoch(tmpdir):
 @pytest.mark.parametrize(['output'], [(5., ), ({'a': 5}, )])
 def test_warning_invalid_trainstep_output(tmpdir, output):
 
-    class TestModel(BoringModel):
+    class InvalidTrainStepModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
             return output
 
-    model = TestModel()
+    model = InvalidTrainStepModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(
@@ -166,3 +166,22 @@ def test_warning_invalid_trainstep_output(tmpdir, output):
         )
     ):
         trainer.fit(model)
+
+
+def test_warning_valid_train_step_end(tmpdir):
+
+    class ValidTrainStepEndModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = self(batch)
+            return {'output': output, 'batch': batch}
+
+        def training_step_end(self, outputs):
+            loss = self.loss(outputs['batch'], outputs['output'])
+            return loss
+
+    # No error is raised
+    model = ValidTrainStepEndModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
+    trainer.fit(model)
