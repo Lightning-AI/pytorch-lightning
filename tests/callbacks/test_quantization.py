@@ -57,7 +57,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert quant_calls == qcb._forward_calls
     quant_score = torch.mean(torch.tensor([mean_relative_error(qmodel(x), y) for x, y in dm.test_dataloader()]))
     # test that the test score is almost the same as with pure training
-    assert torch.allclose(org_score, quant_score, atol=0.4)
+    assert torch.allclose(org_score, quant_score, atol=0.45)
     model_path = trainer.checkpoint_callback.best_model_path
 
     trainer_args.update(dict(max_epochs=1, checkpoint_callback=False))
@@ -75,7 +75,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     # todo: make it work also with strict loading
     qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
     quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-    assert torch.allclose(org_score, quant2_score, atol=0.4)
+    assert torch.allclose(org_score, quant2_score, atol=0.45)
 
     trainer = Trainer(**trainer_args)
     trainer.fit(qmodel2, datamodule=dm)
