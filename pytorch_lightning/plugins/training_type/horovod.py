@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Tuple
 
 import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -86,22 +88,7 @@ class HorovodPlugin(ParallelPlugin):
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        def _filter_named_parameters(model, optimizer):
-            opt_params = set([p for group in optimizer.param_groups for p in group.get("params", [])])
-            return [(name, p) for name, p in model.named_parameters() if p in opt_params]
-
-        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
-        h_optimizers = []
-        for optimizer in optimizers:
-            if 'horovod' not in str(optimizer.__class__):
-                h_optimizers.append(
-                    hvd.DistributedOptimizer(
-                        optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
-                    )
-                )
-            else:
-                h_optimizers.append(optimizer)
-        self.lightning_module.trainer.accelerator.optimizers = h_optimizers
+        self.lightning_module.trainer.accelerator.optimizers = self._wrap_optimizers(optimizers)
 
     def start_training(self, trainer):
         with ExitStack() as stack:
@@ -206,3 +193,22 @@ class HorovodPlugin(ParallelPlugin):
         # synchronize all horovod optimizers.
         for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()
+
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List[hvd.DistributedOptimizer]:
+        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
+        h_optimizers = []
+        for optimizer in optimizers:
+            if "horovod" not in str(optimizer.__class__):
+                h_optimizers.append(
+                    hvd.DistributedOptimizer(
+                        optimizer, named_parameters=self._filter_named_parameters(self.lightning_module, optimizer)
+                    )
+                )
+            else:
+                h_optimizers.append(optimizer)
+        return h_optimizers
+
+    @staticmethod
+    def _filter_named_parameters(model: nn.Module, optimizer: Optimizer) -> List[Tuple[str, nn.Parameter]]:
+        opt_params = set([p for group in optimizer.param_groups for p in group.get("params", [])])
+        return [(name, p) for name, p in model.named_parameters() if p in opt_params]
