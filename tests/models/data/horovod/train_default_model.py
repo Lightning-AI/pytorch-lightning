@@ -55,14 +55,23 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
     class TestModel(BoringModel):
 
+        def on_train_start(self) -> None:
+            device = torch.device("cuda", self.trainer.training_type_plugin.local_rank)
+            assert self.device == device
+            self.initial_cuda_memory = torch.cuda.memory_allocated(device)
+
         def training_epoch_end(self, outputs) -> None:
             res = self.trainer.training_type_plugin.reduce(torch.tensor(1., device=self.device), reduce_op="sum")
             assert res.sum() == self.trainer.training_type_plugin.world_size
 
     model = TestModel()
     trainer = Trainer(**trainer_options)
+
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+    assert model.device == torch.device("cpu")
+    assert torch.cuda.memory_allocated() < model.initial_cuda_memory
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     if check_size:
