@@ -93,8 +93,6 @@ def test_quantize_torchscript(tmpdir):
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
 
-    torch.save(qmodel, os.path.join(tmpdir, 'quantized-model.pt'))
-
     batch = iter(dm.test_dataloader()).next()
     qmodel(qmodel.quant(batch[0]))
 
