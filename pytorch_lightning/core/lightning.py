@@ -404,8 +404,8 @@ class LightningModule(
             caller = inspect.stack()[1][3]
             raise MisconfigurationException(
                 f'You are trying to `self.log()` inside `{caller}` but the loop `ResultCollection` is not registered'
-                ' yet. This is most likely because you are trying to log in a `predict` hook, but it does'
-                ' not support logging.'
+                ' yet. This is most likely because you are trying to log in a `predict` hook,'
+                " but it doesn't support logging."
             )
         if self.trainer.lightning_module is None:
             # this is to avoid `lightning_module.log` in callback hooks which have the lightning module available as a

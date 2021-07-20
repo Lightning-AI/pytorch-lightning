@@ -136,14 +136,14 @@ def test_fx_validator():
         if allowed:
             validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="You can't"):
+                with pytest.raises(MisconfigurationException, match="must be one of"):
                     validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
-            with pytest.raises(MisconfigurationException, match="function doesn't support"):
+            with pytest.raises(MisconfigurationException, match="You can't"):
                 validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
-    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
+    with pytest.raises(RuntimeError, match="Logging inside `foo` is not implemented"):
         validator.check_logging("foo", False, False)
 
 
@@ -159,7 +159,7 @@ class HookedCallback(Callback):
             lightning_module = lightning_module[0]
 
             if hook in not_supported:
-                with pytest.raises(MisconfigurationException, match='self.log'):
+                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
                     lightning_module.log('anything', 1)
             else:
                 lightning_module.log(hook, 1)
@@ -191,7 +191,7 @@ class HookedModel(BoringModel):
             out = fn(*args, **kwargs)
 
             if hook in not_supported:
-                with pytest.raises(MisconfigurationException, match=''):
+                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
                     self.log('anything', 1)
             else:
                 self.log(hook, 1)
@@ -204,44 +204,30 @@ class HookedModel(BoringModel):
 
 def test_fx_validator_integration(tmpdir):
     """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors"""
-    not_supported = [
-        'on_before_accelerator_backend_setup',
-        'setup',
-        'configure_sharded_model',
-        'on_configure_sharded_model',
-        'configure_optimizers',
-        'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
-        'on_train_dataloader',
-        'train_dataloader',
-        'on_val_dataloader',
-        'val_dataloader',
-        'on_validation_end',
-        'on_train_end',
-        'on_fit_end',
-        'teardown',
-        'on_sanity_check_start',
-        'on_sanity_check_end',
-        'prepare_data',
-        'configure_callbacks',
-        'on_test_dataloader',
-        'test_dataloader',
-        'on_validation_model_eval',
-        'on_test_model_eval',
-        'on_test_end',
-        'on_predict_dataloader',
-        'predict_dataloader',
-        'on_predict_model_eval',
-        'on_predict_start',
-        'on_predict_epoch_start',
-        'on_predict_batch_start',
-        'predict_step',
-        'on_predict_batch_end',
-        'on_predict_epoch_end',
-        'on_predict_end',
-        'summarize',
-    ]
+    not_supported = {
+        'on_before_accelerator_backend_setup': 'LightningModule` is not registered yet',
+        'setup': "You can't",
+        'configure_sharded_model': "You can't",
+        'on_configure_sharded_model': "You can't",
+        'configure_optimizers': "You can't",
+        'on_fit_start': "You can't",
+        'on_pretrain_routine_start': "You can't",
+        'on_pretrain_routine_end': "You can't",
+        'on_train_dataloader': "You can't",
+        'train_dataloader': "You can't",
+        'on_val_dataloader': "You can't",
+        'val_dataloader': "You can't",
+        'on_validation_end': "You can't",
+        'on_train_end': "You can't",
+        'on_fit_end': "You can't",
+        'teardown': "You can't",
+        'on_sanity_check_start': "You can't",
+        'on_sanity_check_end': "You can't",
+        'prepare_data': "You can't",
+        'configure_callbacks': "You can't",
+        'on_validation_model_eval': "You can't",
+        'summarize': 'not managed by the `Trainer',
+    }
     model = HookedModel(not_supported)
     callback = HookedCallback(not_supported)
     trainer = Trainer(
@@ -254,7 +240,29 @@ def test_fx_validator_integration(tmpdir):
         callbacks=callback
     )
     trainer.fit(model)
+
+    not_supported.update({
+        'on_before_accelerator_backend_setup': "You can't",  # `lightning_module` ref is now present from the `fit` call
+        'on_test_dataloader': "You can't",
+        'test_dataloader': "You can't",
+        'on_test_model_eval': "You can't",
+        'on_test_end': "You can't",
+    })
     trainer.test(model)
+
+    not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
+    not_supported.update({
+        'on_predict_dataloader': "ResultCollection` is not registered yet",
+        'predict_dataloader': "ResultCollection` is not registered yet",
+        'on_predict_model_eval': "ResultCollection` is not registered yet",
+        'on_predict_start': "ResultCollection` is not registered yet",
+        'on_predict_epoch_start': "ResultCollection` is not registered yet",
+        'on_predict_batch_start': "ResultCollection` is not registered yet",
+        'predict_step': "ResultCollection` is not registered yet",
+        'on_predict_batch_end': "ResultCollection` is not registered yet",
+        'on_predict_epoch_end': "ResultCollection` is not registered yet",
+        'on_predict_end': "ResultCollection` is not registered yet",
+    })
     trainer.predict(model)
 
 
