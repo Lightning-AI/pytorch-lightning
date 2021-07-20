@@ -20,6 +20,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
@@ -134,7 +135,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def teardown(self) -> None:
         # Un-reference the wrapper as the reducer can hold cuda memory.
-        self.model = None
+        if not isinstance(self.model, LightningModule):
+            self.model = None
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
