@@ -413,12 +413,12 @@ class ModelPruning(Callback):
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
-        map_params_to_mask = {k.replace("_mask", "_orig"): k for k in state_dict.keys() if k.endswith("_mask")}
-        for param_name, mask_name in map_params_to_mask.items():
-            param = state_dict.pop(param_name)
-            mask = state_dict.pop(mask_name)
+        map_pruned_params = {k.replace("_mask", "") for k in state_dict.keys() if k.endswith("_mask")}
+        for tensor_name in map_pruned_params:
+            orig = state_dict.pop(tensor_name + "_orig")
+            mask = state_dict.pop(tensor_name + "_mask")
             # make weights permanent
-            state_dict_checkpoint[param_name.replace("_orig", "")] = param * mask
+            state_dict_checkpoint[tensor_name] = mask.to(dtype=orig.dtype) * orig
 
         # add the parameters left in the state dict
         state_dict_checkpoint.update(state_dict)
@@ -437,7 +437,7 @@ class ModelPruning(Callback):
     ) -> Dict[str, Any]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
-            # prune a copy so training can continue with the same buffers
+            # manually prune the weights so training can keep going with the same buffers
             self._make_state_dict_permanent(checkpoint, pl_module)
         return checkpoint
 

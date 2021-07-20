@@ -220,10 +220,14 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
 
 
-def test_trainer_stochastic_weight_averaging_deepcopy(tmpdir):
-    """Test to ensure SWA Callback doesn't deecopy dataloaders and datamodule potentially leading to OOM"""
+def test_swa_deepcopy(tmpdir):
+    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM"""
 
-    class StochasticWeightAveragingCheck(StochasticWeightAveraging):
+    class TestSWA(StochasticWeightAveraging):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.on_before_accelerator_backend_setup_called = False
 
         def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule'):
             super().on_before_accelerator_backend_setup(trainer, pl_module)
@@ -231,11 +235,14 @@ def test_trainer_stochastic_weight_averaging_deepcopy(tmpdir):
             assert self._average_model.train_dataloader.__self__ == self._average_model
             assert isinstance(pl_module.train_dataloader, _PatchDataLoader)
             assert not hasattr(self._average_model, "trainer")
+            self.on_before_accelerator_backend_setup_called = True
 
     model = BoringModel()
+    swa = TestSWA()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=StochasticWeightAveragingCheck(swa_lrs=1e-3),
+        callbacks=swa,
         fast_dev_run=True,
     )
-    trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 64)))
+    trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 2)))
+    assert swa.on_before_accelerator_backend_setup_called
