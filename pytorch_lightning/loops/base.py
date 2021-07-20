@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 from deprecate import void
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress, Tracker
+from pytorch_lightning.trainer.progress import BaseProgress, Progress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -77,10 +77,8 @@ class Loop(ABC):
         """Determine whether to return immediately from the call to :meth:`run`."""
         return False
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects Loop with all the necessary things like connectors and accelerators."""
-        # TODO(@justusschock): Make the trainer a weakref/proxy
-        self.trainer = trainer
+    def connect(self, **kwargs: "Loop") -> None:
+        """Optionally connect one or multiple loops to this one. Linked loops should form a tree."""
 
     def on_skip(self) -> Optional[Any]:
         """
@@ -197,11 +195,6 @@ class Loop(ABC):
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])
                 if restart_progress:
-
-                    def restart(tracker: Tracker):
-                        tracker.reset_on_restart()
-
-                    apply_to_collection(v, Tracker, restart)
-
+                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
