@@ -136,5 +136,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
+            # Un-reference the DDP wrapper as the reducer can hold cuda memory.
+            self.model = None
             # clean up memory
             torch.cuda.empty_cache()

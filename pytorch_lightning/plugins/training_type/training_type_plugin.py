@@ -121,7 +121,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """Hook to do something after each optimizer step."""
 
     @property
-    def model(self) -> Module:
+    def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule"""
         return self._model
 

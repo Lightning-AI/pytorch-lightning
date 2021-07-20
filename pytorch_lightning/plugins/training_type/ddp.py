@@ -448,12 +448,3 @@ class DDPPlugin(ParallelPlugin):
                 os.kill(pid, signal.SIGKILL)
             shutil.rmtree(sync_dir)
             raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
-
-    def teardown(self) -> None:
-        if self.on_gpu:
-            # GPU teardown
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
-            # delete ``ddp wrapper`` as the reducer is holding some cuda memory back.
-            self.model = None
