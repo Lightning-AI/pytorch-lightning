@@ -56,7 +56,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            device = torch.device("cuda", self.trainer.training_type_plugin.local_rank)
+            device = torch.device("cuda", self.trainer.local_rank) if on_gpu else torch.device("cpu")
             assert self.device == device
             self.initial_cuda_memory = torch.cuda.memory_allocated(device)
 
