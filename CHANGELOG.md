@@ -316,7 +316,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Use XLA utility API to move data to CPU (Single TPU core) ([#8078](https://github.com/PyTorchLightning/pytorch-lightning/pull/8078))
 
 
-- `deepcopy(LightningModule)` no longer copies the trainer or dataloaders/datamodule ([#8472](https://github.com/PyTorchLightning/pytorch-lightning/pull/8472))
+- Added `prevent_trainer_and_dataloaders_deepcopy` context manager on the `LightningModule` ([#8472](https://github.com/PyTorchLightning/pytorch-lightning/pull/8472))
 
 
 ### Deprecated
@@ -486,6 +486,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed clearing dataloader references before attaching new dataloaders in consecutive `Trainer.{fit,validate,test,predict}´ runs ([#8442](https://github.com/PyTorchLightning/pytorch-lightning/pull/8442))
+
+
+- Fixed `SWA` callback using LightningModule `prevent_trainer_and_dataloaders_deepcopy` to avoid OOM ([#8472](https://github.com/PyTorchLightning/pytorch-lightning/pull/8472))
+
+
+- Fixed `ModelPruning` callback `on_save_checkpoint` to avoid making a `deepcopy` potentially leading to OOM ([#8472](https://github.com/PyTorchLightning/pytorch-lightning/pull/8472))
+
 
 
 ## [1.3.8] - 2021-07-01
