@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from enum import Enum
 import logging
 import math
 import os
 import pickle
-from pytorch_lightning.utilities.enums import LightningEnum
 import sys
 from argparse import Namespace
-from copy import deepcopy, _deepcopy_dispatch
+from copy import _deepcopy_dispatch, deepcopy
+from enum import Enum
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -41,6 +40,7 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
@@ -1976,7 +1976,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 @RunIf(min_gpu=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
     """
-    This tests ensures calling the trainer several times doesn't increase memory allocated.    
+    This tests ensures calling the trainer several times doesn't increase memory allocated.
     """
 
     class TestModel(BoringModel):
