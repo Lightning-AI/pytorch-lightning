@@ -469,7 +469,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = self.call_hook(f"{stage}_dataloader")
+        hook = f"{stage}_dataloader"
+        self.call_hook("on_" + hook)
+        dataloader = self.call_hook(hook)
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.accelerator.barrier('get_dataloaders')
