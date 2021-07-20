@@ -715,6 +715,7 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
     mock_deepspeed_distributed.assert_called()
     mock_platform.assert_called()
     if platform == 'Windows':
+        # assert no env variables have been set within the DeepSpeedPlugin
         assert len(os.environ) == 0
     else:
         assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
