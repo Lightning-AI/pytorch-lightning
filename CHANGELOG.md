@@ -331,9 +331,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Moved `DeviceDtypeModuleMixin` and `HyperparametersMixin` mixin to `core` ([#8396](https://github.com/PyTorchLightning/pytorch-lightning/pull/8396))
 
 
-- Moved `check_checkpoint_callback` to `ModelCheckpoint` ([#7724](https://github.com/PyTorchLightning/pytorch-lightning/pull/7724))
-
-
 - Used `default_root_dir` as the `log_dir` with `LoggerCollection`s ([#8187](https://github.com/PyTorchLightning/pytorch-lightning/pull/8187))
 
 
@@ -497,7 +494,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed missing call to `LightningModule.untoggle_optimizer` in training loop when running gradient accumulation with multiple optimizers ([#8284](https://github.com/PyTorchLightning/pytorch-lightning/pull/8284))
 
-- Fixed hash of LightningEnum to work with value instead of name([#8421](https://github.com/PyTorchLightning/pytorch-lightning/pull/8421)).
+
+- Fixed hash of LightningEnum to work with value instead of name ([#8421](https://github.com/PyTorchLightning/pytorch-lightning/pull/8421)).
+
+
+- Fixed a bug where an extra checkpoint was saved at the end of training if the `val_check_interval` did not align with the number of training batches ([#7724](https://github.com/PyTorchLightning/pytorch-lightning/pull/7724))
+
 
 - Fixed `move_data_to_device` to return the batch if the object `to` function didn't return `self` ([#8433](https://github.com/PyTorchLightning/pytorch-lightning/pull/8433))
 
