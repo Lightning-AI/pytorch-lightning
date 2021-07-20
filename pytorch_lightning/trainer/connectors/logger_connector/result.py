@@ -254,12 +254,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         if not self.is_tensor and drop_value:
             # Avoid serializing ResultMetrics which are passed Metrics
             skip.append('value')
-        with self.sync_context(
-            should_sync=not self.meta.sync.rank_zero_only,
-            process_group=self.meta.sync.group,
-            distributed_available=distributed_available
-        ):
-            d = {k: v for k, v in self.__dict__.items() if k not in skip}
+        d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
@@ -275,6 +270,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         result_metric = cls(meta, state['is_tensor'])
         result_metric.__setstate__(state, sync_fn=sync_fn)
         return result_metric
+
+    def to(self, *args: Any, **kwargs: Any) -> 'DeviceDtypeModuleMixin':
+        self.__dict__.update(apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
+        return self
 
 
 class ResultMetricCollection(dict):

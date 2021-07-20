@@ -27,7 +27,8 @@ import torch
 from omegaconf import OmegaConf
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-
+from functools import partial
+from pytorch_lightning import callbacks
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -44,6 +45,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.models.test_hooks import get_members
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1974,7 +1976,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 @RunIf(min_gpus=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
     """
-    This tests ensures calling the trainer several times doesn't increase memory allocated.
+    This tests ensures calling the trainer several times reset the memory back to 0. 
     """
 
     class TestModel(BoringModel):
@@ -1987,32 +1989,33 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         def example_input_array(self):
             return self._example_input_array
 
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            self.log("train_loss", loss["loss"])
+            return loss
+
         def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.layer.parameters(), lr=0.1)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-            return [optimizer], [lr_scheduler]
+            return torch.optim.Adam(self.layer.parameters(), lr=0.1)
 
     initial = torch.cuda.memory_allocated(0)
 
     model = TestModel()
-    trainer_kwargs = dict(default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp")
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp", progress_bar_refresh_rate=0)
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
     assert model._example_input_array.device == torch.device("cpu")
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
+    assert trainer.callback_metrics['train_loss'].device == torch.device("cpu")
 
     memory_1 = torch.cuda.memory_allocated(0)
     deepcopy(trainer)
-
     memory_2 = torch.cuda.memory_allocated(0)
-    torch.cuda.empty_cache()
-    # using ``self.log`` increase memory consumption
-    assert memory_1 == memory_2 == 1024
+    assert memory_1 == memory_2 == 0
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
     memory_3 = torch.cuda.memory_allocated(0)
 
-    # todo: (tchaton) Still some memory leaks, could not find the source.
-    assert initial + 2048 == memory_1 + 1024 == memory_3
+    assert initial == memory_1 == memory_3
