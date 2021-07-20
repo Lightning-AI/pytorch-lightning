@@ -200,6 +200,7 @@ class CheckpointConnector:
 
         # Division deals with global step stepping once per accumulated batch
         # Inequality deals with different global step for odd vs even num_training_batches
+        self.trainer.accumulation_scheduler.compute_accumulate_grad_batches(self.trainer)
         n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
         expected_steps = self.trainer.num_training_batches / n_accum
         if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:

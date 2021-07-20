@@ -15,11 +15,12 @@ import os
 from copy import deepcopy
 
 import torch
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 
 
 def test_finetuning_with_resume_from_checkpoint(tmpdir):
@@ -84,3 +85,23 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             assert best_model_path.endswith(f"epoch=0{idx}.ckpt")
         else:
             assert f"epoch={idx + 1}" in best_model_path
+
+
+def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
+    """
+    This test validates that accumulated gradient properly restart
+    """
+
+    train_data = DataLoader(RandomDataset(32, 64), num_workers=0)
+    val_data = DataLoader(RandomDataset(32, 64), num_workers=0)
+
+    cb = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    model = BoringModel()
+    trainer_kwargs = dict(max_epochs=2, accumulate_grad_batches={0: 2}, callbacks=cb)
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model, train_data, val_data)
+
+    trainer_kwargs['max_epochs'] = 3
+    trainer_kwargs['resume_from_checkpoint'] = cb.last_model_path
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model, train_data, val_data)
