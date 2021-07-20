@@ -272,7 +272,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return result_metric
 
     def to(self, *args: Any, **kwargs: Any) -> 'DeviceDtypeModuleMixin':
-        self.__dict__.update(apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
+        self.__dict__.update(
+            apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs)
+        )
         return self
 
 
