@@ -2003,7 +2003,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.training_type_plugin.model is None
+    assert trainer.training_type_plugin.model is model
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics['train_loss'].device == torch.device("cpu")
 
