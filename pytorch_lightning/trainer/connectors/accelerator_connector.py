@@ -85,6 +85,7 @@ class AcceleratorConnector(object):
     def __init__(
         self,
         num_processes,
+        devices,
         tpu_cores,
         ipus,
         distributed_backend,
@@ -106,6 +107,7 @@ class AcceleratorConnector(object):
         self._accelerator_type = None
 
         self.num_processes = num_processes
+        self.devices = devices
         # `gpus` is the input passed to the Trainer, whereas `gpu_ids` is a list of parsed gpu ids.
         self.gpus = gpus
         self.parallel_device_ids = gpu_ids
@@ -136,13 +138,18 @@ class AcceleratorConnector(object):
 
         self.plugins = plugins
 
+        self._validate_accelerator_and_devices()
+        self._warn_if_devices_flag_ignored()
+
         self.select_accelerator_type()
         self.set_distributed_mode()
         self.configure_slurm_ddp()
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
-        self.validate_accelerator_type()
+
+        self._validate_accelerator_type()
+        self._set_devices_if_none()
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
@@ -179,6 +186,7 @@ class AcceleratorConnector(object):
             elif self.has_gpu:
                 self._accelerator_type = DeviceType.GPU
             else:
+                self._set_devices_to_cpu_num_processes()
                 self._accelerator_type = DeviceType.CPU
         elif self.distributed_backend == DeviceType.TPU:
             if not self.has_tpu:
@@ -196,18 +204,65 @@ class AcceleratorConnector(object):
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}.")
             self._accelerator_type = DeviceType.GPU
         elif self.distributed_backend == DeviceType.CPU:
+            self._set_devices_to_cpu_num_processes()
             self._accelerator_type = DeviceType.CPU
 
         if self.distributed_backend in ["auto"] + list(DeviceType):
             self.distributed_backend = None
 
-    def validate_accelerator_type(self) -> None:
+    def _validate_accelerator_and_devices(self) -> None:
+        if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
+            raise MisconfigurationException(
+                f"You passed `devices={self.devices}` but haven't specified"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
+                f" got `accelerator={self.distributed_backend}`."
+            )
+
+    def _validate_accelerator_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
             raise MisconfigurationException(
                 f"Mismatch between the requested accelerator type ({self._accelerator_type})"
                 f" and assigned device type ({self._device_type})."
             )
         self._accelerator_type = self._device_type
+
+    def _warn_if_devices_flag_ignored(self) -> None:
+        if self.devices is None:
+            return
+        devices_warning = f"The flag `devices={self.devices}` will be ignored, as you have set"
+        if self.distributed_backend == "auto":
+            if self.tpu_cores is not None:
+                rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
+            elif self.ipus is not None:
+                rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
+            elif self.gpus is not None:
+                rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
+            elif self.num_processes != 1:
+                rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
+        elif self.distributed_backend == DeviceType.TPU:
+            if self.tpu_cores is not None:
+                rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
+        elif self.distributed_backend == DeviceType.IPU:
+            if self.ipus is not None:
+                rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
+        elif self.distributed_backend == DeviceType.GPU:
+            if self.gpus is not None:
+                rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
+        elif self.distributed_backend == DeviceType.CPU:
+            if self.num_processes != 1:
+                rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
+
+    def _set_devices_if_none(self) -> None:
+        if self.devices is not None:
+            return
+        if self._accelerator_type == DeviceType.TPU:
+            self.devices = self.tpu_cores
+        elif self._accelerator_type == DeviceType.IPU:
+            self.devices = self.ipus
+        elif self._accelerator_type == DeviceType.GPU:
+            self.devices = self.gpus
+        elif self._accelerator_type == DeviceType.CPU:
+            self.devices = self.num_processes
 
     def handle_given_plugins(self) -> None:
 
@@ -302,7 +357,9 @@ class AcceleratorConnector(object):
         # Here, we are not checking for GPU availability, but instead if User has passed
         # `gpus` to Trainer for training.
         gpus = self.parallel_device_ids
-        return gpus is not None and len(gpus) > 0
+        if gpus is not None and len(gpus) > 0:
+            return True
+        return self._map_devices_to_accelerator(DeviceType.GPU)
 
     @property
     def use_gpu(self) -> bool:
@@ -312,7 +369,9 @@ class AcceleratorConnector(object):
     def has_tpu(self) -> bool:
         # Here, we are not checking for TPU availability, but instead if User has passed
         # `tpu_cores` to Trainer for training.
-        return self.tpu_cores is not None
+        if self.tpu_cores is not None:
+            return True
+        return self._map_devices_to_accelerator(DeviceType.TPU)
 
     @property
     def use_tpu(self) -> bool:
@@ -328,11 +387,40 @@ class AcceleratorConnector(object):
     def has_ipu(self) -> bool:
         # Here, we are not checking for IPU availability, but instead if User has passed
         # `ipus` to Trainer for training.
-        return self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin)
+        if self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin):
+            return True
+        return self._map_devices_to_accelerator(DeviceType.IPU)
 
     @property
     def use_ipu(self) -> bool:
         return self._accelerator_type == DeviceType.IPU and self.has_ipu
+
+    def _set_devices_to_cpu_num_processes(self) -> None:
+        if self.num_processes == 1:
+            self._map_devices_to_accelerator(DeviceType.CPU)
+
+    def _map_devices_to_accelerator(self, accelerator: str) -> bool:
+        if self.devices is None:
+            return False
+        if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+            self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
+            return True
+        if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+            self.ipus = self.devices
+            return True
+        if accelerator == DeviceType.GPU and torch.cuda.is_available():
+            self.gpus = self.devices
+            self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
+            return True
+        if accelerator == DeviceType.CPU:
+            if not isinstance(self.devices, int):
+                raise MisconfigurationException(
+                    "The flag `devices` only supports integer for `accelerator='cpu'`,"
+                    f" got `devices={self.devices}` instead."
+                )
+            self.num_processes = self.devices
+            return True
+        return False
 
     @property
     def use_dp(self) -> bool:
