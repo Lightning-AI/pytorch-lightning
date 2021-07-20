@@ -295,21 +295,47 @@ class ModelHooks:
             optimizer: The optimizer for which grads should be zeroed.
         """
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """
+        Called before ``loss.backward()``.
+
+        Args:
+            loss: Loss divided by number of batches for gradient accumulation and scaled if using native AMP.
+        """
+        pass
+
     def on_after_backward(self) -> None:
         """
-        Called in the training loop after loss.backward() and before optimizers do anything.
-        This is the ideal place to inspect or log gradient information.
+        Called after ``loss.backward()`` and before optimizers are stepped.
+
+        Note:
+            If using native AMP, the gradients will not be unscaled at this point.
+            Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
+        """
+
+    def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """
+        Called before ``optimizer.step()``.
+
+        The hook is only called if gradients do not need to be accumulated.
+        See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+        If using native AMP, the loss will be unscaled before calling this hook.
+        See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
+        for more information on the scaling of gradients.
+
+        Args:
+            optimizer: Current optimizer being used.
+            optimizer_idx: Index of the current optimizer being used.
 
         Example::
 
-            def on_after_backward(self):
+            def on_before_optimizer_step(self, optimizer, optimizer_idx):
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     for k, v in self.named_parameters():
                         self.logger.experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
-
         """
 
     def on_post_move_to_device(self) -> None:
@@ -435,8 +461,9 @@ class DataHooks:
             A collection of :class:`torch.utils.data.DataLoader` specifying training samples.
             In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a positive integer.
 
         For data processing use the following pattern:
 
@@ -505,8 +532,9 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a postive integer.
 
         For data processing use the following pattern:
 
@@ -565,8 +593,9 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for validation.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a positive integer.
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 

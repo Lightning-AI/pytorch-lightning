@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -34,9 +35,7 @@ class CheckpointConnector:
     def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        # used to validate checkpointing logic
-        self.has_trained = False
-        self._loaded_checkpoint = dict()
+        self._loaded_checkpoint = {}
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -77,7 +76,7 @@ class CheckpointConnector:
         if self.resume_checkpoint_path:
             rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
-        self._loaded_checkpoint = dict()
+        self._loaded_checkpoint = {}
 
         # clear cache after restore
         torch.cuda.empty_cache()
@@ -162,8 +161,8 @@ class CheckpointConnector:
 
         # restore precision plugin (scaler etc.)
         self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
-        # restore progress (loops etc.)
-        self.restore_progress()
+        # restore loops and their progress
+        self.restore_loops()
 
         self.restore_optimizers_and_schedulers()
 
@@ -181,10 +180,10 @@ class CheckpointConnector:
             )
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
-    def restore_progress(self) -> None:
+    def restore_loops(self) -> None:
         """
-        Restores the training progress from the pre-loaded checkpoint. This currently includes only the global step
-        and current epoch.
+        Restores the loop progress from the pre-loaded checkpoint.
+        Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
         """
         if not self._loaded_checkpoint:
             return
@@ -210,6 +209,13 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
+
+        state_dict = self._loaded_checkpoint.get("loops")
+        if state_dict:
+            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
@@ -333,6 +339,8 @@ class CheckpointConnector:
             'pytorch-lightning_version': pl.__version__,
             'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
+        if _fault_tolerant_enabled():
+            checkpoint["loops"] = self._get_loops_state_dict()
 
         if not weights_only:
             # dump callbacks
@@ -430,3 +438,11 @@ class CheckpointConnector:
         """
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
+
+    def _get_loops_state_dict(self):
+        return {
+            "fit_loop": self.trainer.fit_loop.state_dict(),
+            "validate_loop": self.trainer.validate_loop.state_dict(),
+            "test_loop": self.trainer.test_loop.state_dict(),
+            "predict_loop": self.trainer.predict_loop.state_dict(),
+        }

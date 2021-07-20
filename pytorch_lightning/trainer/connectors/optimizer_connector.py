@@ -64,10 +64,10 @@ class OptimizerConnector:
                 monitor_key, monitor_val = None, None
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
-                    monitor_val = self.trainer.logger_connector.callback_metrics.get(monitor_key)
+                    monitor_val = self.trainer.callback_metrics.get(monitor_key)
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):
-                            avail_metrics = list(self.trainer.logger_connector.callback_metrics.keys())
+                            avail_metrics = list(self.trainer.callback_metrics)
                             raise MisconfigurationException(
                                 f'ReduceLROnPlateau conditioned on metric {monitor_key}'
                                 f' which is not available. Available metrics are: {avail_metrics}.'
@@ -83,12 +83,16 @@ class OptimizerConnector:
                 # update LR
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
+                self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
+
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
 
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
+                self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(

@@ -1,5 +1,4 @@
 import os
-from urllib.error import HTTPError
 
 from six.moves import urllib
 
@@ -12,17 +11,9 @@ urllib.request.install_opener(opener)
 
 _EXAMPLES_ROOT = os.path.dirname(__file__)
 _PACKAGE_ROOT = os.path.dirname(_EXAMPLES_ROOT)
-_PATH_DATASETS = os.path.join(_PACKAGE_ROOT, 'Datasets')
+_DATASETS_PATH = os.path.join(_PACKAGE_ROOT, 'Datasets')
 
-_TORCHVISION_MNIST_AVAILABLE = not bool(os.environ.get("PL_USE_MOCKED_MNIST", False))
 _DALI_AVAILABLE = _module_available("nvidia.dali")
-
-if _TORCHVISION_MNIST_AVAILABLE:
-    try:
-        from torchvision.datasets.mnist import MNIST
-        MNIST(_PATH_DATASETS, download=True)
-    except HTTPError:
-        _TORCHVISION_MNIST_AVAILABLE = False
 
 LIGHTNING_LOGO = """
                     ####

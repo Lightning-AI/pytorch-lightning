@@ -28,6 +28,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -52,21 +53,22 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 class TrainerProperties(ABC):
 
     _default_root_dir: str
+    _fit_loop: FitLoop
     _lightning_optimizers = None
+    _predict_loop: PredictionLoop
     _progress_bar_callback: ProgressBarBase
+    _test_loop: EvaluationLoop
+    _validate_loop: EvaluationLoop
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
+    reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
-    fit_loop: FitLoop
-    validate_loop: EvaluationLoop
-    test_loop: EvaluationLoop
-    predict_loop: PredictionLoop
     """
     Accelerator properties
     """
@@ -142,6 +144,10 @@ class TrainerProperties(ABC):
     @property
     def num_gpus(self) -> int:
         return self.accelerator_connector.num_gpus
+
+    @property
+    def devices(self) -> Optional[Union[List[int], str, int]]:
+        return self.accelerator_connector.devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
@@ -225,8 +231,12 @@ class TrainerProperties(ABC):
     def log_dir(self) -> Optional[str]:
         if self.logger is None:
             dirpath = self.default_root_dir
+        elif isinstance(self.logger, TensorBoardLogger):
+            dirpath = self.logger.log_dir
+        elif isinstance(self.logger, LoggerCollection):
+            dirpath = self.default_root_dir
         else:
-            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
+            dirpath = self.logger.save_dir
 
         dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
@@ -292,6 +302,12 @@ class TrainerProperties(ABC):
                 f" in `LightingModule`.", UserWarning
             )
         return {**standard_metrics, **pbar_metrics}
+
+    @property
+    def _should_reload_dl_epoch(self) -> bool:
+        """ Check if dataloader should be reloaded in the current epoch. """
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and (not self.current_epoch % n_epochs)
 
     @property
     def disable_validation(self) -> bool:
@@ -521,6 +537,59 @@ class TrainerProperties(ABC):
     @property
     def is_last_batch(self) -> bool:
         return self.fit_loop.epoch_loop.is_last_batch
+
+    @property
+    def fit_loop(self):
+        return self._fit_loop
+
+    @fit_loop.setter
+    def fit_loop(self, loop: FitLoop):
+        """
+        Attach a custom fit loop to this Trainer. It will run with
+        :meth:`~pytorch_lighting.trainer.trainer.Trainer.fit`.
+        """
+        loop.trainer = self
+        self._fit_loop = loop
+
+    @property
+    def validate_loop(self):
+        return self._validate_loop
+
+    @validate_loop.setter
+    def validate_loop(self, loop: EvaluationLoop):
+        """
+        Attach a custom validation loop to this Trainer. It will run with
+        :meth:`~pytorch_lighting.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
+        running during training inside the :meth:`pytorch_lightning.trainer.trainer.Trainer.fit` call.
+        """
+        loop.trainer = self
+        self._validate_loop = loop
+
+    @property
+    def test_loop(self):
+        return self._test_loop
+
+    @test_loop.setter
+    def test_loop(self, loop: EvaluationLoop):
+        """
+        Attach a custom test loop to this Trainer. It will run with
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
+        """
+        loop.trainer = self
+        self._test_loop = loop
+
+    @property
+    def predict_loop(self):
+        return self._predict_loop
+
+    @predict_loop.setter
+    def predict_loop(self, loop: PredictionLoop):
+        """
+        Attach a custom prediction loop to this Trainer. It will run with
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
+        """
+        loop.trainer = self
+        self._predict_loop = loop
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:

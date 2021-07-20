@@ -14,7 +14,6 @@
 from typing import Optional
 
 import torch
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
@@ -79,7 +78,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             )
         return unwrap_lightning_module_sharded(self._model)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
     def post_training_step(self):

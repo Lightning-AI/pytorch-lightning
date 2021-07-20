@@ -27,7 +27,6 @@ import numpy as np
 import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -38,6 +37,7 @@ from pytorch_lightning.utilities import (
     _HYDRA_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
+    _TORCH_GREATER_EQUAL_1_9,
     rank_zero_deprecation,
     rank_zero_warn,
 )
@@ -157,7 +157,7 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
+        if not self.cluster_environment.creates_children():
             self._call_children_scripts()
 
         # set the task idx
@@ -208,8 +208,6 @@ class DDPPlugin(ParallelPlugin):
         # but forward the GPUs selected via environment variables
         if self.parallel_devices is None:
             raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
-
-        os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
@@ -292,9 +290,11 @@ class DDPPlugin(ParallelPlugin):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
-        # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
-        # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
+        # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
+        # Since 1.9, DDP communication hooks can work on all backends.
+        if _TORCH_GREATER_EQUAL_1_9 or (
+            _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
+        ):
             register_ddp_comm_hook(
                 model=self._model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -321,7 +321,7 @@ class DDPPlugin(ParallelPlugin):
         world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if not torch.distributed.is_initialized():
+        if torch.distributed.is_available() and not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch.distributed.init_process_group(
                 self.torch_distributed_backend, rank=global_rank, world_size=world_size
@@ -361,14 +361,12 @@ class DDPPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return self.dist.broadcast(obj)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
-        if self.root_device.type == "cuda":
-            torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:

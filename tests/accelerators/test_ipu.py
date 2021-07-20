@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import IPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
@@ -491,3 +491,68 @@ def test_precision_plugin(tmpdir):
 
     plugin = IPUPrecisionPlugin(precision=16)
     assert plugin.precision == 16
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=1)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='ipu'`, but you didn't pass `ipus` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="ipu")
+
+    trainer = Trainer(accelerator="auto", ipus=8)
+
+    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_cpu_with_ipus_flag():
+
+    trainer = Trainer(accelerator="cpu", ipus=1)
+
+    assert trainer._device_type == "cpu"
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_devices():
+
+    trainer = Trainer(accelerator="ipu", devices=8)
+
+    assert trainer.ipus == 8
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+
+
+@RunIf(ipu=True)
+def test_accelerator_auto_with_devices_ipu():
+
+    trainer = Trainer(accelerator="auto", devices=8)
+
+    assert trainer._device_type == "ipu"
+    assert trainer.ipus == 8
+
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_ipus_priority():
+    """ Test for checking `ipus` flag takes priority over `devices`. """
+
+    ipus = 8
+    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
+        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
+
+    assert trainer.ipus == ipus
+
+
+@RunIf(ipu=True)
+def test_set_devices_if_none_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=8)
+    assert trainer.devices == 8

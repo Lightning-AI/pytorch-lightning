@@ -15,6 +15,7 @@ import contextlib
 import json
 import logging
 import os
+import platform
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
@@ -29,7 +30,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
@@ -325,7 +326,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]
-        if isinstance(config, str) or isinstance(config, Path):
+        if isinstance(config, (str, Path)):
             if not os.path.isfile(config):
                 raise MisconfigurationException(
                     f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
@@ -339,8 +340,30 @@ class DeepSpeedPlugin(DDPPlugin):
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
+
+    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
+        if platform.system() != "Windows":
+            # do not set env variables on windows, allow deepspeed to control setup
+            global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+            world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+            self._set_node_environment_variables(global_rank, world_size)
+            log.info(
+                f"initializing deepspeed distributed: "
+                f"GLOBAL_RANK: {global_rank}, "
+                f"MEMBER: {global_rank + 1}/{world_size}"
+            )
+        deepspeed.init_distributed(
+            self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
+        )
+
+    def _set_node_environment_variables(
+        self, global_rank: Optional[int] = None, world_size: Optional[int] = None
+    ) -> None:
+        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["RANK"] = str(global_rank)
+        os.environ["WORLD_SIZE"] = str(world_size)
+        os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     def pre_dispatch(self):
         self.init_deepspeed()
@@ -543,7 +566,7 @@ class DeepSpeedPlugin(DDPPlugin):
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision
-        if precision == 16:
+        if precision in (16, 'mixed'):
             if "fp16" not in self.config and amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -561,8 +584,6 @@ class DeepSpeedPlugin(DDPPlugin):
                     "enabled": True,
                     "opt_level": amp_level,
                 }
-        if "zero_optimization" in self.config and not ("amp" in self.config or "fp16" in self.config):
-            raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
         self,

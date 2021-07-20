@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, Dict
+from unittest import mock
 
 import pytest
 import torch
@@ -40,7 +41,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.layer = None
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
         opt.zero_grad()
@@ -164,13 +165,14 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(amp_native=True, deepspeed=True)
+@pytest.mark.parametrize("precision", [16, 'mixed'])
 @pytest.mark.parametrize(
     "amp_backend", [
         pytest.param("native", marks=RunIf(amp_native=True)),
         pytest.param("apex", marks=RunIf(amp_apex=True)),
     ]
 )
-def test_deepspeed_precision_choice(amp_backend, tmpdir):
+def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """
     Test to ensure precision plugin is also correctly chosen.
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -181,12 +183,12 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
         default_root_dir=tmpdir,
         plugins='deepspeed',
         amp_backend=amp_backend,
-        precision=16,
+        precision=precision,
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == 16
+    assert trainer.accelerator.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -222,21 +224,6 @@ def test_deepspeed_defaults(tmpdir):
     plugin = DeepSpeedPlugin()
     assert plugin.config is not None
     assert isinstance(plugin.config["zero_optimization"], dict)
-
-
-@RunIf(min_gpus=1, deepspeed=True)
-def test_invalid_deepspeed_defaults_no_precision(tmpdir):
-    """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins='deepspeed',
-    )
-    with pytest.raises(
-        MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
-    ):
-        trainer.fit(model)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
@@ -448,6 +435,13 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_fp32_works(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins='deepspeed_stage_3', fast_dev_run=True)
+    trainer.fit(model)
+
+
 class ModelParallelClassificationModel(LightningModule):
 
     def __init__(self, lr: float = 0.01, num_blocks: int = 5):
@@ -518,7 +512,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        opt = self.optimizers()[0]
+        opt = self.optimizers()
         self.log('train_loss', loss, prog_bar=True)
         self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         opt.zero_grad()
@@ -657,14 +651,19 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
 
     class VerificationCallback(Callback):
 
+        def __init__(self):
+            self.on_train_batch_start_called = False
+
         def on_train_batch_start(
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
+            self.on_train_batch_start_called = True
 
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
+    verification_callback = VerificationCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -674,9 +673,10 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
-        callbacks=[VerificationCallback()]
+        callbacks=[verification_callback]
     )
     trainer.fit(model, datamodule=dm)
+    assert verification_callback.on_train_batch_start_called
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -693,6 +693,41 @@ def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
         precision=16,
     )
     trainer.test(model)
+
+
+@RunIf(deepspeed=True)
+@mock.patch('deepspeed.init_distributed', autospec=True)
+@pytest.mark.parametrize("platform", ["Linux", "Windows"])
+def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, platform):
+    """
+    Test to ensure that we setup distributed communication using correctly.
+    When using windows, ranks environment variables should not be set, and deepspeed should handle this.
+    """
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
+    )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    with mock.patch('platform.system', return_value=platform) as mock_platform:
+        plugin.init_ddp_connection()
+    mock_deepspeed_distributed.assert_called()
+    mock_platform.assert_called()
+    if platform == 'Windows':
+        # assert no env variables have been set within the DeepSpeedPlugin
+        assert all(k not in os.environ for k in (
+            "MASTER_PORT",
+            "MASTER_ADDR",
+            "RANK",
+            "WORLD_SIZE",
+            "LOCAL_RANK",
+        ))
+    else:
+        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.master_address())
+        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.master_port())
+        assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
+        assert os.environ["WORLD_SIZE"] == str(trainer.training_type_plugin.world_size)
+        assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
