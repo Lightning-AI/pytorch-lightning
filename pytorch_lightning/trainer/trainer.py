@@ -1197,8 +1197,10 @@ class Trainer(
         return output
 
     def _parse_devices(
-        self, gpus: Optional[Union[List[int], str, int]], auto_select_gpus: bool, tpu_cores: Optional[Union[List[int],
-                                                                                                            str, int]]
+        self,
+        gpus: Optional[Union[List[int], str, int]],
+        auto_select_gpus: bool,
+        tpu_cores: Optional[Union[List[int], str, int]],
     ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
         if auto_select_gpus and isinstance(gpus, int):
             gpus = pick_multiple_gpus(gpus)
