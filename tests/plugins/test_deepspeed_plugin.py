@@ -696,12 +696,12 @@ def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@mock.patch('platform.system', return_value='Windows')
 @mock.patch('deepspeed.init_distributed', autospec=True)
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_deepspeed_plugin_windows(mock_deepspeed_distributed, tmpdir):
+@pytest.mark.parametrize("platform", ["Linux", "Windows"])
+def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, platform):
     """
-    Test to ensure that we setup distributed communication using windows.
+    Test to ensure that we setup distributed communication using correctly.
     When using windows, ranks environment variables should not be set, and deepspeed should handle this.
     """
     trainer = Trainer(
@@ -710,9 +710,16 @@ def test_deepspeed_plugin_windows(mock_deepspeed_distributed, tmpdir):
     )
     plugin = trainer.training_type_plugin
     assert isinstance(plugin, DeepSpeedPlugin)
-    plugin.init_ddp_connection()
+    with mock.patch('platform.system', return_value=platform) as mock_platform:
+        plugin.init_ddp_connection()
     mock_deepspeed_distributed.assert_called()
-    assert len(os.environ) == 0
+    mock_platform.assert_called()
+    if platform == 'Windows':
+        assert len(os.environ) == 0
+    else:
+        assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
+        assert os.environ["WORLD_SIZE"] == str(trainer.training_type_plugin.world_size)
+        assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
