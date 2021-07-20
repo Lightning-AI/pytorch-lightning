@@ -28,7 +28,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def wrap_qat_forward_context(
-    quant_cb, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
+    quant_cb,
+    model: 'pl.LightningModule',
+    func: Callable,
+    trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
@@ -53,7 +56,7 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
@@ -70,8 +73,8 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
     """recursive check if model has some layers denoted with '.'"""
-    if "." in attribs:
-        attrib, attribs = attribs.split(".", 1)
+    if '.' in attribs:
+        attrib, attribs = attribs.split('.', 1)
         if hasattr(obj, attrib):
             return _recursive_hasattr(getattr(obj, attrib), attribs, state)
         return False
@@ -88,6 +91,21 @@ class QuantizationAwareTraining(Callback):
 
     .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
 
+    The model set for quantization can appear in one of this stages:
+
+                          ( on_fit_start )                    ( on_fit_end )
+        vanilla model            -->           QuantAwareTrain     -->      quantized model
+             ^                                 ^      |
+             |                                /       |
+             |       ( resume_from_checkpoint )       v
+        entry point               ^             QAT checkpoints
+                                  \--------------------/  
+
+    The model enters the process as "vanilla model" and it is prepared for QAT training in ``on_fit_start`` hook.
+    Note that any saved checkpoint includes already collected stat fro performing Quantization conversion,
+     but not any already quantized and/ fused modules/layers.
+    The quantization is performed on the ``on_fit_end`` and so it need sto he saved extra after finished training.
+    If a user wants to continue any past training we encourage to create a Trainer with ``resume_from_checkpoint``.
 
     Args:
 
@@ -95,8 +113,7 @@ class QuantizationAwareTraining(Callback):
 
             - 'fbgemm' for server inference.
             - 'qnnpack' for mobile inference.
-            - a custom `torch.quantization.QConfig
-              <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+            -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
 
         observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
             and ``HistogramObserver`` as "histogram" which is more computationally expensive.
@@ -126,13 +143,12 @@ class QuantizationAwareTraining(Callback):
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
-    """
-
-    OBSERVER_TYPES = ("histogram", "average")
+    """  # noqa: E501
+    OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
         self,
-        qconfig: Union[str, QConfig] = "fbgemm",
+        qconfig: Union[str, QConfig] = 'fbgemm',
         observer_type: str = "average",
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
@@ -169,7 +185,7 @@ class QuantizationAwareTraining(Callback):
         for group in self.modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
-                    f"You have requested to fuse {group} but one or more of them is not your model attributes"
+                    f'You have requested to fuse {group} but one or more of them is not your model attributes'
                 )
         return True
 
@@ -188,9 +204,9 @@ class QuantizationAwareTraining(Callback):
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
         if isinstance(self._qconfig, str):
-            if self._observer_type == "histogram":
+            if self._observer_type == 'histogram':
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
-            elif self._observer_type == "average":
+            elif self._observer_type == 'average':
                 pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig
