@@ -707,8 +707,6 @@ def test_deepspeed_plugin_windows(mock_deepspeed_distributed, tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         plugins=[DeepSpeedPlugin(stage=3)],
-        gpus=2,
-        fast_dev_run=True,
     )
     plugin = trainer.training_type_plugin
     assert isinstance(plugin, DeepSpeedPlugin)
