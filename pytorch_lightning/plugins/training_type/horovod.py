@@ -23,7 +23,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.distributed import group as GROUP
+from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 
 if _HOROVOD_AVAILABLE:
@@ -174,10 +174,10 @@ class HorovodPlugin(ParallelPlugin):
     def all_gather(
         self,
         result: Union[torch.Tensor],
-        group: Optional[Any] = GROUP.WORLD,
+        group: Optional[Any] = dist_group.WORLD,
         sync_grads: bool = False
     ) -> torch.Tensor:
-        if group is not None and group != GROUP.WORLD:
+        if group is not None and group != dist_group.WORLD:
             raise ValueError(
                 "Horovod does not support allgather using a subcommunicator at this time. "
                 "Unset `group`."
