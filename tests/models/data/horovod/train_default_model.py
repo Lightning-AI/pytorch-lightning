@@ -68,6 +68,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.test(model)
 
     assert model.device == torch.device("cpu")
 
