@@ -212,8 +212,7 @@ class QuantizationAwareTraining(Callback):
             # used with each activation tensor, fuses modules where appropriate,
             # and replaces key operators with quantized implementations.
             torch.quantization.convert(pl_module, inplace=True)
-        # check we shall preserve wrapper
-        if self._input_compatible:
-            pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
-        else:
-            pl_module.forward = self.__module_forward
+            # check we shall preserve wrapper
+            if self._input_compatible:
+                pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
+        pl_module.forward = self.__module_forward
