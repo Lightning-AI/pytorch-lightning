@@ -2005,7 +2005,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     before = torch.cuda.memory_allocated(0)
     deepcopy(trainer)
-    
+
     after = torch.cuda.memory_allocated(0)
     torch.cuda.empty_cache()
     # using ``self.log`` increase memory consumption

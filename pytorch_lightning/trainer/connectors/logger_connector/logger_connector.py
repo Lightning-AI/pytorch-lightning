@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from pprint import pprint
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 import torch
@@ -24,6 +23,7 @@ from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, Ten
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
@@ -316,8 +316,11 @@ class LoggerConnector:
 
     def teardown(self):
         self._logged_metrics = apply_to_collection(
-            self._logged_metrics, torch.Tensor, move_data_to_device, torch.device("cpu"))
+            self._logged_metrics, torch.Tensor, move_data_to_device, torch.device("cpu")
+        )
         self._progress_bar_metrics = apply_to_collection(
-            self._progress_bar_metrics, torch.Tensor, move_data_to_device, torch.device("cpu"))
+            self._progress_bar_metrics, torch.Tensor, move_data_to_device, torch.device("cpu")
+        )
         self._callback_metrics = apply_to_collection(
-            self._callback_metrics, torch.Tensor, move_data_to_device, torch.device("cpu"))
+            self._callback_metrics, torch.Tensor, move_data_to_device, torch.device("cpu")
+        )
