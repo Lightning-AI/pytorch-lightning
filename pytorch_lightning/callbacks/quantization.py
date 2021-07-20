@@ -127,7 +127,7 @@ class QuantizationAwareTraining(Callback):
             but break compatibility to torchscript and export with ``torch.save``.
 
         convert_on_fit_end: perform the quantization in `on_fit_end`.
-            Note that once converted model canot be put in training again.
+            Note that once converted, the model cannot be put in training mode again.
 
     """
     OBSERVER_TYPES = ('histogram', 'average')
@@ -140,7 +140,7 @@ class QuantizationAwareTraining(Callback):
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
         convert_on_fit_end: bool = True,
-    ) -> None:  # noqa: E501
+    ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
             raise MisconfigurationException(
