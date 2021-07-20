@@ -103,8 +103,6 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 
-    # trainer.test(model)
-
 
 if __name__ == "__main__":
     args = parser.parse_args()

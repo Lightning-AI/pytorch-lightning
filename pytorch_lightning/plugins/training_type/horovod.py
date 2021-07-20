@@ -196,9 +196,6 @@ class HorovodPlugin(ParallelPlugin):
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
         """ Wraps optimizers to perform gradient aggregation via allreduce. """
-        if not self.lightning_module.trainer.training:
-            # no need to wrap optimizers
-            return optimizers
         return [
             hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
             if "horovod" not in str(opt.__class__) else opt for opt in optimizers
