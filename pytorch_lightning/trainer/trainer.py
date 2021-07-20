@@ -1178,7 +1178,6 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-
         self.profiler.teardown(stage=fn)
         self.teardown(stage=fn)
         model.teardown(stage=fn)

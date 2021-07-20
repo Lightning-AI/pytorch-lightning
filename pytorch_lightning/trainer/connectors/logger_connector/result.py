@@ -600,7 +600,6 @@ class ResultCollection(dict):
         if self.minimize is not None:
             self.minimize = self.minimize.to(*args, **kwargs)
         self._batch_size = self._batch_size.to(*args, **kwargs)
-
         if 'device' in kwargs:
             self.device = kwargs['device']
         return self
