@@ -17,8 +17,7 @@ import os
 import pickle
 import sys
 from argparse import Namespace
-from copy import _deepcopy_dispatch, deepcopy
-from enum import Enum
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -37,10 +36,9 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate

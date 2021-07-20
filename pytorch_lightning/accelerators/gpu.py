@@ -13,13 +13,12 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, Mapping
+from typing import Mapping
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
