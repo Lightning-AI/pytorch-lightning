@@ -2002,7 +2002,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     memory_1 = torch.cuda.memory_allocated(0)
     deepcopy(trainer)
     memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_1 == memory_2 == 0
+    assert memory_1 == memory_2 == initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
