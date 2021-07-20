@@ -3,7 +3,6 @@ from typing import Any, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
@@ -68,10 +67,9 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+    def connect(self, epoch_loop: PredictionEpochLoop):
+        """Connect the prediction epoch loop with this loop."""
+        self.epoch_loop = epoch_loop
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""

@@ -14,9 +14,8 @@
 
 import logging
 from contextlib import suppress
-from typing import Any, Optional
+from typing import Optional
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
@@ -27,32 +26,20 @@ log = logging.getLogger(__name__)
 
 
 class FitLoop(Loop):
-    """This Loop iterates over the epochs to run the training
+    """
+    This Loop iterates over the epochs to run the training.
 
     Args:
         min_epochs: The minimum number of epochs
         max_epochs: The maximum number of epochs
-        min_steps: The minimum number of steps
-        max_steps: The maximum number of epoch
-
-    .. note::
-        If neither the minimum epochs nor steps are specified the minimum number of epochs is set to 1
-        and if neither the maximum steps nor epochs are specified, the maximum epochs are set to 1000.
     """
 
-    def __init__(
-        self,
-        min_epochs: Optional[int] = None,
-        max_epochs: Optional[int] = None,
-        min_steps: Optional[int] = None,
-        max_steps: Optional[int] = None
-    ):
+    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
         super().__init__()
-        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
+        self.max_epochs = max_epochs
+        self.min_epochs = min_epochs
+        self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
-
-        self.epoch_loop = TrainingEpochLoop(min_steps, max_steps)
 
     @property
     def current_epoch(self) -> int:
@@ -168,10 +155,9 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+    def connect(self, epoch_loop: TrainingEpochLoop):
+        """Connects a training epoch loop to this fit loop."""
+        self.epoch_loop = epoch_loop
 
     def reset(self) -> None:
         """Resets the internal state of this loop"""
