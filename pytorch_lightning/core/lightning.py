@@ -109,11 +109,10 @@ class LightningModule(
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
+        self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
-
-        self._prevent_trainer_and_dataloaders_deepcopy: bool = False
 
     def optimizers(
         self,
@@ -2003,14 +2002,14 @@ class LightningModule(
         )
 
     @contextmanager
-    def prevent_trainer_and_dataloaders_deepcopy(self) -> None:
-        self._prevent_trainer_and_dataloaders_deepcopy = True
+    def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
+        self._should_prevent_trainer_and_dataloaders_deepcopy = True
         yield
-        self._prevent_trainer_and_dataloaders_deepcopy = False
+        self._should_prevent_trainer_and_dataloaders_deepcopy = False
 
     def __getstate__(self) -> Dict[str, Any]:
         skip_keys = set()
-        if self._prevent_trainer_and_dataloaders_deepcopy:
+        if self._should_prevent_trainer_and_dataloaders_deepcopy:
             skip_keys.update({
                 "trainer", "train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader", "datamodule"
             })

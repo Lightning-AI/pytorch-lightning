@@ -408,7 +408,7 @@ class ModelPruning(Callback):
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
 
-    def _make_state_dict_permanent(self, pl_module: LightningModule) -> Dict[str, Any]:
+    def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> Dict[str, Any]:
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
@@ -420,8 +420,8 @@ class ModelPruning(Callback):
             state_dict[tensor_name] = mask.to(dtype=orig.dtype) * orig
 
         def move_to_cpu(tensor: torch.Tensor) -> torch.Tensor:
-            # deepcopy each tensor and move them on cpu
-            return deepcopy(tensor).cpu()
+            # each tensor and move them on cpu
+            return tensor.cpu()
 
         return apply_to_collection(state_dict, torch.Tensor, move_to_cpu)
 
@@ -434,7 +434,7 @@ class ModelPruning(Callback):
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers
-            checkpoint["state_dict"] = self._make_state_dict_permanent(pl_module)
+            checkpoint["state_dict"] = self._make_pruning_permanent_on_state_dict(pl_module)
         return checkpoint
 
     @staticmethod
