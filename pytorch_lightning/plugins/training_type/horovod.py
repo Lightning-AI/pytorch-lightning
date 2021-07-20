@@ -194,7 +194,7 @@ class HorovodPlugin(ParallelPlugin):
         for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()
 
-    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List[hvd.DistributedOptimizer]:
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
         # Horovod: wrap optimizers to perform gradient aggregation via allreduce
         h_optimizers = []
         for optimizer in optimizers:
