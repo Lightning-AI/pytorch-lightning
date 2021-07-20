@@ -23,6 +23,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.data import extract_batch_size
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -253,6 +254,12 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         if not self.is_tensor and drop_value:
             # Avoid serializing ResultMetrics which are passed Metrics
             skip.append('value')
+        with self.sync_context(
+            should_sync=not self.meta.sync.rank_zero_only,
+            process_group=self.meta.sync.group,
+            distributed_available=distributed_available
+        ):
+            d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
