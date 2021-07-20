@@ -46,6 +46,9 @@ class EvaluationEpochLoop(Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)

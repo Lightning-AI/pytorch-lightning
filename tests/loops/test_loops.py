@@ -21,10 +21,84 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-from pytorch_lightning.loops.base import Loop
+from pytorch_lightning import Trainer
+from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.trainer.trainer import Trainer
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
+
+
+class NestedLoop(Loop):
+
+    def __init__(self):
+        super().__init__()
+        self.child_loop0 = None
+        self.child_loop1 = None
+
+    @property
+    def done(self) -> bool:
+        return False
+
+    def connect(self, child0, child1):
+        self.child_loop0 = child0
+        self.child_loop1 = child1
+
+    def reset(self) -> None:
+        pass
+
+    def advance(self, *args, **kwargs):
+        pass
+
+
+@pytest.mark.parametrize("loop_name", [
+    "fit_loop",
+    "validate_loop",
+    "test_loop",
+    "predict_loop",
+])
+def test_connect_loops_direct(loop_name):
+    """ Test Trainer referenes in loops on assignment. """
+    loop = NestedLoop()
+    assert loop.trainer is None
+
+    trainer = Trainer()
+
+    # trainer.loop = loop
+    setattr(trainer, loop_name, loop)
+    assert loop.trainer is trainer
+
+
+def test_connect_loops_recursive():
+    """ Test Trainer references in a nested loop assigned to a Trainer. """
+    main_loop = NestedLoop()
+    child0 = NestedLoop()
+    child1 = NestedLoop()
+    main_loop.connect(child0, child1)
+    assert main_loop.trainer is None
+    assert main_loop.child_loop0.trainer is None
+
+    trainer = Trainer()
+    trainer.fit_loop = main_loop
+    assert child0.trainer is trainer
+    assert child1.trainer is trainer
+
+
+def test_connect_subloops(tmpdir):
+    """ Test connecting individual subloops by calling `trainer.x.y.connect()` """
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
+
+    epoch_loop = trainer.fit_loop.epoch_loop
+    new_batch_loop = TrainingBatchLoop()
+    epoch_loop.connect(batch_loop=new_batch_loop)
+    assert epoch_loop.batch_loop is new_batch_loop
+    assert new_batch_loop.trainer is None
+
+    trainer.fit(model)
+    assert new_batch_loop.trainer is trainer
 
 
 class CustomException(Exception):
@@ -197,6 +271,7 @@ def test_loop_hierarchy():
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
+@RunIf(min_torch="1.7.0")
 def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
     n_epochs = 3
@@ -276,8 +351,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     trainer.fit_loop.load_state_dict(checkpoint)
     expected = {
         "total": {
-            "ready": total_val_batch,
-            "started": total_val_batch,
+            "ready": total_val_batch + 1,
+            "started": total_val_batch + 1,
             "processed": total_val_batch,
             "completed": total_val_batch
         },
@@ -297,6 +372,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("stop_optimizer", (1, 2))
+@RunIf(min_torch="1.7.0")
 def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer, n_optimizers, tmpdir):
     stop_optimizer = stop_optimizer if stop_optimizer < n_optimizers else 0
     n_epochs = 3
@@ -479,6 +555,5 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
-    # TODO(@carmocca): do not reset for total
-    assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch
+    assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch

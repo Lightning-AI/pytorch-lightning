@@ -32,11 +32,11 @@ Use following [**BoringModel**](https://colab.research.google.com/drive/1HvWVVTK
 * `IDE`: Please, use our python [bug_report_model.py](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
 ) template.
 
-* `Colab Notebook`: Please copy and paste the output from our [environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py) (or fill out the checklist below manually).
+* `Colab Notebook`: Please copy and paste the output from our [environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py) (or fill out the checklist below manually).
 
 You can get the script and run it with:
 ```
-wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py
+wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
 # For security purposes, please check the contents of collect_env_details.py before running it.
 python collect_env_details.py
 ```

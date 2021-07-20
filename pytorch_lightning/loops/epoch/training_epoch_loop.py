@@ -16,7 +16,6 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
@@ -29,7 +28,13 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingEpochLoop(loops.Loop):
-    """ Runs over all batches in a dataloader (one epoch). """
+    """
+    Runs over all batches in a dataloader (one epoch).
+
+    Args:
+        min_steps: The minimum number of steps (batches) to process
+        max_steps: The maximum number of steps (batches) to process
+    """
 
     def __init__(self, min_steps: int, max_steps: int):
         super().__init__()
@@ -47,8 +52,8 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop = TrainingBatchLoop()
-        self.val_loop = loops.EvaluationLoop()
+        self.batch_loop: Optional[TrainingBatchLoop] = None
+        self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
@@ -69,11 +74,16 @@ class TrainingEpochLoop(loops.Loop):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.batch_loop.connect(trainer)
-        self.val_loop.connect(trainer)
+    def connect(
+        self,
+        batch_loop: Optional[TrainingBatchLoop] = None,
+        val_loop: Optional["loops.EvaluationLoop"] = None,
+    ) -> None:
+        """Optionally connect a custom batch or validation loop to this training epoch loop."""
+        if batch_loop is not None:
+            self.batch_loop = batch_loop
+        if val_loop is not None:
+            self.val_loop = val_loop
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
