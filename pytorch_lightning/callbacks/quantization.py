@@ -17,7 +17,7 @@ Quantization
 
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union, Dict
 
 import torch
 from torch.quantization import QConfig
@@ -93,13 +93,13 @@ class QuantizationAwareTraining(Callback):
 
     The model set for quantization can appear in one of this stages:
 
-                          ( on_fit_start )                    ( on_fit_end )
-        vanilla model            -->           QuantAwareTrain     -->      quantized model
-             ^                                 ^      |
-             |                                /       |
+                          ( on_fit_start )                   ( on_fit_end )
+        vanilla model          --->           QuantAwareTrain     --->     quantized model
+             ^                      Trainer -/        |
+             |                         |              |
              |       ( resume_from_checkpoint )       v
-        entry point               ^             QAT checkpoints
-                                  \--------------------/
+        entry point         ^                  QAT checkpoints
+                            \------------------------/
 
     The model enters the process as "vanilla model" and it is prepared for QAT training in ``on_fit_start`` hook.
     Note that any saved checkpoint includes already collected stat fro performing Quantization conversion,
@@ -188,6 +188,17 @@ class QuantizationAwareTraining(Callback):
                     f'You have requested to fuse {group} but one or more of them is not your model attributes'
                 )
         return True
+
+    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule',
+                           checkpoint: Dict[str, Any],) -> Dict[str, Any]:
+        # todo
+        return vars(self)
+
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[str, Any]
+    ) -> None:
+        # todo
+        print(callback_state)
 
     def on_fit_start(self, trainer, pl_module):
         # QuantStub converts tensors from floating point to quantized
