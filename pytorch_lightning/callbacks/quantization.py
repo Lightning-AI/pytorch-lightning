@@ -205,17 +205,17 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
     def on_fit_end(self, trainer, pl_module):
-        if self._convert_on_fit_end:
-            pl_module.eval()
-            # Convert the observed model to a quantized model. This does several things:
-            # quantizes the weights, computes and stores the scale and bias value to be
-            # used with each activation tensor, fuses modules where appropriate,
-            # and replaces key operators with quantized implementations.
-            torch.quantization.convert(pl_module, inplace=True)
-            # check we shall preserve wrapper
-            if self._input_compatible:
-                pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
-            else:
-                pl_module.forward = self.__module_forward
+        if not self._convert_on_fit_end:
+            pl_module.forward = self.__module_forward
+            return
+        pl_module.eval()
+        # Convert the observed model to a quantized model. This does several things:
+        # quantizes the weights, computes and stores the scale and bias value to be
+        # used with each activation tensor, fuses modules where appropriate,
+        # and replaces key operators with quantized implementations.
+        torch.quantization.convert(pl_module, inplace=True)
+        # check we shall preserve wrapper
+        if self._input_compatible:
+            pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
         else:
             pl_module.forward = self.__module_forward
