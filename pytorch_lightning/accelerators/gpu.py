@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-from typing import Mapping
 
 import torch
 
@@ -56,11 +55,4 @@ class GPUAccelerator(Accelerator):
 
     def teardown(self) -> None:
         super().teardown()
-
-        for optimizer in self.optimizers:
-            for k, v in optimizer.state.items():
-                if isinstance(v, Mapping):
-                    optimizer.state[k] = {
-                        n: value.cpu() if isinstance(value, torch.Tensor) else value
-                        for n, value in v.items()
-                    }
+        self._move_optimizer_state(torch.device("cpu"))
