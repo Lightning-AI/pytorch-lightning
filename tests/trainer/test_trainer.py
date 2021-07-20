@@ -27,8 +27,7 @@ import torch
 from omegaconf import OmegaConf
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-from functools import partial
-from pytorch_lightning import callbacks
+
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -45,7 +44,6 @@ from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-from tests.models.test_hooks import get_members
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1976,7 +1974,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
 @RunIf(min_gpus=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
     """
-    This tests ensures calling the trainer several times reset the memory back to 0. 
+    This tests ensures calling the trainer several times reset the memory back to 0.
     """
 
     class TestModel(BoringModel):
@@ -2001,7 +1999,8 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     model = TestModel()
     trainer_kwargs = dict(
-        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp", progress_bar_refresh_rate=0)
+        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp", progress_bar_refresh_rate=0
+    )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 

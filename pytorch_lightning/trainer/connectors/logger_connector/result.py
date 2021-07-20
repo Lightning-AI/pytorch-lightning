@@ -23,7 +23,6 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -272,7 +271,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return result_metric
 
     def to(self, *args: Any, **kwargs: Any) -> 'DeviceDtypeModuleMixin':
-        self.__dict__.update(apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
+        self.__dict__.update(
+            apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs)
+        )
         return self
 
 
