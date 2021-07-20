@@ -99,7 +99,7 @@ class QuantizationAwareTraining(Callback):
              |                                /       |
              |       ( resume_from_checkpoint )       v
         entry point               ^             QAT checkpoints
-                                  \--------------------/  
+                                  \--------------------/
 
     The model enters the process as "vanilla model" and it is prepared for QAT training in ``on_fit_start`` hook.
     Note that any saved checkpoint includes already collected stat fro performing Quantization conversion,
