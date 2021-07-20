@@ -493,7 +493,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed clearing dataloader references before attaching new dataloaders in consecutive `Trainer.{fit,validate,test,predict}´ runs ([#8442](https://github.com/PyTorchLightning/pytorch-lightning/pull/8442))
 
 
-- Fixed reduce memory leaks on GPU by moving `optimizer_states` and `ResultCollection extras` to `cpu` ([#8490](https://github.com/PyTorchLightning/pytorch-lightning/pull/8490))
+- Fixed memory leaks on GPU by moving `optimizer_states` and `ResultCollection extras` to `cpu` ([#8490](https://github.com/PyTorchLightning/pytorch-lightning/pull/8490))
 
 
 ## [1.3.8] - 2021-07-01
