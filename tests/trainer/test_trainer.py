@@ -21,12 +21,11 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
-from torch.nn.parallel.distributed import DistributedDataParallel
-
 import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
@@ -1998,7 +1997,12 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     model = TestModel()
     trainer_kwargs = dict(
-        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, accelerator="ddp", progress_bar_refresh_rate=0, callbacks=Check()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        gpus=1,
+        accelerator="ddp",
+        progress_bar_refresh_rate=0,
+        callbacks=Check()
     )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
