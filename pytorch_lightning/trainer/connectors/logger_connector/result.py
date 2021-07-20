@@ -600,13 +600,11 @@ class ResultCollection(dict):
         def to_(item: Union[torch.Tensor, Metric], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Metric]:
             return item.to(*args, **kwargs)
 
-        apply_to_collection(self, (torch.Tensor, Metric), to_, *args, **kwargs)
+        self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), to_, *args, **kwargs))
 
         if self.minimize is not None:
             self.minimize = self.minimize.to(*args, **kwargs)
         self._batch_size = self._batch_size.to(*args, **kwargs)
-
-        self['_extra'] = apply_to_collection(self.extra, (torch.Tensor), to_, *args, **kwargs)
 
         if 'device' in kwargs:
             self.device = kwargs['device']
