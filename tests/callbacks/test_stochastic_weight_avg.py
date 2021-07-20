@@ -19,9 +19,10 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -217,3 +218,31 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
         assert trainer.callbacks[0]._swa_lrs == (1e-3 if use_callbacks else 0.1)
     else:
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
+
+
+def test_swa_deepcopy(tmpdir):
+    """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM"""
+
+    class TestSWA(StochasticWeightAveraging):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.on_before_accelerator_backend_setup_called = False
+
+        def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule'):
+            super().on_before_accelerator_backend_setup(trainer, pl_module)
+            assert self._average_model.train_dataloader is not pl_module.train_dataloader
+            assert self._average_model.train_dataloader.__self__ == self._average_model
+            assert isinstance(pl_module.train_dataloader, _PatchDataLoader)
+            assert self._average_model.trainer is None
+            self.on_before_accelerator_backend_setup_called = True
+
+    model = BoringModel()
+    swa = TestSWA()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=swa,
+        fast_dev_run=True,
+    )
+    trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 2)))
+    assert swa.on_before_accelerator_backend_setup_called
