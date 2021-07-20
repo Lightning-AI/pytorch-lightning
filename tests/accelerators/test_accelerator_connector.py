@@ -713,3 +713,9 @@ def test_set_devices_if_none_gpu():
 
     trainer = Trainer(accelerator="gpu", gpus=2)
     assert trainer.devices == 2
+
+
+def test_devices_with_cpu_only_supports_integer():
+
+    with pytest.raises(MisconfigurationException, match="The flag `devices` only supports integer"):
+        Trainer(accelerator="cpu", devices="1,3")

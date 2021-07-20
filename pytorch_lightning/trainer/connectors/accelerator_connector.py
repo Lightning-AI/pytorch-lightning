@@ -413,6 +413,11 @@ class AcceleratorConnector(object):
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
         if accelerator == DeviceType.CPU:
+            if not isinstance(self.devices, int):
+                raise MisconfigurationException(
+                    "The flag `devices` only supports integer for `accelerator='cpu'`,"
+                    f" got `devices={self.devices}` instead."
+                )
             self.num_processes = self.devices
             return True
         return False
