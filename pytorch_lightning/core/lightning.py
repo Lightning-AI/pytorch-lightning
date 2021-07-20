@@ -2008,9 +2008,12 @@ class LightningModule(
         self._should_prevent_trainer_and_dataloaders_deepcopy = False
 
     def __getstate__(self) -> Dict[str, Any]:
-        skip_keys = set()
+        state = dict(self.__dict__)
         if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            skip_keys.update({
-                "trainer", "train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader", "datamodule"
-            })
-        return {k: v for k, v in self.__dict__.items() if k not in skip_keys}
+            state["trainer"] = None
+            state["_datamodule"] = None
+            state.pop("train_dataloader", None)
+            state.pop("val_dataloader", None)
+            state.pop("test_dataloader", None)
+            state.pop("predict_dataloader", None)
+        return state

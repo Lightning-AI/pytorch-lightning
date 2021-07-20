@@ -234,7 +234,7 @@ def test_swa_deepcopy(tmpdir):
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
             assert isinstance(pl_module.train_dataloader, _PatchDataLoader)
-            assert not hasattr(self._average_model, "trainer")
+            assert self._average_model.trainer is None
             self.on_before_accelerator_backend_setup_called = True
 
     model = BoringModel()
