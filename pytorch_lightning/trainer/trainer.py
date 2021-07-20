@@ -1183,8 +1183,6 @@ class Trainer(
         self.teardown(stage=fn)
         model.teardown(stage=fn)
 
-        self._active_loop.teardown()
-
         model._current_fx_name = None
         model._current_dataloader_idx = None
         # these could have become stale if metrics are defined in `setup`

@@ -1971,7 +1971,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpu=1)
+@RunIf(min_gpus=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
     """
     This tests ensures calling the trainer several times doesn't increase memory allocated.
@@ -2007,7 +2007,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     deepcopy(trainer)
     after = torch.cuda.memory_allocated(0)
     torch.cuda.empty_cache()
-    assert before == after
+    assert before == after == 1024
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
