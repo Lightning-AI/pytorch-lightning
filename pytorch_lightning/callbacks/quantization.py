@@ -215,4 +215,7 @@ class QuantizationAwareTraining(Callback):
             # check we shall preserve wrapper
             if self._input_compatible:
                 pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
-        pl_module.forward = self.__module_forward
+            else:
+                pl_module.forward = self.__module_forward
+        else:
+            pl_module.forward = self.__module_forward
