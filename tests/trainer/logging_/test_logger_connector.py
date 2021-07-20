@@ -151,12 +151,12 @@ class HookedCallback(Callback):
 
     def __init__(self, not_supported):
 
-        def call(hook, *args, **_):
-            # `on_init_{start,end}` do not have the `LightningModule` available
-            lightning_module = [m for m in args if isinstance(m, LightningModule)]
-            if not lightning_module:
+        def call(hook, trainer, model=None, *_, **__):
+            lightning_module = trainer.lightning_module or model
+            if lightning_module is None:
+                # `on_init_{start,end}` do not have the `LightningModule` available
+                assert hook in ('on_init_start', 'on_init_end')
                 return
-            lightning_module = lightning_module[0]
 
             if hook in not_supported:
                 with pytest.raises(MisconfigurationException, match=not_supported[hook]):
@@ -237,7 +237,7 @@ def test_fx_validator_integration(tmpdir):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        callbacks=callback
+        callbacks=callback,
     )
     trainer.fit(model)
 
@@ -248,7 +248,7 @@ def test_fx_validator_integration(tmpdir):
         'on_test_model_eval': "You can't",
         'on_test_end': "You can't",
     })
-    trainer.test(model)
+    trainer.test(model, verbose=False)
 
     not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
     not_supported.update({
