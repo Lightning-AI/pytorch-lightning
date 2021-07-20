@@ -18,6 +18,7 @@ import pickle
 import sys
 from argparse import Namespace
 from copy import deepcopy
+from functools import partial
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -29,7 +30,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import Callback, callbacks, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
