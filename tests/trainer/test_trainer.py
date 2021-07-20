@@ -2001,19 +2001,18 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     assert model._example_input_array.device == torch.device("cpu")
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
-    assert trainer.optimizers[0].state
 
-    before = torch.cuda.memory_allocated(0)
+    memory_1 = torch.cuda.memory_allocated(0)
     deepcopy(trainer)
 
-    after = torch.cuda.memory_allocated(0)
+    memory_2 = torch.cuda.memory_allocated(0)
     torch.cuda.empty_cache()
     # using ``self.log`` increase memory consumption
-    assert before == after == 1024
+    assert memory_1 == memory_2 == 1024
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
-    after_2 = torch.cuda.memory_allocated(0)
+    memory_3 = torch.cuda.memory_allocated(0)
 
     # todo: (tchaton) Still some memory leaks, could not find the source.
-    assert initial + 2048 == before + 1024 == after_2
+    assert initial + 2048 == memory_1 + 1024 == memory_3

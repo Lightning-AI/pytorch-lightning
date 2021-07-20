@@ -21,7 +21,7 @@ from torchmetrics import Metric
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.enums import LightningEnum
@@ -260,7 +260,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             distributed_available=distributed_available
         ):
             d = {k: v for k, v in self.__dict__.items() if k not in skip}
-        d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d['meta'] = d['meta'].__getstate__()
         d['_class'] = self.__class__.__name__
         return d
@@ -598,10 +597,7 @@ class ResultCollection(dict):
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""
 
-        def to_(item: Union[torch.Tensor, Metric], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Metric]:
-            return item.to(*args, **kwargs)
-
-        self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), to_, *args, **kwargs))
+        self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
         if self.minimize is not None:
             self.minimize = self.minimize.to(*args, **kwargs)
