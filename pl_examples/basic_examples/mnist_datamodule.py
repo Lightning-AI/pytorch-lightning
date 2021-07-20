@@ -51,7 +51,7 @@ class MNISTDataModule(LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str = _PATH_DATASETS,
+        data_dir: str = _DATASETS_PATH,
         val_split: int = 5000,
         num_workers: int = 16,
         normalize: bool = False,

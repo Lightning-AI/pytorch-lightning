@@ -29,7 +29,7 @@ import torchvision
 import torchvision.models as models
 import torchvision.transforms as T
 
-from pl_examples import _PATH_DATASETS, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, cli_lightning_logo
 from pytorch_lightning import LightningDataModule, LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
 
@@ -76,12 +76,12 @@ class CIFAR10DataModule(LightningDataModule):
 
     def train_dataloader(self, *args, **kwargs):
         trainset = torchvision.datasets.CIFAR10(
-            root=_PATH_DATASETS, train=True, download=True, transform=self.transform
+            root=_DATASETS_PATH, train=True, download=True, transform=self.transform
         )
         return torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=0)
 
     def val_dataloader(self, *args, **kwargs):
-        valset = torchvision.datasets.CIFAR10(root=_PATH_DATASETS, train=False, download=True, transform=self.transform)
+        valset = torchvision.datasets.CIFAR10(root=_DATASETS_PATH, train=False, download=True, transform=self.transform)
         return torch.utils.data.DataLoader(valset, batch_size=32, shuffle=True, num_workers=0)
 
 
