@@ -24,13 +24,38 @@ class ModelParallelBoringModel(BoringModel):
 
     def __init__(self):
         super().__init__()
-        self.linear = None
+        self.layer = None
 
     def configure_sharded_model(self) -> None:
-        self.linear = torch.nn.Linear(32, 2)
+        self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
+
+
+class ModelParallelBoringModelManualOptim(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.layer = None
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        output = self(batch)
+        loss = self.loss(batch, output)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+
+    def configure_sharded_model(self) -> None:
+        self.layer = torch.nn.Linear(32, 2)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        self.configure_sharded_model()
+
+    @property
+    def automatic_optimization(self) -> bool:
+        return False
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -139,13 +164,14 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(amp_native=True, deepspeed=True)
+@pytest.mark.parametrize("precision", [16, 'mixed'])
 @pytest.mark.parametrize(
     "amp_backend", [
         pytest.param("native", marks=RunIf(amp_native=True)),
         pytest.param("apex", marks=RunIf(amp_apex=True)),
     ]
 )
-def test_deepspeed_precision_choice(amp_backend, tmpdir):
+def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """
     Test to ensure precision plugin is also correctly chosen.
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -156,12 +182,12 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
         default_root_dir=tmpdir,
         plugins='deepspeed',
         amp_backend=amp_backend,
-        precision=16,
+        precision=precision,
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == 16
+    assert trainer.accelerator.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -199,21 +225,6 @@ def test_deepspeed_defaults(tmpdir):
     assert isinstance(plugin.config["zero_optimization"], dict)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
-def test_invalid_deepspeed_defaults_no_precision(tmpdir):
-    """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins='deepspeed',
-    )
-    with pytest.raises(
-        MisconfigurationException, match='To use DeepSpeed ZeRO Optimization, you must set precision=16.'
-    ):
-        trainer.fit(model)
-
-
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_warn_deepspeed_override_backward(tmpdir):
     """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
@@ -231,7 +242,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         gpus=1,
         precision=16,
     )
-    with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
+    with pytest.warns(UserWarning, match='will be ignored since DeepSpeed handles the backward'):
         trainer.fit(model)
 
 
@@ -423,6 +434,13 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_fp32_works(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins='deepspeed_stage_3', fast_dev_run=True)
+    trainer.fit(model)
+
+
 class ModelParallelClassificationModel(LightningModule):
 
     def __init__(self, lr: float = 0.01, num_blocks: int = 5):
@@ -483,6 +501,24 @@ class ModelParallelClassificationModel(LightningModule):
         }]
 
 
+class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
+
+    @property
+    def automatic_optimization(self) -> bool:
+        return False
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.cross_entropy(logits, y)
+        opt = self.optimizers()
+        self.log('train_loss', loss, prog_bar=True)
+        self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
+
+
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
@@ -502,9 +538,34 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
 
 
-def run_checkpoint_test(tmpdir, save_full_weights):
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config):
+    """
+    Test to ensure ZeRO Stage 3 works with a parallel model.
+    """
+    model = ModelParallelBoringModelManualOptim()
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
+        gpus=2,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelManualOptim)
+
+
+def run_checkpoint_test(
+    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
+):
     seed_everything(1)
-    model = ModelParallelClassificationModel()
+    if automatic_optimization:
+        model = ModelParallelClassificationModel()
+    else:
+        model = ManualModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
@@ -514,7 +575,7 @@ def run_checkpoint_test(tmpdir, save_full_weights):
         plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         gpus=2,
         precision=16,
-        accumulate_grad_batches=2,
+        accumulate_grad_batches=accumulate_grad_batches,
         callbacks=[ck]
     )
     trainer.fit(model, datamodule=dm)
@@ -563,36 +624,58 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-@pytest.mark.parametrize('cpu_offload', [True, False])
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload):
+def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    where we save the full weights to one file.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
+    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
+
+
+def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
-    os.environ['MASTER_PORT'] = "29500"
     seed_everything(42)
 
     class VerificationCallback(Callback):
+
+        def __init__(self):
+            self.on_train_batch_start_called = False
 
         def on_train_batch_start(
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
+            self.on_train_batch_start_called = True
 
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
+    verification_callback = VerificationCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=5,
-        plugins=[DeepSpeedPlugin(stage=2, cpu_offload=cpu_offload)],
+        plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
-        callbacks=[VerificationCallback()]
+        callbacks=[verification_callback]
     )
     trainer.fit(model, datamodule=dm)
+    assert verification_callback.on_train_batch_start_called
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)

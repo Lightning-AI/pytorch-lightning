@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
-FROM nvcr.io/nvidia/pytorch:21.05-py3
+FROM nvcr.io/nvidia/pytorch:21.06-py3
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
@@ -34,12 +34,12 @@ RUN \
         rm *.zip ; \
     fi && \
 # save the examples
-    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
 
 # Installations
     python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    pip install "Pillow>=8.2" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
+    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \

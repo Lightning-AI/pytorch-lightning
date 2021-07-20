@@ -13,14 +13,12 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-import pytest
 import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -74,27 +72,6 @@ def test_property_logger(tmpdir):
     trainer = Mock(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
-
-
-def test_automatic_optimization_raises(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def optimizer_step(self, *_, **__):
-            pass
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        accumulate_grad_batches=2,
-    )
-
-    with pytest.raises(
-        MisconfigurationException, match='overriding .* optimizer_step .* `accumulate_grad_batches` .* should be 1'
-    ):
-        trainer.fit(model)
 
 
 def test_params_groups_and_state_are_accessible(tmpdir):
@@ -220,7 +197,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=8,
-        accumulate_grad_batches=1,
+        accumulate_grad_batches=2,
         limit_val_batches=0,
     )
     trainer.fit(model)
@@ -354,7 +331,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=8,
-        accumulate_grad_batches=1,
+        accumulate_grad_batches=2,
     )
 
     trainer.fit(model)

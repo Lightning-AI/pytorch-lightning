@@ -1,7 +1,7 @@
-sphinx>=4.0
-recommonmark  # fails with badges
-m2r  # fails with multi-line text
-nbsphinx>=0.8
+sphinx>=4.0,<4.1
+myst-parser
+nbsphinx>=0.8.5
+ipython[notebook]
 pandoc>=1.0
 docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
@@ -11,3 +11,5 @@ sphinx-autodoc-typehints>=1.0
 sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3
+
+-r ../_notebooks/.actions/requirements.txt

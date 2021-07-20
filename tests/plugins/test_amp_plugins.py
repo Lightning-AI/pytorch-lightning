@@ -71,7 +71,7 @@ def test_amp_apex_ddp(
 
 class GradientUnscaleBoringModel(BoringModel):
 
-    def on_after_backward(self):
+    def on_before_optimizer_step(self, *_):
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
@@ -96,6 +96,47 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         log_every_n_steps=1,
         accumulate_grad_batches=accum,
     )
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_amp_skip_optimizer(tmpdir):
+    """
+    Test that optimizers can be skipped when using amp
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.layer1 = torch.nn.Linear(32, 32)
+            self.layer2 = torch.nn.Linear(32, 2)
+
+        def forward(self, x: torch.Tensor):
+            x = self.layer1(x)
+            x = self.layer2(x)
+            return x
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            if optimizer_idx == 1:
+                return None
+            output = self(batch)
+            return self.loss(batch, output)
+
+        def configure_optimizers(self):
+            return [
+                torch.optim.SGD(self.layer1.parameters(), lr=0.1),
+                torch.optim.SGD(self.layer2.parameters(), lr=0.1),
+            ]
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        fast_dev_run=1,
+        amp_backend='native',
+        precision=16,
+    )
+    model = CustomBoringModel()
     trainer.fit(model)
 
 

@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
-
-from torch.utils.data import DataLoader
+from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class Tuner:
@@ -67,14 +66,15 @@ class Tuner:
     def scale_batch_size(
         self,
         model: 'pl.LightningModule',
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, 'pl.LightningDataModule']] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional['pl.LightningDataModule'] = None,
         mode: str = 'power',
         steps_per_trial: int = 3,
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
+        train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> Optional[int]:
         """
         Iteratively try to find the largest batch size for a given model
@@ -83,11 +83,11 @@ class Tuner:
         Args:
             model: Model to tune.
 
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
+            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
+                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
+                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
+            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -118,7 +118,8 @@ class Tuner:
         self.trainer.auto_scale_batch_size = True
         result = self.trainer.tune(
             model,
-            train_dataloader=train_dataloader,
+            train_dataloaders=train_dataloaders,
+            train_dataloader=train_dataloader,  # TODO: deprecated - remove with 1.6
             val_dataloaders=val_dataloaders,
             datamodule=datamodule,
             scale_batch_size_kwargs={
@@ -135,8 +136,8 @@ class Tuner:
     def lr_find(
         self,
         model: 'pl.LightningModule',
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, 'pl.LightningDataModule']] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional['pl.LightningDataModule'] = None,
         min_lr: float = 1e-8,
         max_lr: float = 1,
@@ -144,6 +145,7 @@ class Tuner:
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
+        train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> Optional[_LRFinder]:
         """
         Enables the user to do a range test of good initial learning rates,
@@ -152,11 +154,11 @@ class Tuner:
         Args:
             model: Model to tune.
 
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
+            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
+                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
+                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
+            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -185,7 +187,8 @@ class Tuner:
         self.trainer.auto_lr_find = True
         result = self.trainer.tune(
             model,
-            train_dataloader=train_dataloader,
+            train_dataloaders=train_dataloaders,
+            train_dataloader=train_dataloader,  # TODO: deprecated - remove with 1.6
             val_dataloaders=val_dataloaders,
             datamodule=datamodule,
             lr_find_kwargs={

@@ -11,18 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import dataclasses
 import numbers
 from collections import namedtuple, OrderedDict
+from typing import List
 
 import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 
 
 def test_recursive_application_to_collection():
     ntc = namedtuple('Foo', ['bar'])
+
+    @dataclasses.dataclass
+    class Feature:
+        input_ids: torch.Tensor
+        segment_ids: np.ndarray
+
+    @dataclasses.dataclass
+    class ModelExample:
+        example_ids: List[str]
+        feature: Feature
+        label: torch.Tensor
 
     to_reduce = {
         'a': torch.tensor([1.]),  # Tensor
@@ -32,6 +45,12 @@ def test_recursive_application_to_collection():
         'e': np.array([10.]),  # numpy array
         'f': 'this_is_a_dummy_str',  # string
         'g': 12.,  # number
+        'h': Feature(input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),  # dataclass
+        'i': ModelExample(
+            example_ids=['i-1', 'i-2', 'i-3'],
+            feature=Feature(input_ids=torch.tensor([1., 2., 3.]), segment_ids=np.array([4., 5., 6.])),
+            label=torch.tensor([7., 8., 9.])
+        )  # nested dataclass
     }
 
     expected_result = {
@@ -42,13 +61,19 @@ def test_recursive_application_to_collection():
         'e': np.array([20.]),
         'f': 'this_is_a_dummy_str',
         'g': 24.,
+        'h': Feature(input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
+        'i': ModelExample(
+            example_ids=['i-1', 'i-2', 'i-3'],
+            feature=Feature(input_ids=torch.tensor([2., 4., 6.]), segment_ids=np.array([8., 10., 12.])),
+            label=torch.tensor([14., 16., 18.])
+        )
     }
 
     reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray), lambda x: x * 2)
 
     assert isinstance(reduced, dict), ' Type Consistency of dict not preserved'
-    assert all([x in reduced for x in to_reduce.keys()]), 'Not all entries of the dict were preserved'
-    assert all([isinstance(reduced[k], type(expected_result[k])) for k in to_reduce.keys()]), \
+    assert all(x in reduced for x in to_reduce), 'Not all entries of the dict were preserved'
+    assert all(isinstance(reduced[k], type(expected_result[k])) for k in to_reduce), \
         'At least one type was not correctly preserved'
 
     assert isinstance(reduced['a'], torch.Tensor), 'Reduction Result of a Tensor should be a Tensor'
@@ -56,11 +81,11 @@ def test_recursive_application_to_collection():
         'Reduction of a tensor does not yield the expected value'
 
     assert isinstance(reduced['b'], list), 'Reduction Result of a list should be a list'
-    assert all([torch.allclose(x, y) for x, y in zip(reduced['b'], expected_result['b'])]), \
+    assert all(torch.allclose(x, y) for x, y in zip(reduced['b'], expected_result['b'])), \
         'At least one value of list reduction did not come out as expected'
 
     assert isinstance(reduced['c'], tuple), 'Reduction Result of a tuple should be a tuple'
-    assert all([torch.allclose(x, y) for x, y in zip(reduced['c'], expected_result['c'])]), \
+    assert all(torch.allclose(x, y) for x, y in zip(reduced['c'], expected_result['c'])), \
         'At least one value of tuple reduction did not come out as expected'
 
     assert isinstance(reduced['d'], ntc), 'Type Consistency for named tuple not given'
@@ -78,11 +103,41 @@ def test_recursive_application_to_collection():
     assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a number'
     assert reduced['g'] == expected_result['g'], 'Reduction of a number did not yield the desired result'
 
+    assert dataclasses.is_dataclass(reduced['h']) and not isinstance(reduced['h'], type), \
+        'Reduction of a dataclass should result in a dataclass'
+    assert torch.allclose(reduced['h'].input_ids, expected_result['h'].input_ids), \
+        'Reduction of a dataclass did not yield the desired result'
+    assert np.allclose(reduced['h'].segment_ids, expected_result['h'].segment_ids), \
+        'Reduction of a dataclass did not yield the desired result'
+
+    assert dataclasses.is_dataclass(reduced['i']) and not isinstance(reduced['i'], type), \
+        'Reduction of a dataclass should result in a dataclass'
+    assert dataclasses.is_dataclass(reduced['i'].feature) and not isinstance(reduced['i'].feature, type), \
+        'Reduction of a nested dataclass should result in a nested dataclass'
+    assert reduced['i'].example_ids == expected_result['i'].example_ids, \
+        'Reduction of a nested dataclass did not yield the desired result'
+    assert torch.allclose(reduced['i'].label, expected_result['i'].label), \
+        'Reduction of a nested dataclass did not yield the desired result'
+    assert torch.allclose(reduced['i'].feature.input_ids, expected_result['i'].feature.input_ids), \
+        'Reduction of a nested dataclass did not yield the desired result'
+    assert np.allclose(reduced['i'].feature.segment_ids, expected_result['i'].feature.segment_ids), \
+        'Reduction of a nested dataclass did not yield the desired result'
+
     # mapping support
     reduced = apply_to_collection({'a': 1, 'b': 2}, int, lambda x: str(x))
     assert reduced == {'a': '1', 'b': '2'}
     reduced = apply_to_collection(OrderedDict([('b', 2), ('a', 1)]), int, lambda x: str(x))
     assert reduced == OrderedDict([('b', '2'), ('a', '1')])
+
+    # custom mappings
+    class _CustomCollection(dict):
+
+        def __init__(self, initial_dict):
+            super().__init__(initial_dict)
+
+    to_reduce = _CustomCollection({'a': 1, 'b': 2, 'c': 3})
+    reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
+    assert reduced == _CustomCollection({'a': '1', 'b': '2', 'c': '3'})
 
 
 def test_apply_to_collection_include_none():
@@ -154,3 +209,23 @@ def test_apply_to_collections():
     assert reduced1 == reduced2 == [1, 4, 9]
     reduced = apply_to_collections(None, None, int, lambda x: x * x)
     assert reduced is None
+
+
+@pytest.mark.parametrize('should_return', [False, True])
+def test_wrongly_implemented_transferable_data_type(should_return):
+
+    class TensorObject:
+
+        def __init__(self, tensor: torch.Tensor, should_return: bool = True):
+            self.tensor = tensor
+            self.should_return = should_return
+
+        def to(self, device):
+            self.tensor.to(device)
+            # simulate a user forgets to return self
+            if self.should_return:
+                return self
+
+    tensor = torch.tensor(0.1)
+    obj = TensorObject(tensor, should_return)
+    assert obj == move_data_to_device(obj, torch.device("cpu"))

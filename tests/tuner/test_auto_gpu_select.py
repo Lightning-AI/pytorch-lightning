@@ -51,7 +51,7 @@ def test_trainer_with_gpus_options_combination_at_available_gpus_env(auto_select
     ["nb", "expected_gpu_idxs", "expected_error"],
     [
         (0, [], MisconfigurationException),
-        (-1, [i for i in range(torch.cuda.device_count())], None),
+        (-1, list(range(torch.cuda.device_count())), None),
         (1, [0], None),
     ],
 )

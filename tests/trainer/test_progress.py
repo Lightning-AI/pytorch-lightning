@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
+
 import pytest
 
-from pytorch_lightning.trainer.progress import LoopProgress, Progress, Tracker
+from pytorch_lightning.trainer.progress import BaseProgress, OptimizerProgress, Progress, Tracker
 
 
-def test_progress_geattr_setattr():
+def test_progress_getattr_setattr():
     p = Tracker(ready=10, completed=None)
     # can read
     assert p.completed is None
@@ -60,51 +62,41 @@ def test_base_progress_from_defaults():
     assert actual == expected
 
 
-def test_loop_progress_increment_epoch():
-    p = LoopProgress()
-    p.increment_epoch_completed()
-    p.increment_epoch_completed()
-    assert p.epoch.total == Tracker(completed=2)
-    assert p.epoch.current == Tracker()
-    assert p.batch.current == Tracker()
+def test_epoch_loop_progress_increment_sequence():
+    """Test sequences for incrementing batches reads and epochs."""
+    batch = Progress()
+
+    batch.increment_ready()
+    assert batch.total == Tracker(ready=1)
+    assert batch.current == Tracker(ready=1)
+
+    batch.increment_started()
+    assert batch.total == Tracker(ready=1, started=1)
+    assert batch.current == Tracker(ready=1, started=1)
+
+    batch.increment_processed()
+    assert batch.total == Tracker(ready=1, started=1, processed=1)
+    assert batch.current == Tracker(ready=1, started=1, processed=1)
+
+    batch.increment_completed()
+    assert batch.total == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert batch.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
 
-def test_loop_progress_increment_sequence():
-    """ Test sequences for incrementing batches reads and epochs. """
-    p = LoopProgress(batch=Progress(total=Tracker(started=None)))
+def test_optimizer_progress_default_factory():
+    """
+    Ensure that the defaults are created appropiately. If `default_factory` was not used, the default would
+    be shared between instances.
+    """
+    p1 = OptimizerProgress()
+    p2 = OptimizerProgress()
+    p1.step.increment_completed()
+    assert p1.step.total.completed == p1.step.current.completed
+    assert p1.step.total.completed == 1
+    assert p2.step.total.completed == 0
 
-    p.batch.increment_ready()
-    assert p.batch.total == Tracker(ready=1, started=None)
-    assert p.batch.current == Tracker(ready=1)
 
-    p.batch.increment_started()
-    assert p.batch.total == Tracker(ready=1, started=None)
-    assert p.batch.current == Tracker(ready=1)
-
-    p.batch.increment_processed()
-    assert p.batch.total == Tracker(ready=1, started=None, processed=1)
-    assert p.batch.current == Tracker(ready=1, processed=1)
-
-    p.batch.increment_completed()
-    assert p.batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker(ready=1, processed=1, completed=1)
-
-    assert p.epoch.total == Tracker()
-    assert p.epoch.current == Tracker()
-    p.increment_epoch_completed()
-    assert p.batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker()
-    assert p.epoch.total == Tracker(completed=1)
-    assert p.epoch.current == Tracker()
-
-    p.batch.increment_ready()
-    assert p.batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker(ready=1)
-    assert p.epoch.total == Tracker(completed=1)
-    assert p.epoch.current == Tracker()
-
-    p.reset_on_epoch()
-    assert p.batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert p.batch.current == Tracker()
-    assert p.epoch.total == Tracker(completed=1)
-    assert p.epoch.current == Tracker()
+def test_deepcopy():
+    _ = deepcopy(BaseProgress())
+    _ = deepcopy(Progress())
+    _ = deepcopy(Tracker())

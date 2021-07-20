@@ -17,8 +17,10 @@ from copy import deepcopy
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Type
 
+import torch
+
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -32,27 +34,27 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    lightning_module: LightningModule
+    lightning_module: 'pl.LightningModule'
 
-    def on_before_accelerator_backend_setup(self, model: LightningModule) -> None:
+    def on_before_accelerator_backend_setup(self, model: 'pl.LightningModule') -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def configure_sharded_model(self, model: LightningModule) -> None:
+    def configure_sharded_model(self, model: 'pl.LightningModule') -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_configure_sharded_model(self, model)
 
-    def setup(self, model: LightningModule, stage: Optional[str]) -> None:
+    def setup(self, model: 'pl.LightningModule', stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.setup(self, model, stage)
+            callback.setup(self, model, stage=stage)
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.teardown(self, self.lightning_module, stage)
+            callback.teardown(self, self.lightning_module, stage=stage)
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""
@@ -97,10 +99,10 @@ class TrainerCallbackHookMixin(ABC):
         """
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                warning_cache.warn(
+                warning_cache.deprecation(
                     "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
                     " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    " Support for the old signature will be removed in v1.5"
                 )
                 callback.on_train_epoch_end(self, self.lightning_module, outputs)
             else:
@@ -254,7 +256,7 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        return len(parameters) == 2 and parameters[1] != "args"
+        return len(parameters) == 2 and parameters[0] != "args"
 
     @staticmethod
     def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
@@ -313,12 +315,24 @@ class TrainerCallbackHookMixin(ABC):
                 else:
                     callback.on_load_checkpoint(self, self.lightning_module, state)
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """Called before ``loss.backward()``."""
+        for callback in self.callbacks:
+            callback.on_before_backward(self, self.lightning_module, loss)
+
     def on_after_backward(self):
         """
         Called after loss.backward() and before optimizers do anything.
         """
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
+
+    def on_before_optimizer_step(self, optimizer, optimizer_idx):
+        """
+        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
+        """
+        for callback in self.callbacks:
+            callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
         """

@@ -159,7 +159,7 @@ or after it has already been trained.
 
 .. code-block:: python
 
-    trainer.validate(val_dataloaders=val_dataloaders)
+    trainer.validate(dataloaders=val_dataloaders)
 
 ------------
 
@@ -195,6 +195,8 @@ unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:
 :mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
 -------
+
+.. _trainer_flags:
 
 Trainer flags
 -------------
@@ -657,6 +659,8 @@ Writes logs to disk this often.
 
 See Also:
     - :doc:`logging <../extensions/logging>`
+
+.. _gpus:
 
 gpus
 ^^^^
@@ -1155,28 +1159,69 @@ precision
 
 |
 
-Double precision (64), full precision (32) or half precision (16).
-Can all be used on GPU or TPUs. Only double (64) and full precision (32) available on CPU.
+Lightning supports either double precision (64), full precision (32), or half precision (16) training.
 
-If used on TPU will use torch.bfloat16 but tensor printing
-will still show torch.float32.
+Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # default used by the Trainer
-    trainer = Trainer(precision=32)
+    trainer = Trainer(precision=32, gpus=1)
 
     # 16-bit precision
     trainer = Trainer(precision=16, gpus=1)
 
     # 64-bit precision
-    trainer = Trainer(precision=64)
+    trainer = Trainer(precision=64, gpus=1)
 
-Example::
 
-    # one day
-    trainer = Trainer(precision=8|4|2)
+.. note:: When running on TPUs, torch.float16 will be used but tensor printing will still show torch.float32.
+
+.. note:: 16-bit precision is not supported on CPUs.
+
+
+.. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. 16-bit precision with PyTorch < 1.6 is supported by NVIDIA Apex library.
+   :class: dropdown, warning
+
+    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ in order to use the native AMP 16-bit precision with multiple GPUs.
+
+    If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
+
+    To use Apex 16-bit training:
+
+    1. Install Apex
+
+    .. code-block:: bash
+
+        # ------------------------
+        # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
+        # depending on how you installed PyTorch
+
+        # see available modules
+        module avail
+
+        # load correct CUDA before install
+        module load cuda-10.0
+        # ------------------------
+
+        # make sure you've loaded a GCC version > 4.0 and < 7.0
+        module load gcc-6.1.0
+
+        pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
+
+    2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
+
+    .. testcode::
+        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+
+        # turn on 16-bit
+        trainer = Trainer(amp_backend="apex", amp_level='O2', precision=16)
+
+    If you need to configure the apex init for your particular use case, or want to customize the
+    16-bit training behaviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
+
+
 
 process_position
 ^^^^^^^^^^^^^^^^
@@ -1252,8 +1297,8 @@ Note:
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-reload_dataloaders_every_epoch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+reload_dataloaders_every_n_epochs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -1263,19 +1308,20 @@ reload_dataloaders_every_epoch
 
 |
 
-Set to True to reload dataloaders every epoch.
+Set to a postive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
-    # if False (default)
+    # if 0 (default)
     train_loader = model.train_dataloader()
     for epoch in epochs:
         for batch in train_loader:
             ...
 
-    # if True
+    # if a positive integer
     for epoch in epochs:
-        train_loader = model.train_dataloader()
+        if not epoch % reload_dataloaders_every_n_epochs:
+            train_loader = model.train_dataloader()
         for batch in train_loader:
 
 .. _replace-sampler-ddp:
@@ -1377,6 +1423,8 @@ track_grad_norm
 
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
+
+.. _tpu_cores:
 
 tpu_cores
 ^^^^^^^^^
@@ -1525,6 +1573,24 @@ Can specify as float or int.
     # use this when using iterableDataset and your dataset has no length
     # (ie: production cases with streaming data)
     trainer = Trainer(val_check_interval=1000)
+
+
+.. code-block::
+
+    # Here is the computation to estimate the total number of batches seen within an epoch.
+
+    # Find the total number of train batches
+    total_train_batches = total_train_samples // (train_batch_size * world_size)
+
+    # Compute how many times we will call validation during the training loop
+    val_check_batch = max(1, int(total_train_batches * val_check_interval))
+    val_checks_per_epoch = total_train_batches / val_check_batch
+
+    # Find the total number of validation batches
+    total_val_batches = total_val_samples // (val_batch_size * world_size)
+
+    # Total number of batches run
+    total_fit_batches = total_train_batches + total_val_batches
 
 
 weights_save_path

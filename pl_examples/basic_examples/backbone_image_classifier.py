@@ -24,16 +24,13 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, cli_lightning_logo
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
-    from tests.helpers.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):
@@ -100,6 +97,10 @@ class LitClassifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         self.log('test_loss', loss)
 
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, y = batch
+        return self.backbone(x)
+
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
@@ -126,10 +127,15 @@ class MyDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
+    def predict_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
 
 def cli_main():
-    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
     cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
+    print(predictions[0])
 
 
 if __name__ == '__main__':
