@@ -133,11 +133,12 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             yield None
 
     def teardown(self) -> None:
-        if not isinstance(self.model, pl.LightningModule):
-            # Un-reference the wrapper as the reducer can hold cuda memory.
-            self.model = None
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+        if not isinstance(self.model, pl.LightningModule):
+            # Un-reference the wrapper as the reducer can hold cuda memory.
+            self.model = None
