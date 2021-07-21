@@ -66,8 +66,8 @@ There are a few ways to pass multiple Datasets to Lightning:
 Using LightningDataModule
 =========================
 
-You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` using dataloader hooks and Lightning
-will use the correct one under-the-hood.
+You can set multiple :class:`~torch.utils.data.DataLoader` in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` using its dataloader hooks
+and Lightning will use the correct one under-the-hood.
 
 .. testcode::
 
