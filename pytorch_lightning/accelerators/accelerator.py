@@ -103,7 +103,7 @@ class Accelerator:
 
     def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
-        self._move_optimizer_state(self.root_device)
+        self._move_optimizer_state()
 
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
@@ -111,8 +111,9 @@ class Accelerator:
 
         self.precision_plugin.pre_dispatch()
 
-    def _move_optimizer_state(self, device: torch.device) -> None:
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """ Moves the state of the optimizers to the GPU if needed. """
+        device = device or self.root_device
         for opt in self.optimizers:
             for p, v in opt.state.items():
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
