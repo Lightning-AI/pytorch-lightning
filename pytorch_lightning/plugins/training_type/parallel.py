@@ -133,6 +133,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             yield None
 
     def teardown(self) -> None:
+        # Un-reference the wrapper if any was used.
+        # todo (tchaton): Add support for all plugins.
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
+
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
