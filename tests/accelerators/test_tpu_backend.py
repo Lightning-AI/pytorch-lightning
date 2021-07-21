@@ -22,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -226,3 +227,39 @@ def test_manual_optimization_tpus(tmpdir):
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
         assert not torch.equal(param.cpu().data, param_copy.data)
+
+ 
+def test_accelerator_tpu_with_devices():
+
+    trainer = Trainer(accelerator="tpu", devices=8)
+
+    assert trainer.tpu_cores == 8
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+
+
+@RunIf(tpu=True)
+def test_accelerator_auto_with_devices_tpu():
+
+    trainer = Trainer(accelerator="auto", devices=8)
+
+    assert trainer._device_type == "tpu"
+    assert trainer.tpu_cores == 8
+
+
+@RunIf(tpu=True)
+def test_accelerator_tpu_with_tpu_cores_priority():
+    """ Test for checking `tpu_cores` flag takes priority over `devices`. """
+
+    tpu_cores = 8
+    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
+        trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
+
+    assert trainer.tpu_cores == tpu_cores
+
+
+@RunIf(tpu=True)
+def test_set_devices_if_none_tpu():
+
+    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    assert trainer.devices == 8

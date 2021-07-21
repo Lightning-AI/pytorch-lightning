@@ -64,7 +64,7 @@ class IPUPlugin(ParallelPlugin):
     def __init__(
         self,
         device_iterations: int = 1,
-        autoreport: bool = True,
+        autoreport: bool = False,
         autoreport_dir: Optional[str] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,

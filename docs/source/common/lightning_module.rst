@@ -213,6 +213,7 @@ Here's the pseudocode of what it does under the hood:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -250,6 +251,7 @@ The matching pseudocode is:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()

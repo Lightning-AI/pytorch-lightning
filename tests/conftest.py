@@ -16,10 +16,18 @@ import sys
 import threading
 from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
+from pathlib import Path
 
 import pytest
 import torch.distributed
 import torch.multiprocessing as mp
+
+from tests import _PATH_DATASETS
+
+
+@pytest.fixture(scope="session")
+def datadir():
+    return Path(_PATH_DATASETS)
 
 
 @pytest.fixture(scope="function", autouse=True)
