@@ -19,6 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 import torch.nn as nn
 
+
 def is_overridden(
     method_name: str,
     instance: Optional[object] = None,
@@ -70,13 +71,15 @@ def is_overridden(
 
     return instance_code != parent_code
 
+
 def get_model_size(model: nn.Module) -> int:
     """
     Calculates the size of a nn.Module in bytes by tallying the size of the Tensor
     objects in its ``state_dict()``.
 
-    NOTE: This will not work with sparse tensors. See https://github.com/Stonesjtu/pytorch_memlab/blob/master/pytorch_memlab/mem_reporter.py
-        as a potential implementation.
+    NOTE: This will not work with sparse tensors. See
+    https://github.com/Stonesjtu/pytorch_memlab/blob/master/pytorch_memlab/mem_reporter.py
+    as a potential implementation.
 
     Returns:
         Number of bytes in the parameters of the input module
@@ -87,7 +90,8 @@ def get_model_size(model: nn.Module) -> int:
     size = 0
     for tensor in model.state_dict().values():
         if tensor.is_sparse:
-            raise NotImplementedError("Getting the model size of models that include"
-            + " sparse tensors is not implemented.")
+            raise NotImplementedError(
+                "Getting the model size of models that include sparse tensors is not implemented."
+            )
         size += tensor.element_size() * tensor.nelement()
     return size

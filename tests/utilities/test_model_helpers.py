@@ -95,6 +95,7 @@ def test_is_overridden():
     trainer.fit(model, train_dataloader=model.train_dataloader())
     assert model.on_fit_start_called
 
+
 def test_get_model_size():
     model = BoringModel()
 
@@ -104,6 +105,7 @@ def test_get_model_size():
     # 67 weights. Each weight is a float32 -- 4 bytes, therefore we expect a size of
     # 264.
     assert size_bytes == 264
+
 
 def test_get_sparse_model_size():
     class BoringSparseModel(BoringModel):
