@@ -76,9 +76,9 @@ class GradientAccumulationScheduler(Callback):
 
     def get_accumulate_grad_batches(self, epoch: int) -> int:
         accumulate_grad_batches = 1
-        for i in reversed(range(len(self.epochs))):
-            if epoch >= self.epochs[i]:
-                accumulate_grad_batches = self.scheduling.get(self.epochs[i])
+        for iter_epoch in reversed(self.epochs):
+            if epoch >= iter_epoch:
+                accumulate_grad_batches = self.scheduling.get(iter_epoch)
                 break
         return accumulate_grad_batches
 
