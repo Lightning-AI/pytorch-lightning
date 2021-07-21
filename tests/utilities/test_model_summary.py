@@ -189,7 +189,7 @@ def test_linear_model_summary_shapes(device, mode):
 def test_mixed_dtype_model_summary():
     """ Test that the model summary works with models that have mixed input- and parameter dtypes. """
     model = MixedDtypeModel()
-    summary = summarize(model, )
+    summary = summarize(model)
     assert summary.in_sizes == [
         [2, 3],  # embed
         [2, 3, 20],  # reduce
