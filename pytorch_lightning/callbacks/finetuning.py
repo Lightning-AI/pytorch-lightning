@@ -362,15 +362,31 @@ class BackboneFinetuning(BaseFinetuning):
     ):
         super().__init__()
 
-        self.unfreeze_backbone_at_epoch = unfreeze_backbone_at_epoch
-        self.backbone_initial_lr = backbone_initial_lr
-        self.lambda_func = lambda_func
-        self.backbone_initial_ratio_lr = backbone_initial_ratio_lr
-        self.should_align = should_align
-        self.initial_denom_lr = initial_denom_lr
-        self.train_bn = train_bn
-        self.round = round
-        self.verbose = verbose
+        self.unfreeze_backbone_at_epoch: int = unfreeze_backbone_at_epoch
+        self.backbone_initial_lr: Optional[float] = backbone_initial_lr
+        self.lambda_func: Callable = lambda_func
+        self.backbone_initial_ratio_lr: float = backbone_initial_ratio_lr
+        self.should_align: bool = should_align
+        self.initial_denom_lr: float = initial_denom_lr
+        self.previous_backbone_lr: Optional[float] = None
+        self.train_bn: bool = train_bn
+        self.round: int = round
+        self.verbose: bool = verbose
+
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[int, Any]:
+        return {"internal_state": self._internal_state, "previous_backbone_lr": self.previous_backbone_lr}
+
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
+    ) -> None:
+
+        self.previous_backbone_lr = callback_state["previous_backbone_lr"]
+        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_state"])
 
     def on_fit_start(self, trainer, pl_module):
         """
