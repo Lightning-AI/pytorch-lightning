@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int,
 
 class ParseArgparserDataType(ABC):
 
-    def __init__(self, *_, **__) -> None:
+    def __init__(self, *_: Any, **__: Any) -> None:
         pass
 
     @classmethod
