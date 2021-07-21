@@ -143,7 +143,7 @@ class QuantizationAwareTraining(Callback):
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
-    """
+    """  # noa: E501
     OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
