@@ -14,8 +14,7 @@
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

@@ -14,9 +14,8 @@
 from typing import Optional
 
 import torch
-from torch.optim import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -71,7 +70,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
@@ -79,7 +78,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             )
         return unwrap_lightning_module_sharded(self._model)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
     def post_training_step(self):

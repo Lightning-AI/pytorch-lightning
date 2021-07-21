@@ -21,10 +21,6 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def is_lightning_optimizer(optimizer):
-    return isinstance(optimizer, LightningOptimizer)
-
-
 def do_nothing_closure():
     return
 
@@ -120,7 +116,7 @@ class LightningOptimizer:
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
         """
-        with self._trainer.fit_loop.training_loop.batch_loop.block_ddp_sync_behaviour(not sync_grad):
+        with self._trainer.fit_loop.epoch_loop.batch_loop.block_ddp_sync_behaviour(not sync_grad):
             self._toggle_model()
             yield
             self._untoggle_model()

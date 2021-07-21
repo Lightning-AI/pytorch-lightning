@@ -22,6 +22,7 @@ from re import escape
 import numpy as np
 import pytest
 import torch
+from torchmetrics import Accuracy
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
@@ -260,7 +261,9 @@ def test_tbptt_log(tmpdir):
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
+            if hiddens is not None:
+                assert hiddens.grad_fn is None
+            self.test_hidden = torch.tensor(2., requires_grad=True).pow(2)
 
             x_tensor, y_list = batch
             assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
@@ -448,7 +451,7 @@ def test_log_works_in_train_callback(tmpdir):
 
     for fx, attrs in cb.logged_arguments.items():
         should_include = attrs["prog_bar"] and attrs["on_step"] ^ attrs["on_epoch"]
-        is_included = fx in trainer.logger_connector.progress_bar_metrics
+        is_included = fx in trainer.progress_bar_metrics
         assert is_included if should_include else not is_included
 
 
@@ -587,7 +590,6 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             self.log("on_train_epoch_end", 6)
-            self.callback_metrics = trainer.logger_connector.callback_metrics
 
     model = BoringModel()
     trainer = Trainer(
@@ -692,6 +694,33 @@ def test_logging_raises(tmpdir):
 
     class TestModel(BoringModel):
 
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='fix this by setting an attribute for the metric in your'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.bar = Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]"
+    ):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
         def training_step(self, *args):
             self.log('foo', -1, prog_bar=False)
             self.log('foo', -1, prog_bar=True)
@@ -712,3 +741,52 @@ def test_logging_raises(tmpdir):
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean,sum}\)` are currently supported'):
         trainer.fit(model)
+
+
+def test_sanity_metrics_are_reset(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = super().validation_step(batch, batch_idx)
+            if self.trainer.sanity_checking:
+                self.log("val_loss", output["x"], prog_bar=True, logger=True)
+            return output
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            if batch_idx == 0:
+                assert self.trainer.progress_bar_metrics == {}
+                assert self.trainer.logged_metrics == {}
+                assert self.trainer.callback_metrics == {}
+            self.log("train_loss", loss, prog_bar=True, logger=True)
+            return loss
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        num_sanity_val_steps=2,
+    )
+    trainer.fit(TestModel())
+
+    assert "val_loss" not in trainer.progress_bar_metrics
+
+
+@RunIf(min_gpus=2)
+def test_log_gpu_memory_without_logging_on_step(tmpdir):
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        log_gpu_memory='all',
+        log_every_n_steps=1,
+        gpus=[1]
+    )
+    trainer.fit(model)
+
+    assert 'gpu_id: 1/memory.used (MB)' in trainer.logged_metrics

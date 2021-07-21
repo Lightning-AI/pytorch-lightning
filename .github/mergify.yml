@@ -36,15 +36,25 @@ pull_request_rules:
       label:
         remove: [ "has conflicts" ]
 
-  #- name: update PR
-  #  conditions:
-  #    - -conflict
-  #    - -draft # filter-out GH draft PRs
-  #    - base=master  # apply only on master
-  #    - -title~=(?i)wip # skip all PR that title contains “WIP” (ignoring case)
-  #    - "#approved-reviews-by>=3" # number of review approvals
-  #  actions:
-  #    update: {}
+  - name: Ready to Go
+    conditions:
+      - -conflict
+      - -draft # filter-out GH draft PRs
+      - -title~=(?i)wip # skip all PR that title contains “WIP” (ignoring case)
+      - "#approved-reviews-by>=2" # number of review approvals
+      - "#changes-requested-reviews-by=0" # no requested changes
+    actions:
+      label:
+        add: [ "0:] Ready-To-Go" ]
+
+  - name: Not ready yet
+    conditions:
+      - or:
+        - "#approved-reviews-by=0" # number of review approvals
+        - "#changes-requested-reviews-by>=1" # no requested changes
+    actions:
+      label:
+        remove: [ "0:] Ready-To-Go" ]
 
   - name: add core reviewer
     conditions:

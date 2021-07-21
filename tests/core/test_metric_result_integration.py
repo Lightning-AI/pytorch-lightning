@@ -135,9 +135,9 @@ def test_result_metric_integration():
 
     assert str(result) == (
         "ResultCollection(True, cpu, {"
-        "'h.a': ResultMetric(value=DummyMetric()), "
-        "'h.b': ResultMetric(value=DummyMetric()), "
-        "'h.c': ResultMetric(value=DummyMetric())"
+        "'h.a': ResultMetric('a', value=DummyMetric()), "
+        "'h.b': ResultMetric('b', value=DummyMetric()), "
+        "'h.c': ResultMetric('c', value=DummyMetric())"
         "})"
     )
 
@@ -184,7 +184,7 @@ def test_result_collection_simple_loop():
             assert result[k].cumulated_batch_size == torch.tensor(1.), k
 
 
-def my_sync_dist(x):
+def my_sync_dist(x, *_, **__):
     return x
 
 
@@ -208,7 +208,7 @@ def test_result_collection_restoration(tmpdir):
         result.log(fx, *args, **kwargs, sync_dist_fn=my_sync_dist)
         current_fx_name = fx
 
-    for _ in range(2):
+    for epoch in range(2):
 
         cumulative_sum = 0
 
@@ -222,9 +222,9 @@ def test_result_collection_restoration(tmpdir):
             cumulative_sum += i
 
             metric = metric_a if i < 1 else metric_d
-            lightning_log('training_step', 'a', metric, on_step=True, on_epoch=True)
-            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
-            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
+            lightning_log('training_step', 'a', metric, on_step=True, on_epoch=True, metric_attribute="metric")
+            lightning_log('training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
+            lightning_log('training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
             lightning_log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             lightning_log('training_step', 'b_1', b, on_step=False, on_epoch=True)
             lightning_log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
@@ -238,7 +238,17 @@ def test_result_collection_restoration(tmpdir):
             state_dict = result.state_dict()
             # check the sync fn was dropped
             assert 'fn' not in state_dict['items']['training_step.a']['meta']['_sync']
-            new_result.load_state_dict(state_dict)
+
+            assert not new_result.result_metrics
+            assert len(result.result_metrics) == 7 + epoch > 0
+
+            new_result.load_state_dict(
+                state_dict, metrics={
+                    "metric": metric,
+                    "metric_b": metric_b,
+                    "metric_c": metric_c
+                }
+            )
             # should match
             assert result_copy == new_result
             # the sync fn has been kept
@@ -290,7 +300,8 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
 
         def on_save_checkpoint(self, checkpoint) -> None:
             results = self.trainer._results
-            state_dict = results.state_dict()
+            # simplify logic
+            state_dict = results.state_dict(drop_value=False)
 
             # check device
             assert results['validation_step.v'].value.device.type == device
@@ -318,7 +329,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert new_results['validation_step.v'].value.device.type == 'cpu'
 
     model = LoggingModel()
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=False)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,

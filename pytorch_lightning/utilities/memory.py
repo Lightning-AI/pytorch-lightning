@@ -76,11 +76,10 @@ def is_out_of_cpu_memory(exception):
 def garbage_collection_cuda():
     """Garbage collection Torch (CUDA) memory."""
     gc.collect()
-    if torch.cuda.is_available():
-        try:
-            # This is the last thing that should cause an OOM error, but seemingly it can.
-            torch.cuda.empty_cache()
-        except RuntimeError as exception:
-            if not is_oom_error(exception):
-                # Only handle OOM errors
-                raise
+    try:
+        # This is the last thing that should cause an OOM error, but seemingly it can.
+        torch.cuda.empty_cache()
+    except RuntimeError as exception:
+        if not is_oom_error(exception):
+            # Only handle OOM errors
+            raise

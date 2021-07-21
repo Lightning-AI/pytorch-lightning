@@ -23,6 +23,8 @@ import torch
 from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -284,7 +286,6 @@ def test_pytorch_profiler_raises(pytorch_profiler):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
 
 
-@RunIf(min_torch="1.6.0")
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
     model = BoringModel()
@@ -331,7 +332,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         files = [file for file in files if file.endswith('.json')]
         assert len(files) == 2, files
         local_rank = trainer.local_rank
-        assert any(f'{local_rank}-training_step_and_backward' in f for f in files)
+        assert any(f'{local_rank}-optimizer_step_and_closure_' in f for f in files)
         assert any(f'{local_rank}-validation_step' in f for f in files)
 
 
@@ -431,6 +432,36 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
+def test_pytorch_profiler_logger_collection(tmpdir):
+    """
+    Tests whether the PyTorch profiler is able to write its trace locally when
+    the Trainer's logger is an instance of LoggerCollection. See issue #8157.
+    """
+
+    def look_for_trace(trace_dir):
+        """ Determines if a directory contains a PyTorch trace """
+        return any("trace.json" in filename for filename in os.listdir(trace_dir))
+
+    # Sanity check
+    assert not look_for_trace(tmpdir)
+
+    model = BoringModel()
+
+    # Wrap the logger in a list so it becomes a LoggerCollection
+    logger = [TensorBoardLogger(save_dir=tmpdir)]
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        profiler="pytorch",
+        logger=logger,
+        limit_train_batches=5,
+        max_epochs=1,
+    )
+
+    assert isinstance(trainer.logger, LoggerCollection)
+    trainer.fit(model)
+    assert look_for_trace(tmpdir)
+
+
 @RunIf(min_gpus=1, special=True)
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """
@@ -447,7 +478,6 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_torch="1.5.0")
 def test_register_record_function(tmpdir):
 
     use_cuda = torch.cuda.is_available()

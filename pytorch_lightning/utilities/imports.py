@@ -14,6 +14,7 @@
 """General utilities"""
 import importlib
 import operator
+import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -63,8 +64,6 @@ def _compare_version(package: str, op, version) -> bool:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
-_TORCH_GREATER_EQUAL_1_5 = _compare_version("torch", operator.ge, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
@@ -73,9 +72,8 @@ _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
-_DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')
+_DEEPSPEED_AVAILABLE = _module_available('deepspeed')
 _FAIRSCALE_AVAILABLE = _TORCH_GREATER_EQUAL_1_6 and not _IS_WINDOWS and _module_available('fairscale.nn')
-_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.le, "0.1.3")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.group')
@@ -86,7 +84,6 @@ _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_availab
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available('poptorch')
-_RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
@@ -103,3 +100,15 @@ if _POPTORCH_AVAILABLE:
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
+
+
+def _fault_tolerant_enabled():
+    env_var = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0") == "1"
+    # the ``reset`` function from ``_MultiProcessingDataLoaderIter``
+    # was introduced in PyTorch 1.7 and we need to mock for Fault Tolerant
+    # Support for earlier version will be added later on.
+    if env_var and not _TORCH_GREATER_EQUAL_1_7:
+        from pytorch_lightning.utilities.exceptions import MisconfigurationException
+        raise MisconfigurationException(f'Restart is only supported with torch >= 1.7.0. Found {torch.__version__}')
+
+    return env_var

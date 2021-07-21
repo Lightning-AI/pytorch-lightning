@@ -24,16 +24,13 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, cli_lightning_logo
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
-    from tests.helpers.datasets import MNIST
 
 
 class LitAutoEncoder(pl.LightningModule):
@@ -124,7 +121,7 @@ class MyDataModule(pl.LightningDataModule):
 
 
 def cli_main():
-    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234)
+    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
     cli.trainer.test(cli.model, datamodule=cli.datamodule)
     predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
     print(predictions[0])

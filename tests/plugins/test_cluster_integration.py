@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPShardedPlugin, DeepSpeedPlugin, RPCSequentialPlugin
+from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPShardedPlugin, DeepSpeedPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers.runif import RunIf
@@ -66,7 +66,6 @@ def environment_combinations():
         DDPShardedPlugin,
         DDP2Plugin,
         pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
-        pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
     ],
 )
 def test_ranks_available_manual_plugin_selection(plugin_cls):
@@ -123,7 +122,7 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)
-            assert type(trainer.training_type_plugin.cluster_environment) == type(cluster)
+            assert type(trainer.training_type_plugin.cluster_environment) is type(cluster)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]

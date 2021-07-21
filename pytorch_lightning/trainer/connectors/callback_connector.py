@@ -15,9 +15,9 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -106,7 +106,7 @@ class CallbackConnector:
                 'You added multiple progress bar callbacks to the Trainer, but currently only one'
                 ' progress bar is supported.'
             )
-        elif len(progress_bars) == 1:
+        if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
             progress_bar_callback = ProgressBar(
@@ -137,7 +137,7 @@ class CallbackConnector:
             callback.log_dict = model.log_dict
 
     @staticmethod
-    def _attach_model_callbacks(model: LightningModule, trainer) -> None:
+    def _attach_model_callbacks(model: 'pl.LightningModule', trainer) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several
@@ -153,8 +153,8 @@ class CallbackConnector:
         model_callbacks = model.configure_callbacks()
         if not model_callbacks:
             return
-        model_callback_types = set(type(c) for c in model_callbacks)
-        trainer_callback_types = set(type(c) for c in trainer.callbacks)
+        model_callback_types = {type(c) for c in model_callbacks}
+        trainer_callback_types = {type(c) for c in trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
         if override_types:
             rank_zero_info(

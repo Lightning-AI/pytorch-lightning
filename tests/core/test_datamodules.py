@@ -22,6 +22,7 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -455,9 +456,11 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-def test_dm_reload_dataloaders_every_epoch(tmpdir):
-    """Test datamodule, where trainer argument
-    reload_dataloaders_every_epoch is set to True/False"""
+def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
+    """
+    Test datamodule, where trainer argument
+    reload_dataloaders_every_n_epochs is set to a non negative integer
+    """
 
     class CustomBoringDataModule(BoringDataModule):
 
@@ -482,9 +485,9 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=0.01,
-        reload_dataloaders_every_epoch=True,
+        max_epochs=3,
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=2,
     )
     trainer.fit(model, dm)
 
@@ -549,3 +552,15 @@ def test_dm_init_from_datasets_dataloaders(iterable):
             call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
         ])
+
+
+class DataModuleWithHparams(LightningDataModule):
+
+    def __init__(self, arg0, arg1, kwarg0=None):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+def test_simple_hyperparameters_saving():
+    data = DataModuleWithHparams(10, "foo", kwarg0="bar")
+    assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
