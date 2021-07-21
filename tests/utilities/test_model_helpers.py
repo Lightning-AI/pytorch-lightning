@@ -15,12 +15,12 @@ from functools import partial, wraps
 from unittest.mock import Mock
 
 import pytest
-
-from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.utilities.model_helpers import is_overridden, get_model_size
-from tests.helpers import BoringDataModule, BoringModel
 import torch
 import torch.nn as nn
+
+from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning.utilities.model_helpers import get_model_size, is_overridden
+from tests.helpers import BoringDataModule, BoringModel
 
 
 def test_is_overridden():
@@ -108,6 +108,7 @@ def test_get_model_size():
 
 
 def test_get_sparse_model_size():
+
     class BoringSparseModel(BoringModel):
 
         def __init__(self):

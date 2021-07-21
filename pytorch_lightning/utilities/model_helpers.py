@@ -15,9 +15,11 @@ from functools import partial
 from typing import Optional, Type, Union
 from unittest.mock import Mock
 
+import torch.nn as nn
+
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
-import torch.nn as nn
+
 
 
 def is_overridden(
