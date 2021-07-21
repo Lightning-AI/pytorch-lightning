@@ -36,7 +36,7 @@ __all__ = [
     "IPUPlugin", "IPUPrecisionPlugin", "NativeMixedPrecisionPlugin", "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin", "FullyShardedNativeMixedPrecisionPlugin", "SingleDevicePlugin",
     "SingleTPUPlugin", "TPUHalfPrecisionPlugin", "TPUSpawnPlugin", "TrainingTypePlugin", "ParallelPlugin", "Plugin",
-    "DDPShardedPlugin", "DDPSpawnShardedPlugin"
+    "DDPShardedPlugin", "DDPSpawnShardedPlugin",
 ]
 
 from pathlib import Path
