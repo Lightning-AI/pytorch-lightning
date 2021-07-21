@@ -155,11 +155,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {
             "args": (self.lightning_module.trainer, self.mp_queue),
             "nprocs": self.num_processes,
-            "start_method": "fork",
         }
 
     def start_training(self, trainer):
-        mp.start_processes(self.new_process, **self.mp_spawn_kwargs)
+        mp.start_processes(self.new_process, **self.mp_spawn_kwargs, start_method="fork")
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
