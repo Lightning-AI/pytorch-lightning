@@ -93,13 +93,16 @@ class QuantizationAwareTraining(Callback):
 
     The model set for quantization can appear in one of this stages:
 
-                          ( on_fit_start )                   ( on_fit_end )
-        vanilla model          --->           QuantAwareTrain     --->     quantized model
-             ^                      Trainer -/        |
-             |                         |              |
-             |       ( resume_from_checkpoint )       v
-        entry point         ^                  QAT checkpoints
-                            \------------------------/
+
+    TRAINER TRANSITIONS:
+                      ( on_fit_start )               ( on_fit_end )
+    MODEL STATES:
+        vanilla model      --->       QuantAwareTrain     --->     quantized model
+                           /                |
+                Trainer --/                 |
+        ( resume_from_checkpoint )          v
+                   ^                  QAT checkpoints
+                    \----------------------/
 
     The model enters the process as "vanilla model" and it is prepared for QAT training in ``on_fit_start`` hook.
     Note that any saved checkpoint includes already collected stat fro performing Quantization conversion,
