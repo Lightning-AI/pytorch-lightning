@@ -82,7 +82,7 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self):
-        self._internal_state: Dict[int, List[Dict[str, Any]]] = {}
+        self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
         self.restarting = False
 
     def on_save_checkpoint(
@@ -91,20 +91,22 @@ class BaseFinetuning(Callback):
         pl_module: 'pl.LightningModule',
         checkpoint: Dict[str, Any],
     ) -> Dict[int, List[Dict[str, Any]]]:
-        return self._internal_state
+        return self._internal_optimizer_metadata
 
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
         self.restarting = True
-        self._internal_state = callback_state
+        self._internal_optimizer_metadata = callback_state
 
     def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         # restore the param_groups created during the previous training.
         if self.restarting:
             named_parameters = dict(pl_module.named_parameters())
             for opt_idx, optimizer in enumerate(trainer.optimizers):
-                param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
+                param_groups = self.__apply_mapping_to_param_groups(
+                    self._internal_optimizer_metadata[opt_idx], named_parameters
+                )
                 optimizer.param_groups = param_groups
             self.restarting = False
 
@@ -284,11 +286,13 @@ class BaseFinetuning(Callback):
         current_param_groups: List[Dict[str, Any]],
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
-        if opt_idx not in self._internal_state:
-            self._internal_state[opt_idx] = self.__apply_mapping_to_param_groups(current_param_groups, mapping)
+        if opt_idx not in self._internal_optimizer_metadata:
+            self._internal_optimizer_metadata[opt_idx] = self.__apply_mapping_to_param_groups(
+                current_param_groups, mapping
+            )
         elif num_param_groups != len(current_param_groups):
             # save new param_groups possibly created by the users.
-            self._internal_state[opt_idx].extend(
+            self._internal_optimizer_metadata[opt_idx].extend(
                 self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
@@ -385,13 +389,16 @@ class BackboneFinetuning(BaseFinetuning):
         pl_module: 'pl.LightningModule',
         checkpoint: Dict[str, Any],
     ) -> Dict[int, Any]:
-        return {"internal_state": self._internal_state, "previous_backbone_lr": self.previous_backbone_lr}
+        return {
+            "internal_optimizer_metadata": self._internal_optimizer_metadata,
+            "previous_backbone_lr": self.previous_backbone_lr
+        }
 
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
         self.previous_backbone_lr = callback_state["previous_backbone_lr"]
-        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_state"])
+        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_optimizer_metadata"])
 
     def on_fit_start(self, trainer, pl_module):
         """

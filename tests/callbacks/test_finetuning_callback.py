@@ -236,7 +236,7 @@ class OnEpochLayerFinetuning(BaseFinetuning):
         self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
 
 
-def test_base_finetuning_internal_state(tmpdir):
+def test_base_finetuning_internal_optimizer_metadata(tmpdir):
     """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks"""
 
     seed_everything(42)
@@ -265,13 +265,13 @@ def test_base_finetuning_internal_state(tmpdir):
     model = FreezeModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
     trainer.fit(model)
-    assert len(cb._internal_state[0]) == 6
-    assert cb._internal_state[0][0]["params"] == ['layer.0.weight']
-    assert cb._internal_state[0][1]["params"] == ['layer.1.weight', 'layer.1.bias']
-    assert cb._internal_state[0][2]["params"] == ['layer.2.weight']
-    assert cb._internal_state[0][3]["params"] == ['layer.3.weight', 'layer.3.bias']
-    assert cb._internal_state[0][4]["params"] == ['layer.4.weight']
-    assert cb._internal_state[0][5]["params"] == ['layer.5.weight', 'layer.5.bias']
+    assert len(cb._internal_optimizer_metadata[0]) == 6
+    assert cb._internal_optimizer_metadata[0][0]["params"] == ['layer.0.weight']
+    assert cb._internal_optimizer_metadata[0][1]["params"] == ['layer.1.weight', 'layer.1.bias']
+    assert cb._internal_optimizer_metadata[0][2]["params"] == ['layer.2.weight']
+    assert cb._internal_optimizer_metadata[0][3]["params"] == ['layer.3.weight', 'layer.3.bias']
+    assert cb._internal_optimizer_metadata[0][4]["params"] == ['layer.4.weight']
+    assert cb._internal_optimizer_metadata[0][5]["params"] == ['layer.5.weight', 'layer.5.bias']
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
@@ -408,13 +408,13 @@ def test_callbacks_restore(tmpdir):
     trainer.fit(model)
 
     # only 1 optimizer
-    assert len(callback._internal_state) == 1
+    assert len(callback._internal_optimizer_metadata) == 1
 
     # only 2 param groups
-    assert len(callback._internal_state[0]) == 2
+    assert len(callback._internal_optimizer_metadata[0]) == 2
 
     # original parameters
-    assert callback._internal_state[0][0] == {
+    assert callback._internal_optimizer_metadata[0][0] == {
         'lr': 0.1,
         'momentum': 0,
         'dampening': 0,
@@ -424,7 +424,7 @@ def test_callbacks_restore(tmpdir):
     }
 
     # new param group
-    assert callback._internal_state[0][1] == {
+    assert callback._internal_optimizer_metadata[0][1] == {
         'lr': 0.01,
         'momentum': 0,
         'dampening': 0,
