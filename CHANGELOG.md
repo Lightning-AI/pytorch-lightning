@@ -505,6 +505,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed DeepSpeed Windows support ([#8488](https://github.com/PyTorchLightning/pytorch-lightning/pull/8488))
 
 
+- Enabled manual optimization for TPUs ([#8458](https://github.com/PyTorchLightning/pytorch-lightning/pull/8458))
+
+
 ## [1.3.8] - 2021-07-01
 
 ### Fixed

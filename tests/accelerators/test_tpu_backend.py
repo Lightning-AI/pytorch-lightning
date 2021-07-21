@@ -198,7 +198,6 @@ def test_manual_optimization_tpus(tmpdir):
 
         count = 0
         called = collections.defaultdict(int)
-        detach = False
 
         def __init__(self):
             super().__init__()
