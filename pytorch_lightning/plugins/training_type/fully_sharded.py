@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import logging
 from pathlib import Path
-import contextlib
 from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
@@ -30,6 +30,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 log: logging.Logger = logging.getLogger(__name__)
+
 
 class DDPFullyShardedPlugin(DDPPlugin):
 
@@ -181,21 +182,15 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # state dict.
         return super().lightning_module_state_dict()
 
-    def serialized_restore_model_state(
-        self, checkpoint_path: Union[str, Path]
-    ) -> Dict[str, Any]:
+    def serialized_restore_model_state(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
         checkpoint = {}
-        log.info(
-            f"FullyShardedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs."
-        )
+        log.info(f"FullyShardedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs.")
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint_file(checkpoint_path)
                 self.lightning_module.on_load_checkpoint(checkpoint)
                 self.load_model_state_dict(checkpoint)
-                log.info(
-                    f"Rank {self.global_rank}: done loading model states from {checkpoint_path}."
-                )
+                log.info(f"Rank {self.global_rank}: done loading model states from {checkpoint_path}.")
                 del checkpoint["state_dict"]
             self.barrier()
         return checkpoint
