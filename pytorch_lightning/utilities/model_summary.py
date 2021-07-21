@@ -20,12 +20,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
-from torch.utils.hooks import RemovableHandle
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
