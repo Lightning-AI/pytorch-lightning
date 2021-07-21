@@ -17,6 +17,17 @@ import shutil
 import subprocess
 from typing import Dict, Union
 
+from pytorch_lightning.utilities import rank_zero_deprecation
+
+rank_zero_deprecation(
+    "pytorch_lightning.core.memory.LayerSummary and "
+    "pytorch_lightning.core.memory.ModelSummary have been moved "
+    "to pytorch_lightning.utilities.model_summary since v1.5 and "
+    "will be removed in v1.7."
+)
+
+from pytorch_lightning.utilities.model_summary import LayerSummary, ModelSummary
+
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """ Get a profile of the current memory usage.

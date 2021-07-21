@@ -1685,9 +1685,9 @@ class LightningModule(
         """
         Summarize this LightningModule.
 
-            .. deprecated:: v1.5
-                This method was deprecated in v1.5 in favor of :func:`pytorch_lightning.utilities.model_summary.summarize`
-                and will be removed in v1.7.
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of `pytorch_lightning.utilities.model_summary.summarize`
+            and will be removed in v1.7.
 
         Args:
             mode: Can be either ``'top'`` (summarize only direct submodules) or ``'full'`` (summarize all layers).

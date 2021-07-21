@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Test deprecated functionality which will be removed in v1.7.0 """
+
 import pytest
 
+from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
     from pytorch_lightning.core.lightning import warning_cache
@@ -23,3 +24,9 @@ def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
     model.summarize(max_depth=1)
     assert any("The `LightningModule.summarize` method is deprecated in v1.5" in w for w in warning_cache)
     warning_cache.clear()
+
+
+def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
+    _soft_unimport_module('pytorch_lightning.core.memory')
+    with pytest.deprecated_call(match="to pytorch_lightning.utilities.model_summary since v1.5"):
+        from pytorch_lightning.core.memory import LayerSummary, ModelSummary # noqa: F811 F401
