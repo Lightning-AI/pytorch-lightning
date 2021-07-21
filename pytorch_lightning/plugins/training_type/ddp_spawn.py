@@ -139,7 +139,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         # pass in a state q
-        smp = mp.get_context("spawn")
+        smp = mp.get_context("fork")
         self.mp_queue = smp.SimpleQueue()
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
