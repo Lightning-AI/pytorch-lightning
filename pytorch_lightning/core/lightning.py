@@ -1959,7 +1959,11 @@ class LightningModule(
         The model's size in megabytes. The computation includes everything in the
         :meth:`~torch.nn.Module.state_dict`, i.e., by default the parameteters and buffers.
         """
-        # todo: think about better way without need to dump model to drive
+        rank_zero_deprecation(
+            "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7. Please "
+            "use the get_model_size_mb method under utilities/memory.py"
+        )
+
         tmp_name = f"{uuid.uuid4().hex}.pt"
         torch.save(self.state_dict(), tmp_name)
         size_mb = os.path.getsize(tmp_name) / 1e6
