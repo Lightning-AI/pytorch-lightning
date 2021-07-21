@@ -243,7 +243,7 @@ def test_manual_optimization_tpus(tmpdir):
         def on_train_end(self, trainer, pl_module):
 
             opt = pl_module.optimizers()
-            assert opt._total_optimizer_step_calls == 5
+            assert opt._total_optimizer_step_calls == 3
 
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
@@ -257,6 +257,7 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         tpu_cores=8,
+        callbacks=[TestManualOptimizationCallack()]
     )
     trainer.fit(model)
 
