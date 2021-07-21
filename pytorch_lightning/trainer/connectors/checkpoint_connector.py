@@ -47,9 +47,11 @@ class CheckpointConnector:
     def resume_start(self) -> None:
         """
         Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
+
         1. from HPC weights if found
         2. from `resume_from_checkpoint` file if provided
         3. don't restore
+
         Raises:
             FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
         """
@@ -86,10 +88,13 @@ class CheckpointConnector:
         """
         Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file
         through file-read and state-restore, in this priority:
+
         1. from HPC weights if found
         2. from `resume_from_checkpoint` file if provided
         3. don't restore
+
         All restored states are listed in return value description of `dump_checkpoint`.
+
         Args:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
         """
@@ -378,6 +383,7 @@ class CheckpointConnector:
     def hpc_load(self, checkpoint_path: str) -> None:
         """
         Attempts to restore the full training and model state from a HPC checkpoint file.
+
         .. deprecated::v1.4
             Will be removed in v1.6. Use :meth:`restore` instead.
         """
@@ -425,6 +431,7 @@ class CheckpointConnector:
 
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
+
         Args:
             filepath: write-target file's path
             weights_only: saving model weights only
