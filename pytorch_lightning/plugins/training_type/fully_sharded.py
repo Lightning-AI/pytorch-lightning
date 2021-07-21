@@ -205,3 +205,9 @@ class DDPFullyShardedPlugin(DDPPlugin):
             cls,
             description="Fully sharded training with checkpointing the full state dict.",
         )
+        plugin_registry.register(
+            "ddp_fully_sharded_find_unused_parameters_false",
+            cls,
+            description="DDP Fully Sharded Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False
+        )
