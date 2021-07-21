@@ -1165,6 +1165,7 @@ class Trainer(
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
                 self.call_hook('configure_sharded_model')
+                self.call_hook('on_configure_sharded_model')
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
@@ -1194,7 +1195,7 @@ class Trainer(
         with self.profiler.profile(hook_name):
 
             # first call trainer hook
-            if hook_name not in ("setup", ) and hasattr(self, hook_name):
+            if hasattr(self, hook_name):
                 trainer_hook = getattr(self, hook_name)
                 if trainer_hook is not None:
                     # `train_dataloader` is a function for the `LightningModule` but an attribute for the `Trainer`
