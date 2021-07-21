@@ -74,12 +74,14 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
     chpt_path = str(trainer.checkpoint_callback.best_model_path)
 
-    qmodel2 = RegressionModel()
-    trainer = Trainer(resume_from_checkpoint=chpt_path, **trainer_args)
-    trainer.fit(qmodel2, datamodule=dm)
-    quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-    # test that the test score is almost the same as with pure training
-    assert torch.allclose(org_score, quant2_score, atol=0.4)
+    # test without and with void Qaunt callback...
+    for cbs in ([], [QuantizationAwareTraining()]):
+        qmodel2 = RegressionModel()
+        trainer = Trainer(resume_from_checkpoint=chpt_path, callbacks=cbs, **trainer_args)
+        trainer.fit(qmodel2, datamodule=dm)
+        quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
+        # test that the test score is almost the same as with pure training
+        assert torch.allclose(org_score, quant2_score, atol=0.4)
 
 
 @RunIf(quantization=True)
