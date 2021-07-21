@@ -23,6 +23,8 @@ import torch
 from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -428,6 +430,36 @@ def test_pytorch_profiler_nested(tmpdir):
         }
 
     assert events_name == expected, (events_name, torch.__version__, platform.system())
+
+
+def test_pytorch_profiler_logger_collection(tmpdir):
+    """
+    Tests whether the PyTorch profiler is able to write its trace locally when
+    the Trainer's logger is an instance of LoggerCollection. See issue #8157.
+    """
+
+    def look_for_trace(trace_dir):
+        """ Determines if a directory contains a PyTorch trace """
+        return any("trace.json" in filename for filename in os.listdir(trace_dir))
+
+    # Sanity check
+    assert not look_for_trace(tmpdir)
+
+    model = BoringModel()
+
+    # Wrap the logger in a list so it becomes a LoggerCollection
+    logger = [TensorBoardLogger(save_dir=tmpdir)]
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        profiler="pytorch",
+        logger=logger,
+        limit_train_batches=5,
+        max_epochs=1,
+    )
+
+    assert isinstance(trainer.logger, LoggerCollection)
+    trainer.fit(model)
+    assert look_for_trace(tmpdir)
 
 
 @RunIf(min_gpus=1, special=True)

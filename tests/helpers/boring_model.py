@@ -154,7 +154,7 @@ class BoringModel(LightningModule):
 
 class BoringDataModule(LightningDataModule):
 
-    def __init__(self, data_dir: str = './'):
+    def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
         self.non_picklable = None

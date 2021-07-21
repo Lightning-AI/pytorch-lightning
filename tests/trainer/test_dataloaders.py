@@ -1503,6 +1503,49 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
         assert call['name'] == expected
 
 
+def test_dataloaders_reset_and_attach(tmpdir):
+    """
+    Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
+    attaching the new one.
+    """
+    dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
+    dataloader_3 = DataLoader(dataset=RandomDataset(32, 64))
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
+    # 1st fit
+    trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
+    assert trainer.train_dataloader.loaders is dataloader_0
+    assert trainer.val_dataloaders[0] is dataloader_1
+    # 2nd fit
+    trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
+    assert trainer.train_dataloader.loaders is dataloader_2
+    assert trainer.val_dataloaders[0] is dataloader_3
+
+    # 1st validate
+    trainer.validate(model, dataloaders=dataloader_0)
+    assert trainer.val_dataloaders[0] is dataloader_0
+    # 2nd validate
+    trainer.validate(model, dataloaders=dataloader_1)
+    assert trainer.val_dataloaders[0] is dataloader_1
+
+    # 1st test
+    trainer.test(model, dataloaders=dataloader_0)
+    assert trainer.test_dataloaders[0] is dataloader_0
+    # 2nd test
+    trainer.test(model, dataloaders=dataloader_1)
+    assert trainer.test_dataloaders[0] is dataloader_1
+
+    # 1st predict
+    trainer.predict(model, dataloaders=dataloader_0)
+    assert trainer.predict_dataloaders[0] is dataloader_0
+    # 2nd predict
+    trainer.predict(model, dataloaders=dataloader_1)
+    assert trainer.predict_dataloaders[0] is dataloader_1
+
+
 def test_replace_sampler_with_multiprocessing_context(tmpdir):
     """
     This test verifies that replace_sampler conserves multiprocessing context
