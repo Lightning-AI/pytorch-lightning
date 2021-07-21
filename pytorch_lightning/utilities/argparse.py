@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 import os
-from abc import ABC, abstractclassmethod
+from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from typing import Any, Callable, Dict, List, Tuple, Type, Union
@@ -24,8 +24,11 @@ from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int,
 
 class ParseArgparserDataType(ABC):
 
-    @abstractclassmethod
-    def parse_argparser(cls, args: Any):
+    def __init__(self, *_, **__):
+        pass
+
+    @classmethod
+    def parse_argparser(cls, args: 'ArgumentParser'):
         pass
 
 
