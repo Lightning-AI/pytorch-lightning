@@ -21,7 +21,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
-
 def is_overridden(
     method_name: str,
     instance: Optional[object] = None,
