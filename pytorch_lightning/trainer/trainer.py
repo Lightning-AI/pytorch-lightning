@@ -862,7 +862,7 @@ class Trainer(
 
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
-        
+
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
