@@ -336,7 +336,7 @@ def test_model_size_precision(tmpdir):
         precision=32,
     )
     trainer.fit(model)
-    summary = summarize(model, )
+    summary = summarize(model)
     assert model.pre_calculated_model_size == summary.model_size
 
 
