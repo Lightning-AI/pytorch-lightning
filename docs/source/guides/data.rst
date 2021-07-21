@@ -4,6 +4,7 @@
     from pytorch_lightning.core.lightning import LightningModule
     from torch.utils.data import IterableDataset
     from pytorch_lightning.trainer.trainer import Trainer
+    from torchvision import datasets
 
 .. _data:
 
@@ -104,26 +105,26 @@ datasets).
 
 .. testcode::
 
-    class ConcatDataSet(torch.utils.data.DataSet):
-        def __init__(self, *DataSets):
-            self.DataSets = DataSets
+    class ConcatDataset(torch.utils.data.Dataset):
+        def __init__(self, *datasets):
+            self.datasets = datasets
 
         def __getitem__(self, i):
-            return tuple(d[i] for d in self.DataSets)
+            return tuple(d[i] for d in self.datasets)
 
         def __len__(self):
-            return min(len(d) for d in self.DataSets)
+            return min(len(d) for d in self.datasets)
 
     class LitModel(LightningModule):
 
         def train_dataloader(self):
-            concat_DataSet = ConcatDataSet(
-                DataSets.ImageFolder(traindir_A),
-                DataSets.ImageFolder(traindir_B)
+            concat_dataset = ConcatDataset(
+                datasets.ImageFolder(traindir_A),
+                datasets.ImageFolder(traindir_B)
             )
 
             loader = torch.utils.data.DataLoader(
-                concat_DataSet,
+                concat_dataset,
                 batch_size=args.batch_size,
                 shuffle=True,
                 num_workers=args.workers,
