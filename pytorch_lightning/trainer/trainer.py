@@ -1197,7 +1197,7 @@ class Trainer(
             # first call trainer hook
             if hasattr(self, hook_name):
                 trainer_hook = getattr(self, hook_name)
-                if trainer_hook is not None:
+                if callable(trainer_hook):
                     # `train_dataloader` is a function for the `LightningModule` but an attribute for the `Trainer`
                     trainer_hook(*args, **kwargs)
 
