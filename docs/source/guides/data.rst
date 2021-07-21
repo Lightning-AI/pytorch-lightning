@@ -341,12 +341,12 @@ Lightning can handle TBPTT automatically via this flag.
 
 Iterable Datasets
 =================
-Lightning supports using IterableDataSets as well as map-style DataSets. IterableDataSets provide a more natural
+Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
 option when using sequential data.
 
-.. note:: When using an IterableDataSet you must set the ``val_check_interval`` to 1.0 (the default) or an int
+.. note:: When using an IterableDataset you must set the ``val_check_interval`` to 1.0 (the default) or an int
     (specifying the number of training batches to run before validation) when initializing the Trainer. This is
-    because the IterableDataSet does not have a ``__len__`` and Lightning requires this to calculate the validation
+    because the IterableDataset does not have a ``__len__`` and Lightning requires this to calculate the validation
     interval when ``val_check_interval`` is less than one. Similarly, you can set ``limit_{mode}_batches`` to a float or
     an int. If it is set to 0.0 or 0 it will set ``num_{mode}_batches`` to 0, if it is an int it will set ``num_{mode}_batches``
     to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole dataset, otherwise it will throw an exception.
@@ -354,8 +354,8 @@ option when using sequential data.
 
 .. testcode::
 
-    # IterableDataSet
-    class CustomDataSet(IterableDataSet):
+    # IterableDataset
+    class CustomDataset(IterableDataset):
 
         def __init__(self, data):
             self.data_source
@@ -366,7 +366,7 @@ option when using sequential data.
     # Setup DataLoader
     def train_dataloader(self):
         seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
-        iterable_dataset = CustomDataSet(seq_data)
+        iterable_dataset = CustomDataset(seq_data)
 
         dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
         return dataloader
