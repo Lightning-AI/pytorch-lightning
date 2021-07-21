@@ -841,18 +841,19 @@ class Trainer(
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
 
+        # attach model to the training type plugin
+        self.accelerator.connect(model)
+
         # hook
         self.data_connector.prepare_data()
-        # FIXME: need the `lightning_module` reference to be set
         self.callback_connector._attach_model_callbacks()
 
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator.connect(model)
+        self.call_hook("on_before_accelerator_backend_setup")
         self.accelerator.setup_environment()
-        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # restore modules after setup
         self.checkpoint_connector.restore_datamodule()
@@ -860,8 +861,9 @@ class Trainer(
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
 
-        self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
-        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+        self._call_configure_sharded_model()  # allow user to setup in model sharded environment
+        # TODO: `model` can be removed as an argument of `TrainingTypePlugin.setup` as it is already connected
+        self.accelerator.setup(self, model)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -918,7 +920,7 @@ class Trainer(
             self.call_hook('on_fit_end')
 
         # teardown
-        self._call_teardown_hook(model)
+        self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -1142,7 +1144,7 @@ class Trainer(
         self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
-    def _call_setup_hook(self, model: 'pl.LightningModule') -> None:
+    def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
         self.accelerator.barrier("pre_setup")
@@ -1153,11 +1155,12 @@ class Trainer(
 
         self.accelerator.barrier("post_setup")
 
-    def _call_configure_sharded_model(self, model: 'pl.LightningModule') -> None:
+    def _call_configure_sharded_model(self) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
 
         # used on the model if the user re-create a trainer with resume_from_checkpoint
+        model = self.lightning_module
         model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
@@ -1165,7 +1168,7 @@ class Trainer(
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
-    def _call_teardown_hook(self, model: 'pl.LightningModule') -> None:
+    def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
@@ -1173,10 +1176,10 @@ class Trainer(
         self.profiler.teardown(stage=fn)
         self.call_hook('teardown', stage=fn)
 
-        model._current_fx_name = None
-        model._current_dataloader_idx = None
+        self.lightning_module._current_fx_name = None
+        self.lightning_module._current_dataloader_idx = None
         # these could have become stale if metrics are defined in `setup`
-        model._metric_attributes = None
+        self.lightning_module._metric_attributes = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook

@@ -36,10 +36,10 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     lightning_module: 'pl.LightningModule'
 
-    def on_before_accelerator_backend_setup(self, model: 'pl.LightningModule') -> None:
+    def on_before_accelerator_backend_setup(self) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.on_before_accelerator_backend_setup(self, model)
+            callback.on_before_accelerator_backend_setup(self, self.lightning_module)
 
     def configure_sharded_model(self) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
