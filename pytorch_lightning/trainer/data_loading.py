@@ -468,9 +468,11 @@ class TrainerDataLoadingMixin(ABC):
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model=model)
 
-    def request_dataloader(self,
-                           stage: str,
-                           model: Optional['pl.LightningModule'] = None) -> Union[DataLoader, List[DataLoader]]:
+    def request_dataloader(
+        self,
+        stage: str,
+        model: Optional['pl.LightningModule'] = None,
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Handles downloading data in the GPU or TPU case.
 
         Returns:
