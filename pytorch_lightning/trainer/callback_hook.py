@@ -21,6 +21,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -301,6 +302,11 @@ class TrainerCallbackHookMixin(ABC):
                 f"Please, add the following callbacks: {list(difference)}. ",
                 UserWarning,
             )
+
+        # in case QAT was used for original training and not inserted void  after resume
+        is_qat = any(isinstance(cb, QuantizationAwareTraining) for cb in self.callbacks)
+        if QuantizationAwareTraining in callback_states and not is_qat:
+            self.callbacks.append(QuantizationAwareTraining())
 
         for callback in self.callbacks:
             state = callback_states.get(type(callback))

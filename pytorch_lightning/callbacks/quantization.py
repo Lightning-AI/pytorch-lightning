@@ -178,6 +178,7 @@ class QuantizationAwareTraining(Callback):
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
         self._forward_calls = 0
+        self.__module_prepared = False
 
     def _check_feasible_fuse(self, model):
         if not self._modules_to_fuse:
@@ -196,16 +197,17 @@ class QuantizationAwareTraining(Callback):
         checkpoint: Dict[str, Any],
     ) -> Dict[str, Any]:
         arg_names = ("qconfig", "observer_type", "collect_quantization", "modules_to_fuse", "input_compatible")
-        kwargs = {n: getattr(self, f"_{n}") for n in arg_names}
-        return kwargs
+        attribs = {n: getattr(self, f"_{n}") for n in arg_names}
+        return attribs
 
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[str, Any]
     ) -> None:
-        # todo
-        print(callback_state)
+        for k, v in callback_state.items():
+            setattr(self, f"_{k}", v)
+        self.prepare_model(pl_module)
 
-    def on_fit_start(self, trainer, pl_module):
+    def prepare_model(self, pl_module):
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -233,6 +235,12 @@ class QuantizationAwareTraining(Callback):
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
         torch.quantization.prepare_qat(pl_module, inplace=True)
+        self.__module_prepared = True
+
+    def on_fit_start(self, trainer, pl_module):
+        if self.__module_prepared:
+            return
+        self.prepare_model(pl_module)
 
     def on_fit_end(self, trainer, pl_module):
         if not self._convert_on_fit_end:
