@@ -205,7 +205,7 @@ class HookedModel(BoringModel):
 def test_fx_validator_integration(tmpdir):
     """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors"""
     not_supported = {
-        'on_before_accelerator_backend_setup': 'LightningModule` is not registered yet',
+        'on_before_accelerator_backend_setup': "You can't",
         'setup': "You can't",
         'configure_sharded_model': "You can't",
         'on_configure_sharded_model': "You can't",

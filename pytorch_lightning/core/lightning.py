@@ -407,14 +407,6 @@ class LightningModule(
                 ' yet. This is most likely because you are trying to log in a `predict` hook,'
                 " but it doesn't support logging."
             )
-        if self.trainer.lightning_module is None:
-            # this is to avoid `lightning_module.log` in callback hooks which have the lightning module available as a
-            # parameter but the reference in the trainer has not been set yet
-            caller = inspect.stack()[1][3]
-            raise MisconfigurationException(
-                f'You are trying to `self.log()` inside `{caller}` but the'
-                ' `LightningModule` is not registered yet for the trainer.'
-            )
         if self._current_fx_name is None:
             caller = inspect.stack()[1][3]
             raise MisconfigurationException(
