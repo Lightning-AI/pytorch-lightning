@@ -140,4 +140,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             torch.cuda.empty_cache()
 
         # Un-reference the wrapper if any was used.
-        self.model = self.lightning_module
+        # todo (tchaton): Add support for all plugins.
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
