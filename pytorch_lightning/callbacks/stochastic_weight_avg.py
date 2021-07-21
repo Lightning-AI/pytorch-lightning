@@ -139,7 +139,8 @@ class StochasticWeightAveraging(Callback):
 
     def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         # copy the model before moving it to accelerator device.
-        self._average_model = deepcopy(pl_module)
+        with pl_module._prevent_trainer_and_dataloaders_deepcopy():
+            self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         optimizers = trainer.optimizers
