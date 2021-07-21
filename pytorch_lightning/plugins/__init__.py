@@ -31,12 +31,31 @@ from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin  # 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 
 __all__ = [
-    "ApexMixedPrecisionPlugin", "DataParallelPlugin", "DDP2Plugin", "DDPPlugin", "DDPSpawnPlugin",
-    "DDPFullyShardedPlugin", "DeepSpeedPlugin", "DeepSpeedPrecisionPlugin", "DoublePrecisionPlugin", "HorovodPlugin",
-    "IPUPlugin", "IPUPrecisionPlugin", "NativeMixedPrecisionPlugin", "PrecisionPlugin",
-    "ShardedNativeMixedPrecisionPlugin", "FullyShardedNativeMixedPrecisionPlugin", "SingleDevicePlugin",
-    "SingleTPUPlugin", "TPUHalfPrecisionPlugin", "TPUSpawnPlugin", "TrainingTypePlugin", "ParallelPlugin", "Plugin",
-    "DDPShardedPlugin", "DDPSpawnShardedPlugin",
+    "ApexMixedPrecisionPlugin",
+    "DataParallelPlugin",
+    "DDP2Plugin",
+    "DDPPlugin",
+    "DDPSpawnPlugin",
+    "DDPFullyShardedPlugin",
+    "DeepSpeedPlugin",
+    "DeepSpeedPrecisionPlugin",
+    "DoublePrecisionPlugin",
+    "HorovodPlugin",
+    "IPUPlugin",
+    "IPUPrecisionPlugin",
+    "NativeMixedPrecisionPlugin",
+    "PrecisionPlugin",
+    "ShardedNativeMixedPrecisionPlugin",
+    "FullyShardedNativeMixedPrecisionPlugin",
+    "SingleDevicePlugin",
+    "SingleTPUPlugin",
+    "TPUHalfPrecisionPlugin",
+    "TPUSpawnPlugin",
+    "TrainingTypePlugin",
+    "ParallelPlugin",
+    "Plugin",
+    "DDPShardedPlugin",
+    "DDPSpawnShardedPlugin",
 ]
 
 from pathlib import Path
