@@ -264,8 +264,12 @@ class Callback(abc.ABC):
         """Called when the training is interrupted by ``KeyboardInterrupt``."""
         pass
 
-    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule',
-                           checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[str, Any]:
         """
         Called when saving a model checkpoint, use to persist state.
 
