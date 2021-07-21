@@ -965,6 +965,7 @@ class Trainer(
         # which need to happen before.
         self.accelerator.teardown()
         self._active_loop.teardown()
+        self.logger_connector.teardown()
 
     def _dispatch(self):
         if self.evaluating:
