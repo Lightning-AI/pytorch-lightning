@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from collections import defaultdict
-from typing import Any, Callable, DefaultDict, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -112,13 +111,12 @@ class Accelerator:
 
         self.precision_plugin.pre_dispatch()
 
-    def _move_optimizer_state(self) -> None:
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """ Moves the state of the optimizers to the GPU if needed. """
+        device = device or self.root_device
         for opt in self.optimizers:
-            state: DefaultDict = defaultdict(dict)
             for p, v in opt.state.items():
-                state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
-            opt.state = state
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
 
     def dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
