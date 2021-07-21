@@ -17,8 +17,10 @@ from unittest.mock import Mock
 import pytest
 
 from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden, get_model_size
 from tests.helpers import BoringDataModule, BoringModel
+import torch
+import torch.nn as nn
 
 
 def test_is_overridden():
@@ -92,3 +94,25 @@ def test_is_overridden():
     trainer = Trainer(fast_dev_run=1)
     trainer.fit(model, train_dataloader=model.train_dataloader())
     assert model.on_fit_start_called
+
+def test_get_model_size():
+    model = BoringModel()
+
+    size_bytes = get_model_size(model)
+
+    # The BoringModel has a fully connected layer of size 32x2 with a bias resulting in
+    # 67 weights. Each weight is a float32 -- 4 bytes, therefore we expect a size of
+    # 264.
+    assert size_bytes == 264
+
+def test_get_sparse_model_size():
+    class BoringSparseModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Parameter(torch.ones(32).to_sparse())
+
+    model = BoringSparseModel()
+
+    with pytest.raises(NotImplementedError):
+        get_model_size(model)
