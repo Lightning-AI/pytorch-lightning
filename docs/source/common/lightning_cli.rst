@@ -3,7 +3,6 @@
 
     import torch
     from unittest import mock
-    from typing import List
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.utilities.cli import LightningCLI
@@ -14,9 +13,9 @@
     class MyModel(LightningModule):
         def __init__(
             self,
-            encoder_layers: int = 12,
-            decoder_layers: List[int] = [2, 4],
-            batch_size: int = 8,
+            encoder_layers= 12,
+            decoder_layers = [2, 4],
+            batch_size= 8,
         ):
             pass
 
