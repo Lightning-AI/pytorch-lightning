@@ -88,7 +88,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
 
 def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
     """
-    This test validates that accumulated gradient properly is recomputed and reset on the trainer.
+    This test validates that accumulated gradient is properly recomputed and reset on the trainer.
     """
 
     cb = ModelCheckpoint(dirpath=tmpdir, save_last=True)
