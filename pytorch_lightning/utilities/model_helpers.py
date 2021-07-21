@@ -80,6 +80,9 @@ def get_model_size(model: nn.Module) -> int:
 
     Returns:
         Number of bytes in the parameters of the input module
+
+    Raises:
+        NotImplementedError: if the input model has sparse tensors
     """
     size = 0
     for tensor in model.state_dict().values():
