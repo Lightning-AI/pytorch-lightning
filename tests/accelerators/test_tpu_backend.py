@@ -228,7 +228,7 @@ def test_manual_optimization_tpus(tmpdir):
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
         assert not torch.equal(param.cpu().data, param_copy.data)
 
- 
+
 def test_accelerator_tpu_with_devices():
 
     trainer = Trainer(accelerator="tpu", devices=8)
