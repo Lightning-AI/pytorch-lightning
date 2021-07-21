@@ -228,14 +228,14 @@ class TrainerDataLoadingMixin(ABC):
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
-    def reset_train_dataloader(self, model: 'pl.LightningModule') -> None:
+    def reset_train_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
         """Resets the train dataloader and initialises required variables
         (number of batches, when to validate, etc.).
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if calling this outside of the trainer scope.
         """
-        self.train_dataloader = self.request_dataloader("train")
+        self.train_dataloader = self.request_dataloader("train", model=model)
 
         if self.overfit_batches > 0:
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
@@ -318,21 +318,21 @@ class TrainerDataLoadingMixin(ABC):
 
     def _reset_eval_dataloader(
         self,
-        model: 'pl.LightningModule',
         mode: str,
+        model: Optional['pl.LightningModule'] = None
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
-            model: The current `LightningModule`
             mode: Either `'val'`, `'test'` or `'predict'`
+            model: The `LightningModule` if calling this outside of the trainer scope.
 
         Returns:
             Tuple (num_batches, dataloaders)
         """
         # always get the loaders first so we can count how many there are
         loader_name = f'{mode}_dataloader'
-        dataloaders = self.request_dataloader(mode)
+        dataloaders = self.request_dataloader(mode, model=model)
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
@@ -418,60 +418,67 @@ class TrainerDataLoadingMixin(ABC):
 
         return loader_num_batches, dataloaders
 
-    def reset_val_dataloader(self, model: 'pl.LightningModule') -> None:
+    def reset_val_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if called outside of the trainer scope.
         """
-        has_loader = is_overridden('val_dataloader', model)
-        has_step = is_overridden('validation_step', model)
+        pl_module = self.lightning_module or model
+        has_loader = is_overridden('val_dataloader', pl_module)
+        has_step = is_overridden('validation_step', pl_module)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader('val', model=pl_module)
 
-    def reset_test_dataloader(self, model) -> None:
+    def reset_test_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if called outside of the trainer scope.
         """
-        has_loader = is_overridden('test_dataloader', model)
-        has_step = is_overridden('test_step', model)
+        pl_module = self.lightning_module or model
+        has_loader = is_overridden('test_dataloader', pl_module)
+        has_step = is_overridden('test_step', pl_module)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, 'test')
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader('test', model=pl_module)
 
-    def reset_predict_dataloader(self, model) -> None:
+    def reset_predict_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
         """Resets the predict dataloader and determines the number of batches.
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if called outside of the trainer scope.
         """
-        has_loader = is_overridden('predict_dataloader', model)
+        pl_module = self.lightning_module or model
+        has_loader = is_overridden('predict_dataloader', pl_module)
         if has_loader:
-            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
+            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader('predict', model=pl_module)
 
-    def reset_train_val_dataloaders(self, model) -> None:
+    def reset_train_val_dataloaders(self, model: Optional['pl.LightningModule'] = None) -> None:
         """
         Resets train and val dataloaders if none are attached to the trainer.
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
+
+        Args:
+            model: The `LightningModule` if called outside of the trainer scope.
         """
         if self.train_dataloader is None:
-            self.reset_train_dataloader(model)
-
+            self.reset_train_dataloader(model=model)
         if self.val_dataloaders is None:
-            self.reset_val_dataloader(model)
+            self.reset_val_dataloader(model=model)
 
-    def request_dataloader(self, stage: str) -> Union[DataLoader, List[DataLoader]]:
+    def request_dataloader(self,
+                           stage: str,
+                           model: Optional['pl.LightningModule'] = None) -> Union[DataLoader, List[DataLoader]]:
         """Handles downloading data in the GPU or TPU case.
 
         Returns:
             The dataloader
         """
         hook = f"{stage}_dataloader"
-        self.call_hook("on_" + hook)
-        dataloader = self.call_hook(hook)
+        self.call_hook("on_" + hook, pl_module=model)
+        dataloader = self.call_hook(hook, pl_module=model)
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.accelerator.barrier('get_dataloaders')

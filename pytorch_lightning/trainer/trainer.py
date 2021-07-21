@@ -1182,14 +1182,16 @@ class Trainer(
         # these could have become stale if metrics are defined in `setup`
         self.lightning_module._metric_attributes = None
 
-    def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
+    def call_hook(self, hook_name: str, *args, pl_module: Optional['pl.LightningModule'] = None, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
         # TrainingEpochLoop._on_train_epoch_end_hook
-        if self.lightning_module:
-            prev_fx_name = self.lightning_module._current_fx_name
-            self.lightning_module._current_fx_name = hook_name
+        pl_module = self.lightning_module or pl_module
+
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -1203,9 +1205,8 @@ class Trainer(
 
             # next call hook in lightningModule
             output = None
-            model_ref = self.lightning_module
-            if is_overridden(hook_name, model_ref):
-                hook_fx = getattr(model_ref, hook_name)
+            if is_overridden(hook_name, pl_module):
+                hook_fx = getattr(pl_module, hook_name)
                 output = hook_fx(*args, **kwargs)
 
             # call the accelerator hook
@@ -1217,9 +1218,9 @@ class Trainer(
                 # todo: move this data parallel logic into the data parallel plugin
                 output = accelerator_output if output is None else output
 
-        if self.lightning_module:
+        if pl_module:
             # restore current_fx when nested context
-            self.lightning_module._current_fx_name = prev_fx_name
+            pl_module._current_fx_name = prev_fx_name
 
         return output
 
