@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import os
+from abc import ABC, abstractclassmethod
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from typing import Any, Callable, Dict, List, Tuple, Type, Union
@@ -21,7 +22,16 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
 
-def from_argparse_args(cls: Type['pl.Trainer'], args: Union[Namespace, ArgumentParser], **kwargs: Any) -> 'pl.Trainer':
+class ParseArgparserDataType(ABC):
+
+    @abstractclassmethod
+    def parse_argparser(self):
+        pass
+
+
+def from_argparse_args(
+    cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
+) -> ParseArgparserDataType:
     """Create an instance from CLI arguments.
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
