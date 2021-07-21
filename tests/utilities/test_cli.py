@@ -227,13 +227,15 @@ class Model(LightningModule):
         self.model_param = model_param
 
 
-def model_builder(model_param: int):
+def model_builder(model_param: int) -> Model:
     return Model(model_param)
 
 
 def trainer_builder(
-    limit_train_batches: int, fast_dev_run: bool = False, callbacks: Optional[Union[List[Callback], Callback]] = None
-):
+    limit_train_batches: int,
+    fast_dev_run: bool = False,
+    callbacks: Optional[Union[List[Callback], Callback]] = None
+) -> Trainer:
     return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
 
 

@@ -33,7 +33,8 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
-    from jsonargparse import ActionConfigFile, ArgumentParser, set_config_read_mode
+    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, set_config_read_mode
+
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
@@ -75,6 +76,9 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
+        if callable(lightning_class) and not inspect.isclass(lightning_class):
+            lightning_class = class_from_function(lightning_class)
+
         if inspect.isclass(lightning_class) and issubclass(
             cast(type, lightning_class), (Trainer, LightningModule, LightningDataModule, Callback)
         ):
@@ -87,12 +91,6 @@ class LightningArgumentParser(ArgumentParser):
                 nested_key,
                 fail_untyped=False,
                 instantiate=not issubclass(cast(type, lightning_class), Trainer),
-            )
-        elif callable(lightning_class):
-            return self.add_function_arguments(
-                lightning_class,
-                nested_key,
-                fail_untyped=False,
             )
         raise MisconfigurationException(
             f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
@@ -347,21 +345,8 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_classes(self.config)
-
-        datamodule_config = self.config_init.get('data')
-        if inspect.isclass(self.datamodule_class):
-            self.datamodule = datamodule_config
-        elif self.datamodule_class is not None and datamodule_config is not None:
-            self.datamodule = self.datamodule_class(**datamodule_config)
-        else:
-            self.datamodule = None
-
-        model_config = self.config_init['model']
-        if inspect.isclass(self.model_class):
-            self.model = model_config
-        else:
-            self.model = self.model_class(**model_config)
-
+        self.datamodule = self.config_init.get('data')
+        self.model = self.config_init['model']
         self.instantiate_trainer()
 
     def instantiate_trainer(self) -> None:
