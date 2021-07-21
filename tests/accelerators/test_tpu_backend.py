@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import collections
+from copy import deepcopy
+
 import pytest
 import torch
 from torch import nn
@@ -18,6 +21,7 @@ from torch import nn
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -148,3 +152,77 @@ def test_accelerator_tpu_with_auto():
 
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
+
+
+@RunIf(tpu=True)
+def test_manual_optimization_tpus(tmpdir):
+
+    class ManualOptimizationModel(BoringModel):
+
+        count = 0
+        called = collections.defaultdict(int)
+        detach = False
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        @property
+        def should_update(self):
+            return self.count % 2 == 0
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.called["on_train_batch_start"] += 1
+            self.weight_before = self.layer.weight.clone()
+
+        def training_step(self, batch, batch_idx):
+            self.called["training_step"] += 1
+            opt = self.optimizers()
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+
+            if self.should_update:
+                self.manual_backward(loss)
+                opt.step()
+                opt.zero_grad()
+            return loss
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.called["on_train_batch_end"] += 1
+            after_before = self.layer.weight.clone()
+            if self.should_update:
+                assert not torch.equal(self.weight_before, after_before), self.count
+            else:
+                assert torch.equal(self.weight_before, after_before)
+            assert torch.all(self.layer.weight.grad == 0)
+            self.count += 1
+
+        def on_train_end(self):
+            assert self.called["training_step"] == 5
+            assert self.called["on_train_batch_start"] == 5
+            assert self.called["on_train_batch_end"] == 5
+
+    class TestManualOptimizationCallack(Callback):
+
+        def on_train_end(self, trainer, pl_module):
+
+            opt = pl_module.optimizers()
+            assert opt._total_optimizer_step_calls == 5
+
+    model = ManualOptimizationModel()
+    model_copy = deepcopy(model)
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=5,
+        limit_test_batches=0,
+        limit_val_batches=0,
+        tpu_cores=8,
+    )
+    trainer.fit(model)
+
+    for param, param_copy in zip(model.parameters(), model_copy.parameters()):
+        assert not torch.equal(param.cpu().data, param_copy.data)

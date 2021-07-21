@@ -25,8 +25,44 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.manual_opt_model import ManualOptModel
 from tests.helpers.runif import RunIf
+
+
+class ManualOptModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt_a, opt_b = self.optimizers()
+
+        # make sure there are no grads
+        if batch_idx > 0:
+            assert torch.all(self.layer.weight.grad == 0)
+
+        loss_1 = self.step(batch[0])
+        self.manual_backward(loss_1)
+        opt_a.step()
+        opt_a.zero_grad()
+        assert torch.all(self.layer.weight.grad == 0)
+
+        loss_2 = self.step(batch[0])
+        # ensure we forward the correct params to the optimizer
+        # without retain_graph we can't do multiple backward passes
+        self.manual_backward(loss_2, retain_graph=True)
+        self.manual_backward(loss_2)
+        assert self.layer.weight.grad is not None
+        opt_b.step()
+        opt_b.zero_grad()
+        assert torch.all(self.layer.weight.grad == 0)
+
+        return loss_2
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        return optimizer, optimizer_2
 
 
 def test_multiple_optimizers_manual_no_return(tmpdir):
