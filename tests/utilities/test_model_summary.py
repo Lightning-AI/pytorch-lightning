@@ -16,9 +16,9 @@ import torch
 import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.core.memory import ModelSummary, UNKNOWN_SIZE
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
 from tests.helpers.runif import RunIf
@@ -140,7 +140,7 @@ class DeepNestedModel(LightningModule):
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
-        UnorderedModel().summarize(mode='temp')
+        summarize(UnorderedModel, mode='temp')
 
     with pytest.raises(MisconfigurationException, match='`weights_summary` can be None, .* got temp'):
         Trainer(weights_summary='temp')
@@ -150,7 +150,7 @@ def test_invalid_weights_summmary():
 def test_empty_model_summary_shapes(mode: str):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
@@ -167,7 +167,7 @@ def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
     model.train()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.in_sizes == [
         [2, 10],  # layer 2
         [2, 7],  # combine
@@ -189,7 +189,7 @@ def test_linear_model_summary_shapes(device, mode):
 def test_mixed_dtype_model_summary():
     """ Test that the model summary works with models that have mixed input- and parameter dtypes. """
     model = MixedDtypeModel()
-    summary = model.summarize()
+    summary = summarize(model, )
     assert summary.in_sizes == [
         [2, 3],  # embed
         [2, 3, 20],  # reduce
@@ -224,7 +224,7 @@ def test_rnn_summary_shapes(mode):
 
     model.example_input_array = torch.zeros(b, t, 10)
 
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.in_sizes == [
         [b, t, i],  # rnn
         [b, t, h],  # linear
@@ -239,7 +239,7 @@ def test_rnn_summary_shapes(mode):
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.param_nums == [
         model.layer2.weight.numel() + model.layer2.bias.numel(),
         model.combine.weight.numel() + model.combine.bias.numel(),
@@ -253,7 +253,7 @@ def test_summary_parameter_count(mode):
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.layer_types == [
         'Linear',
         'Linear',
@@ -266,7 +266,7 @@ def test_summary_layer_types(mode):
 @pytest.mark.parametrize('mode', ["full", "top"])
 def test_summary_with_scripted_modules(mode):
     model = PartialScriptModel()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
     assert summary.in_sizes == [UNKNOWN_SIZE, [2, 3]]
     assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
@@ -302,7 +302,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
 
     model = DummyLightningModule()
     model.example_input_array = example_input
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert summary.in_sizes == [expected_size]
 
 
@@ -310,7 +310,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
 def test_model_size(mode):
     """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert model.pre_calculated_model_size == summary.model_size
 
 
@@ -318,7 +318,7 @@ def test_model_size(mode):
 def test_empty_model_size(mode):
     """ Test empty model size is zero. """
     model = EmptyModule()
-    summary = model.summarize(mode=mode)
+    summary = summarize(model, mode=mode)
     assert 0.0 == summary.model_size
 
 
@@ -336,7 +336,7 @@ def test_model_size_precision(tmpdir):
         precision=32,
     )
     trainer.fit(model)
-    summary = model.summarize()
+    summary = summarize(model, )
     assert model.pre_calculated_model_size == summary.model_size
 
 
@@ -362,15 +362,15 @@ def test_lazy_model_summary():
 
 
 def test_max_depth_equals_mode_interface():
-    """Test model.summarize(full/top) interface mapping matches max_depth"""
+    """Test summarize(model, full/top) interface mapping matches max_depth"""
     model = DeepNestedModel()
 
-    summary_top = model.summarize(mode="top")
-    summary_0 = model.summarize(max_depth=1)
+    summary_top = summarize(model, mode="top")
+    summary_0 = summarize(model, max_depth=1)
     assert str(summary_top) == str(summary_0)
 
-    summary_full = model.summarize(mode="full")
-    summary_minus1 = model.summarize(max_depth=-1)
+    summary_full = summarize(model, mode="full")
+    summary_minus1 = summarize(model, max_depth=-1)
     assert str(summary_full) == str(summary_minus1)
 
 
@@ -387,4 +387,4 @@ def test_max_depth_param(max_depth):
 @pytest.mark.parametrize('max_depth', [-99, -2, "invalid"])
 def test_raise_invalid_max_depth_value(max_depth):
     with pytest.raises(ValueError, match=f"`max_depth` can be -1, 0 or > 0, got {max_depth}"):
-        DeepNestedModel().summarize(max_depth=max_depth)
+        summarize(DeepNestedModel(), max_depth=max_depth)
