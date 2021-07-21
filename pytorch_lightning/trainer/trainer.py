@@ -856,12 +856,11 @@ class Trainer(
         # restore modules after setup
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
-
-        # restore callback states
-        self.checkpoint_connector.restore_callbacks()
 
         # ----------------------------
         # INSPECT THE CORE LOOPS

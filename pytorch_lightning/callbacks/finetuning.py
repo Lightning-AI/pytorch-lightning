@@ -83,6 +83,7 @@ class BaseFinetuning(Callback):
 
     def __init__(self):
         self._internal_state: Dict[int, List[Dict[str, Any]]] = {}
+        self.restarting = False
 
     def on_save_checkpoint(
         self,
@@ -95,12 +96,17 @@ class BaseFinetuning(Callback):
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
+        self.restarting = True
         self._internal_state = callback_state
+
+    def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         # restore the param_groups created during the previous training.
-        named_parameters = dict(pl_module.named_parameters())
-        for opt_idx, optimizer in enumerate(trainer.optimizers):
-            param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
-            optimizer.param_groups = param_groups
+        if self.restarting:
+            named_parameters = dict(pl_module.named_parameters())
+            for opt_idx, optimizer in enumerate(trainer.optimizers):
+                param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
+                optimizer.param_groups = param_groups
+            self.restarting = False
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
@@ -384,7 +390,6 @@ class BackboneFinetuning(BaseFinetuning):
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
-
         self.previous_backbone_lr = callback_state["previous_backbone_lr"]
         super().on_load_checkpoint(trainer, pl_module, callback_state["internal_state"])
 
@@ -395,7 +400,7 @@ class BackboneFinetuning(BaseFinetuning):
                 If LightningModule has no nn.Module `backbone` attribute.
         """
         if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
-            return
+            return super().on_fit_start(trainer, pl_module)
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
     def freeze_before_training(self, pl_module: 'pl.LightningModule'):
