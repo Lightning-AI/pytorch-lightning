@@ -197,13 +197,11 @@ class ModelSummary(object):
         if max_depth is None or mode is not None:
             if mode in ModelSummary.MODES:
                 max_depth = ModelSummary.MODES[mode]
-                from pytorch_lightning.utilities import rank_zero_deprecation
                 rank_zero_deprecation(
                     f"Argument `mode` in `ModelSummary` is deprecated in v1.4"
                     f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behaviour."
                 )
             else:
-                from pytorch_lightning.utilities.exceptions import MisconfigurationException
                 raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
 
         if not isinstance(max_depth, int) or max_depth < -1:
