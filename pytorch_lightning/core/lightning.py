@@ -420,7 +420,6 @@ class LightningModule(
             raise MisconfigurationException(
                 f'You are trying to `self.log()` inside `{caller}` but it is not managed by the `Trainer` control flow'
             )
-        assert self._current_fx_name is not None
         FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
