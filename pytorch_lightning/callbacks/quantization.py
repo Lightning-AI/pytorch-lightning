@@ -83,7 +83,7 @@ def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
 
 
 class QuantizationAwareTraining(Callback):
-    """
+    r"""
     Quantization allows speeding up inference and decreasing memory requirements
     by performing computations and storing tensors at lower bitwidths
     (such as INT8 or FLOAT16) than floating point precision.
@@ -112,16 +112,15 @@ class QuantizationAwareTraining(Callback):
     If a user wants to continue any past training we encourage to create a Trainer with ``resume_from_checkpoint``.
 
     Args:
-
         qconfig: quantization configuration:
 
             - 'fbgemm' for server inference.
             - 'qnnpack' for mobile inference.
-            -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+            -  a custom `torch.quantization.QConfig
+                <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
 
         observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
             and ``HistogramObserver`` as "histogram" which is more computationally expensive.
-
         collect_quantization: count or custom function to collect quantization statistics:
 
             - ``None`` (deafult). The quantization observer is called in each module forward
@@ -140,14 +139,13 @@ class QuantizationAwareTraining(Callback):
         modules_to_fuse: allows you fuse a few layers together as shown in
             `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_
             to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
-
         input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
             but break compatibility to torchscript and export with ``torch.save``.
 
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
-    """  # noqa: E501
+    """
     OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
