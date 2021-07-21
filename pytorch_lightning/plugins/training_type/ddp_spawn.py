@@ -158,6 +158,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         }
 
     def start_training(self, trainer):
+        assert self.lightning_module.device == torch.device("cpu")
         mp.start_processes(self.new_process, **self.mp_spawn_kwargs, start_method="fork")
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
