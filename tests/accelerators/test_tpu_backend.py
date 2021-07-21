@@ -155,6 +155,7 @@ def test_accelerator_tpu_with_auto():
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
 
+@RunIf(tpu=True)
 def test_accelerator_tpu_with_devices():
 
     trainer = Trainer(accelerator="tpu", devices=8)
