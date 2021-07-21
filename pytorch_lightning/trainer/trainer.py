@@ -1197,17 +1197,15 @@ class Trainer(
         with self.profiler.profile(hook_name):
 
             # first call trainer hook
-            if hasattr(self, hook_name):
-                trainer_hook = getattr(self, hook_name)
-                if callable(trainer_hook):
-                    # `train_dataloader` is a function for the `LightningModule` but an attribute for the `Trainer`
-                    trainer_hook(*args, **kwargs)
+            callback_fx = getattr(self, hook_name, None)
+            if callable(callback_fx):
+                callback_fx(*args, **kwargs)
 
             # next call hook in lightningModule
             output = None
-            if is_overridden(hook_name, pl_module):
-                hook_fx = getattr(pl_module, hook_name)
-                output = hook_fx(*args, **kwargs)
+            model_fx = getattr(pl_module, hook_name, None)
+            if callable(model_fx):
+                output = model_fx(*args, **kwargs)
 
             # call the accelerator hook
             if hook_name not in ("setup", "teardown") and hasattr(self.accelerator, hook_name):

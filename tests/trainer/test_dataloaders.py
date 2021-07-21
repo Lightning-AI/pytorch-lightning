@@ -1664,9 +1664,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
 
 def test_request_dataloader(tmpdir):
-    """
-        This test asserts dataloader can be modified and properly set to the trainer.
-    """
+    """This test asserts dataloader can be modified and properly set to the trainer."""
 
     class DataLoaderWrapper:
 
