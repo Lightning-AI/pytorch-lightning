@@ -181,7 +181,13 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # state dict.
         return super().lightning_module_state_dict()
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+    def serialized_restore_model_state(
+        self, checkpoint_path: Union[str, Path]
+    ) -> Dict[str, Any]:
+        checkpoint = {}
+        log.info(
+            f"FullyShardedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs."
+        )
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint_file(checkpoint_path)

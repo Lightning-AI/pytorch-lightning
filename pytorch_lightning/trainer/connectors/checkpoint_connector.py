@@ -145,11 +145,19 @@ class CheckpointConnector:
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """ Restore only the model weights. """
         checkpoint = self._loaded_checkpoint
+        if hasattr(self.trainer.training_type_plugin, "serialized_restore_model_state"):
+            checkpoint = self.trainer.training_type_plugin.serialized_restore_model_state(checkpoint_path)
+        else:
+            checkpoint = self.restore_model_state(checkpoint_path)
+
+    def restore_model_state(self, checkpoint_path: Optional[Union[str, Path]]) -> dict:
         if checkpoint_path is not None:
             checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
+
+        return checkpoint
 
     def restore_training_state(self) -> None:
         """
