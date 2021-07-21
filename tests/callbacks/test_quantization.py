@@ -78,7 +78,6 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert torch.allclose(org_score, quant2_score, atol=0.45)
 
 
-
 @RunIf(quantization=True)
 def test_quantize_torchscript(tmpdir):
     """Test converting to torchscipt """
