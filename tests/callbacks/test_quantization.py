@@ -77,11 +77,6 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
     assert torch.allclose(org_score, quant2_score, atol=0.45)
 
-    trainer = Trainer(**trainer_args)
-    trainer.fit(qmodel2, datamodule=dm)
-
-    trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
-    trainer.fit(qmodel2, datamodule=dm)
 
 
 @RunIf(quantization=True)
