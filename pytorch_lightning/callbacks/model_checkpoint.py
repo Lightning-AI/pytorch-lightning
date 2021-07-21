@@ -300,13 +300,13 @@ class ModelCheckpoint(Callback):
     ) -> None:
         """ Save a checkpoint at the end of the training epoch. """
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        trainer.train_loop.global_step -= 1
+        trainer.fit_loop.global_step -= 1
         if (
             not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end
             and self._every_n_epochs > 0 and (trainer.current_epoch + 1) % self._every_n_epochs == 0
         ):
             self.save_checkpoint(trainer)
-        trainer.train_loop.global_step += 1
+        trainer.fit_loop.global_step += 1
 
     def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """ Save a checkpoint at the end of the validation stage. """
@@ -316,6 +316,23 @@ class ModelCheckpoint(Callback):
         ):
             return
         self.save_checkpoint(trainer)
+
+    def on_train_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        """
+        Save a checkpoint when training stops.
+
+        This will only save a checkpoint if `save_last` is also enabled as the monitor metrics logged during
+        training/validation steps or end of epochs are not guaranteed to be available at this stage.
+        """
+        if self._should_skip_saving_checkpoint(trainer) or not self.save_last:
+            return
+        if self.verbose:
+            rank_zero_info("Saving latest checkpoint...")
+        # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
+        monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
+        trainer.train_loop.global_step -= 1
+        self._save_last_checkpoint(trainer, monitor_candidates)
+        trainer.train_loop.global_step += 1
 
     def on_save_checkpoint(
         self,
