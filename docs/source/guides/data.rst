@@ -4,7 +4,6 @@
     from pytorch_lightning.core.lightning import LightningModule
     from torch.utils.data import IterableDataset
     from pytorch_lightning.trainer.trainer import Trainer
-    from torchvision import datasets
 
 .. _data:
 
