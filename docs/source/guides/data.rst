@@ -33,6 +33,8 @@ There are a few different data containers used in Lightning:
      - Definition
    * - :class:`~torch.utils.data.Dataset`
      - The PyTorch :class:`~torch.utils.data.Dataset` represents a map from keys to data samples.
+   * - :class:`~torch.utils.data.IterableDataset`
+     - The PyTorch :class:`~torch.utils.data.IterableDataset` represents a stream of data.
    * - :class:`~torch.utils.data.DataLoader`
      - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a DataSet.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
@@ -63,8 +65,28 @@ There are a few ways to pass multiple Datasets to Lightning:
 
 Using LightningDataModule
 =========================
-You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule`, and Lightning will handle the
-combination batch under-the-hood.
+
+You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` using dataloader hooks and Lightning
+will use the correct one under-the-hood.
+
+.. testcode::
+
+    class DataModule(LightningDataModule):
+
+        ...
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(self.train_dataset)
+
+        def val_dataloader(self):
+            return torch.utils.data.DataLoader(self.val_dataset)
+
+        def test_dataloader(self):
+            return torch.utils.data.DataLoader(self.test_dataset)
+
+        def predict_dataloader(self):
+            return torch.utils.data.DataLoader(self.predict_dataset)
+
 
 Using LightningModule hooks
 ===========================
