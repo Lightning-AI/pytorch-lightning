@@ -37,7 +37,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=7,
-        gpus=torch.cuda.device_count(),
+        gpus=int(torch.cuda.is_available()),
     )
     model = RegressionModel()
     qmodel = copy.deepcopy(model)
