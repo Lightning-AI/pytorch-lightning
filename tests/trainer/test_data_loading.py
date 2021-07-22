@@ -14,13 +14,12 @@
 from re import escape
 
 import pytest
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.runif import RunIf
 
 
 class IndexedRandomDataset(RandomDataset):
@@ -48,14 +47,24 @@ class CustomBatchSampler(BatchSampler):
 
 class TestModel(BoringModel):
 
-    def __init__(self, numbers_test_dataloaders, save_preds_on_dl_idx, mode):
+    def __init__(self, numbers_test_dataloaders, mode):
         super().__init__()
         self._numbers_test_dataloaders = numbers_test_dataloaders
-        self._save_preds_on_dl_idx = save_preds_on_dl_idx
         self._mode = mode
 
     def test_step(self, batch, batch_idx, dataloader_idx=None):
         return super().test_step(batch, batch_idx)
+
+    def on_test_start(self) -> None:
+        dataloader = self.trainer.test_dataloaders[0]
+        assert isinstance(dataloader, CustomDataLoader)
+        assert dataloader.batch_size is None
+
+        batch_sampler = dataloader.batch_sampler
+        assert isinstance(batch_sampler, CustomBatchSampler)
+        assert batch_sampler.batch_size == 1
+        assert batch_sampler.drop_last
+        assert isinstance(batch_sampler.sampler, DistributedSampler)
 
     def create_dataset(self):
         dataset = IndexedRandomDataset(32, 64)
@@ -73,40 +82,20 @@ class TestModel(BoringModel):
         return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_replace_distributed_sampler(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx, mode):
-    num_processes = 2
-    limit_test_batches = 2
-    trainer_args = {
-        "default_root_dir": tmpdir,
-        "limit_test_batches": limit_test_batches,
-        "accelerator": accelerator,
-    }
-
-    if accelerator == "ddp_cpu":
-        trainer_args["num_processes"] = num_processes
-    else:
-        trainer_args["gpus"] = gpus
-
-    model = TestModel(num_dl_idx, save_preds_on_dl_idx, mode)
+@pytest.mark.parametrize('mode', (1, 2))
+def test_replace_distributed_sampler(tmpdir, mode):
+    model = TestModel(2, mode)
     model.test_epoch_end = None
 
-    trainer = Trainer(**trainer_args)
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_test_batches=2, plugins="ddp_find_unused_parameters_false", num_processes=1
+    )
     if mode == 1:
-        match = "DistributedSampler within"
+        match = escape("Missing arguments are ['num_features']")
         with pytest.raises(MisconfigurationException, match=match):
             trainer.test(model)
     else:
         trainer.test(model)
-
-
-@RunIf(min_gpus=2, special=True)
-def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler_0(tmpdir):
-    check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode=1)
-
-
-@RunIf(min_gpus=2, special=True)
-def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler_1(tmpdir):
-    check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode=2)
 
 
 @pytest.mark.parametrize("num_workers", [0, 1])

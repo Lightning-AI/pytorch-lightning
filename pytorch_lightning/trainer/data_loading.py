@@ -175,6 +175,7 @@ class TrainerDataLoadingMixin(ABC):
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         # get the dataloader instance attributes
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        # not part of `vars`
         attrs['multiprocessing_context'] = dataloader.multiprocessing_context
 
         # get the dataloader instance `__init__` parameters
@@ -182,15 +183,18 @@ class TrainerDataLoadingMixin(ABC):
 
         # keep only the params whose default is different to the current attr value
         non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
-        # add `dataset` particularly as it might have been replaced with `*args`
+        # add `dataset` as it might have been replaced with `*args`
         non_defaults.add('dataset')
 
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
         dl_kwargs.update(self._resolve_batch_sampler(dataloader, sampler, mode=mode))
 
-        missing_kwargs = set(dl_kwargs).difference(params)
+        # compute the symmetric difference separately, if `**kwargs` are present, we ignore the dataloader kwargs
         has_variadic_kwargs = any(p.kind == p.VAR_KEYWORD for p in params.values())
-        if missing_kwargs and not has_variadic_kwargs:
+        missing_kwargs = set() if has_variadic_kwargs else (dl_kwargs.keys() - params.keys())
+        # compute any extra custom non-dataloader arguments
+        missing_kwargs.update(params.keys() - dl_kwargs.keys() - {'args', 'kwargs'})
+        if missing_kwargs:
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
