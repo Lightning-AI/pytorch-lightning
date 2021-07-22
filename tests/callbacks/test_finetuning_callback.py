@@ -394,9 +394,6 @@ def test_callbacks_restore(tmpdir):
     Test callbacks restore is called after optimizers have been re-created
     but before optimizer states reload
     """
-
-    seed_everything(42)
-
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = FinetuningBoringModel()
