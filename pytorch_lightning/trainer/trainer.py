@@ -575,9 +575,10 @@ class Trainer(
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
         Returns:
-            The dictionary with final validation results returned by validation_epoch_end.
-            If validation_epoch_end is not defined, the output is a list of the dictionaries
-            returned by validation_step.
+            List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
+                like :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
+                The length of the list corresponds to the number of validation dataloaders used.
         """
         # --------------------
         # SETUP HOOK
@@ -652,7 +653,10 @@ class Trainer(
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
         Returns:
-            Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
+            List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
+                like :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`,
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
+                The length of the list corresponds to the number of test dataloaders used.
         """
         # --------------------
         # SETUP HOOK
