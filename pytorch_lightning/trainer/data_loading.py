@@ -175,6 +175,7 @@ class TrainerDataLoadingMixin(ABC):
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         # get the dataloader instance attributes
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        attrs['multiprocessing_context'] = dataloader.multiprocessing_context
 
         # get the dataloader instance `__init__` parameters
         params = dict(inspect.signature(dataloader.__init__).parameters)
