@@ -399,7 +399,6 @@ For example, here step optimizer A every batch and optimizer B every 2 batches.
                 # closure/training_step will ONLY be called in this case
                 optimizer.step(closure=optimizer_closure)
 
-
         # ...
         # add as many optimizers as you want
 
