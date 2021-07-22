@@ -432,7 +432,7 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
     return False
 
 
-def summarize(lightning_module, mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
+def summarize(lightning_module: "pl.LightningModule", mode: Optional[str] = "top", max_depth: Optional[int] = None) -> Optional[ModelSummary]:
     """
     Summarize the LightningModule specified by `lightning_module`.
 
@@ -465,5 +465,4 @@ def summarize(lightning_module, mode: Optional[str] = "top", max_depth: Optional
     else:
         model_summary = ModelSummary(lightning_module, max_depth=max_depth)
 
-    log.info("\n" + str(model_summary))
     return model_summary
