@@ -373,15 +373,15 @@ class BackboneFinetuning(BaseFinetuning):
         super().__init__()
 
         self.unfreeze_backbone_at_epoch: int = unfreeze_backbone_at_epoch
-        self.backbone_initial_lr: Optional[float] = backbone_initial_lr
         self.lambda_func: Callable = lambda_func
         self.backbone_initial_ratio_lr: float = backbone_initial_ratio_lr
+        self.backbone_initial_lr: Optional[float] = backbone_initial_lr
         self.should_align: bool = should_align
         self.initial_denom_lr: float = initial_denom_lr
-        self.previous_backbone_lr: Optional[float] = None
         self.train_bn: bool = train_bn
-        self.round: int = round
         self.verbose: bool = verbose
+        self.round: int = round
+        self.previous_backbone_lr: Optional[float] = None
 
     def on_save_checkpoint(
         self,
