@@ -100,7 +100,7 @@ class DDPShardedPlugin(DDPPlugin):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
             "ddp_sharded_find_unused_parameters_false",
             cls,

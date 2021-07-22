@@ -199,7 +199,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
             "fsdp",
             cls,

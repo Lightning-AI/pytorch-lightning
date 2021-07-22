@@ -93,7 +93,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         super().new_process(process_idx, trainer, mp_queue)
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
             "ddp_sharded_spawn_find_unused_parameters_false",
             cls,
