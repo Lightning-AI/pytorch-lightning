@@ -113,9 +113,7 @@ class TrainerDataLoadingMixin(ABC):
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
-    def auto_add_sampler(
-        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
-    ) -> DataLoader:
+    def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
         # don't do anything if it's not a dataloader
         is_dataloader = isinstance(dataloader, DataLoader)
         # don't manipulate iterable datasets
@@ -186,26 +184,44 @@ class TrainerDataLoadingMixin(ABC):
         # add `dataset` as it might have been replaced with `*args`
         non_defaults.add('dataset')
 
+        # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
         dl_kwargs.update(self._resolve_batch_sampler(dataloader, sampler, mode=mode))
 
-        # compute the symmetric difference separately, if `**kwargs` are present, we ignore the dataloader kwargs
-        has_variadic_kwargs = any(p.kind == p.VAR_KEYWORD for p in params.values())
-        missing_kwargs = set() if has_variadic_kwargs else (dl_kwargs.keys() - params.keys())
-        if type(dataloader) is not DataLoader:
-            # compute any extra custom non-dataloader arguments
-            missing_kwargs.update(params.keys() - dl_kwargs.keys() - {'args', 'kwargs'})
-        if missing_kwargs:
-            missing_kwargs = sorted(missing_kwargs)
+        required_args = {
+            p.name
+            for p in params.values()
+            if p.kind in (p.POSITIONAL_ONLY,
+                          p.POSITIONAL_OR_KEYWORD) and p.default is p.empty and p.name not in dl_kwargs
+        }
+        # the dataloader has required args which we could not extract from the existing attributes
+        if required_args:
+            required_args = sorted(required_args)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
                 f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` `DataLoader`. "
-                "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
-                f"Missing arguments are {missing_kwargs}. "
-                f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
+                "This would fail as some of the `__init__` arguments are not available as instance attributes. "
+                f"The missing attributes are {required_args}. "
+                f"HINT: If you wrote the `{dataloader_cls_name}` class, define `self.missing_arg_name` or "
                 "manually add the `DistributedSampler` as: "
                 f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
             )
+
+        has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
+        if not has_variadic_kwargs:
+            # the dataloader signature does not allow keyword arguments that need to be passed
+            missing_kwargs = dl_kwargs.keys() - params.keys()
+            if missing_kwargs:
+                missing_kwargs = sorted(missing_kwargs)
+                dataloader_cls_name = dataloader.__class__.__name__
+                raise MisconfigurationException(
+                    f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` `DataLoader`. "
+                    "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
+                    f"The missing arguments are {missing_kwargs}. "
+                    f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
+                    "manually add the `DistributedSampler` as: "
+                    f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
+                )
 
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)

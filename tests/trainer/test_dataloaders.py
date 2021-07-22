@@ -988,69 +988,6 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
     assert trainer.current_epoch == 1
 
 
-@RunIf(min_gpus=2)
-def test_dataloader_reinit_for_subclass(tmpdir):
-
-    class CustomDataLoader(torch.utils.data.DataLoader):
-
-        def __init__(
-            self,
-            dataset,
-            batch_size=1,
-            shuffle=False,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            collate_fn=None,
-            pin_memory=False,
-            drop_last=False,
-            timeout=0,
-            worker_init_fn=None,
-            dummy_kwarg=None,
-            **kwargs
-        ):
-            super().__init__(
-                dataset, batch_size, shuffle, sampler, batch_sampler, num_workers, collate_fn, pin_memory, drop_last,
-                timeout, worker_init_fn
-            )
-
-            self.dummy_kwarg = dummy_kwarg
-
-    trainer = Trainer(
-        gpus=[0, 1],
-        num_nodes=1,
-        accelerator='ddp_spawn',
-        default_root_dir=tmpdir,
-    )
-
-    class CustomDummyObj:
-        sampler = None
-
-    result = trainer.auto_add_sampler(CustomDummyObj(), shuffle=True)
-    assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
-
-    dataset = list(range(1000))
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset), shuffle=True)
-    assert isinstance(result, torch.utils.data.DataLoader)
-    assert isinstance(result, CustomDataLoader)
-    assert hasattr(result, 'dummy_kwarg')
-
-    # Shuffled DataLoader should also work
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), shuffle=True)
-    assert isinstance(result, torch.utils.data.DataLoader)
-    assert isinstance(result, CustomDataLoader)
-    assert hasattr(result, 'dummy_kwarg')
-
-    class CustomSampler(torch.utils.data.Sampler):
-        pass
-
-    # Should raise an error if existing sampler is being replaced
-    with pytest.raises(MisconfigurationException, match='DistributedSampler'):
-        trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True
-        )
-
-
 class DistribSamplerCallback(Callback):
 
     def __init__(self, expected_seeds=(0, 0, 0)):
