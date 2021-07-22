@@ -117,8 +117,8 @@ class QuantizationAwareTraining(Callback):
             - 'qnnpack' for mobile inference.
             - a custom :class:`~torch.quantization.QConfig`.
 
-        observer_type: allows switching between :class:`~torch.quantization.MovingAverageMinMaxObserver` 
-            as "average" (default) and :class:`~torch.quantization.HistogramObserver` as "histogram" which is more 
+        observer_type: allows switching between :class:`~torch.quantization.MovingAverageMinMaxObserver`
+            as "average" (default) and :class:`~torch.quantization.HistogramObserver` as "histogram" which is more
             computationally expensive.
         collect_quantization: count or custom function to collect quantization statistics:
 
@@ -129,7 +129,7 @@ class QuantizationAwareTraining(Callback):
               See this example to trigger only the last epoch:
 
               .. code-block:: python
-            
+
                   def custom_trigger_last(trainer):
                       return trainer.current_epoch == (trainer.max_epochs - 1)
 
