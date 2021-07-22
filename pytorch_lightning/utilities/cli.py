@@ -82,7 +82,7 @@ class LightningArgumentParser(ArgumentParser):
         if inspect.isclass(lightning_class) and issubclass(
             cast(type, lightning_class), (Trainer, LightningModule, LightningDataModule, Callback)
         ):
-            if issubclass(cast(type, lightning_class), Callback):
+            if issubclass(lightning_class, Callback):
                 self.callback_keys.append(nested_key)
             if subclass_mode:
                 return self.add_subclass_arguments(lightning_class, nested_key, required=True)
@@ -90,7 +90,7 @@ class LightningArgumentParser(ArgumentParser):
                 lightning_class,
                 nested_key,
                 fail_untyped=False,
-                instantiate=not issubclass(cast(type, lightning_class), Trainer),
+                instantiate=not issubclass(lightning_class, Trainer),
             )
         raise MisconfigurationException(
             f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
