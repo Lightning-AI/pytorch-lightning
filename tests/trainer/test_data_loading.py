@@ -146,8 +146,8 @@ def test_dataloaders_with_missing_keyword_arguments():
 
     class TestDataLoader(DataLoader):
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        def __init__(self, *foo, **bar):
+            super().__init__(*foo, **bar)
 
     loader = TestDataLoader(ds)
     sampler = SequentialSampler(ds)
