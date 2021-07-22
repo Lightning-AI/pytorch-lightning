@@ -53,7 +53,8 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     quant_score = torch.mean(torch.tensor([mean_relative_error(qmodel(x), y) for x, y in dm.test_dataloader()]))
     # test that the test score is almost the same as with pure training
     assert torch.allclose(org_score, quant_score, atol=0.45)
-    model_path = trainer.checkpoint_callback.best_model_path
+    ckpt_path = str(trainer.checkpoint_callback.best_model_path)
+    curr_epoch = trainer.current_epoch
 
     trainer_args.update(dict(max_epochs=1, checkpoint_callback=False))
     if not convert:
@@ -68,20 +69,19 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert size_ratio < 0.65
 
     # todo: make it work also with strict loading
-    qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
+    qmodel2 = RegressionModel.load_from_checkpoint(ckpt_path, strict=False)
     quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
     assert torch.allclose(org_score, quant2_score, atol=0.45)
 
-    chpt_path = str(trainer.checkpoint_callback.best_model_path)
-
     # test without and with void Qaunt callback...
+    trainer_args.update(max_epochs=curr_epoch + 1)
     for cbs in ([], [QuantizationAwareTraining()]):
         qmodel2 = RegressionModel()
-        trainer = Trainer(resume_from_checkpoint=chpt_path, callbacks=cbs, **trainer_args)
+        trainer = Trainer(resume_from_checkpoint=ckpt_path, callbacks=cbs, **trainer_args)
         trainer.fit(qmodel2, datamodule=dm)
         quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
         # test that the test score is almost the same as with pure training
-        assert torch.allclose(org_score, quant2_score, atol=0.4)
+        assert torch.allclose(org_score, quant2_score, atol=0.45)
 
 
 @RunIf(quantization=True)
