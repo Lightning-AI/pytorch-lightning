@@ -454,8 +454,6 @@ def test_callbacks_restore_backbone(tmpdir):
             return self.layer(self.backbone(x))
 
     cb = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-
-    # Initialize a trainer
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -463,11 +461,9 @@ def test_callbacks_restore_backbone(tmpdir):
         progress_bar_refresh_rate=0,
         callbacks=[cb, BackboneFinetuning(unfreeze_backbone_at_epoch=2)]
     )
-
-    # Train the model ⚡
     trainer.fit(BackboneBoringModel())
 
-    # Initialize a trainer that continues the previous training
+    # initialize a trainer that continues the previous training
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
