@@ -36,4 +36,4 @@ def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
 def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
     _soft_unimport_module('pytorch_lightning.core.memory')
     with pytest.deprecated_call(match="to pytorch_lightning.utilities.memory since v1.5"):
-        from pytorch_lightning.core.memory import get_memory_profile, get_gpu_memory_map  # noqa: F811 F401
+        from pytorch_lightning.core.memory import get_gpu_memory_map, get_memory_profile  # noqa: F811 F401
