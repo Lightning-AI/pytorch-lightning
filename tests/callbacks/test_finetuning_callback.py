@@ -399,7 +399,13 @@ def test_callbacks_restore(tmpdir):
     model = FinetuningBoringModel()
     callback = TestCallbacksRestoreCallback()
 
-    trainer_kwargs = dict(limit_train_batches=1, default_root_dir=tmpdir, callbacks=[callback, chk], max_epochs=2)
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[callback, chk],
+        max_epochs=2
+    )
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
@@ -457,7 +463,8 @@ def test_callbacks_restore_backbone(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
-        max_epochs=3,
+        limit_val_batches=1,
+        max_epochs=1,
         progress_bar_refresh_rate=0,
         callbacks=[cb, BackboneFinetuning(unfreeze_backbone_at_epoch=2)]
     )
@@ -467,7 +474,8 @@ def test_callbacks_restore_backbone(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
-        max_epochs=4,
+        limit_val_batches=1,
+        max_epochs=2,
         progress_bar_refresh_rate=0,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=2),
         resume_from_checkpoint=cb.last_model_path
