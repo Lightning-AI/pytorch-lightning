@@ -576,9 +576,9 @@ class Trainer(
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
-                like :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
-                The length of the list corresponds to the number of validation dataloaders used.
+            like :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+            :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
+            The length of the list corresponds to the number of validation dataloaders used.
         """
         # --------------------
         # SETUP HOOK
@@ -654,9 +654,9 @@ class Trainer(
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
-                like :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`,
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
-                The length of the list corresponds to the number of test dataloaders used.
+            like :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`,
+            :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
+            The length of the list corresponds to the number of test dataloaders used.
         """
         # --------------------
         # SETUP HOOK
