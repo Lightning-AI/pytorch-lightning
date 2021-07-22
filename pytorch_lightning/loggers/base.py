@@ -429,7 +429,7 @@ class LoggerCollection(LightningLoggerBase):
 class DummyExperiment(object):
     """ Dummy experiment """
 
-    def nop(*args, **kw):
+    def nop(self, *args, **kw):
         pass
 
     def __getattr__(self, _):

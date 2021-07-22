@@ -28,7 +28,10 @@ PATH_IPYNB = os.path.join(PATH_HERE, 'notebooks')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, '.actions'))
 
-from helpers import HelperCLI  # noqa: E401 E402
+try:
+    from helpers import HelperCLI  # noqa: E401 E402
+except Exception:
+    raise ModuleNotFoundError("To build the code, please run: `git submodule update --init --recursive`")
 
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))

@@ -22,6 +22,7 @@ from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, Ten
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
@@ -309,3 +310,9 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
+
+    def teardown(self):
+        args = (torch.Tensor, move_data_to_device, "cpu")
+        self._logged_metrics = apply_to_collection(self._logged_metrics, *args)
+        self._progress_bar_metrics = apply_to_collection(self._progress_bar_metrics, *args)
+        self._callback_metrics = apply_to_collection(self._callback_metrics, *args)
