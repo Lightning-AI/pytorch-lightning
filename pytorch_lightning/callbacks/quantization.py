@@ -92,7 +92,7 @@ class QuantizationAwareTraining(Callback):
 
     .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
 
-    The model set for quantization can appear in one of this stages::
+    The model set for quantization can appear in one of these stages::
 
         TRAINER TRANSITIONS
                           ( on_fit_start )               ( on_fit_end )
@@ -104,10 +104,10 @@ class QuantizationAwareTraining(Callback):
                        ^                  QAT checkpoints
                        |----------------------/
 
-    The model enters the process as "vanilla model" and it is prepared for QAT training in ``on_fit_start`` hook.
-    Note that any saved checkpoint includes already collected stat fro performing Quantization conversion,
-     but not any already quantized and/or fused modules/layers.
-    The quantization is performed on the ``on_fit_end`` and so it need sto he saved extra after finished training.
+    The model enters the process as "vanilla model" and it is prepared for QAT training in the ``on_fit_start`` hook.
+    Note that any saved checkpoint includes already collected stats for performing Quantization conversion,
+    but not any already quantized and/or fused modules/layers.
+    The quantization is performed in the ``on_fit_end`` hook and so it needs to be saved extra after training finished.
     If a user wants to continue any past training we encourage to create a Trainer with ``resume_from_checkpoint``.
 
     Args:
@@ -121,8 +121,8 @@ class QuantizationAwareTraining(Callback):
             and ``HistogramObserver`` as "histogram" which is more computationally expensive.
         collect_quantization: count or custom function to collect quantization statistics:
 
-            - ``None`` (deafult). The quantization observer is called in each module forward
-                (useful for collecting extended statistic when useing image/data augmentation).
+            - ``None`` (default). The quantization observer is called in each module forward
+                (useful for collecting extended statistics when using image/data augmentation).
             - ``int``. Use to set a fixed number of calls, starting from the beginning.
             - ``Callable``. Custom function with single trainer argument.
                 See this example to trigger only the last epoch:
@@ -134,16 +134,15 @@ class QuantizationAwareTraining(Callback):
 
                     QuantizationAwareTraining(collect_quantization=custom_trigger_last)
 
-        modules_to_fuse: allows you fuse a few layers together as shown in
-            `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_
-            to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
-        input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
-            but break compatibility to torchscript and export with ``torch.save``.
-
+        modules_to_fuse: allows you to fuse a few layers together as shown in
+            `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_.
+            To find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
+        input_compatible: preserve quant/dequant layers. This allows to feed any input as to the original model,
+            but breaks compatibility with torchscript.
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
-    """  # noa: E501
+    """  # noqa: E501
     OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
