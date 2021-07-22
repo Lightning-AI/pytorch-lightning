@@ -219,6 +219,7 @@ def test_dataloader_reinit_for_subclass():
                 timeout, worker_init_fn
             )
             self.dummy_kwarg = dummy_kwarg
+            self.something_unrelated = 1
 
     trainer = Trainer(num_processes=1, accelerator='ddp_cpu')
 
