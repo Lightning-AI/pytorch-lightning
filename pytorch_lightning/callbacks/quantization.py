@@ -115,24 +115,25 @@ class QuantizationAwareTraining(Callback):
 
             - 'fbgemm' for server inference.
             - 'qnnpack' for mobile inference.
-            -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+            - a custom :class:`~torch.quantization.QConfig`.
 
-        observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
-            and ``HistogramObserver`` as "histogram" which is more computationally expensive.
+        observer_type: allows switching between :class:`~torch.quantization.MovingAverageMinMaxObserver` 
+            as "average" (default) and :class:`~torch.quantization.HistogramObserver` as "histogram" which is more 
+            computationally expensive.
         collect_quantization: count or custom function to collect quantization statistics:
 
             - ``None`` (default). The quantization observer is called in each module forward
-                (useful for collecting extended statistics when using image/data augmentation).
+              (useful for collecting extended statistics when using image/data augmentation).
             - ``int``. Use to set a fixed number of calls, starting from the beginning.
             - ``Callable``. Custom function with single trainer argument.
-                See this example to trigger only the last epoch:
+              See this example to trigger only the last epoch:
 
-                .. code-block:: python
+              .. code-block:: python
+            
+                  def custom_trigger_last(trainer):
+                      return trainer.current_epoch == (trainer.max_epochs - 1)
 
-                    def custom_trigger_last(trainer):
-                        return trainer.current_epoch == (trainer.max_epochs - 1)
-
-                    QuantizationAwareTraining(collect_quantization=custom_trigger_last)
+                  QuantizationAwareTraining(collect_quantization=custom_trigger_last)
 
         modules_to_fuse: allows you to fuse a few layers together as shown in
             `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_.
