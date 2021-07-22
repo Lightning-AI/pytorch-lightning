@@ -337,7 +337,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
-        if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
+        if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
