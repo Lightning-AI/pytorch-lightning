@@ -462,7 +462,7 @@ def test_callbacks_restore_backbone(tmpdir):
         limit_val_batches=1,
         max_epochs=2,
         progress_bar_refresh_rate=0,
-        callbacks=[cb, BackboneFinetuning(unfreeze_backbone_at_epoch=2)]
+        callbacks=[cb, BackboneFinetuning(unfreeze_backbone_at_epoch=1)]
     )
     trainer.fit(BackboneBoringModel())
 
@@ -473,7 +473,7 @@ def test_callbacks_restore_backbone(tmpdir):
         limit_val_batches=1,
         max_epochs=3,
         progress_bar_refresh_rate=0,
-        callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=2),
+        callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
         resume_from_checkpoint=cb.last_model_path
     )
     trainer.fit(BackboneBoringModel())
