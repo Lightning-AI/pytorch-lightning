@@ -460,7 +460,7 @@ def test_callbacks_restore_backbone(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
-        max_epochs=1,
+        max_epochs=2,
         progress_bar_refresh_rate=0,
         callbacks=[cb, BackboneFinetuning(unfreeze_backbone_at_epoch=2)]
     )
@@ -471,7 +471,7 @@ def test_callbacks_restore_backbone(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
-        max_epochs=2,
+        max_epochs=3,
         progress_bar_refresh_rate=0,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=2),
         resume_from_checkpoint=cb.last_model_path
