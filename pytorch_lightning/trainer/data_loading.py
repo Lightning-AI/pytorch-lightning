@@ -147,7 +147,7 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     @staticmethod
-    def _resolve_batch_sampler(dl_args, dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
+    def _resolve_batch_sampler(dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
@@ -159,62 +159,50 @@ class TrainerDataLoadingMixin(ABC):
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-            dl_args['batch_sampler'] = batch_sampler
-            dl_args['batch_size'] = 1
-            dl_args['shuffle'] = False
-            dl_args['sampler'] = None
-            dl_args['drop_last'] = False
-        else:
-            dl_args['sampler'] = sampler
-            dl_args['shuffle'] = False
-            dl_args['batch_sampler'] = None
-
-        return dl_args
+            return {
+                'sampler': None,
+                'shuffle': False,
+                'batch_sampler': batch_sampler,
+                'batch_size': 1,
+                'drop_last': False,
+            }
+        return {
+            'sampler': sampler,
+            'shuffle': False,
+            'batch_sampler': None,
+        }
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
-        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
-        skip_signature_keys = ('args', 'kwargs', 'self')
-
+        # get the dataloader instance attributes
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
-        params = set(inspect.signature(dataloader.__init__).parameters)
-        contains_dataset = True
+        # get the dataloader instance `__init__` parameters
+        params = dict(inspect.signature(dataloader.__init__).parameters)
 
-        if type(dataloader) is not DataLoader:
-            contains_dataset = "dataset" in params
-            params.update(inspect.signature(DataLoader.__init__).parameters)
+        # keep only the params whose default is different to the current attr value
+        non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+        # add `dataset` particularly as it might have been replaced with `*args`
+        non_defaults.add('dataset')
 
-        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
+        dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
+        dl_kwargs.update(self._resolve_batch_sampler(dataloader, sampler, mode=mode))
 
-        dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler, mode=mode)
-
-        multiprocessing_context = dataloader.multiprocessing_context
-        dl_args['multiprocessing_context'] = multiprocessing_context
-
-        missing_kwargs = params.difference(skip_signature_keys).difference(dl_args)
-        if missing_kwargs:
-            """
-            Example:
-            class CustomDataLoader(DataLoader):
-                def __init__(self, num_features, dataset, *args, **kwargs):
-                    self.num_features = num_features
-                    super().__init__(dataset, *args, **kwargs)
-            """
+        missing_kwargs = set(dl_kwargs).difference(params)
+        has_variadic_kwargs = any(p.kind == p.VAR_KEYWORD for p in params.values())
+        if missing_kwargs and not has_variadic_kwargs:
+            missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
-                f"Trying to inject DistributedSampler within {dataloader_cls_name} class."
-                "This would fail as your DataLoader doesn't expose all its __init__ parameters as attributes. "
-                f"Missing attributes are {missing_kwargs}. "
-                f"HINT: If you wrote the {dataloader_cls_name} class, add the `__init__` arguments as attributes or ",
-                "manually add DistributedSampler as "
-                f"{dataloader_cls_name}(dataset, ..., sampler=DistributedSampler(dataset, ...)).",
+                f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` `DataLoader`. "
+                "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
+                f"Missing arguments are {missing_kwargs}. "
+                f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
+                "manually add the `DistributedSampler` as: "
+                f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
             )
 
-        if not contains_dataset:
-            dl_args.pop('dataset')
-
-        dataloader = type(dataloader)(**dl_args)
-        dataloader.multiprocessing_context = multiprocessing_context
+        dl_cls = type(dataloader)
+        dataloader = dl_cls(**dl_kwargs)
         return dataloader
 
     def _get_distributed_sampler(

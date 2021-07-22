@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from re import escape
+
 import pytest
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
@@ -127,3 +129,56 @@ def test_dataloader_warnings(num_workers):
     trainer = Trainer(accelerator="ddp_spawn")
     with pytest.warns(UserWarning, match=warn_str), pytest.raises(SystemExit):
         trainer.fit(TestModel(), dl)
+
+
+def test_dataloaders_with_missing_keyword_arguments():
+    trainer = Trainer()
+    ds = RandomDataset(10, 20)
+
+    class TestDataLoader(DataLoader):
+
+        def __init__(self, dataset):
+            super().__init__(dataset)
+
+    loader = TestDataLoader(ds)
+    sampler = SequentialSampler(ds)
+    match = escape("['batch_sampler', 'sampler', 'shuffle']")
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.replace_sampler(loader, sampler, mode='fit')
+    match = escape("['batch_sampler', 'batch_size', 'drop_last', 'sampler', 'shuffle']")
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.replace_sampler(loader, sampler, mode='predict')
+
+    class TestDataLoader(DataLoader):
+
+        def __init__(self, dataset, *args, **kwargs):
+            super().__init__(dataset)
+
+    loader = TestDataLoader(ds)
+    sampler = SequentialSampler(ds)
+    trainer.replace_sampler(loader, sampler, mode='fit')
+    trainer.replace_sampler(loader, sampler, mode='predict')
+
+    class TestDataLoader(DataLoader):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    loader = TestDataLoader(ds)
+    sampler = SequentialSampler(ds)
+    trainer.replace_sampler(loader, sampler, mode='fit')
+    trainer.replace_sampler(loader, sampler, mode='predict')
+
+    class TestDataLoader(DataLoader):
+
+        def __init__(self, dataset, *args, shuffle=False):
+            super().__init__(dataset)
+
+    loader = TestDataLoader(ds)
+    sampler = SequentialSampler(ds)
+    match = escape("['batch_sampler', 'sampler']")
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.replace_sampler(loader, sampler, mode='fit')
+    match = escape("['batch_sampler', 'batch_size', 'drop_last', 'sampler']")
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.replace_sampler(loader, sampler, mode='predict')
