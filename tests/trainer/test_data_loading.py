@@ -160,10 +160,11 @@ def test_dataloaders_with_missing_keyword_arguments():
 
     class TestDataLoader(DataLoader):
 
-        def __init__(self, dataset, *args, shuffle=False):
+        def __init__(self, num_feat, dataset, *args, shuffle=False):
+            self.num_feat = num_feat
             super().__init__(dataset)
 
-    loader = TestDataLoader(ds)
+    loader = TestDataLoader(1, ds)
     sampler = SequentialSampler(ds)
     match = escape("['batch_sampler', 'sampler']")
     with pytest.raises(MisconfigurationException, match=match):
@@ -171,3 +172,13 @@ def test_dataloaders_with_missing_keyword_arguments():
     match = escape("['batch_sampler', 'batch_size', 'drop_last', 'sampler']")
     with pytest.raises(MisconfigurationException, match=match):
         trainer.replace_sampler(loader, sampler, mode='predict')
+
+
+def test_replace_sampler_with_multiprocessing_context():
+    """This test verifies that replace_sampler conserves multiprocessing context"""
+    train = RandomDataset(32, 64)
+    context = 'spawn'
+    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
+    trainer = Trainer()
+    new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
+    assert new_data_loader.multiprocessing_context == train.multiprocessing_context

@@ -192,8 +192,9 @@ class TrainerDataLoadingMixin(ABC):
         # compute the symmetric difference separately, if `**kwargs` are present, we ignore the dataloader kwargs
         has_variadic_kwargs = any(p.kind == p.VAR_KEYWORD for p in params.values())
         missing_kwargs = set() if has_variadic_kwargs else (dl_kwargs.keys() - params.keys())
-        # compute any extra custom non-dataloader arguments
-        missing_kwargs.update(params.keys() - dl_kwargs.keys() - {'args', 'kwargs'})
+        if type(dataloader) is not DataLoader:
+            # compute any extra custom non-dataloader arguments
+            missing_kwargs.update(params.keys() - dl_kwargs.keys() - {'args', 'kwargs'})
         if missing_kwargs:
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
