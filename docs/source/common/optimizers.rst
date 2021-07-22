@@ -397,6 +397,8 @@ For example, here step optimizer A every batch and optimizer B every 2 batches.
         if optimizer_idx == 1:
             if (batch_idx + 1) % 2 == 0:
                 optimizer.step(closure=optimizer_closure)
+            else:
+                # closure/training_step won't be called in this case
 
         # ...
         # add as many optimizers as you want
