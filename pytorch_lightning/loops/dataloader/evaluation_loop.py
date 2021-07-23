@@ -169,11 +169,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary"""
-        model = self.trainer.lightning_module
         if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
+            self.trainer.reset_test_dataloader()
         elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
-            self.trainer.reset_val_dataloader(model)
+            self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""
@@ -189,11 +188,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode"""
-        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
-            model_ref.on_test_model_eval()
+            self.trainer.call_hook('on_test_model_eval')
         else:
-            model_ref.on_validation_model_eval()
+            self.trainer.call_hook('on_validation_model_eval')
 
     def on_evaluation_model_train(self) -> None:
         """Sets model to train mode"""

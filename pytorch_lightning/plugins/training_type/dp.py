@@ -48,10 +48,10 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self, model):
+    def setup(self) -> None:
         # model needs to be moved to the device before it is wrapped
-        model.to(self.root_device)
-        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
+        self.model_to_device()
+        self._model = DataParallel(LightningParallelModule(self._model), self.parallel_devices)
 
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """
@@ -76,9 +76,8 @@ class DataParallelPlugin(ParallelPlugin):
     def root_device(self):
         return self.parallel_devices[0]
 
-    def model_to_device(self):
-        # no need to do anything when model is wrapped in torch.nn.DataParallel
-        pass
+    def model_to_device(self) -> None:
+        self._model.to(self.root_device)
 
     def barrier(self, *args, **kwargs):
         pass

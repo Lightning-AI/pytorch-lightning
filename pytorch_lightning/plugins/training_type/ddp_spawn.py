@@ -136,7 +136,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _is_single_process_single_device(self):
         return True
 
-    def setup(self, model):
+    def setup(self) -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         # pass in a state q
         smp = mp.get_context("spawn")
