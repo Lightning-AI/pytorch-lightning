@@ -398,8 +398,9 @@ class DeepSpeedPlugin(DDPPlugin):
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
         return (
-            optimizers[0], schedulers[0] if schedulers else None,
-            optimizer_frequencies[0] if optimizer_frequencies else None
+            optimizers[0],
+            schedulers[0] if schedulers else None,
+            optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
     @property
@@ -466,13 +467,14 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _initialize_deepspeed_inference(self, model):
         # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
-        optimizer, lr_scheduler = None, None
+        optimizer, scheduler = None, None
         if "optimizer" not in self.config:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
                 "Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
+            scheduler = lr_scheduler["scheduler"]
         inference_config = {
             # todo: this is required for DeepSpeed throughput timers, or throughput timers will be incorrect
             'train_micro_batch_size_per_gpu': 1,
@@ -490,7 +492,7 @@ class DeepSpeedPlugin(DDPPlugin):
             config=inference_config,
             model=model,
             optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
+            lr_scheduler=scheduler,
             model_parameters=[],
             dist_init_required=False
         )
