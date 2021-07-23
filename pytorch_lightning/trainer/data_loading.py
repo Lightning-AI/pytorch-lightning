@@ -199,7 +199,7 @@ class TrainerDataLoadingMixin(ABC):
             required_args = sorted(required_args)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
-                f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` `DataLoader`. "
+                f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
                 "This would fail as some of the `__init__` arguments are not available as instance attributes. "
                 f"The missing attributes are {required_args}. "
                 f"HINT: If you wrote the `{dataloader_cls_name}` class, define `self.missing_arg_name` or "
