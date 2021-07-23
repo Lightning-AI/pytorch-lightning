@@ -157,14 +157,13 @@ def main_train(dir_path, max_epochs: int = 20):
         min_epochs=3,
         max_epochs=max_epochs,
         accumulate_grad_batches=2,
-        profiler="simple",
         deterministic=True,
     )
 
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer.fit(model, dm)
-    res = trainer.test(model, dm)
+    trainer.fit(model, datamodule=dm)
+    res = trainer.test(model, datamodule=dm)
     assert res[0]['test_loss'] <= 0.7
     assert res[0]['test_acc'] >= 0.85
     assert trainer.current_epoch < (max_epochs - 1)

@@ -80,7 +80,7 @@ def test_load_legacy_checkpoints(tmpdir, pl_version: str):
         model = ClassificationModel.load_from_checkpoint(path_ckpt)
         trainer = Trainer(default_root_dir=str(tmpdir))
         dm = ClassifDataModule()
-        res = trainer.test(model, dm)
+        res = trainer.test(model, datamodule=dm)
         assert res[0]['test_loss'] <= 0.7
         assert res[0]['test_acc'] >= 0.85
         print(res)
@@ -98,7 +98,7 @@ class LimitNbEpochs(Callback):
             trainer.should_stop = True
 
 
-@pytest.mark.parametrize("pl_version", ["1.4.0rc1"])
+@pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch('sys.path', [PATH_LEGACY] + sys.path):
@@ -120,12 +120,11 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             callbacks=[es, stop],
             max_epochs=21,
             accumulate_grad_batches=2,
-            profiler="simple",
             deterministic=True,
             resume_from_checkpoint=path_ckpt
         )
-        trainer.fit(model, dm)
-        res = trainer.test(model, dm)
+        trainer.fit(model, datamodule=dm)
+        res = trainer.test(model, datamodule=dm)
         assert res[0]['test_loss'] <= 0.7
         assert res[0]['test_acc'] >= 0.85
         print(res)
