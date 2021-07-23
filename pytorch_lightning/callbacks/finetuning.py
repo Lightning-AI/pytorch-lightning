@@ -83,7 +83,7 @@ class BaseFinetuning(Callback):
 
     def __init__(self):
         self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
-        self.restarting = False
+        self._restarting = False
 
     def on_save_checkpoint(
         self,
@@ -96,19 +96,19 @@ class BaseFinetuning(Callback):
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
-        self.restarting = True
+        self._restarting = True
         self._internal_optimizer_metadata = callback_state
 
     def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         # restore the param_groups created during the previous training.
-        if self.restarting:
+        if self._restarting:
             named_parameters = dict(pl_module.named_parameters())
             for opt_idx, optimizer in enumerate(trainer.optimizers):
                 param_groups = self.__apply_mapping_to_param_groups(
                     self._internal_optimizer_metadata[opt_idx], named_parameters
                 )
                 optimizer.param_groups = param_groups
-            self.restarting = False
+            self._restarting = False
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
