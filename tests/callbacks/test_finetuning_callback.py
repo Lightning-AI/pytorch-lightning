@@ -455,14 +455,14 @@ def test_callbacks_restore_backbone(tmpdir):
         def forward(self, x):
             return self.layer(self.backbone(x))
 
-    cb = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
         progress_bar_refresh_rate=0,
-        callbacks=[cb, BackboneFinetuning(unfreeze_backbone_at_epoch=1)]
+        callbacks=[ckpt, BackboneFinetuning(unfreeze_backbone_at_epoch=1)]
     )
     trainer.fit(BackboneBoringModel())
 
@@ -474,6 +474,6 @@ def test_callbacks_restore_backbone(tmpdir):
         max_epochs=3,
         progress_bar_refresh_rate=0,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
-        resume_from_checkpoint=cb.last_model_path
+        resume_from_checkpoint=ckpt.last_model_path
     )
     trainer.fit(BackboneBoringModel())
