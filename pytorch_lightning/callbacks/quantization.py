@@ -134,11 +134,6 @@ class QuantizationAwareTraining(Callback):
         input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
             but break compatibility to torchscript and export with ``torch.save``.
 
-        max_num_inputs: maximum number of inputs nodes used by the model in training, evaluation, or
-            testing. This determines how many :class:`torch.quantization.QuantStub`s are needed. If
-            not specified, the model's :attr:~pytorch_lightning.core.lightning.LightningModule.example_input_array`
-            property must be defined
-
         max_num_inputs: maximum number of input tensors used by the model in training, evaluation, or
             testing. This determines how many :class:`torch.quantization.QuantStub`s are needed. Multiple axes of
             a singular tensor do not count as distinct inputs, only multiple tensors. If the number of tensor
