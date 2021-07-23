@@ -106,8 +106,8 @@ class GradClipAlgorithmType(LightningEnum):
     VALUE tpye means "clipping gradients by value". This will clip the gradient value for each parameter.
 
     References:
-        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm
-        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value
+        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_
+        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_
     """
     VALUE = 'value'
     NORM = 'norm'
