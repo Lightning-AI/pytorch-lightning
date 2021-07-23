@@ -417,11 +417,6 @@ def test_pytorch_profiler_nested(tmpdir):
     if platform.system() == "Windows":
         expected = {'a', 'add', 'b', 'c', 'profiler::_record_function_enter', 'profiler::_record_function_exit'}
     else:
-        expected = {
-            'signed char', 'add', 'profiler::_record_function_exit', 'bool', 'char', 'profiler::_record_function_enter'
-        }
-
-    if Version(torch.__version__) >= Version("1.6.0"):
         expected = {'add', 'zeros', 'ones', 'zero_', 'b', 'fill_', 'c', 'a', 'empty'}
 
     if Version(torch.__version__) >= Version("1.7.0"):

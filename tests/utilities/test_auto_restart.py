@@ -40,14 +40,13 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers.runif import RunIf
 
 
 # Credit to PyTorch Team.
 # Taken from:
 # https://github.com/pytorch/pytorch/blob/3b977a0d2834d300c0301a0c6af98c8e939019ce/torch/utils/data/_utils/worker.py#L151
-# Not available in PyTorch 1.4.
+# Not available until torch 1.9.0
 def _generate_state(base_seed, worker_id):
     INIT_A = 0x43b0d7e5
     MULT_A = 0x931e8875
@@ -161,7 +160,6 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [6, 7, 8]
 
 
-@RunIf(min_torch="1.6.0")
 @pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
     """
@@ -244,7 +242,6 @@ class RangeIterableDataset(IterableDataset):
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
-@RunIf(min_torch="1.6.0")
 def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     """
     This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being
@@ -358,7 +355,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True, min_torch="1.6.0")
+@RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler():
     """Make sure result logging works with DDP"""
     tutils.set_random_master_port()
@@ -628,13 +625,12 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
-@RunIf(min_torch="1.6.0")
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True, min_torch="1.6.0")
+@RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     """Make sure result logging works with DDP"""
     tutils.set_random_master_port()
@@ -642,13 +638,6 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     mp.spawn(
         _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset, args=(worldsize, ), nprocs=worldsize
     )
-
-
-@mock.patch.dict(os.environ, {'PL_FAULT_TOLERANT_TRAINING': "1"})
-@RunIf(max_torch="1.6")
-def test_fault_tolerant_not_supported():
-    with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
-        _fault_tolerant_enabled()
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):

@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 if torch.distributed.is_available():
     from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
 
-# The code underneath is taken from PyTorch ``torch/distributed/distributed_c10d.py``
+# The code underneath is taken from PyTorch `torch/distributed/distributed_c10d.py`
 # and enable broadcasting for PyTorch 1.6 and lower.
 
 
