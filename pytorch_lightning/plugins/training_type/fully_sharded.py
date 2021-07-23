@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import logging
 from pathlib import Path
-import contextlib
 from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
@@ -30,6 +30,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 log: logging.Logger = logging.getLogger(__name__)
+
 
 class DDPFullyShardedPlugin(DDPPlugin):
 
@@ -181,9 +182,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # state dict.
         return super().lightning_module_state_dict()
 
-    def serialized_restore_model_state(
-        self, checkpoint_path: Union[str, Path]
-    ) -> Dict[str, Any]:
+    def serialized_restore_model_state(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
         checkpoint = {}
         rank_zero_info(
             f"FullyShardedDataParallel has {self.num_processes} processes. Serializing model

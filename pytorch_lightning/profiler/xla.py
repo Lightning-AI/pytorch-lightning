@@ -27,7 +27,7 @@ help you with the Cloud TPU setup with the required installations
 >> tensorboard --logdir ./tensorboard --port 9001
 
 You could view the TensorBoard output at http://localhost:9001 on your local machine, and then open the
-``PROFILE`` plugn from the top right dropdown or open http://localhost:9001/#profile
+``PROFILE`` plugin from the top right dropdown or open http://localhost:9001/#profile
 
 2. Once the code you'd like to profile is running, click on ``CAPTURE PROFILE`` button. You could enter
 ``localhost:9012`` (default port for XLA Profiler) as the Profile Service URL. Then, you could enter
