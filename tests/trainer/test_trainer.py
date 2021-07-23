@@ -1288,16 +1288,15 @@ def test_trainer_setup_call(tmpdir, stage):
         def setup(self, stage):
             self.stage = stage
 
-    class TrainerSubclass(Trainer):
+    class CurrentCallback(Callback):
 
-        def setup(self, model, stage):
+        def setup(self, trainer, model, stage):
             assert model is not None
             self.stage = stage
 
     model = CurrentModel()
-
-    # fit model
-    trainer = TrainerSubclass(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False)
+    callback = CurrentCallback()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, callbacks=[callback])
 
     if stage == "fit":
         trainer.fit(model)
@@ -1306,8 +1305,8 @@ def test_trainer_setup_call(tmpdir, stage):
     else:
         trainer.test(model, ckpt_path=None)
 
-    assert trainer.stage == stage
-    assert trainer.lightning_module.stage == stage
+    assert callback.stage == stage
+    assert model.stage == stage
 
 
 @pytest.mark.parametrize(
