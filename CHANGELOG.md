@@ -532,6 +532,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed DeepSpeed Windows support ([#8488](https://github.com/PyTorchLightning/pytorch-lightning/pull/8488))
 
 
+- Fixed DeepSpeed not properly setting the trainer `lr_schedulers` attribute ([#8527](https://github.com/PyTorchLightning/pytorch-lightning/pull/8527))
+
+
 - Fixed experiment version and log-dir divergence in DDP when using multiple `Trainer` instances in sequence ([7403](https://github.com/PyTorchLightning/pytorch-lightning/pull/7403))
 
 

@@ -11,7 +11,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
@@ -299,21 +299,31 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
-            assert trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
-            # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
+            assert isinstance(trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
+            # check that the lr_scheduler config was preserved
+            assert trainer.lr_schedulers[0]["name"] == "Sean"
+            # Ensure DeepSpeed engine has initialized with our lr_scheduler
             assert isinstance(trainer.model.lr_scheduler, torch.optim.lr_scheduler.StepLR)
 
-    model = BoringModel()
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            [optimizer], [scheduler] = super().configure_optimizers()
+            return {"optimizer": optimizer, "lr_scheduler": {'scheduler': scheduler, 'name': 'Sean'}}
+
+    model = TestModel()
+    lr_monitor = LearningRateMonitor()
     trainer = Trainer(
         plugins=DeepSpeedPlugin(),  # disable ZeRO so our optimizers are not wrapped
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
         precision=16,
-        callbacks=[TestCB()]
+        callbacks=[TestCB(), lr_monitor]
     )
-
     trainer.fit(model)
+
+    assert lr_monitor.lrs == {'Sean': [0.1]}
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -333,8 +343,8 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
-            assert trainer.lr_schedulers == []  # DeepSpeed manages LR scheduler internally
-            # Ensure DeepSpeed engine has initialized with our optimizer/lr_scheduler
+            assert isinstance(trainer.lr_schedulers[0]["scheduler"], WarmupLR)
+            # Ensure DeepSpeed engine has initialized with our lr_scheduler
             assert isinstance(trainer.model.lr_scheduler, WarmupLR)
 
     model = BoringModel()
