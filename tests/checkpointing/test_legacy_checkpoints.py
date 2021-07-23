@@ -79,7 +79,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     # todo: make this as mock, so it is cleaner...
     orig_sys_paths = list(sys.path)
     sys.path.insert(0, path_dir)
-    from zero_training import DummyModel
+    from simple_classif_training import DummyModel
 
     path_ckpts = sorted(glob.glob(os.path.join(path_dir, f"*{CHECKPOINT_EXTENSION}")))
     assert path_ckpts, 'No checkpoints found in folder "%s"' % path_dir

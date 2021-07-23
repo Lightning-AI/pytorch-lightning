@@ -23,14 +23,14 @@ do
   # activate and install PL version
   source "$ENV_PATH/bin/activate"
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  pip install "pytorch_lightning==$ver" "torch==$FROZEN_MIN_PT_VERSION" --quiet --no-cache-dir
+  pip install "pytorch_lightning==$ver" "torch==$FROZEN_MIN_PT_VERSION" "scikit-learn" --quiet --no-cache-dir
 
   python --version
   pip --version
   pip list | grep torch
 
-  python "$LEGACY_PATH/zero_training.py"
-  cp "$LEGACY_PATH/zero_training.py" ${LEGACY_PATH}/checkpoints/${ver}
+  python "$LEGACY_PATH/simple_classif_training.py"
+  cp "$LEGACY_PATH/simple_classif_training.py" ${LEGACY_PATH}/checkpoints/${ver}
 
   mv ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs/version_0/checkpoints/*.ckpt ${LEGACY_PATH}/checkpoints/${ver}/
   rm -rf ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs
