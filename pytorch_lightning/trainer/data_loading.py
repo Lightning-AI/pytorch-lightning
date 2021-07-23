@@ -171,6 +171,9 @@ class TrainerDataLoadingMixin(ABC):
         }
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+        if not isinstance(dataloader, DataLoader):
+            raise ValueError(f'The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`')
+
         # get the dataloader instance attributes
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
         # not part of `vars`
