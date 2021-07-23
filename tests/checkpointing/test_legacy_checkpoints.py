@@ -95,13 +95,8 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
         dm = ClassifDataModule()
         model = ClassificationModel()
-        trainer = Trainer(default_root_dir=str(tmpdir), max_epochs=20, resume_from_checkpoint=path_ckpt)
-        res = trainer.test(model, dm)
-        assert res[0]['test_loss'] <= 0.7
-        assert res[0]['test_acc'] >= 0.85
-        print(res)
-
-        trainer.fit(model)
+        trainer = Trainer(default_root_dir=str(tmpdir), max_epochs=16, resume_from_checkpoint=path_ckpt)
+        trainer.fit(model, dm)
         res = trainer.test(model, dm)
         assert res[0]['test_loss'] <= 0.7
         assert res[0]['test_acc'] >= 0.85
