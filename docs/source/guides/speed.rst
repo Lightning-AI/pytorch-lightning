@@ -93,7 +93,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
         plugins=DDPPlugin(find_unused_parameters=False),
     )
 
-.. code-block::
+.. testcode::
 
     from pytorch_lightning.plugins import DDPSpawnPlugin
 
