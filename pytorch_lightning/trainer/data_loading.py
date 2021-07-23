@@ -340,7 +340,7 @@ class TrainerDataLoadingMixin(ABC):
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
-            train_dataloader = self.request_dataloader('train')
+            train_dataloader = self.request_dataloader('train', model=model)
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
