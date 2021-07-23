@@ -17,8 +17,11 @@ import sys
 from unittest.mock import patch
 
 import pytest
+import torch
 
-from pytorch_lightning import Trainer
+import pytorch_lightning as pl
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import EarlyStopping
 from tests import _PATH_LEGACY
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, 'checkpoints')
@@ -83,7 +86,19 @@ def test_load_legacy_checkpoints(tmpdir, pl_version: str):
         print(res)
 
 
-@pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
+class LimitNbEpochs(Callback):
+
+    def __init__(self, nb: int):
+        self.limit = nb
+        self._count = 0
+
+    def on_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        self._count += 1
+        if self._count >= self.limit:
+            trainer.should_stop = True
+
+
+@pytest.mark.parametrize("pl_version", ["1.4.0rc1"])
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch('sys.path', [PATH_LEGACY] + sys.path):
@@ -95,7 +110,20 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
         dm = ClassifDataModule()
         model = ClassificationModel()
-        trainer = Trainer(default_root_dir=str(tmpdir), max_epochs=16, resume_from_checkpoint=path_ckpt)
+        es = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
+        stop = LimitNbEpochs(1)
+        trainer = Trainer(
+            default_root_dir=str(tmpdir),
+            gpus=int(torch.cuda.is_available()),
+            precision=16 if torch.cuda.is_available() else 32,
+            checkpoint_callback=True,
+            callbacks=[es, stop],
+            max_epochs=21,
+            accumulate_grad_batches=2,
+            profiler="simple",
+            deterministic=True,
+            resume_from_checkpoint=path_ckpt
+        )
         trainer.fit(model, dm)
         res = trainer.test(model, dm)
         assert res[0]['test_loss'] <= 0.7

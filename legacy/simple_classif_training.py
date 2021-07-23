@@ -23,6 +23,7 @@ from torchmetrics import Accuracy
 
 import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything
+from pytorch_lightning.callbacks import EarlyStopping
 
 PATH_LEGACY = os.path.dirname(__file__)
 
@@ -96,6 +97,7 @@ class ClassificationModel(LightningModule):
 
     def __init__(self, num_features=24, num_classes=3, lr=0.01):
         super().__init__()
+        self.save_hyperparameters()
 
         self.lr = lr
         for i in range(3):
@@ -143,14 +145,20 @@ class ClassificationModel(LightningModule):
         self.log('test_acc', self.test_acc(logits, y), prog_bar=True)
 
 
-def main_train(dir_path, max_epochs: int = 15):
+def main_train(dir_path, max_epochs: int = 20):
     seed_everything(42)
-
+    stopping = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
     trainer = pl.Trainer(
-        gpus=int(torch.cuda.is_available()),
         default_root_dir=dir_path,
+        gpus=int(torch.cuda.is_available()),
+        precision=16 if torch.cuda.is_available() else 32,
         checkpoint_callback=True,
+        callbacks=[stopping],
+        min_epochs=3,
         max_epochs=max_epochs,
+        accumulate_grad_batches=2,
+        profiler="simple",
+        deterministic=True,
     )
 
     dm = ClassifDataModule()
@@ -159,6 +167,7 @@ def main_train(dir_path, max_epochs: int = 15):
     res = trainer.test(model, dm)
     assert res[0]['test_loss'] <= 0.7
     assert res[0]['test_acc'] >= 0.85
+    assert trainer.current_epoch < (max_epochs - 1)
     print(res)
 
 
