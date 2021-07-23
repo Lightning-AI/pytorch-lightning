@@ -22,7 +22,7 @@ from torch.nn import Module
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -185,18 +185,20 @@ class DDPFullyShardedPlugin(DDPPlugin):
         self, checkpoint_path: Union[str, Path]
     ) -> Dict[str, Any]:
         checkpoint = {}
-        log.info(
-            f"FullyShardedDataParallel has {self.num_processes} processes. Serializing to avoid CPU OOMs."
+        rank_zero_info(
+            f"FullyShardedDataParallel has {self.num_processes} processes. Serializing model
+            state restore to avoid CPU OOMs."
         )
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
                 checkpoint = super().load_checkpoint_file(checkpoint_path)
                 self.lightning_module.on_load_checkpoint(checkpoint)
                 self.load_model_state_dict(checkpoint)
-                log.info(
-                    f"Rank {self.global_rank}: done loading model states from {checkpoint_path}."
-                )
                 del checkpoint["state_dict"]
+                log.info(
+                    f"Rank {self.global_rank}: done loading model states from {checkpoint_path},
+                    deleted state_dict from checkpoint."
+                )
             self.barrier()
         return checkpoint
 
