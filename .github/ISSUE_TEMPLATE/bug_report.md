@@ -23,7 +23,7 @@ or this simple template:
 https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
 
 If you could not reproduce using the BoringModel and still think there's a bug, please post here
-but remember, bugs with code are solved faster!
+but remember, bugs with code are fixed faster!
 -->
 
 ### Expected behavior
