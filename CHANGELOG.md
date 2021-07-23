@@ -186,7 +186,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `devices` flag to Trainer ([#8440](https://github.com/PyTorchLightning/pytorch-lightning/pull/8440))
 
 
-
 - Options to control qconfig and location of quant/dequant stubs at the module-level ([#8068](https://github.com/PyTorchLightning/pytorch-lightning/issues/8068))
 
 
