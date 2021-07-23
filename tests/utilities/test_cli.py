@@ -227,11 +227,11 @@ class Model(LightningModule):
         self.model_param = model_param
 
 
-def model_builder(model_param: int) -> Model:
+def _model_builder(model_param: int) -> Model:
     return Model(model_param)
 
 
-def trainer_builder(
+def _trainer_builder(
     limit_train_batches: int,
     fast_dev_run: bool = False,
     callbacks: Optional[Union[List[Callback], Callback]] = None
@@ -239,7 +239,7 @@ def trainer_builder(
     return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
 
 
-@pytest.mark.parametrize(['trainer_class', 'model_class'], [(Trainer, Model), (trainer_builder, model_builder)])
+@pytest.mark.parametrize(['trainer_class', 'model_class'], [(Trainer, Model), (_trainer_builder, _model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
 
