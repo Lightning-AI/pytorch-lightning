@@ -407,16 +407,15 @@ class DeepSpeedPlugin(DDPPlugin):
         return self.config.get('zero_optimization') and self.config.get('zero_optimization').get('stage') == 3
 
     def _initialize_deepspeed_train(self, model):
-        if "optimizer" not in self.config:
+        if "optimizer" in self.config:
+            optimizer, lr_scheduler = None, _get_default_scheduler_config()
+        else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
                 "Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
-            scheduler = lr_scheduler["scheduler"]
-        else:
-            optimizer, scheduler = None, None
-            lr_scheduler = _get_default_scheduler_config()
+        scheduler = lr_scheduler["scheduler"]
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
@@ -430,7 +429,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self._set_deepspeed_activation_checkpointing()
 
-        # set optimizer for save/load, but deepspeed manages the specific optimizer logic
+        # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
         lr_scheduler["scheduler"] = deepspeed_scheduler
         self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
