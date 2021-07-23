@@ -547,6 +547,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a `TypeError` when wrapping optimizers in the `HorovodPlugin` and running `Trainer.test` ([#7840](https://github.com/PyTorchLightning/pytorch-lightning/pull/7840))
 
 
+- Fixed `BackboneFinetuning` restoration ([#8501](https://github.com/PyTorchLightning/pytorch-lightning/pull/8501))
+
+
+
 ## [1.3.8] - 2021-07-01
 
 ### Fixed

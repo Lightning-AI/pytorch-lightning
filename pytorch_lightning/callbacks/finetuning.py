@@ -82,7 +82,8 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self):
-        self._internal_state: Dict[int, List[Dict[str, Any]]] = {}
+        self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
+        self._restarting = False
 
     def on_save_checkpoint(
         self,
@@ -90,17 +91,24 @@ class BaseFinetuning(Callback):
         pl_module: 'pl.LightningModule',
         checkpoint: Dict[str, Any],
     ) -> Dict[int, List[Dict[str, Any]]]:
-        return self._internal_state
+        return self._internal_optimizer_metadata
 
     def on_load_checkpoint(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
-        self._internal_state = callback_state
+        self._restarting = True
+        self._internal_optimizer_metadata = callback_state
+
+    def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         # restore the param_groups created during the previous training.
-        named_parameters = dict(pl_module.named_parameters())
-        for opt_idx, optimizer in enumerate(trainer.optimizers):
-            param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
-            optimizer.param_groups = param_groups
+        if self._restarting:
+            named_parameters = dict(pl_module.named_parameters())
+            for opt_idx, optimizer in enumerate(trainer.optimizers):
+                param_groups = self.__apply_mapping_to_param_groups(
+                    self._internal_optimizer_metadata[opt_idx], named_parameters
+                )
+                optimizer.param_groups = param_groups
+            self._restarting = False
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
@@ -278,11 +286,13 @@ class BaseFinetuning(Callback):
         current_param_groups: List[Dict[str, Any]],
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
-        if opt_idx not in self._internal_state:
-            self._internal_state[opt_idx] = self.__apply_mapping_to_param_groups(current_param_groups, mapping)
+        if opt_idx not in self._internal_optimizer_metadata:
+            self._internal_optimizer_metadata[opt_idx] = self.__apply_mapping_to_param_groups(
+                current_param_groups, mapping
+            )
         elif num_param_groups != len(current_param_groups):
             # save new param_groups possibly created by the users.
-            self._internal_state[opt_idx].extend(
+            self._internal_optimizer_metadata[opt_idx].extend(
                 self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
@@ -362,15 +372,33 @@ class BackboneFinetuning(BaseFinetuning):
     ):
         super().__init__()
 
-        self.unfreeze_backbone_at_epoch = unfreeze_backbone_at_epoch
-        self.backbone_initial_lr = backbone_initial_lr
-        self.lambda_func = lambda_func
-        self.backbone_initial_ratio_lr = backbone_initial_ratio_lr
-        self.should_align = should_align
-        self.initial_denom_lr = initial_denom_lr
-        self.train_bn = train_bn
-        self.round = round
-        self.verbose = verbose
+        self.unfreeze_backbone_at_epoch: int = unfreeze_backbone_at_epoch
+        self.lambda_func: Callable = lambda_func
+        self.backbone_initial_ratio_lr: float = backbone_initial_ratio_lr
+        self.backbone_initial_lr: Optional[float] = backbone_initial_lr
+        self.should_align: bool = should_align
+        self.initial_denom_lr: float = initial_denom_lr
+        self.train_bn: bool = train_bn
+        self.verbose: bool = verbose
+        self.round: int = round
+        self.previous_backbone_lr: Optional[float] = None
+
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[int, Any]:
+        return {
+            "internal_optimizer_metadata": self._internal_optimizer_metadata,
+            "previous_backbone_lr": self.previous_backbone_lr
+        }
+
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
+    ) -> None:
+        self.previous_backbone_lr = callback_state["previous_backbone_lr"]
+        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_optimizer_metadata"])
 
     def on_fit_start(self, trainer, pl_module):
         """
@@ -379,7 +407,7 @@ class BackboneFinetuning(BaseFinetuning):
                 If LightningModule has no nn.Module `backbone` attribute.
         """
         if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
-            return
+            return super().on_fit_start(trainer, pl_module)
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
     def freeze_before_training(self, pl_module: 'pl.LightningModule'):
