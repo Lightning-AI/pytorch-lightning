@@ -32,14 +32,19 @@ but remember, bugs with code are fixed faster!
 
 ### Environment
 
-Please copy and paste the output from our [environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py) (or fill out the checklist below manually).
+<!--
+Please copy and paste the output from our environment collection script:
+https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
+(For security purposes, please check the contents of the script before running it)
 
 You can get the script and run it with:
 ```
 wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
-# For security purposes, please check the contents of collect_env_details.py before running it.
 python collect_env_details.py
 ```
+
+You can also fill out the list below manually.
+-->
 
  - PyTorch Lightning Version (e.g., 1.3.0):
  - PyTorch Version (e.g., 1.8)
