@@ -188,10 +188,11 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode"""
+        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
-            self.trainer.call_hook('on_test_model_eval')
+            model_ref.on_test_model_eval()
         else:
-            self.trainer.call_hook('on_validation_model_eval')
+            model_ref.on_validation_model_eval()
 
     def on_evaluation_model_train(self) -> None:
         """Sets model to train mode"""
