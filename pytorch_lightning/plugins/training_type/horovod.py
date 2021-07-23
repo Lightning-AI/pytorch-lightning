@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import distributed_available, group, rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as dist_group
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -60,6 +64,10 @@ class HorovodPlugin(ParallelPlugin):
 
     def pre_dispatch(self):
 
+        if not self.lightning_module.trainer.training:
+            # no need to setup optimizers
+            return
+
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
 
@@ -84,17 +92,7 @@ class HorovodPlugin(ParallelPlugin):
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        def _filter_named_parameters(model, optimizer):
-            opt_params = set([p for group in optimizer.param_groups for p in group.get("params", [])])
-            return [(name, p) for name, p in model.named_parameters() if p in opt_params]
-
-        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
-        optimizers = [
-            hvd.DistributedOptimizer(
-                optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
-            ) for optimizer in optimizers
-        ]
-        self.lightning_module.trainer.accelerator.optimizers = optimizers
+        self.lightning_module.trainer.accelerator.optimizers = self._wrap_optimizers(optimizers)
 
     def start_training(self, trainer):
         with ExitStack() as stack:
@@ -176,10 +174,10 @@ class HorovodPlugin(ParallelPlugin):
     def all_gather(
         self,
         result: Union[torch.Tensor],
-        group: Optional[Any] = group.WORLD,
+        group: Optional[Any] = dist_group.WORLD,
         sync_grads: bool = False
     ) -> torch.Tensor:
-        if group is not None and group != group.WORLD:
+        if group is not None and group != dist_group.WORLD:
             raise ValueError(
                 "Horovod does not support allgather using a subcommunicator at this time. "
                 "Unset `group`."
@@ -199,3 +197,15 @@ class HorovodPlugin(ParallelPlugin):
         # synchronize all horovod optimizers.
         for optimizer in self.lightning_module.trainer.optimizers:
             optimizer.synchronize()
+
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
+        """ Wraps optimizers to perform gradient aggregation via allreduce. """
+        return [
+            hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
+            if "horovod" not in str(opt.__class__) else opt for opt in optimizers
+        ]
+
+    @staticmethod
+    def _filter_named_parameters(model: nn.Module, optimizer: Optimizer) -> List[Tuple[str, nn.Parameter]]:
+        opt_params = set(p for group in optimizer.param_groups for p in group.get("params", []))
+        return [(name, p) for name, p in model.named_parameters() if p in opt_params]

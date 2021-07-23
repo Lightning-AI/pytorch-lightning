@@ -28,7 +28,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, Un
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _sampler_metadata_collate
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -222,8 +222,7 @@ class TrainerDataLoadingMixin(ABC):
     ) -> DistributedSampler:
         kwargs = self.distributed_sampler_kwargs
         kwargs["shuffle"] = shuffle and not self.overfit_batches
-        if _TORCH_GREATER_EQUAL_1_6:
-            kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
+        kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler

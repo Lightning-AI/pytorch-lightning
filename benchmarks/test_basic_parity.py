@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import gc
+import os
 import time
 
 import numpy as np
@@ -20,7 +21,11 @@ import torch
 from tqdm import tqdm
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from tests.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
+from tests.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
+
+_EXTEND_BENCHMARKS = os.getenv("PL_RUNNING_BENCHMARKS", '0') == '1'
+_SHORT_BENCHMARKS = not _EXTEND_BENCHMARKS
+_MARK_SHORT_BM = pytest.mark.skipif(_SHORT_BENCHMARKS, reason="Only run during Benchmarking")
 
 
 def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.1):
@@ -43,20 +48,16 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 
 # ParityModuleMNIST runs with num_workers=1
 @pytest.mark.parametrize(
-    'cls_model,max_diff_speed,max_diff_memory',
+    'cls_model,max_diff_speed,max_diff_memory,num_epochs,num_runs',
     [
-        (ParityModuleRNN, 0.05, 0.001),
-        (ParityModuleMNIST, 0.25, 0.001),  # todo: lower this thr
+        (ParityModuleRNN, 0.05, 0.001, 4, 3),
+        (ParityModuleMNIST, 0.25, 0.001, 4, 3),  # todo: lower this thr
+        pytest.param(ParityModuleCIFAR, 4.0, 0.0002, 2, 2, marks=_MARK_SHORT_BM),
     ]
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(
-    tmpdir,
-    cls_model: LightningModule,
-    max_diff_speed: float,
-    max_diff_memory: float,
-    num_epochs: int = 4,
-    num_runs: int = 3,
+    tmpdir, cls_model: LightningModule, max_diff_speed: float, max_diff_memory: float, num_epochs: int, num_runs: int
 ):
     """
     Verify that the same  pytorch and lightning models achieve the same results

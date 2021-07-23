@@ -237,7 +237,7 @@ def lr_find(
         trainer.progress_bar_callback.disable()
 
     # Required for saving the model
-    trainer.optimizers, trainer.schedulers = [], [],
+    trainer.optimizers, trainer.lr_schedulers = [], [],
     trainer.model = model
 
     # Dump model checkpoint

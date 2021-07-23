@@ -20,15 +20,13 @@ from typing import Callable, Optional, Union
 
 import torch
 from torch import nn
+from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _TORCH_GREATER_EQUAL_1_6:
-    from torch.optim.swa_utils import SWALR
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
 
@@ -139,7 +137,8 @@ class StochasticWeightAveraging(Callback):
 
     def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         # copy the model before moving it to accelerator device.
-        self._average_model = deepcopy(pl_module)
+        with pl_module._prevent_trainer_and_dataloaders_deepcopy():
+            self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         optimizers = trainer.optimizers

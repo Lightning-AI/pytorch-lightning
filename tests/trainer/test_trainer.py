@@ -25,6 +25,7 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
@@ -1969,3 +1970,54 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     # simulate random failure in training_step on rank 0
     with pytest.raises(DeadlockDetectedException, match="CustomException"):
         trainer.fit(model)
+
+
+@RunIf(min_gpus=1)
+def test_multiple_trainer_constant_memory_allocated(tmpdir):
+    """
+    This tests ensures calling the trainer several times reset the memory back to 0.
+    """
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            self.log("train_loss", loss["loss"])
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.layer.parameters(), lr=0.1)
+
+    class Check(Callback):
+
+        def on_epoch_start(self, trainer, *_):
+            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
+
+    initial = torch.cuda.memory_allocated(0)
+
+    model = TestModel()
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        gpus=1,
+        accelerator="ddp",
+        progress_bar_refresh_rate=0,
+        callbacks=Check()
+    )
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    assert trainer.training_type_plugin.model is model
+    assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
+    assert trainer.callback_metrics['train_loss'].device == torch.device("cpu")
+
+    memory_1 = torch.cuda.memory_allocated(0)
+    deepcopy(trainer)
+    memory_2 = torch.cuda.memory_allocated(0)
+    assert memory_1 == memory_2 == initial
+
+    trainer_2 = Trainer(**trainer_kwargs)
+    trainer_2.fit(model)
+    memory_3 = torch.cuda.memory_allocated(0)
+
+    assert initial == memory_1 == memory_3

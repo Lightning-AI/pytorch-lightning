@@ -26,7 +26,6 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -1061,22 +1060,19 @@ class DistribSamplerCallback(Callback):
         train_sampler = trainer.train_dataloader.sampler
         assert isinstance(train_sampler, DistributedSampler)
         assert train_sampler.shuffle
-        if _TORCH_GREATER_EQUAL_1_6:
-            assert train_sampler.seed == self.expected_seed[0]
+        assert train_sampler.seed == self.expected_seed[0]
 
     def on_validation_start(self, trainer, pl_module):
         val_sampler = trainer.val_dataloaders[0].sampler
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
-        if _TORCH_GREATER_EQUAL_1_6:
-            assert val_sampler.seed == self.expected_seed[1]
+        assert val_sampler.seed == self.expected_seed[1]
 
     def on_test_start(self, trainer, pl_module):
         test_sampler = trainer.test_dataloaders[0].sampler
         assert isinstance(test_sampler, DistributedSampler)
         assert not test_sampler.shuffle
-        if _TORCH_GREATER_EQUAL_1_6:
-            assert test_sampler.seed == self.expected_seed[2]
+        assert test_sampler.seed == self.expected_seed[2]
 
 
 @RunIf(min_gpus=2, skip_windows=True)

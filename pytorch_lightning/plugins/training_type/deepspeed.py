@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
@@ -33,6 +34,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning
 
 if _DEEPSPEED_AVAILABLE:
@@ -387,7 +389,7 @@ class DeepSpeedPlugin(DDPPlugin):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_scheduler_optimizer(self):
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
         optimizers, schedulers, optimizer_frequencies = self.lightning_module.trainer.init_optimizers(
             self.lightning_module
         )
@@ -395,37 +397,43 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
-        scheduler = schedulers[0]['scheduler'] if len(schedulers) == 1 else None
-        optimizer = optimizers[0]
-        return optimizer, scheduler, optimizer_frequencies
+        return (
+            optimizers[0],
+            schedulers[0] if schedulers else None,
+            optimizer_frequencies[0] if optimizer_frequencies else None,
+        )
 
     @property
     def zero_stage_3(self) -> bool:
         return self.config.get('zero_optimization') and self.config.get('zero_optimization').get('stage') == 3
 
     def _initialize_deepspeed_train(self, model):
-        optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
-
-        if "optimizer" not in self.config:
+        if "optimizer" in self.config:
+            optimizer, lr_scheduler = None, _get_default_scheduler_config()
+        else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
                 "Using `configure_optimizers` to define optimizer and scheduler."
             )
-            optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
+            optimizer, lr_scheduler, _ = self._init_optimizers()
+        scheduler = lr_scheduler["scheduler"]
+
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
-        model, optimizer, _, lr_scheduler = deepspeed.initialize(
+        model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
             config=self.config,
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
-            lr_scheduler=lightning_scheduler,
+            lr_scheduler=scheduler,
             dist_init_required=False
         )
+
         self._set_deepspeed_activation_checkpointing()
 
-        # set optimizer for save/load, but deepspeed manages the specific optimizer logic
-        self.lightning_module.trainer.optimizers = [optimizer]
-        self.lightning_module.trainer.schedulers = [lr_scheduler]
+        # although we set these here, deepspeed manages the specific optimizer logic
+        self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+        lr_scheduler["scheduler"] = deepspeed_scheduler
+        self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
 
     @contextlib.contextmanager
@@ -459,13 +467,14 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _initialize_deepspeed_inference(self, model):
         # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
-        optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
+        optimizer, scheduler = None, None
         if "optimizer" not in self.config:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
                 "Using `configure_optimizers` to define optimizer and scheduler."
             )
-            optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
+            optimizer, lr_scheduler, _ = self._init_optimizers()
+            scheduler = lr_scheduler["scheduler"]
         inference_config = {
             # todo: this is required for DeepSpeed throughput timers, or throughput timers will be incorrect
             'train_micro_batch_size_per_gpu': 1,
@@ -483,16 +492,11 @@ class DeepSpeedPlugin(DDPPlugin):
             config=inference_config,
             model=model,
             optimizer=optimizer,
-            lr_scheduler=lightning_scheduler,
+            lr_scheduler=scheduler,
             model_parameters=[],
             dist_init_required=False
         )
         self.model = model
-
-    def configure_scheduler(self, lr_scheduler):
-        scheduler = _get_default_scheduler_config()
-        scheduler["scheduler"] = lr_scheduler
-        return [scheduler]
 
     @property
     def lightning_module(self):
