@@ -74,7 +74,7 @@ def test_load_legacy_checkpoints(tmpdir, pl_version: str):
         from simple_classif_training import ClassifDataModule, ClassificationModel
 
         path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f'*{CHECKPOINT_EXTENSION}')))
-        assert path_ckpts, 'No checkpoints found in folder "%s"' % PATH_LEGACY
+        assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]
 
         model = ClassificationModel.load_from_checkpoint(path_ckpt)
@@ -105,7 +105,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
         from simple_classif_training import ClassifDataModule, ClassificationModel
 
         path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f'*{CHECKPOINT_EXTENSION}')))
-        assert path_ckpts, 'No checkpoints found in folder "%s"' % PATH_LEGACY
+        assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]
 
         dm = ClassifDataModule()
