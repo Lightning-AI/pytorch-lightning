@@ -195,18 +195,17 @@ class QuantizationAwareTraining(Callback):
                 f'Unsupported `collect_quantization` "{collect_quantization}", allowed are `int` or `Callable`.'
             )
         self._collect_quantization = collect_quantization
-
-        self.method_to_quantize = method_to_quantize
-        self.modules_to_fuse = modules_to_fuse
-        self.modules_to_skip = modules_to_skip
+        self._method_to_quantize = method_to_quantize
+        self._modules_to_fuse = modules_to_fuse
+        self._modules_to_skip = modules_to_skip
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
         self._forward_calls = 0
 
     def _check_feasible_fuse(self, model):
-        if not self.modules_to_fuse:
+        if not self._modules_to_fuse:
             return False
-        for group in self.modules_to_fuse:
+        for group in self._modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
                     f'You have requested to fuse {group} but one or more of them is not your model attributes'
@@ -220,12 +219,12 @@ class QuantizationAwareTraining(Callback):
         pl_module.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        quant_method = getattr(pl_module, self.method_to_quantize)
+        quant_method = getattr(pl_module, self._method_to_quantize)
         if not callable(quant_method):
             raise MisconfigurationException('`method_to_quantize` must be a callable model attribute')
         self.__quant_method = quant_method
         setattr(
-            pl_module, self.method_to_quantize,
+            pl_module, self._method_to_quantize,
             wrap_qat_forward_context(
                 quant_cb=self, model=pl_module, func=quant_method, trigger_condition=self._collect_quantization
             )
@@ -242,8 +241,8 @@ class QuantizationAwareTraining(Callback):
             pl_module.qconfig = self._qconfig
 
         # Disable qconfig for any modules the user requested to skip
-        if self.modules_to_skip:
-            for m in self.modules_to_skip:
+        if self._modules_to_skip:
+            for m in self._modules_to_skip:
                 getter = operator.attrgetter(m)
                 try:
                     module = getter(pl_module)
@@ -254,7 +253,7 @@ class QuantizationAwareTraining(Callback):
                 module.qconfig = None
 
         if self._check_feasible_fuse(pl_module):
-            torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
+            torch.quantization.fuse_modules(pl_module, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
@@ -275,4 +274,4 @@ class QuantizationAwareTraining(Callback):
             final_method = wrap_quantize_forward_context(model=pl_module, func=self.__quant_method)
         else:
             final_method = self.__quant_method
-        setattr(pl_module, self.method_to_quantize, final_method)
+        setattr(pl_module, self._method_to_quantize, final_method)
