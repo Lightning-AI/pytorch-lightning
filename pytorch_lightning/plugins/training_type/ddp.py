@@ -217,10 +217,6 @@ class DDPPlugin(ParallelPlugin):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
 
-            if self.lightning_module.logger is not None:
-                # spawned processes must reference the same log dir, prevent auto-increment version
-                env_copy["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
-
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
                 del env_copy["PL_GLOBAL_SEED"]
@@ -279,7 +275,7 @@ class DDPPlugin(ParallelPlugin):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()`` breaking manual_optimization
+        # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
         if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
             "find_unused_parameters", False
         ):

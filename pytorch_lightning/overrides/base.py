@@ -84,9 +84,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             output = self.module.training_step(*inputs, **kwargs)
 
             # In manual_optimization, we need to prevent DDP reducer as
-            # it is done manually in ``LightningModule.manual_backward``
+            # it is done manually in `LightningModule.manual_backward`
             # `require_backward_grad_sync` will be reset in the
-            # ddp_plugin ``post_training_step`` hook
+            # ddp_plugin `post_training_step` hook
             if not lightning_module.automatic_optimization:
                 trainer.model.require_backward_grad_sync = False
         elif trainer and trainer.testing:

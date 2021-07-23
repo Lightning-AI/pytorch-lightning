@@ -68,7 +68,7 @@ class BaseFinetuning(Callback):
 
             def freeze_before_training(self, pl_module):
                 # freeze any module you want
-                # Here, we are freezing ``feature_extractor``
+                # Here, we are freezing `feature_extractor`
                 self.freeze(pl_module.feature_extractor)
 
             def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
