@@ -215,7 +215,7 @@ class TrainerDataLoadingMixin(ABC):
                 missing_kwargs = sorted(missing_kwargs)
                 dataloader_cls_name = dataloader.__class__.__name__
                 raise MisconfigurationException(
-                    f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` `DataLoader`. "
+                    f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
                     "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
                     f"The missing arguments are {missing_kwargs}. "
                     f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
