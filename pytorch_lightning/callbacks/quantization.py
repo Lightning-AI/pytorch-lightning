@@ -82,6 +82,54 @@ def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
 
 
 class QuantizationAwareTraining(Callback):
+    """
+    Quantization allows speeding up inference and decreasing memory requirements
+    by performing computations and storing tensors at lower bitwidths
+    (such as INT8 or FLOAT16) than floating point precision.
+    We use native PyTorch API so for more information
+    see `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_.
+
+    .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
+
+
+    Args:
+
+        qconfig: quantization configuration:
+
+            - 'fbgemm' for server inference.
+            - 'qnnpack' for mobile inference.
+            - a custom `torch.quantization.QConfig
+              <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
+
+        observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
+            and ``HistogramObserver`` as "histogram" which is more computationally expensive.
+
+        collect_quantization: count or custom function to collect quantization statistics:
+
+            - ``None`` (deafult). The quantization observer is called in each module forward
+                (useful for collecting extended statistic when useing image/data augmentation).
+            - ``int``. Use to set a fixed number of calls, starting from the beginning.
+            - ``Callable``. Custom function with single trainer argument.
+                See this example to trigger only the last epoch:
+
+                .. code-block:: python
+
+                    def custom_trigger_last(trainer):
+                        return trainer.current_epoch == (trainer.max_epochs - 1)
+
+                    QuantizationAwareTraining(collect_quantization=custom_trigger_last)
+
+        modules_to_fuse: allows you fuse a few layers together as shown in
+            `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_
+            to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
+
+        input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
+            but break compatibility to torchscript and export with ``torch.save``.
+
+        quantize_on_fit_end: perform the quantization in `on_fit_end`.
+            Note that once converted, the model cannot be put in training mode again.
+
+    """
     OBSERVER_TYPES = ('histogram', 'average')
 
     def __init__(
@@ -91,51 +139,8 @@ class QuantizationAwareTraining(Callback):
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
+        quantize_on_fit_end: bool = True,
     ) -> None:
-        """
-        Quantization allows speeding up inference and decreasing memory requirements
-        by performing computations and storing tensors at lower bitwidths
-        (such as INT8 or FLOAT16) than floating point precision.
-        We use native PyTorch API so for more information
-        see `Quantization <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_.
-
-        .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
-
-
-        Args:
-
-            qconfig: quantization configuration:
-
-                - 'fbgemm' for server inference.
-                - 'qnnpack' for mobile inference.
-                -  a custom `torch.quantization.QConfig <https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig>`_.
-
-            observer_type: allows switching between ``MovingAverageMinMaxObserver`` as "average" (default)
-                and ``HistogramObserver`` as "histogram" which is more computationally expensive.
-
-            collect_quantization: count or custom function to collect quantization statistics:
-
-                - ``None`` (deafult). The quantization observer is called in each module forward
-                    (useful for collecting extended statistic when useing image/data augmentation).
-                - ``int``. Use to set a fixed number of calls, starting from the beginning.
-                - ``Callable``. Custom function with single trainer argument.
-                    See this example to trigger only the last epoch:
-
-                    .. code-block:: python
-
-                        def custom_trigger_last(trainer):
-                            return trainer.current_epoch == (trainer.max_epochs - 1)
-
-                        QuantizationAwareTraining(collect_quantization=custom_trigger_last)
-
-            modules_to_fuse: allows you fuse a few layers together as shown in
-                `diagram <https://pytorch.org/docs/stable/quantization.html#quantization-aware-training>`_
-                to find which layer types can be fused, check https://github.com/pytorch/pytorch/pull/43286.
-
-            input_compatible: preserve quant/dequant layers. This allows to feat any input as to the original model,
-                but break compatibility to torchscript.
-
-        """  # noqa: E501
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
             raise MisconfigurationException(
@@ -157,6 +162,7 @@ class QuantizationAwareTraining(Callback):
 
         self.modules_to_fuse = modules_to_fuse
         self._input_compatible = input_compatible
+        self._convert_on_fit_end = quantize_on_fit_end
         self._forward_calls = 0
 
     def _check_feasible_fuse(self, model):
@@ -199,6 +205,9 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
     def on_fit_end(self, trainer, pl_module):
+        if not self._convert_on_fit_end:
+            pl_module.forward = self.__module_forward
+            return
         pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
         # quantizes the weights, computes and stores the scale and bias value to be

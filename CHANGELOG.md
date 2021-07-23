@@ -177,10 +177,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled traditional/manual launching of DDP processes through `LOCAL_RANK` and `NODE_RANK` environment variable assignments ([#7480](https://github.com/PyTorchLightning/pytorch-lightning/pull/7480))
 
 
+- Added `quantize_on_fit_end` argument to `QuantizationAwareTraining` ([#8464](https://github.com/PyTorchLightning/pytorch-lightning/pull/8464))
+
+
 - Added experimental support for loop specialization ([#8226](https://github.com/PyTorchLightning/pytorch-lightning/pull/8226))
 
 
 - Added support for `devices` flag to Trainer ([#8440](https://github.com/PyTorchLightning/pytorch-lightning/pull/8440))
+
 
 
 ### Changed
@@ -427,6 +431,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed DeepSpeed FP16 Exception as FP32 is now supported ([#8462](https://github.com/PyTorchLightning/pytorch-lightning/pull/8462))
 
 
+- Removed environment variable `PL_EXP_VERSION` from DDP subprocesses ([7403](https://github.com/PyTorchLightning/pytorch-lightning/pull/7403))
+
+
 ### Fixed
 
 - Fixed the `GPUStatsMonitor` callbacks to use the correct GPU IDs if `CUDA_VISIBLE_DEVICES` set ([#8260](https://github.com/PyTorchLightning/pytorch-lightning/pull/8260))
@@ -525,10 +532,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed DeepSpeed Windows support ([#8488](https://github.com/PyTorchLightning/pytorch-lightning/pull/8488))
 
 
+- Fixed DeepSpeed not properly setting the trainer `lr_schedulers` attribute ([#8527](https://github.com/PyTorchLightning/pytorch-lightning/pull/8527))
+
+
+- Fixed experiment version and log-dir divergence in DDP when using multiple `Trainer` instances in sequence ([7403](https://github.com/PyTorchLightning/pytorch-lightning/pull/7403))
+
+
+- Enabled manual optimization for TPUs ([#8458](https://github.com/PyTorchLightning/pytorch-lightning/pull/8458))
+
+
 - Fixed `accumulate_grad_batches` not been recomputed during model reload ([#5334](https://github.com/PyTorchLightning/pytorch-lightning/pull/5334))
 
 
 - Fixed a `TypeError` when wrapping optimizers in the `HorovodPlugin` and running `Trainer.test` ([#7840](https://github.com/PyTorchLightning/pytorch-lightning/pull/7840))
+
+
+- Fixed `BackboneFinetuning` restoration ([#8501](https://github.com/PyTorchLightning/pytorch-lightning/pull/8501))
 
 
 
