@@ -40,7 +40,6 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers.runif import RunIf
 
 
@@ -639,13 +638,6 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     mp.spawn(
         _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset, args=(worldsize, ), nprocs=worldsize
     )
-
-
-@mock.patch.dict(os.environ, {'PL_FAULT_TOLERANT_TRAINING': "1"})
-@RunIf(min_torch="1.7")
-def test_fault_tolerant_not_supported():
-    with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
-        _fault_tolerant_enabled()
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
