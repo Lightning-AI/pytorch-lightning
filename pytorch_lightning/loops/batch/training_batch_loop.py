@@ -32,6 +32,7 @@ from pytorch_lightning.loops.utilities import (
     _process_training_step_output,
     check_finite_loss,
 )
+from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -135,17 +136,19 @@ class TrainingBatchLoop(Loop):
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
         if self.trainer.lightning_module.automatic_optimization:
-            for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
-                # handle optimization restart
-                if self.restarting:
-                    if opt_idx < self.optim_progress.optimizer_idx:
-                        continue
-
-                self.optim_progress.optimizer_idx = opt_idx
-
-                result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
-                if result:
-                    self.batch_outputs[opt_idx].append(copy(result.result_collection))
+            optimizer_loop = OptimizerLoop()
+            outputs = optimizer_loop.run()
+            # for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
+            #     # handle optimization restart
+            #     if self.restarting:
+            #         if opt_idx < self.optim_progress.optimizer_idx:
+            #             continue
+            #
+            #     self.optim_progress.optimizer_idx = opt_idx
+            #
+            #     result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
+            #     if result:
+            #         self.batch_outputs[opt_idx].append(result.training_step_output)
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
