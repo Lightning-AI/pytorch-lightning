@@ -271,9 +271,7 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = self.__module_forward
 
     def on_validation_start(self, trainer, pl_module):
-        self._maybe_disable_observer(
-            pl_module, 'validate' in self._disable_observers and not trainer.sanity_checking
-        )
+        self._maybe_disable_observer(pl_module, 'validate' in self._disable_observers and not trainer.sanity_checking)
 
     def on_validation_end(self, trainer, pl_module):
         if 'validate' in self._disable_observers:
