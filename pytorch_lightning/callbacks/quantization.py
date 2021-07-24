@@ -202,7 +202,8 @@ class QuantizationAwareTraining(Callback):
 
     def _collect_observer_enabled(self):
         return {
-            fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quant_to_initial_state_dict
+            fake_quant: fake_quant.observer_enabled.clone()
+            for fake_quant in self._fake_quant_to_initial_state_dict
         }
 
     def _restore_last_observer_enabled(self):

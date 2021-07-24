@@ -113,7 +113,7 @@ def test_quantization_exceptions(tmpdir):
         QuantizationAwareTraining(collect_quantization=1.2)
 
     with pytest.raises(MisconfigurationException, match='Unsupported stages'):
-        QuantizationAwareTraining(disable_observers=('abc',))
+        QuantizationAwareTraining(disable_observers=('abc', ))
 
     fusing_layers = [(f'layers.mlp_{i}', f'layers.NONE-mlp_{i}a') for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
@@ -174,9 +174,7 @@ class CheckObserverDisabledModel(RegressionModel):
         self._last_train_fake_quant_to_observer_enabled = {}
 
     def _collect_observer_enabled(self):
-        return {
-            fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quants
-        }
+        return {fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quants}
 
     def _assert_fake_quant_initial_state(self):
         # Check fake-quantization modules are restored to initial states.
@@ -248,7 +246,7 @@ class CheckObserverDisabledModel(RegressionModel):
 
 
 @pytest.mark.parametrize("observe", ['average', 'histogram'])
-@pytest.mark.parametrize("disable_observers", [('validate', 'test', 'predict'), ('validate',), ()])
+@pytest.mark.parametrize("disable_observers", [('validate', 'test', 'predict'), ('validate', ), ()])
 @RunIf(quantization=True)
 def test_disable_observers(tmpdir, observe, disable_observers):
     """Test disabling observers"""
@@ -264,8 +262,7 @@ def test_disable_observers(tmpdir, observe, disable_observers):
         # manually.
         qconfig = torch.quantization.QConfig(
             activation=torch.quantization.FakeQuantize.with_args(
-                observer=torch.quantization.HistogramObserver,
-                reduce_range=True
+                observer=torch.quantization.HistogramObserver, reduce_range=True
             ),
             weight=torch.quantization.get_default_qat_qconfig(backend=qconfig).weight,
         )
