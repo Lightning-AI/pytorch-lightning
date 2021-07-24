@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Dict, Optional
 
 import torch
 
@@ -91,3 +91,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         if isinstance(precision_plugin, ShardedNativeMixedPrecisionPlugin):
             precision_plugin.scaler = ShardedGradScaler()
         super().new_process(process_idx, trainer, mp_queue)
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_sharded_spawn_find_unused_parameters_false",
+            cls,
+            description="DDP Spawn Sharded Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False
+        )

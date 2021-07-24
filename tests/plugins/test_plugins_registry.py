@@ -14,7 +14,15 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DeepSpeedPlugin, TPUSpawnPlugin, TrainingTypePluginsRegistry
+from pytorch_lightning.plugins import (
+    DDPPlugin,
+    DDPShardedPlugin,
+    DDPSpawnPlugin,
+    DDPSpawnShardedPlugin,
+    DeepSpeedPlugin,
+    TPUSpawnPlugin,
+    TrainingTypePluginsRegistry,
+)
 from tests.helpers.runif import RunIf
 
 
@@ -86,16 +94,6 @@ def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
     assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
 
 
-def test_ddp_training_type_plugins_registry_with_trainer(tmpdir):
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins="ddp_find_unused_parameters_false",
-    )
-
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
-
-
 def test_tpu_spawn_debug_plugins_registry(tmpdir):
 
     plugin = "tpu_spawn_debug"
@@ -107,3 +105,26 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
     trainer = Trainer(plugins=plugin)
 
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+
+
+@pytest.mark.parametrize(
+    "plugin_name, plugin",
+    [
+        ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedPlugin),
+        ("ddp_sharded_find_unused_parameters_false", DDPShardedPlugin),
+    ],
+)
+def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugin_name, plugin):
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=plugin_name,
+    )
+
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+    assert plugin_name in TrainingTypePluginsRegistry
+    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
+    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == plugin

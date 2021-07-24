@@ -304,7 +304,7 @@ class TrainingTypePlugin(Plugin, ABC):
         raise NotImplementedError
 
     @classmethod
-    def register_plugins(cls, plugin_registry):
+    def register_plugins(cls, plugin_registry) -> None:
         pass
 
     @property

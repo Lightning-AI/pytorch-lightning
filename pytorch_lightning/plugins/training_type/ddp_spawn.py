@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -372,3 +372,12 @@ class DDPSpawnPlugin(ParallelPlugin):
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_spawn_find_unused_parameters_false",
+            cls,
+            description="DDPSpawn Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False
+        )
