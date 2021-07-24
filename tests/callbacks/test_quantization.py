@@ -196,8 +196,8 @@ class CheckObserverDisabledModel(RegressionModel):
             else:
                 assert torch.equal(observer_enabled, expected_observer_enabled)
 
-    def _check_observer_state(self, should_disabled):
-        if should_disabled:
+    def _check_observer_state(self, should_disable):
+        if should_disable:
             self._assert_observer_enabled(collections.defaultdict(lambda: False))
         else:
             self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
@@ -258,7 +258,7 @@ def test_disable_observers(tmpdir, observe, disable_observers):
         qconfig = torch.quantization.get_default_qat_qconfig(backend=qconfig)
     elif observe == 'histogram':
         # Currently passing ``observer_type='histogram'`` to ``QuantizationAwareTraining`` will only do quantization
-        # range calibration without any fake-quantization modules. We create the qconfig for histogram observers
+        # range calibration without any fake-quantization modules. We create the ``qconfig`` for histogram observers
         # manually.
         qconfig = torch.quantization.QConfig(
             activation=torch.quantization.FakeQuantize.with_args(

@@ -206,6 +206,11 @@ class QuantizationAwareTraining(Callback):
             for fake_quant in self._fake_quant_to_initial_state_dict
         }
 
+    def _maybe_disable_observer(self, pl_module, should_disable):
+        if should_disable:
+            self._last_fake_quant_to_observer_enabled = self._collect_observer_enabled()
+            pl_module.apply(torch.quantization.disable_observer)
+
     def _restore_last_observer_enabled(self):
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
@@ -266,9 +271,9 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = self.__module_forward
 
     def on_validation_start(self, trainer, pl_module):
-        if 'validate' in self._disable_observers and not trainer.sanity_checking:
-            self._last_fake_quant_to_observer_enabled = self._collect_observer_enabled()
-            pl_module.apply(torch.quantization.disable_observer)
+        self._maybe_disable_observer(
+            pl_module, 'validate' in self._disable_observers and not trainer.sanity_checking
+        )
 
     def on_validation_end(self, trainer, pl_module):
         if 'validate' in self._disable_observers:
@@ -279,18 +284,14 @@ class QuantizationAwareTraining(Callback):
                 self._restore_last_observer_enabled()
 
     def on_test_start(self, trainer, pl_module):
-        if 'test' in self._disable_observers:
-            self._last_fake_quant_to_observer_enabled = self._collect_observer_enabled()
-            pl_module.apply(torch.quantization.disable_observer)
+        self._maybe_disable_observer(pl_module, 'test' in self._disable_observers)
 
     def on_test_end(self, trainer, pl_module):
         if 'test' in self._disable_observers:
             self._restore_last_observer_enabled()
 
     def on_predict_start(self, trainer, pl_module):
-        if 'predict' in self._disable_observers:
-            self._last_fake_quant_to_observer_enabled = self._collect_observer_enabled()
-            pl_module.apply(torch.quantization.disable_observer)
+        self._maybe_disable_observer(pl_module, 'predict' in self._disable_observers)
 
     def on_predict_end(self, trainer, pl_module):
         if 'predict' in self._disable_observers:
