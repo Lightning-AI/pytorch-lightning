@@ -29,7 +29,6 @@ PATH_LEGACY = os.path.dirname(__file__)
 
 
 class SklearnDataset(Dataset):
-
     def __init__(self, x, y, x_type, y_type):
         self.x = x
         self.y = y
@@ -44,7 +43,6 @@ class SklearnDataset(Dataset):
 
 
 class SklearnDataModule(LightningDataModule):
-
     def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 128):
         super().__init__()
         self.batch_size = batch_size
@@ -65,7 +63,7 @@ class SklearnDataModule(LightningDataModule):
         return DataLoader(
             SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
             shuffle=True,
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
         )
 
     def val_dataloader(self):
@@ -80,7 +78,6 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-
     def __init__(self, num_features=24, length=6000, num_classes=3, batch_size=128):
         data = make_classification(
             n_samples=length,
@@ -94,7 +91,6 @@ class ClassifDataModule(SklearnDataModule):
 
 
 class ClassificationModel(LightningModule):
-
     def __init__(self, num_features=24, num_classes=3, lr=0.01):
         super().__init__()
         self.save_hyperparameters()
@@ -128,21 +124,21 @@ class ClassificationModel(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        self.log('train_loss', loss, prog_bar=True)
-        self.log('train_acc', self.train_acc(logits, y), prog_bar=True)
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_acc", self.train_acc(logits, y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('val_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('val_acc', self.valid_acc(logits, y), prog_bar=True)
+        self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False)
+        self.log("val_acc", self.valid_acc(logits, y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('test_acc', self.test_acc(logits, y), prog_bar=True)
+        self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
+        self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
 
 def main_train(dir_path, max_epochs: int = 20):
@@ -165,11 +161,11 @@ def main_train(dir_path, max_epochs: int = 20):
     trainer.fit(model, datamodule=dm)
     res = trainer.test(model, datamodule=dm)
     print(res)
-    assert res[0]['test_loss'] <= 0.7
-    assert res[0]['test_acc'] >= 0.85
+    assert res[0]["test_loss"] <= 0.7
+    assert res[0]["test_acc"] >= 0.85
     assert trainer.current_epoch < (max_epochs - 1)
 
 
-if __name__ == '__main__':
-    path_dir = os.path.join(PATH_LEGACY, 'checkpoints', str(pl.__version__))
+if __name__ == "__main__":
+    path_dir = os.path.join(PATH_LEGACY, "checkpoints", str(pl.__version__))
     main_train(path_dir)

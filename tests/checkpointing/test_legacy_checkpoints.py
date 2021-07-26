@@ -24,7 +24,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from tests import _PATH_LEGACY
 
-LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, 'checkpoints')
+LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
 CHECKPOINT_EXTENSION = ".ckpt"
 LEGACY_BACK_COMPATIBLE_PL_VERSIONS = (
     "1.0.0",
@@ -70,10 +70,10 @@ LEGACY_BACK_COMPATIBLE_PL_VERSIONS = (
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 def test_load_legacy_checkpoints(tmpdir, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
-    with patch('sys.path', [PATH_LEGACY] + sys.path):
+    with patch("sys.path", [PATH_LEGACY] + sys.path):
         from simple_classif_training import ClassifDataModule, ClassificationModel
 
-        path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f'*{CHECKPOINT_EXTENSION}')))
+        path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f"*{CHECKPOINT_EXTENSION}")))
         assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]
 
@@ -81,18 +81,17 @@ def test_load_legacy_checkpoints(tmpdir, pl_version: str):
         trainer = Trainer(default_root_dir=str(tmpdir))
         dm = ClassifDataModule()
         res = trainer.test(model, datamodule=dm)
-        assert res[0]['test_loss'] <= 0.7
-        assert res[0]['test_acc'] >= 0.85
+        assert res[0]["test_loss"] <= 0.7
+        assert res[0]["test_acc"] >= 0.85
         print(res)
 
 
 class LimitNbEpochs(Callback):
-
     def __init__(self, nb: int):
         self.limit = nb
         self._count = 0
 
-    def on_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+    def on_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._count += 1
         if self._count >= self.limit:
             trainer.should_stop = True
@@ -101,10 +100,10 @@ class LimitNbEpochs(Callback):
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
-    with patch('sys.path', [PATH_LEGACY] + sys.path):
+    with patch("sys.path", [PATH_LEGACY] + sys.path):
         from simple_classif_training import ClassifDataModule, ClassificationModel
 
-        path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f'*{CHECKPOINT_EXTENSION}')))
+        path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f"*{CHECKPOINT_EXTENSION}")))
         assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]
 
@@ -121,10 +120,10 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             max_epochs=21,
             accumulate_grad_batches=2,
             deterministic=True,
-            resume_from_checkpoint=path_ckpt
+            resume_from_checkpoint=path_ckpt,
         )
         trainer.fit(model, datamodule=dm)
         res = trainer.test(model, datamodule=dm)
-        assert res[0]['test_loss'] <= 0.7
-        assert res[0]['test_acc'] >= 0.85
+        assert res[0]["test_loss"] <= 0.7
+        assert res[0]["test_acc"] >= 0.85
         print(res)
