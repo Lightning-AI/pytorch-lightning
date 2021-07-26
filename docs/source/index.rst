@@ -104,7 +104,11 @@ PyTorch Lightning Documentation
    clouds/cluster
    common/child_modules
    common/debugging
+<<<<<<< HEAD
    common/early_stopping
+=======
+   common/loggers
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
    common/hyperparameters
    common/production_inference
    advanced/ipu
@@ -116,7 +120,10 @@ PyTorch Lightning Documentation
    common/weights_loading
    common/optimizers
    advanced/profiler
+<<<<<<< HEAD
    advanced/sequences
+=======
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
    common/single_gpu
    advanced/training_tricks
    advanced/pruning_quantization

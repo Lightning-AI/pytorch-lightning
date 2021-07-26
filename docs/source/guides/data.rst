@@ -1,8 +1,13 @@
 
 .. testsetup:: *
 
+<<<<<<< HEAD
     from pytorch_lightning.core.lightning import LightningModule
     from torch.utils.data import IterableDataset
+=======
+    from pytorch_lightning.core.Lightning import LightningModule
+    from torch.utils.data import IterableDataSet
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
     from pytorch_lightning.trainer.trainer import Trainer
 
 .. _data:
@@ -13,6 +18,7 @@ Managing Data
 
 Continue reading to learn about:
 
+<<<<<<< HEAD
 * `<Data Containers in Lightning_>`_
 
 * `Iterating over multiple datasets <Multiple DataSets_>`_
@@ -24,6 +30,19 @@ Data Containers in Lightning
 ****************************
 
 There are a few different data containers used in Lightning:
+=======
+* `<Data Objects in Lightning_>`_
+
+* `Iterate over multiple datasets <Multiple DataSets_>`_
+
+* `Handle sequential data <Sequential Data_>`_
+
+*************************
+Data Objects in Lightning
+*************************
+
+There are a few different Data objects used in Lightning:
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
 .. list-table:: Data objects
    :widths: 20 80
@@ -33,6 +52,7 @@ There are a few different data containers used in Lightning:
      - Definition
    * - :class:`~torch.utils.data.Dataset`
      - The PyTorch :class:`~torch.utils.data.Dataset` represents a map from keys to data samples.
+<<<<<<< HEAD
    * - :class:`~torch.utils.data.IterableDataset`
      - The PyTorch :class:`~torch.utils.data.IterableDataset` represents a stream of data.
    * - :class:`~torch.utils.data.DataLoader`
@@ -44,6 +64,12 @@ Why LightningDataModules?
 =========================
 
 The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
+=======
+   * - :class:`~torch.utils.data.DataLoader`
+     - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a DataSet.
+   * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
+     - A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of a training DataLoader, validation DataLoader(s) and test DataLoader(s), along with the matching transforms and data processing/downloads steps required.
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
 Read :ref:`this <datamodules>` for more details on LightningDataModules.
 
@@ -51,12 +77,21 @@ Read :ref:`this <datamodules>` for more details on LightningDataModules.
 .. _multiple-training-dataloaders:
 
 *****************
+<<<<<<< HEAD
 Multiple Datasets
 *****************
 
 There are a few ways to pass multiple Datasets to Lightning:
 
 1. Create a DataLoader that iterates over multiple Datasets under the hood.
+=======
+Multiple DataSets
+*****************
+
+There are a few ways to pass multiple DataSets to Lightning:
+
+1. Create a DataLoader that iterates over multiple DataSets under the hood.
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
    will automatically combine the batches from different DataLoaders.
 3. In the validation and test loop you have the option to return multiple DataLoaders,
@@ -65,6 +100,7 @@ There are a few ways to pass multiple Datasets to Lightning:
 
 Using LightningDataModule
 =========================
+<<<<<<< HEAD
 
 You can set more than one :class:`~torch.utils.data.DataLoader` in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` using its dataloader hooks
 and Lightning will use the correct one under-the-hood.
@@ -90,6 +126,12 @@ and Lightning will use the correct one under-the-hood.
         def predict_dataloader(self):
             return torch.utils.data.DataLoader(self.predict_dataset)
 
+=======
+You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule`, and Lightning will handle the
+combination batch under-the-hood.
+
+TODO: add code snippet.
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
 Using LightningModule hooks
 ===========================
@@ -97,13 +139,19 @@ Using LightningModule hooks
 Concatenated DataSet
 --------------------
 For training with multiple datasets you can create a :class:`~torch.utils.data.dataloader` class
+<<<<<<< HEAD
 which wraps your multiple datasets (this of course also works for testing and validation
 datasets).
+=======
+which wraps your multiple DataSets (this of course also works for testing and validation
+DataSets).
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
 (`reference <https://discuss.pytorch.org/t/train-simultaneously-on-two-DataSets/649/2>`_)
 
 .. testcode::
 
+<<<<<<< HEAD
     class ConcatDataset(torch.utils.data.Dataset):
         def __init__(self, *datasets):
             self.datasets = datasets
@@ -113,10 +161,22 @@ datasets).
 
         def __len__(self):
             return min(len(d) for d in self.datasets)
+=======
+    class ConcatDataSet(torch.utils.data.DataSet):
+        def __init__(self, *DataSets):
+            self.DataSets = DataSets
+
+        def __getitem__(self, i):
+            return tuple(d[i] for d in self.DataSets)
+
+        def __len__(self):
+            return min(len(d) for d in self.DataSets)
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
     class LitModel(LightningModule):
 
         def train_dataloader(self):
+<<<<<<< HEAD
             concat_dataset = ConcatDataset(
                 datasets.ImageFolder(traindir_A),
                 datasets.ImageFolder(traindir_B)
@@ -124,6 +184,15 @@ datasets).
 
             loader = torch.utils.data.DataLoader(
                 concat_dataset,
+=======
+            concat_DataSet = ConcatDataSet(
+                DataSets.ImageFolder(traindir_A),
+                DataSets.ImageFolder(traindir_B)
+            )
+
+            loader = torch.utils.data.DataLoader(
+                concat_DataSet,
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
                 batch_size=args.batch_size,
                 shuffle=True,
                 num_workers=args.workers,
@@ -198,10 +267,17 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 
             # pass loaders as a nested dict. This will create batches like this:
             loaders = {
+<<<<<<< HEAD
                 'loaders_a_b': [
                     loader_a,
                     loader_b
                 ],
+=======
+                'loaders_a_b': {
+                    'a': loader_a,
+                    'b': loader_b
+                },
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
                 'loaders_c_d': {
                     'c': loader_c,
                     'd': loader_d
@@ -214,15 +290,24 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_a_b = batch["loaders_a_b"]
             batch_c_d = batch["loaders_c_d"]
 
+<<<<<<< HEAD
             batch_a = batch_a_b[0]
             batch_b = batch_a_b[1]
+=======
+            batch_a = batch_a_b["a"]
+            batch_b = batch_a_b["a"]
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
 
 ----------
 
+<<<<<<< HEAD
 Multiple Validation/Test Datasets
+=======
+Multiple validation/test datasets
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 =================================
 For validation and test DataLoaders, you can pass a single DataLoader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. You can choose to pass
@@ -259,7 +344,11 @@ needs to wrap the DataLoaders with `CombinedLoader`.
 Test with additional data loaders
 =================================
 You can run inference on a test set even if the :func:`~pytorch_lightning.core.Lightning.LightningModule.test_dataloader` method hasn't been
+<<<<<<< HEAD
 defined within your :class:`~pytorch_lightning.core.Lightning.LightningModule` instance. For example, this would be the case if your test data
+=======
+defined within your :class:`~pytorch_lightning.core.Lightning.LightningModule` instance. For example, rhis would be the case if your test data
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 set is not available at the time your model was declared. Simply pass the test set to the :func:`~pytorch_lightning.trainer.trainer.Trainer.test` method:
 
 .. code-block:: python
@@ -287,7 +376,11 @@ Packed sequences as inputs
 ==========================
 When using PackedSequence, do 2 things:
 
+<<<<<<< HEAD
 1. Return either a padded tensor in dataset or a list of variable length tensors in the DataLoader collate_fn (example shows the list implementation).
+=======
+1. Return either a padded tensor in DataSet or a list of variable length tensors in the DataLoader collate_fn (example shows the list implementation).
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 2. Pack the sequence in forward or training and validation steps depending on use case.
 
 .. testcode::
@@ -305,12 +398,21 @@ When using PackedSequence, do 2 things:
 
 ----------
 
+<<<<<<< HEAD
 Truncated Backpropagation Through Time (TBPTT)
 ==============================================
 There are times when multiple backwards passes are needed for each batch.
 For example, it may save memory to use Truncated Backpropagation Through Time when training RNNs.
 
 Lightning can handle TBPTT automatically via this flag.
+=======
+Truncated Backpropagation Through Time
+======================================
+There are times when multiple backwards passes are needed for each batch.
+For example, it may save memory to use Truncated Backpropagation Through Time when training RNNs.
+
+Lightning can handle TBTT automatically via this flag.
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
 .. testcode::
 
@@ -339,6 +441,7 @@ Lightning can handle TBPTT automatically via this flag.
 
 ----------
 
+<<<<<<< HEAD
 Iterable Datasets
 =================
 Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
@@ -350,12 +453,30 @@ option when using sequential data.
     interval when ``val_check_interval`` is less than one. Similarly, you can set ``limit_{mode}_batches`` to a float or
     an int. If it is set to 0.0 or 0 it will set ``num_{mode}_batches`` to 0, if it is an int it will set ``num_{mode}_batches``
     to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole dataset, otherwise it will throw an exception.
+=======
+Iterable DataSets
+=================
+Lightning supports using IterableDataSets as well as map-style DataSets. IterableDataSets provide a more natural
+option when using sequential data.
+
+.. note:: When using an IterableDataSet you must set the ``val_check_interval`` to 1.0 (the default) or an int
+    (specifying the number of training batches to run before validation) when initializing the Trainer. This is
+    because the IterableDataSet does not have a ``__len__`` and Lightning requires this to calculate the validation
+    interval when ``val_check_interval`` is less than one. Similarly, you can set ``limit_{mode}_batches`` to a float or
+    an int. If it is set to 0.0 or 0 it will set ``num_{mode}_batches`` to 0, if it is an int it will set ``num_{mode}_batches``
+    to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole DataSet, otherwise it will throw an exception.
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
     Here mode can be train/val/test.
 
 .. testcode::
 
+<<<<<<< HEAD
     # IterableDataset
     class CustomDataset(IterableDataset):
+=======
+    # IterableDataSet
+    class CustomDataSet(IterableDataSet):
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
 
         def __init__(self, data):
             self.data_source
@@ -366,9 +487,15 @@ option when using sequential data.
     # Setup DataLoader
     def train_dataloader(self):
         seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
+<<<<<<< HEAD
         iterable_dataset = CustomDataset(seq_data)
 
         dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
+=======
+        iterable_DataSet = CustomDataSet(seq_data)
+
+        dataloader = DataLoader(DataSet=iterable_DataSet, batch_size=5)
+>>>>>>> d5728ab49409cd9df2a7ca22e60055d9940d2dde
         return dataloader
 
 .. testcode::
