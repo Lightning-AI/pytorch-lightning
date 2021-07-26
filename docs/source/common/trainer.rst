@@ -225,8 +225,6 @@ The accelerator backend to use (previously known as distributed_backend).
 
 .. testcode::
 
-.. code-block:: python
-
     # default used by the Trainer
     trainer = Trainer(accelerator=None)
 
