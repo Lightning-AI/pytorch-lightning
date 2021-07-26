@@ -15,7 +15,7 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 
@@ -282,19 +282,10 @@ class TrainerCallbackHookMixin(ABC):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
-
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        if callback_states is not None:
-            for callback in self.callbacks:
-                state = callback_states.get(
-                    callback.state_identifier, callback_states.get(callback._legacy_state_identifier)
-                )
-                if state:
-                    state = deepcopy(state)
-                    callback.on_load_checkpoint(state)
-
         if callback_states is None:
             return
 
@@ -309,7 +300,9 @@ class TrainerCallbackHookMixin(ABC):
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(type(callback))
+            state = callback_states.get(
+                callback.state_identifier, callback_states.get(callback._legacy_state_identifier)
+            )
             if state:
                 state = deepcopy(state)
                 if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):

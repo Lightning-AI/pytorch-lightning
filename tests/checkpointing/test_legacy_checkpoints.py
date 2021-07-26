@@ -18,8 +18,9 @@ from pathlib import Path
 
 import pytest
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from tests import _PATH_LEGACY
+from tests.helpers import BoringModel
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
@@ -110,7 +111,7 @@ class OldStatefulCallback(Callback):
     def on_save_checkpoint(self, *args):
         return {"state": self.state}
 
-    def on_load_checkpoint(self, callback_state):
+    def on_load_checkpoint(self, trainer, pl_module, callback_state):
         self.state = callback_state["state"]
 
 
