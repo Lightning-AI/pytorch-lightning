@@ -14,6 +14,7 @@
 import pytest
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.migration.base import get_version, set_version
 from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
 
@@ -23,19 +24,19 @@ from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
     [
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best": 0.34},
-            {"epoch": 1, "global_step": 23, "callbacks": {"ModelCheckpoint": {"best_model_score": 0.34}}},
+            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.34}}},
         ),
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best_model_score": 0.99},
-            {"epoch": 1, "global_step": 23, "callbacks": {"ModelCheckpoint": {"best_model_score": 0.99}}},
+            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.99}}},
         ),
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best_model_path": "path"},
-            {"epoch": 1, "global_step": 23, "callbacks": {"ModelCheckpoint": {"best_model_path": "path"}}},
+            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_path": "path"}}},
         ),
         (
             {"epoch": 1, "global_step": 23, "early_stop_callback_wait": 2, "early_stop_callback_patience": 4},
-            {"epoch": 1, "global_step": 23, "callbacks": {"EarlyStopping": {"wait_count": 2, "patience": 4}}},
+            {"epoch": 1, "global_step": 23, "callbacks": {EarlyStopping: {"wait_count": 2, "patience": 4}}},
         ),
     ],
 )

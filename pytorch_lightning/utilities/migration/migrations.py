@@ -26,21 +26,9 @@ def migrate_model_checkpoint_early_stopping(checkpoint: dict) -> dict:
     return checkpoint
 
 
-# v1.3.1
-def migrate_callback_state_identifiers(checkpoint):
-    if "callbacks" not in checkpoint:
-        return
-    callbacks = checkpoint["callbacks"]
-    checkpoint["callbacks"] = dict((callback_type.__name__, state) for callback_type, state in callbacks.items())
-    return checkpoint
-
-
 def migrate_checkpoint(checkpoint: dict):
     """Applies all the above migrations in order."""
     if should_upgrade(checkpoint, "0.10.0"):
         migrate_model_checkpoint_early_stopping(checkpoint)
-    if should_upgrade(checkpoint, "1.3.0"):
-        migrate_callback_state_identifiers(checkpoint)
-        set_version(checkpoint, "1.3.0")
     set_version(checkpoint, pl.__version__)
     return checkpoint
