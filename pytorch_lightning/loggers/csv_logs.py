@@ -19,7 +19,6 @@ CSV logger for basic experiment logging that does not require opening ports
 
 """
 import csv
-import io
 import logging
 import os
 from argparse import Namespace
