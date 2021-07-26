@@ -36,7 +36,7 @@ def migrate_callback_state_identifiers(checkpoint):
 
 
 def migrate_checkpoint(checkpoint: dict):
-    """ Applies all the above migrations in order. """
+    """Applies all the above migrations in order."""
     if should_upgrade(checkpoint, "0.10.0"):
         migrate_model_checkpoint_early_stopping(checkpoint)
     if should_upgrade(checkpoint, "1.3.0"):

@@ -115,24 +115,15 @@ class OldStatefulCallback(Callback):
 
 
 def test_resume_callback_state_saved_by_type(tmpdir):
-    """ Test that a legacy checkpoint that didn't use a state identifier before can still be loaded. """
+    """Test that a legacy checkpoint that didn't use a state identifier before can still be loaded."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        callbacks=[callback],
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
     trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=2,
-        callbacks=[callback],
-        resume_from_checkpoint=ckpt_path,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
     trainer.fit(model)
     assert callback.state == 111
