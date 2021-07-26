@@ -137,6 +137,7 @@ class QuantizationAwareTraining(Callback):
 
         disable_observers: disable fake-quantization modules' observers during the provided stages:
 
+            - ``'train'``: the observers will be disabled during training.
             - ``'validate'``: the observers will be disabled during validating.
               Note that we don't disable observers during the sanity check as the model hasn't been calibrated with
               training data yet. After the sanity check, the fake-quantization modules are restored to initial states.
@@ -153,7 +154,7 @@ class QuantizationAwareTraining(Callback):
     """
 
     OBSERVER_TYPES = ("histogram", "average")
-    DISABLE_OBSERVER_STAGES = ("validate", "test", "predict")
+    ALL_DISABLE_OBSERVER_STAGES = ("train", "validate", "test", "predict")
 
     def __init__(
         self,
@@ -189,10 +190,11 @@ class QuantizationAwareTraining(Callback):
         self._convert_on_fit_end = quantize_on_fit_end
 
         disable_observers = set(disable_observers)
-        unsupported_stages = disable_observers - set(self.DISABLE_OBSERVER_STAGES)
+        unsupported_stages = disable_observers - set(self.ALL_DISABLE_OBSERVER_STAGES)
         if unsupported_stages:
             raise MisconfigurationException(
-                f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.DISABLE_OBSERVER_STAGES}.'
+                f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are '
+                f"{self.ALL_DISABLE_OBSERVER_STAGES}."
             )
         self._disable_observer_stages = disable_observers
 
@@ -277,6 +279,14 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
         else:
             pl_module.forward = self.__module_forward
+
+    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "train" in self._disable_observer_stages:
+            self._disable_observer(pl_module)
+
+    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if "train" in self._disable_observer_stages:
+            self._restore_last_observer_enabled()
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "validate" in self._disable_observer_stages and not trainer.sanity_checking:

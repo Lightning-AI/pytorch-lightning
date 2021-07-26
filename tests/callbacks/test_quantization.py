@@ -26,7 +26,7 @@ except ImportError:
     # For torch 1.6 and 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
@@ -162,7 +162,7 @@ class CheckObserverDisabledModel(RegressionModel):
 
     - The fake-quantization modules are restored to initial states after the sanity check if observers should be
       disabled during validating.
-    - The observers belonging to fake-quantization modules are disabled during validating/testing/predicting.
+    - The observers belonging to fake-quantization modules are disabled during training/validating/testing/predicting.
 
     The ``CheckObserverDisabledModel`` may disable all observers after ``disable_observers_after_step`` steps.
 
@@ -224,6 +224,14 @@ class CheckObserverDisabledModel(RegressionModel):
 
         return result
 
+    def on_train_start(self):
+        self._last_train_fake_quant_to_observer_enabled = self._collect_observer_enabled()
+        self._check_observer_state("train" in self._disable_observers)
+
+    def on_train_end(self):
+        if "train" in self._disable_observers:
+            self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
+
     def on_validation_start(self):
         self._check_observer_state("validate" in self._disable_observers and not self.trainer.sanity_checking)
 
@@ -249,8 +257,17 @@ class CheckObserverDisabledModel(RegressionModel):
             self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
 
 
+class BeforeTrainingCalibration(Callback):
+
+    def on_train_start(self, trainer, pl_module):
+        pl_module.training_step(next(iter(trainer.train_dataloader)), 0)
+
+
 @pytest.mark.parametrize("observe", ["average", "histogram"])
-@pytest.mark.parametrize("disable_observers", [("validate", "test", "predict"), ("validate",), ()])
+@pytest.mark.parametrize(
+    "disable_observers",
+    [("validate", "test", "predict"), ("train", "validate", "test", "predict"), ("validate",), ()]
+)
 @RunIf(quantization=True)
 def test_disable_observers(tmpdir, observe, disable_observers):
     """Test disabling observers"""
@@ -271,8 +288,12 @@ def test_disable_observers(tmpdir, observe, disable_observers):
             weight=torch.quantization.get_default_qat_qconfig(backend=qconfig).weight,
         )
     qcb = QuantizationAwareTraining(qconfig=qconfig, quantize_on_fit_end=False, disable_observers=disable_observers)
+    if "train" in disable_observers:
+        callbacks = [BeforeTrainingCalibration(), qcb]
+    else:
+        callbacks = [qcb]
     trainer = Trainer(
-        callbacks=[qcb],
+        callbacks=callbacks,
         default_root_dir=tmpdir,
         limit_train_batches=5,
         limit_val_batches=1,
