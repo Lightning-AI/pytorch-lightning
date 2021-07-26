@@ -286,7 +286,7 @@ class TrainerCallbackHookMixin(ABC):
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
-        
+
         if callback_states is None:
             return
 
@@ -301,9 +301,7 @@ class TrainerCallbackHookMixin(ABC):
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(
-                callback.state_id, callback_states.get(callback._legacy_state_id)
-            )
+            state = callback_states.get(callback.state_id, callback_states.get(callback._legacy_state_id))
             if state:
                 state = deepcopy(state)
                 if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):

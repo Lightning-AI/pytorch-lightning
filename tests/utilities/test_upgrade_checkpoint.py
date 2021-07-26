@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import pytorch_lightning as pl
 
-from pytorch_lightning.utilities.migration.base import set_version, get_version
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.migration.base import get_version, set_version
 from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
 
 
