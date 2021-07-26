@@ -107,7 +107,7 @@ class ConfigValidator:
             loaders = getattr(model, loader_name)()
             len_loaders = 1 if not isinstance(loaders, list) else len(loaders)
             if 'args' in sig_args:  # positional arg work with both single and multi dataloader
-                pass
+                return
             if 'args' not in sig_args and 'kwargs' in sig_args:
                 raise MisconfigurationException(
                     f'Method {step_name} does not work with single `kwargs` argument. Either change the signature'
