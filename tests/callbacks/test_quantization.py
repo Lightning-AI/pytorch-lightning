@@ -13,11 +13,17 @@
 # limitations under the License.
 import collections
 import copy
-from typing import Callable, Union
+from typing import Callable, Dict, Union
 
 import pytest
 import torch
 from torchmetrics.functional import mean_absolute_percentage_error as mape
+from torch import Tensor
+try:
+    from torch.quantization import FakeQuantizeBase
+except ImportError:
+    # For torch 1.6 and 1.7.
+    from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
@@ -173,7 +179,7 @@ class CheckObserverDisabledModel(RegressionModel):
         self._fake_quant_to_initial_state = {}
         self._last_train_fake_quant_to_observer_enabled = {}
 
-    def _collect_observer_enabled(self):
+    def _collect_observer_enabled(self) -> Dict[FakeQuantizeBase, Tensor]:
         return {fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quants}
 
     def _assert_fake_quant_initial_state(self):
@@ -204,7 +210,7 @@ class CheckObserverDisabledModel(RegressionModel):
 
     def on_fit_start(self):
         self._fake_quants = tuple(
-            module for module in self.modules() if isinstance(module, torch.quantization.FakeQuantizeBase)
+            module for module in self.modules() if isinstance(module, FakeQuantizeBase)
         )
         self._fake_quant_to_initial_state = {fake_quant: fake_quant.state_dict() for fake_quant in self._fake_quants}
         self._last_train_fake_quant_to_observer_enabled = self._collect_observer_enabled()

@@ -22,7 +22,11 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 import torch
 from torch import Tensor
 from torch.quantization import QConfig
-from torch.quantization import FakeQuantizeBase
+try:
+    from torch.quantization import FakeQuantizeBase
+except ImportError:
+    # For torch 1.6 and 1.7.
+    from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
