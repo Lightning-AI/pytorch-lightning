@@ -17,9 +17,12 @@ Quantization
 
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
+from torch import Tensor
+from torch.quantization import QConfig
+from torch.quantization import FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -200,7 +203,7 @@ class QuantizationAwareTraining(Callback):
                 )
         return True
 
-    def _collect_observer_enabled(self):
+    def _collect_observer_enabled(self) -> Dict[FakeQuantizeBase, Tensor]:
         return {
             fake_quant: fake_quant.observer_enabled.clone()
             for fake_quant in self._fake_quant_to_initial_state_dict
@@ -250,7 +253,7 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
         fake_quants = tuple(
-            module for module in pl_module.modules() if isinstance(module, torch.quantization.FakeQuantizeBase)
+            module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase)
         )
         self._fake_quant_to_initial_state_dict = {fake_quant: fake_quant.state_dict() for fake_quant in fake_quants}
 
