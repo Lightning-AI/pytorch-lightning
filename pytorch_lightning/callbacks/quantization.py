@@ -188,7 +188,7 @@ class QuantizationAwareTraining(Callback):
         self._convert_on_fit_end = quantize_on_fit_end
 
         disable_observers = set(disable_observers)
-        unsupported_stages = set(disable_observers) - set(self.DISABLE_OBSERVER_STAGES)
+        unsupported_stages = disable_observers - set(self.DISABLE_OBSERVER_STAGES)
         if unsupported_stages:
             raise MisconfigurationException(
                 f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.DISABLE_OBSERVER_STAGES}.'
