@@ -504,7 +504,7 @@ class Trainer(
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -561,7 +561,7 @@ class Trainer(
         ckpt_path: Optional[str] = "best",
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # noqa TODO: remove with 1.6
+        val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -638,7 +638,7 @@ class Trainer(
         ckpt_path: Optional[str] = "best",
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # noqa TODO: remove with 1.6
+        test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
@@ -787,7 +787,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
