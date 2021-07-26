@@ -577,7 +577,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx  # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa: E225
                     self.manual_backward(loss_1, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
@@ -634,7 +634,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx  # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa: E225
                     self.manual_backward(loss_1, retain_graph=retain_graph)
 
             opt.step(closure=optimizer_closure)

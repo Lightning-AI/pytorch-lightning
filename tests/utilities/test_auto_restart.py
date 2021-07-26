@@ -398,7 +398,7 @@ class MetaLearningDataset(IterableDataset):
 
         if (isinstance(global_rank, int) and world_size is None) or (
             isinstance(world_size, int) and global_rank is None
-        ):  # noqa E129
+        ):  # noqa: E129
             raise MisconfigurationException("Both ``world_size`` and ``global_rank`` should be provided !")
 
         self.unique_labels = np.unique(self.labels)

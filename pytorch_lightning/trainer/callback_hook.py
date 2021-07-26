@@ -273,7 +273,7 @@ class TrainerCallbackHookMixin(ABC):
                     " A `checkpoint` parameter has been added."
                     " Support for the old signature will be removed in v1.5"
                 )
-                state = callback.on_save_checkpoint(self, self.lightning_module)  # noqa: parameter-unfilled
+                state = callback.on_save_checkpoint(self, self.lightning_module)
             else:
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
@@ -312,7 +312,7 @@ class TrainerCallbackHookMixin(ABC):
                         " `trainer` and `pl_module` parameters have been added."
                         " Support for the old signature will be removed in v1.5"
                     )
-                    callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
+                    callback.on_load_checkpoint(state)
                 else:
                     callback.on_load_checkpoint(self, self.lightning_module, state)
 
