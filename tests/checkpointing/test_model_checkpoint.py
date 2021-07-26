@@ -45,7 +45,7 @@ from tests.helpers.runif import RunIf
 
 def test_model_checkpoint_state_identifier():
     early_stopping = ModelCheckpoint(monitor="val_loss")
-    assert early_stopping.state_identifier == "ModelCheckpoint[monitor=val_loss]"
+    assert early_stopping.state_id == "ModelCheckpoint[monitor=val_loss]"
 
 
 class LogInTwoMethods(BoringModel):
