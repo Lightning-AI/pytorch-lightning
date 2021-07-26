@@ -158,12 +158,11 @@ def test_trainer_manual_optimization_config(tmpdir):
 
 @pytest.mark.parametrize("stage", ["val", "test"])
 def test_error_on_dataloader_idx(tmpdir, stage):
-    """ Test error message when dataloader_idx should and should not be present in _step methods """
+    """Test error message when dataloader_idx should and should not be present in _step methods"""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    step_name = 'validation_step' if stage == 'val' else 'test_step'
+    step_name = "validation_step" if stage == "val" else "test_step"
 
     class TestModel(BoringModel):
-
         def validation_step(self, batch, batch_idx, dataloader_idx):
             return super().validation_step(batch, batch_idx)
 
@@ -173,18 +172,17 @@ def test_error_on_dataloader_idx(tmpdir, stage):
     # _step method has dataloader_idx argument but only one loader and no default
     with pytest.raises(
         MisconfigurationException,
-        match=f'You provided only a single {stage}'
-        f' dataloader, but have included the `dataloader_idx` in the {step_name} method.'
-        ' Either remove the argument or give it a default value i.e. `dataloader_idx=0`.'
+        match=f"You provided only a single {stage}"
+        f" dataloader, but have included the `dataloader_idx` in the {step_name} method."
+        " Either remove the argument or give it a default value i.e. `dataloader_idx=0`.",
     ):
         model = TestModel()
-        if stage == 'val':
+        if stage == "val":
             trainer.fit(model)
         else:
             trainer.test(model)
 
     class TestModel(BoringModel):
-
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
@@ -194,18 +192,16 @@ def test_error_on_dataloader_idx(tmpdir, stage):
     # _step methods does not have dataloader_idx argument and multiple loaders
     with pytest.raises(
         MisconfigurationException,
-        match=f'You provided multiple {stage} dataloaders,'
-        f' but no `dataloader_idx` argument given in {step_name}.'
+        match=f"You provided multiple {stage} dataloaders," f" but no `dataloader_idx` argument given in {step_name}.",
     ):
         model = TestModel()
-        if stage == 'val':
+        if stage == "val":
             trainer.fit(model)
         else:
             trainer.test(model)
 
     # _step method needs a positional argument regardless of number of loaders
     class TestModel(BoringModel):
-
         def validation_step(self, **kwargs):
             return super().validation_step(**kwargs)
 
@@ -214,11 +210,10 @@ def test_error_on_dataloader_idx(tmpdir, stage):
 
     with pytest.raises(
         MisconfigurationException,
-        match=f'Method {step_name} does not work with single `kwargs` argument.'
-        ' Either change the signature to .*'
+        match=f"Method {step_name} does not work with single `kwargs` argument." " Either change the signature to .*",
     ):
         model = TestModel()
-        if stage == 'val':
+        if stage == "val":
             trainer.fit(model)
         else:
             trainer.test(model)

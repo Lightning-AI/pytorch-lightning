@@ -100,30 +100,30 @@ class ConfigValidator:
         if has_loader and not has_step:
             rank_zero_warn(f"you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop")
         if has_step and not has_loader:
-            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
+            rank_zero_warn(f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop")
         if has_step and has_loader:
             sig_args = inspect.signature(getattr(model, step_name)).parameters
             len_args = len(sig_args)
             loaders = getattr(model, loader_name)()
             len_loaders = 1 if not isinstance(loaders, list) else len(loaders)
-            if 'args' in sig_args:  # positional arg work with both single and multi dataloader
+            if "args" in sig_args:  # positional arg work with both single and multi dataloader
                 return
-            if 'args' not in sig_args and 'kwargs' in sig_args:
+            if "args" not in sig_args and "kwargs" in sig_args:
                 raise MisconfigurationException(
-                    f'Method {step_name} does not work with single `kwargs` argument. Either change the signature'
-                    f' to `{step_name}(self, batch, batch_idx, dataloader_idx=0)`'
-                    f' or `{step_name}(self, *args, **kwargs)`'
+                    f"Method {step_name} does not work with single `kwargs` argument. Either change the signature"
+                    f" to `{step_name}(self, batch, batch_idx, dataloader_idx=0)`"
+                    f" or `{step_name}(self, *args, **kwargs)`"
                 )
             elif len_args == 2 and len_loaders != 1:
                 raise MisconfigurationException(
-                    f'You provided multiple {stage} dataloaders, but no `dataloader_idx` argument'
-                    f' given in {step_name}.'
+                    f"You provided multiple {stage} dataloaders, but no `dataloader_idx` argument"
+                    f" given in {step_name}."
                 )
-            elif len_args == 3 and len_loaders < 2 and sig_args['dataloader_idx'].default is inspect.Parameter.empty:
+            elif len_args == 3 and len_loaders < 2 and sig_args["dataloader_idx"].default is inspect.Parameter.empty:
                 raise MisconfigurationException(
-                    f'You provided only a single {stage} dataloader, but have included the `dataloader_idx`'
-                    f' in the {step_name} method. Either remove the argument or give it a default value'
-                    ' i.e. `dataloader_idx=0`.'
+                    f"You provided only a single {stage} dataloader, but have included the `dataloader_idx`"
+                    f" in the {step_name} method. Either remove the argument or give it a default value"
+                    " i.e. `dataloader_idx=0`."
                 )
 
     def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
