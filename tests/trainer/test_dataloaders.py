@@ -21,7 +21,6 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
@@ -988,69 +987,6 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
     assert trainer.current_epoch == 1
 
 
-@RunIf(min_gpus=2)
-def test_dataloader_reinit_for_subclass(tmpdir):
-
-    class CustomDataLoader(torch.utils.data.DataLoader):
-
-        def __init__(
-            self,
-            dataset,
-            batch_size=1,
-            shuffle=False,
-            sampler=None,
-            batch_sampler=None,
-            num_workers=0,
-            collate_fn=None,
-            pin_memory=False,
-            drop_last=False,
-            timeout=0,
-            worker_init_fn=None,
-            dummy_kwarg=None,
-            **kwargs
-        ):
-            super().__init__(
-                dataset, batch_size, shuffle, sampler, batch_sampler, num_workers, collate_fn, pin_memory, drop_last,
-                timeout, worker_init_fn
-            )
-
-            self.dummy_kwarg = dummy_kwarg
-
-    trainer = Trainer(
-        gpus=[0, 1],
-        num_nodes=1,
-        accelerator='ddp_spawn',
-        default_root_dir=tmpdir,
-    )
-
-    class CustomDummyObj:
-        sampler = None
-
-    result = trainer.auto_add_sampler(CustomDummyObj(), shuffle=True)
-    assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
-
-    dataset = list(range(1000))
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset), shuffle=True)
-    assert isinstance(result, torch.utils.data.DataLoader)
-    assert isinstance(result, CustomDataLoader)
-    assert hasattr(result, 'dummy_kwarg')
-
-    # Shuffled DataLoader should also work
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), shuffle=True)
-    assert isinstance(result, torch.utils.data.DataLoader)
-    assert isinstance(result, CustomDataLoader)
-    assert hasattr(result, 'dummy_kwarg')
-
-    class CustomSampler(torch.utils.data.Sampler):
-        pass
-
-    # Should raise an error if existing sampler is being replaced
-    with pytest.raises(MisconfigurationException, match='DistributedSampler'):
-        trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True
-        )
-
-
 class DistribSamplerCallback(Callback):
 
     def __init__(self, expected_seeds=(0, 0, 0)):
@@ -1540,23 +1476,6 @@ def test_dataloaders_reset_and_attach(tmpdir):
     # 2nd predict
     trainer.predict(model, dataloaders=dataloader_1)
     assert trainer.predict_dataloaders[0] is dataloader_1
-
-
-def test_replace_sampler_with_multiprocessing_context(tmpdir):
-    """
-    This test verifies that replace_sampler conserves multiprocessing context
-    """
-    train = RandomDataset(32, 64)
-    context = 'spawn'
-    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
-    trainer = Trainer(
-        max_epochs=1,
-        progress_bar_refresh_rate=20,
-        overfit_batches=5,
-    )
-
-    new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
-    assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
 
 
 @pytest.mark.parametrize('multiple_trainloader_mode', ["min_size", "max_size_cycle"])
