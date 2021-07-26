@@ -35,7 +35,7 @@ _logger = logging.getLogger(__name__)
 
 def test_early_stopping_state_identifier():
     early_stopping = EarlyStopping(monitor="val_loss")
-    assert early_stopping.state_identifier == "EarlyStopping[monitor=val_loss]"
+    assert early_stopping.state_id == "EarlyStopping[monitor=val_loss]"
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
