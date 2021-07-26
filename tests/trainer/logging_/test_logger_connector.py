@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from inspect import isfunction, getmembers
 from unittest import mock
 
 import pytest
@@ -29,7 +30,7 @@ from tests.helpers.runif import RunIf
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted([f for f in dir(Callback) if not f.startswith("_")])
+    funcs_name = sorted([f for f, _ in getmembers(Callback, predicate=isfunction) if not f.startswith("_")])
 
     callbacks_func = [
         "on_before_backward",
@@ -78,7 +79,6 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_start",
         "on_predict_start",
         "setup",
-        "state_id",
         "teardown",
     ]
 
@@ -106,7 +106,6 @@ def test_fx_validator(tmpdir):
         "on_train_end",
         "on_validation_end",
         "setup",
-        "state_id",
         "teardown",
     ]
 
