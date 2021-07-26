@@ -77,9 +77,9 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_end",
         "on_predict_epoch_start",
         "on_predict_start",
-        'setup',
+        "setup",
         "state_id",
-        'teardown',
+        "teardown",
     ]
 
     not_supported = [

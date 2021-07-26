@@ -100,7 +100,6 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
 
 class OldStatefulCallback(Callback):
-
     def __init__(self, state):
         self.state = state
 
