@@ -22,7 +22,6 @@ from tests.helpers.datasets import ExampleDataset
 
 
 class ClassificationModel(LightningModule):
-
     def __init__(self, lr=0.01):
         super().__init__()
 
@@ -55,25 +54,24 @@ class ClassificationModel(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        self.log('train_loss', loss, prog_bar=True)
-        self.log('train_acc', self.train_acc(logits, y), prog_bar=True)
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_acc", self.train_acc(logits, y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('val_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('val_acc', self.valid_acc(logits, y), prog_bar=True)
+        self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False)
+        self.log("val_acc", self.valid_acc(logits, y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('test_acc', self.test_acc(logits, y), prog_bar=True)
+        self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
+        self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
 
 class RegressionModel(LightningModule):
-
     def __init__(self):
         super().__init__()
         setattr(self, "layer_0", nn.Linear(16, 64))
@@ -106,21 +104,21 @@ class RegressionModel(LightningModule):
         x, y = batch
         out = self.forward(x)
         loss = F.mse_loss(out, y)
-        self.log('train_loss', loss, prog_bar=False)
-        self.log('train_MSE', self.train_mse(out, y), prog_bar=True)
+        self.log("train_loss", loss, prog_bar=False)
+        self.log("train_MSE", self.train_mse(out, y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
-        self.log('val_loss', F.mse_loss(out, y), prog_bar=False)
-        self.log('val_MSE', self.valid_mse(out, y), prog_bar=True)
+        self.log("val_loss", F.mse_loss(out, y), prog_bar=False)
+        self.log("val_MSE", self.valid_mse(out, y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
-        self.log('test_loss', F.mse_loss(out, y), prog_bar=False)
-        self.log('test_MSE', self.test_mse(out, y), prog_bar=True)
+        self.log("test_loss", F.mse_loss(out, y), prog_bar=False)
+        self.log("test_MSE", self.test_mse(out, y), prog_bar=True)
 
     @property
     def example_input_array(self):
@@ -133,9 +131,8 @@ class RegressionModel(LightningModule):
 
 
 class MultiInputModel(LightningModule):
-
     def __init__(self):
-        super(MultiInputModel, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(3, 8, kernel_size=3)
         self.ff = nn.quantized.FloatFunctional()
         self.triggered = False
@@ -164,11 +161,10 @@ class MultiInputModel(LightningModule):
 
 
 class MultiOutputModel(LightningModule):
-
     def __init__(self, output_dtype: type):
-        super(MultiOutputModel, self).__init__()
+        super().__init__()
         if output_dtype not in (list, tuple):
-            raise ValueError('output_dtype must be one of (list, tuple)')
+            raise ValueError("output_dtype must be one of (list, tuple)")
         self.output_dtype = output_dtype
         self.conv1 = nn.Conv2d(3, 8, kernel_size=3)
         self.conv2 = nn.Conv2d(8, 32, kernel_size=3)
@@ -181,7 +177,7 @@ class MultiOutputModel(LightningModule):
     def training_step(self, batch, batch_idx):
         """Dummy loss as-in BoringModel"""
         out = self.forward(batch)
-        loss = torch.tensor(0.)
+        loss = torch.tensor(0.0)
         for o in out:
             loss += torch.nn.functional.mse_loss(o, torch.ones_like(o))
         return loss

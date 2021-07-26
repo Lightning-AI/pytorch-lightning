@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import MultiInputModel, MultiOutputModel, RegressionModel
 
 
-@pytest.mark.parametrize("observe", ['average', 'histogram'])
+@pytest.mark.parametrize("observe", ["average", "histogram"])
 @pytest.mark.parametrize("fuse", [True, False])
 @pytest.mark.parametrize("convert", [True, False])
 @RunIf(quantization=True)
@@ -34,11 +34,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model"""
     seed_everything(42)
     dm = RegressDataModule()
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=7,
-        gpus=int(torch.cuda.is_available()),
-    )
+    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, gpus=int(torch.cuda.is_available()))
     model = RegressionModel()
     qmodel = copy.deepcopy(model)
 
@@ -47,7 +43,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     org_size = model.model_size
     org_score = torch.mean(torch.tensor([mean_relative_error(model(x), y) for x, y in dm.test_dataloader()]))
 
-    fusing_layers = [(f'layer_{i}', f'layer_{i}a') for i in range(3)] if fuse else None
+    fusing_layers = [(f"layer_{i}", f"layer_{i}a") for i in range(3)] if fuse else None
     qcb = QuantizationAwareTraining(observer_type=observe, modules_to_fuse=fusing_layers, quantize_on_fit_end=convert)
     trainer = Trainer(callbacks=[qcb], **trainer_args)
     trainer.fit(qmodel, datamodule=dm)
@@ -79,7 +75,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
 @RunIf(quantization=True)
 def test_quantize_torchscript(tmpdir):
-    """Test converting to torchscipt """
+    """Test converting to torchscipt"""
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(input_compatible=False)
@@ -96,28 +92,28 @@ def test_quantize_torchscript(tmpdir):
 @RunIf(quantization=True)
 def test_quantization_exceptions(tmpdir):
     """Test wrongly configured callback"""
-    with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
-        QuantizationAwareTraining(qconfig=['abc'])
+    with pytest.raises(MisconfigurationException, match="Unsupported qconfig"):
+        QuantizationAwareTraining(qconfig=["abc"])
 
-    with pytest.raises(MisconfigurationException, match='Unsupported observer type'):
-        QuantizationAwareTraining(observer_type='abc')
+    with pytest.raises(MisconfigurationException, match="Unsupported observer type"):
+        QuantizationAwareTraining(observer_type="abc")
 
-    with pytest.raises(MisconfigurationException, match='Unsupported `collect_quantization`'):
-        QuantizationAwareTraining(collect_quantization='abc')
+    with pytest.raises(MisconfigurationException, match="Unsupported `collect_quantization`"):
+        QuantizationAwareTraining(collect_quantization="abc")
 
-    with pytest.raises(MisconfigurationException, match='Unsupported `collect_quantization`'):
+    with pytest.raises(MisconfigurationException, match="Unsupported `collect_quantization`"):
         QuantizationAwareTraining(collect_quantization=1.2)
 
-    fusing_layers = [(f'layers.mlp_{i}', f'layers.NONE-mlp_{i}a') for i in range(3)]
+    fusing_layers = [(f"layers.mlp_{i}", f"layers.NONE-mlp_{i}a") for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match='one or more of them is not your model attributes'):
+    with pytest.raises(MisconfigurationException, match="one or more of them is not your model attributes"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
     model = RegressionModel()
     model.example_input_array = None
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
-    with pytest.warns(UserWarning, match='Defaulting to singular QuantStub'):
+    with pytest.warns(UserWarning, match="Defaulting to singular QuantStub"):
         trainer.fit(model, datamodule=RegressDataModule())
 
 
@@ -134,13 +130,8 @@ def custom_trigger_last(trainer):
 
 
 @pytest.mark.parametrize(
-    "trigger_fn,expected_count", [
-        (None, 10),
-        (3, 3),
-        (custom_trigger_never, 0),
-        (custom_trigger_even, 6),
-        (custom_trigger_last, 2),
-    ]
+    "trigger_fn,expected_count",
+    [(None, 10), (3, 3), (custom_trigger_never, 0), (custom_trigger_even, 6), (custom_trigger_last, 2)],
 )
 @RunIf(quantization=True)
 def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int):
@@ -149,11 +140,7 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)
     trainer = Trainer(
-        callbacks=[qcb],
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=4,
+        callbacks=[qcb], default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=4
     )
     trainer.fit(qmodel, datamodule=dm)
 
@@ -166,7 +153,7 @@ def test_quantize_wrapper_multi_input(tmpdir):
     trainer.fit(MultiInputModel(), datamodule=MultiInputDatamodule())
 
 
-@pytest.mark.parametrize('output_dtype', [list, tuple])
+@pytest.mark.parametrize("output_dtype", [list, tuple])
 def test_quantize_wrapper_multi_output(tmpdir, output_dtype):
     """Dequantize multiple output tensors in QAT forward wrappers"""
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)

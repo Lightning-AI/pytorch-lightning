@@ -117,9 +117,8 @@ class RegressDataModule(SklearnDataModule):
 
 
 class MultiInputDatamodule(LightningDataModule):
-
     def __init__(self, num_channels=3, size=28):
-        super(MultiInputDatamodule, self).__init__()
+        super().__init__()
         self.num_channels = num_channels
         self.size = size
 

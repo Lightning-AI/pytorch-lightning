@@ -220,8 +220,8 @@ class ExampleDataset(Dataset):
     """Feed the model's example input array"""
 
     def __init__(self, model_cls, num_samples=64):
-        super(ExampleDataset, self).__init__()
-        input_sample = getattr(model_cls, 'example_input_array')
+        super().__init__()
+        input_sample = getattr(model_cls, "example_input_array")
 
         # Undo batching so it's not duplicated by ``DataLoader``
         without_batch_axis = input_sample[0]
