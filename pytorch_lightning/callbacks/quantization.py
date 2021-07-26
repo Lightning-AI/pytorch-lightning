@@ -16,6 +16,7 @@ Quantization
 ^^^^^^^^^^^^
 
 """
+import copy
 import functools
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
@@ -257,7 +258,9 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
         fake_quants = tuple(module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase))
-        self._fake_quant_to_initial_state_dict = {fake_quant: fake_quant.state_dict() for fake_quant in fake_quants}
+        self._fake_quant_to_initial_state_dict = {
+            fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
+        }
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:

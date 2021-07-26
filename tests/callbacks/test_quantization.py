@@ -208,7 +208,9 @@ class CheckObserverDisabledModel(RegressionModel):
 
     def on_fit_start(self):
         self._fake_quants = tuple(module for module in self.modules() if isinstance(module, FakeQuantizeBase))
-        self._fake_quant_to_initial_state = {fake_quant: fake_quant.state_dict() for fake_quant in self._fake_quants}
+        self._fake_quant_to_initial_state = {
+            fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in self._fake_quants
+        }
         self._last_train_fake_quant_to_observer_enabled = self._collect_observer_enabled()
 
     def training_step(self, batch, batch_idx):
