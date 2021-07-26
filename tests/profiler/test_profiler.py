@@ -414,16 +414,12 @@ def test_pytorch_profiler_nested(tmpdir):
 
     events_name = {e.name for e in pytorch_profiler.function_events}
 
-    if platform.system() == "Windows":
-        expected = {'a', 'add', 'b', 'c', 'profiler::_record_function_enter', 'profiler::_record_function_exit'}
-    else:
-        expected = {'add', 'zeros', 'ones', 'zero_', 'b', 'fill_', 'c', 'a', 'empty'}
-
+    names = {'a', 'b', 'c'}
+    ops = {'add', 'empty', 'fill_', 'ones', 'zero_', 'zeros'}
     if Version(torch.__version__) >= Version("1.7.0"):
-        expected = {
-            'aten::zeros', 'aten::add', 'aten::zero_', 'c', 'b', 'a', 'aten::fill_', 'aten::empty', 'aten::ones'
-        }
+        ops = {'aten::' + op for op in ops}
 
+    expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
