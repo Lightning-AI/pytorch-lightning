@@ -41,9 +41,9 @@ def test_xla_stats_monitor(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
-    met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
+    met_data = np.genfromtxt(path_csv, delimiter=",", names=True, deletechars="", replace_space=" ")
 
-    fields = ['avg. free memory (MB)', 'avg. peak memory (MB)']
+    fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
 
     for f in fields:
         assert any(f in h for h in met_data.dtype.names)
@@ -56,15 +56,9 @@ def test_xla_stats_monitor_no_logger(tmpdir):
     model = BoringModel()
     xla_stats = XLAStatsMonitor()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[xla_stats],
-        max_epochs=1,
-        tpu_cores=[1],
-        logger=False,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_epochs=1, tpu_cores=[1], logger=False)
 
-    with pytest.raises(MisconfigurationException, match='Trainer that has no logger.'):
+    with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)
 
 
@@ -75,12 +69,7 @@ def test_xla_stats_monitor_no_tpu_warning(tmpdir):
     model = BoringModel()
     xla_stats = XLAStatsMonitor()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[xla_stats],
-        max_steps=1,
-        tpu_cores=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_steps=1, tpu_cores=None)
 
-    with pytest.raises(MisconfigurationException, match='not running on TPU'):
+    with pytest.raises(MisconfigurationException, match="not running on TPU"):
         trainer.fit(model)

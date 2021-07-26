@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
+    """Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -37,17 +37,13 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 
-    def pre_backward(
-        self,
-        model: 'pl.LightningModule',
-        closure_loss: torch.Tensor,
-    ) -> torch.Tensor:
+    def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
     def pre_optimizer_step(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,

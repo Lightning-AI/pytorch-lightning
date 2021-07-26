@@ -34,9 +34,9 @@ def str_to_bool_or_str(val: str) -> Union[str, bool]:
     are 'n', 'no', 'f', 'false', 'off', and '0'.
     """
     lower = val.lower()
-    if lower in ('y', 'yes', 't', 'true', 'on', '1'):
+    if lower in ("y", "yes", "t", "true", "on", "1"):
         return True
-    if lower in ('n', 'no', 'f', 'false', 'off', '0'):
+    if lower in ("n", "no", "f", "false", "off", "0"):
         return False
     return val
 
@@ -59,7 +59,7 @@ def str_to_bool(val: str) -> bool:
     val_converted = str_to_bool_or_str(val)
     if isinstance(val_converted, bool):
         return val_converted
-    raise ValueError(f'invalid truth value {val_converted}')
+    raise ValueError(f"invalid truth value {val_converted}")
 
 
 def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
@@ -107,7 +107,7 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
         del hparams_dict[k]
 
 
-def parse_class_init_keys(cls: Type['pl.LightningModule']) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
     """Parse key words for standard self, *args and **kwargs
 
     >>> class Model():
@@ -140,13 +140,13 @@ def parse_class_init_keys(cls: Type['pl.LightningModule']) -> Tuple[str, Optiona
 
 def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
     _, _, _, local_vars = inspect.getargvalues(frame)
-    if '__class__' not in local_vars:
+    if "__class__" not in local_vars:
         return {}
-    cls = local_vars['__class__']
+    cls = local_vars["__class__"]
     init_parameters = inspect.signature(cls.__init__).parameters
     self_var, args_var, kwargs_var = parse_class_init_keys(cls)
     filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
-    exclude_argnames = (*filtered_vars, '__class__', 'frame', 'frame_args')
+    exclude_argnames = (*filtered_vars, "__class__", "frame", "frame_args")
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
     # kwargs_var might be None => raised an error by mypy
@@ -157,9 +157,7 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
 
 
 def collect_init_args(
-    frame: types.FrameType,
-    path_args: List[Dict[str, Any]],
-    inside: bool = False,
+    frame: types.FrameType, path_args: List[Dict[str, Any]], inside: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
@@ -179,7 +177,7 @@ def collect_init_args(
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    if '__class__' in local_vars:
+    if "__class__" in local_vars:
         local_args = get_init_args(frame)
         # recursive update
         path_args.append(local_args)
@@ -203,10 +201,7 @@ def flatten_dict(source: Dict[str, Any], result: Optional[Dict[str, Any]] = None
 
 
 def save_hyperparameters(
-    obj: Any,
-    *args: Any,
-    ignore: Optional[Union[Sequence[str], str]] = None,
-    frame: Optional[types.FrameType] = None
+    obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
 
@@ -286,18 +281,18 @@ class AttributeDict(Dict):
         if not len(self):
             return ""
         max_key_length = max([len(str(k)) for k in self])
-        tmp_name = '{:' + str(max_key_length + 3) + 's} {}'
+        tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
         rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
-        out = '\n'.join(rows)
+        out = "\n".join(rows)
         return out
 
 
-def _lightning_get_all_attr_holders(model: 'pl.LightningModule', attribute: str) -> List[Any]:
+def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
     """
     Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
     """
-    trainer = getattr(model, 'trainer', None)
+    trainer = getattr(model, "trainer", None)
 
     holders: List[Any] = []
 
@@ -306,7 +301,7 @@ def _lightning_get_all_attr_holders(model: 'pl.LightningModule', attribute: str)
         holders.append(model)
 
     # Check if attribute in model.hparams, either namespace or dict
-    if hasattr(model, 'hparams'):
+    if hasattr(model, "hparams"):
         if attribute in model.hparams:
             holders.append(model.hparams)
 
@@ -317,7 +312,7 @@ def _lightning_get_all_attr_holders(model: 'pl.LightningModule', attribute: str)
     return holders
 
 
-def _lightning_get_first_attr_holder(model: 'pl.LightningModule', attribute: str) -> Optional[Any]:
+def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
     """
     Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
@@ -330,7 +325,7 @@ def _lightning_get_first_attr_holder(model: 'pl.LightningModule', attribute: str
     return holders[-1]
 
 
-def lightning_hasattr(model: 'pl.LightningModule', attribute: str) -> bool:
+def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
     """
     Special hasattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
@@ -338,7 +333,7 @@ def lightning_hasattr(model: 'pl.LightningModule', attribute: str) -> bool:
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
-def lightning_getattr(model: 'pl.LightningModule', attribute: str) -> Optional[Any]:
+def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
     """
     Special getattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
@@ -351,8 +346,8 @@ def lightning_getattr(model: 'pl.LightningModule', attribute: str) -> Optional[A
     holder = _lightning_get_first_attr_holder(model, attribute)
     if holder is None:
         raise AttributeError(
-            f'{attribute} is neither stored in the model namespace'
-            ' nor the `hparams` namespace/dict, nor the datamodule.'
+            f"{attribute} is neither stored in the model namespace"
+            " nor the `hparams` namespace/dict, nor the datamodule."
         )
 
     if isinstance(holder, dict):
@@ -360,7 +355,7 @@ def lightning_getattr(model: 'pl.LightningModule', attribute: str) -> Optional[A
     return getattr(holder, attribute)
 
 
-def lightning_setattr(model: 'pl.LightningModule', attribute: str, value: Any) -> None:
+def lightning_setattr(model: "pl.LightningModule", attribute: str, value: Any) -> None:
     """
     Special setattr for Lightning. Checks for attribute in model namespace
     and the old hparams namespace/dict.
@@ -374,8 +369,8 @@ def lightning_setattr(model: 'pl.LightningModule', attribute: str, value: Any) -
     holders = _lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         raise AttributeError(
-            f'{attribute} is neither stored in the model namespace'
-            ' nor the `hparams` namespace/dict, nor the datamodule.'
+            f"{attribute} is neither stored in the model namespace"
+            " nor the `hparams` namespace/dict, nor the datamodule."
         )
 
     for holder in holders:

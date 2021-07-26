@@ -23,8 +23,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-
-    def __init__(self, pl_module: 'pl.LightningModule') -> None:
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
@@ -117,7 +116,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         assert len(indices) == self.total_size
 
         # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
 
         return iter(indices)

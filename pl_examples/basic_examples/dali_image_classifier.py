@@ -36,11 +36,11 @@ if _DALI_AVAILABLE:
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 
-    NEW_DALI_API = Version(dali_version) >= Version('0.28.0')
+    NEW_DALI_API = Version(dali_version) >= Version("0.28.0")
     if NEW_DALI_API:
         from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 else:
-    warn('NVIDIA DALI is not available')
+    warn("NVIDIA DALI is not available")
     ops, Pipeline, DALIClassificationIterator, LastBatchPolicy = ..., ABC, ABC, ABC
 
 
@@ -112,7 +112,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
                 auto_reset,
                 dynamic_shape,
                 last_batch_policy=last_batch_policy,
-                last_batch_padded=last_batch_padded
+                last_batch_padded=last_batch_padded,
             )
         else:
             super().__init__(
@@ -127,12 +127,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
 
 
 class LitClassifier(pl.LightningModule):
-
-    def __init__(
-        self,
-        hidden_dim: int = 128,
-        learning_rate: float = 0.0001,
-    ):
+    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001):
         super().__init__()
         self.save_hyperparameters()
 
@@ -158,24 +153,20 @@ class LitClassifier(pl.LightningModule):
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        self.log('valid_loss', loss)
+        self.log("valid_loss", loss)
 
     def test_step(self, batch, batch_idx):
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
+        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
 
 class MyDataModule(pl.LightningDataModule):
-
-    def __init__(
-        self,
-        batch_size: int = 32,
-    ):
+    def __init__(self, batch_size: int = 32):
         super().__init__()
         dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
         self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
@@ -191,26 +182,15 @@ class MyDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return DALIClassificationLoader(
-            self.pipe_train,
-            size=len(self.mnist_train),
-            auto_reset=True,
-            fill_last_batch=True,
+            self.pipe_train, size=len(self.mnist_train), auto_reset=True, fill_last_batch=True
         )
 
     def val_dataloader(self):
-        return DALIClassificationLoader(
-            self.pipe_val,
-            size=len(self.mnist_val),
-            auto_reset=True,
-            fill_last_batch=False,
-        )
+        return DALIClassificationLoader(self.pipe_val, size=len(self.mnist_val), auto_reset=True, fill_last_batch=False)
 
     def test_dataloader(self):
         return DALIClassificationLoader(
-            self.pipe_test,
-            size=len(self.mnist_test),
-            auto_reset=True,
-            fill_last_batch=False,
+            self.pipe_test, size=len(self.mnist_test), auto_reset=True, fill_last_batch=False
         )
 
 

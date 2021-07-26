@@ -34,7 +34,7 @@ class TrainerTrainingTricksMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    lightning_module: 'pl.LightningModule'
+    lightning_module: "pl.LightningModule"
 
     def print_nan_gradients(self) -> None:
         rank_zero_deprecation(
@@ -53,6 +53,6 @@ class TrainerTrainingTricksMixin(ABC):
         )
         # check if loss is nan
         if not torch.isfinite(loss).all():
-            raise ValueError('The loss returned in `training_step` is nan or inf.')
+            raise ValueError("The loss returned in `training_step` is nan or inf.")
         model = self.lightning_module
         detect_nan_parameters(model)

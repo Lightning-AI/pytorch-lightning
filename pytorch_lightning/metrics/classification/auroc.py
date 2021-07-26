@@ -19,13 +19,12 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class AUROC(_AUROC):
-
     @deprecated_metrics(target=_AUROC)
     def __init__(
         self,
         num_classes: Optional[int] = None,
         pos_label: Optional[int] = None,
-        average: Optional[str] = 'macro',
+        average: Optional[str] = "macro",
         max_fpr: Optional[float] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
