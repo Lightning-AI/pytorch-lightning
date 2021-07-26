@@ -136,11 +136,11 @@ class QuantizationAwareTraining(Callback):
 
         disable_observers: disable fake-quantization modules' observers during the provided stages:
 
-            - ``'validate'``. The observers will be disabled during validating.
+            - ``'validate'``: the observers will be disabled during validating.
               Note that we don't disable observers during the sanity check as the model hasn't been calibrated with
               training data yet. After the sanity check, the fake-quantization modules are restored to initial states.
-            - ``'test'``. The observers will be disabled during testing.
-            - ``'predict'``. The observers will be disabled during predicting.
+            - ``'test'``: the observers will be disabled during testing.
+            - ``'predict'``: the observers will be disabled during predicting.
 
             Note that we only handle observers belonging to fake-quantization modules. When ``qconfig`` is a ``str`` and
             ``observer_type`` is ``'histogram'``, the observers won't belong to any fake-quantization modules and will
