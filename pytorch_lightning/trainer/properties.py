@@ -539,7 +539,7 @@ class TrainerProperties(ABC):
         return self.fit_loop.epoch_loop.is_last_batch
 
     @property
-    def fit_loop(self):
+    def fit_loop(self) -> FitLoop:
         return self._fit_loop
 
     @fit_loop.setter
@@ -552,7 +552,7 @@ class TrainerProperties(ABC):
         self._fit_loop = loop
 
     @property
-    def validate_loop(self):
+    def validate_loop(self) -> EvaluationLoop:
         return self._validate_loop
 
     @validate_loop.setter
@@ -566,7 +566,7 @@ class TrainerProperties(ABC):
         self._validate_loop = loop
 
     @property
-    def test_loop(self):
+    def test_loop(self) -> EvaluationLoop:
         return self._test_loop
 
     @test_loop.setter
@@ -579,7 +579,7 @@ class TrainerProperties(ABC):
         self._test_loop = loop
 
     @property
-    def predict_loop(self):
+    def predict_loop(self) -> PredictionLoop:
         return self._predict_loop
 
     @predict_loop.setter
