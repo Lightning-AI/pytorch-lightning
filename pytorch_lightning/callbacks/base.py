@@ -35,7 +35,7 @@ class Callback(abc.ABC):
 
     @property
     def state_identifier(self) -> str:
-        return self.__class__.__name__
+        return self.__class__.__qualname__
 
     @property
     def _legacy_state_identifier(self) -> Type:
