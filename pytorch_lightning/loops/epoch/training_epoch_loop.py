@@ -60,6 +60,8 @@ class TrainingEpochLoop(loops.Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the current batch index (within this epoch)"""
+        # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
+        # but before the next `ready` increase
         return self.batch_progress.current.ready - 1
 
     @property
