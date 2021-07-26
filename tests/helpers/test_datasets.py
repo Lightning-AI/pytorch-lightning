@@ -16,16 +16,13 @@ import pickle
 import cloudpickle
 import pytest
 
-from tests import PATH_DATASETS
+from tests import _PATH_DATASETS
 from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 
 @pytest.mark.parametrize(
-    'dataset_cls,args', [
-        (MNIST, dict(root=PATH_DATASETS)),
-        (TrialMNIST, dict(root=PATH_DATASETS)),
-        (AverageDataset, {}),
-    ]
+    "dataset_cls,args",
+    [(MNIST, dict(root=_PATH_DATASETS)), (TrialMNIST, dict(root=_PATH_DATASETS)), (AverageDataset, {})],
 )
 def test_pickling_dataset_mnist(tmpdir, dataset_cls, args):
     mnist = dataset_cls(**args)

@@ -29,7 +29,6 @@ def test_single_cpu():
 
 
 class BoringModelGPU(BoringModel):
-
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device("cuda:0")

@@ -18,18 +18,17 @@ from pytorch_lightning.utilities.argparse import (
 
 
 class ArgparseExample:
-
-    def __init__(self, a: int = 0, b: str = '', c: bool = False):
+    def __init__(self, a: int = 0, b: str = "", c: bool = False):
         self.a = a
         self.b = b
         self.c = c
 
 
 def test_from_argparse_args():
-    args = Namespace(a=1, b='test', c=True, d='not valid')
+    args = Namespace(a=1, b="test", c=True, d="not valid")
     my_instance = from_argparse_args(ArgparseExample, args)
     assert my_instance.a == 1
-    assert my_instance.b == 'test'
+    assert my_instance.b == "test"
     assert my_instance.c
 
     parser = ArgumentParser()
@@ -39,12 +38,12 @@ def test_from_argparse_args():
 
 
 def test_parse_argparser():
-    args = Namespace(a=1, b='test', c=None, d='not valid')
+    args = Namespace(a=1, b="test", c=None, d="not valid")
     new_args = parse_argparser(ArgparseExample, args)
     assert new_args.a == 1
-    assert new_args.b == 'test'
+    assert new_args.b == "test"
     assert new_args.c
-    assert new_args.d == 'not valid'
+    assert new_args.d == "not valid"
 
 
 def test_parse_args_from_docstring_normal():
@@ -74,12 +73,14 @@ def test_parse_args_from_docstring_normal():
         """
     )
 
-    expected_args = ['root', 'train', 'normalize', 'download', 'num_samples', 'digits']
+    expected_args = ["root", "train", "normalize", "download", "num_samples", "digits"]
     assert len(args_help.keys()) == len(expected_args)
     assert all(x == y for x, y in zip(args_help.keys(), expected_args))
-    assert args_help['root'] == 'Root directory of dataset where ``MNIST/processed/training.pt``' \
-                                ' and  ``MNIST/processed/test.pt`` exist.'
-    assert args_help['normalize'] == 'mean and std deviation of the MNIST dataset.'
+    assert (
+        args_help["root"] == "Root directory of dataset where ``MNIST/processed/training.pt``"
+        " and  ``MNIST/processed/test.pt`` exist."
+    )
+    assert args_help["normalize"] == "mean and std deviation of the MNIST dataset."
 
 
 def test_parse_args_from_docstring_empty():
@@ -122,7 +123,6 @@ class AddArgparseArgsExampleClass:
 
 
 class AddArgparseArgsExampleClassViaInit:
-
     def __init__(self, my_parameter: int = 0):
         """
         Args:
@@ -132,7 +132,6 @@ class AddArgparseArgsExampleClassViaInit:
 
 
 class AddArgparseArgsExampleClassNoDoc:
-
     def __init__(self, my_parameter: int = 0):
         pass
 
@@ -144,11 +143,14 @@ def extract_help_text(parser):
     return help_str_buffer.read()
 
 
-@pytest.mark.parametrize(["cls", "name"], [
-    [AddArgparseArgsExampleClass, "AddArgparseArgsExampleClass"],
-    [AddArgparseArgsExampleClassViaInit, "AddArgparseArgsExampleClassViaInit"],
-    [AddArgparseArgsExampleClassNoDoc, "AddArgparseArgsExampleClassNoDoc"],
-])
+@pytest.mark.parametrize(
+    ["cls", "name"],
+    [
+        [AddArgparseArgsExampleClass, "AddArgparseArgsExampleClass"],
+        [AddArgparseArgsExampleClassViaInit, "AddArgparseArgsExampleClassViaInit"],
+        [AddArgparseArgsExampleClassNoDoc, "AddArgparseArgsExampleClassNoDoc"],
+    ],
+)
 def test_add_argparse_args(cls, name):
     """
     Tests that ``add_argparse_args`` handles argument groups correctly, and
@@ -206,10 +208,10 @@ def test_add_argparse_args_no_argument_group():
 
 
 def test_gpus_allowed_type():
-    assert _gpus_allowed_type('1,2') == '1,2'
-    assert _gpus_allowed_type('1') == 1
+    assert _gpus_allowed_type("1,2") == "1,2"
+    assert _gpus_allowed_type("1") == 1
 
 
 def test_int_or_float_type():
-    assert isinstance(_int_or_float_type('0.0'), float)
-    assert isinstance(_int_or_float_type('0'), int)
+    assert isinstance(_int_or_float_type("0.0"), float)
+    assert isinstance(_int_or_float_type("0"), int)

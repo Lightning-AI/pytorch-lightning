@@ -31,12 +31,7 @@ if _TPU_AVAILABLE:
 def test_xla_profiler_instance(tmpdir):
 
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        profiler="xla",
-        tpu_cores=8,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", tpu_cores=8)
 
     assert isinstance(trainer.profiler, XLAProfiler)
     trainer.fit(model)
@@ -51,12 +46,7 @@ def test_xla_profiler_prog_capture(tmpdir):
 
     def train_worker():
         model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=4,
-            profiler="xla",
-            tpu_cores=8,
-        )
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=4, profiler="xla", tpu_cores=8)
 
         trainer.fit(model)
 
@@ -65,8 +55,8 @@ def test_xla_profiler_prog_capture(tmpdir):
     training_started.wait(120)
 
     logdir = str(tmpdir)
-    xp.trace(f'localhost:{port}', logdir, duration_ms=2000, num_tracing_attempts=5, delay_ms=1000)
+    xp.trace(f"localhost:{port}", logdir, duration_ms=2000, num_tracing_attempts=5, delay_ms=1000)
 
     p.terminate()
 
-    assert os.isfile(os.path.join(logdir, 'plugins', 'profile', '*', '*.xplane.pb'))
+    assert os.isfile(os.path.join(logdir, "plugins", "profile", "*", "*.xplane.pb"))

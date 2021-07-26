@@ -54,18 +54,18 @@ class XLAStatsMonitor(Callback):
         super().__init__()
 
         if not _TPU_AVAILABLE:
-            raise MisconfigurationException('Cannot use XLAStatsMonitor with TPUs are not available')
+            raise MisconfigurationException("Cannot use XLAStatsMonitor with TPUs are not available")
 
         self._verbose = verbose
 
     def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
-            raise MisconfigurationException('Cannot use XLAStatsMonitor callback with Trainer that has no logger.')
+            raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
         if trainer._device_type != DeviceType.TPU:
             raise MisconfigurationException(
-                'You are using XLAStatsMonitor but are not running on TPU'
-                f' since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}.'
+                "You are using XLAStatsMonitor but are not running on TPU"
+                f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."
             )
 
         memory_info = xm.get_memory_info(pl_module.device)

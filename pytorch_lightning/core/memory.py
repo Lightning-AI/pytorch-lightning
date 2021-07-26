@@ -117,12 +117,12 @@ class LayerSummary(object):
 
     @property
     def layer_type(self) -> str:
-        """ Returns the class name of the module. """
+        """Returns the class name of the module."""
         return str(self._module.__class__.__name__)
 
     @property
     def num_parameters(self) -> int:
-        """ Returns the number of parameters in this module. """
+        """Returns the number of parameters in this module."""
         return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
@@ -198,12 +198,14 @@ class ModelSummary(object):
             if mode in ModelSummary.MODES:
                 max_depth = ModelSummary.MODES[mode]
                 from pytorch_lightning.utilities import rank_zero_deprecation
+
                 rank_zero_deprecation(
                     f"Argument `mode` in `ModelSummary` is deprecated in v1.4"
                     f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behaviour."
                 )
             else:
                 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
                 raise MisconfigurationException(f"`mode` can be {', '.join(ModelSummary.MODES)}, got {mode}.")
 
         if not isinstance(max_depth, int) or max_depth < -1:
@@ -278,7 +280,7 @@ class ModelSummary(object):
         return summary
 
     def _forward_example_input(self) -> None:
-        """ Run the example input through each layer to get input- and output sizes. """
+        """Run the example input through each layer to get input- and output sizes."""
         model = self._model
         trainer = self._model.trainer
 
@@ -379,7 +381,7 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, mode
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
-    """ Get a profile of the current memory usage.
+    """Get a profile of the current memory usage.
 
     Args:
         mode: There are two modes:
@@ -465,7 +467,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10**shift)
+    number = number * (10 ** shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
@@ -476,6 +478,7 @@ def get_human_readable_count(number: int) -> str:
 def _is_lazy_weight_tensor(p: Tensor) -> bool:
     if _TORCH_GREATER_EQUAL_1_8:
         from torch.nn.parameter import UninitializedParameter
+
         if isinstance(p, UninitializedParameter):
             warning_cache.warn(
                 "A layer with UninitializedParameter was found. "

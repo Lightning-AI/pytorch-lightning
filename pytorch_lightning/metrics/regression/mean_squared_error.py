@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class MeanSquaredError(_MeanSquaredError):
-
     @deprecated_metrics(target=_MeanSquaredError)
     def __init__(
         self,

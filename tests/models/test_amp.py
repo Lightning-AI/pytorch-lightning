@@ -28,7 +28,6 @@ from tests.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
-
     def _step(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
         output = self(batch)
@@ -55,19 +54,13 @@ class AMPTestModel(BoringModel):
         return output
 
 
-@pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
+@pytest.mark.skip(reason="dp + amp not supported currently")  # TODO
 @RunIf(min_gpus=1)
 def test_amp_single_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=1,
-        accelerator='dp',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, accelerator="dp", precision=16)
 
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
@@ -82,13 +75,7 @@ def test_amp_single_gpu_dp(tmpdir):
 def test_amp_single_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=1,
-        accelerator='ddp_spawn',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, accelerator="ddp_spawn", precision=16)
 
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
@@ -98,19 +85,13 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
+@pytest.mark.skip(reason="dp + amp not supported currently")  # TODO
 @RunIf(min_gpus=1)
 def test_amp_multi_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        accelerator='dp',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, accelerator="dp", precision=16)
 
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
@@ -123,13 +104,7 @@ def test_amp_multi_gpu_dp(tmpdir):
 def test_amp_multi_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        accelerator='ddp_spawn',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, accelerator="ddp_spawn", precision=16)
 
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
@@ -141,14 +116,15 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
 @RunIf(min_gpus=2)
 @mock.patch.dict(
-    os.environ, {
+    os.environ,
+    {
         "SLURM_NTASKS": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
         "SLURM_LOCALID": "0",
         "SLURM_PROCID": "0",
-    }
+    },
 )
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
@@ -168,7 +144,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
         precision=16,
         callbacks=[checkpoint],
         logger=logger,
@@ -176,15 +152,15 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     trainer.fit(model)
 
     # correct result and ok accuracy
-    assert trainer.state.finished, 'amp + ddp model failed to complete'
+    assert trainer.state.finished, "amp + ddp model failed to complete"
 
     # test root model address
     assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc') == 'abc'
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24]') == 'abc23'
-    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address('abc[23-24, 45-40, 40]')
-    assert generated == 'abc23'
+    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc") == "abc"
+    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
+    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
+    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
+    assert generated == "abc23"
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test is restricted only on CPU")
@@ -194,22 +170,15 @@ def test_cpu_model_with_amp(tmpdir):
         Trainer(precision=16)
 
 
-@mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
+@mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_without_apex(bwd_mock, tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
     model = BoringModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        amp_backend='native',
-    )
+    trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
     assert trainer.amp_backend is None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        amp_backend='apex',
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
     assert trainer.amp_backend is None
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -217,12 +186,11 @@ def test_amp_without_apex(bwd_mock, tmpdir):
 
 
 @RunIf(min_gpus=1, amp_apex=True)
-@mock.patch('pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward')
+@mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_with_apex(bwd_mock, tmpdir):
     """Check calling apex scaling in training."""
 
     class CustomModel(BoringModel):
-
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
@@ -236,17 +204,11 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     model = CustomModel()
     model.training_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=5,
-        precision=16,
-        amp_backend='apex',
-        gpus=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", gpus=1)
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert bwd_mock.call_count == 10
 
-    assert isinstance(trainer.lr_schedulers[0]['scheduler'].optimizer, optim.Adam)
-    assert isinstance(trainer.lr_schedulers[1]['scheduler'].optimizer, optim.SGD)
+    assert isinstance(trainer.lr_schedulers[0]["scheduler"].optimizer, optim.Adam)
+    assert isinstance(trainer.lr_schedulers[1]["scheduler"].optimizer, optim.SGD)

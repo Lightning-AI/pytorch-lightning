@@ -28,7 +28,7 @@ from tests.base.model_template import EvalModelTemplate
 
 def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
-    logger = TensorBoardLogger(save_dir, name='lightning_logs', version=version)
+    logger = TensorBoardLogger(save_dir, name="lightning_logs", version=version)
     return logger
 
 
@@ -40,16 +40,16 @@ def get_data_path(expt_logger, path_dir=None):
 
     # only the test-tube experiment has such attribute
     if isinstance(expt_logger, TestTubeLogger):
-        expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
+        expt = expt_logger.experiment if hasattr(expt_logger, "experiment") else expt_logger
         return expt.get_data_path(name, version)
 
     # the other experiments...
     if not path_dir:
-        if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
+        if hasattr(expt_logger, "save_dir") and expt_logger.save_dir:
             path_dir = expt_logger.save_dir
         else:
             path_dir = _TEMP_PATH
-    path_expt = os.path.join(path_dir, name, 'version_%s' % version)
+    path_expt = os.path.join(path_dir, name, "version_%s" % version)
 
     # try if the new sub-folder exists, typical case for test-tube
     if not os.path.isdir(path_expt):
@@ -59,11 +59,11 @@ def get_data_path(expt_logger, path_dir=None):
 
 def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
-    assert trained_model is not None, 'loading model failed'
+    assert trained_model is not None, "loading model failed"
     return trained_model
 
 
-def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
+def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
     # this model should get 0.80+ acc
     acc = trainer.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
@@ -76,7 +76,7 @@ def reset_seed(seed=0):
 def set_random_master_port():
     reset_seed()
     port = RANDOM_PORTS.pop()
-    os.environ['MASTER_PORT'] = str(port)
+    os.environ["MASTER_PORT"] = str(port)
 
 
 def init_checkpoint_callback(logger):
@@ -91,6 +91,7 @@ def pl_multi_process_test(func):
     def wrapper(*args, **kwargs):
 
         from multiprocessing import Process, Queue
+
         queue = Queue()
 
         def inner_f(queue, **kwargs):
@@ -107,12 +108,12 @@ def pl_multi_process_test(func):
                 else:
                     queue.put(-1)
 
-        proc = Process(target=inner_f, args=(queue, ), kwargs=kwargs)
+        proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
         proc.start()
         proc.join()
 
         result = queue.get()
-        assert result == 1, 'expected 1, but returned %s' % result
+        assert result == 1, "expected 1, but returned %s" % result
 
     return wrapper
 

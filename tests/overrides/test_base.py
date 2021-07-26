@@ -23,10 +23,7 @@ from pytorch_lightning.overrides.base import (
 from tests.helpers import BoringModel
 
 
-@pytest.mark.parametrize("wrapper_class", [
-    _LightningModuleWrapperBase,
-    _LightningPrecisionModuleWrapperBase,
-])
+@pytest.mark.parametrize("wrapper_class", [_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase])
 def test_wrapper_device_dtype(wrapper_class):
     model = BoringModel()
     wrapped_model = wrapper_class(model)

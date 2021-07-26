@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class ROC(_ROC):
-
     @deprecated_metrics(target=_ROC)
     def __init__(
         self,

@@ -23,7 +23,6 @@ from pytorch_lightning.utilities.grads import grad_norm as new_grad_norm
 
 
 class GradInformation(Module):
-
     def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.
 

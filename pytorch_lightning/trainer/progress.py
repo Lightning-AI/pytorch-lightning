@@ -17,7 +17,6 @@ from typing import Optional
 
 @dataclass
 class BaseProgress:
-
     def state_dict(self) -> dict:
         return asdict(self)
 
@@ -65,12 +64,12 @@ class Tracker(BaseProgress):
             raise AttributeError(f"The '{key}' attribute is meant to be unused")
         return super().__setattr__(key, value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # hide `None` fields
         args = [f"{k}={v}" for k, v in self.__dict__.items() if v is not None]
         return f"{self.__class__.__name__}({', '.join(args)})"
 
-    def reset_on_restart(self):
+    def reset_on_restart(self) -> None:
         """Reset the progress on restart"""
         value = self.completed if self.processed is None else self.processed
 

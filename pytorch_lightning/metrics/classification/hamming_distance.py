@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class HammingDistance(_HammingDistance):
-
     @deprecated_metrics(target=_HammingDistance)
     def __init__(
         self,

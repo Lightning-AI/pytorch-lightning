@@ -13,5 +13,6 @@
 # limitations under the License.
 import os
 
-BENCHMARK_ROOT = os.path.dirname(__file__)
-PROJECT_ROOT = os.path.dirname(BENCHMARK_ROOT)
+_BENCHMARK_ROOT = os.path.dirname(__file__)
+_PROJECT_ROOT = os.path.dirname(_BENCHMARK_ROOT)
+_PATH_DATASETS = os.path.join(_PROJECT_ROOT, "Datasets")
