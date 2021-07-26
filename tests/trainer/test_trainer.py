@@ -1211,7 +1211,6 @@ def test_trainer_setup_call(tmpdir, stage):
             self.stage = stage
 
     class CurrentCallback(Callback):
-
         def setup(self, trainer, model, stage):
             assert model is not None
             self.stage = stage

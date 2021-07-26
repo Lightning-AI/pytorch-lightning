@@ -237,7 +237,7 @@ class TrainerDataLoadingMixin(ABC):
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
-    def reset_train_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
+    def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the train dataloader and initialises required variables
         (number of batches, when to validate, etc.).
 
@@ -326,9 +326,7 @@ class TrainerDataLoadingMixin(ABC):
             )
 
     def _reset_eval_dataloader(
-        self,
-        mode: str,
-        model: Optional['pl.LightningModule'] = None
+        self, mode: str, model: Optional["pl.LightningModule"] = None
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
@@ -340,7 +338,7 @@ class TrainerDataLoadingMixin(ABC):
             Tuple (num_batches, dataloaders)
         """
         # always get the loaders first so we can count how many there are
-        loader_name = f'{mode}_dataloader'
+        loader_name = f"{mode}_dataloader"
         dataloaders = self.request_dataloader(mode, model=model)
 
         if not isinstance(dataloaders, list):
@@ -350,7 +348,7 @@ class TrainerDataLoadingMixin(ABC):
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
-            train_dataloader = self.request_dataloader('train', model=model)
+            train_dataloader = self.request_dataloader("train", model=model)
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
@@ -427,42 +425,42 @@ class TrainerDataLoadingMixin(ABC):
 
         return loader_num_batches, dataloaders
 
-    def reset_val_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
+    def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
         pl_module = self.lightning_module or model
-        has_loader = is_overridden('val_dataloader', pl_module)
-        has_step = is_overridden('validation_step', pl_module)
+        has_loader = is_overridden("val_dataloader", pl_module)
+        has_step = is_overridden("validation_step", pl_module)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader('val', model=pl_module)
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader("val", model=pl_module)
 
-    def reset_test_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
+    def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
 
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
         pl_module = self.lightning_module or model
-        has_loader = is_overridden('test_dataloader', pl_module)
-        has_step = is_overridden('test_step', pl_module)
+        has_loader = is_overridden("test_dataloader", pl_module)
+        has_step = is_overridden("test_step", pl_module)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader('test', model=pl_module)
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader("test", model=pl_module)
 
-    def reset_predict_dataloader(self, model: Optional['pl.LightningModule'] = None) -> None:
+    def reset_predict_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the predict dataloader and determines the number of batches.
 
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
         pl_module = self.lightning_module or model
-        has_loader = is_overridden('predict_dataloader', pl_module)
+        has_loader = is_overridden("predict_dataloader", pl_module)
         if has_loader:
-            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader('predict', model=pl_module)
+            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader("predict", model=pl_module)
 
-    def reset_train_val_dataloaders(self, model: Optional['pl.LightningModule'] = None) -> None:
+    def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
         """
         Resets train and val dataloaders if none are attached to the trainer.
 
@@ -478,9 +476,7 @@ class TrainerDataLoadingMixin(ABC):
             self.reset_val_dataloader(model=model)
 
     def request_dataloader(
-        self,
-        stage: str,
-        model: Optional['pl.LightningModule'] = None,
+        self, stage: str, model: Optional["pl.LightningModule"] = None
     ) -> Union[DataLoader, List[DataLoader]]:
         """Handles downloading data in the GPU or TPU case.
 

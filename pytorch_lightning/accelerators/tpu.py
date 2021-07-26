@@ -32,7 +32,7 @@ if _XLA_AVAILABLE:
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
 
-    def setup(self, trainer: 'pl.Trainer') -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:
             MisconfigurationException:

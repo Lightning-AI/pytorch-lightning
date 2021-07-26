@@ -75,7 +75,7 @@ class Accelerator:
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: 'pl.Trainer') -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
@@ -448,7 +448,7 @@ class Accelerator:
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'pl.LightningModule') -> None:  # noqa
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:  # noqa
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
