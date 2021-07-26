@@ -51,10 +51,10 @@ def run_model_test(
     on_gpu: bool = True,
     version=None,
     with_hpc: bool = True,
-    min_acc: float = 0.25
+    min_acc: float = 0.25,
 ):
     reset_seed()
-    save_dir = trainer_options['default_root_dir']
+    save_dir = trainer_options["default_root_dir"]
 
     # logger file to get meta
     logger = get_default_logger(save_dir, version=version)
@@ -84,8 +84,9 @@ def run_model_test(
     if with_hpc:
         if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
             # on hpc this would work fine... but need to hack it for the purpose of the test
-            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
-                trainer.init_optimizers(pretrained_model)
+            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
+                pretrained_model
+            )
 
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)

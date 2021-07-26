@@ -19,11 +19,10 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class ExplainedVariance(_ExplainedVariance):
-
     @deprecated_metrics(target=_ExplainedVariance)
     def __init__(
         self,
-        multioutput: str = 'uniform_average',
+        multioutput: str = "uniform_average",
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,

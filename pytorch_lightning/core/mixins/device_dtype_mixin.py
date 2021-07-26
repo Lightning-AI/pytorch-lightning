@@ -19,12 +19,12 @@ from torch.nn import Module
 
 
 class DeviceDtypeModuleMixin(Module):
-    __jit_unused_properties__ = ['device', 'dtype']
+    __jit_unused_properties__ = ["device", "dtype"]
 
     def __init__(self) -> None:
         super().__init__()
         self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
-        self._device = torch.device('cpu')
+        self._device = torch.device("cpu")
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:
@@ -33,19 +33,19 @@ class DeviceDtypeModuleMixin(Module):
     @dtype.setter
     def dtype(self, new_dtype: Union[str, torch.dtype]) -> None:
         # necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
+        raise RuntimeError("Cannot set the dtype explicitly. Please use module.to(new_dtype).")
 
     @property
     def device(self) -> Union[str, torch.device]:
         device = self._device
 
         # make this more explicit to always include the index
-        if device.type == 'cuda' and device.index is None:
-            return torch.device(f'cuda:{torch.cuda.current_device()}')
+        if device.type == "cuda" and device.index is None:
+            return torch.device(f"cuda:{torch.cuda.current_device()}")
 
         return device
 
-    def to(self, *args: Any, **kwargs: Any) -> 'DeviceDtypeModuleMixin':
+    def to(self, *args: Any, **kwargs: Any) -> "DeviceDtypeModuleMixin":
         """Moves and/or casts the parameters and buffers.
 
         This can be called as
@@ -108,7 +108,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(device=out[0], dtype=out[1])
         return super().to(*args, **kwargs)
 
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> 'DeviceDtypeModuleMixin':
+    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> "DeviceDtypeModuleMixin":
         """Moves all model parameters and buffers to the GPU.
         This also makes associated parameters and buffers different objects. So
         it should be called before constructing optimizer if the module will
@@ -122,20 +122,20 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         if device is None or isinstance(device, int):
-            device = torch.device('cuda', index=device)
+            device = torch.device("cuda", index=device)
         self.__update_properties(device=device)
         return super().cuda(device=device)
 
-    def cpu(self) -> 'DeviceDtypeModuleMixin':
+    def cpu(self) -> "DeviceDtypeModuleMixin":
         """Moves all model parameters and buffers to the CPU.
 
         Returns:
             Module: self
         """
-        self.__update_properties(device=torch.device('cpu'))
+        self.__update_properties(device=torch.device("cpu"))
         return super().cpu()
 
-    def type(self, dst_type: Union[str, torch.dtype]) -> 'DeviceDtypeModuleMixin':
+    def type(self, dst_type: Union[str, torch.dtype]) -> "DeviceDtypeModuleMixin":
         """Casts all parameters and buffers to :attr:`dst_type`.
 
         Arguments:
@@ -147,7 +147,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(dtype=dst_type)
         return super().type(dst_type=dst_type)
 
-    def float(self) -> 'DeviceDtypeModuleMixin':
+    def float(self) -> "DeviceDtypeModuleMixin":
         """Casts all floating point parameters and buffers to ``float`` datatype.
 
         Returns:
@@ -156,7 +156,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(dtype=torch.float)
         return super().float()
 
-    def double(self) -> 'DeviceDtypeModuleMixin':
+    def double(self) -> "DeviceDtypeModuleMixin":
         """Casts all floating point parameters and buffers to ``double`` datatype.
 
         Returns:
@@ -165,7 +165,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(dtype=torch.double)
         return super().double()
 
-    def half(self) -> 'DeviceDtypeModuleMixin':
+    def half(self) -> "DeviceDtypeModuleMixin":
         """Casts all floating point parameters and buffers to ``half`` datatype.
 
         Returns:
@@ -177,8 +177,7 @@ class DeviceDtypeModuleMixin(Module):
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
-
-        def apply_fn(module: Union['DeviceDtypeModuleMixin', Module]) -> None:
+        def apply_fn(module: Union["DeviceDtypeModuleMixin", Module]) -> None:
             if not isinstance(module, DeviceDtypeModuleMixin):
                 return
             if device is not None:

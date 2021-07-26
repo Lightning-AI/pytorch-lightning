@@ -28,7 +28,7 @@ import sys
 # to ensure it won't fail and a progress bar is displayed
 from typing import Optional, Union
 
-if importlib.util.find_spec('ipywidgets') is not None:
+if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
 else:
     from tqdm import tqdm as _tqdm
@@ -45,17 +45,17 @@ class tqdm(_tqdm):
 
     @staticmethod
     def format_num(n) -> str:
-        """ Add additional padding to the formatted numbers """
+        """Add additional padding to the formatted numbers"""
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
             n = _tqdm.format_num(n)
-        if should_be_padded and 'e' not in n:
-            if '.' not in n and len(n) < _PAD_SIZE:
+        if should_be_padded and "e" not in n:
+            if "." not in n and len(n) < _PAD_SIZE:
                 try:
                     _ = float(n)
                 except ValueError:
                     return n
-                n += '.'
+                n += "."
             n += "0" * (_PAD_SIZE - len(n))
         return n
 
@@ -288,10 +288,10 @@ class ProgressBar(ProgressBarBase):
     def __getstate__(self):
         # can't pickle the tqdm objects
         state = self.__dict__.copy()
-        state['main_progress_bar'] = None
-        state['val_progress_bar'] = None
-        state['test_progress_bar'] = None
-        state['predict_progress_bar'] = None
+        state["main_progress_bar"] = None
+        state["val_progress_bar"] = None
+        state["test_progress_bar"] = None
+        state["predict_progress_bar"] = None
         return state
 
     @property
@@ -317,9 +317,9 @@ class ProgressBar(ProgressBarBase):
         self._enabled = True
 
     def init_sanity_tqdm(self) -> tqdm:
-        """ Override this to customize the tqdm bar for the validation sanity run. """
+        """Override this to customize the tqdm bar for the validation sanity run."""
         bar = tqdm(
-            desc='Validation sanity check',
+            desc="Validation sanity check",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=False,
@@ -329,9 +329,9 @@ class ProgressBar(ProgressBarBase):
         return bar
 
     def init_train_tqdm(self) -> tqdm:
-        """ Override this to customize the tqdm bar for training. """
+        """Override this to customize the tqdm bar for training."""
         bar = tqdm(
-            desc='Training',
+            desc="Training",
             initial=self.train_batch_idx,
             position=(2 * self.process_position),
             disable=self.is_disabled,
@@ -343,9 +343,9 @@ class ProgressBar(ProgressBarBase):
         return bar
 
     def init_predict_tqdm(self) -> tqdm:
-        """ Override this to customize the tqdm bar for predicting. """
+        """Override this to customize the tqdm bar for predicting."""
         bar = tqdm(
-            desc='Predicting',
+            desc="Predicting",
             initial=self.train_batch_idx,
             position=(2 * self.process_position),
             disable=self.is_disabled,
@@ -357,28 +357,28 @@ class ProgressBar(ProgressBarBase):
         return bar
 
     def init_validation_tqdm(self) -> tqdm:
-        """ Override this to customize the tqdm bar for validation. """
+        """Override this to customize the tqdm bar for validation."""
         # The main progress bar doesn't exist in `trainer.validate()`
         has_main_bar = self.main_progress_bar is not None
         bar = tqdm(
-            desc='Validating',
+            desc="Validating",
             position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
-            file=sys.stdout
+            file=sys.stdout,
         )
         return bar
 
     def init_test_tqdm(self) -> tqdm:
-        """ Override this to customize the tqdm bar for testing. """
+        """Override this to customize the tqdm bar for testing."""
         bar = tqdm(
             desc="Testing",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout
+            file=sys.stdout,
         )
         return bar
 
@@ -400,13 +400,13 @@ class ProgressBar(ProgressBarBase):
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf') and total_val_batches != float('inf'):
+        if total_train_batches != float("inf") and total_val_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
         reset(self.main_progress_bar, total_batches)
-        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
+        self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -469,7 +469,7 @@ class ProgressBar(ProgressBarBase):
         self.predict_progress_bar.close()
 
     def print(
-        self, *args, sep: str = ' ', end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
+        self, *args, sep: str = " ", end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
     ):
         active_progress_bar = None
 
@@ -490,7 +490,7 @@ class ProgressBar(ProgressBarBase):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def _update_bar(self, bar: Optional[tqdm]) -> None:
-        """ Updates the bar by the refresh rate without overshooting. """
+        """Updates the bar by the refresh rate without overshooting."""
         if bar is None:
             return
         if bar.total is not None:
@@ -503,13 +503,13 @@ class ProgressBar(ProgressBarBase):
 
 
 def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
-    """ The tqdm doesn't support inf/nan values. We have to convert it to None. """
+    """The tqdm doesn't support inf/nan values. We have to convert it to None."""
     if x is None or math.isinf(x) or math.isnan(x):
         return None
     return x
 
 
 def reset(bar: tqdm, total: Optional[int] = None) -> None:
-    """ Resets the tqdm bar to 0 progress with a new total, unless it is disabled. """
+    """Resets the tqdm bar to 0 progress with a new total, unless it is disabled."""
     if not bar.disable:
         bar.reset(total=convert_inf(total))

@@ -18,7 +18,6 @@ from tests.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):
-
     def on_fit_start(self):
         assert self == self.trainer.lightning_module
 
@@ -35,10 +34,7 @@ def test_get_model(tmpdir):
 
     limit_train_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
+        default_root_dir=tmpdir, limit_train_batches=limit_train_batches, limit_val_batches=2, max_epochs=1
     )
     trainer.fit(model)
 
@@ -57,7 +53,7 @@ def test_get_model_ddp_cpu(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
-        accelerator='ddp_cpu',
+        accelerator="ddp_cpu",
         num_processes=2,
     )
     trainer.fit(model)
@@ -73,10 +69,6 @@ def test_get_model_gpu(tmpdir):
 
     limit_train_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        gpus=1,
+        default_root_dir=tmpdir, limit_train_batches=limit_train_batches, limit_val_batches=2, max_epochs=1, gpus=1
     )
     trainer.fit(model)

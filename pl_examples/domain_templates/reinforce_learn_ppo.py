@@ -214,8 +214,8 @@ class PPOLightning(pl.LightningModule):
             self.actor = ActorCategorical(actor_mlp)
         else:
             raise NotImplementedError(
-                'Env action space should be of type Box (continous) or Discrete (categorical).'
-                f' Got type: {type(self.env.action_space)}'
+                "Env action space should be of type Box (continous) or Discrete (categorical)."
+                f" Got type: {type(self.env.action_space)}"
             )
 
         self.batch_states = []
@@ -409,18 +409,18 @@ class PPOLightning(pl.LightningModule):
 
         if optimizer_idx == 0:
             loss_actor = self.actor_loss(state, action, old_logp, qval, adv)
-            self.log('loss_actor', loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            self.log("loss_actor", loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
             return loss_actor
 
         if optimizer_idx == 1:
             loss_critic = self.critic_loss(state, action, old_logp, qval, adv)
-            self.log('loss_critic', loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+            self.log("loss_critic", loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
             return loss_critic
 
     def configure_optimizers(self) -> List[Optimizer]:
-        """ Initialize Adam optimizer"""
+        """Initialize Adam optimizer"""
         optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.lr_actor)
         optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.lr_critic)
 
@@ -458,7 +458,7 @@ class PPOLightning(pl.LightningModule):
             "--steps_per_epoch",
             type=int,
             default=2048,
-            help="how many action-state pairs to rollout for trajectory collection per epoch"
+            help="how many action-state pairs to rollout for trajectory collection per epoch",
         )
         parser.add_argument(
             "--nb_optim_iters", type=int, default=4, help="how many steps of gradient descent to perform on each batch"
@@ -477,7 +477,7 @@ def main(args) -> None:
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     pl.seed_everything(0)
 

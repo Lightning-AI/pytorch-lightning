@@ -50,7 +50,7 @@ if _OMEGACONF_AVAILABLE:
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
-    """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
+    """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
         super().__init__(parallel_devices)
@@ -89,21 +89,20 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @staticmethod
     def _validate_patched_dataloaders(model: Module) -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit.
-        """
-        if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
+        """Validate and fail fast if the dataloaders were passed directly to fit."""
+        if hasattr(model, "train_dataloader") and isinstance(model.train_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
 
-        if hasattr(model, 'val_dataloader') and isinstance(model.val_dataloader, _PatchDataLoader):
+        if hasattr(model, "val_dataloader") and isinstance(model.val_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
 
-        if hasattr(model, 'test_dataloader') and isinstance(model.test_dataloader, _PatchDataLoader):
+        if hasattr(model, "test_dataloader") and isinstance(model.test_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
 
-        if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
+        if hasattr(model, "predict_dataloader") and isinstance(model.predict_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
-    def connect(self, model: 'pl.LightningModule') -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
@@ -117,7 +116,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return self.model
 
     def create_mp_queue(self):
-        self.start_method = 'fork'
+        self.start_method = "fork"
         smp = mp.get_context(self.start_method)
         self.mp_queue = smp.SimpleQueue()
 
@@ -195,7 +194,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+                and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
@@ -240,7 +240,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
             )
 
-        output = xm.mesh_reduce('reduce', output, sum)
+        output = xm.mesh_reduce("reduce", output, sum)
 
         if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
             output = output / self.world_size
@@ -256,12 +256,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return {
             "args": (self.lightning_module.trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
-            "start_method": self.start_method
+            "start_method": self.start_method,
         }
 
     def start_training(self, trainer) -> None:
         # todo: precision pluging is call in accelerator setup and should be moved
-        if 'XLA_USE_BF16' in os.environ:
+        if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)

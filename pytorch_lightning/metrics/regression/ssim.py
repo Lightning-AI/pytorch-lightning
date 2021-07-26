@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class SSIM(_SSIM):
-
     @deprecated_metrics(target=_SSIM)
     def __init__(
         self,
