@@ -6,6 +6,7 @@ from pytorch_lightning.utilities.migration.base import set_version, should_upgra
 def migrate_model_checkpoint_early_stopping(checkpoint: dict) -> dict:
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
     from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+
     keys_mapping = {
         "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
         "checkpoint_callback_best_model_path": (ModelCheckpoint, "best_model_path"),

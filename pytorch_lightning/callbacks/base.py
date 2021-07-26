@@ -41,7 +41,7 @@ class Callback(abc.ABC):
     def _legacy_state_id(self) -> Type:
         return type(self)
 
-    def on_configure_sharded_model(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+    def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before configure sharded model"""
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

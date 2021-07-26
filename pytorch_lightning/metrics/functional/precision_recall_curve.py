@@ -27,7 +27,8 @@ def precision_recall_curve(
     pos_label: Optional[int] = None,
     sample_weights: Optional[Sequence] = None,
 ) -> Union[
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]],
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+    Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]],
 ]:
     """
     .. deprecated::
