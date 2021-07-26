@@ -201,11 +201,11 @@ from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
 
 __all__ = [
-    'AbstractProfiler',
-    'BaseProfiler',
-    'AdvancedProfiler',
-    'PassThroughProfiler',
-    'PyTorchProfiler',
-    'SimpleProfiler',
-    'XLAProfiler',
+    "AbstractProfiler",
+    "BaseProfiler",
+    "AdvancedProfiler",
+    "PassThroughProfiler",
+    "PyTorchProfiler",
+    "SimpleProfiler",
+    "XLAProfiler",
 ]

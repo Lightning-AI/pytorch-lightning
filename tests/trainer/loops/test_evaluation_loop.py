@@ -30,11 +30,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-        weights_summary=None,
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, weights_summary=None
     )
 
     trainer.fit(model)
@@ -55,17 +51,11 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
     update_eval_epoch_metrics_mock.side_effect = lambda: order.append("log_epoch_metrics")
 
     class LessBoringModel(BoringModel):
-
         def on_validation_end(self):
             order.append("on_validation_end")
             super().on_validation_end()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=1,
-        weights_summary=None,
-        num_sanity_val_steps=0,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, weights_summary=None, num_sanity_val_steps=0)
     trainer.fit(LessBoringModel())
 
     assert order == ["log_epoch_metrics", "on_validation_end"]
@@ -78,7 +68,6 @@ def test_memory_consumption_validation(tmpdir):
     initial_memory = torch.cuda.memory_allocated(0)
 
     class BoringLargeBatchModel(BoringModel):
-
         @property
         def num_params(self):
             return sum(p.numel() for p in self.parameters())
@@ -110,11 +99,5 @@ def test_memory_consumption_validation(tmpdir):
             return super().validation_step(batch, batch_idx)
 
     torch.cuda.empty_cache()
-    trainer = Trainer(
-        gpus=1,
-        default_root_dir=tmpdir,
-        fast_dev_run=2,
-        move_metrics_to_cpu=True,
-        weights_summary=None,
-    )
+    trainer = Trainer(gpus=1, default_root_dir=tmpdir, fast_dev_run=2, move_metrics_to_cpu=True, weights_summary=None)
     trainer.fit(BoringLargeBatchModel())

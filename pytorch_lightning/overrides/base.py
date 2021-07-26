@@ -22,8 +22,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-
-    def __init__(self, pl_module: 'pl.LightningModule') -> None:
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
         """
         Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can
         safely be wrapped by a ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
@@ -57,8 +56,7 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-
-    def __init__(self, pl_module: Union['pl.LightningModule', _LightningPrecisionModuleWrapperBase]):
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]):
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ``test_step``.
@@ -104,7 +102,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         pass
 
 
-def unwrap_lightning_module(wrapped_model) -> 'pl.LightningModule':
+def unwrap_lightning_module(wrapped_model) -> "pl.LightningModule":
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = unwrap_lightning_module(model.module)

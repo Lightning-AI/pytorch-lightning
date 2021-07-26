@@ -41,11 +41,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
 
     @staticmethod
     def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(
-            collection,
-            torch.Tensor,
-            LightningDoublePrecisionModule._to_double_precision,
-        )
+        return apply_to_collection(collection, torch.Tensor, LightningDoublePrecisionModule._to_double_precision)
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
         return self.module.training_step(
@@ -79,16 +75,13 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
 
 
 class DoublePrecisionPlugin(PrecisionPlugin):
-    """ Plugin for training with double (``torch.float64``) precision. """
+    """Plugin for training with double (``torch.float64``) precision."""
 
     precision: int = 64
 
     def connect(
-        self,
-        model: nn.Module,
-        optimizers: List[Optimizer],
-        lr_schedulers: List[Any],
-    ) -> Tuple[nn.Module, List['Optimizer'], List[Any]]:
+        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
+    ) -> Tuple[nn.Module, List["Optimizer"], List[Any]]:
         """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert
         incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
         `lr_schedulers`.

@@ -20,10 +20,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 @deprecated_metrics(target=_r2score)
 def r2score(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    adjusted: int = 0,
-    multioutput: str = "uniform_average",
+    preds: torch.Tensor, target: torch.Tensor, adjusted: int = 0, multioutput: str = "uniform_average"
 ) -> torch.Tensor:
     """
     .. deprecated::

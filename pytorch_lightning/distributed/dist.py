@@ -18,7 +18,6 @@ from pytorch_lightning.utilities.distributed import group as _group
 
 
 class LightningDistributed:
-
     def __init__(self, rank=None, device=None):
         self.rank = rank
         self.device = device
