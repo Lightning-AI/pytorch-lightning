@@ -35,7 +35,7 @@ class HyperparametersMixin(object):
         *args,
         ignore: Optional[Union[Sequence[str], str]] = None,
         frame: Optional[types.FrameType] = None,
-        logger: bool = True
+        logger: bool = True,
     ) -> None:
         """Save arguments to ``hparams`` attribute.
 

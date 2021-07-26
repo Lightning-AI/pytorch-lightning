@@ -26,10 +26,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 @deprecated_metrics(target=_bleu_score)
 def bleu_score(
-    translate_corpus: Sequence[str],
-    reference_corpus: Sequence[str],
-    n_gram: int = 4,
-    smooth: bool = False
+    translate_corpus: Sequence[str], reference_corpus: Sequence[str], n_gram: int = 4, smooth: bool = False
 ) -> torch.Tensor:
     """
     .. deprecated::

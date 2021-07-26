@@ -44,11 +44,11 @@ def grad_norm(module: Module, norm_type: Union[float, int, str]) -> Dict[str, fl
             continue
 
         param_norm = float(p.grad.data.norm(norm_type))
-        norms[f'grad_{norm_type}_norm_{name}'] = round(param_norm, 4)
+        norms[f"grad_{norm_type}_norm_{name}"] = round(param_norm, 4)
 
         all_norms.append(param_norm)
 
     total_norm = float(torch.tensor(all_norms).norm(norm_type))
-    norms[f'grad_{norm_type}_norm_total'] = round(total_norm, 4)
+    norms[f"grad_{norm_type}_norm_total"] = round(total_norm, 4)
 
     return norms

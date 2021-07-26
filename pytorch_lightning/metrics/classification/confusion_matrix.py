@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class ConfusionMatrix(_ConfusionMatrix):
-
     @deprecated_metrics(target=_ConfusionMatrix)
     def __init__(
         self,

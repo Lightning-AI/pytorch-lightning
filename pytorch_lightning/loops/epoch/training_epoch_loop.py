@@ -75,9 +75,7 @@ class TrainingEpochLoop(loops.Loop):
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def connect(
-        self,
-        batch_loop: Optional[TrainingBatchLoop] = None,
-        val_loop: Optional["loops.EvaluationLoop"] = None,
+        self, batch_loop: Optional[TrainingBatchLoop] = None, val_loop: Optional["loops.EvaluationLoop"] = None
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
         if batch_loop is not None:
@@ -141,18 +139,18 @@ class TrainingEpochLoop(loops.Loop):
 
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
-        self.update_lr_schedulers('step', update_plateau_schedulers=False)
+        self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_training_batches_reached(is_last):
-            self.update_lr_schedulers('epoch', update_plateau_schedulers=False)
+            self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
         self.trainer.call_hook(
-            'on_train_batch_end', processed_batch_end_outputs, batch, self.iteration_count, self._dataloader_idx
+            "on_train_batch_end", processed_batch_end_outputs, batch, self.iteration_count, self._dataloader_idx
         )
-        self.trainer.call_hook('on_batch_end')
+        self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -186,7 +184,7 @@ class TrainingEpochLoop(loops.Loop):
         self._save_loggers_on_train_batch_end()
 
         # update plateau LR scheduler after metrics are logged
-        self.update_lr_schedulers('step', update_plateau_schedulers=True)
+        self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
         self.total_batch_idx += 1
 
@@ -218,28 +216,28 @@ class TrainingEpochLoop(loops.Loop):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
 
-        if is_overridden('training_epoch_end', model):
+        if is_overridden("training_epoch_end", model):
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
-            model._current_fx_name = 'training_epoch_end'
+            model._current_fx_name = "training_epoch_end"
 
             # lightningmodule hook
             training_epoch_end_output = model.training_epoch_end(processed_outputs)
 
             if training_epoch_end_output is not None:
                 raise MisconfigurationException(
-                    'training_epoch_end expects a return of None. '
-                    'HINT: remove the return statement in training_epoch_end'
+                    "training_epoch_end expects a return of None. "
+                    "HINT: remove the return statement in training_epoch_end"
                 )
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
-        self.trainer.call_hook('on_epoch_end')
+        self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-        self.update_lr_schedulers('epoch', update_plateau_schedulers=True)
+        self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         epoch_output = self._epoch_output
         # free memory
@@ -285,7 +283,7 @@ class TrainingEpochLoop(loops.Loop):
                     self._warning_cache.deprecation(
                         "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
-                        " Support for the old signature will be removed in v1.5",
+                        " Support for the old signature will be removed in v1.5"
                     )
                     model_ref.on_train_epoch_end(processed_epoch_output)
                 else:
@@ -317,7 +315,8 @@ class TrainingEpochLoop(loops.Loop):
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
             # with 1 step (no tbptt) don't use a sequence at epoch end
             if (
-                isinstance(opt_outputs, list) and len(opt_outputs) == 1
+                isinstance(opt_outputs, list)
+                and len(opt_outputs) == 1
                 and not isinstance(opt_outputs[0], ResultCollection)
             ):
                 opt_outputs = opt_outputs[0]
@@ -344,8 +343,7 @@ class TrainingEpochLoop(loops.Loop):
 
     @staticmethod
     def _prepare_outputs(
-        outputs: List[List[List['ResultCollection']]],
-        batch_mode: bool,
+        outputs: List[List[List["ResultCollection"]]], batch_mode: bool
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """
         Extract required information from batch or epoch end results.
@@ -380,7 +378,7 @@ class TrainingEpochLoop(loops.Loop):
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
                     if tbptt_output.minimize is not None:
-                        out['loss'] = tbptt_output.minimize.detach()
+                        out["loss"] = tbptt_output.minimize.detach()
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension
@@ -420,7 +418,7 @@ class TrainingEpochLoop(loops.Loop):
             )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
-        """ Decide if we should run validation. """
+        """Decide if we should run validation."""
         if not self.trainer.enable_validation:
             return False
 
@@ -429,7 +427,7 @@ class TrainingEpochLoop(loops.Loop):
             return False
 
         # val_check_batch is inf for iterable datasets with no length defined
-        is_infinite_dataset = self.trainer.val_check_batch == float('inf')
+        is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         if is_last_batch and is_infinite_dataset:
             return True
 
@@ -440,7 +438,7 @@ class TrainingEpochLoop(loops.Loop):
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
-        elif self.trainer.val_check_batch != float('inf'):
+        elif self.trainer.val_check_batch != float("inf"):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         return is_val_check_batch
 

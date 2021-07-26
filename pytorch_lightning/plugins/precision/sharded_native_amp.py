@@ -29,6 +29,6 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         self.scaler = ShardedGradScaler()
 
     def clip_grad_by_norm(
-        self, optimizer: 'OSS', clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
+        self, optimizer: "OSS", clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
     ) -> None:
         optimizer.clip_grad_norm(clip_val, norm_type=norm_type)

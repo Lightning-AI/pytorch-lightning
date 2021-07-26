@@ -35,9 +35,8 @@ def enabled_only(fn: Callable):
 
 
 class InternalDebugger(object):
-
     def __init__(self, trainer):
-        self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
+        self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
         self.saved_train_losses = []
         self.saved_val_losses = []
@@ -58,16 +57,18 @@ class InternalDebugger(object):
         evt_value: Any = None,
         global_rank: Optional[int] = None,
         local_rank: Optional[int] = None,
-        comment: str = ''
+        comment: str = "",
     ) -> None:
-        self.events.append({
-            "timestamp": time.time(),
-            "event": evt_type,
-            "value": evt_value,
-            "global_rank": global_rank,
-            "local_rank": local_rank,
-            "comment": comment,
-        })
+        self.events.append(
+            {
+                "timestamp": time.time(),
+                "event": evt_type,
+                "value": evt_value,
+                "global_rank": global_rank,
+                "local_rank": local_rank,
+                "comment": comment,
+            }
+        )
 
     @enabled_only
     def track_load_dataloader_call(self, name, dataloaders):
@@ -83,26 +84,26 @@ class InternalDebugger(object):
             lengths.append(length)
 
         values = {
-            'global_step': self.trainer.global_step,
-            'epoch': self.trainer.current_epoch,
-            'num_loaders': loader_counts,
-            'lengths': lengths,
-            'name': name
+            "global_step": self.trainer.global_step,
+            "epoch": self.trainer.current_epoch,
+            "num_loaders": loader_counts,
+            "lengths": lengths,
+            "name": name,
         }
 
         # track the sequence in case we need to verify the sequence
         self.dataloader_sequence_calls.append(values)
 
-        if 'train' in name:
+        if "train" in name:
             self.train_dataloader_calls.append(values)
-        elif 'val' in name:
+        elif "val" in name:
             self.val_dataloader_calls.append(values)
-        elif 'test' in name:
+        elif "test" in name:
             self.test_dataloader_calls.append(values)
 
     @enabled_only
     def track_train_loss_history(self, batch_idx, loss):
-        loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
+        loss_dict = {"batch_idx": batch_idx, "epoch": self.trainer.current_epoch, "loss": loss.detach()}
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
@@ -110,25 +111,25 @@ class InternalDebugger(object):
         self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None, monitor_val=None
     ):
         loss_dict = {
-            'batch_idx': batch_idx,
-            'interval': interval,
-            'scheduler_idx': scheduler_idx,
-            'epoch': self.trainer.current_epoch,
-            'monitor_key': monitor_key,
-            'monitor_val': monitor_val,
-            'old_lr': old_lr,
-            'new_lr': new_lr
+            "batch_idx": batch_idx,
+            "interval": interval,
+            "scheduler_idx": scheduler_idx,
+            "epoch": self.trainer.current_epoch,
+            "monitor_key": monitor_key,
+            "monitor_val": monitor_val,
+            "old_lr": old_lr,
+            "new_lr": new_lr,
         }
         self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
     def track_eval_loss_history(self, batch_idx, dataloader_idx, output):
         loss_dict = {
-            'sanity_check': self.trainer.sanity_checking,
-            'dataloader_idx': dataloader_idx,
-            'batch_idx': batch_idx,
-            'epoch': self.trainer.current_epoch,
-            'output': output
+            "sanity_check": self.trainer.sanity_checking,
+            "dataloader_idx": dataloader_idx,
+            "batch_idx": batch_idx,
+            "epoch": self.trainer.current_epoch,
+            "output": output,
         }
 
         if self.trainer.testing:
@@ -139,12 +140,12 @@ class InternalDebugger(object):
     @enabled_only
     def track_early_stopping_history(self, callback, current):
         debug_dict = {
-            'epoch': self.trainer.current_epoch,
-            'global_step': self.trainer.global_step,
-            'rank': self.trainer.global_rank,
-            'current': current,
-            'best': callback.best_score,
-            'patience': callback.wait_count
+            "epoch": self.trainer.current_epoch,
+            "global_step": self.trainer.global_step,
+            "rank": self.trainer.global_rank,
+            "current": current,
+            "best": callback.best_score,
+            "patience": callback.wait_count,
         }
         self.early_stopping_history.append(debug_dict)
 
@@ -152,31 +153,31 @@ class InternalDebugger(object):
     def track_checkpointing_history(self, filepath):
         cb = self.trainer.checkpoint_callback
         debug_dict = {
-            'epoch': self.trainer.current_epoch,
-            'global_step': self.trainer.global_step,
-            'monitor': cb.monitor,
-            'rank': self.trainer.global_rank,
-            'filepath': filepath
+            "epoch": self.trainer.current_epoch,
+            "global_step": self.trainer.global_step,
+            "monitor": cb.monitor,
+            "rank": self.trainer.global_rank,
+            "filepath": filepath,
         }
         self.checkpoint_callback_history.append(debug_dict)
 
     @property
     def num_seen_sanity_check_batches(self):
-        count = len([x for x in self.saved_val_losses if x['sanity_check']])
+        count = len([x for x in self.saved_val_losses if x["sanity_check"]])
         return count
 
     @property
     def num_seen_val_check_batches(self):
         counts = Counter()
         for x in self.saved_val_losses:
-            if not x['sanity_check']:
-                counts.update({x['dataloader_idx']: 1})
+            if not x["sanity_check"]:
+                counts.update({x["dataloader_idx"]: 1})
         return counts
 
     @property
     def num_seen_test_check_batches(self):
         counts = Counter()
         for x in self.saved_test_losses:
-            if not x['sanity_check']:
-                counts.update({x['dataloader_idx']: 1})
+            if not x["sanity_check"]:
+                counts.update({x["dataloader_idx"]: 1})
         return counts

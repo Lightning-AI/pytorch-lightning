@@ -17,9 +17,9 @@ VERSIONS.sort(key=lambda v: v["torch"], reverse=True)
 
 def find_latest(ver: str) -> Dict[str, str]:
     # drop all except semantic version
-    ver = re.search(r'([\.\d]+)', ver).groups()[0]
+    ver = re.search(r"([\.\d]+)", ver).groups()[0]
     # in case there remaining dot at the end - e.g "1.9.0.dev20210504"
-    ver = ver[:-1] if ver[-1] == '.' else ver
+    ver = ver[:-1] if ver[-1] == "." else ver
     print(f"finding ecosystem versions for: {ver}")
 
     # find first match
@@ -33,6 +33,7 @@ def find_latest(ver: str) -> Dict[str, str]:
 def main(path_req: str, torch_version: Optional[str] = None) -> None:
     if not torch_version:
         import torch
+
         torch_version = torch.__version__
     assert torch_version, f"invalid torch: {torch_version}"
 

@@ -108,10 +108,7 @@ class EvaluationLoop(DataLoaderLoop):
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(
-            dataloader_iter,
-            self.current_dataloader_idx,
-            dl_max_batches,
-            self.num_dataloaders,
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
 
         # store batch level output per dataloader
@@ -257,7 +254,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook"""
-        hook_name = ("on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end")
+        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()

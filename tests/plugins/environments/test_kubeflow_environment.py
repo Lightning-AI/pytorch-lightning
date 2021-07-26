@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.environments import KubeflowEnvironment
 
 @mock.patch.dict(os.environ, {})
 def test_default_attributes():
-    """ Test the default attributes when no environment variables are set. """
+    """Test the default attributes when no environment variables are set."""
     env = KubeflowEnvironment()
     assert env.creates_children()
 
@@ -42,16 +42,17 @@ def test_default_attributes():
 
 
 @mock.patch.dict(
-    os.environ, {
+    os.environ,
+    {
         "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
         "RANK": "1",
-    }
+    },
 )
 def test_attributes_from_environment_variables(caplog):
-    """ Test that the torchelastic cluster environment takes the attributes from the environment variables. """
+    """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = KubeflowEnvironment()
     assert env.master_address() == "1.2.3.4"
     assert env.master_port() == 500
@@ -74,27 +75,29 @@ def test_attributes_from_environment_variables(caplog):
 
 
 @mock.patch.dict(
-    os.environ, {
+    os.environ,
+    {
         "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
         "RANK": "1",
-    }
+    },
 )
 def test_is_using_kubeflow():
     assert KubeflowEnvironment.is_using_kubeflow()
 
 
 @mock.patch.dict(
-    os.environ, {
+    os.environ,
+    {
         "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
         "RANK": "1",
         "GROUP_RANK": "1",
-    }
+    },
 )
 def test_is_using_kubeflow_torchelastic():
     assert not KubeflowEnvironment.is_using_kubeflow()

@@ -35,16 +35,16 @@ class ValidationEpochEndVariations(ABC):
             # recursive mean for multilevel dicts
             return torch.stack([x[key] if isinstance(x, dict) else _mean(x, key) for x in res]).mean()
 
-        val_loss_mean = _mean(outputs, 'val_loss')
-        val_acc_mean = _mean(outputs, 'val_acc')
+        val_loss_mean = _mean(outputs, "val_loss")
+        val_acc_mean = _mean(outputs, "val_acc")
 
         # alternate between tensor and scalar
         if self.current_epoch % 2 == 0:
             val_loss_mean = val_loss_mean.item()
             val_acc_mean = val_acc_mean.item()
 
-        self.log('early_stop_on', val_loss_mean, prog_bar=True)
-        self.log('val_acc', val_acc_mean, prog_bar=True)
+        self.log("early_stop_on", val_loss_mean, prog_bar=True)
+        self.log("val_acc", val_acc_mean, prog_bar=True)
 
     def validation_epoch_end__multiple_dataloaders(self, outputs):
         """
@@ -63,15 +63,15 @@ class ValidationEpochEndVariations(ABC):
         logs = {}
         for dl_output_list in outputs:
             output_keys = dl_output_list[0].keys()
-            output_keys = [x for x in output_keys if 'val_' in x]
+            output_keys = [x for x in output_keys if "val_" in x]
             for key in output_keys:
                 metric_out = _mean(dl_output_list, key)
                 pbar[key] = metric_out
                 logs[key] = metric_out
 
         results = {
-            'val_loss': torch.stack([v for k, v in pbar.items() if k.startswith('val_loss')]).mean(),
-            'progress_bar': pbar,
-            'log': logs,
+            "val_loss": torch.stack([v for k, v in pbar.items() if k.startswith("val_loss")]).mean(),
+            "progress_bar": pbar,
+            "log": logs,
         }
         return results
