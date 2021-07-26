@@ -312,7 +312,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
     checkpoint.to_yaml(path_yaml)
-    d = yaml.full_load(open(path_yaml, "r"))
+    d = yaml.full_load(open(path_yaml))
     best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
@@ -1206,7 +1206,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     trainer.fit(BoringModel())
 
     ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
-    expected = {"test.ckpt", *[f"test-v{i}.ckpt" for i in ckpt_range]}
+    expected = {"test.ckpt", *(f"test-v{i}.ckpt" for i in ckpt_range)}
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models} == expected
     # check created ckpts

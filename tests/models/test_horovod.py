@@ -221,11 +221,11 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
         def training_step(self, batch, *args, **kwargs):
             assert str(batch.device) != "cpu"
-            return super(TestTrainingStepModel, self).training_step(batch, *args, **kwargs)
+            return super().training_step(batch, *args, **kwargs)
 
         def validation_step(self, batch, *args, **kwargs):
             assert str(batch.device) != "cpu"
-            return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
+            return super().validation_step(batch, *args, **kwargs)
 
     model = TestTrainingStepModel()
 
@@ -269,7 +269,7 @@ def test_horovod_multi_optimizer(tmpdir):
         return set(list(model.parameters()))
 
     def get_optimizer_params(optimizer):
-        return set([p for group in optimizer.param_groups for p in group.get("params", [])])
+        return {p for group in optimizer.param_groups for p in group.get("params", [])}
 
     assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])

@@ -263,10 +263,8 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
         @staticmethod
         def combine_generators(gen_1, gen_2):
-            for p in gen_1:
-                yield p
-            for p in gen_2:
-                yield p
+            yield from gen_1
+            yield from gen_2
 
         def configure_optimizers(self):
             optimizer_1 = SGD(self.combine_generators(self.layer_1.parameters(), self.layer_2.parameters()), lr=0.1)
