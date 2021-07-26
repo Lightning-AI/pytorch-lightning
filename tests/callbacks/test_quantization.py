@@ -258,15 +258,13 @@ class CheckObserverDisabledModel(RegressionModel):
 
 
 class BeforeTrainingCalibration(Callback):
-
     def on_train_start(self, trainer, pl_module):
         pl_module.training_step(next(iter(trainer.train_dataloader)), 0)
 
 
 @pytest.mark.parametrize("observe", ["average", "histogram"])
 @pytest.mark.parametrize(
-    "disable_observers",
-    [("validate", "test", "predict"), ("train", "validate", "test", "predict"), ("validate",), ()]
+    "disable_observers", [("validate", "test", "predict"), ("train", "validate", "test", "predict"), ("validate",), ()]
 )
 @RunIf(quantization=True)
 def test_disable_observers(tmpdir, observe, disable_observers):
