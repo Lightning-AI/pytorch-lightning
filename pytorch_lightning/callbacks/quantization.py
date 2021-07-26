@@ -199,7 +199,7 @@ class QuantizationAwareTraining(Callback):
         self._fake_quant_to_initial_state_dict = {}
         self._last_fake_quant_to_observer_enabled = {}
 
-    def _check_feasible_fuse(self, model):
+    def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
         if not self.modules_to_fuse:
             return False
         for group in self.modules_to_fuse:
@@ -214,16 +214,16 @@ class QuantizationAwareTraining(Callback):
             fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quant_to_initial_state_dict
         }
 
-    def _maybe_disable_observer(self, pl_module, should_disable):
+    def _maybe_disable_observer(self, pl_module: "pl.LightningModule", should_disable: bool) -> None:
         if should_disable:
             self._last_fake_quant_to_observer_enabled = self._collect_observer_enabled()
             pl_module.apply(torch.quantization.disable_observer)
 
-    def _restore_last_observer_enabled(self):
+    def _restore_last_observer_enabled(self) -> None:
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
 
-    def on_fit_start(self, trainer, pl_module):
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -260,7 +260,7 @@ class QuantizationAwareTraining(Callback):
         fake_quants = tuple(module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase))
         self._fake_quant_to_initial_state_dict = {fake_quant: fake_quant.state_dict() for fake_quant in fake_quants}
 
-    def on_fit_end(self, trainer, pl_module):
+    def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:
             pl_module.forward = self.__module_forward
             return
@@ -276,10 +276,10 @@ class QuantizationAwareTraining(Callback):
         else:
             pl_module.forward = self.__module_forward
 
-    def on_validation_start(self, trainer, pl_module):
+    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._maybe_disable_observer(pl_module, "validate" in self._disable_observers and not trainer.sanity_checking)
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "validate" in self._disable_observers:
             if trainer.sanity_checking:
                 for fake_quant, state_dict in self._fake_quant_to_initial_state_dict.items():
@@ -287,16 +287,16 @@ class QuantizationAwareTraining(Callback):
             else:
                 self._restore_last_observer_enabled()
 
-    def on_test_start(self, trainer, pl_module):
+    def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._maybe_disable_observer(pl_module, "test" in self._disable_observers)
 
-    def on_test_end(self, trainer, pl_module):
+    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "test" in self._disable_observers:
             self._restore_last_observer_enabled()
 
-    def on_predict_start(self, trainer, pl_module):
+    def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._maybe_disable_observer(pl_module, "predict" in self._disable_observers)
 
-    def on_predict_end(self, trainer, pl_module):
+    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "predict" in self._disable_observers:
             self._restore_last_observer_enabled()
