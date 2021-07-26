@@ -193,7 +193,7 @@ class QuantizationAwareTraining(Callback):
             raise MisconfigurationException(
                 f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.DISABLE_OBSERVER_STAGES}.'
             )
-        self._disable_observers = disable_observers
+        self._disable_observer_stages = disable_observers
 
         self._forward_calls = 0
         self._fake_quant_to_initial_state_dict = {}
@@ -276,11 +276,11 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = self.__module_forward
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "validate" in self._disable_observers and not trainer.sanity_checking:
+        if "validate" in self._disable_observer_stages and not trainer.sanity_checking:
             self._disable_observer(pl_module)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "validate" in self._disable_observers:
+        if "validate" in self._disable_observer_stages:
             if trainer.sanity_checking:
                 for fake_quant, state_dict in self._fake_quant_to_initial_state_dict.items():
                     fake_quant.load_state_dict(state_dict)
@@ -288,17 +288,17 @@ class QuantizationAwareTraining(Callback):
                 self._restore_last_observer_enabled()
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "test" in self._disable_observers:
+        if "test" in self._disable_observer_stages:
             self._disable_observer(pl_module)
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "test" in self._disable_observers:
+        if "test" in self._disable_observer_stages:
             self._restore_last_observer_enabled()
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "predict" in self._disable_observers:
+        if "predict" in self._disable_observer_stages:
             self._disable_observer(pl_module)
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "predict" in self._disable_observers:
+        if "predict" in self._disable_observer_stages:
             self._restore_last_observer_enabled()
