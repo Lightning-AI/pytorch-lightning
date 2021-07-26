@@ -44,7 +44,7 @@ if _OMEGACONF_AVAILABLE:
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
-class ModelIO(object):
+class ModelIO:
     CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"

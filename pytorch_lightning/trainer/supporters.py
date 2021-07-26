@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 
 
-class TensorRunningAccum(object):
+class TensorRunningAccum:
     """Tracks a running accumulation values (min, max, mean) without graph
     references.
 
@@ -112,7 +112,7 @@ class TensorRunningAccum(object):
             return getattr(self.memory[: self.current_idx], how)()
 
 
-class PredictionCollection(object):
+class PredictionCollection:
     def __init__(self, global_rank: int, world_size: int):
         self.global_rank = global_rank
         self.world_size = world_size
@@ -170,7 +170,7 @@ class PredictionCollection(object):
                 torch.save(outputs, fp)
 
 
-class CycleIterator(object):
+class CycleIterator:
     """
     Iterator for restarting a dataloader if it runs out of samples
     """
@@ -230,7 +230,7 @@ class CycleIterator(object):
         return self.length
 
 
-class CombinedDataset(object):
+class CombinedDataset:
     """
     Combine multiple datasets and compute their statistics
     """
@@ -323,7 +323,7 @@ class DataLoaderDict(Dict):
     pass
 
 
-class CombinedLoader(object):
+class CombinedLoader:
     """
     Combines different dataloaders and allows sampling in parallel.
     Supported modes are 'min_size', which raises StopIteration after the shortest loader
@@ -510,7 +510,7 @@ class CombinedLoader(object):
         return self._calc_num_batches(self.loaders)
 
 
-class CombinedLoaderIterator(object):
+class CombinedLoaderIterator:
     """
     Custom Iterator returning data from multple loaders, and allows sampling in parallel
     """

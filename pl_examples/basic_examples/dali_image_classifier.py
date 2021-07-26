@@ -44,7 +44,7 @@ else:
     ops, Pipeline, DALIClassificationIterator, LastBatchPolicy = ..., ABC, ABC, ABC
 
 
-class ExternalMNISTInputIterator(object):
+class ExternalMNISTInputIterator:
     """
     This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches
     """
@@ -78,7 +78,7 @@ class ExternalSourcePipeline(Pipeline):
     """
 
     def __init__(self, batch_size, eii, num_threads, device_id):
-        super(ExternalSourcePipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
+        super().__init__(batch_size, num_threads, device_id, seed=12)
         self.source = ops.ExternalSource(source=eii, num_outputs=2)
         self.build()
 

@@ -66,7 +66,7 @@ class DQN(nn.Module):
             n_actions: number of discrete actions available in the environment
             hidden_size: size of hidden layers
         """
-        super(DQN, self).__init__()
+        super().__init__()
         self.net = nn.Sequential(nn.Linear(obs_size, hidden_size), nn.ReLU(), nn.Linear(hidden_size, n_actions))
 
     def forward(self, x):
@@ -106,7 +106,7 @@ class ReplayBuffer:
 
     def sample(self, batch_size: int) -> Tuple:
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
+        states, actions, rewards, dones, next_states = zip(*(self.buffer[idx] for idx in indices))
 
         return (
             np.array(states),

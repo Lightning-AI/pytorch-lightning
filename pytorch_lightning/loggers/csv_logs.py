@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 log = logging.getLogger(__name__)
 
 
-class ExperimentWriter(object):
+class ExperimentWriter:
     r"""
     Experiment writer for CSVLogger.
 
@@ -95,7 +95,7 @@ class ExperimentWriter(object):
             last_m.update(m)
         metrics_keys = list(last_m.keys())
 
-        with io.open(self.metrics_file_path, "w", newline="") as f:
+        with open(self.metrics_file_path, "w", newline="") as f:
             self.writer = csv.DictWriter(f, fieldnames=metrics_keys)
             self.writer.writeheader()
             self.writer.writerows(self.metrics)

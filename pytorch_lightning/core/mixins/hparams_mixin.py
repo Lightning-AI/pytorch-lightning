@@ -22,7 +22,7 @@ from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.parsing import save_hyperparameters
 
 
-class HyperparametersMixin(object):
+class HyperparametersMixin:
 
     __jit_unused_properties__ = ["hparams", "hparams_initial"]
 

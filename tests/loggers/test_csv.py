@@ -79,7 +79,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     logger.save()
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
-    with open(path_csv, "r") as fp:
+    with open(path_csv) as fp:
         lines = fp.readlines()
     assert len(lines) == 2
     assert all(n in lines[0] for n in metrics)

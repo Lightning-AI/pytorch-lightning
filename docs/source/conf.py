@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
 #
@@ -48,7 +47,7 @@ HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
-    with open(path_in, "r") as fp:
+    with open(path_in) as fp:
         chlog_lines = fp.readlines()
     # enrich short subsub-titles to be unique
     chlog_ver = ""
@@ -291,7 +290,7 @@ def setup(app):
 def package_list_from_file(file):
     """List up package name (not containing version and extras) from a package list file"""
     mocked_packages = []
-    with open(file, "r") as fp:
+    with open(file) as fp:
         for ln in fp.readlines():
             # Example: `tqdm>=4.41.0` => `tqdm`
             # `[` is for package with extras

@@ -80,7 +80,7 @@ if _HOROVOD_AVAILABLE:
 log = logging.getLogger(__name__)
 
 
-class AcceleratorConnector(object):
+class AcceleratorConnector:
     def __init__(
         self,
         num_processes,
