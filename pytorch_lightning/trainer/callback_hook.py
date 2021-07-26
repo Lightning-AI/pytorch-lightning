@@ -15,7 +15,7 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import torch
 
@@ -34,19 +34,19 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    lightning_module: 'pl.LightningModule'
+    lightning_module: "pl.LightningModule"
 
-    def on_before_accelerator_backend_setup(self, model: 'pl.LightningModule') -> None:
+    def on_before_accelerator_backend_setup(self, model: "pl.LightningModule") -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def configure_sharded_model(self, model: 'pl.LightningModule') -> None:
+    def configure_sharded_model(self, model: "pl.LightningModule") -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_configure_sharded_model(self, model)
 
-    def setup(self, model: 'pl.LightningModule', stage: Optional[str]) -> None:
+    def setup(self, model: "pl.LightningModule", stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage=stage)
@@ -263,7 +263,7 @@ class TrainerCallbackHookMixin(ABC):
         parameters = list(signature(fn).parameters)
         return len(parameters) == 1 and parameters[0] != "args"
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
@@ -277,15 +277,16 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_id] = state
+                callback_states[type(callback)] = state
         return callback_states
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint):
         """Called when loading a model checkpoint."""
+
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        callback_states = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -297,11 +298,12 @@ class TrainerCallbackHookMixin(ABC):
             rank_zero_warn(
                 "Be aware that when using ``resume_from_checkpoint``, "
                 "callbacks used to create the checkpoint need to be provided. "
-                f"Please, add the following callbacks: {list(difference)}. ", UserWarning
+                f"Please, add the following callbacks: {list(difference)}. ",
+                UserWarning,
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(callback.state_id, callback_states.get(callback._legacy_state_id))
+            state = callback_states.get(type(callback))
             if state:
                 state = deepcopy(state)
                 if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
