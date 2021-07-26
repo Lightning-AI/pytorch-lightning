@@ -30,10 +30,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def wrap_qat_forward_context(
-    quant_cb,
-    model: 'pl.LightningModule',
-    func: Callable,
-    trigger_condition: Optional[Union[Callable, int]] = None
+    quant_cb, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
@@ -58,7 +55,7 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
@@ -75,8 +72,8 @@ def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:
     """recursive check if model has some layers denoted with '.'"""
-    if '.' in attribs:
-        attrib, attribs = attribs.split('.', 1)
+    if "." in attribs:
+        attrib, attribs = attribs.split(".", 1)
         if hasattr(obj, attrib):
             return _recursive_hasattr(getattr(obj, attrib), attribs, state)
         return False
@@ -164,11 +161,12 @@ class QuantizationAwareTraining(Callback):
             Note that once converted, the model cannot be put in training mode again.
 
     """
-    OBSERVER_TYPES = ('histogram', 'average')
+
+    OBSERVER_TYPES = ("histogram", "average")
 
     def __init__(
         self,
-        qconfig: Union[str, QConfig] = 'fbgemm',
+        qconfig: Union[str, QConfig] = "fbgemm",
         observer_type: str = "average",
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
@@ -208,7 +206,7 @@ class QuantizationAwareTraining(Callback):
         for group in self._modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
-                    f'You have requested to fuse {group} but one or more of them is not your model attributes'
+                    f"You have requested to fuse {group} but one or more of them is not your model attributes"
                 )
         return True
 
@@ -233,9 +231,9 @@ class QuantizationAwareTraining(Callback):
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
         if isinstance(self._qconfig, str):
-            if self._observer_type == 'histogram':
+            if self._observer_type == "histogram":
                 pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
-            elif self._observer_type == 'average':
+            elif self._observer_type == "average":
                 pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
             pl_module.qconfig = self._qconfig

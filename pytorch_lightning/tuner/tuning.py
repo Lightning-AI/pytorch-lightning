@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 class Tuner:
     """Tuner class to tune your model"""
 
-    def __init__(self, trainer: 'pl.Trainer') -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
 
     def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]) -> None:
@@ -32,7 +32,7 @@ class Tuner:
 
     def _tune(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
@@ -45,12 +45,12 @@ class Tuner:
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, str):
                 scale_batch_size_kwargs.setdefault("mode", self.trainer.auto_scale_batch_size)
-            result['scale_batch_size'] = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
+            result["scale_batch_size"] = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            lr_find_kwargs.setdefault('update_attr', True)
-            result['lr_find'] = lr_find(self.trainer, model, **lr_find_kwargs)
+            lr_find_kwargs.setdefault("update_attr", True)
+            result["lr_find"] = lr_find(self.trainer, model, **lr_find_kwargs)
 
         self.trainer.state.status = TrainerStatus.FINISHED
 
@@ -65,15 +65,15 @@ class Tuner:
 
     def scale_batch_size(
         self,
-        model: 'pl.LightningModule',
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, 'pl.LightningDataModule']] = None,
+        model: "pl.LightningModule",
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional['pl.LightningDataModule'] = None,
-        mode: str = 'power',
+        datamodule: Optional["pl.LightningDataModule"] = None,
+        mode: str = "power",
         steps_per_trial: int = 3,
         init_val: int = 2,
         max_trials: int = 25,
-        batch_arg_name: str = 'batch_size',
+        batch_arg_name: str = "batch_size",
         train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> Optional[int]:
         """
@@ -123,26 +123,26 @@ class Tuner:
             val_dataloaders=val_dataloaders,
             datamodule=datamodule,
             scale_batch_size_kwargs={
-                'mode': mode,
-                'steps_per_trial': steps_per_trial,
-                'init_val': init_val,
-                'max_trials': max_trials,
-                'batch_arg_name': batch_arg_name,
-            }
+                "mode": mode,
+                "steps_per_trial": steps_per_trial,
+                "init_val": init_val,
+                "max_trials": max_trials,
+                "batch_arg_name": batch_arg_name,
+            },
         )
         self.trainer.auto_scale_batch_size = False
-        return result['scale_batch_size']
+        return result["scale_batch_size"]
 
     def lr_find(
         self,
-        model: 'pl.LightningModule',
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, 'pl.LightningDataModule']] = None,
+        model: "pl.LightningModule",
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional['pl.LightningDataModule'] = None,
+        datamodule: Optional["pl.LightningDataModule"] = None,
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,
-        mode: str = 'exponential',
+        mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
         train_dataloader=None,  # noqa TODO: remove with 1.6
@@ -192,13 +192,13 @@ class Tuner:
             val_dataloaders=val_dataloaders,
             datamodule=datamodule,
             lr_find_kwargs={
-                'min_lr': min_lr,
-                'max_lr': max_lr,
-                'num_training': num_training,
-                'mode': mode,
-                'early_stop_threshold': early_stop_threshold,
-                'update_attr': update_attr
-            }
+                "min_lr": min_lr,
+                "max_lr": max_lr,
+                "num_training": num_training,
+                "mode": mode,
+                "early_stop_threshold": early_stop_threshold,
+                "update_attr": update_attr,
+            },
         )
         self.trainer.auto_lr_find = False
-        return result['lr_find']
+        return result["lr_find"]

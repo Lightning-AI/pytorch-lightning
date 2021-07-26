@@ -28,12 +28,12 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='train_acc')],
+        callbacks=[EarlyStopping(monitor="train_acc")],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
     )
 
     dm = ClassifDataModule()
@@ -51,7 +51,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
         progress_bar_refresh_rate=0,
     )
 
@@ -60,7 +60,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
     # test memory helper functions
-    memory.get_memory_profile('min_max')
+    memory.get_memory_profile("min_max")
 
 
 @RunIf(min_gpus=2)
@@ -78,7 +78,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
     )
     trainer.fit(model, **fit_options)
     assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."

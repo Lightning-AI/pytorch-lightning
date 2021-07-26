@@ -50,11 +50,7 @@ class Accelerator:
 
     """
 
-    def __init__(
-        self,
-        precision_plugin: PrecisionPlugin,
-        training_type_plugin: TrainingTypePlugin,
-    ) -> None:
+    def __init__(self, precision_plugin: PrecisionPlugin, training_type_plugin: TrainingTypePlugin) -> None:
         """
         Args:
             precision_plugin: the plugin to handle precision-specific parts
@@ -67,7 +63,7 @@ class Accelerator:
         self.lr_schedulers: List = []
         self.optimizer_frequencies: List = []
 
-    def connect(self, model: 'pl.LightningModule') -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         """Transfers ownership of the model to this plugin"""
         self.training_type_plugin.connect(model)
 
@@ -79,7 +75,7 @@ class Accelerator:
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
@@ -92,16 +88,16 @@ class Accelerator:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self.training_type_plugin.start_evaluating(trainer)
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self._move_optimizer_state()
 
@@ -112,18 +108,18 @@ class Accelerator:
         self.precision_plugin.pre_dispatch()
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """ Moves the state of the optimizers to the GPU if needed. """
+        """Moves the state of the optimizers to the GPU if needed."""
         device = device or self.root_device
         for opt in self.optimizers:
             for p, v in opt.state.items():
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
 
-    def dispatch(self, trainer: 'pl.Trainer') -> None:
+    def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.dispatch(trainer)
         self.precision_plugin.dispatch(trainer)
 
-    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
@@ -141,7 +137,7 @@ class Accelerator:
         self.training_type_plugin.model = new_model
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
+    def lightning_module(self) -> "pl.LightningModule":
         """
         Returns the pure LightningModule.
         To get the potentially wrapped model use :attr:`Accelerator.model`
@@ -180,10 +176,7 @@ class Accelerator:
 
         return move_data_to_device(batch, device)
 
-    def training_step(
-        self,
-        step_kwargs: Dict[str, Union[Any, int]],
-    ) -> STEP_OUTPUT:
+    def training_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual training step.
 
         Args:
@@ -271,12 +264,7 @@ class Accelerator:
         """
         return self.training_type_plugin.validation_step_end(output)
 
-    def backward(
-        self,
-        closure_loss: Tensor,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tensor:
+    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
@@ -327,13 +315,10 @@ class Accelerator:
     ) -> None:
         """clips all the optimizer parameters to the given value"""
         self.precision_plugin.clip_gradients(
-            optimizer,
-            clip_val,
-            gradient_clip_algorithm=gradient_clip_algorithm,
-            model=self.model,
+            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
         )
 
-    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """
         Creates optimizers and schedulers
 
@@ -349,7 +334,7 @@ class Accelerator:
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, model: 'pl.LightningModule') -> None:
+    def setup_training_type_plugin(self, model: "pl.LightningModule") -> None:
         """Attaches the training type plugin to the accelerator."""
         self.training_type_plugin.setup(model)
 
@@ -373,15 +358,15 @@ class Accelerator:
         return self.precision_plugin.precision
 
     @property
-    def scaler(self) -> Optional['GradScaler']:
-        return getattr(self.precision_plugin, 'scaler', None)
+    def scaler(self) -> Optional["GradScaler"]:
+        return getattr(self.precision_plugin, "scaler", None)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         """
-        return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
+        return getattr(self.training_type_plugin, "optimizer_state", lambda x: x.state_dict())(optimizer)
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """
@@ -464,7 +449,7 @@ class Accelerator:
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'pl.LightningModule') -> None:
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
@@ -473,8 +458,7 @@ class Accelerator:
             Will be removed in v1.5.0.
         """
         rank_zero_warn(
-            'Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
-            ' It will be removed in v1.5.'
+            "Accelerator method `connect_training_type_plugin` was deprecated in v1.3. It will be removed in v1.5."
         )
         self.setup_training_type_plugin(model)
 
@@ -486,8 +470,7 @@ class Accelerator:
             Will be removed in v1.5.0.
         """
         rank_zero_warn(
-            'Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
-            ' It will be removed in v1.5.'
+            "Accelerator method `connect_precision_plugin` was deprecated in v1.3. It will be removed in v1.5."
         )
         self.setup_precision_plugin()
 

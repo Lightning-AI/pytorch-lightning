@@ -54,12 +54,7 @@ log = logging.getLogger(__name__)
 
 class XLAProfiler(BaseProfiler):
 
-    STEP_FUNCTIONS = {
-        "training_step_and_backward",
-        "validation_step",
-        "test_step",
-        "predict_step",
-    }
+    STEP_FUNCTIONS = {"training_step_and_backward", "validation_step", "test_step", "predict_step"}
     RECORD_FUNCTIONS = {
         "training_step_and_backward",
         "training_step",
