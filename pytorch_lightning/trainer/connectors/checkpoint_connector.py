@@ -26,7 +26,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.migration.base import pl_legacy_patch
 from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
-from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -176,13 +175,6 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        if any(key in self._loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
-            raise ValueError(
-                "The checkpoint you're attempting to load follows an"
-                " outdated schema. You can upgrade to the current schema by running"
-                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
-                " where `model.ckpt` is your checkpoint file."
-            )
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
