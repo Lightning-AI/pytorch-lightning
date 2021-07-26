@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 import torch
 from torch import Tensor
 from torch.quantization import QConfig
+
 try:
     from torch.quantization import FakeQuantizeBase
 except ImportError:
@@ -149,8 +150,9 @@ class QuantizationAwareTraining(Callback):
     .. _torch.quantization.QConfig: https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig
 
     """
-    OBSERVER_TYPES = ('histogram', 'average')
-    DISABLE_OBSERVER_STAGES = ('validate', 'test', 'predict')
+
+    OBSERVER_TYPES = ("histogram", "average")
+    DISABLE_OBSERVER_STAGES = ("validate", "test", "predict")
 
     def __init__(
         self,
@@ -160,7 +162,7 @@ class QuantizationAwareTraining(Callback):
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
         quantize_on_fit_end: bool = True,
-        disable_observers: Sequence[str] = ('validate', 'test', 'predict'),
+        disable_observers: Sequence[str] = ("validate", "test", "predict"),
     ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
@@ -209,8 +211,7 @@ class QuantizationAwareTraining(Callback):
 
     def _collect_observer_enabled(self) -> Dict[FakeQuantizeBase, Tensor]:
         return {
-            fake_quant: fake_quant.observer_enabled.clone()
-            for fake_quant in self._fake_quant_to_initial_state_dict
+            fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quant_to_initial_state_dict
         }
 
     def _maybe_disable_observer(self, pl_module, should_disable):
@@ -256,9 +257,7 @@ class QuantizationAwareTraining(Callback):
         # the model that will observe weight and activation tensors during calibration.
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
-        fake_quants = tuple(
-            module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase)
-        )
+        fake_quants = tuple(module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase))
         self._fake_quant_to_initial_state_dict = {fake_quant: fake_quant.state_dict() for fake_quant in fake_quants}
 
     def on_fit_end(self, trainer, pl_module):
@@ -278,10 +277,10 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = self.__module_forward
 
     def on_validation_start(self, trainer, pl_module):
-        self._maybe_disable_observer(pl_module, 'validate' in self._disable_observers and not trainer.sanity_checking)
+        self._maybe_disable_observer(pl_module, "validate" in self._disable_observers and not trainer.sanity_checking)
 
     def on_validation_end(self, trainer, pl_module):
-        if 'validate' in self._disable_observers:
+        if "validate" in self._disable_observers:
             if trainer.sanity_checking:
                 for fake_quant, state_dict in self._fake_quant_to_initial_state_dict.items():
                     fake_quant.load_state_dict(state_dict)
@@ -289,15 +288,15 @@ class QuantizationAwareTraining(Callback):
                 self._restore_last_observer_enabled()
 
     def on_test_start(self, trainer, pl_module):
-        self._maybe_disable_observer(pl_module, 'test' in self._disable_observers)
+        self._maybe_disable_observer(pl_module, "test" in self._disable_observers)
 
     def on_test_end(self, trainer, pl_module):
-        if 'test' in self._disable_observers:
+        if "test" in self._disable_observers:
             self._restore_last_observer_enabled()
 
     def on_predict_start(self, trainer, pl_module):
-        self._maybe_disable_observer(pl_module, 'predict' in self._disable_observers)
+        self._maybe_disable_observer(pl_module, "predict" in self._disable_observers)
 
     def on_predict_end(self, trainer, pl_module):
-        if 'predict' in self._disable_observers:
+        if "predict" in self._disable_observers:
             self._restore_last_observer_enabled()
