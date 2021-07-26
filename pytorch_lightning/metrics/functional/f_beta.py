@@ -28,7 +28,7 @@ def fbeta(
     beta: float = 1.0,
     threshold: float = 0.5,
     average: str = "micro",
-    multilabel: Optional[bool] = None
+    multilabel: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
@@ -44,7 +44,7 @@ def f1(
     num_classes: int,
     threshold: float = 0.5,
     average: str = "micro",
-    multilabel: Optional[bool] = None
+    multilabel: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::

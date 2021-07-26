@@ -13,7 +13,7 @@ from tests.helpers.boring_model import BoringModel
 
 
 def test_unsupported_precision_plugins():
-    """ Test error messages are raised for unsupported precision plugins with CPU. """
+    """Test error messages are raised for unsupported precision plugins with CPU."""
     trainer = Mock()
     model = Mock()
     accelerator = CPUAccelerator(
@@ -31,7 +31,6 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
     """
 
     class TestModel(BoringModel):
-
         def on_fit_start(self):
             if delay_dispatch:
                 # Ensure we haven't setup optimizers if we've delayed dispatch
@@ -43,7 +42,6 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
             assert len(self.trainer.optimizers) > 0
 
     class CustomPlugin(SingleDevicePlugin):
-
         @property
         def setup_optimizers_in_pre_dispatch(self) -> bool:
             return delay_dispatch
@@ -85,7 +83,7 @@ def test_accelerator_on_reset_dataloader_hooks(tmpdir):
             return super().on_reset_predict_dataloader(dataloader)
 
     model = BoringModel()
-    accelerator = CustomAccelerator(PrecisionPlugin(), SingleDevicePlugin(device=torch.device('cpu')))
+    accelerator = CustomAccelerator(PrecisionPlugin(), SingleDevicePlugin(device=torch.device("cpu")))
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator)
     trainer.fit(model)
     trainer.validate(model)
@@ -97,7 +95,7 @@ def test_accelerator_on_reset_dataloader_hooks(tmpdir):
     assert accelerator.test_count == 1
     assert accelerator.predict_count == 1
 
-    accelerator = CustomAccelerator(PrecisionPlugin(), SingleDevicePlugin(device=torch.device('cpu')))
+    accelerator = CustomAccelerator(PrecisionPlugin(), SingleDevicePlugin(device=torch.device("cpu")))
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator)
     trainer.validate(model)
     trainer.test(model)
@@ -139,7 +137,7 @@ def test_plugin_on_reset_dataloader_hooks(tmpdir):
             assert self.lightning_module.trainer.predicting
             return super().on_reset_predict_dataloader(dataloader)
 
-    plugin = CustomPlugin(device=torch.device('cpu'))
+    plugin = CustomPlugin(device=torch.device("cpu"))
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
     trainer.fit(model)
@@ -151,7 +149,7 @@ def test_plugin_on_reset_dataloader_hooks(tmpdir):
     assert plugin.val_count == 1  # only called once during the entire session
     assert plugin.test_count == 1
     assert plugin.predict_count == 1
-    plugin = CustomPlugin(device=torch.device('cpu'))
+    plugin = CustomPlugin(device=torch.device("cpu"))
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
     trainer.validate(model)
     trainer.test(model)

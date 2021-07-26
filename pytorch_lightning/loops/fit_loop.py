@@ -106,12 +106,12 @@ class FitLoop(Loop):
 
     @property
     def _skip_backward(self) -> bool:
-        """ Determines whether the loop will skip backward during automatic optimization. """
+        """Determines whether the loop will skip backward during automatic optimization."""
         return self.epoch_loop.batch_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
-        """ Determines whether the loop will skip backward during automatic optimization. """
+        """Determines whether the loop will skip backward during automatic optimization."""
         self.epoch_loop.batch_loop._skip_backward = value
 
     @property
@@ -142,9 +142,9 @@ class FitLoop(Loop):
                 should_stop = True
             else:
                 log.info(
-                    'Trainer was signaled to stop but required minimum epochs'
-                    f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                    ' not been met. Training will continue...'
+                    "Trainer was signaled to stop but required minimum epochs"
+                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
+                    " not been met. Training will continue..."
                 )
         self.trainer.should_stop = should_stop
 

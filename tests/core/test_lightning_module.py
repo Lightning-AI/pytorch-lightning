@@ -24,7 +24,7 @@ from tests.helpers.runif import RunIf
 
 
 def test_property_current_epoch():
-    """ Test that the current_epoch in LightningModule is accessible via the Trainer. """
+    """Test that the current_epoch in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.current_epoch == 0
 
@@ -34,7 +34,7 @@ def test_property_current_epoch():
 
 
 def test_property_global_step():
-    """ Test that the global_step in LightningModule is accessible via the Trainer. """
+    """Test that the global_step in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.global_step == 0
 
@@ -44,7 +44,7 @@ def test_property_global_step():
 
 
 def test_property_global_rank():
-    """ Test that the global rank in LightningModule is accessible via the Trainer. """
+    """Test that the global rank in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.global_rank == 0
 
@@ -54,7 +54,7 @@ def test_property_global_rank():
 
 
 def test_property_local_rank():
-    """ Test that the local rank in LightningModule is accessible via the Trainer. """
+    """Test that the local rank in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.local_rank == 0
 
@@ -64,7 +64,7 @@ def test_property_local_rank():
 
 
 def test_property_logger(tmpdir):
-    """ Test that the logger in LightningModule is accessible via the Trainer. """
+    """Test that the logger in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.logger is None
 
@@ -75,9 +75,7 @@ def test_property_logger(tmpdir):
 
 
 def test_params_groups_and_state_are_accessible(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx, optimizer_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -97,13 +95,13 @@ def test_params_groups_and_state_are_accessible(tmpdir):
             optimizer_closure,
             on_tpu=False,
             using_native_amp=False,
-            using_lbfgs=False
+            using_lbfgs=False,
         ):
             # warm up lr
             if self.trainer.global_step < 500:
-                lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+                lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                 for pg in optimizer.param_groups:
-                    pg['lr'] = lr_scale * 0.01
+                    pg["lr"] = lr_scale * 0.01
 
             optimizer.step(closure=optimizer_closure)
 
@@ -111,40 +109,23 @@ def test_params_groups_and_state_are_accessible(tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=8,
-        limit_val_batches=1,
-        accumulate_grad_batches=1,
+        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, accumulate_grad_batches=1
     )
 
     trainer.fit(model)
 
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             return super().training_step(batch, batch_idx)
 
         def __init__(self):
             super().__init__()
-            self.layer_1 = nn.Sequential(
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-            )
+            self.layer_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
 
             self.layer_2 = nn.Sequential(
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 2),
+                nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)
             )
 
             # set some weights to False to check untoggle works as expected.
@@ -168,7 +149,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             closure,
             on_tpu=False,
             using_native_amp=False,
-            using_lbfgs=False
+            using_lbfgs=False,
         ):
             if optimizer_idx == 0:
                 assert self.layer_1[0].weight.requires_grad is True
@@ -194,45 +175,23 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=8,
-        accumulate_grad_batches=2,
-        limit_val_batches=0,
+        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, accumulate_grad_batches=2, limit_val_batches=0
     )
     trainer.fit(model)
 
 
 def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
-
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
-            self.layer_1 = nn.Sequential(
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-            )
+            self.layer_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
 
             self.layer_2 = nn.Sequential(
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 2),
+                nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)
             )
 
             self.layer_3 = nn.Sequential(
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 32),
-                nn.ReLU(),
-                nn.Linear(32, 2),
+                nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)
             )
 
             # set some weights to False to check untoggle works as expected.
@@ -254,7 +213,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             closure,
             on_tpu=False,
             using_native_amp=False,
-            using_lbfgs=False
+            using_lbfgs=False,
         ):
             if optimizer_idx == 0:
                 assert self.layer_1[0].weight.requires_grad is True
@@ -310,29 +269,15 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
                 yield p
 
         def configure_optimizers(self):
-            optimizer_1 = SGD(self.combine_generators(
-                self.layer_1.parameters(),
-                self.layer_2.parameters(),
-            ), lr=0.1)
-            optimizer_2 = Adam(self.combine_generators(
-                self.layer_2.parameters(),
-                self.layer_3.parameters(),
-            ), lr=0.1)
-            optimizer_3 = SGD(self.combine_generators(
-                self.layer_3.parameters(),
-                self.layer_1.parameters(),
-            ), lr=0.1)
+            optimizer_1 = SGD(self.combine_generators(self.layer_1.parameters(), self.layer_2.parameters()), lr=0.1)
+            optimizer_2 = Adam(self.combine_generators(self.layer_2.parameters(), self.layer_3.parameters()), lr=0.1)
+            optimizer_3 = SGD(self.combine_generators(self.layer_3.parameters(), self.layer_1.parameters()), lr=0.1)
             return [optimizer_1, optimizer_2, optimizer_3]
 
     model = TestModel()
     model.training_epoch_end = None
 
-    trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=8,
-        accumulate_grad_batches=2,
-    )
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, accumulate_grad_batches=2)
 
     trainer.fit(model)
 

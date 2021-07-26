@@ -31,7 +31,7 @@ if _HOROVOD_AVAILABLE:
 
 
 class HorovodPlugin(ParallelPlugin):
-    """ Plugin for Horovod distributed training integration."""
+    """Plugin for Horovod distributed training integration."""
 
     def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
@@ -169,10 +169,7 @@ class HorovodPlugin(ParallelPlugin):
         return hvd.allreduce(tensor, op=reduce_op)
 
     def all_gather(
-        self,
-        result: Union[torch.Tensor],
-        group: Optional[Any] = dist_group.WORLD,
-        sync_grads: bool = False
+        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
     ) -> torch.Tensor:
         if group is not None and group != dist_group.WORLD:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
@@ -193,10 +190,12 @@ class HorovodPlugin(ParallelPlugin):
             optimizer.synchronize()
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
-        """ Wraps optimizers to perform gradient aggregation via allreduce. """
+        """Wraps optimizers to perform gradient aggregation via allreduce."""
         return [
             hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
-            if "horovod" not in str(opt.__class__) else opt for opt in optimizers
+            if "horovod" not in str(opt.__class__)
+            else opt
+            for opt in optimizers
         ]
 
     @staticmethod

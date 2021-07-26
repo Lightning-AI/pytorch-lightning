@@ -23,7 +23,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CallbackConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -89,12 +88,13 @@ class CallbackConnector:
             return
 
         from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv('COLAB_GPU') and refresh_rate is None:
+        if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
         refresh_rate = 1 if refresh_rate is None else refresh_rate
@@ -102,16 +102,13 @@ class CallbackConnector:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
-                'You added multiple progress bar callbacks to the Trainer, but currently only one'
-                ' progress bar is supported.'
+                "You added multiple progress bar callbacks to the Trainer, but currently only one"
+                " progress bar is supported."
             )
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(
-                refresh_rate=refresh_rate,
-                process_position=process_position,
-            )
+            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
@@ -136,7 +133,7 @@ class CallbackConnector:
             callback.log_dict = model.log_dict
 
     @staticmethod
-    def _attach_model_callbacks(model: 'pl.LightningModule', trainer) -> None:
+    def _attach_model_callbacks(model: "pl.LightningModule", trainer) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several

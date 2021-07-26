@@ -20,7 +20,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DebuggingConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -36,8 +35,8 @@ class DebuggingConnector:
     ):
         if not isinstance(fast_dev_run, (bool, int)):
             raise MisconfigurationException(
-                f'fast_dev_run={fast_dev_run} is not a valid configuration.'
-                ' It should be either a bool or an int >= 0'
+                f"fast_dev_run={fast_dev_run} is not a valid configuration."
+                " It should be either a bool or an int >= 0"
             )
 
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
@@ -65,16 +64,16 @@ class DebuggingConnector:
             self.trainer.logger = DummyLogger()
 
             rank_zero_info(
-                'Running in fast_dev_run mode: will run a full train,'
-                f' val, test and prediction loop using {fast_dev_run} batch(es).'
+                "Running in fast_dev_run mode: will run a full train,"
+                f" val, test and prediction loop using {fast_dev_run} batch(es)."
             )
 
-        self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
-        self.trainer.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
-        self.trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
-        self.trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, 'limit_predict_batches')
-        self.trainer.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
-        self.trainer.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
+        self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+        self.trainer.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
+        self.trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
+        self.trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+        self.trainer.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+        self.trainer.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
         self.determine_data_use_amount(self.trainer.overfit_batches)
 
     def determine_data_use_amount(self, overfit_batches: float) -> None:
@@ -91,5 +90,5 @@ def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int,
     if batches > 1 and batches % 1.0 == 0:
         return int(batches)
     raise MisconfigurationException(
-        f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
+        f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
     )

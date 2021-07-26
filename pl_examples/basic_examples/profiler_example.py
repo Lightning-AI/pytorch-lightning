@@ -43,7 +43,6 @@ DEFAULT_CMD_LINE = (
 
 
 class ModelToProfile(LightningModule):
-
     def __init__(self, name: str = "resnet50"):
         super().__init__()
         self.model = getattr(models, name)(pretrained=True)
@@ -92,6 +91,6 @@ def cli_main():
     LightningCLI(ModelToProfile, CIFAR10DataModule)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     cli_main()

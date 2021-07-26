@@ -22,14 +22,9 @@ def test_invalid_on_cpu(tmpdir):
     Test to ensure that to raise Misconfiguration for FSDP on CPU.
     """
     with pytest.raises(
-        MisconfigurationException,
-        match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available.",
+        MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
     ):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            plugins="fsdp",
-        )
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp")
         assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
         trainer.accelerator.setup_environment()
 
@@ -42,18 +37,8 @@ def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
     """
     Test to ensure that we raise an error when we try to use apex and fully sharded
     """
-    with pytest.raises(
-        MisconfigurationException,
-        match="Sharded Plugin is not supported with Apex AMP",
-    ):
-        Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            plugins="fsdp",
-            gpus=1,
-            precision=16,
-            amp_backend="apex",
-        )
+    with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
+        Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16, amp_backend="apex")
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -64,19 +49,12 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """
     Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins="fsdp",
-        gpus=1,
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins="fsdp", gpus=1, precision=16)
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
 class TestFSDPModel(BoringModel):
-
     def setup(self, stage: str) -> None:
         if stage != "fit":
             # when running stages like test, validate, and predict, we will skip setting up,
@@ -87,11 +65,7 @@ class TestFSDPModel(BoringModel):
         self.call_configure_sharded_model_hook = False
         # for loading full state dict, we first need to create a new unwrapped model
         # to load state dict and then wrapping
-        self.layer = torch.nn.Sequential(
-            torch.nn.Linear(32, 32),
-            torch.nn.ReLU(),
-            torch.nn.Linear(32, 2),
-        )
+        self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
     def configure_sharded_model(self) -> None:
         for i, layer in enumerate(self.layer):
@@ -129,36 +103,18 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(
-    min_gpus=1,
-    skip_windows=True,
-    fairscale_fully_sharded=True,
-    amp_native=True,
-    special=True,
-)
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run.
     """
 
     model = TestFSDPModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=1,
-        plugins="fsdp",
-        precision=16,
-        max_epochs=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins="fsdp", precision=16, max_epochs=1)
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(
-    min_gpus=2,
-    skip_windows=True,
-    fairscale_fully_sharded=True,
-    amp_native=True,
-    special=True,
-)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, amp_native=True, special=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
@@ -166,14 +122,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=2,
-        plugins="fsdp",
-        precision=16,
-        max_epochs=1,
-        callbacks=[ck],
-    )
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins="fsdp", precision=16, max_epochs=1, callbacks=[ck])
     _run_multiple_stages(trainer, model)
 
 
@@ -193,9 +142,9 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
     model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-    trainer_accelerator_call_configure_sharded_model_hook = (trainer.accelerator.call_configure_sharded_model_hook)
+    trainer_accelerator_call_configure_sharded_model_hook = trainer.accelerator.call_configure_sharded_model_hook
 
-    model_path = (model_path if model_path else trainer.checkpoint_callback.last_model_path)
+    model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook

@@ -88,7 +88,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
         progress_bar_refresh_rate=0,
     )
 
@@ -120,8 +120,8 @@ def test_error_if_no_input(tmpdir):
     file_path = os.path.join(tmpdir, "model.onnx")
     with pytest.raises(
         ValueError,
-        match=r'Could not export to ONNX since neither `input_sample` nor'
-        r' `model.example_input_array` attribute is set.'
+        match=r"Could not export to ONNX since neither `input_sample` nor"
+        r" `model.example_input_array` attribute is set.",
     ):
         model.to_onnx(file_path)
 

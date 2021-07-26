@@ -39,12 +39,12 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 # This script will run the actual test model training in parallel
-TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
+TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
-    num_processes = trainer_options.get('gpus', 2)
+    num_processes = trainer_options.get("gpus", 2)
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
@@ -52,13 +52,17 @@ def _run_horovod(trainer_options, on_gpu=False):
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
     cmdline = [
-        'horovodrun', '-np',
-        str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
-        shlex.quote(json.dumps(trainer_options))
+        "horovodrun",
+        "-np",
+        str(num_processes),
+        sys.executable,
+        TEST_SCRIPT,
+        "--trainer-options",
+        shlex.quote(json.dumps(trainer_options)),
     ]
     if on_gpu:
-        cmdline += ['--on-gpu']
-    exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
+        cmdline += ["--on-gpu"]
+    exit_code = subprocess.call(" ".join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 
 
@@ -73,7 +77,7 @@ def test_horovod_cpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        accelerator='horovod',
+        accelerator="horovod",
         deterministic=True,
     )
     _run_horovod(trainer_options)
@@ -86,12 +90,12 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        gradient_clip_algorithm='value',
+        gradient_clip_algorithm="value",
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        accelerator='horovod',
+        accelerator="horovod",
         deterministic=True,
     )
     _run_horovod(trainer_options)
@@ -126,7 +130,7 @@ def test_horovod_multi_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        accelerator='horovod',
+        accelerator="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -138,14 +142,14 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
-        gradient_clip_algorithm='value',
+        gradient_clip_algorithm="value",
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        accelerator='horovod',
+        accelerator="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -167,8 +171,8 @@ def test_horovod_apex(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        accelerator='horovod',
-        amp_backend='apex',
+        accelerator="horovod",
+        amp_backend="apex",
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
@@ -187,8 +191,8 @@ def test_horovod_amp(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        accelerator='horovod',
-        amp_backend='native',
+        accelerator="horovod",
+        amp_backend="native",
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
@@ -207,22 +211,20 @@ def test_horovod_gather(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        accelerator='horovod',
+        accelerator="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
-
     class TestTrainingStepModel(BoringModel):
-
         def training_step(self, batch, *args, **kwargs):
-            assert str(batch.device) != 'cpu'
+            assert str(batch.device) != "cpu"
             return super(TestTrainingStepModel, self).training_step(batch, *args, **kwargs)
 
         def validation_step(self, batch, *args, **kwargs):
-            assert str(batch.device) != 'cpu'
+            assert str(batch.device) != "cpu"
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
     model = TestTrainingStepModel()
@@ -235,13 +237,13 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
-        accelerator='horovod',
+        accelerator="horovod",
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
 # todo: need to be fixed :]
-@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
+@pytest.mark.skip("TODO: flaky test - Fatal Python error: Aborted")
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
@@ -254,20 +256,20 @@ def test_horovod_multi_optimizer(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
-        accelerator='horovod',
+        accelerator="horovod",
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):
-        assert hasattr(optimizer, 'synchronize'), 'optimizer has not been wrapped into DistributedOptimizer'
+        assert hasattr(optimizer, "synchronize"), "optimizer has not been wrapped into DistributedOptimizer"
 
     def get_model_params(model):
         return set(list(model.parameters()))
 
     def get_optimizer_params(optimizer):
-        return set([p for group in optimizer.param_groups for p in group.get('params', [])])
+        return set([p for group in optimizer.param_groups for p in group.get("params", [])])
 
     assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])
@@ -287,22 +289,22 @@ def test_result_reduce_horovod(tmpdir):
 
     def hvd_test_fn():
         path_here = os.path.abspath(os.path.dirname(__file__))
-        path_root = os.path.abspath(os.path.join(path_here, '..', '..'))
+        path_root = os.path.abspath(os.path.join(path_here, "..", ".."))
         sys.path.insert(0, os.path.abspath(path_root))
 
         class TestModel(BoringModel):
-
             def training_step(self, batch, batch_idx):
                 self.training_step_called = True
 
                 tensor = torch.tensor([1.0])
-                self.log("test_tensor", tensor, sync_dist=True, reduce_fx='sum', on_step=True, on_epoch=True)
+                self.log("test_tensor", tensor, sync_dist=True, reduce_fx="sum", on_step=True, on_epoch=True)
 
                 res = self._results
 
                 # Check that `tensor` is summed across all ranks automatically
-                assert res["test_tensor"].item() == hvd.size(), \
-                    "Result-Log does not work properly with Horovod and Tensors"
+                assert (
+                    res["test_tensor"].item() == hvd.size()
+                ), "Result-Log does not work properly with Horovod and Tensors"
 
             def training_epoch_end(self, outputs) -> None:
                 assert len(outputs) == 0
@@ -317,7 +319,7 @@ def test_result_reduce_horovod(tmpdir):
             max_epochs=1,
             log_every_n_steps=1,
             weights_summary=None,
-            logger=False
+            logger=False,
         )
 
         trainer.fit(model)
@@ -342,7 +344,7 @@ def test_accuracy_metric_horovod():
     target = torch.randint(high=2, size=(num_batches, batch_size))
 
     def _compute_batch():
-        trainer = Trainer(fast_dev_run=True, accelerator='horovod', logger=False)
+        trainer = Trainer(fast_dev_run=True, accelerator="horovod", logger=False)
 
         assert isinstance(trainer.accelerator, CPUAccelerator)
         # TODO: test that we selected the correct training_type_plugin based on horovod flags
@@ -351,7 +353,7 @@ def test_accuracy_metric_horovod():
             compute_on_step=True,
             dist_sync_on_step=True,
             dist_sync_fn=trainer.training_type_plugin.all_gather,
-            threshold=threshold
+            threshold=threshold,
         )
 
         for i in range(hvd.rank(), num_batches, hvd.size()):
@@ -376,12 +378,10 @@ def test_accuracy_metric_horovod():
 
 
 # todo: need to be fixed :]
-@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
+@pytest.mark.skip("TODO: flaky test - Fatal Python error: Aborted")
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
@@ -398,20 +398,16 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     num_workers = 8
     init_lr = 0.1 * num_workers
 
-    with patch('horovod.torch.size', return_value=8):
+    with patch("horovod.torch.size", return_value=8):
 
         # fit model
         trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_val_batches=0.5,
-            limit_train_batches=0.2,
-            accelerator='horovod'
+            default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, accelerator="horovod"
         )
         trainer.fit(model)
 
-    adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
-    adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]
+    adjusted_lr1 = [pg["lr"] for pg in trainer.optimizers[0].param_groups][0]
+    adjusted_lr2 = [pg["lr"] for pg in trainer.optimizers[1].param_groups][0]
 
     # Called ones after end of epoch with gamma=0.1
     assert pytest.approx(init_lr * 0.1) == adjusted_lr1

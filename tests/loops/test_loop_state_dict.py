@@ -42,7 +42,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
             },
-
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -52,7 +51,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
                 "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
             },
-
             "epoch_loop.batch_loop.optim_progress": {
                 "optimizer": {
                     "step": {
@@ -67,13 +65,11 @@ def test_loops_state_dict_structure():
                 "optimizer_idx": 0,
             },
             "epoch_loop.batch_loop.state_dict": {},
-
             "epoch_loop.val_loop.state_dict": {},
             "epoch_loop.val_loop.dataloader_progress": {
                 "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
                 "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
             },
-
             "epoch_loop.val_loop.epoch_loop.state_dict": {},
             "epoch_loop.val_loop.epoch_loop.batch_progress": {
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -86,7 +82,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
                 "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
             },
-
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -111,7 +106,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": None, "processed": None, "completed": 0},
                 "total": {"ready": 0, "started": None, "processed": None, "completed": 0},
             },
-
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},

@@ -49,28 +49,23 @@ class LSFEnvironment(ClusterEnvironment):
 
     @staticmethod
     def is_using_lsf() -> bool:
-        """ Returns ``True`` if the current process was launched using the jsrun command. """
-        required_env_vars = (
-            "LSB_JOBID",
-            "LSB_HOSTS",
-            "JSM_NAMESPACE_LOCAL_RANK",
-            "JSM_NAMESPACE_SIZE",
-        )
+        """Returns ``True`` if the current process was launched using the jsrun command."""
+        required_env_vars = ("LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
         return all(v in os.environ for v in required_env_vars)
 
     def creates_children(self) -> bool:
         return True
 
     def master_address(self):
-        """ The master address is read from a list of hosts contained in the environment variable `LSB_HOSTS`. """
+        """The master address is read from a list of hosts contained in the environment variable `LSB_HOSTS`."""
         return self._master_address
 
     def master_port(self):
-        """ THe master port gets calculated from the LSF job ID. """
+        """THe master port gets calculated from the LSF job ID."""
         return self._master_port
 
     def world_size(self):
-        """ The world size is read from the environment variable `JSM_NAMESPACE_SIZE`. """
+        """The world size is read from the environment variable `JSM_NAMESPACE_SIZE`."""
         var = "JSM_NAMESPACE_SIZE"
         world_size = os.environ.get(var)
         if world_size is None:
@@ -84,7 +79,7 @@ class LSFEnvironment(ClusterEnvironment):
         log.debug("LSFEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
     def global_rank(self):
-        """ The world size is read from the environment variable `JSM_NAMESPACE_RANK`. """
+        """The world size is read from the environment variable `JSM_NAMESPACE_RANK`."""
         var = "JSM_NAMESPACE_RANK"
         global_rank = os.environ.get(var)
         if global_rank is None:
@@ -98,7 +93,7 @@ class LSFEnvironment(ClusterEnvironment):
         log.debug("LSFEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self):
-        """ The local rank is read from the environment variable `JSM_NAMESPACE_LOCAL_RANK`. """
+        """The local rank is read from the environment variable `JSM_NAMESPACE_LOCAL_RANK`."""
         var = "JSM_NAMESPACE_LOCAL_RANK"
         local_rank = os.environ.get(var)
         if local_rank is None:
@@ -130,8 +125,7 @@ class LSFEnvironment(ClusterEnvironment):
         hosts = hosts.split()
         if len(hosts) < 2:
             raise ValueError(
-                "Cannot parse hosts from LSB_HOSTS environment variable."
-                " Expected format: \"batch <rank_0_host> ...\""
+                "Cannot parse hosts from LSB_HOSTS environment variable." ' Expected format: "batch <rank_0_host> ..."'
             )
         return hosts
 

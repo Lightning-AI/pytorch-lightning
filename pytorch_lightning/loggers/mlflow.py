@@ -39,12 +39,12 @@ except ImportError:
     MLFLOW_RUN_NAME = "mlflow.runName"
 
 # before v1.1.0
-if hasattr(context, 'resolve_tags'):
+if hasattr(context, "resolve_tags"):
     from mlflow.tracking.context import resolve_tags
 
 
 # since v1.1.0
-elif hasattr(context, 'registry'):
+elif hasattr(context, "registry"):
     from mlflow.tracking.context.registry import resolve_tags
 else:
 
@@ -105,16 +105,16 @@ class MLFlowLogger(LightningLoggerBase):
             If required MLFlow package is not installed on the device.
     """
 
-    LOGGER_JOIN_CHAR = '-'
+    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
-        experiment_name: str = 'default',
+        experiment_name: str = "default",
         run_name: Optional[str] = None,
-        tracking_uri: Optional[str] = os.getenv('MLFLOW_TRACKING_URI'),
+        tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
-        save_dir: Optional[str] = './mlruns',
-        prefix: str = '',
+        save_dir: Optional[str] = "./mlruns",
+        prefix: str = "",
         artifact_location: Optional[str] = None,
     ):
         if mlflow is None:
@@ -123,7 +123,7 @@ class MLFlowLogger(LightningLoggerBase):
             )
         super().__init__()
         if not tracking_uri:
-            tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
+            tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
 
         self._experiment_name = experiment_name
         self._experiment_id = None
@@ -153,10 +153,9 @@ class MLFlowLogger(LightningLoggerBase):
             if expt is not None:
                 self._experiment_id = expt.experiment_id
             else:
-                log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
+                log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
                 self._experiment_id = self._mlflow_client.create_experiment(
-                    name=self._experiment_name,
-                    artifact_location=self._artifact_location,
+                    name=self._experiment_name, artifact_location=self._artifact_location
                 )
 
         if self._run_id is None:
@@ -164,8 +163,8 @@ class MLFlowLogger(LightningLoggerBase):
                 self.tags = self.tags or {}
                 if MLFLOW_RUN_NAME in self.tags:
                     log.warning(
-                        f'The tag {MLFLOW_RUN_NAME} is found in tags. '
-                        f'The value will be overridden by {self._run_name}.'
+                        f"The tag {MLFLOW_RUN_NAME} is found in tags. "
+                        f"The value will be overridden by {self._run_name}."
                     )
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
@@ -199,30 +198,31 @@ class MLFlowLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = self._add_prefix(metrics)
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
-                log.warning(f'Discarding metric with string value {k}={v}.')
+                log.warning(f"Discarding metric with string value {k}={v}.")
                 continue
 
             new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
             if k != new_k:
                 rank_zero_warn(
                     "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name."
-                    f" Replacing {k} with {new_k}.", RuntimeWarning
+                    f" Replacing {k} with {new_k}.",
+                    RuntimeWarning,
                 )
                 k = new_k
 
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
-    def finalize(self, status: str = 'FINISHED') -> None:
+    def finalize(self, status: str = "FINISHED") -> None:
         super().finalize(status)
-        status = 'FINISHED' if status == 'success' else status
+        status = "FINISHED" if status == "success" else status
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 

@@ -21,11 +21,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 @deprecated_metrics(target=_confusion_matrix)
 def confusion_matrix(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    num_classes: int,
-    normalize: Optional[str] = None,
-    threshold: float = 0.5
+    preds: torch.Tensor, target: torch.Tensor, num_classes: int, normalize: Optional[str] = None, threshold: float = 0.5
 ) -> torch.Tensor:
     """
     .. deprecated::

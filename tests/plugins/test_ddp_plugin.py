@@ -23,7 +23,6 @@ from tests.helpers.runif import RunIf
 
 
 class BoringModelGPU(BoringModel):
-
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device(f"cuda:{self.trainer.training_type_plugin.local_rank}")
@@ -52,7 +51,6 @@ def test_ddp_with_2_gpus():
 
 
 class BarrierModel(BoringModel):
-
     def setup(self, stage=None):
         assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
         self.trainer.accelerator.barrier("barrier before model is wrapped")
@@ -65,14 +63,9 @@ class BarrierModel(BoringModel):
 @RunIf(min_gpus=4, special=True)
 @mock.patch("torch.distributed.barrier")
 def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
-    """ Test correct usage of barriers when device ids do not start at 0 or are not consecutive. """
+    """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        gpus=gpus,
-        accelerator="ddp",
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, gpus=gpus, accelerator="ddp")
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
