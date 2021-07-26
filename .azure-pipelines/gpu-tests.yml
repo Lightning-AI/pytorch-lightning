@@ -92,10 +92,10 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
       condition: succeededOrFailed()
 
-    - task: PublishCodeCoverageResults@1
+    - task: PublishCodeCoverageResults@2
       displayName: 'Publish coverage report'
       inputs:
-        codeCoverageTool: 'cobertura'
+        codeCoverageTool: 'Cobertura'
         summaryFileLocation: 'coverage.xml'
         reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
         testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
