@@ -33,7 +33,7 @@ class LightningOptimizer:
 
     def __init__(self, optimizer: Optimizer):
 
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ('step', "__del__")}
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
@@ -210,6 +210,8 @@ class LightningOptimizer:
         self._total_optimizer_step_calls += 1
 
     def __repr__(self):
-        groups = [{k: round(v, 12) if isinstance(v, float) else v
-                   for k, v in sorted(group.items()) if k != "params"} for group in self.param_groups]
+        groups = [
+            {k: round(v, 12) if isinstance(v, float) else v for k, v in sorted(group.items()) if k != "params"}
+            for group in self.param_groups
+        ]
         return f"{self.__class__.__name__}(groups={groups})"

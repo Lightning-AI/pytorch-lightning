@@ -74,7 +74,7 @@ class AdvancedProfiler(BaseProfiler):
         recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
             s = io.StringIO()
-            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
+            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats("cumulative")
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)

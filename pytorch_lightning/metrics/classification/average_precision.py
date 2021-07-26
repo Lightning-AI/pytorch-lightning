@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class AveragePrecision(_AveragePrecision):
-
     @deprecated_metrics(target=_AveragePrecision)
     def __init__(
         self,

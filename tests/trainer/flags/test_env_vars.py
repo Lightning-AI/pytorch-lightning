@@ -18,7 +18,7 @@ from pytorch_lightning import Trainer
 
 
 def test_passing_no_env_variables():
-    """Testing overwriting trainer arguments """
+    """Testing overwriting trainer arguments"""
     trainer = Trainer()
     assert trainer.logger is not None
     assert trainer.max_steps is None
@@ -29,7 +29,7 @@ def test_passing_no_env_variables():
 
 @mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "False", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_only():
-    """Testing overwriting trainer arguments """
+    """Testing overwriting trainer arguments"""
     trainer = Trainer()
     assert trainer.logger is None
     assert trainer.max_steps == 7
@@ -37,17 +37,17 @@ def test_passing_env_variables_only():
 
 @mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "True", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_defaults():
-    """Testing overwriting trainer arguments """
+    """Testing overwriting trainer arguments"""
     trainer = Trainer(False, max_steps=42)
     assert trainer.logger is None
     assert trainer.max_steps == 42
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
-@mock.patch('torch.cuda.device_count', return_value=2)
-@mock.patch('torch.cuda.is_available', return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_passing_env_variables_gpus(cuda_available_mock, device_count_mock):
-    """Testing overwriting trainer arguments """
+    """Testing overwriting trainer arguments"""
     trainer = Trainer()
     assert trainer.gpus == 2
     trainer = Trainer(gpus=1)
