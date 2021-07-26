@@ -20,14 +20,12 @@ from tests.helpers.runif import RunIf
 
 
 class BoringModelDDPCPU(BoringModel):
-
     def on_train_start(self) -> None:
         # make sure that the model is on CPU when training
         assert self.device == torch.device("cpu")
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
-
     def __init__(self, name: str, val: float):
         super().__init__()
         self.name = name

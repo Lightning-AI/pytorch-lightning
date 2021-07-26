@@ -33,8 +33,7 @@ def metrics_to_scalars(metrics: Any) -> Any:
     def to_item(value: torch.Tensor) -> numbers.Number:
         if value.numel() != 1:
             raise MisconfigurationException(
-                f"The metric `{value}` does not contain a single element"
-                f" thus it cannot be converted to float."
+                f"The metric `{value}` does not contain a single element" f" thus it cannot be converted to float."
             )
         return value.item()
 

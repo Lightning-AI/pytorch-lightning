@@ -24,7 +24,7 @@ _log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
-    """ Accelerator for GPU devices. """
+    """Accelerator for GPU devices."""
 
     def setup_environment(self) -> None:
         super().setup_environment()

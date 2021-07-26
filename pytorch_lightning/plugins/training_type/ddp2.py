@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DDP2Plugin(DDPPlugin):
-    """ DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+    """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
     @property
     def global_rank(self) -> int:

@@ -100,6 +100,7 @@ ENV \
     HOROVOD_WITHOUT_MPI=1
 
 COPY ./requirements/extra.txt requirements-extra.txt
+COPY ./requirements/examples.txt requirements-examples.txt
 COPY ./requirements/test.txt requirements-test.txt
 COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
 
@@ -107,8 +108,10 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
+    python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
+    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html && \
     pip install -r requirements-test.txt --no-cache-dir && \
     rm requirements*
 

@@ -51,12 +51,11 @@ repos:
       - id: isort
         name: Format imports
 
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.31.0
+  - repo: https://github.com/psf/black
+    rev: 21.7b0
     hooks:
-      - id: yapf
+      - id: black
         name: Format code
-        language: python
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2

@@ -20,7 +20,6 @@ from pytorch_lightning.metrics import Accuracy, MeanSquaredError
 
 
 class ClassificationModel(LightningModule):
-
     def __init__(self, lr=0.01):
         super().__init__()
 
@@ -53,25 +52,24 @@ class ClassificationModel(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        self.log('train_loss', loss, prog_bar=True)
-        self.log('train_acc', self.train_acc(logits, y), prog_bar=True)
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_acc", self.train_acc(logits, y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('val_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('val_acc', self.valid_acc(logits, y), prog_bar=True)
+        self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False)
+        self.log("val_acc", self.valid_acc(logits, y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('test_acc', self.test_acc(logits, y), prog_bar=True)
+        self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
+        self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
 
 class RegressionModel(LightningModule):
-
     def __init__(self):
         super().__init__()
         setattr(self, "layer_0", nn.Linear(16, 64))
@@ -103,18 +101,18 @@ class RegressionModel(LightningModule):
         x, y = batch
         out = self.forward(x)
         loss = F.mse_loss(out, y)
-        self.log('train_loss', loss, prog_bar=False)
-        self.log('train_MSE', self.train_mse(out, y), prog_bar=True)
+        self.log("train_loss", loss, prog_bar=False)
+        self.log("train_MSE", self.train_mse(out, y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
-        self.log('val_loss', F.mse_loss(out, y), prog_bar=False)
-        self.log('val_MSE', self.valid_mse(out, y), prog_bar=True)
+        self.log("val_loss", F.mse_loss(out, y), prog_bar=False)
+        self.log("val_MSE", self.valid_mse(out, y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
-        self.log('test_loss', F.mse_loss(out, y), prog_bar=False)
-        self.log('test_MSE', self.test_mse(out, y), prog_bar=True)
+        self.log("test_loss", F.mse_loss(out, y), prog_bar=False)
+        self.log("test_MSE", self.test_mse(out, y), prog_bar=True)

@@ -22,9 +22,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class IPUAccelerator(Accelerator):
-    """ Accelerator for IPUs. """
+    """Accelerator for IPUs."""
 
-    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:

@@ -30,7 +30,7 @@ jobs:
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
-        pip install --requirement requirements/devel.txt --upgrade-strategy only-if-needed
+        pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html
         pip list
 
     - name: Pull checkpoints from S3

@@ -17,7 +17,6 @@ from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedE
 
 
 class ValDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, *args, **kwargs):
         """placeholder"""
@@ -31,10 +30,7 @@ class ValDataloaderVariations(ABC):
         return dataloaders
 
     def val_dataloader__multiple(self):
-        return [
-            self.dataloader(train=False),
-            self.dataloader(train=False),
-        ]
+        return [self.dataloader(train=False), self.dataloader(train=False)]
 
     def val_dataloader__infinite(self):
         return CustomInfDataloader(self.dataloader(train=False))

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Dict, Optional
 
 import torch
 
@@ -30,9 +30,9 @@ if _FAIRSCALE_AVAILABLE:
 
 
 class DDPShardedPlugin(DDPPlugin):
-    """ Optimizer and gradient sharded training provided by FairScale. """
+    """Optimizer and gradient sharded training provided by FairScale."""
 
-    _REDUCE_BUFFER_SIZE_DEFAULT = 2**23  # 8M
+    _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
 
     def configure_ddp(self):
         self._wrap_optimizers()
@@ -85,7 +85,7 @@ class DDPShardedPlugin(DDPPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
+    def lightning_module(self) -> "pl.LightningModule":
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedPlugin` requires `fairscale` to be installed."
@@ -98,3 +98,12 @@ class DDPShardedPlugin(DDPPlugin):
 
     def post_training_step(self):
         pass
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_sharded_find_unused_parameters_false",
+            cls,
+            description="DDP Sharded Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )

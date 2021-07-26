@@ -35,13 +35,7 @@ class UNet(nn.Module):
     )
     """
 
-    def __init__(
-        self,
-        num_classes: int = 19,
-        num_layers: int = 5,
-        features_start: int = 64,
-        bilinear: bool = False,
-    ):
+    def __init__(self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False):
         """
         Args:
             num_classes: Number of output classes required (default 19 for KITTI dataset)
@@ -70,10 +64,10 @@ class UNet(nn.Module):
     def forward(self, x):
         xi = [self.layers[0](x)]
         # Down path
-        for layer in self.layers[1:self.num_layers]:
+        for layer in self.layers[1 : self.num_layers]:
             xi.append(layer(xi[-1]))
         # Up path
-        for i, layer in enumerate(self.layers[self.num_layers:-1]):
+        for i, layer in enumerate(self.layers[self.num_layers : -1]):
             xi[-1] = layer(xi[-1], xi[-2 - i])
         return self.layers[-1](xi[-1])
 

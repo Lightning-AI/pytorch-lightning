@@ -23,7 +23,6 @@ def test_lambda_call(tmpdir):
     seed_everything(42)
 
     class CustomModel(BoringModel):
-
         def on_train_epoch_start(self):
             if self.current_epoch > 1:
                 raise KeyboardInterrupt
@@ -35,7 +34,7 @@ def test_lambda_call(tmpdir):
 
     hooks = {m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)}
     hooks_args = {h: partial(call, h) for h in hooks}
-    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add('on_save_checkpoint')]
+    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add("on_save_checkpoint")]
 
     model = CustomModel()
 

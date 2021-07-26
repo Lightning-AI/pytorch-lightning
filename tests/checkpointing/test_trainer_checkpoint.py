@@ -29,10 +29,9 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
 
     seed_everything(4)
 
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
     class ExtendedBoringModel(BoringModel):
-
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -55,7 +54,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    assert os.listdir(tmpdir) == ['epoch=00.ckpt']
+    assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
 
     best_model_paths = [checkpoint_callback.best_model_path]
     results = []
@@ -91,15 +90,15 @@ def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
     This test validates that accumulated gradient is properly recomputed and reset on the trainer.
     """
 
-    cb = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     model = BoringModel()
     trainer_kwargs = dict(
-        max_epochs=1, accumulate_grad_batches={0: 2}, callbacks=cb, limit_train_batches=1, limit_val_batches=0
+        max_epochs=1, accumulate_grad_batches={0: 2}, callbacks=ckpt, limit_train_batches=1, limit_val_batches=0
     )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    trainer_kwargs['max_epochs'] = 2
-    trainer_kwargs['resume_from_checkpoint'] = cb.last_model_path
+    trainer_kwargs["max_epochs"] = 2
+    trainer_kwargs["resume_from_checkpoint"] = ckpt.last_model_path
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)

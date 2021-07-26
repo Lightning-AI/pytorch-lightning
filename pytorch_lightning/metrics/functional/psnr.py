@@ -25,7 +25,7 @@ def psnr(
     target: torch.Tensor,
     data_range: Optional[float] = None,
     base: float = 10.0,
-    reduction: str = 'elementwise_mean',
+    reduction: str = "elementwise_mean",
     dim: Optional[Union[int, Tuple[int, ...]]] = None,
 ) -> torch.Tensor:
     """

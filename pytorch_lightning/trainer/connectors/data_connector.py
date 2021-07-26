@@ -23,7 +23,6 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 
 
 class DataConnector:
-
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
@@ -78,7 +77,7 @@ class DataConnector:
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
-        if self.trainer.datamodule is not None and is_overridden('prepare_data', self.trainer.datamodule):
+        if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
             should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
         if self.trainer.prepare_data_per_node:
@@ -87,12 +86,12 @@ class DataConnector:
 
     def attach_data(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional['pl.LightningDataModule'] = None
+        datamodule: Optional["pl.LightningDataModule"] = None,
     ) -> None:
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(
@@ -108,7 +107,7 @@ class DataConnector:
 
     def attach_dataloaders(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
@@ -133,20 +132,20 @@ class DataConnector:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
     def attach_datamodule(
-        self, model: 'pl.LightningModule', datamodule: Optional['pl.LightningDataModule'] = None
+        self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule is None:
             return
 
         # Override loader hooks
-        dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
+        dl_methods = ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader")
         for method in dl_methods:
             if is_overridden(method, datamodule):
                 setattr(model, method, getattr(datamodule, method))
 
         # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
         for hook in batch_transfer_hooks:
             if is_overridden(hook, datamodule):
                 setattr(model, hook, getattr(datamodule, hook))
