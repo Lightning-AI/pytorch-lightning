@@ -34,11 +34,11 @@ class Callback(abc.ABC):
     """
 
     @property
-    def state_identifier(self) -> str:
+    def state_id(self) -> str:
         return self.__class__.__qualname__
 
     @property
-    def _legacy_state_identifier(self) -> Type:
+    def _legacy_state_id(self) -> Type:
         return type(self)
 
     def on_configure_sharded_model(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:

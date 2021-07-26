@@ -105,7 +105,7 @@ class OldStatefulCallback(Callback):
         self.state = state
 
     @property
-    def state_identifier(self):
+    def state_id(self):
         return type(self)
 
     def on_save_checkpoint(self, *args):

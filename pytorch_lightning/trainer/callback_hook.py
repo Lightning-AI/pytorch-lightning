@@ -277,7 +277,7 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_identifier] = state
+                callback_states[callback.state_id] = state
         return callback_states
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -301,7 +301,7 @@ class TrainerCallbackHookMixin(ABC):
 
         for callback in self.callbacks:
             state = callback_states.get(
-                callback.state_identifier, callback_states.get(callback._legacy_state_identifier)
+                callback.state_id, callback_states.get(callback._legacy_state_id)
             )
             if state:
                 state = deepcopy(state)
