@@ -46,12 +46,12 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
 .. code-block:: python
 
     class LitModel(LightningModule):
-
         def __init__(self, learning_rate):
             self.learning_rate = learning_rate
 
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
+
 
     model = LitModel()
 
@@ -68,7 +68,7 @@ If your model is using an arbitrary value instead of ``self.lr`` or ``self.learn
     model = LitModel()
 
     # to set to your own hparams.my_value
-    trainer = Trainer(auto_lr_find='my_value')
+    trainer = Trainer(auto_lr_find="my_value")
 
     trainer.tune(model)
 

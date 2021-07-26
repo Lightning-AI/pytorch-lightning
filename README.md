@@ -165,7 +165,6 @@ A LightningModule defines a full *system* (ie: a GAN, autoencoder, BERT or a sim
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
-
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
@@ -183,7 +182,7 @@ class LitAutoEncoder(pl.LightningModule):
         z = self.encoder(x)
         x_hat = self.decoder(z)
         loss = F.mse_loss(x_hat, x)
-        self.log('train_loss', loss)
+        self.log("train_loss", loss)
         return loss
 
     def configure_optimizers(self):

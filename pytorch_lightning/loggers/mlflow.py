@@ -66,10 +66,8 @@ class MLFlowLogger(LightningLoggerBase):
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import MLFlowLogger
-        mlf_logger = MLFlowLogger(
-            experiment_name="default",
-            tracking_uri="file:./ml-runs"
-        )
+
+        mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
     Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
@@ -77,6 +75,8 @@ class MLFlowLogger(LightningLoggerBase):
     .. code-block:: python
 
         from pytorch_lightning import LightningModule
+
+
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # example

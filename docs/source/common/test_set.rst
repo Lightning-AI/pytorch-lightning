@@ -26,7 +26,7 @@ To run the test set after training completes, use this method.
     trainer.test(ckpt_path=None)
 
     # (3) test using a specific checkpoint
-    trainer.test(ckpt_path='/path/to/my_checkpoint.ckpt')
+    trainer.test(ckpt_path="/path/to/my_checkpoint.ckpt")
 
     # (4) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
@@ -55,9 +55,9 @@ To run the test set on a pre-trained model, use this method.
 .. code-block:: python
 
     model = MyLightningModule.load_from_checkpoint(
-        checkpoint_path='/path/to/pytorch_checkpoint.ckpt',
-        hparams_file='/path/to/test_tube/experiment/version/hparams.yaml',
-        map_location=None
+        checkpoint_path="/path/to/pytorch_checkpoint.ckpt",
+        hparams_file="/path/to/test_tube/experiment/version/hparams.yaml",
+        map_location=None,
     )
 
     # init trainer with whatever options
@@ -94,8 +94,10 @@ you can also pass in an :doc:`datamodules <../extensions/datamodules>` that have
 
     class MyDataModule(pl.LightningDataModule):
         ...
+
         def test_dataloader(self):
             return DataLoader(...)
+
 
     # setup your datamodule
     dm = MyDataModule(...)
