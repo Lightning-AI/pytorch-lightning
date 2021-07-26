@@ -282,10 +282,11 @@ class TrainerCallbackHookMixin(ABC):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        
         if callback_states is None:
             return
 
