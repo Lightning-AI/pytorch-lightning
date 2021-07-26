@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -76,7 +89,7 @@ def test_lightning_parallel_module_unsqueeze_scalar():
 
     model = TestModel()
     model.trainer = Mock()
-    model.trainer._running_stage = RunningStage.TRAINING
+    model.trainer.state.stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).cuda()
     batch_idx = 0
 
@@ -119,7 +132,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
 
     model = TestModel().to(device)
     model.trainer = Mock()
-    model.trainer._running_stage = RunningStage.TRAINING
+    model.trainer.state.stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).to(device)
     batch_idx = 0
 
@@ -156,7 +169,7 @@ def test_lightning_parallel_module_device_access(nest, unnest):
     pl_module = DeviceAccessModel()
     # required for redirecting the forward call to training_step
     pl_module.trainer = Mock()
-    pl_module.trainer._running_stage = RunningStage.TRAINING
+    pl_module.trainer.state.stage = RunningStage.TRAINING
 
     root_device = torch.device("cuda", 0)
     wrapped_module = LightningParallelModule(pl_module).to(root_device)
@@ -183,7 +196,7 @@ def test_lightning_parallel_module_device_access_warning():
     pl_module = DeviceAccessModel()
     # required for redirecting the forward call to training_step
     pl_module.trainer = Mock()
-    pl_module.trainer._running_stage = RunningStage.TRAINING
+    pl_module.trainer.state.stage = RunningStage.TRAINING
 
     wrapped_module = LightningParallelModule(pl_module).cuda()
     model = DataParallel(wrapped_module, device_ids=[0, 1])

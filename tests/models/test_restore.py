@@ -27,7 +27,7 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -132,29 +132,18 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
-    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=False,
-        callbacks=[checkpoint_cb],
-        limit_train_batches=2,
-        limit_val_batches=2,
-    )
-    # Generate checkpoint `last.ckpt` with BoringModel
-    trainer.fit(model, datamodule=dm)
-    # `True` if resume/restore successfully else `False`
-    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
-    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fails with an error."""
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint=str(tmpdir / "non_existing.ckpt"))
+
+    with pytest.raises(FileNotFoundError, match="Aborting training"):
+        trainer.fit(model)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_end(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
@@ -167,7 +156,11 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
+            default_root_dir=tmpdir,
+            max_steps=1,
+            logger=False,
+            callbacks=[checkpoint, callback_capture],
+            limit_val_batches=2
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -194,7 +187,13 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     """ Test that resuming from a checkpoint sets references as expected. """
     dm = ClassifDataModule()
     model = ClassificationModel()
-    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
+    args = {
+        'default_root_dir': tmpdir,
+        'max_steps': 1,
+        'logger': False,
+        "limit_val_batches": 2,
+        "num_sanity_val_steps": 0
+    }
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
@@ -244,7 +243,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -292,7 +291,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -336,7 +335,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
@@ -368,7 +367,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
@@ -421,7 +420,7 @@ def test_dp_resume(tmpdir):
     real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # ---------------------------
     # HPC LOAD/SAVE
@@ -442,26 +441,26 @@ def test_dp_resume(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.on_train_start_called = False
+            self.on_pretrain_routine_end_called = False
 
         # set the epoch start hook so we can predict before the model does the full training
-        def on_train_start(self):
+        def on_pretrain_routine_end(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            new_trainer._running_stage = RunningStage.VALIDATING
+            new_trainer.state.stage = RunningStage.VALIDATING
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
-            self.on_train_start_called = True
+            self.on_pretrain_routine_end_called = True
 
     # new model
     model = CustomModel()
 
     # fit new model which should load hpc weights
     new_trainer.fit(model, datamodule=dm)
-    assert model.on_train_start_called
+    assert model.on_pretrain_routine_end_called
 
     # test freeze on gpu
     model.freeze()
@@ -487,7 +486,7 @@ def test_model_saving_loading(tmpdir):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # make a prediction
     dataloaders = model.test_dataloader()
@@ -544,7 +543,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -592,7 +591,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -600,8 +599,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # load new model
     hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
-    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
-    ckpt_path = hparams_url if url_ckpt else new_weights_path
+    ckpt_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = ckpt_url if url_ckpt else new_weights_path
 
     class CurrentModel(BoringModel):
 

@@ -14,7 +14,7 @@
 import torch
 from torchmetrics.functional import auc as _auc
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_auc)
@@ -23,3 +23,4 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> torch.Tensor
     .. deprecated::
         Use :func:`torchmetrics.functional.auc`. Will be removed in v1.5.0.
     """
+    return void(x, y, reorder)

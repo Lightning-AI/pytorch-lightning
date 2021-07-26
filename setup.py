@@ -14,25 +14,25 @@
 # limitations under the License.
 
 import os
-
-# Always prefer setuptools over distutils
-import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 from setuptools import find_packages, setup
-
-try:
-    from pytorch_lightning import __about__ as info
-    from pytorch_lightning import setup_tools
-except ImportError:
-    # alternative https://stackoverflow.com/a/67692/4521646
-    sys.path.append("pytorch_lightning")
-    import __about__ as info
-    import setup_tools
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, 'requirements')
+
+
+def _load_py_module(fname, pkg="pytorch_lightning"):
+    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, pkg, fname))
+    py = module_from_spec(spec)
+    spec.loader.exec_module(py)
+    return py
+
+
+about = _load_py_module('__about__.py')
+setup_tools = _load_py_module('setup_tools.py')
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
@@ -58,8 +58,8 @@ for ex in ('cpu', 'cpu-extra'):
 
 long_description = setup_tools._load_readme_description(
     _PATH_ROOT,
-    homepage=info.__homepage__,
-    version=info.__version__,
+    homepage=about.__homepage__,
+    version=about.__version__,
 )
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
@@ -69,13 +69,13 @@ long_description = setup_tools._load_readme_description(
 # engineer specific practices
 setup(
     name="pytorch-lightning",
-    version=info.__version__,
-    description=info.__docs__,
-    author=info.__author__,
-    author_email=info.__author_email__,
-    url=info.__homepage__,
+    version=about.__version__,
+    description=about.__docs__,
+    author=about.__author__,
+    author_email=about.__author_email__,
+    url=about.__homepage__,
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
-    license=info.__license__,
+    license=about.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks', 'legacy', 'legacy/*']),
     long_description=long_description,
     long_description_content_type='text/markdown',

@@ -27,7 +27,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
     This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test
     """
 
-    seed_everything(3)
+    seed_everything(4)
 
     checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
@@ -84,3 +84,22 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             assert best_model_path.endswith(f"epoch=0{idx}.ckpt")
         else:
             assert f"epoch={idx + 1}" in best_model_path
+
+
+def test_accumulated_gradient_batches_with_resume_from_checkpoint(tmpdir):
+    """
+    This test validates that accumulated gradient is properly recomputed and reset on the trainer.
+    """
+
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    model = BoringModel()
+    trainer_kwargs = dict(
+        max_epochs=1, accumulate_grad_batches={0: 2}, callbacks=ckpt, limit_train_batches=1, limit_val_batches=0
+    )
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    trainer_kwargs['max_epochs'] = 2
+    trainer_kwargs['resume_from_checkpoint'] = ckpt.last_model_path
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)

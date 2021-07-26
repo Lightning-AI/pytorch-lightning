@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional
 
+import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -20,15 +21,12 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE, GradClipAlgorithmType
+from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    from torch_xla._patched_functions import clip_grad_norm_
-
-    # rename to mock in a test
-    xla_clip_grad_norm_ = clip_grad_norm_
 
 
 class TPUAccelerator(Accelerator):
@@ -42,8 +40,7 @@ class TPUAccelerator(Accelerator):
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
-                "amp + tpu is not supported. "
-                "Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
+                "amp + tpu is not supported. Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
             )
 
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
@@ -55,20 +52,10 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[float, int],
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-    ) -> None:
-        assert gradient_clip_algorithm == GradClipAlgorithmType.NORM, \
-            "Only NORM gradient clipping is supported on TPU for now"
-
-        grad_clip_val = float(clip_val)
-        if grad_clip_val <= 0:
-            return
-
-        parameters = self.model.parameters()
-        norm_type = 2.0
-
-        xla_clip_grad_norm_(parameters, grad_clip_val, norm_type)
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
+        """ Moves the state of the optimizers to the TPU if needed. """
+        # TODO: `self.root_device` would raise error if called outside the spawn process
+        # while training on 8 and more cores.
+        for opt in self.optimizers:
+            for p, v in opt.state.items():
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)

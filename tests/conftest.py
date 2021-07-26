@@ -16,9 +16,18 @@ import sys
 import threading
 from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
+from pathlib import Path
 
 import pytest
+import torch.distributed
 import torch.multiprocessing as mp
+
+from tests import _PATH_DATASETS
+
+
+@pytest.fixture(scope="session")
+def datadir():
+    return Path(_PATH_DATASETS)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -39,6 +48,14 @@ def restore_env_variables():
     # restore environment as it was before running the test
     os.environ.clear()
     os.environ.update(env_backup)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def teardown_process_group():
+    """ Ensures that the distributed process group gets closed before the next test runs. """
+    yield
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
 
 
 def pytest_configure(config):

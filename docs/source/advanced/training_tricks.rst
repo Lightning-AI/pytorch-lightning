@@ -26,10 +26,14 @@ The effect is a large effective batch size of size KxN.
 
 Gradient Clipping
 -----------------
-Gradient clipping may be enabled to avoid exploding gradients. By default, this will `clip the gradient norm
-<https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ computed over all model parameters together.
-If ``gradient_clip_algorithm`` option is set to ``value``, which is ``norm`` by default, this will
-`clip the gradient value <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_>`_ for each parameter instead.
+Gradient clipping may be enabled to avoid exploding gradients. By default, this will clip the gradient norm by calling
+:func:`torch.nn.utils.clip_grad_norm_` computed over all model parameters together.
+If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` by default), this will use instead
+:func:`torch.nn.utils.clip_grad_norm_` for each parameter instead.
+
+.. note::
+    If using mixed precision, the ``gradient_clip_val`` does not need to be changed as the gradients are unscaled
+    before applying the clipping function.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
@@ -38,11 +42,10 @@ If ``gradient_clip_algorithm`` option is set to ``value``, which is ``norm`` by 
     # DEFAULT (ie: don't clip)
     trainer = Trainer(gradient_clip_val=0)
 
-    # clip gradients with norm above 0.5
-    trainer = Trainer(gradient_clip_val=0.5)
+    # clip gradients' global norm to <=0.5
+    trainer = Trainer(gradient_clip_val=0.5)  # gradient_clip_algorithm='norm' by default
 
-    # clip gradients with value above 0.5
-    # gradient_clip_algorithm types => :class:`~pytorch_lightning.utilities.enums.GradClipAlgorithmType`
+    # clip gradients' maximum magnitude to <=0.5
     trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value')
 
 ----------
@@ -112,7 +115,7 @@ search for batch sizes larger than the size of the training dataset.
     to `.fit()`.
 
 The scaling algorithm has a number of parameters that the user can control by
-invoking the trainer method `.scale_batch_size` themself (see description below).
+invoking the :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size` method:
 
 .. code-block:: python
 
@@ -123,7 +126,7 @@ invoking the trainer method `.scale_batch_size` themself (see description below)
     # Invoke method
     new_batch_size = tuner.scale_batch_size(model, *extra_parameters_here)
 
-    # Override old batch size
+    # Override old batch size (this is done automatically)
     model.hparams.batch_size = new_batch_size
 
     # Fit as normal
@@ -142,16 +145,11 @@ The algorithm in short works by:
     3. The found batch size is saved to either `model.batch_size` or `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
 
-.. autoclass:: pytorch_lightning.tuner.tuning.Tuner
-   :noindex:
-   :members: scale_batch_size
-
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
 
 
-Sequential Model Parallelism with Checkpointing
----------------------------------------------------------------------
-PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
-Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+Advanced GPU Optimizations
+--------------------------
 
-For more information, refer to :ref:`sequential-parallelism`.
+When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
+Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.

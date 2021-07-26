@@ -18,8 +18,11 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
 from tests.accelerators import ddp_model
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -29,9 +32,10 @@ CLI_ARGS = '--max_epochs 1 --gpus 2 --accelerator ddp'
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_only(tmpdir):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     # call the script
-    call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120)
+    call_training_script(ddp_model, CLI_ARGS, 'fit', tmpdir, timeout=120, as_module=as_module)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -42,9 +46,10 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_test_only(tmpdir):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     # call the script
-    call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir)
+    call_training_script(ddp_model, CLI_ARGS, 'test', tmpdir, as_module=as_module)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -55,9 +60,10 @@ def test_multi_gpu_model_ddp_test_only(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_fit_test(tmpdir):
+@pytest.mark.parametrize("as_module", [True, False])
+def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
     # call the script
-    call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20)
+    call_training_script(ddp_model, CLI_ARGS, 'fit_test', tmpdir, timeout=20, as_module=as_module)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -117,3 +123,51 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
+def test_ddp_wrapper_16(tmpdir):
+    _test_ddp_wrapper(tmpdir, precision=16)
+
+
+@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
+def test_ddp_wrapper_32(tmpdir):
+    _test_ddp_wrapper(tmpdir, precision=32)
+
+
+def _test_ddp_wrapper(tmpdir, precision):
+    """
+    Test parameters to ignore are carried over for DDP.
+    """
+
+    class WeirdModule(torch.nn.Module):
+
+        def _save_to_state_dict(self, destination, prefix, keep_vars):
+            return {"something": "something"}
+
+    class CustomModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.weird_module = WeirdModule()
+
+            # should be skip.
+            self._ddp_params_and_buffers_to_ignore = ('something')
+
+    class CustomCallback(Callback):
+
+        def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
+            assert trainer.training_type_plugin.model.parameters_to_ignore == ('something')
+            assert trainer.training_type_plugin.model.module._ddp_params_and_buffers_to_ignore == ('something')
+
+    model = CustomModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        precision=precision,
+        accelerator="ddp",
+        gpus=2,
+        callbacks=CustomCallback(),
+    )
+    trainer.fit(model)

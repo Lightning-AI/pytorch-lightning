@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import io
-import os
 from pathlib import Path
 from typing import IO, Union
 
@@ -21,17 +20,6 @@ import fsspec
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from packaging.version import Version
-
-
-class _LightningLocalFileSystem(LocalFileSystem):
-    """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
-    the same as ``os.isdir``.
-
-    To be removed when https://github.com/intake/filesystem_spec/issues/591 is fixed.
-    """
-
-    def isdir(self, path: str) -> bool:
-        return os.path.isdir(path)  # follows symlinks
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
@@ -50,9 +38,8 @@ def get_filesystem(path: Union[str, Path]):
     if "://" in path:
         # use the fileystem from the protocol specified
         return fsspec.filesystem(path.split(":", 1)[0])
-    else:
-        # use local filesystem
-        return _LightningLocalFileSystem()
+    # use local filesystem
+    return LocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):

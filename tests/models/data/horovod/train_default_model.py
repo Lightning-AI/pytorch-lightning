@@ -30,7 +30,6 @@ if ':' in PYTHONPATH:
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
-from pytorch_lightning.trainer.states import TrainerState  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
 if _HOROVOD_AVAILABLE:
@@ -56,14 +55,22 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
     class TestModel(BoringModel):
 
+        def on_train_start(self) -> None:
+            expected_device = torch.device("cuda", self.trainer.local_rank) if on_gpu else torch.device("cpu")
+            assert self.device == expected_device
+
         def training_epoch_end(self, outputs) -> None:
             res = self.trainer.training_type_plugin.reduce(torch.tensor(1., device=self.device), reduce_op="sum")
             assert res.sum() == self.trainer.training_type_plugin.world_size
 
     model = TestModel()
     trainer = Trainer(**trainer_options)
+
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.test(model)
+
+    assert model.device == torch.device("cpu")
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     if check_size:
@@ -88,7 +95,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
     # test HPC loading
     checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
-    trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
+    trainer.checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
         trainer = Trainer(gpus=1, accelerator='horovod', max_epochs=1)

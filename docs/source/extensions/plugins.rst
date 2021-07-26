@@ -115,8 +115,6 @@ Training Type Plugins
     DDPSpawnPlugin
     DeepSpeedPlugin
     HorovodPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
 
@@ -150,5 +148,7 @@ Cluster Environments
 
     ClusterEnvironment
     LightningEnvironment
+    LSFEnvironment
     TorchElasticEnvironment
+    KubeflowEnvironment
     SLURMEnvironment

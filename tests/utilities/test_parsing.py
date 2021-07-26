@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.parsing import (
     lightning_setattr,
     parse_class_init_keys,
     str_to_bool,
+    str_to_bool_or_int,
     str_to_bool_or_str,
 )
 
@@ -165,7 +166,7 @@ def test_lightning_setattr(tmpdir, model_cases):
             lightning_setattr(m, "this_attr_not_exist", None)
 
 
-def test_str_to_bool_or_str(tmpdir):
+def test_str_to_bool_or_str():
     true_cases = ['y', 'yes', 't', 'true', 'on', '1']
     false_cases = ['n', 'no', 'f', 'false', 'off', '0']
     other_cases = ['yyeess', 'noooo', 'lightning']
@@ -180,7 +181,7 @@ def test_str_to_bool_or_str(tmpdir):
         assert str_to_bool_or_str(case) == case
 
 
-def test_str_to_bool(tmpdir):
+def test_str_to_bool():
     true_cases = ['y', 'yes', 't', 'true', 'on', '1']
     false_cases = ['n', 'no', 'f', 'false', 'off', '0']
     other_cases = ['yyeess', 'noooo', 'lightning']
@@ -194,6 +195,14 @@ def test_str_to_bool(tmpdir):
     for case in other_cases:
         with pytest.raises(ValueError):
             str_to_bool(case)
+
+
+def test_str_to_bool_or_int():
+    assert str_to_bool_or_int("0") is False
+    assert str_to_bool_or_int("1") is True
+    assert str_to_bool_or_int("true") is True
+    assert str_to_bool_or_int("2") == 2
+    assert str_to_bool_or_int("abc") == "abc"
 
 
 def test_is_picklable(tmpdir):

@@ -21,8 +21,9 @@ PyTorch Lightning Documentation
    :name: guides
    :caption: Best practices
 
+   guides/speed
+   guides/data
    starter/style_guide
-   benchmarking/performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
    benchmarking/benchmarks
 
@@ -57,6 +58,13 @@ PyTorch Lightning Documentation
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
+   notebooks/lightning_examples/mnist-hello-world.ipynb
+   notebooks/lightning_examples/datamodules.ipynb
+   notebooks/lightning_examples/cifar10-baseline.ipynb
+   notebooks/lightning_examples/basic-gan.ipynb
+   notebooks/lightning_examples/text-transformers.ipynb
+   notebooks/lightning_examples/reinforce-learning-DQN.ipynb
+   notebooks/lightning_examples/augmentation_kornia.ipynb
 
 .. toctree::
    :maxdepth: 2
@@ -94,28 +102,27 @@ PyTorch Lightning Documentation
 
    clouds/cloud_training
    clouds/cluster
-   advanced/amp
    common/child_modules
    common/debugging
-   common/loggers
    common/early_stopping
-   common/fast_training
    common/hyperparameters
+   common/production_inference
+   advanced/ipu
    common/lightning_cli
    advanced/lr_finder
+   common/loggers
    advanced/multi_gpu
-   advanced/multiple_loaders
+   advanced/advanced_gpu
    common/weights_loading
    common/optimizers
    advanced/profiler
-   common/single_gpu
    advanced/sequences
+   common/single_gpu
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
    advanced/tpu
    common/test_set
-   common/production_inference
 
 .. toctree::
    :maxdepth: 1
@@ -126,7 +133,7 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: community
+   :name: Community
    :caption: Community
 
 

@@ -17,7 +17,7 @@ import torch
 from torchmetrics import Metric
 from torchmetrics.metric import CompositionalMetric as _CompositionalMetric
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class CompositionalMetric(_CompositionalMetric):
@@ -33,3 +33,4 @@ class CompositionalMetric(_CompositionalMetric):
         .. deprecated::
             Use :class:`torchmetrics.metric.CompositionalMetric`. Will be removed in v1.5.0.
         """
+        void(operator, metric_a, metric_b)

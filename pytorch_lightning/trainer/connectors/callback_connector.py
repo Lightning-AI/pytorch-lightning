@@ -13,11 +13,11 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from typing import List, Union, Optional, Dict
+from typing import Dict, List, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -29,18 +29,15 @@ class CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks,
-        checkpoint_callback,
-        progress_bar_refresh_rate,
-        process_position,
-        default_root_dir,
-        weights_save_path,
-        resume_from_checkpoint,
-        stochastic_weight_avg,
+        callbacks: Optional[Union[List[Callback], Callback]],
+        checkpoint_callback: bool,
+        progress_bar_refresh_rate: Optional[int],
+        process_position: int,
+        default_root_dir: Optional[str],
+        weights_save_path: Optional[str],
+        stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
-        self.trainer.resume_from_checkpoint = resume_from_checkpoint
-
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
@@ -53,11 +50,13 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self.configure_checkpoint_callbacks(checkpoint_callback)
+        self._configure_checkpoint_callbacks(checkpoint_callback)
 
         # configure swa callback
         self._configure_swa_callbacks()
 
+        # configure the timer callback.
+        # responsible to stop the training when max_time is reached.
         self._configure_timer_callback(max_time)
 
         # init progress bar
@@ -67,7 +66,16 @@ class CallbackConnector:
         # it is important that these are the last callbacks to run
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
-    def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
+    def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
+        # TODO: Remove this error in v1.5 so we rely purely on the type signature
+        if not isinstance(checkpoint_callback, bool):
+            error_msg = (
+                "Invalid type provided for checkpoint_callback:"
+                f" Expected bool but received {type(checkpoint_callback)}."
+            )
+            if isinstance(checkpoint_callback, Callback):
+                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
+            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
                 "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
@@ -98,7 +106,7 @@ class CallbackConnector:
                 'You added multiple progress bar callbacks to the Trainer, but currently only one'
                 ' progress bar is supported.'
             )
-        elif len(progress_bars) == 1:
+        if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
             progress_bar_callback = ProgressBar(
@@ -115,9 +123,7 @@ class CallbackConnector:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
-            rank_zero_info(
-                "Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer."
-            )
+            rank_zero_info("Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer.")
             return
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
@@ -131,7 +137,7 @@ class CallbackConnector:
             callback.log_dict = model.log_dict
 
     @staticmethod
-    def _attach_model_callbacks(model: LightningModule, trainer) -> None:
+    def _attach_model_callbacks(model: 'pl.LightningModule', trainer) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several
@@ -147,8 +153,8 @@ class CallbackConnector:
         model_callbacks = model.configure_callbacks()
         if not model_callbacks:
             return
-        model_callback_types = set(type(c) for c in model_callbacks)
-        trainer_callback_types = set(type(c) for c in trainer.callbacks)
+        model_callback_types = {type(c) for c in model_callbacks}
+        trainer_callback_types = {type(c) for c in trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
         if override_types:
             rank_zero_info(

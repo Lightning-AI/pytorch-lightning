@@ -34,7 +34,7 @@ class LightningEnum(str, Enum):
     def __hash__(self) -> int:
         # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
-        return hash(self.name)
+        return hash(self.value.lower())
 
 
 class AMPType(LightningEnum):
@@ -79,7 +79,7 @@ class DistributedType(LightningEnum):
     HOROVOD = 'horovod'
     DDP_SHARDED = 'ddp_sharded'
     DDP_SHARDED_SPAWN = 'ddp_sharded_spawn'
-    RPC_SEQUENTIAL_PLUGIN = 'rpc_sequential'
+    DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
 
 class DeviceType(LightningEnum):
@@ -96,17 +96,26 @@ class DeviceType(LightningEnum):
     """
     CPU = 'CPU'
     GPU = 'GPU'
+    IPU = 'IPU'
     TPU = 'TPU'
 
 
 class GradClipAlgorithmType(LightningEnum):
     """ Define gradient_clip_algorithm types - training-tricks.
     NORM type means "clipping gradients by norm". This computed over all model parameters together.
-    VALUE tpye means "clipping gradients by value". This will clip the gradient value for each parameter.
+    VALUE type means "clipping gradients by value". This will clip the gradient value for each parameter.
 
     References:
-        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm
-        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value
+        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_
+        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_
     """
     VALUE = 'value'
     NORM = 'norm'
+
+
+class AutoRestartBatchKeys(LightningEnum):
+    """
+    Defines special dictionary keys used to track sampler progress with multiple workers.
+    """
+
+    PL_SAMPLERS = "__pl_samplers"

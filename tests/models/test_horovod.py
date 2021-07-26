@@ -29,7 +29,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
@@ -258,14 +257,14 @@ def test_horovod_multi_optimizer(tmpdir):
         accelerator='horovod',
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):
         assert hasattr(optimizer, 'synchronize'), 'optimizer has not been wrapped into DistributedOptimizer'
 
     def get_model_params(model):
-        return set([p for p in model.parameters()])
+        return set(list(model.parameters()))
 
     def get_optimizer_params(optimizer):
         return set([p for group in optimizer.param_groups for p in group.get('params', [])])
@@ -297,7 +296,7 @@ def test_result_reduce_horovod(tmpdir):
                 self.training_step_called = True
 
                 tensor = torch.tensor([1.0])
-                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum', on_step=True, on_epoch=True)
+                self.log("test_tensor", tensor, sync_dist=True, reduce_fx='sum', on_step=True, on_epoch=True)
 
                 res = self._results
 
@@ -409,8 +408,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
             limit_train_batches=0.2,
             accelerator='horovod'
         )
-        results = trainer.fit(model)
-        assert results == 1
+        trainer.fit(model)
 
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]

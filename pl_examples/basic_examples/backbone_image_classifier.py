@@ -17,22 +17,20 @@ MNIST backbone image classifier example.
 To run:
 python backbone_image_classifier.py --trainer.max_epochs=50
 """
+from typing import Optional
 
 import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, cli_lightning_logo
+from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
-    from tests.helpers.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):
@@ -66,11 +64,13 @@ class LitClassifier(pl.LightningModule):
 
     def __init__(
         self,
-        backbone,
+        backbone: Optional[Backbone] = None,
         learning_rate: float = 0.0001,
     ):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['backbone'])
+        if backbone is None:
+            backbone = Backbone()
         self.backbone = backbone
 
     def forward(self, x):
@@ -96,6 +96,10 @@ class LitClassifier(pl.LightningModule):
         y_hat = self.backbone(x)
         loss = F.cross_entropy(y_hat, y)
         self.log('test_loss', loss)
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        x, y = batch
+        return self.backbone(x)
 
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
@@ -123,21 +127,15 @@ class MyDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
-
-class MyLightningCLI(LightningCLI):
-
-    def add_arguments_to_parser(self, parser):
-        parser.add_class_arguments(Backbone, 'model.backbone')
-
-    def instantiate_model(self):
-        self.config_init['model']['backbone'] = Backbone(**self.config['model']['backbone'])
-        super().instantiate_model()
+    def predict_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
 
 def cli_main():
-    cli = MyLightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
-    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
-    print(result)
+    cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    predictions = cli.trainer.predict(cli.model, datamodule=cli.datamodule)
+    print(predictions[0])
 
 
 if __name__ == '__main__':
