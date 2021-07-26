@@ -372,10 +372,10 @@ def test_pytorch_profiler_nested(tmpdir):
 
     events_name = {e.name for e in pytorch_profiler.function_events}
 
-    names = {'a', 'b', 'c'}
-    ops = {'add', 'empty', 'fill_', 'ones', 'zero_', 'zeros'}
+    names = {"a", "b", "c"}
+    ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
     if Version(torch.__version__) >= Version("1.7.0"):
-        ops = {'aten::' + op for op in ops}
+        ops = {"aten::" + op for op in ops}
 
     expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())
