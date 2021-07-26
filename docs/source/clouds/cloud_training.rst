@@ -46,4 +46,3 @@ Learn More
 `Grid in 3 minutes <https://docs.grid.ai/#introduction>`_
 
 `Grid.ai Terms of Service <https://www.grid.ai/terms-of-service/>`_
-
