@@ -116,15 +116,15 @@ class RegressionModel(LightningModule):
     def test_step(self, batch, batch_idx):
         x, y = batch
         out = self.forward(x)
-        self.log('test_loss', F.mse_loss(out, y), prog_bar=False)
-        self.log('test_MSE', self.test_mse(out, y), prog_bar=True)
+        self.log("test_loss", F.mse_loss(out, y), prog_bar=False)
+        self.log("test_MSE", self.test_mse(out, y), prog_bar=True)
 
 
 class NonQuantizableModel(LightningModule):
     """More challenging model for QAT due to embedding layer"""
 
     def __init__(self):
-        super(NonQuantizableModel, self).__init__()
+        super().__init__()
         self.embed = nn.Embedding(16, 64)
         self.linear = nn.Linear(1024, 64)
         self.softmax = nn.Softmax(dim=1)

@@ -110,19 +110,19 @@ def test_quantization_exceptions(tmpdir):
     with pytest.raises(MisconfigurationException, match="one or more of them is not your model attributes"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
-    qcb = QuantizationAwareTraining(method_to_quantize='on_gpu')
+    qcb = QuantizationAwareTraining(method_to_quantize="on_gpu")
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match='`method_to_quantize` must be a callable model attribute'):
+    with pytest.raises(MisconfigurationException, match="`method_to_quantize` must be a callable model attribute"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
-    qcb = QuantizationAwareTraining(modules_to_skip=['foo'])
+    qcb = QuantizationAwareTraining(modules_to_skip=["foo"])
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match='foo is not a model attribute, cannot skip quantization'):
+    with pytest.raises(MisconfigurationException, match="foo is not a model attribute, cannot skip quantization"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
-    qcb = QuantizationAwareTraining(modules_to_skip=['on_gpu'])
+    qcb = QuantizationAwareTraining(modules_to_skip=["on_gpu"])
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match='on_gpu is not a `nn.Module`, cannot skip quantization'):
+    with pytest.raises(MisconfigurationException, match="on_gpu is not a `nn.Module`, cannot skip quantization"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
 
@@ -161,7 +161,7 @@ def test_non_quantizable(tmpdir):
 
     # Training fit works
     model = NonQuantizableModel()
-    qcb = QuantizationAwareTraining(method_to_quantize='qforward', modules_to_skip=['embed'])
+    qcb = QuantizationAwareTraining(method_to_quantize="qforward", modules_to_skip=["embed"])
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
 

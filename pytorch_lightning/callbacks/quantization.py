@@ -171,7 +171,7 @@ class QuantizationAwareTraining(Callback):
         collect_quantization: Optional[Union[int, Callable]] = None,
         modules_to_fuse: Optional[Sequence] = None,
         modules_to_skip: Optional[List[str]] = None,
-        method_to_quantize: str = 'forward',
+        method_to_quantize: str = "forward",
         input_compatible: bool = True,
         quantize_on_fit_end: bool = True,
     ) -> None:
@@ -219,13 +219,14 @@ class QuantizationAwareTraining(Callback):
         # to floating point in the quantized model
         quant_method = getattr(pl_module, self._method_to_quantize)
         if not callable(quant_method):
-            raise MisconfigurationException('`method_to_quantize` must be a callable model attribute')
+            raise MisconfigurationException("`method_to_quantize` must be a callable model attribute")
         self.__quant_method = quant_method
         setattr(
-            pl_module, self._method_to_quantize,
+            pl_module,
+            self._method_to_quantize,
             wrap_qat_forward_context(
                 quant_cb=self, model=pl_module, func=quant_method, trigger_condition=self._collect_quantization
-            )
+            ),
         )
 
         # attach a global qconfig, which contains information about what kind
@@ -245,9 +246,9 @@ class QuantizationAwareTraining(Callback):
                 try:
                     module = getter(pl_module)
                 except AttributeError:
-                    raise MisconfigurationException(f'{m} is not a model attribute, cannot skip quantization')
+                    raise MisconfigurationException(f"{m} is not a model attribute, cannot skip quantization")
                 if not isinstance(module, nn.Module):
-                    raise MisconfigurationException(f'{m} is not a `nn.Module`, cannot skip quantization')
+                    raise MisconfigurationException(f"{m} is not a `nn.Module`, cannot skip quantization")
                 module.qconfig = None
 
         if self._check_feasible_fuse(pl_module):
