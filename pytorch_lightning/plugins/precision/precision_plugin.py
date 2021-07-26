@@ -31,6 +31,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
     The class attribute precision must be overwritten in child classes.
     The default value reflects fp32 training.
     """
+
     precision: Union[str, int] = 32
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
@@ -39,60 +40,67 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         Maybe different in other precision plugins.
         """
         for group in optimizer.param_groups:
-            for p in group["params"]:
-                yield p
+            yield from group["params"]
 
     def connect(
-        self,
-        model: Module,
-        optimizers: List[Optimizer],
-        lr_schedulers: List[Any],
+        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
-    def backward(
-        self,
-        model: 'pl.LightningModule',
-        closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tensor:
-        """performs the actual backpropagation
+    def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
+        """Run before precision plugin executes backward
 
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
         """
-        automatic_optimization = model.automatic_optimization
+        model.trainer.call_hook("on_before_backward", closure_loss)
+        return closure_loss
 
+    def backward(
+        self,
+        model: "pl.LightningModule",
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Performs the actual backpropagation
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss value obtained from the closure
+            optimizer: current optimizer being used. ``None`` if using manual optimization
+        """
         # do backward pass
-        if automatic_optimization:
-            model.backward(closure_loss, optimizer, opt_idx)
+        if model is not None and isinstance(model, pl.LightningModule):
+            model.backward(closure_loss, optimizer, *args, **kwargs)
         else:
             closure_loss.backward(*args, **kwargs)
 
+    def post_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
+        """Run after precision plugin executes backward
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss value obtained from the closure
+        """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
-
+        model.trainer.call_hook("on_after_backward")
         return closure_loss
 
     def pre_optimizer_step(
         self,
-        pl_module: 'pl.LightningModule',
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
+        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         return True
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
@@ -103,7 +111,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None
+        model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients"""
         if clip_val is None:

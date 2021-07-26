@@ -34,7 +34,7 @@ RUN \
         rm *.zip ; \
     fi && \
 # save the examples
-    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
 
 # Installations

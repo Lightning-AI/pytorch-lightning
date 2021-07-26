@@ -10,16 +10,21 @@ assignees: ''
 
 <!-- A clear and concise description of what the bug is. -->
 
-## Please reproduce using the BoringModel
-
-
-<!-- Please paste your BoringModel colab link here. -->
-
 ### To Reproduce
 
-Use following [**BoringModel**](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing) and post here
+<!--
+Please reproduce using the BoringModel!
 
-<!-- If you could not reproduce using the BoringModel and still think there's a bug, please post here -->
+You can use the following Colab link:
+https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing
+IMPORTANT: has to be public.
+
+or this simple template:
+https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
+
+If you could not reproduce using the BoringModel and still think there's a bug, please post here
+but remember, bugs with code are fixed faster!
+-->
 
 ### Expected behavior
 
@@ -27,19 +32,19 @@ Use following [**BoringModel**](https://colab.research.google.com/drive/1HvWVVTK
 
 ### Environment
 
-**Note**: `Bugs with code` are solved faster ! `Colab Notebook` should be made `public` !
-
-* `IDE`: Please, use our python [bug_report_model.py](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
-) template.
-
-* `Colab Notebook`: Please copy and paste the output from our [environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py) (or fill out the checklist below manually).
+<!--
+Please copy and paste the output from our environment collection script:
+https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
+(For security purposes, please check the contents of the script before running it)
 
 You can get the script and run it with:
-```
-wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py
-# For security purposes, please check the contents of collect_env_details.py before running it.
+```bash
+wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
 python collect_env_details.py
 ```
+
+You can also fill out the list below manually.
+-->
 
  - PyTorch Lightning Version (e.g., 1.3.0):
  - PyTorch Version (e.g., 1.8)

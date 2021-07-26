@@ -20,11 +20,13 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel
@@ -34,7 +36,7 @@ PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
 def _get_python_cprofile_total_duration(profile):
-    return sum([x.inlinetime for x in profile.getstats()])
+    return sum(x.inlinetime for x in profile.getstats())
 
 
 def _sleep_generator(durations):
@@ -52,11 +54,9 @@ def simple_profiler():
     return SimpleProfiler()
 
 
-@pytest.mark.parametrize(["action", "expected"], [
-    pytest.param("a", [3, 1]),
-    pytest.param("b", [2]),
-    pytest.param("c", [1]),
-])
+@pytest.mark.parametrize(
+    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
+)
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
 
@@ -69,11 +69,9 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-@pytest.mark.parametrize(["action", "expected"], [
-    pytest.param("a", [3, 1]),
-    pytest.param("b", [2]),
-    pytest.param("c", [1]),
-])
+@pytest.mark.parametrize(
+    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
+)
 def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -122,11 +120,7 @@ def test_simple_profiler_log_dir(tmpdir):
     assert profiler._log_dir is None
 
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        profiler=profiler,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
     trainer.fit(model)
 
     expected = tmpdir / "lightning_logs" / "version_0"
@@ -138,15 +132,10 @@ def test_simple_profiler_log_dir(tmpdir):
 @RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed"""
-    profiler = SimpleProfiler(dirpath=tmpdir, filename='profiler')
+    profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=2,
-        accelerator="ddp_cpu",
-        num_processes=2,
-        profiler=profiler,
-        logger=False,
+        default_root_dir=tmpdir, fast_dev_run=2, accelerator="ddp_cpu", num_processes=2, profiler=profiler, logger=False
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -157,18 +146,13 @@ def test_simple_profiler_distributed_files(tmpdir):
     assert actual == expected
 
     for f in profiler.dirpath.listdir():
-        assert f.read_text('utf-8')
+        assert f.read_text("utf-8")
 
 
 def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct"""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=2,
-        profiler=simple_profiler,
-        logger=False,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
         trainer.fit(model)
         trainer.test(model)
@@ -181,11 +165,9 @@ def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@pytest.mark.parametrize(["action", "expected"], [
-    pytest.param("a", [3, 1]),
-    pytest.param("b", [2]),
-    pytest.param("c", [1]),
-])
+@pytest.mark.parametrize(
+    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
+)
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
     for duration in expected:
@@ -199,11 +181,9 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
-@pytest.mark.parametrize(["action", "expected"], [
-    pytest.param("a", [3, 1]),
-    pytest.param("b", [2]),
-    pytest.param("c", [1]),
-])
+@pytest.mark.parametrize(
+    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
+)
 def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -284,22 +264,16 @@ def test_pytorch_profiler_raises(pytorch_profiler):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
 
 
-@RunIf(min_torch="1.6.0")
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        profiler="advanced",
-        stochastic_weight_avg=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", stochastic_weight_avg=True)
     trainer.fit(model)
 
 
 @RunIf(min_gpus=2, special=True)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
-    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+    """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -313,9 +287,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    expected = {'validation_step'}
+    expected = {"validation_step"}
     if not _KINETO_AVAILABLE:
-        expected |= {'training_step_and_backward', 'training_step', 'backward'}
+        expected |= {"training_step_and_backward", "training_step", "backward"}
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -328,68 +302,53 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
 
     if _KINETO_AVAILABLE:
         files = os.listdir(pytorch_profiler.dirpath)
-        files = [file for file in files if file.endswith('.json')]
+        files = [file for file in files if file.endswith(".json")]
         assert len(files) == 2, files
         local_rank = trainer.local_rank
-        assert any(f'{local_rank}-optimizer_step_and_closure_' in f for f in files)
-        assert any(f'{local_rank}-validation_step' in f for f in files)
+        assert any(f"{local_rank}-optimizer_step_and_closure_" in f for f in files)
+        assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
 def test_pytorch_profiler_trainer_test(tmpdir):
-    """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
+    """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_test_batches=2,
-        profiler=pytorch_profiler,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
     trainer.test(model)
 
-    assert sum(e.name == 'test_step' for e in pytorch_profiler.function_events)
+    assert sum(e.name == "test_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
     if _KINETO_AVAILABLE:
-        files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
-        assert any(f'test-{pytorch_profiler.filename}' in f for f in files)
+        files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
+        assert any(f"test-{pytorch_profiler.filename}" in f for f in files)
         path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
         assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_trainer_predict(tmpdir):
-    """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
+    """Ensure that the profiler can be given to the trainer and predict function are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_predict_batches=2,
-        profiler=pytorch_profiler,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_predict_batches=2, profiler=pytorch_profiler)
     trainer.predict(model)
 
-    assert sum(e.name == 'predict_step' for e in pytorch_profiler.function_events)
+    assert sum(e.name == "predict_step" for e in pytorch_profiler.function_events)
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_trainer_validate(tmpdir):
-    """Ensure that the profiler can be given to the trainer and validate function are properly recorded. """
+    """Ensure that the profiler can be given to the trainer and validate function are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=2,
-        profiler=pytorch_profiler,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=2, profiler=pytorch_profiler)
     trainer.validate(model)
 
-    assert sum(e.name == 'validation_step' for e in pytorch_profiler.function_events)
+    assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"validate-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -413,22 +372,37 @@ def test_pytorch_profiler_nested(tmpdir):
 
     events_name = {e.name for e in pytorch_profiler.function_events}
 
-    if platform.system() == "Windows":
-        expected = {'a', 'add', 'b', 'c', 'profiler::_record_function_enter', 'profiler::_record_function_exit'}
-    else:
-        expected = {
-            'signed char', 'add', 'profiler::_record_function_exit', 'bool', 'char', 'profiler::_record_function_enter'
-        }
+    names = {"a", "b", "c"}
+    ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
+    if _TORCH_GREATER_EQUAL_1_7:
+        ops = {"aten::" + op for op in ops}
 
-    if Version(torch.__version__) >= Version("1.6.0"):
-        expected = {'add', 'zeros', 'ones', 'zero_', 'b', 'fill_', 'c', 'a', 'empty'}
-
-    if Version(torch.__version__) >= Version("1.7.0"):
-        expected = {
-            'aten::zeros', 'aten::add', 'aten::zero_', 'c', 'b', 'a', 'aten::fill_', 'aten::empty', 'aten::ones'
-        }
-
+    expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())
+
+
+def test_pytorch_profiler_logger_collection(tmpdir):
+    """
+    Tests whether the PyTorch profiler is able to write its trace locally when
+    the Trainer's logger is an instance of LoggerCollection. See issue #8157.
+    """
+
+    def look_for_trace(trace_dir):
+        """Determines if a directory contains a PyTorch trace"""
+        return any("trace.json" in filename for filename in os.listdir(trace_dir))
+
+    # Sanity check
+    assert not look_for_trace(tmpdir)
+
+    model = BoringModel()
+
+    # Wrap the logger in a list so it becomes a LoggerCollection
+    logger = [TensorBoardLogger(save_dir=tmpdir)]
+    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
+
+    assert isinstance(trainer.logger, LoggerCollection)
+    trainer.fit(model)
+    assert look_for_trace(tmpdir)
 
 
 @RunIf(min_gpus=1, special=True)
@@ -439,15 +413,10 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        gpus=1,
-    )
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, gpus=1)
     trainer.fit(model)
 
 
-@RunIf(min_torch="1.5.0")
 def test_register_record_function(tmpdir):
 
     use_cuda = torch.cuda.is_available()
@@ -462,7 +431,6 @@ def test_register_record_function(tmpdir):
     )
 
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.layer = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), torch.nn.Linear(1, 1))
@@ -480,10 +448,10 @@ def test_register_record_function(tmpdir):
 
     pytorch_profiler.describe()
     event_names = [e.name for e in pytorch_profiler.function_events]
-    assert 'torch.nn.modules.container.Sequential: layer' in event_names
-    assert 'torch.nn.modules.linear.Linear: layer.0' in event_names
-    assert 'torch.nn.modules.activation.ReLU: layer.1' in event_names
-    assert 'torch.nn.modules.linear.Linear: layer.2' in event_names
+    assert "torch.nn.modules.container.Sequential: layer" in event_names
+    assert "torch.nn.modules.linear.Linear: layer.0" in event_names
+    assert "torch.nn.modules.activation.ReLU: layer.1" in event_names
+    assert "torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
 @pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
@@ -493,7 +461,6 @@ def test_profiler_teardown(tmpdir, cls):
     """
 
     class TestCallback(Callback):
-
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
             # describe sets it to None
             assert trainer.profiler._output_file is None
@@ -514,17 +481,20 @@ def test_pytorch_profiler_deepcopy(tmpdir):
     assert deepcopy(pytorch_profiler)
 
 
-@pytest.mark.parametrize(['profiler', 'expected'], [
-    (None, PassThroughProfiler),
-    (SimpleProfiler(), SimpleProfiler),
-    (AdvancedProfiler(), AdvancedProfiler),
-    ('simple', SimpleProfiler),
-    ('Simple', SimpleProfiler),
-    ('advanced', AdvancedProfiler),
-    ('pytorch', PyTorchProfiler),
-])
+@pytest.mark.parametrize(
+    ["profiler", "expected"],
+    [
+        (None, PassThroughProfiler),
+        (SimpleProfiler(), SimpleProfiler),
+        (AdvancedProfiler(), AdvancedProfiler),
+        ("simple", SimpleProfiler),
+        ("Simple", SimpleProfiler),
+        ("advanced", AdvancedProfiler),
+        ("pytorch", PyTorchProfiler),
+    ],
+)
 def test_trainer_profiler_correct_args(profiler, expected):
-    kwargs = {'profiler': profiler} if profiler is not None else {}
+    kwargs = {"profiler": profiler} if profiler is not None else {}
     trainer = Trainer(**kwargs)
     assert isinstance(trainer.profiler, expected)
 
@@ -532,6 +502,6 @@ def test_trainer_profiler_correct_args(profiler, expected):
 def test_trainer_profiler_incorrect_str_arg():
     with pytest.raises(
         MisconfigurationException,
-        match=r"When passing string value for the `profiler` parameter of `Trainer`, it can only be one of.*"
+        match=r"When passing string value for the `profiler` parameter of `Trainer`, it can only be one of.*",
     ):
         Trainer(profiler="unknown_profiler")

@@ -15,11 +15,13 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringDataModule, BoringModel
 
 
@@ -57,14 +59,12 @@ def test_v1_6_0_dataloader_renaming(tmpdir):
 
 
 def test_old_transfer_batch_to_device_hook(tmpdir):
-
     class OldModel(BoringModel):
-
         def transfer_batch_to_device(self, batch, device):
             return super().transfer_batch_to_device(batch, device, None)
 
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
-    with pytest.deprecated_call(match='old signature will be removed in v1.6'):
+    with pytest.deprecated_call(match="old signature will be removed in v1.6"):
         trainer.fit(OldModel())
 
 
@@ -92,7 +92,7 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
 
     model = BoringModel()
 
-    with pytest.deprecated_call(match='`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed'):
+    with pytest.deprecated_call(match="`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed"):
         trainer = Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=0.3,
@@ -105,15 +105,13 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = ['val_dataloader'] + ['train_dataloader', 'val_dataloader'] * 3 + ['test_dataloader']
+    expected_sequence = ["val_dataloader"] + ["train_dataloader", "val_dataloader"] * 3 + ["test_dataloader"]
     for call, expected in zip(calls, expected_sequence):
-        assert call['name'] == expected
+        assert call["name"] == expected
 
 
 def test_v1_6_0_tbptt_reduce_fx(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, *args):
             self.log("foo", 1, tbptt_reduce_fx=lambda x: x)
             return super().training_step(*args)
@@ -124,9 +122,7 @@ def test_v1_6_0_tbptt_reduce_fx(tmpdir):
 
 
 def test_v1_6_0_tbptt_pad_token(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, *args):
             self.log("foo", 1, tbptt_pad_token=0)
             return super().training_step(*args)
@@ -137,11 +133,9 @@ def test_v1_6_0_tbptt_pad_token(tmpdir):
 
 
 def test_v1_6_0_sync_dist_op(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, *args):
-            self.log("foo", 1, sync_dist_op='sum')
+            self.log("foo", 1, sync_dist_op="sum")
             return super().training_step(*args)
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -194,32 +188,32 @@ def test_v1_6_0_datamodule_hooks_calls(tmpdir):
     dm = TestDataModule()
     dm.prepare_data()
     dm.prepare_data()
-    dm.setup('fit')
+    dm.setup("fit")
     with pytest.deprecated_call(
         match=r"DataModule.setup has already been called, so it will not be called again. "
         "In v1.6 this behavior will change to always call DataModule.setup"
     ):
-        dm.setup('fit')
+        dm.setup("fit")
     dm.setup()
     dm.setup()
-    dm.teardown('validate')
+    dm.teardown("validate")
     with pytest.deprecated_call(
         match=r"DataModule.teardown has already been called, so it will not be called again. "
         "In v1.6 this behavior will change to always call DataModule.teardown"
     ):
-        dm.teardown('validate')
+        dm.teardown("validate")
 
     assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ['fit', None]
-    assert dm.teardown_calls == ['validate']
+    assert dm.setup_calls == ["fit", None]
+    assert dm.teardown_calls == ["validate"]
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     trainer.test(BoringModel(), datamodule=dm)
 
     # same number of calls
     assert dm.prepare_data_calls == 1
-    assert dm.setup_calls == ['fit', None]
-    assert dm.teardown_calls == ['validate', 'test']
+    assert dm.setup_calls == ["fit", None]
+    assert dm.teardown_calls == ["validate", "test"]
 
 
 def test_v1_6_0_is_overridden_model():
@@ -239,12 +233,10 @@ def test_v1_6_0_early_stopping_monitor(tmpdir):
 
 
 def test_v1_6_0_extras_with_gradients(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, *args):
-            loss = super().training_step(*args)['loss']
-            return {"loss": loss, 'foo': loss}
+            loss = super().training_step(*args)["loss"]
+            return {"loss": loss, "foo": loss}
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
@@ -262,20 +254,21 @@ def test_v1_6_0_train_loop(tmpdir):
 
 
 def test_v1_6_0_rank_zero_warnings_moved():
-    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
-        rank_zero_warn('test')
-    with pytest.deprecated_call(match='in v1.3.7 and will be removed in v1.6'):
-        rank_zero_deprecation('test')
+    with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
+        rank_zero_warn("test")
+    with pytest.deprecated_call(match="in v1.3.7 and will be removed in v1.6"):
+        rank_zero_deprecation("test")
 
 
 def test_v1_6_0_ddp_plugin_task_idx():
     plugin = DDPPlugin()
-    with pytest.deprecated_call(match='Use `DDPPlugin.local_rank` instead'):
+    with pytest.deprecated_call(match="Use `DDPPlugin.local_rank` instead"):
         _ = plugin.task_idx
 
 
 def test_v1_6_0_lightning_module_loaded_optimizer_states_dict():
     from pytorch_lightning.core.lightning import warning_cache
+
     model = BoringModel()
     _ = model.loaded_optimizer_states_dict
     assert any(
@@ -303,3 +296,25 @@ def test_v1_6_0_deprecated_disable_validation():
     trainer = Trainer()
     with pytest.deprecated_call(match="disable_validation` is deprecated in v1.4"):
         _ = trainer.disable_validation
+
+
+def test_v1_6_0_every_n_val_epochs():
+    with pytest.deprecated_call(match="use `every_n_epochs` instead"):
+        _ = ModelCheckpoint(every_n_val_epochs=1)
+
+
+def test_v1_6_0_deprecated_hpc_load(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer.fit(model)
+    trainer.checkpoint_connector.hpc_save(tmpdir, trainer.logger)
+    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(str(tmpdir))
+    with pytest.deprecated_call(match=r"`CheckpointConnector.hpc_load\(\)` was deprecated in v1.4"):
+        trainer.checkpoint_connector.hpc_load(checkpoint_path)
+
+
+def test_v1_6_0_deprecated_device_dtype_mixin_import():
+
+    _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
+    with pytest.deprecated_call(match="will be removed in v1.6"):
+        from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F811 F401

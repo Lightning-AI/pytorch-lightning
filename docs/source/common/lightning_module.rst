@@ -213,6 +213,7 @@ Here's the pseudocode of what it does under the hood:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -250,6 +251,7 @@ The matching pseudocode is:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -1191,9 +1193,11 @@ for more information.
             on_before_zero_grad()
             optimizer_zero_grad()
 
+            on_before_backward()
             backward()
             on_after_backward()
 
+            on_before_optimizer_step()
             optimizer_step()
 
             on_train_batch_end()
@@ -1244,6 +1248,12 @@ get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
+    :noindex:
+
+on_before_backward
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_backward
     :noindex:
 
 on_after_backward
@@ -1442,6 +1452,12 @@ on_test_model_train
 ~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
+    :noindex:
+
+on_before_optimizer_step
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
     :noindex:
 
 optimizer_step

@@ -17,11 +17,9 @@ from typing import Any, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import EpochLoopProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -33,8 +31,6 @@ class EvaluationLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.outputs = []
-        self.progress = EpochLoopProgress()
-
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)
@@ -66,19 +62,14 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(
-        self, trainer: "pl.Trainer", *args: Any, progress: Optional[EpochLoopProgress] = None, **kwargs: Any
-    ) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        if progress is not None:
-            self.progress = progress
-        self.epoch_loop.connect(trainer, progress=self.progress.epoch)
+    def connect(self, epoch_loop: EvaluationEpochLoop):
+        """Connect the evaluation epoch loop with this loop."""
+        self.epoch_loop = epoch_loop
 
     @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
-        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.skip
+        return super().done or self.skip
 
     @property
     def skip(self) -> bool:
@@ -88,13 +79,14 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop"""
-        self.iteration_count = 0
         self._max_batches = self.get_max_batches()
         # bookkeeping
         self.outputs = []
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
+
+        super().reset()
 
     def on_skip(self) -> List:
         return []
@@ -116,10 +108,7 @@ class EvaluationLoop(DataLoaderLoop):
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(
-            dataloader_iter,
-            self.current_dataloader_idx,
-            dl_max_batches,
-            self.num_dataloaders,
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
 
         # store batch level output per dataloader
@@ -265,7 +254,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook"""
-        hook_name = ("on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end")
+        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
