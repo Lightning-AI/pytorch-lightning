@@ -36,7 +36,7 @@ PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
 def _get_python_cprofile_total_duration(profile):
-    return sum([x.inlinetime for x in profile.getstats()])
+    return sum(x.inlinetime for x in profile.getstats())
 
 
 def _sleep_generator(durations):
@@ -322,7 +322,7 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     assert path.read_text("utf-8")
 
     if _KINETO_AVAILABLE:
-        files = sorted([file for file in os.listdir(tmpdir) if file.endswith(".json")])
+        files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"test-{pytorch_profiler.filename}" in f for f in files)
         path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
         assert path.read_text("utf-8")

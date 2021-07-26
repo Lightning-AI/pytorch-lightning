@@ -52,7 +52,11 @@ _PYTORCH_PRUNING_METHOD = {
 _PARAM_TUPLE = Tuple[nn.Module, str]
 _PARAM_LIST = Sequence[_PARAM_TUPLE]
 _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
-_LayerRef = TypedDict("_LayerRef", {"data": nn.Module, "names": List[Tuple[int, str]]})
+
+
+class _LayerRef(TypedDict):
+    data: nn.Module
+    names: List[Tuple[int, str]]
 
 
 class ModelPruning(Callback):

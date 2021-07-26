@@ -60,7 +60,7 @@ def _determine_lr_attr_name(trainer: "pl.Trainer", model: "pl.LightningModule") 
     )
 
 
-class _LRFinder(object):
+class _LRFinder:
     """LR finder object. This object stores the results of lr_find().
 
     Args:
@@ -396,7 +396,7 @@ class _LinearLR(_LRScheduler):
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(_LinearLR, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
@@ -435,7 +435,7 @@ class _ExponentialLR(_LRScheduler):
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(_ExponentialLR, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1

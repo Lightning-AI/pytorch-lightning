@@ -275,7 +275,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
 
     class Model(BoringModel):
         def __init__(self, step_freeze):
-            super(Model, self).__init__()
+            super().__init__()
 
             self._step_freeze = step_freeze
 

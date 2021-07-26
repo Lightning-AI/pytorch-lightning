@@ -249,8 +249,7 @@ class LightningLoggerBase(ABC):
                     key = str(key)
                     if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
-                        for d in _dict_generator(value, prefixes + [key]):
-                            yield d
+                        yield from _dict_generator(value, prefixes + [key])
                     else:
                         yield prefixes + [key, value if value is not None else str(None)]
             else:
@@ -425,7 +424,7 @@ class LoggerCollection(LightningLoggerBase):
         return "_".join([str(logger.version) for logger in self._logger_iterable])
 
 
-class DummyExperiment(object):
+class DummyExperiment:
     """Dummy experiment"""
 
     def nop(self, *args, **kw):

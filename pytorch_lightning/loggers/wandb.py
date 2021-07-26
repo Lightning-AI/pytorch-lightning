@@ -253,7 +253,7 @@ class WandbLogger(LightningLoggerBase):
             checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
             **checkpoint_callback.best_k_models,
         }
-        checkpoints = sorted([(Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file()])
+        checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
         checkpoints = [
             c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
         ]

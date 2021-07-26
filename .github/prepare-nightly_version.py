@@ -11,7 +11,7 @@ now = datetime.datetime.now()
 now_date = now.strftime("%Y%m%d")
 
 print(f"prepare init '{_PATH_INFO}' - replace version by {now_date}")
-with open(_PATH_INFO, "r") as fp:
+with open(_PATH_INFO) as fp:
     init = fp.read()
 init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
 with open(_PATH_INFO, "w") as fp:

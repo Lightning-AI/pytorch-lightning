@@ -3,7 +3,7 @@ from pprint import pprint
 
 
 def main(req_file: str, *pkgs):
-    with open(req_file, "r") as fp:
+    with open(req_file) as fp:
         lines = fp.readlines()
 
     for pkg in pkgs:

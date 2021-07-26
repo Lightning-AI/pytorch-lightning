@@ -48,7 +48,7 @@ def _broadcast_object_list(object_list, src=0, group=None):
     my_rank = get_rank()
     # Serialize object_list elements to tensors on src rank.
     if my_rank == src:
-        tensor_list, size_list = zip(*[_object_to_tensor(obj) for obj in object_list])
+        tensor_list, size_list = zip(*(_object_to_tensor(obj) for obj in object_list))
         object_sizes_tensor = torch.cat(size_list)
     else:
         object_sizes_tensor = torch.LongTensor(len(object_list))

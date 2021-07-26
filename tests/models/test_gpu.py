@@ -365,7 +365,7 @@ def test_non_blocking():
         batch = trainer.accelerator.batch_to_device(batch, torch.device("cuda:0"))
         mocked.assert_called_with(torch.device("cuda", 0), non_blocking=True)
 
-    class BatchObject(object):
+    class BatchObject:
         def to(self, *args, **kwargs):
             pass
 
