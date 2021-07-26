@@ -71,7 +71,9 @@ class CheckpointConnector:
             raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
 
         rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
-        self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+        with pl_legacy_patch():
+            self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+        migrate_checkpoint(self._loaded_checkpoint)
 
     def resume_end(self) -> None:
         """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
@@ -106,11 +108,6 @@ class CheckpointConnector:
         # restore module states
         self.restore_datamodule()
         self.restore_model()
-        #with pl_legacy_patch():
-        #    checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
-        #   checkpoint_path, map_location=lambda storage, loc: storage
-        #    )
-        #migrate_checkpoint(checkpoint)
 
         # restore callback states
         self.restore_callbacks()
@@ -153,7 +150,9 @@ class CheckpointConnector:
         """ Restore only the model weights. """
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
-            checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+            with pl_legacy_patch():
+                checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+            migrate_checkpoint(checkpoint)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
