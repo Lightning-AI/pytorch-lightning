@@ -17,7 +17,7 @@ Abstract base class used to build new callbacks.
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch.optim import Optimizer
@@ -32,14 +32,6 @@ class Callback(abc.ABC):
 
     Subclass this class and override any of the relevant hooks
     """
-
-    @property
-    def state_id(self) -> str:
-        return self.__class__.__qualname__
-
-    @property
-    def _legacy_state_id(self) -> Type:
-        return type(self)
 
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before configure sharded model"""
