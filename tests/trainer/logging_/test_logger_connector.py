@@ -78,6 +78,7 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_start",
         "on_predict_start",
         'setup',
+        "state_id",
         'teardown',
     ]
 
@@ -105,6 +106,7 @@ def test_fx_validator(tmpdir):
         "on_train_end",
         "on_validation_end",
         "setup",
+        "state_id",
         "teardown",
     ]
 
