@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import warnings
 from argparse import Namespace
 from types import MethodType
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 
 from torch.optim import Optimizer
 
@@ -32,7 +33,8 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
-    from jsonargparse import ActionConfigFile, ArgumentParser, set_config_read_mode
+    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, set_config_read_mode
+
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
@@ -61,7 +63,8 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
+        lightning_class: Union[Callable[..., Union[Trainer, LightningModule, LightningDataModule, Callback]],
+                               Type[Trainer], Type[LightningModule], Type[LightningDataModule], Type[Callback]],
         nested_key: str,
         subclass_mode: bool = False
     ) -> List[str]:
@@ -69,20 +72,30 @@ class LightningArgumentParser(ArgumentParser):
         Adds arguments from a lightning class to a nested key of the parser
 
         Args:
-            lightning_class: Any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
+            lightning_class: A callable or any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
         """
-        assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule, Callback))
-        if issubclass(lightning_class, Callback):
-            self.callback_keys.append(nested_key)
-        if subclass_mode:
-            return self.add_subclass_arguments(lightning_class, nested_key, required=True)
-        return self.add_class_arguments(
-            lightning_class,
-            nested_key,
-            fail_untyped=False,
-            instantiate=not issubclass(lightning_class, Trainer),
+        if callable(lightning_class) and not inspect.isclass(lightning_class):
+            lightning_class = class_from_function(lightning_class)
+
+        lightning_class = cast(type, lightning_class)
+        if inspect.isclass(lightning_class) and issubclass(
+            lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)
+        ):
+            if issubclass(lightning_class, Callback):
+                self.callback_keys.append(nested_key)
+            if subclass_mode:
+                return self.add_subclass_arguments(lightning_class, nested_key, required=True)
+            return self.add_class_arguments(
+                lightning_class,
+                nested_key,
+                fail_untyped=False,
+                instantiate=not issubclass(lightning_class, Trainer),
+            )
+        raise MisconfigurationException(
+            f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
+            "Trainer, LightningModule, LightningDataModule, or Callback."
         )
 
     def add_optimizer_args(
@@ -197,12 +210,12 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: Type[LightningModule],
-        datamodule_class: Type[LightningDataModule] = None,
+        model_class: Union[Type[LightningModule], Callable[..., LightningModule]],
+        datamodule_class: Optional[Union[Type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = 'config.yaml',
         save_config_overwrite: bool = False,
-        trainer_class: Type[Trainer] = Trainer,
+        trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
@@ -213,12 +226,11 @@ class LightningCLI:
         subclass_mode_data: bool = False
     ) -> None:
         """
-        Receives as input pytorch-lightning classes, which are instantiated
-        using a parsed configuration file and/or command line args and then runs
-        trainer.fit. Parsing of configuration from environment variables can
-        be enabled by setting ``env_parse=True``. A full configuration yaml would
-        be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed from
-        variables named for example ``PL_TRAINER__MAX_EPOCHS``.
+        Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which are
+        called / instantiated using a parsed configuration file and / or command line args and then runs trainer.fit.
+        Parsing of configuration from environment variables can be enabled by setting ``env_parse=True``. A full
+        configuration yaml would be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed from variables
+        named for example ``PL_TRAINER__MAX_EPOCHS``.
 
         Example, first implement the ``trainer.py`` tool as::
 
@@ -235,12 +247,16 @@ class LightningCLI:
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
         Args:
-            model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on.
-            datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class.
+            model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on or a callable
+                which returns a :class:`~pytorch_lightning.core.lightning.LightningModule` instance when called.
+            datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
+                callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
+                called.
             save_config_callback: A callback class to save the training config.
             save_config_filename: Filename for the config file.
             save_config_overwrite: Whether to overwrite an existing config file.
-            trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
+            trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
+                callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
@@ -255,10 +271,6 @@ class LightningCLI:
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
         """
-        assert issubclass(trainer_class, Trainer)
-        assert issubclass(model_class, LightningModule)
-        if datamodule_class is not None:
-            assert issubclass(datamodule_class, LightningDataModule)
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
