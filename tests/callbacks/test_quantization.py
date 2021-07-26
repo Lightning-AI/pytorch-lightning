@@ -147,12 +147,14 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     assert qcb._forward_calls == expected_count
 
 
+@RunIf(quantization=True)
 def test_quantize_wrapper_multi_input(tmpdir):
     """Pass multi-tensor input through QAT forward wrappers"""
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(MultiInputModel(), datamodule=MultiInputDatamodule())
 
 
+@RunIf(quantization=True)
 @pytest.mark.parametrize("output_dtype", [list, tuple])
 def test_quantize_wrapper_multi_output(tmpdir, output_dtype):
     """Dequantize multiple output tensors in QAT forward wrappers"""
@@ -160,6 +162,7 @@ def test_quantize_wrapper_multi_output(tmpdir, output_dtype):
     trainer.fit(MultiOutputModel(output_dtype))
 
 
+@RunIf(quantization=True)
 def test_quantize_wrapper_kwargs(tmpdir):
     """Pass kwargs through QAT forward wrappers"""
     model = MultiInputModel()
