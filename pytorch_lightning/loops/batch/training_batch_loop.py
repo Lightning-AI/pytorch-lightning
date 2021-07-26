@@ -40,7 +40,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingBatchLoop(Loop):
-    """ Runs over a single batch of data. """
+    """Runs over a single batch of data."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -238,7 +238,7 @@ class TrainingBatchLoop(Loop):
             return return_result.loss
 
     def _make_closure(self, *closure_args: Any, **closure_kwargs: Any) -> Callable:
-        """ Wraps the training step closure into a partial object which will be called within ``optimizer.step``. """
+        """Wraps the training step closure into a partial object which will be called within ``optimizer.step``."""
         partial_func = partial(self._training_step_and_backward_closure, *closure_args, **closure_kwargs)
         return update_wrapper(partial_func, self._training_step_and_backward_closure)
 
@@ -268,22 +268,20 @@ class TrainingBatchLoop(Loop):
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
         elif self.trainer.lightning_module.automatic_optimization:
-            if not any((
-                isinstance(training_step_output, Tensor),
-                (isinstance(training_step_output, Mapping)
-                 and 'loss' in training_step_output), training_step_output is None
-            )):
+            if not any(
+                (
+                    isinstance(training_step_output, Tensor),
+                    (isinstance(training_step_output, Mapping) and "loss" in training_step_output),
+                    training_step_output is None,
+                )
+            ):
                 raise MisconfigurationException(
                     "In automatic optimization, `training_step` must either return a Tensor, "
                     "a dict with key 'loss' or None (where the step will be skipped)."
                 )
 
     def _training_step(
-        self,
-        split_batch: Any,
-        batch_idx: int,
-        opt_idx: int,
-        hiddens: Tensor,
+        self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
     ) -> Optional[AttributeDict]:
         """Performs the actual train step with the tied hooks.
 
@@ -303,7 +301,7 @@ class TrainingBatchLoop(Loop):
             step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
-            model_ref._current_fx_name = 'training_step'
+            model_ref._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
@@ -383,8 +381,8 @@ class TrainingBatchLoop(Loop):
         # native amp + lbfgs is a no go right now
         if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli'
+                "native PyTorch amp and lbfgs are not compatible."
+                " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
 
         # wraps into LightningOptimizer only for running step
@@ -413,7 +411,7 @@ class TrainingBatchLoop(Loop):
             optimizer: the current optimizer
         """
         self.optim_progress.optimizer.zero_grad.increment_ready()
-        self.trainer.call_hook('on_before_zero_grad', optimizer)
+        self.trainer.call_hook("on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
@@ -513,9 +511,8 @@ class TrainingBatchLoop(Loop):
         Returns:
             context manager with sync behaviour off
         """
-        if (
-            isinstance(self.trainer.training_type_plugin, ParallelPlugin)
-            and (self.trainer.lightning_module.automatic_optimization or should_block_sync)
+        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (
+            self.trainer.lightning_module.automatic_optimization or should_block_sync
         ):
             with self.trainer.training_type_plugin.block_backward_sync():
                 yield None
@@ -568,16 +565,12 @@ class TrainingBatchLoop(Loop):
             loss: the loss value to check to be finite
         """
         if not torch.isfinite(loss).all():
-            raise ValueError(f'The loss returned in `training_step` is {loss}.')
+            raise ValueError(f"The loss returned in `training_step` is {loss}.")
         model = self.trainer.lightning_module
         detect_nan_parameters(model)
 
     def backward(
-        self,
-        result: STEP_OUTPUT,
-        optimizer: Optional[torch.optim.Optimizer],
-        *args: Any,
-        **kwargs: Any,
+        self, result: STEP_OUTPUT, optimizer: Optional[torch.optim.Optimizer], *args: Any, **kwargs: Any
     ) -> None:
         """Performs the backward step.
 
@@ -646,7 +639,7 @@ class TrainingBatchLoop(Loop):
             the keyword arguments for the training step
         """
         # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
 
         lightning_module = self.trainer.lightning_module
 
@@ -660,21 +653,21 @@ class TrainingBatchLoop(Loop):
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5"
                     )
-                step_kwargs['optimizer_idx'] = opt_idx
+                step_kwargs["optimizer_idx"] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
-                    ' `training_step` is missing the `optimizer_idx` argument.'
+                    " `training_step` is missing the `optimizer_idx` argument."
                 )
 
         # pass hiddens if using tbptt
         if self._truncated_bptt_enabled():
-            step_kwargs['hiddens'] = hiddens
+            step_kwargs["hiddens"] = hiddens
 
         return step_kwargs
 
     def _truncated_bptt_enabled(self) -> bool:
-        """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
+        """Temporary tbptt utilities until this flag is fully migrated to the lightning module."""
         return self._truncated_bptt_steps() > 0
 
     def _truncated_bptt_steps(self) -> int:

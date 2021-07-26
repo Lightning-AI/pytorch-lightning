@@ -52,25 +52,19 @@ def test_v1_5_0_model_checkpoint_save_function():
         _ = model_ckpt.save_function
 
 
-@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+@mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_v1_5_0_wandb_unused_sync_step(_):
     with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
         WandbLogger(sync_step=True)
 
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
-
     class OldSignature(Callback):
-
         def on_save_checkpoint(self, trainer, pl_module):  # noqa
             ...
 
     model = BoringModel()
-    trainer_kwargs = {
-        "default_root_dir": tmpdir,
-        "checkpoint_callback": False,
-        "max_epochs": 1,
-    }
+    trainer_kwargs = {"default_root_dir": tmpdir, "checkpoint_callback": False, "max_epochs": 1}
     filepath = tmpdir / "test.ckpt"
 
     trainer = Trainer(**trainer_kwargs, callbacks=[OldSignature()])
@@ -80,17 +74,14 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
         trainer.save_checkpoint(filepath)
 
     class NewSignature(Callback):
-
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             ...
 
     class ValidSignature1(Callback):
-
         def on_save_checkpoint(self, trainer, *args):
             ...
 
     class ValidSignature2(Callback):
-
         def on_save_checkpoint(self, *args):
             ...
 
@@ -100,13 +91,11 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
 
 
 class BaseSignatureOnLoadCheckpoint(Callback):
-
     def __init__(self):
         self.on_load_checkpoint_called = False
 
 
 class OldSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
-
     def on_save_checkpoint(self, *args) -> Dict[str, Any]:
         return {"a": 0}
 
@@ -116,7 +105,6 @@ class OldSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
 
 
 class NewSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
-
     def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
         return {"something": "something"}
 
@@ -126,7 +114,6 @@ class NewSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
 
 
 class ValidSignature2OnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
-
     def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
         return {"something": "something"}
 
@@ -138,10 +125,7 @@ class ValidSignature2OnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
 def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
 
     model = BoringModel()
-    trainer_kwargs = {
-        "default_root_dir": tmpdir,
-        "max_steps": 1,
-    }
+    trainer_kwargs = {"default_root_dir": tmpdir, "max_steps": 1}
     chk = ModelCheckpoint(save_last=True)
     trainer = Trainer(**trainer_kwargs, callbacks=[OldSignatureOnLoadCheckpoint(), chk])
     trainer.fit(model)
@@ -154,7 +138,6 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
         assert cb.on_load_checkpoint_called
 
     class ValidSignature1(BaseSignatureOnLoadCheckpoint):
-
         def on_load_checkpoint(self, trainer, *args):
             assert len(args) == 2
             self.on_load_checkpoint_called = True
@@ -163,12 +146,7 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     chk = ModelCheckpoint(save_last=True)
     trainer = Trainer(
         **trainer_kwargs,
-        callbacks=[
-            NewSignatureOnLoadCheckpoint(),
-            ValidSignature1(),
-            ValidSignature2OnLoadCheckpoint(),
-            chk,
-        ]
+        callbacks=[NewSignatureOnLoadCheckpoint(), ValidSignature1(), ValidSignature2OnLoadCheckpoint(), chk]
     )
     with no_deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
@@ -185,14 +163,12 @@ def test_v1_5_0_legacy_profiler_argument():
 
 def test_v1_5_0_running_sanity_check():
     trainer = Trainer()
-    with pytest.deprecated_call(match='has been renamed to `Trainer.sanity_checking`'):
+    with pytest.deprecated_call(match="has been renamed to `Trainer.sanity_checking`"):
         assert not trainer.running_sanity_check
 
 
 def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
-
     class OldSignatureModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -222,12 +198,10 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     callback_warning_cache.clear()
 
     class OldSignature(Callback):
-
         def on_train_epoch_end(self, trainer, pl_module, outputs):  # noqa
             ...
 
     class OldSignatureModel(BoringModel):
-
         def on_train_epoch_end(self, outputs):  # noqa
             ...
 
@@ -247,7 +221,6 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     trainer.fit_loop.epoch_loop._warning_cache.clear()
 
     class NewSignature(Callback):
-
         def on_train_epoch_end(self, trainer, pl_module):
             ...
 
@@ -256,7 +229,6 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
         trainer.fit(model)
 
     class NewSignatureModel(BoringModel):
-
         def on_train_epoch_end(self):
             ...
 
@@ -290,16 +262,13 @@ def test_v1_5_0_auto_move_data():
     with pytest.deprecated_call(match="deprecated in v1.3 and will be removed in v1.5.*was applied to `bar`"):
 
         class Foo:
-
             @auto_move_data
             def bar(self):
                 pass
 
 
 def test_v1_5_0_lightning_module_write_prediction(tmpdir):
-
     class DeprecatedWritePredictionsModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self._predictions_file = os.path.join(tmpdir, "predictions.pt")
@@ -313,22 +282,12 @@ def test_v1_5_0_lightning_module_write_prediction(tmpdir):
 
     with pytest.deprecated_call(match="`write_prediction` was deprecated in v1.3 and will be removed in v1.5"):
         model = DeprecatedWritePredictionsModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            checkpoint_callback=False,
-            logger=False,
-        )
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
         trainer.test(model)
 
     with pytest.deprecated_call(match="`write_prediction_dict` was deprecated in v1.3 and will be removed in v1.5"):
         model = DeprecatedWritePredictionsModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            checkpoint_callback=False,
-            logger=False,
-        )
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
         trainer.test(model)
 
 
@@ -345,10 +304,9 @@ def test_v1_5_0_lighting_module_grad_norm(tmpdir):
 
 
 @pytest.mark.xfail(
-    condition=_compare_version("pytorch_lightning", operator.ge, "1.5"),
-    reason="parsing of string will change in v1.5",
+    condition=_compare_version("pytorch_lightning", operator.ge, "1.5"), reason="parsing of string will change in v1.5"
 )
-@mock.patch('torch.cuda.device_count', return_value=4)
+@mock.patch("torch.cuda.device_count", return_value=4)
 def test_v1_5_0_trainer_gpus_str_parsing(*_):
     # TODO: when removing this, make sure docs in docs/advanced/multi-gpu.rst reflect the new
     #   behavior regarding GPU selection. Ping @awaelchli if unsure.
@@ -370,6 +328,7 @@ def test_v1_5_0_datamodule_setter():
     with no_deprecated_call(match="The `LightningModule.datamodule`"):
         model.datamodule = datamodule
     from pytorch_lightning.core.lightning import warning_cache
+
     warning_cache.clear()
     _ = model.datamodule
     assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
@@ -382,9 +341,7 @@ def test_v1_5_0_trainer_tbptt_steps(tmpdir):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize(
-    "params", [dict(cpu_offload=True),
-               dict(cpu_offload_params=True),
-               dict(cpu_offload_use_pin_memory=True)]
+    "params", [dict(cpu_offload=True), dict(cpu_offload_params=True), dict(cpu_offload_use_pin_memory=True)]
 )
 def test_v1_5_0_deepspeed_cpu_offload(tmpdir, params):
 

@@ -19,7 +19,6 @@ from tests.helpers.boring_model import BoringModel
 
 
 class RandomDatasetA(Dataset):
-
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -32,7 +31,6 @@ class RandomDatasetA(Dataset):
 
 
 class RandomDatasetB(Dataset):
-
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -45,16 +43,14 @@ class RandomDatasetB(Dataset):
 
 
 def test_multiple_eval_dataloaders_tuple(tmpdir):
-
     class TestModel(BoringModel):
-
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
                 assert batch.sum() == 0
             elif dataloader_idx == 1:
                 assert batch.sum() == 11
             else:
-                raise Exception('should only have two dataloaders')
+                raise Exception("should only have two dataloaders")
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -81,16 +77,14 @@ def test_multiple_eval_dataloaders_tuple(tmpdir):
 
 
 def test_multiple_eval_dataloaders_list(tmpdir):
-
     class TestModel(BoringModel):
-
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
                 assert batch.sum() == 0
             elif dataloader_idx == 1:
                 assert batch.sum() == 11
             else:
-                raise Exception('should only have two dataloaders')
+                raise Exception("should only have two dataloaders")
 
         def val_dataloader(self):
             dl1 = torch.utils.data.DataLoader(RandomDatasetA(32, 64), batch_size=11)
@@ -118,7 +112,6 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
     """
 
     class TestModel(BoringModel):
-
         def on_train_epoch_start(self) -> None:
             self.opt_0_seen = False
             self.opt_1_seen = False
@@ -129,7 +122,7 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
             elif optimizer_idx == 1:
                 self.opt_1_seen = True
             else:
-                raise Exception('should only have two optimizers')
+                raise Exception("should only have two optimizers")
 
             self.training_step_called = True
             loss = self.step(batch[0])
@@ -145,7 +138,7 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
             elif dataloader_idx == 1:
                 assert batch.sum() == 11
             else:
-                raise Exception('should only have two dataloaders')
+                raise Exception("should only have two dataloaders")
 
         def val_dataloader(self):
             dl1 = torch.utils.data.DataLoader(RandomDatasetA(32, 64), batch_size=11)

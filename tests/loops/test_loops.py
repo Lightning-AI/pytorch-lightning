@@ -29,7 +29,6 @@ from tests.helpers.runif import RunIf
 
 
 class NestedLoop(Loop):
-
     def __init__(self):
         super().__init__()
         self.child_loop0 = None
@@ -50,14 +49,9 @@ class NestedLoop(Loop):
         pass
 
 
-@pytest.mark.parametrize("loop_name", [
-    "fit_loop",
-    "validate_loop",
-    "test_loop",
-    "predict_loop",
-])
+@pytest.mark.parametrize("loop_name", ["fit_loop", "validate_loop", "test_loop", "predict_loop"])
 def test_connect_loops_direct(loop_name):
-    """ Test Trainer referenes in loops on assignment. """
+    """Test Trainer referenes in loops on assignment."""
     loop = NestedLoop()
     assert loop.trainer is None
 
@@ -69,7 +63,7 @@ def test_connect_loops_direct(loop_name):
 
 
 def test_connect_loops_recursive():
-    """ Test Trainer references in a nested loop assigned to a Trainer. """
+    """Test Trainer references in a nested loop assigned to a Trainer."""
     main_loop = NestedLoop()
     child0 = NestedLoop()
     child1 = NestedLoop()
@@ -84,12 +78,9 @@ def test_connect_loops_recursive():
 
 
 def test_connect_subloops(tmpdir):
-    """ Test connecting individual subloops by calling `trainer.x.y.connect()` """
+    """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
     epoch_loop = trainer.fit_loop.epoch_loop
     new_batch_loop = TrainingBatchLoop()
@@ -106,9 +97,7 @@ class CustomException(Exception):
 
 
 def test_loop_restore():
-
     class Simple(Loop):
-
         def __init__(self, dataset: Iterator):
             super().__init__()
             self.dataset = dataset
@@ -167,13 +156,11 @@ def test_loop_restore():
 
 
 def test_loop_hierarchy():
-
     @dataclass
     class SimpleProgress(BaseProgress):
         increment: int = 0
 
     class Simple(Loop):
-
         def __init__(self, a):
             super().__init__()
             self.a = a
@@ -211,18 +198,10 @@ def test_loop_hierarchy():
 
     state_dict = loop_parent.state_dict()
     assert state_dict == {
-        'state_dict': {
-            'a': 1
-        },
-        'progress': {
-            'increment': 0
-        },
-        'loop_child.state_dict': {
-            'a': 2
-        },
-        'loop_child.progress': {
-            'increment': 0
-        },
+        "state_dict": {"a": 1},
+        "progress": {"increment": 0},
+        "loop_child.state_dict": {"a": 2},
+        "loop_child.progress": {"increment": 0},
     }
 
     state_dict["loop_child.state_dict"]["a"] = 3
@@ -235,25 +214,17 @@ def test_loop_hierarchy():
     # check the new state after `run`
     state_dict = loop_parent.state_dict()
     assert state_dict == {
-        'state_dict': {
-            'a': 1
-        },
-        'progress': {
-            'increment': 1
-        },
-        'loop_child.state_dict': {
-            'a': 3
-        },
-        'loop_child.progress': {
-            'increment': 1
-        },
+        "state_dict": {"a": 1},
+        "progress": {"increment": 1},
+        "loop_child.state_dict": {"a": 3},
+        "loop_child.progress": {"increment": 1},
     }
 
     loop_parent_copy = deepcopy(loop_parent)
     assert loop_parent_copy.state_dict() == loop_parent.state_dict()
 
-    assert loop_parent_copy.on_save_checkpoint() == state_dict['state_dict']
-    assert loop_parent_copy.loop_child.on_save_checkpoint() == state_dict['loop_child.state_dict']
+    assert loop_parent_copy.on_save_checkpoint() == state_dict["state_dict"]
+    assert loop_parent_copy.loop_child.on_save_checkpoint() == state_dict["loop_child.state_dict"]
 
     loop_parent = Simple(1)
     loop_child = Simple(2)
@@ -264,7 +235,7 @@ def test_loop_hierarchy():
 
     del loop_parent.loop_child
     state_dict = loop_parent.state_dict()
-    assert state_dict == {'state_dict': {'a': 1}, 'progress': {'increment': 1}}
+    assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
@@ -277,7 +248,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     n_epochs = 3
 
     class ValidationModel(BoringModel):
-
         def __init__(self):
             super().__init__()
 
@@ -306,23 +276,13 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     except CustomException:
         pass
 
-    ckpt_path = str(tmpdir / '.pl_auto_save.ckpt')
+    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
     total_dataloader = stop_epoch * n_dataloaders + stop_dataloader
     expected = {
-        "total": {
-            "ready": total_dataloader + 1,
-            "started": None,
-            "processed": None,
-            "completed": total_dataloader
-        },
-        "current": {
-            "ready": stop_dataloader + 1,
-            "started": None,
-            "processed": None,
-            "completed": stop_dataloader,
-        },
+        "total": {"ready": total_dataloader + 1, "started": None, "processed": None, "completed": total_dataloader},
+        "current": {"ready": stop_dataloader + 1, "started": None, "processed": None, "completed": stop_dataloader},
     }
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
 
@@ -337,7 +297,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             "ready": total_val_batch + 1,
             "started": total_val_batch + 1,
             "processed": total_val_batch,
-            "completed": total_val_batch
+            "completed": total_val_batch,
         },
         "current": {
             "ready": stop_batch + 1,
@@ -354,14 +314,9 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             "ready": total_val_batch + 1,
             "started": total_val_batch + 1,
             "processed": total_val_batch,
-            "completed": total_val_batch
+            "completed": total_val_batch,
         },
-        "current": {
-            "ready": stop_batch,
-            "started": stop_batch,
-            "processed": stop_batch,
-            "completed": stop_batch
-        },
+        "current": {"ready": stop_batch, "started": stop_batch, "processed": stop_batch, "completed": stop_batch},
     }
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
@@ -379,7 +334,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     n_batches = 3
 
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             if n_optimizers > 1:
@@ -461,7 +415,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert sch_progress.total.completed == nbe_sch_steps + be_sch_steps
     assert sch_progress.current.completed == be_sch_steps
 
-    # yapf: disable
     expected = {
         "state_dict": ANY,
         "epoch_progress": {
@@ -500,12 +453,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "processed": None,
                 "completed": nbe_sch_steps + be_sch_steps,
             },
-            "current": {
-                "ready": be_sch_steps,
-                "started": None,
-                "processed": None,
-                "completed": be_sch_steps,
-            },
+            "current": {"ready": be_sch_steps, "started": None, "processed": None, "completed": be_sch_steps},
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.optim_progress": {
@@ -546,7 +494,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
     }
-    # yapf: enable
     assert checkpoint["loops"]["fit_loop"] == expected
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"], restart_progress=False)

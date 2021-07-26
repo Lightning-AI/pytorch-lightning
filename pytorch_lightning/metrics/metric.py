@@ -20,7 +20,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class Metric(_Metric):
-
     @deprecated_metrics(target=_Metric)
     def __init__(
         self,
@@ -37,7 +36,6 @@ class Metric(_Metric):
 
 
 class MetricCollection(_MetricCollection):
-
     @deprecated_metrics(target=_MetricCollection)
     def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
         """

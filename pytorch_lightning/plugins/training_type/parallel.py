@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available,
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
-    """ Plugin for training with multiple processes in parallel. """
+    """Plugin for training with multiple processes in parallel."""
 
     def __init__(
         self,
@@ -87,7 +87,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         """
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes"""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
@@ -104,7 +104,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: 'pl.LightningModule') -> 'pl.LightningModule':
+    def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 

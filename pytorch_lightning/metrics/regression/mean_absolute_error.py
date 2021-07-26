@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class MeanAbsoluteError(_MeanAbsoluteError):
-
     @deprecated_metrics(target=_MeanAbsoluteError)
     def __init__(
         self,

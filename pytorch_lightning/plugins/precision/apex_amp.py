@@ -38,7 +38,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
-    def dispatch(self, trainer: 'pl.Trainer') -> None:
+    def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
             accelerator = trainer.accelerator
             _, accelerator.optimizers = amp.initialize(
@@ -49,7 +49,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         closure_loss: Tensor,
         optimizer: Optional[Optimizer],
         *args: Any,
@@ -71,7 +71,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
+            scheduler = scheduler["scheduler"]
             state = None
 
             for optimizer in optimizers:
@@ -90,7 +90,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
