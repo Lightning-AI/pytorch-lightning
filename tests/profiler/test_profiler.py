@@ -20,13 +20,13 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel
@@ -374,7 +374,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
     names = {"a", "b", "c"}
     ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
-    if Version(torch.__version__) >= Version("1.7.0"):
+    if _TORCH_GREATER_EQUAL_1_7:
         ops = {"aten::" + op for op in ops}
 
     expected = names.union(ops)
