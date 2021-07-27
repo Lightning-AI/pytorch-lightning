@@ -17,6 +17,8 @@ from copy import deepcopy
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Type
 
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
@@ -32,19 +34,19 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    lightning_module: 'pl.LightningModule'
+    lightning_module: "pl.LightningModule"
 
-    def on_before_accelerator_backend_setup(self, model: 'pl.LightningModule') -> None:
+    def on_before_accelerator_backend_setup(self, model: "pl.LightningModule") -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def configure_sharded_model(self, model: 'pl.LightningModule') -> None:
+    def configure_sharded_model(self, model: "pl.LightningModule") -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_configure_sharded_model(self, model)
 
-    def setup(self, model: 'pl.LightningModule', stage: Optional[str]) -> None:
+    def setup(self, model: "pl.LightningModule", stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage=stage)
@@ -284,7 +286,7 @@ class TrainerCallbackHookMixin(ABC):
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        callback_states = checkpoint.get('callbacks')
+        callback_states = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -296,7 +298,8 @@ class TrainerCallbackHookMixin(ABC):
             rank_zero_warn(
                 "Be aware that when using ``resume_from_checkpoint``, "
                 "callbacks used to create the checkpoint need to be provided. "
-                f"Please, add the following callbacks: {list(difference)}. ", UserWarning
+                f"Please, add the following callbacks: {list(difference)}. ",
+                UserWarning,
             )
 
         for callback in self.callbacks:
@@ -313,12 +316,24 @@ class TrainerCallbackHookMixin(ABC):
                 else:
                     callback.on_load_checkpoint(self, self.lightning_module, state)
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """Called before ``loss.backward()``."""
+        for callback in self.callbacks:
+            callback.on_before_backward(self, self.lightning_module, loss)
+
     def on_after_backward(self):
         """
         Called after loss.backward() and before optimizers do anything.
         """
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
+
+    def on_before_optimizer_step(self, optimizer, optimizer_idx):
+        """
+        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
+        """
+        for callback in self.callbacks:
+            callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
     def on_before_zero_grad(self, optimizer):
         """

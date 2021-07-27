@@ -4,6 +4,7 @@ requires = [
     "wheel",
 ]
 
+
 [tool.isort]
 known_first_party = [
     "benchmarks",
@@ -17,27 +18,54 @@ line_length = 120
 force_sort_within_sections = "False"
 order_by_type = "False"
 
-[tool.vulture]
-exclude = ['pytorch_lightning/metrics']
-make_whitelist = true
-min_confidence = 95
-paths = ["pytorch_lightning"]
-ignore_names = [
-    "*_nb",
-    "*batch",
-    "*idx",
-    "*param*",
-    "cmd_line",
-    "kw",
-    "loc",
-    "mocked_device_count*",
-    "my_path",
-    "new_device",
-    "new_dtype",
-    "prediction",
-    "root",
-    "signum",
-    "torch_save",
-    "using_lbfgs",
+
+[tool.black]
+line-length = 120
+skip-magic-trailing-comma = true
+
+
+[tool.mypy]
+files = ["pytorch_lightning", "pl_examples", "benchmarks"]
+disallow_untyped_defs = "True"
+ignore_missing_imports = "True"
+show_error_codes = "True"
+warn_redundant_casts = "True"
+warn_unused_configs = "True"
+warn_unused_ignores = "True"
+allow_redefinition = "True"
+# disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
+disable_error_code = "attr-defined"
+
+# TODO: Fix typing for these modules
+[[tool.mypy.overrides]]
+module = [
+    "pytorch_lightning.callbacks.*",
+    "pytorch_lightning.core.*",
+    "pytorch_lightning.loggers.*",
+    "pytorch_lightning.loops.*",
+    "pytorch_lightning.metrics.*",
+    "pytorch_lightning.overrides.*",
+    "pytorch_lightning.plugins.environments.*",
+    "pytorch_lightning.plugins.training_type.*",
+    "pytorch_lightning.profiler.*",
+    "pytorch_lightning.trainer.*",
+    "pytorch_lightning.distributed.*",
+    "pytorch_lightning.tuner.*",
+    "pytorch_lightning.utilities.*",
+    "pl_examples.*",
+    "benchmarks.*",
+    "tests.helpers.*"
 ]
-sort_by_size = true
+ignore_errors = "True"
+
+[[tool.mypy.overrides]]
+module = [
+    "pytorch_lightning.callbacks.pruning",
+    "pytorch_lightning.trainer.evaluation_loop",
+    "pytorch_lightning.trainer.connectors.logger_connector",
+    "pytorch_lightning.utilities.cli",
+    "pytorch_lightning.utilities.device_dtype_mixin",
+    "pytorch_lightning.utilities.device_parser",
+    "pytorch_lightning.utilities.parsing",
+]
+ignore_errors = "False"

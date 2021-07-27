@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
+from functools import partial, wraps
 from unittest.mock import Mock
 
 import pytest
@@ -33,9 +33,11 @@ def test_is_overridden():
     assert not is_overridden("whatever", model, parent=LightningDataModule)
 
     class TestModel(BoringModel):
-
         def foo(self):
             pass
+
+        def bar(self):
+            return 1
 
     with pytest.raises(ValueError, match="The parent should define the method"):
         is_overridden("foo", TestModel())
@@ -43,6 +45,28 @@ def test_is_overridden():
     # normal usage
     assert is_overridden("training_step", model)
     assert is_overridden("train_dataloader", datamodule)
+
+    class WrappedModel(TestModel):
+        def __new__(cls, *args, **kwargs):
+            obj = super().__new__(cls)
+            obj.foo = cls.wrap(obj.foo)
+            obj.bar = cls.wrap(obj.bar)
+            return obj
+
+        @staticmethod
+        def wrap(fn):
+            @wraps(fn)
+            def wrapper():
+                fn()
+
+            return wrapper
+
+        def bar(self):
+            return 2
+
+    # `functools.wraps()` support
+    assert not is_overridden("foo", WrappedModel(), parent=TestModel)
+    assert is_overridden("bar", WrappedModel(), parent=TestModel)
 
     # `Mock` support
     mock = Mock(spec=BoringModel, wraps=model)
@@ -56,7 +80,6 @@ def test_is_overridden():
 
     # `_PatchDataLoader.patch_loader_code` support
     class TestModel(BoringModel):
-
         def on_fit_start(self):
             assert is_overridden("train_dataloader", self)
             self.on_fit_start_called = True

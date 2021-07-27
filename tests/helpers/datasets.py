@@ -54,17 +54,12 @@ class MNIST(Dataset):
         "https://pl-public-data.s3.amazonaws.com/MNIST/processed/test.pt",
     )
 
-    TRAIN_FILE_NAME = 'training.pt'
-    TEST_FILE_NAME = 'test.pt'
-    cache_folder_name = 'complete'
+    TRAIN_FILE_NAME = "training.pt"
+    TEST_FILE_NAME = "test.pt"
+    cache_folder_name = "complete"
 
     def __init__(
-        self,
-        root: str,
-        train: bool = True,
-        normalize: tuple = (0.1307, 0.3081),
-        download: bool = True,
-        **kwargs,
+        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs
     ):
         super().__init__()
         self.root = root
@@ -90,7 +85,7 @@ class MNIST(Dataset):
 
     @property
     def cached_folder_path(self) -> str:
-        return os.path.join(self.root, 'MNIST', self.cache_folder_name)
+        return os.path.join(self.root, "MNIST", self.cache_folder_name)
 
     def _check_exists(self, data_folder: str) -> bool:
         existing = True
@@ -102,21 +97,21 @@ class MNIST(Dataset):
         if download and not self._check_exists(self.cached_folder_path):
             self._download(self.cached_folder_path)
         if not self._check_exists(self.cached_folder_path):
-            raise RuntimeError('Dataset not found.')
+            raise RuntimeError("Dataset not found.")
 
     def _download(self, data_folder: str) -> None:
         os.makedirs(data_folder, exist_ok=True)
         for url in self.RESOURCES:
-            logging.info(f'Downloading {url}')
+            logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
 
     @staticmethod
-    def _try_load(path_data, trials: int = 30, delta: float = 1.):
+    def _try_load(path_data, trials: int = 30, delta: float = 1.0):
         """Resolving loading from the same time from multiple concurrent processes."""
         res, exception = None, None
         assert trials, "at least some trial has to be set"
-        assert os.path.isfile(path_data), f'missing file: {path_data}'
+        assert os.path.isfile(path_data), f"missing file: {path_data}"
         for _ in range(trials):
             try:
                 res = torch.load(path_data)
@@ -172,7 +167,7 @@ class TrialMNIST(MNIST):
         indexes = []
         for idx, target in enumerate(full_targets):
             label = target.item()
-            if classes.get(label, float('inf')) >= num_samples:
+            if classes.get(label, float("inf")) >= num_samples:
                 continue
             indexes.append(idx)
             classes[label] += 1
@@ -186,14 +181,13 @@ class TrialMNIST(MNIST):
         super()._download(data_folder)
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
             path_fname = os.path.join(self.cached_folder_path, fname)
-            assert os.path.isfile(path_fname), f'Missing cached file: {path_fname}'
+            assert os.path.isfile(path_fname), f"Missing cached file: {path_fname}"
             data, targets = self._try_load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
 
 
 class AverageDataset(Dataset):
-
     def __init__(self, dataset_len=300, sequence_len=100):
         self.dataset_len = dataset_len
         self.sequence_len = sequence_len
@@ -209,7 +203,6 @@ class AverageDataset(Dataset):
 
 
 class SklearnDataset(Dataset):
-
     def __init__(self, x, y, x_type, y_type):
         self.x = x
         self.y = y

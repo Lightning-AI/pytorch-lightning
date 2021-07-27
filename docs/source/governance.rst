@@ -3,9 +3,15 @@
 Lightning Governance | Persons of interest
 ==========================================
 
+BDFL
+----
+Role: All final decisions related to Lightning.
+
+- William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
+
+
 Leads
 -----
-- William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_) (Former Core Member PyTorch Ignite)
@@ -19,7 +25,6 @@ Core Maintainers
 ----------------
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
 - Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
-- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
@@ -34,6 +39,7 @@ Board
 
 Alumni
 ------
+- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)
 - Teddy Koker (`teddykoker <https://github.com/teddykoker>`_)
 - Nate Raw (`nateraw <https://github.com/nateraw>`_)

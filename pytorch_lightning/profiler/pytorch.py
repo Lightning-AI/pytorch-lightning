@@ -64,7 +64,7 @@ class RegisterRecordFunction:
     def __init__(self, model: nn.Module) -> None:
         self._model = model
         self._records: Dict[str, record_function] = {}
-        self._handles: Dict[str, List['RemovableHandle']] = {}
+        self._handles: Dict[str, List["RemovableHandle"]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         record = record_function(record_name)
@@ -116,11 +116,11 @@ class ScheduleWrapper:
         self._current_action = current_action
 
     def reset(self):
-        self._num_training_step_and_backward = 0
+        self._num_optimizer_step_and_closure = 0
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
-        self._training_step_and_backward_reached_end = False
+        self._optimizer_step_and_closure_reached_end = False
         self._validation_step_reached_end = False
         self._test_step_reached_end = False
         self._predict_step_reached_end = False
@@ -130,8 +130,8 @@ class ScheduleWrapper:
 
     @property
     def num_step(self) -> int:
-        if self._current_action == "training_step_and_backward":
-            return self._num_training_step_and_backward
+        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            return self._num_optimizer_step_and_closure
         if self._current_action == "validation_step":
             return self._num_validation_step
         if self._current_action == "test_step":
@@ -141,11 +141,11 @@ class ScheduleWrapper:
         return 0
 
     def _step(self) -> None:
-        if self._current_action == "training_step_and_backward":
-            self._num_training_step_and_backward += 1
+        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            self._num_optimizer_step_and_closure += 1
         elif self._current_action == "validation_step":
             if self._start_action_name == "on_fit_start":
-                if self._num_training_step_and_backward > 0:
+                if self._num_optimizer_step_and_closure > 0:
                     self._num_validation_step += 1
             else:
                 self._num_validation_step += 1
@@ -156,8 +156,8 @@ class ScheduleWrapper:
 
     @property
     def has_finished(self) -> bool:
-        if self._current_action == "training_step_and_backward":
-            return self._training_step_and_backward_reached_end
+        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+            return self._optimizer_step_and_closure_reached_end
         if self._current_action == "validation_step":
             return self._validation_step_reached_end
         if self._current_action == "test_step":
@@ -166,7 +166,7 @@ class ScheduleWrapper:
             return self._predict_step_reached_end
         return False
 
-    def __call__(self, num_step: int) -> 'ProfilerAction':
+    def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
         if self.has_finished:
             return ProfilerAction.NONE
@@ -174,8 +174,8 @@ class ScheduleWrapper:
         self._step()
         action = self._schedule(self.num_step)
         if action == ProfilerAction.RECORD_AND_SAVE:
-            if self._current_action == "training_step_and_backward":
-                self._training_step_and_backward_reached_end = True
+            if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
+                self._optimizer_step_and_closure_reached_end = True
             elif self._current_action == "validation_step":
                 self._validation_step_reached_end = True
             elif self._current_action == "test_step":
@@ -195,12 +195,9 @@ class PyTorchProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
-    STEP_FUNCTIONS = {
-        "training_step_and_backward",
-        "validation_step",
-        "test_step",
-        "predict_step",
-    }
+    RECORD_FUNCTION_PREFIX = "optimizer_step_and_closure_"
+    STEP_FUNCTIONS = {"validation_step", "test_step", "predict_step"}
+    STEP_FUNCTION_PREFIX = "optimizer_step_and_closure_"
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -212,12 +209,7 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     }
-    START_RECORD_FUNCTIONS = {
-        'on_fit_start',
-        'on_validation_start',
-        'on_test_start',
-        'on_predict_start',
-    }
+    START_RECORD_FUNCTIONS = {"on_fit_start", "on_validation_start", "on_test_start", "on_predict_start"}
 
     def __init__(
         self,
@@ -299,8 +291,8 @@ class PyTorchProfiler(BaseProfiler):
         self._profiler_kwargs = profiler_kwargs
 
         self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional['EventList'] = None
-        self._lightning_module: Optional['LightningModule'] = None  # set by ProfilerConnector
+        self.function_events: Optional["EventList"] = None
+        self._lightning_module: Optional["LightningModule"] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[_PROFILER] = None
         self._recording_map: Dict[str, record_function] = {}
@@ -340,9 +332,7 @@ class PyTorchProfiler(BaseProfiler):
         self._profiler_kwargs["with_stack"] = with_stack
 
     def __deprecation_check(
-        self,
-        profiled_functions: Optional[List[str]],
-        record_functions: Optional[Set[str]],
+        self, profiled_functions: Optional[List[str]], record_functions: Optional[Set[str]]
     ) -> Set[str]:
         if record_functions is None:
             record_functions = set()
@@ -368,7 +358,7 @@ class PyTorchProfiler(BaseProfiler):
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
 
-    def _default_activities(self) -> List['ProfilerActivity']:
+    def _default_activities(self) -> List["ProfilerActivity"]:
         activities = []
         if not _KINETO_AVAILABLE:
             return activities
@@ -404,7 +394,8 @@ class PyTorchProfiler(BaseProfiler):
                 self._register.__enter__()
 
         if (
-            self.profiler is not None and action_name in self._record_functions
+            self.profiler is not None
+            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
             and action_name not in self._recording_map
         ):
             recording = record_function(action_name)
@@ -419,7 +410,9 @@ class PyTorchProfiler(BaseProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
-        if self.profiler is not None and action_name in self.STEP_FUNCTIONS:
+        if self.profiler is not None and (
+            action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)
+        ):
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
@@ -457,7 +450,7 @@ class PyTorchProfiler(BaseProfiler):
 
         if self._export_to_chrome and not _KINETO_AVAILABLE:
             filename = f"{self.local_rank}_trace.json"
-            path_to_trace = (filename if self.dirpath is None else os.path.join(self.dirpath, filename))
+            path_to_trace = filename if self.dirpath is None else os.path.join(self.dirpath, filename)
             self.function_events.export_chrome_trace(path_to_trace)
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)

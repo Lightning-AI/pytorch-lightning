@@ -29,7 +29,6 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
-
     def __init__(
         self,
         cpu_offload: bool = False,
@@ -91,10 +90,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 (Defautl: True).
         """
 
-        super().__init__(
-            parallel_devices=parallel_devices,
-            cluster_environment=cluster_environment,
-        )
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
         self.flatten_parameters = flatten_parameters
@@ -118,7 +114,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
-        torch.cuda.set_device(self.root_device)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -200,9 +195,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
-            "fsdp",
-            cls,
-            description="Fully sharded training with checkpointing the full state dict.",
+            "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

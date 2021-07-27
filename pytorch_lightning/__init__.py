@@ -23,14 +23,7 @@ from pytorch_lightning.core import LightningDataModule, LightningModule  # noqa:
 from pytorch_lightning.trainer import Trainer  # noqa: E402
 from pytorch_lightning.utilities.seed import seed_everything  # noqa: E402
 
-__all__ = [
-    'Trainer',
-    'LightningDataModule',
-    'LightningModule',
-    'Callback',
-    'seed_everything',
-    'metrics',
-]
+__all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything", "metrics"]
 
 # for compatibility with namespace packages
-__import__('pkg_resources').declare_namespace(__name__)
+__import__("pkg_resources").declare_namespace(__name__)

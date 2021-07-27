@@ -21,7 +21,7 @@ from setuptools import find_packages, setup
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
-_PATH_REQUIRE = os.path.join(_PATH_ROOT, 'requirements')
+_PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
 
 
 def _load_py_module(fname, pkg="pytorch_lightning"):
@@ -31,8 +31,8 @@ def _load_py_module(fname, pkg="pytorch_lightning"):
     return py
 
 
-about = _load_py_module('__about__.py')
-setup_tools = _load_py_module('setup_tools.py')
+about = _load_py_module("__about__.py")
+setup_tools = _load_py_module("setup_tools.py")
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
@@ -40,26 +40,24 @@ setup_tools = _load_py_module('setup_tools.py')
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    'examples': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='examples.txt'),
-    'loggers': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='loggers.txt'),
-    'extra': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='extra.txt'),
-    'test': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='test.txt')
+    "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
+    "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
+    "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
+    "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
-extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
-extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
+extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+extras["all"] = extras["dev"] + extras["examples"]  # + extras['docs']
 
 # These packages shall be installed only on GPU machines
-PACKAGES_GPU_ONLY = ['horovod']
+PACKAGES_GPU_ONLY = ["horovod"]
 # create a version for CPU machines
-for ex in ('cpu', 'cpu-extra'):
-    kw = ex.split('-')[1] if '-' in ex else 'all'
+for ex in ("cpu", "cpu-extra"):
+    kw = ex.split("-")[1] if "-" in ex else "all"
     # filter cpu only packages
     extras[ex] = [pkg for pkg in extras[kw] if not any(pgpu.lower() in pkg.lower() for pgpu in PACKAGES_GPU_ONLY)]
 
 long_description = setup_tools._load_readme_description(
-    _PATH_ROOT,
-    homepage=about.__homepage__,
-    version=about.__version__,
+    _PATH_ROOT, homepage=about.__homepage__, version=about.__version__
 )
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
@@ -74,15 +72,15 @@ setup(
     author=about.__author__,
     author_email=about.__author_email__,
     url=about.__homepage__,
-    download_url='https://github.com/PyTorchLightning/pytorch-lightning',
+    download_url="https://github.com/PyTorchLightning/pytorch-lightning",
     license=about.__license__,
-    packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks', 'legacy', 'legacy/*']),
+    packages=find_packages(exclude=["tests", "tests/*", "benchmarks", "legacy", "legacy/*"]),
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     include_package_data=True,
     zip_safe=False,
-    keywords=['deep learning', 'pytorch', 'AI'],
-    python_requires='>=3.6',
+    keywords=["deep learning", "pytorch", "AI"],
+    python_requires=">=3.6",
     setup_requires=[],
     install_requires=setup_tools._load_requirements(_PATH_ROOT),
     extras_require=extras,
@@ -92,25 +90,25 @@ setup(
         "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
     },
     classifiers=[
-        'Environment :: Console',
-        'Natural Language :: English',
+        "Environment :: Console",
+        "Natural Language :: English",
         # How mature is this project? Common values are
         #   3 - Alpha, 4 - Beta, 5 - Production/Stable
-        'Development Status :: 4 - Beta',
+        "Development Status :: 4 - Beta",
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence',
-        'Topic :: Scientific/Engineering :: Image Recognition',
-        'Topic :: Scientific/Engineering :: Information Analysis',
+        "Intended Audience :: Developers",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Image Recognition",
+        "Topic :: Scientific/Engineering :: Information Analysis",
         # Pick your license as you wish
-        'License :: OSI Approved :: Apache Software License',
-        'Operating System :: OS Independent',
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

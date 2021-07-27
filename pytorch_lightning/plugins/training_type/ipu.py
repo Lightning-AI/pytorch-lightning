@@ -26,7 +26,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _POPTORCH_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -36,8 +36,7 @@ if _POPTORCH_AVAILABLE:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
-
-    def __init__(self, pl_module: 'pl.LightningModule', precision: Union[str, int]):
+    def __init__(self, pl_module: "pl.LightningModule", precision: Union[str, int]):
         super().__init__(pl_module)
         self.precision = precision
 
@@ -58,18 +57,18 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 
 class IPUPlugin(ParallelPlugin):
     """
-        Plugin for training on IPU devices.
+    Plugin for training on IPU devices.
     """
 
     def __init__(
         self,
         device_iterations: int = 1,
-        autoreport: bool = True,
+        autoreport: bool = False,
         autoreport_dir: Optional[str] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        training_opts: Optional['poptorch.Options'] = None,
-        inference_opts: Optional['poptorch.Options'] = None
+        training_opts: Optional["poptorch.Options"] = None,
+        inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
         """
         Arguments:
@@ -121,18 +120,23 @@ class IPUPlugin(ParallelPlugin):
             model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
         for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
-            model = poptorch.inferenceModel(
-                model=model,
-                options=self.inference_opts,
-            )
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[x] = model
         self._handle_gradient_accumulation_steps()
 
     @property
-    def replication_factor(self):
+    def replication_factor(self) -> int:
+        if not self.lightning_module:
+            # The plugin has been passed in by the user and has not been connected to the Trainer.
+            # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
+            # In this scenario we prioritize the training options.
+            if self._training_opts:
+                return self._training_opts.replication_factor
+            if self._inference_opts:
+                return self._inference_opts.replication_factor
         return len(self.parallel_devices)
 
-    def _create_opts(self, training: bool):
+    def _create_opts(self, training: bool) -> "poptorch.Options":
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
@@ -144,81 +148,53 @@ class IPUPlugin(ParallelPlugin):
         return opts
 
     @property
-    def training_opts(self) -> 'poptorch.Options':
+    def training_opts(self) -> "poptorch.Options":
         if self._training_opts is None:
             self._training_opts = self._create_opts(training=True)
-        self._validate_opts(self._training_opts, training=True)
         return self._training_opts
 
     @property
-    def inference_opts(self) -> 'poptorch.Options':
+    def inference_opts(self) -> "poptorch.Options":
         if self._inference_opts is None:
             self._inference_opts = self._create_opts(training=False)
-        self._validate_opts(self._inference_opts, training=False)
         return self._inference_opts
 
-    def _validate_opts(self, opts: 'poptorch.Options', training: bool) -> None:
-        if opts is not None:
-            if opts.replication_factor != self.replication_factor:
-                rank_zero_warn(
-                    f"Manual poptorch.Options set replicationFactor to {opts.replication_factor} "
-                    f"which differs to the ipus={self.replication_factor} flag passed to the Trainer. "
-                    f"Setting to {self.replication_factor} in the poptorch.Options."
-                )
-                opts.set(replication_factor=self.replication_factor)
-            if training:
-                accumulate_grad_batches = self.accumulate_grad_batches
-                if opts.Training.gradient_accumulation != accumulate_grad_batches:
-                    rank_zero_warn(
-                        f"Training poptorch.Options set gradientAccumulation to {opts.Training.gradient_accumulation}. "
-                        f"This is different to accumulate_grad_batches which was set to {accumulate_grad_batches}. "
-                        f"To change gradientAccumulation, please set accumulate_grad_batches in the Trainer. "
-                        f"Setting poptorch.Options gradientAccumulation to {accumulate_grad_batches}"
-                    )
-                    opts.Training.set(gradient_accumulation=accumulate_grad_batches)
-            elif opts.Training.gradient_accumulation != 1:
-                rank_zero_warn(
-                    "Inference poptorch.Options should set gradientAccumulation to 1. "
-                    "Setting gradientAccumulation to 1 for inference options."
-                )
-                opts.Training.set(gradient_accumulation=1)
-
     @property
-    def lightning_module(self) -> Optional['pl.LightningModule']:
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=True)
 
     def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=False)
 
     def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=False)
 
     def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self.process_dataloader(dataloader)
+        return self._process_dataloader(dataloader, is_training=False)
 
-    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+    def _process_dataloader(
+        self, dataloader: Union[Iterable, DataLoader], is_training: bool
+    ) -> Union[Iterable, DataLoader]:
         if isinstance(dataloader, CombinedLoader):
             dataloader.loaders = apply_to_collection(
-                dataloader.loaders,
-                DataLoader,
-                self.process_dataloader,
+                dataloader.loaders, DataLoader, self._process_dataloader, is_training
             )
             return dataloader
         if isinstance(dataloader, list):
-            dataloader = apply_to_collection(dataloader, DataLoader, self.process_dataloader)
+            dataloader = apply_to_collection(dataloader, DataLoader, self._process_dataloader, is_training)
             return dataloader
         if not isinstance(dataloader, poptorch.DataLoader):
-            is_training = self.lightning_module.trainer.training
             opts = self.training_opts if is_training else self.inference_opts
             dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader
 
-    def _convert_to_poptorch_loader(self, dataloader: Union[Iterable, DataLoader],
-                                    opts: 'poptorch.Options') -> Union[Iterable, DataLoader]:
-        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
+    def _convert_to_poptorch_loader(
+        self, dataloader: Union[Iterable, DataLoader], opts: "poptorch.Options"
+    ) -> Union[Iterable, DataLoader]:
+        skip_keys = ("sampler", "batch_sampler", "dataset_kind")
 
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
 
@@ -232,11 +208,11 @@ class IPUPlugin(ParallelPlugin):
         dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
 
         multiprocessing_context = dataloader.multiprocessing_context
-        dl_args['multiprocessing_context'] = multiprocessing_context
+        dl_args["multiprocessing_context"] = multiprocessing_context
         if not contains_dataset:
-            dl_args.pop('dataset')
+            dl_args.pop("dataset")
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
-        dl_args['drop_last'] = True
+        dl_args["drop_last"] = True
 
         dataloader = poptorch.DataLoader(**dl_args, options=opts)
         dataloader.multiprocessing_context = multiprocessing_context
@@ -282,7 +258,6 @@ class IPUPlugin(ParallelPlugin):
         return replication_factor * device_iterations * accumulate_grad_batches
 
     def _prepare_input(self, args: Any):
-
         def to_tuple(x):
             return tuple(x)
 

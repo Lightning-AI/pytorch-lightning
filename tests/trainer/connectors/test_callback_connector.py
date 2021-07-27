@@ -29,7 +29,7 @@ from tests.helpers import BoringModel
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
-    """ Test that checkpoint callbacks always get moved to the end of the list, with preserved order. """
+    """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
     early_stopping = EarlyStopping()
@@ -54,29 +54,24 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
 
 class StatefulCallback0(Callback):
-
     def on_save_checkpoint(self, *args):
         return {"content0": 0}
 
 
 class StatefulCallback1(Callback):
-
     def on_save_checkpoint(self, *args):
         return {"content1": 1}
 
 
 def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
-    """ Test that all callback states get saved even if the ModelCheckpoint is not given as last. """
+    """Test that all callback states get saved even if the ModelCheckpoint is not given as last."""
 
     callback0 = StatefulCallback0()
     callback1 = StatefulCallback1()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="all_states")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        limit_val_batches=1,
-        callbacks=[callback0, checkpoint_callback, callback1]
+        default_root_dir=tmpdir, max_steps=1, limit_val_batches=1, callbacks=[callback0, checkpoint_callback, callback1]
     )
     trainer.fit(model)
 
@@ -89,7 +84,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
 
 
 def test_attach_model_callbacks():
-    """ Test that the callbacks defined in the model and through Trainer get merged correctly. """
+    """Test that the callbacks defined in the model and through Trainer get merged correctly."""
 
     def assert_composition(trainer_callbacks, model_callbacks, expected):
         model = Mock()
@@ -116,34 +111,32 @@ def test_attach_model_callbacks():
     assert_composition(
         trainer_callbacks=[progress_bar, EarlyStopping()],
         model_callbacks=[early_stopping],
-        expected=[progress_bar, early_stopping]
+        expected=[progress_bar, early_stopping],
     )
 
     # multiple callbacks of the same type in trainer
     assert_composition(
-        trainer_callbacks=[LearningRateMonitor(),
-                           EarlyStopping(),
-                           LearningRateMonitor(),
-                           EarlyStopping()],
+        trainer_callbacks=[LearningRateMonitor(), EarlyStopping(), LearningRateMonitor(), EarlyStopping()],
         model_callbacks=[early_stopping, lr_monitor],
-        expected=[early_stopping, lr_monitor]
+        expected=[early_stopping, lr_monitor],
     )
 
     # multiple callbacks of the same type, in both trainer and model
     assert_composition(
         trainer_callbacks=[
-            LearningRateMonitor(), progress_bar,
+            LearningRateMonitor(),
+            progress_bar,
             EarlyStopping(),
             LearningRateMonitor(),
-            EarlyStopping()
+            EarlyStopping(),
         ],
         model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
-        expected=[progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
+        expected=[progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping],
     )
 
 
 def test_attach_model_callbacks_override_info(caplog):
-    """ Test that the logs contain the info about overriding callbacks returned by configure_callbacks. """
+    """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     model = Mock()
     model.configure_callbacks.return_value = [LearningRateMonitor(), EarlyStopping()]
     trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])

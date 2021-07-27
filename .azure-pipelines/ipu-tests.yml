@@ -13,7 +13,7 @@ pr:
 
 variables:
 - name: poplar_sdk
-  value: "poplar_sdk-ubuntu_20_04-2.0.0+481-79b41f85d1"
+  value: "poplar_sdk-ubuntu_20_04-2.1.0+617-6bb5f5b742"
 
 jobs:
   - job: ipu
@@ -60,7 +60,7 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch"
       displayName: 'Env details'
 

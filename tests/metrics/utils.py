@@ -24,7 +24,7 @@ THRESHOLD = 0.5
 
 
 def setup_ddp(rank, world_size):
-    """ Setup ddp enviroment """
+    """Setup ddp enviroment"""
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8088"
 
@@ -33,8 +33,8 @@ def setup_ddp(rank, world_size):
 
 
 def _assert_allclose(pl_result, sk_result, atol: float = 1e-8):
-    """ Utility function for recursively asserting that two results are within
-        a certain tolerance
+    """Utility function for recursively asserting that two results are within
+    a certain tolerance
     """
     # single output compare
     if isinstance(pl_result, torch.Tensor):
@@ -44,12 +44,12 @@ def _assert_allclose(pl_result, sk_result, atol: float = 1e-8):
         for pl_res, sk_res in zip(pl_result, sk_result):
             _assert_allclose(pl_res, sk_res, atol=atol)
     else:
-        raise ValueError('Unknown format for comparison')
+        raise ValueError("Unknown format for comparison")
 
 
 def _assert_tensor(pl_result):
-    """ Utility function for recursively checking that some input only consist of
-        torch tensors
+    """Utility function for recursively checking that some input only consist of
+    torch tensors
     """
     if isinstance(pl_result, (list, tuple)):
         for plr in pl_result:
@@ -179,7 +179,7 @@ class MetricTester:
         self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])
 
     def teardown_class(self):
-        """ Close pool of workers """
+        """Close pool of workers"""
         self.pool.close()
         self.pool.join()
 
