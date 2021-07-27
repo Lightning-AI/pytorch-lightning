@@ -19,10 +19,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 @deprecated_metrics(target=_embedding_similarity)
 def embedding_similarity(
-    batch: torch.Tensor,
-    similarity: str = 'cosine',
-    reduction: str = 'none',
-    zero_diagonal: bool = True
+    batch: torch.Tensor, similarity: str = "cosine", reduction: str = "none", zero_diagonal: bool = True
 ) -> torch.Tensor:
     """
     .. deprecated::

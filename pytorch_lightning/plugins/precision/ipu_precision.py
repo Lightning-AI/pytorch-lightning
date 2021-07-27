@@ -27,13 +27,12 @@ warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
-
     def __init__(self, precision: int) -> None:
         super().__init__()
         self.precision = precision
 
-    def backward(self, model: 'pl.LightningModule', *args: Any, **kwargs: Any) -> None:
-        if is_overridden('backward', model):
+    def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+        if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
                 " the backward logic internally."
@@ -44,7 +43,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None
+        model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients"""
         if clip_val is None:

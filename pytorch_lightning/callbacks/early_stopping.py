@@ -76,15 +76,9 @@ class EarlyStopping(Callback):
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
     """
-    mode_dict = {
-        'min': torch.lt,
-        'max': torch.gt,
-    }
+    mode_dict = {"min": torch.lt, "max": torch.gt}
 
-    order_dict = {
-        'min': "<",
-        'max': ">",
-    }
+    order_dict = {"min": "<", "max": ">"}
 
     def __init__(
         self,
@@ -92,7 +86,7 @@ class EarlyStopping(Callback):
         min_delta: float = 0.0,
         patience: int = 3,
         verbose: bool = False,
-        mode: str = 'min',
+        mode: str = "min",
         strict: bool = True,
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
@@ -130,8 +124,8 @@ class EarlyStopping(Callback):
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
-            f'Early stopping conditioned on metric `{self.monitor}` which is not available.'
-            ' Pass in or modify your `EarlyStopping` callback to use any of the following:'
+            f"Early stopping conditioned on metric `{self.monitor}` which is not available."
+            " Pass in or modify your `EarlyStopping` callback to use any of the following:"
             f' `{"`, `".join(list(logs.keys()))}`'
         )
 
@@ -150,29 +144,27 @@ class EarlyStopping(Callback):
         return self.mode_dict[self.mode]
 
     def on_save_checkpoint(
-        self,
-        trainer: 'pl.Trainer',
-        pl_module: 'pl.LightningModule',
-        checkpoint: Dict[str, Any],
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Dict[str, Any]:
         return {
-            'wait_count': self.wait_count,
-            'stopped_epoch': self.stopped_epoch,
-            'best_score': self.best_score,
-            'patience': self.patience
+            "wait_count": self.wait_count,
+            "stopped_epoch": self.stopped_epoch,
+            "best_score": self.best_score,
+            "patience": self.patience,
         }
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
-        self.wait_count = callback_state['wait_count']
-        self.stopped_epoch = callback_state['stopped_epoch']
-        self.best_score = callback_state['best_score']
-        self.patience = callback_state['patience']
+        self.wait_count = callback_state["wait_count"]
+        self.stopped_epoch = callback_state["stopped_epoch"]
+        self.best_score = callback_state["best_score"]
+        self.patience = callback_state["patience"]
 
     def _should_skip_check(self, trainer) -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
+
         return trainer.state.fn != TrainerFn.FITTING or trainer.sanity_checking
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
@@ -182,17 +174,16 @@ class EarlyStopping(Callback):
             return
         self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer: 'pl.Trainer') -> None:
+    def _run_early_stopping_check(self, trainer: "pl.Trainer") -> None:
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
         """
         logs = trainer.callback_metrics
 
-        if (
-            trainer.fast_dev_run  # disable early_stopping with fast_dev_run
-            or not self._validate_condition_metric(logs)  # short circuit if metric not present
-        ):
+        if trainer.fast_dev_run or not self._validate_condition_metric(  # disable early_stopping with fast_dev_run
+            logs
+        ):  # short circuit if metric not present
             return
 
         current = logs.get(self.monitor)
@@ -250,7 +241,7 @@ class EarlyStopping(Callback):
         return should_stop, reason
 
     def _improvement_message(self, current: torch.Tensor) -> str:
-        """ Formats a log message that informs the user about an improvement in the monitored score. """
+        """Formats a log message that informs the user about an improvement in the monitored score."""
         if torch.isfinite(self.best_score):
             msg = (
                 f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} >="

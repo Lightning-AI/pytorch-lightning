@@ -29,9 +29,9 @@ def main():
 
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parser)
-    parser.add_argument('--trainer_method', default='fit')
-    parser.add_argument('--tmpdir')
-    parser.add_argument('--workdir')
+    parser.add_argument("--trainer_method", default="fit")
+    parser.add_argument("--tmpdir")
+    parser.add_argument("--workdir")
     parser.set_defaults(gpus=2)
     parser.set_defaults(accelerator="ddp")
     args = parser.parse_args()
@@ -40,25 +40,21 @@ def main():
     model = ClassificationModel()
     trainer = Trainer.from_argparse_args(args)
 
-    if args.trainer_method == 'fit':
+    if args.trainer_method == "fit":
         trainer.fit(model, datamodule=dm)
         result = None
-    elif args.trainer_method == 'test':
+    elif args.trainer_method == "test":
         result = trainer.test(model, datamodule=dm)
-    elif args.trainer_method == 'fit_test':
+    elif args.trainer_method == "fit_test":
         trainer.fit(model, datamodule=dm)
         result = trainer.test(model, datamodule=dm)
     else:
-        raise ValueError(f'Unsupported: {args.trainer_method}')
+        raise ValueError(f"Unsupported: {args.trainer_method}")
 
-    result_ext = {
-        'status': 'complete',
-        'method': args.trainer_method,
-        'result': result,
-    }
-    file_path = os.path.join(args.tmpdir, 'ddp.result')
+    result_ext = {"status": "complete", "method": args.trainer_method, "result": result}
+    file_path = os.path.join(args.tmpdir, "ddp.result")
     torch.save(result_ext, file_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

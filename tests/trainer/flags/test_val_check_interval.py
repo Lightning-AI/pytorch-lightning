@@ -17,12 +17,10 @@ from pytorch_lightning.trainer import Trainer
 from tests.helpers import BoringModel
 
 
-@pytest.mark.parametrize('max_epochs', [1, 2, 3])
-@pytest.mark.parametrize('denominator', [1, 3, 4])
+@pytest.mark.parametrize("max_epochs", [1, 2, 3])
+@pytest.mark.parametrize("denominator", [1, 3, 4])
 def test_val_check_interval(tmpdir, max_epochs, denominator):
-
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.train_epoch_calls = 0
@@ -36,11 +34,7 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
                 self.val_epoch_calls += 1
 
     model = TestModel()
-    trainer = Trainer(
-        max_epochs=max_epochs,
-        val_check_interval=1 / denominator,
-        logger=False,
-    )
+    trainer = Trainer(max_epochs=max_epochs, val_check_interval=1 / denominator, logger=False)
     trainer.fit(model)
 
     assert model.train_epoch_calls == max_epochs

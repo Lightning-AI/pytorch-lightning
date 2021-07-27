@@ -55,7 +55,6 @@ exclude *.yml
 exclude *.yaml
 exclude *.toml
 exclude *.jsonnet
-exclude .yapfignore
 
 # Exclude pyright config
 exclude .pyrightconfig.json

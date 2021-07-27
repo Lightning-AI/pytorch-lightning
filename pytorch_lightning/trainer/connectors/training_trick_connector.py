@@ -19,7 +19,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainingTricksConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -42,7 +41,7 @@ class TrainingTricksConnector:
         self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
 
         # gradient norm tracking
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.trainer.track_grad_norm = float(track_grad_norm)
 

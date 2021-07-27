@@ -23,12 +23,16 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
+import torch
+
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import DeviceType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class GPUStatsMonitor(Callback):
@@ -83,42 +87,56 @@ class GPUStatsMonitor(Callback):
         intra_step_time: bool = False,
         inter_step_time: bool = False,
         fan_speed: bool = False,
-        temperature: bool = False
+        temperature: bool = False,
     ):
         super().__init__()
 
-        if shutil.which('nvidia-smi') is None:
+        if shutil.which("nvidia-smi") is None:
             raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
+                "Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed."
             )
 
-        self._log_stats = AttributeDict({
-            'memory_utilization': memory_utilization,
-            'gpu_utilization': gpu_utilization,
-            'intra_step_time': intra_step_time,
-            'inter_step_time': inter_step_time,
-            'fan_speed': fan_speed,
-            'temperature': temperature
-        })
+        self._log_stats = AttributeDict(
+            {
+                "memory_utilization": memory_utilization,
+                "gpu_utilization": gpu_utilization,
+                "intra_step_time": intra_step_time,
+                "inter_step_time": inter_step_time,
+                "fan_speed": fan_speed,
+                "temperature": temperature,
+            }
+        )
 
-    def on_train_start(self, trainer, pl_module) -> None:
+        # The logical device IDs for selected devices
+        self._device_ids: List[int] = []  # will be assigned later in setup()
+
+        # The unmasked real GPU IDs
+        self._gpu_ids: List[str] = []  # will be assigned later in setup()
+
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if not trainer.logger:
-            raise MisconfigurationException('Cannot use GPUStatsMonitor callback with Trainer that has no logger.')
+            raise MisconfigurationException("Cannot use GPUStatsMonitor callback with Trainer that has no logger.")
 
         if trainer._device_type != DeviceType.GPU:
             raise MisconfigurationException(
-                'You are using GPUStatsMonitor but are not running on GPU'
-                f' since gpus attribute in Trainer is set to {trainer.gpus}.'
+                "You are using GPUStatsMonitor but are not running on GPU"
+                f" since gpus attribute in Trainer is set to {trainer.gpus}."
             )
 
-        self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
+        # The logical device IDs for selected devices
+        self._device_ids: List[int] = sorted(set(trainer.data_parallel_device_ids))
 
-    def on_train_epoch_start(self, trainer, pl_module) -> None:
+        # The unmasked real GPU IDs
+        self._gpu_ids: List[int] = self._get_gpu_ids(self._device_ids)
+
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._snap_intra_step_time = None
         self._snap_inter_step_time = None
 
     @rank_zero_only
-    def on_train_batch_start(self, trainer, pl_module, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
@@ -127,17 +145,23 @@ class GPUStatsMonitor(Callback):
 
         gpu_stat_keys = self._get_gpu_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
-        logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)
+        logs = self._parse_gpu_stats(self._device_ids, gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time and self._snap_inter_step_time:
             # First log at beginning of second step
-            logs['batch_time/inter_step (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
+            logs["batch_time/inter_step (ms)"] = (time.time() - self._snap_inter_step_time) * 1000
 
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
     def on_train_batch_end(
-        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
@@ -147,42 +171,53 @@ class GPUStatsMonitor(Callback):
 
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
-        logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)
+        logs = self._parse_gpu_stats(self._device_ids, gpu_stats, gpu_stat_keys)
 
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
-            logs['batch_time/intra_step (ms)'] = (time.time() - self._snap_intra_step_time) * 1000
+            logs["batch_time/intra_step (ms)"] = (time.time() - self._snap_intra_step_time) * 1000
 
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
+    @staticmethod
+    def _get_gpu_ids(device_ids: List[int]) -> List[str]:
+        """Get the unmasked real GPU IDs"""
+        # All devices if `CUDA_VISIBLE_DEVICES` unset
+        default = ",".join(str(i) for i in range(torch.cuda.device_count()))
+        cuda_visible_devices: List[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
+        return [cuda_visible_devices[device_id].strip() for device_id in device_ids]
+
     def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
         """Run nvidia-smi to get the gpu stats"""
-        gpu_query = ','.join(queries)
-        format = 'csv,nounits,noheader'
+        gpu_query = ",".join(queries)
+        format = "csv,nounits,noheader"
+        gpu_ids = ",".join(self._gpu_ids)
         result = subprocess.run(
-            [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'--id={self._gpu_ids}'],
+            [shutil.which("nvidia-smi"), f"--query-gpu={gpu_query}", f"--format={format}", f"--id={gpu_ids}"],
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-            check=True
+            check=True,
         )
 
         def _to_float(x: str) -> float:
             try:
                 return float(x)
             except ValueError:
-                return 0.
+                return 0.0
 
         stats = result.stdout.strip().split(os.linesep)
-        stats = [[_to_float(x) for x in s.split(', ')] for s in stats]
+        stats = [[_to_float(x) for x in s.split(", ")] for s in stats]
         return stats
 
     @staticmethod
-    def _parse_gpu_stats(gpu_ids: str, stats: List[List[float]], keys: List[Tuple[str, str]]) -> Dict[str, float]:
+    def _parse_gpu_stats(
+        device_ids: List[int], stats: List[List[float]], keys: List[Tuple[str, str]]
+    ) -> Dict[str, float]:
         """Parse the gpu stats into a loggable dict"""
         logs = {}
-        for i, gpu_id in enumerate(gpu_ids.split(',')):
+        for i, device_id in enumerate(device_ids):
             for j, (x, unit) in enumerate(keys):
-                logs[f'gpu_id: {gpu_id}/{x} ({unit})'] = stats[i][j]
+                logs[f"device_id: {device_id}/{x} ({unit})"] = stats[i][j]
         return logs
 
     def _get_gpu_stat_keys(self) -> List[Tuple[str, str]]:
@@ -190,10 +225,10 @@ class GPUStatsMonitor(Callback):
         stat_keys = []
 
         if self._log_stats.gpu_utilization:
-            stat_keys.append(('utilization.gpu', '%'))
+            stat_keys.append(("utilization.gpu", "%"))
 
         if self._log_stats.memory_utilization:
-            stat_keys.extend([('memory.used', 'MB'), ('memory.free', 'MB'), ('utilization.memory', '%')])
+            stat_keys.extend([("memory.used", "MB"), ("memory.free", "MB"), ("utilization.memory", "%")])
 
         return stat_keys
 
@@ -202,10 +237,10 @@ class GPUStatsMonitor(Callback):
         stat_keys = []
 
         if self._log_stats.fan_speed:
-            stat_keys.append(('fan.speed', '%'))
+            stat_keys.append(("fan.speed", "%"))
 
         if self._log_stats.temperature:
-            stat_keys.extend([('temperature.gpu', '°C'), ('temperature.memory', '°C')])
+            stat_keys.extend([("temperature.gpu", "°C"), ("temperature.memory", "°C")])
 
         return stat_keys
 
