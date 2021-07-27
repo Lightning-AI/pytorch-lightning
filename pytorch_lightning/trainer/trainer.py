@@ -1200,10 +1200,6 @@ class Trainer(
         model._metric_attributes = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
-        # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
-        # If making changes to this function, ensure that those changes are also made to
-        # TrainingEpochLoop._on_train_epoch_end_hook
         if self.lightning_module:
             prev_fx_name = self.lightning_module._current_fx_name
             self.lightning_module._current_fx_name = hook_name
