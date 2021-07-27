@@ -249,48 +249,6 @@ If you want to call schedulers that require a metric value after each epoch, con
 
 -----
 
-Improve training speed with model toggling
-------------------------------------------
-Toggling models can improve your training speed when performing gradient accumulation with multiple optimizers in a
-distributed setting.
-
-Here is an explanation of what it does:
-
-* Considering the current optimizer as A and all other optimizers as B.
-* Toggling means that all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``.
-* Their original state will be restored when exiting the context manager.
-
-When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
-Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
-
-:class:`~pytorch_lightning.core.optimizer.LightningOptimizer` provides a
-:meth:`~pytorch_lightning.core.optimizer.LightningOptimizer.toggle_model` function as a
-:func:`contextlib.contextmanager` for advanced users.
-
-Here is an example for advanced use-case.
-
-.. testcode:: python
-
-    # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
-    class SimpleGAN(LightningModule):
-
-.. testcode::
-
-    def __init__(self):
-        super().__init__()
-        self.automatic_optimization = False
-
-    def training_epoch_end(self, outputs):
-        sch = self.lr_schedulers()
-
-        # If the selected scheduler is a ReduceLROnPlateau scheduler.
-        if isinstance(sch, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            loss = th.stack([x['loss'] for x in outputs]).mean()
-            loss = self.all_gather(loss).mean()
-            sch.step(loss)
-
------
-
 Use closure for LBFGS-like optimizers
 -------------------------------------
 It is a good practice to provide the optimizer with a closure function that performs a ``forward``, ``zero_grad`` and
