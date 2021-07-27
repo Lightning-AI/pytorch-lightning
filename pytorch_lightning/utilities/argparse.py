@@ -23,12 +23,11 @@ from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int,
 
 
 class ParseArgparserDataType(ABC):
-
     def __init__(self, *_: Any, **__: Any) -> None:
         pass
 
     @classmethod
-    def parse_argparser(cls, args: 'ArgumentParser') -> Any:
+    def parse_argparser(cls, args: "ArgumentParser") -> Any:
         pass
 
 
@@ -66,7 +65,7 @@ def from_argparse_args(
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(cls: Type['pl.Trainer'], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -91,7 +90,7 @@ def parse_argparser(cls: Type['pl.Trainer'], arg_parser: Union[ArgumentParser, N
     return Namespace(**modified_args)
 
 
-def parse_env_variables(cls: Type['pl.Trainer'], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Example:
@@ -158,10 +157,7 @@ def _get_abbrev_qualified_cls_name(cls: Any) -> str:
 
 
 def add_argparse_args(
-    cls: Type['pl.Trainer'],
-    parent_parser: ArgumentParser,
-    *,
-    use_argument_group: bool = True,
+    cls: Type["pl.Trainer"], parent_parser: ArgumentParser, *, use_argument_group: bool = True
 ) -> Union[_ArgumentGroup, ArgumentParser]:
     r"""Extends existing argparse by default attributes for ``cls``.
 
@@ -268,7 +264,7 @@ def add_argparse_args(
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     arg_block_indent = None
-    current_arg = ''
+    current_arg = ""
     parsed = {}
     for line in docstring.split("\n"):
         stripped = line.lstrip()
@@ -290,7 +286,7 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
 
 
 def _gpus_allowed_type(x: str) -> Union[int, str]:
-    if ',' in x:
+    if "," in x:
         return str(x)
     return int(x)
 
@@ -303,6 +299,6 @@ def _gpus_arg_default(x: str) -> Union[int, str]:  # pragma: no-cover
 
 
 def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
-    if '.' in str(x):
+    if "." in str(x):
         return float(x)
     return int(x)
