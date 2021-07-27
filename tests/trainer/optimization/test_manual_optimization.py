@@ -975,7 +975,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
             scheduler_1.step(loss)
 
             loss = torch.stack([x["train_loss_2"] for x in outputs]).mean()
-            scheduler_1.step(loss)
+            scheduler_2.step(loss)
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.parameters(), lr=0.1)
