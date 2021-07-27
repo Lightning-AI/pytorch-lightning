@@ -253,29 +253,24 @@ def save_hyperparameters(
 
 
 class AttributeDict(Dict):
-    """Extended dictionary accesisable with dot notation.
+    """Extended dictionary accessible with dot notation.
 
     >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
     >>> ad.key1
     1
     >>> ad.update({'my-key': 3.14})
-    >>> ad.update(mew_key=42)
+    >>> ad.update(new_key=42)
     >>> ad.key1 = 2
     >>> ad
     "key1":    2
     "key2":    abc
-    "mew_key": 42
     "my-key":  3.14
+    "new_key": 42
     """
 
-    def __getattr__(self, key: str) -> Optional[Any]:
-        try:
-            return self[key]
-        except KeyError as exp:
-            raise AttributeError(f'Missing attribute "{key}"') from exp
-
-    def __setattr__(self, key: str, val: Any) -> None:
-        self[key] = val
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
 
     def __repr__(self) -> str:
         if not len(self):

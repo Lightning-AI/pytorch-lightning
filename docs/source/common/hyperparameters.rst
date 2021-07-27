@@ -159,7 +159,7 @@ improve readability and reproducibility.
         # using a argparse.Namespace
         class LitMNIST(LightningModule):
 
-            def __init__(self, conf, *args, **kwargs):
+            def __init__(self, conf: Union[Dict, Namespace, DictConfig], *args, **kwargs):
                 super().__init__()
                 self.save_hyperparameters(conf)
 
