@@ -4,7 +4,11 @@ name: Nightly events
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
   schedule:
-    - cron: "0 0 * * *" # At the end of every day
+    # At the end of every day
+    - cron: "0 0 * * *"
+
+env:
+  PUSH_TO_HUB: true
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
@@ -16,7 +20,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.8
 
       - name: Install dependencies
         run: >-
@@ -47,8 +51,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7]
-        xla_version: [1.6, 1.7, 1.8] # todo: , "nightly"
+        python_version: ["3.7"]
+        xla_version: ["1.6", "1.7", "1.8", "1.9"] # todo: , "nightly"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -70,24 +74,25 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
-          push: true
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 55
 
-  docker-cuda-conda:
+  docker-CUDA:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.6, 3.7, 3.8]
-        pytorch_version: [1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
+        python_version: ["3.6", "3.7", "3.8", "3.9"]
+        pytorch_version: ["1.6", "1.7", "1.8", "1.9"]
+        exclude:
+          - python_version: "3.9"
+            pytorch_version: "1.6"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
       - uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
         uses: docker/login-action@v1
@@ -95,25 +100,45 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # for PT 1.3 and 1.4 we need to use CUDA 10.1
-      - run: |
-          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-        id: extend
-
       - name: Publish CUDA to Docker Hub
-        if: matrix.pytorch_version <= 1.8
         # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-cuda/Dockerfile
-          push: true
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
+
+  docker-Conda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ["3.6", "3.7", "3.8", "3.9"]
+        pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
+        exclude:
+          - python_version: "3.9"
+            pytorch_version: "1.6"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # see: https://pytorch.org/get-started/previous-versions/
+      - run: |
+          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
 
       - name: Publish Conda to Docker Hub
         # publish master/release
@@ -124,11 +149,11 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
           file: dockers/base-conda/Dockerfile
-          push: true
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
-  docker-nvidia:
+  docker-NVIDIA:
     runs-on: ubuntu-20.04
     # todo: temporarily skip as the base container does not fit to agent
     if: false
@@ -149,18 +174,17 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: dockers/nvidia/Dockerfile
-          push: true
-          tags: nvcr.io/pytorchlightning/pytorch_lightning:nvidia
+          tags: nvcr.io/pytorchlightning/pytorch_lightning:latest
         timeout-minutes: 55
 
-  docker-ipu:
+  docker-IPU:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.8
-            pytorch_version: 1.7
+          - python_version: "3.8"
+            pytorch_version: "1.7"
 
     steps:
       - name: Checkout
@@ -183,7 +207,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-ipu/Dockerfile
-          push: true
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
@@ -195,6 +219,6 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ipu-ci-runner/Dockerfile
-          push: true
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 55

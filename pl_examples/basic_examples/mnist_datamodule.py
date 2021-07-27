@@ -11,21 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import platform
 from typing import Optional
+from urllib.error import HTTPError
 from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE
+from pl_examples import _DATASETS_PATH
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
+
+_TORCHVISION_MNIST_AVAILABLE = not bool(os.getenv("PL_USE_MOCKED_MNIST", False))
 if _TORCHVISION_MNIST_AVAILABLE:
-    from torchvision.datasets import MNIST
-else:
+    try:
+        from torchvision.datasets import MNIST
+
+        MNIST(_DATASETS_PATH, download=True)
+    except HTTPError as e:
+        print(f"Error {e} downloading `torchvision.datasets.MNIST`")
+        _TORCHVISION_MNIST_AVAILABLE = False
+if not _TORCHVISION_MNIST_AVAILABLE:
+    print("`torchvision.datasets.MNIST` not available. Using our hosted version")
     from tests.helpers.datasets import MNIST
 
 
@@ -138,9 +149,9 @@ class MNISTDataModule(LightningDataModule):
         if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:
-            mnist_transforms = transform_lib.Compose([
-                transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5, ), std=(0.5, ))
-            ])
+            mnist_transforms = transform_lib.Compose(
+                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
+            )
         else:
             mnist_transforms = transform_lib.ToTensor()
 

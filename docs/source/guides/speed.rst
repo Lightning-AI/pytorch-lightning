@@ -76,10 +76,13 @@ Prefer DDP over DP
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
-When using DDP set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-By default we have set ``find_unused_parameters`` to True for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+When using DDP plugins, set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default we have set ``find_unused_parameters`` to True for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
 This by default comes with a performance hit, and can be disabled in most cases.
+
+.. tip::
+    It applies to all DDP plugins that support ``find_unused_parameters`` as input.
 
 .. code-block:: python
 
@@ -88,6 +91,15 @@ This by default comes with a performance hit, and can be disabled in most cases.
     trainer = pl.Trainer(
         gpus=2,
         plugins=DDPPlugin(find_unused_parameters=False),
+    )
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPSpawnPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        plugins=DDPSpawnPlugin(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters

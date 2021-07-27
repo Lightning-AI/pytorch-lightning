@@ -78,6 +78,12 @@ if [ $? -eq 0 ]; then
     report+="Ran\ttests/utilities/test_warnings.py\n"
 fi
 
+# test that a user can manually launch individual processes
+args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.fast_dev_run 1"
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
+report+="Ran\tmanual ddp launch test\n"
+
 # echo test report
 printf '=%.s' {1..80}
 printf "\n$report"

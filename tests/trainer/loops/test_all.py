@@ -17,7 +17,6 @@ from tests.helpers.runif import RunIf
 
 
 class BatchHookObserverCallback(Callback):
-
     def on_train_batch_start(self, trainer, pl_module, batch, *args):
         assert batch.device == pl_module.device
 
@@ -44,7 +43,6 @@ class BatchHookObserverCallback(Callback):
 
 
 class BatchHookObserverModel(BoringModel):
-
     def on_train_batch_start(self, batch, *args):
         assert batch.device == self.device
 
@@ -72,7 +70,7 @@ class BatchHookObserverModel(BoringModel):
 
 @RunIf(min_gpus=1)
 def test_callback_batch_on_device(tmpdir):
-    """ Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
+    """Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
 
     batch_callback = BatchHookObserverCallback()
 

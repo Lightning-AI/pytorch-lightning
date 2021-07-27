@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class R2Score(_R2Score):
-
     @deprecated_metrics(target=_R2Score)
     def __init__(
         self,
