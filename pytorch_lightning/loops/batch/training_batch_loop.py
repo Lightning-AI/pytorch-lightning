@@ -25,7 +25,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.closure import LightningClosure
+from pytorch_lightning.loops.closure import LightningClosure, ClosureResult
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import OptimizationProgress
@@ -147,12 +147,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(result.output.training_step_output)
+                    self.batch_outputs[opt_idx].append(result.result_collection)
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(result.output.training_step_output)
+                self.batch_outputs[0].append(result.result_collection)
 
     def teardown(self) -> None:
         # release memory
@@ -330,18 +330,16 @@ class TrainingBatchLoop(Loop):
 
             self._check_training_step_output(training_step_output)
 
-            training_step_output = self._process_training_step_output(training_step_output)
-            if training_step_output is None:
+            result_collection = self._process_training_step_output(training_step_output)
+            if result_collection is None:
                 return
 
         closure_loss = None
-        loss = None
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
-            closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
+            closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
             # the loss will get scaled for amp. avoid any modifications to it
-            loss = closure_loss.detach().clone()
-        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
+        return AttributeDict(closure_loss=closure_loss, result_collection=result_collection)
 
     def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
         """Adds the :param:`training_step_output` to the trainer's results

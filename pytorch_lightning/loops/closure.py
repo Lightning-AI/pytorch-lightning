@@ -1,31 +1,28 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Union, Optional, Callable, Tuple, Any, Dict
+from typing import Optional, Callable
 
 from torch import Tensor
-from torch.optim import Optimizer
 
 from pytorch_lightning.profiler import BaseProfiler
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
 @dataclass
 class ClosureResult:
-    output: Optional[STEP_OUTPUT] = None
+    closure_loss: Tensor
+    result_collection: ResultCollection
 
     @property
-    def loss(self) -> Optional[Tensor]:
-        if isinstance(self.output, dict):
-            return self.output.get("loss")
-        elif isinstance(self.output, Tensor):
-            return self.output
+    def loss(self):
+        return self.closure_loss.detach().clone()
 
 
 class Closure:
     def __init__(self):
         super().__init__()
-        self._result = ClosureResult()
+        self._result = None
 
     @property
     def result(self) -> ClosureResult:
@@ -38,8 +35,7 @@ class Closure:
         pass
 
     def __call__(self, *args, **kwargs) -> Optional[Tensor]:
-        output = self.closure(*args, **kwargs)
-        self._result = ClosureResult(output)
+        self._result = self.closure(*args, **kwargs)
         return self._result.loss
 
 
@@ -63,10 +59,10 @@ class LightningClosure(Closure):
         if self.warning_cache is None:
             self.warning_cache = WarningCache()
 
-    def closure(self, *args, **kwargs) -> STEP_OUTPUT:
+    def closure(self, *args, **kwargs) -> ClosureResult:
         with self._profiler.profile("training_step_and_backward"):
-            # lightning module hook
             output = self._step_fn()
+            output = ClosureResult(**output) if output else None
 
             if output is None:
                 self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
