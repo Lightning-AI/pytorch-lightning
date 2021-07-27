@@ -697,7 +697,7 @@ def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_no_schedulers(tmpdir):
     """
-    Test to ensure ZeRO Stage 3 works with a parallel model.
+    Test to ensure ZeRO Stage 3 works with a parallel model and no schedulers.
     """
     model = ModelParallelBoringModelNoSchedulers()
     trainer = Trainer(
