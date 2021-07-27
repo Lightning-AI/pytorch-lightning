@@ -1,3 +1,5 @@
+# FIXME: put me where it should be
+- Replace `iteration_count` and other index attributes in the loops with progress dataclasses ([#8477](https://github.com/PyTorchLightning/pytorch-lightning/pull/8477))
 # Changelog
 
 All notable changes to this project will be documented in this file.
