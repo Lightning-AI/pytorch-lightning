@@ -104,9 +104,7 @@ def test_get_model_size():
 
 
 def test_get_sparse_model_size():
-
     class BoringSparseModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.layer = nn.Parameter(torch.ones(32).to_sparse())
