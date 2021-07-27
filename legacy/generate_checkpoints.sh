@@ -5,7 +5,7 @@
 set -e
 
 LEGACY_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-FROZEN_MIN_PT_VERSION="1.4"
+FROZEN_MIN_PT_VERSION="1.6"
 
 echo $LEGACY_PATH
 # install some PT version here so it does not need to reinstalled for each env
