@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import collections
 import copy
-from typing import Callable, Dict, Union
+from typing import Callable, Union
 
 import pytest
 import torch
@@ -26,7 +25,7 @@ except ImportError:
     # For torch 1.6 and 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
-from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
@@ -156,152 +155,91 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     assert qcb._forward_calls == expected_count
 
 
-class CheckObserverDisabledModel(RegressionModel):
-    """
-    The ``CheckObserverDisabledModel`` will check:
-
-    - The fake-quantization modules are restored to initial states after the sanity check if observers should be
-      disabled during validating.
-    - The observers belonging to fake-quantization modules are disabled during training/validating/testing/predicting.
-
-    The ``CheckObserverDisabledModel`` may disable all observers after ``disable_observers_after_step`` steps.
-
-    """
-
-    def __init__(self, disable_observers, disable_observers_after_step=-1):
-        super().__init__()
-        self._disable_observers = set(disable_observers)
-        self._disable_observers_after_step = disable_observers_after_step
-
-        self._fake_quants = ()
-        self._fake_quant_to_initial_state = {}
-        self._last_train_fake_quant_to_observer_enabled = {}
-
-    def _collect_observer_enabled(self) -> Dict[FakeQuantizeBase, Tensor]:
-        return {fake_quant: fake_quant.observer_enabled.clone() for fake_quant in self._fake_quants}
-
-    def _assert_fake_quant_initial_state(self):
-        # Check fake-quantization modules are restored to initial states.
-        for fake_quant, initial_state in self._fake_quant_to_initial_state.items():
-            state = fake_quant.state_dict()
-            for key, initial_value in initial_state.items():
-                assert torch.equal(state[key], initial_value)
-
-    def _assert_observer_enabled(self, expected_fake_quant_to_observer_enabled):
-        # Check observers belonging to fake-quantization modules are set properly.
-        fake_quant_to_observer_enabled = self._collect_observer_enabled()
-        for fake_quant in self._fake_quants:
-            observer_enabled = fake_quant_to_observer_enabled[fake_quant]
-            expected_observer_enabled = expected_fake_quant_to_observer_enabled[fake_quant]
-            if isinstance(expected_observer_enabled, bool):
-                # ``torch.quantization.FakeQuantize`` checks observer_enabled[0] == 1.
-                observer_enabled = observer_enabled[0] == 1
-                assert observer_enabled == expected_observer_enabled
-            else:
-                assert torch.equal(observer_enabled, expected_observer_enabled)
-
-    def _check_observer_state(self, should_disable):
-        if should_disable:
-            self._assert_observer_enabled(collections.defaultdict(lambda: False))
-        else:
-            self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
-
-    def on_fit_start(self):
-        self._fake_quants = tuple(module for module in self.modules() if isinstance(module, FakeQuantizeBase))
-        self._fake_quant_to_initial_state = {
-            fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in self._fake_quants
-        }
-        self._last_train_fake_quant_to_observer_enabled = self._collect_observer_enabled()
-
-    def training_step(self, batch, batch_idx):
-        self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
-
-        result = super().training_step(batch, batch_idx)
-        if self._disable_observers_after_step == self.global_step:
-            self.apply(torch.quantization.disable_observer)
-
-        self._last_train_fake_quant_to_observer_enabled = self._collect_observer_enabled()
-
-        return result
-
-    def on_train_start(self):
-        self._last_train_fake_quant_to_observer_enabled = self._collect_observer_enabled()
-        self._check_observer_state("train" in self._disable_observers)
-
-    def on_train_end(self):
-        if "train" in self._disable_observers:
-            self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
-
-    def on_validation_start(self):
-        self._check_observer_state("validate" in self._disable_observers and not self.trainer.sanity_checking)
-
-    def on_validation_end(self):
-        if "validate" in self._disable_observers:
-            if self.trainer.sanity_checking:
-                self._assert_fake_quant_initial_state()
-            else:
-                self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
-
-    def on_test_start(self):
-        self._check_observer_state("test" in self._disable_observers)
-
-    def on_test_end(self):
-        if "test" in self._disable_observers:
-            self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
-
-    def on_predict_start(self):
-        self._check_observer_state("predict" in self._disable_observers)
-
-    def on_predict_end(self):
-        if "predict" in self._disable_observers:
-            self._assert_observer_enabled(self._last_train_fake_quant_to_observer_enabled)
+def _get_observer_enabled(fake_quant: FakeQuantizeBase):
+    # ``torch.quantization.FakeQuantize`` checks ``observer_enabled[0] == 1``.
+    return fake_quant.observer_enabled[0] == 1
 
 
-class BeforeTrainingCalibration(Callback):
-    def on_train_start(self, trainer, pl_module):
-        pl_module.training_step(next(iter(trainer.train_dataloader)), 0)
-
-
-@pytest.mark.parametrize("observe", ["average", "histogram"])
 @pytest.mark.parametrize(
-    "disable_observers", [("validate", "test", "predict"), ("train", "validate", "test", "predict"), ("validate",), ()]
+    "disable_observers",
+    [("train", "validate", "test", "predict"), ("train",), ("validate",), ("test",), ("predict",), ()]
 )
 @RunIf(quantization=True)
-def test_disable_observers(tmpdir, observe, disable_observers):
+def test_quantization_disable_observers(tmpdir, disable_observers):
     """Test disabling observers"""
-    num_features = 16
-    dm = RegressDataModule(num_features=num_features, length=800, batch_size=10)
-    qmodel = CheckObserverDisabledModel(disable_observers, disable_observers_after_step=2)
-    qconfig = "fbgemm"
-    if observe == "average":
-        qconfig = torch.quantization.get_default_qat_qconfig(backend=qconfig)
-    elif observe == "histogram":
-        # Currently passing ``observer_type='histogram'`` to ``QuantizationAwareTraining`` will only do quantization
-        # range calibration without any fake-quantization modules. We create the ``qconfig`` for histogram observers
-        # manually.
-        qconfig = torch.quantization.QConfig(
-            activation=torch.quantization.FakeQuantize.with_args(
-                observer=torch.quantization.HistogramObserver, reduce_range=True
-            ),
-            weight=torch.quantization.get_default_qat_qconfig(backend=qconfig).weight,
+    # ``torch.quantization.FakeQuantize`` checks observer_enabled[0] == 1.
+    qmodel = RegressionModel()
+    qcb = QuantizationAwareTraining(disable_observers=disable_observers)
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir)
+
+    # Quantize qmodel.
+    qcb.on_fit_start(trainer, qmodel)
+    fake_quants = list(module for module in qmodel.modules() if isinstance(module, FakeQuantizeBase))
+    # Disable some of observers before fitting.
+    for fake_quant in fake_quants[::2]:
+        fake_quant.disable_observer()
+
+    for stage, on_stage_start, on_stage_end in [
+        ("train", qcb.on_train_start, qcb.on_train_end),
+        ("validate", qcb.on_validation_start, qcb.on_validation_end),
+        ("test", qcb.on_test_start, qcb.on_test_end),
+        ("predict", qcb.on_predict_start, qcb.on_predict_end),
+    ]:
+        before_stage_observer_enabled = torch.as_tensor(list(map(_get_observer_enabled, fake_quants)))
+
+        on_stage_start(trainer, qmodel)
+        expected_stage_observer_enabled = torch.as_tensor(
+            [False] * len(fake_quants) if stage in disable_observers else before_stage_observer_enabled
         )
-    qcb = QuantizationAwareTraining(qconfig=qconfig, quantize_on_fit_end=False, disable_observers=disable_observers)
-    if "train" in disable_observers:
-        callbacks = [BeforeTrainingCalibration(), qcb]
-    else:
-        callbacks = [qcb]
+        assert torch.equal(
+            torch.as_tensor(list(map(_get_observer_enabled, fake_quants))), expected_stage_observer_enabled
+        )
+
+        on_stage_end(trainer, qmodel)
+        assert torch.equal(
+            torch.as_tensor(list(map(_get_observer_enabled, fake_quants))), before_stage_observer_enabled
+        )
+
+
+@RunIf(quantization=True)
+def test_quantization_val_test_predict(tmpdir):
+    """Test the default quantization aware training not affected by valiation, testing and predicting"""
+    seed_everything(42)
+    num_features = 16
+    dm = RegressDataModule(num_features=num_features)
+    qmodel = RegressionModel()
+
+    val_test_predict_qmodel = copy.deepcopy(qmodel)
     trainer = Trainer(
-        callbacks=callbacks,
+        callbacks=[QuantizationAwareTraining(quantize_on_fit_end=False)],
         default_root_dir=tmpdir,
-        limit_train_batches=5,
+        limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
         val_check_interval=1,
         num_sanity_val_steps=1,
-        max_epochs=1,
+        max_epochs=4
     )
-    trainer.fit(qmodel, datamodule=dm)
-    trainer.validate(verbose=False)
-    trainer.test(verbose=False)
-    trainer.predict(dataloaders=[torch.utils.data.DataLoader(RandomDataset(num_features, 16))])
+    trainer.fit(val_test_predict_qmodel, datamodule=dm)
+    trainer.validate(model=val_test_predict_qmodel, verbose=False)
+    trainer.test(model=val_test_predict_qmodel, verbose=False)
+    trainer.predict(
+        model=val_test_predict_qmodel,
+        dataloaders=[torch.utils.data.DataLoader(RandomDataset(num_features, 16))],
+    )
+
+    expected_qmodel = copy.deepcopy(qmodel)
+    # No validation in ``expected_qmodel`` fitting.
+    Trainer(
+        callbacks=[QuantizationAwareTraining(quantize_on_fit_end=False)],
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=4
+    ).fit(expected_qmodel, datamodule=dm)
+
+    expected_state_dict = expected_qmodel.state_dict()
+    for key, value in val_test_predict_qmodel.state_dict().items():
+        expected_value = expected_state_dict[key]
+        assert torch.allclose(value, expected_value)
