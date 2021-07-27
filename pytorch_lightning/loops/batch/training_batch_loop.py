@@ -162,7 +162,11 @@ class TrainingBatchLoop(Loop):
         return len(self.get_active_optimizers(batch_idx))
 
     def _run_optimization(
-        self, batch_idx: int, split_batch: Any, opt_idx: Optional[int] = None, optimizer: Optional[torch.optim.Optimizer] = None
+        self,
+        batch_idx: int,
+        split_batch: Any,
+        opt_idx: Optional[int] = None,
+        optimizer: Optional[torch.optim.Optimizer] = None,
     ):
         """Runs closure (train step + backward) together with optimization if necessary.
 
