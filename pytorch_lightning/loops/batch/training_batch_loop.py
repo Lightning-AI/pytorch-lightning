@@ -147,12 +147,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(result.training_step_output)
+                    self.batch_outputs[opt_idx].append(result.output.training_step_output)
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(result.training_step_output)
+                self.batch_outputs[0].append(result.output.training_step_output)
 
     def teardown(self) -> None:
         # release memory
@@ -220,22 +220,17 @@ class TrainingBatchLoop(Loop):
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         closure = LightningClosure(
-            step_fn=step_fn,
-            backward_fn=backward_fn,
-            zero_grad_fn=zero_grad_fn,
-            profiler=self.trainer.profiler,
+            step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn, profiler=self.trainer.profiler
         )
         return closure
 
     def _make_step_fn(self, split_batch, batch_idx, opt_idx, hiddens):
-
         def step_fn():
             return self._training_step(split_batch, batch_idx, opt_idx, hiddens)
 
         return step_fn
 
     def _make_backward_fn(self, batch_idx, opt_idx, optimizer):
-
         def backward_fn(output: STEP_OUTPUT):
             self.backward(output, optimizer, opt_idx)
 
@@ -250,21 +245,22 @@ class TrainingBatchLoop(Loop):
             return backward_fn
 
     def _make_zero_grad_fn(self, batch_idx, opt_idx, optimizer):
-
         def zero_grad_fn():
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
         is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
-        if not self._skip_backward and self.trainer.lightning_module.automatic_optimization and is_first_batch_to_accumulate:
+        if (
+            not self._skip_backward
+            and self.trainer.lightning_module.automatic_optimization
+            and is_first_batch_to_accumulate
+        ):
             return zero_grad_fn
-
 
     # def _make_closure(self, *closure_args: Any, **closure_kwargs: Any) -> Callable:
     #     """Wraps the training step closure into a partial object which will be called within ``optimizer.step``."""
     #     partial_func = partial(self._training_step_and_backward_closure, *closure_args, **closure_kwargs)
     #     return update_wrapper(partial_func, self._training_step_and_backward_closure)
-
 
     def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
         """Checks if the closure results is finite and optionally breaks if it is not
