@@ -162,7 +162,7 @@ def _get_observer_enabled(fake_quant: FakeQuantizeBase):
 
 @pytest.mark.parametrize(
     "disable_observers",
-    [("train", "validate", "test", "predict"), ("train",), ("validate",), ("test",), ("predict",), ()]
+    [("train", "validate", "test", "predict"), ("train",), ("validate",), ("test",), ("predict",), ()],
 )
 @RunIf(quantization=True)
 def test_quantization_disable_observers(tmpdir, disable_observers):
@@ -219,14 +219,13 @@ def test_quantization_val_test_predict(tmpdir):
         limit_predict_batches=1,
         val_check_interval=1,
         num_sanity_val_steps=1,
-        max_epochs=4
+        max_epochs=4,
     )
     trainer.fit(val_test_predict_qmodel, datamodule=dm)
     trainer.validate(model=val_test_predict_qmodel, verbose=False)
     trainer.test(model=val_test_predict_qmodel, verbose=False)
     trainer.predict(
-        model=val_test_predict_qmodel,
-        dataloaders=[torch.utils.data.DataLoader(RandomDataset(num_features, 16))],
+        model=val_test_predict_qmodel, dataloaders=[torch.utils.data.DataLoader(RandomDataset(num_features, 16))]
     )
 
     expected_qmodel = copy.deepcopy(qmodel)
@@ -236,7 +235,7 @@ def test_quantization_val_test_predict(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=0,
-        max_epochs=4
+        max_epochs=4,
     ).fit(expected_qmodel, datamodule=dm)
 
     expected_state_dict = expected_qmodel.state_dict()
