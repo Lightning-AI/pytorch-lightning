@@ -190,6 +190,7 @@ class TrainingBatchLoop(Loop):
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
                 closure()
+                result = closure.result
 
         # ------------------------------
         # BACKWARD PASS
@@ -198,6 +199,7 @@ class TrainingBatchLoop(Loop):
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
+                result = closure.result
             else:
                 closure()
 
