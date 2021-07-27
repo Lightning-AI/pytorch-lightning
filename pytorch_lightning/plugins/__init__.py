@@ -6,9 +6,7 @@ from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
-from pytorch_lightning.plugins.precision.fully_sharded_native_amp import (
-    FullyShardedNativeMixedPrecisionPlugin,
-)
+from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
