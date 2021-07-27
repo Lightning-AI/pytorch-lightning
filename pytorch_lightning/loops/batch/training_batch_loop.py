@@ -162,7 +162,7 @@ class TrainingBatchLoop(Loop):
         return len(self.get_active_optimizers(batch_idx))
 
     def _run_optimization(
-        self, batch_idx: int, split_batch: Any, opt_idx: int = 0, optimizer: Optional[torch.optim.Optimizer] = None
+        self, batch_idx: int, split_batch: Any, opt_idx: Optional[int] = None, optimizer: Optional[torch.optim.Optimizer] = None
     ):
         """Runs closure (train step + backward) together with optimization if necessary.
 
@@ -172,9 +172,6 @@ class TrainingBatchLoop(Loop):
             opt_idx: the index of the current optimizer
             optimizer: the current optimizer
         """
-        # TODO(@awaelchli): In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
-        #   opt_idx=0 to opt_idx=None in the signature here
-
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
 
@@ -646,14 +643,12 @@ class TrainingBatchLoop(Loop):
         if len(self.trainer.optimizers) > 1:
             training_step_fx = getattr(lightning_module, "training_step")
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
-            if has_opt_idx_in_train_step:
-                if not lightning_module.automatic_optimization:
-                    self._warning_cache.deprecation(
-                        "`training_step` hook signature has changed in v1.3."
-                        " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5"
-                    )
-                step_kwargs["optimizer_idx"] = opt_idx
+            if has_opt_idx_in_train_step and not lightning_module.automatic_optimization:
+                raise ValueError(
+                    "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
+                    " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
+                    " argument or set `self.automatic_optimization = True`."
+                )
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
