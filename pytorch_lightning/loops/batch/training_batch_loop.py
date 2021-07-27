@@ -47,7 +47,6 @@ class TrainingBatchLoop(Loop):
         self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
-        self.batch_idx: int = 0
         self.split_idx: Optional[int] = None
         self.optim_progress = OptimizationProgress()
 
@@ -105,7 +104,6 @@ class TrainingBatchLoop(Loop):
     def reset(self) -> None:
         """Resets the loop state"""
         self._hiddens = None
-        self.batch_idx = 0
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
@@ -129,7 +127,6 @@ class TrainingBatchLoop(Loop):
         """
         void(batch, dataloader_idx)
         split_idx, split_batch = self._remaining_splits.pop(0)
-        self.batch_idx = batch_idx
         self.split_idx = split_idx
 
         # let logger connector extract current batch size
@@ -182,7 +179,7 @@ class TrainingBatchLoop(Loop):
         result = AttributeDict()
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens, result)
 
-        if self.should_accumulate():
+        if self.trainer.fit_loop.should_accumulate():
             # For gradient accumulation
 
             # -------------------
@@ -445,27 +442,6 @@ class TrainingBatchLoop(Loop):
         )
         return grad_norm_dict
 
-    def _accumulated_batches_reached(self) -> bool:
-        """Determine if accumulation will be finished by the end of the current batch."""
-        # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
-        return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-
-    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
-        """Checks whether sufficient training batches have been processed.
-
-        Args:
-            is_last_batch: Whether the current batch is the last one
-        """
-        # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
-        return (self.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
-
-    def should_accumulate(self) -> bool:
-        """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
-        # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
-        is_final_batch = self._num_training_batches_reached()
-        return not (accumulation_done or is_final_batch)
-
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.
 
@@ -586,7 +562,7 @@ class TrainingBatchLoop(Loop):
         else:
             result.closure_loss = self.trainer.accelerator.backward(result.closure_loss, optimizer, *args, **kwargs)
 
-        if not self.should_accumulate():
+        if not self.trainer.fit_loop.should_accumulate():
             # track gradients
             grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
             if grad_norm_dict:

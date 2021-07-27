@@ -327,3 +327,8 @@ def test_v1_5_0_deepspeed_cpu_offload(tmpdir, params):
 
     with pytest.deprecated_call(match="is deprecated since v1.4 and will be removed in v1.5"):
         DeepSpeedPlugin(**params)
+
+
+def test_v1_5_0_distributed_backend_trainer_flag():
+    with pytest.deprecated_call(match="has been deprecated and will be removed in v1.5."):
+        Trainer(distributed_backend="ddp_cpu")

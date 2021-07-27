@@ -46,8 +46,6 @@ class Loop(ABC):
     """
 
     def __init__(self) -> None:
-        # TODO: replace by progress tracking
-        self.iteration_count: int = 0
         self.restarting = False
         self._trainer: Optional["pl.Trainer"] = None
 
@@ -110,7 +108,6 @@ class Loop(ABC):
                 self.on_advance_start(*args, **kwargs)
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
-                self.iteration_count += 1
                 self.restarting = False
             except StopIteration:
                 break
