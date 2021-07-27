@@ -152,31 +152,35 @@ improve readability and reproducibility.
         model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
-3.  You can also convert full objects such as ``dict`` or ``Namespace`` to ``hparams`` so they get saved to the checkpoint.
+3.  You can also convert full objects such as ``dict`` or ``Namespace`` to ``hparams`` so they get saved to the
+    checkpoint.
 
     .. code-block:: python
 
         class LitMNIST(LightningModule):
 
-            def __init__(self, conf: Union[Dict, Namespace, DictConfig], *args, **kwargs):
+            def __init__(self, conf: Optional[Union[Dict, Namespace, DictConfig]] = None, **kwargs):
                 super().__init__()
+                # save the config and any extra arguments
                 self.save_hyperparameters(conf)
+                self.save_hyperparameters(kwargs)
 
                 self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
                 self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
                 self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
 
-        conf = {}
+        conf = {...}
         # OR
         # conf = parser.parse_args()
         # OR
         # conf = OmegaConf.create(...)
-        model = LitMNIST(conf)
+        model = LitMNIST(conf=conf, anything=10)
 
         # Now possible to access any stored variables from hparams
         model.hparams.anything
 
-
+        # for this to work, you need to access the `self.hparams.layer_1_dim`, not `conf.layer_1_dim`
+        model = LitMNIST.load_from_checkpoint(PATH)
 
 ----------
 
