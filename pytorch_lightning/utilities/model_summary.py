@@ -21,6 +21,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
