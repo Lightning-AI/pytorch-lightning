@@ -964,22 +964,21 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir):
     """
 
     class TestModel(BoringModel):
-
         def __init__(self, scheduler_as_dict=False):
             super().__init__()
             self.scheduler_as_dict = scheduler_as_dict
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
-            return {'train_loss_1': torch.tensor([0.]), 'train_loss_2': torch.tensor([0.])}
+            return {"train_loss_1": torch.tensor([0.0]), "train_loss_2": torch.tensor([0.0])}
 
         def training_epoch_end(self, outputs):
             scheduler_1, scheduler_2 = self.lr_schedulers()
 
-            loss = torch.stack([x['train_loss_1'] for x in outputs]).mean()
+            loss = torch.stack([x["train_loss_1"] for x in outputs]).mean()
             scheduler_1.step(loss)
 
-            loss = torch.stack([x['train_loss_2'] for x in outputs]).mean()
+            loss = torch.stack([x["train_loss_2"] for x in outputs]).mean()
             scheduler_1.step(loss)
 
         def configure_optimizers(self):
@@ -988,13 +987,13 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir):
 
             if self.scheduler_as_dict:
                 scheduler_1 = {
-                    'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1),
-                    'monitor': 'train_loss_1'
+                    "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1),
+                    "monitor": "train_loss_1",
                 }
 
                 scheduler_2 = {
-                    'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_2),
-                    'monitor': 'train_loss_2'
+                    "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_2),
+                    "monitor": "train_loss_2",
                 }
             else:
                 scheduler_1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
@@ -1006,11 +1005,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir):
         model = TestModel(scheduler_as_dict=test_scheduler_as_dict)
 
         trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_train_batches=1,
-            limit_val_batches=1,
-            limit_test_batches=1,
+            default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
         )
 
         trainer.fit(model)
