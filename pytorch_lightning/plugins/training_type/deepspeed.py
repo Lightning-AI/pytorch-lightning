@@ -397,7 +397,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else  _get_default_scheduler_config(),
+            schedulers[0] if schedulers else _get_default_scheduler_config(),
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
