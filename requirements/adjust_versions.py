@@ -37,7 +37,7 @@ def main(path_req: str, torch_version: Optional[str] = None) -> None:
         torch_version = torch.__version__
     assert torch_version, f"invalid torch: {torch_version}"
 
-    with open(path_req, "r") as fp:
+    with open(path_req) as fp:
         req = fp.read()
     # remove comments
     req = re.sub(rf"\s*#.*{os.linesep}", os.linesep, req)

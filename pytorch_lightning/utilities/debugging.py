@@ -34,7 +34,7 @@ def enabled_only(fn: Callable):
     return wrapped_fn
 
 
-class InternalDebugger(object):
+class InternalDebugger:
     def __init__(self, trainer):
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer

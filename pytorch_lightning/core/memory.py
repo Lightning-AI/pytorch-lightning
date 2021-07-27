@@ -34,7 +34,7 @@ PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
 
 
-class LayerSummary(object):
+class LayerSummary:
     """
     Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
     It collects the following information:
@@ -126,7 +126,7 @@ class LayerSummary(object):
         return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
-class ModelSummary(object):
+class ModelSummary:
     """
     Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
 

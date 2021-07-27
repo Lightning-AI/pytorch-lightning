@@ -56,7 +56,7 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
 
     @classmethod
     def apply(cls, module, name, amount):
-        return super(TestPruningMethod, cls).apply(module, name, amount=amount)
+        return super().apply(module, name, amount=amount)
 
 
 def train_with_pruning_callback(

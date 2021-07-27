@@ -80,7 +80,7 @@ if _HOROVOD_AVAILABLE:
 log = logging.getLogger(__name__)
 
 
-class AcceleratorConnector(object):
+class AcceleratorConnector:
     def __init__(
         self,
         num_processes,
@@ -88,6 +88,7 @@ class AcceleratorConnector(object):
         tpu_cores,
         ipus,
         distributed_backend,
+        accelerator,
         gpus,
         gpu_ids,
         num_nodes,
@@ -104,6 +105,13 @@ class AcceleratorConnector(object):
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._accelerator_type = None
+
+        if distributed_backend is not None:
+            rank_zero_deprecation(
+                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
+                f" Use `Trainer(accelerator={distributed_backend})` instead."
+            )
+        distributed_backend = distributed_backend or accelerator
 
         self.num_processes = num_processes
         self.devices = devices
@@ -741,6 +749,11 @@ class AcceleratorConnector(object):
 
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
+            if _TPU_AVAILABLE:
+                raise MisconfigurationException(
+                    "`accelerator='ddp_cpu'` is not supported on TPU machines. "
+                    "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
+                )
             self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(

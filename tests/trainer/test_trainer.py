@@ -879,7 +879,7 @@ def test_gradient_clipping(tmpdir):
         ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
 
         return ret_val
 
@@ -952,7 +952,7 @@ def test_gradient_clipping_fp16(tmpdir):
         ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
 
         return ret_val
 

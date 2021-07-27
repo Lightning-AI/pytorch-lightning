@@ -351,7 +351,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
 
     class Check(Callback):
         def on_train_epoch_start(self, trainer, pl_module) -> None:
-            num_param_groups = sum([len(opt.param_groups) for opt in trainer.optimizers])
+            num_param_groups = sum(len(opt.param_groups) for opt in trainer.optimizers)
             assert lr_monitor.lr_sch_names == ["lr-Adam", "lr-Adam-1"]
             if trainer.current_epoch == 0:
                 assert num_param_groups == 3
