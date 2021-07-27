@@ -28,7 +28,7 @@ Training on Grid
 
 |
 
-You can launch any Lightning model on Grid using `grid run` `CLI <https://pypi.org/project/lightning-grid/>`_:
+You can launch any Lightning model on Grid using the Grid `CLI <https://pypi.org/project/lightning-grid/>`_:
 
 .. code-block:: bash
 
