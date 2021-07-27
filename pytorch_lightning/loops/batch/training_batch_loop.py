@@ -191,7 +191,6 @@ class TrainingBatchLoop(Loop):
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
                 closure()
-                result = closure.result
 
         # ------------------------------
         # BACKWARD PASS
@@ -200,9 +199,10 @@ class TrainingBatchLoop(Loop):
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
-                result = closure.result
             else:
-                result = self._training_step(split_batch, batch_idx, opt_idx, self._hiddens)
+                closure()
+
+        result = closure.result
 
         if result:
             # if no result, user decided to skip optimization
@@ -262,7 +262,7 @@ class TrainingBatchLoop(Loop):
     #     partial_func = partial(self._training_step_and_backward_closure, *closure_args, **closure_kwargs)
     #     return update_wrapper(partial_func, self._training_step_and_backward_closure)
 
-    def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
+    def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
         """Checks if the closure results is finite and optionally breaks if it is not
 
         Args:
