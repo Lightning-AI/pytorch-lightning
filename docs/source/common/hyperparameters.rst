@@ -179,7 +179,7 @@ improve readability and reproducibility.
         # Now possible to access any stored variables from hparams
         model.hparams.anything
 
-        # for this to work, you need to access the `self.hparams.layer_1_dim`, not `conf.layer_1_dim`
+        # for this to work, you need to access with `self.hparams.layer_1_dim`, not `conf.layer_1_dim`
         model = LitMNIST.load_from_checkpoint(PATH)
 
 ----------
