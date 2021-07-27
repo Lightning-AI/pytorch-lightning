@@ -410,7 +410,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10**shift)
+    number = number * (10 ** shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
@@ -421,6 +421,7 @@ def get_human_readable_count(number: int) -> str:
 def _is_lazy_weight_tensor(p: Tensor) -> bool:
     if _TORCH_GREATER_EQUAL_1_8:
         from torch.nn.parameter import UninitializedParameter
+
         if isinstance(p, UninitializedParameter):
             warning_cache.warn(
                 "A layer with UninitializedParameter was found. "
@@ -430,9 +431,9 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
     return False
 
 
-def summarize(lightning_module: "pl.LightningModule",
-              mode: Optional[str] = "top",
-              max_depth: Optional[int] = None) -> Optional[ModelSummary]:
+def summarize(
+    lightning_module: "pl.LightningModule", mode: Optional[str] = "top", max_depth: Optional[int] = None
+) -> Optional[ModelSummary]:
     """
     Summarize the LightningModule specified by `lightning_module`.
 

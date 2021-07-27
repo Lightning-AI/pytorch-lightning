@@ -45,17 +45,15 @@ class TestStepVariations(ABC):
 
         # alternate possible outputs to test
         if batch_idx % 1 == 0:
-            output = OrderedDict({'test_loss': loss_test, 'test_acc': test_acc})
+            output = OrderedDict({"test_loss": loss_test, "test_acc": test_acc})
             return output
         if batch_idx % 2 == 0:
             return test_acc
 
         if batch_idx % 3 == 0:
-            output = OrderedDict({
-                'test_loss': loss_test,
-                'test_acc': test_acc,
-                'test_dic': dict(test_loss_a=loss_test),
-            })
+            output = OrderedDict(
+                {"test_loss": loss_test, "test_acc": test_acc, "test_dic": dict(test_loss_a=loss_test)}
+            )
             return output
 
     def test_step__multiple_dataloaders(self, batch, batch_idx, dataloader_idx, **kwargs):
@@ -79,18 +77,16 @@ class TestStepVariations(ABC):
 
         # alternate possible outputs to test
         if batch_idx % 1 == 0:
-            output = OrderedDict({'test_loss': loss_test, 'test_acc': test_acc})
+            output = OrderedDict({"test_loss": loss_test, "test_acc": test_acc})
             return output
         if batch_idx % 2 == 0:
             return test_acc
 
         if batch_idx % 3 == 0:
-            output = OrderedDict({
-                'test_loss': loss_test,
-                'test_acc': test_acc,
-                'test_dic': dict(test_loss_a=loss_test),
-            })
+            output = OrderedDict(
+                {"test_loss": loss_test, "test_acc": test_acc, "test_dic": dict(test_loss_a=loss_test)}
+            )
             return output
         if batch_idx % 5 == 0:
-            output = OrderedDict({f'test_loss_{dataloader_idx}': loss_test, f'test_acc_{dataloader_idx}': test_acc})
+            output = OrderedDict({f"test_loss_{dataloader_idx}": loss_test, f"test_acc_{dataloader_idx}": test_acc})
             return output

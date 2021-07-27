@@ -19,10 +19,11 @@ from pytorch_lightning.utilities import LightningEnum
 
 class TrainerStatus(LightningEnum):
     """Enum for the status of the :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
-    INITIALIZING = 'initializing'  # trainer creation
-    RUNNING = 'running'
-    FINISHED = 'finished'
-    INTERRUPTED = 'interrupted'
+
+    INITIALIZING = "initializing"  # trainer creation
+    RUNNING = "running"
+    FINISHED = "finished"
+    INTERRUPTED = "interrupted"
 
     @property
     def stopped(self) -> bool:
@@ -35,14 +36,15 @@ class TrainerFn(LightningEnum):
     such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
     :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
     """
-    FITTING = 'fit'
-    VALIDATING = 'validate'
-    TESTING = 'test'
-    PREDICTING = 'predict'
-    TUNING = 'tune'
+
+    FITTING = "fit"
+    VALIDATING = "validate"
+    TESTING = "test"
+    PREDICTING = "predict"
+    TUNING = "tune"
 
     @property
-    def _setup_fn(self) -> 'TrainerFn':
+    def _setup_fn(self) -> "TrainerFn":
         """
         ``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
 
@@ -64,12 +66,13 @@ class RunningStage(LightningEnum):
         - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
         - ``TrainerFn.TUNING`` - ``RunningStage.{TUNING,SANITY_CHECKING,TRAINING,VALIDATING}``
     """
-    TRAINING = 'train'
-    SANITY_CHECKING = 'sanity_check'
-    VALIDATING = 'validate'
-    TESTING = 'test'
-    PREDICTING = 'predict'
-    TUNING = 'tune'
+
+    TRAINING = "train"
+    SANITY_CHECKING = "sanity_check"
+    VALIDATING = "validate"
+    TESTING = "test"
+    PREDICTING = "predict"
+    TUNING = "tune"
 
     @property
     def evaluating(self) -> bool:
@@ -79,6 +82,7 @@ class RunningStage(LightningEnum):
 @dataclass
 class TrainerState:
     """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state"""
+
     status: TrainerStatus = TrainerStatus.INITIALIZING
     fn: Optional[TrainerFn] = None
     stage: Optional[RunningStage] = None

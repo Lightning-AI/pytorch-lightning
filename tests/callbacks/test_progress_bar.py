@@ -31,14 +31,15 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    'callbacks,refresh_rate', [
+    "callbacks,refresh_rate",
+    [
         ([], None),
         ([], 1),
         ([], 2),
         ([ProgressBar(refresh_rate=1)], 0),
         ([ProgressBar(refresh_rate=2)], 0),
         ([ProgressBar(refresh_rate=2)], 1),
-    ]
+    ],
 )
 def test_progress_bar_on(tmpdir, callbacks: list, refresh_rate: Optional[int]):
     """Test different ways the progress bar can be turned on."""
@@ -57,21 +58,11 @@ def test_progress_bar_on(tmpdir, callbacks: list, refresh_rate: Optional[int]):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize(
-    'callbacks,refresh_rate', [
-        ([], 0),
-        ([], False),
-        ([ModelCheckpoint(dirpath='../trainer')], 0),
-    ]
-)
+@pytest.mark.parametrize("callbacks,refresh_rate", [([], 0), ([], False), ([ModelCheckpoint(dirpath="../trainer")], 0)])
 def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int]):
     """Test different ways the progress bar can be turned off."""
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=callbacks,
-        progress_bar_refresh_rate=refresh_rate,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=callbacks, progress_bar_refresh_rate=refresh_rate)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert 0 == len(progress_bars)
@@ -80,8 +71,8 @@ def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int
 
 def test_progress_bar_misconfiguration():
     """Test that Trainer doesn't accept multiple progress bars."""
-    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint(dirpath='../trainer')]
-    with pytest.raises(MisconfigurationException, match=r'^You added multiple progress bar callbacks'):
+    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint(dirpath="../trainer")]
+    with pytest.raises(MisconfigurationException, match=r"^You added multiple progress bar callbacks"):
         Trainer(callbacks=callbacks)
 
 
@@ -90,11 +81,7 @@ def test_progress_bar_totals(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=1,
-        max_epochs=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1)
     bar = trainer.progress_bar_callback
     assert 0 == bar.total_train_batches
     assert 0 == bar.total_val_batches
@@ -145,10 +132,7 @@ def test_progress_bar_totals(tmpdir):
 def test_progress_bar_fast_dev_run(tmpdir):
     model = BoringModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -180,7 +164,7 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 1 == progress_bar.test_progress_bar.n
 
 
-@pytest.mark.parametrize('refresh_rate', [0, 1, 50])
+@pytest.mark.parametrize("refresh_rate", [0, 1, 50])
 def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
@@ -242,7 +226,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
-@pytest.mark.parametrize('limit_val_batches', (0, 5))
+@pytest.mark.parametrize("limit_val_batches", (0, 5))
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     """
     Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
@@ -281,7 +265,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
 
 
 def test_progress_bar_default_value(tmpdir):
-    """ Test that a value of None defaults to refresh rate 1. """
+    """Test that a value of None defaults to refresh rate 1."""
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate == 1
 
@@ -289,9 +273,9 @@ def test_progress_bar_default_value(tmpdir):
     assert trainer.progress_bar_callback.refresh_rate == 1
 
 
-@mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
+@mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
 def test_progress_bar_value_on_colab(tmpdir):
-    """ Test that Trainer will override the default in Google COLAB. """
+    """Test that Trainer will override the default in Google COLAB."""
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate == 20
 
@@ -303,7 +287,7 @@ def test_progress_bar_value_on_colab(tmpdir):
 
 
 class MockedUpdateProgressBars(ProgressBar):
-    """ Mocks the update method once bars get initializied. """
+    """Mocks the update method once bars get initializied."""
 
     def _mock_bar_update(self, bar):
         bar.update = Mock(wraps=bar.update)
@@ -323,7 +307,8 @@ class MockedUpdateProgressBars(ProgressBar):
 
 
 @pytest.mark.parametrize(
-    "train_batches,val_batches,refresh_rate,train_deltas,val_deltas", [
+    "train_batches,val_batches,refresh_rate,train_deltas,val_deltas",
+    [
         [2, 3, 1, [1, 1, 1, 1, 1], [1, 1, 1]],
         [0, 0, 3, [], []],
         [1, 0, 3, [1], []],
@@ -331,7 +316,7 @@ class MockedUpdateProgressBars(ProgressBar):
         [5, 0, 3, [3, 2], []],
         [5, 2, 3, [3, 3, 1], [2]],
         [5, 2, 6, [6, 1], [2]],
-    ]
+    ],
 )
 def test_main_progress_bar_update_amount(
     tmpdir, train_batches: int, val_batches: int, refresh_rate: int, train_deltas: list, val_deltas: list
@@ -358,11 +343,7 @@ def test_main_progress_bar_update_amount(
         progress_bar.val_progress_bar.update.assert_has_calls([call(delta) for delta in val_deltas])
 
 
-@pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [
-    [1, 3, [1]],
-    [3, 1, [1, 1, 1]],
-    [5, 3, [3, 2]],
-])
+@pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [[1, 3, [1]], [3, 1, [1, 1, 1]], [5, 3, [3, 2]]])
 def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, test_deltas: list):
     """
     Test that test progress updates with the correct amount.
@@ -385,49 +366,44 @@ def test_tensor_to_float_conversion(tmpdir):
     """Check tensor gets converted to float"""
 
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx):
-            self.log('a', torch.tensor(0.123), prog_bar=True, on_epoch=False)
-            self.log('b', {"b1": torch.tensor([1])}, prog_bar=True, on_epoch=False)
-            self.log('c', {"c1": 2}, prog_bar=True, on_epoch=False)
+            self.log("a", torch.tensor(0.123), prog_bar=True, on_epoch=False)
+            self.log("b", {"b1": torch.tensor([1])}, prog_bar=True, on_epoch=False)
+            self.log("c", {"c1": 2}, prog_bar=True, on_epoch=False)
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        logger=False,
-        checkpoint_callback=False,
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, checkpoint_callback=False
     )
     trainer.fit(TestModel())
 
-    torch.testing.assert_allclose(trainer.progress_bar_metrics['a'], 0.123)
-    assert trainer.progress_bar_metrics['b'] == {'b1': 1.0}
-    assert trainer.progress_bar_metrics['c'] == {'c1': 2.0}
+    torch.testing.assert_allclose(trainer.progress_bar_metrics["a"], 0.123)
+    assert trainer.progress_bar_metrics["b"] == {"b1": 1.0}
+    assert trainer.progress_bar_metrics["c"] == {"c1": 2.0}
     pbar = trainer.progress_bar_callback.main_progress_bar
     actual = str(pbar.postfix)
     assert actual.endswith("a=0.123, b={'b1': 1.0}, c={'c1': 2.0}"), actual
 
 
 @pytest.mark.parametrize(
-    "input_num, expected", [
-        [1, '1'],
-        [1.0, '1.000'],
-        [0.1, '0.100'],
-        [1e-3, '0.001'],
-        [1e-5, '1e-5'],
-        ['1.0', '1.000'],
-        ['10000', '10000'],
-        ['abc', 'abc'],
-    ]
+    "input_num, expected",
+    [
+        [1, "1"],
+        [1.0, "1.000"],
+        [0.1, "0.100"],
+        [1e-3, "0.001"],
+        [1e-5, "1e-5"],
+        ["1.0", "1.000"],
+        ["10000", "10000"],
+        ["abc", "abc"],
+    ],
 )
 def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
-    """ Check that the specialized tqdm.format_num appends 0 to floats and strings """
+    """Check that the specialized tqdm.format_num appends 0 to floats and strings"""
     assert tqdm.format_num(input_num) == expected
 
 
 class PrintModel(BoringModel):
-
     def training_step(self, *args, **kwargs):
         self.print("training_step", end="")
         return super().training_step(*args, **kwargs)
@@ -447,7 +423,7 @@ class PrintModel(BoringModel):
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print(tqdm_write, tmpdir):
-    """ Test that printing in the LightningModule redirects arguments to the progress bar. """
+    """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
     bar = ProgressBar()
     trainer = Trainer(
@@ -474,7 +450,7 @@ def test_progress_bar_print(tqdm_write, tmpdir):
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print_no_train(tqdm_write, tmpdir):
-    """ Test that printing in the LightningModule redirects arguments to the progress bar without training. """
+    """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
     bar = ProgressBar()
     trainer = Trainer(
@@ -498,10 +474,10 @@ def test_progress_bar_print_no_train(tqdm_write, tmpdir):
     ]
 
 
-@mock.patch('builtins.print')
+@mock.patch("builtins.print")
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
-    """ Test that printing in LightningModule goes through built-in print function when progress bar is disabled. """
+    """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()
     bar = ProgressBar()
     trainer = Trainer(
@@ -519,12 +495,9 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     trainer.test(model, verbose=False)
     trainer.predict(model)
 
-    mock_print.assert_has_calls([
-        call("training_step", end=""),
-        call("validation_step", file=ANY),
-        call("test_step"),
-        call("predict_step"),
-    ])
+    mock_print.assert_has_calls(
+        [call("training_step", end=""), call("validation_step", file=ANY), call("test_step"), call("predict_step")]
+    )
     tqdm_write.assert_not_called()
 
 
@@ -545,24 +518,14 @@ def test_progress_bar_can_be_pickled():
 @RunIf(min_gpus=2, special=True)
 def test_progress_bar_max_val_check_interval_0(tmpdir):
     _test_progress_bar_max_val_check_interval(
-        tmpdir,
-        total_train_samples=8,
-        train_batch_size=4,
-        total_val_samples=2,
-        val_batch_size=1,
-        val_check_interval=0.2
+        tmpdir, total_train_samples=8, train_batch_size=4, total_val_samples=2, val_batch_size=1, val_check_interval=0.2
     )
 
 
 @RunIf(min_gpus=2, special=True)
 def test_progress_bar_max_val_check_interval_1(tmpdir):
     _test_progress_bar_max_val_check_interval(
-        tmpdir,
-        total_train_samples=8,
-        train_batch_size=4,
-        total_val_samples=2,
-        val_batch_size=1,
-        val_check_interval=0.5
+        tmpdir, total_train_samples=8, train_batch_size=4, total_val_samples=2, val_batch_size=1, val_check_interval=0.5
     )
 
 

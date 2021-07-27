@@ -19,13 +19,12 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class PSNR(_PSNR):
-
     @deprecated_metrics(target=_PSNR)
     def __init__(
         self,
         data_range: Optional[float] = None,
         base: float = 10.0,
-        reduction: str = 'elementwise_mean',
+        reduction: str = "elementwise_mean",
         dim: Optional[Union[int, Tuple[int, ...]]] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,

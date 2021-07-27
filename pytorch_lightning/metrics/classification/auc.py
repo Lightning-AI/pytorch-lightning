@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class AUC(_AUC):
-
     @deprecated_metrics(target=_AUC)
     def __init__(
         self,

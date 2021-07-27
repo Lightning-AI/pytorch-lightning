@@ -137,8 +137,8 @@ class DDPPlugin(ParallelPlugin):
     @property
     def task_idx(self) -> Optional[int]:
         rank_zero_deprecation(
-            f'`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use '
-            f'`{self.__class__.__name__}.local_rank` instead.'
+            f"`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use "
+            f"`{self.__class__.__name__}.local_rank` instead."
         )
         return self._task_idx
 
@@ -217,10 +217,6 @@ class DDPPlugin(ParallelPlugin):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
 
-            if self.lightning_module.logger is not None:
-                # spawned processes must reference the same log dir, prevent auto-increment version
-                env_copy["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
-
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
                 del env_copy["PL_GLOBAL_SEED"]
@@ -232,7 +228,7 @@ class DDPPlugin(ParallelPlugin):
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
-                    command += [f'hydra.run.dir={os_cwd}', f'hydra.job.name=train_ddp_process_{local_rank}']
+                    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
@@ -279,9 +275,11 @@ class DDPPlugin(ParallelPlugin):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()`` breaking manual_optimization
-        if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
+        # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
+        if (
+            _TORCH_GREATER_EQUAL_1_7
+            and not self.lightning_module.automatic_optimization
+            and not self._ddp_kwargs.get("find_unused_parameters", False)
         ):
             rank_zero_warn(
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
@@ -305,9 +303,7 @@ class DDPPlugin(ParallelPlugin):
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
+            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
 
@@ -408,7 +404,7 @@ class DDPPlugin(ParallelPlugin):
             "ddp_find_unused_parameters_false",
             cls,
             description="DDP Plugin with `find_unused_parameters` as False",
-            find_unused_parameters=False
+            find_unused_parameters=False,
         )
 
     def _share_information_to_prevent_deadlock(self):

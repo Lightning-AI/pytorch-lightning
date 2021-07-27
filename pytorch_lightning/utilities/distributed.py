@@ -42,7 +42,6 @@ log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn):
-
     @wraps(fn)
     def wrapped_fn(*args, **kwargs):
         if rank_zero_only.rank == 0:
@@ -53,7 +52,7 @@ def rank_zero_only(fn):
 
 # TODO: this should be part of the cluster environment
 def _get_rank() -> int:
-    rank_keys = ('RANK', 'SLURM_PROCID', 'LOCAL_RANK')
+    rank_keys = ("RANK", "SLURM_PROCID", "LOCAL_RANK")
     for key in rank_keys:
         rank = os.environ.get(key)
         if rank is not None:
@@ -62,36 +61,38 @@ def _get_rank() -> int:
 
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
+rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
 
 
 def rank_zero_warn(*args, stacklevel: int = 5, **kwargs):
     from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
+
     rank_zero_deprecation(
-        '`pytorch_lightning.utilities.distributed.rank_zero_warn` has been moved to'
-        ' `pytorch_lightning.utilities.rank_zero_warn` in v1.3.7 and will be removed in v1.6'
+        "`pytorch_lightning.utilities.distributed.rank_zero_warn` has been moved to"
+        " `pytorch_lightning.utilities.rank_zero_warn` in v1.3.7 and will be removed in v1.6"
     )
     return rank_zero_warn(*args, stacklevel=stacklevel, **kwargs)
 
 
 def rank_zero_deprecation(*args, stacklevel: int = 5, **kwargs):
     from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+
     rank_zero_deprecation(
-        '`pytorch_lightning.utilities.distributed.rank_zero_deprecation` has been moved to'
-        ' `pytorch_lightning.utilities.rank_zero_deprecation` in v1.3.7 and will be removed in v1.6'
+        "`pytorch_lightning.utilities.distributed.rank_zero_deprecation` has been moved to"
+        " `pytorch_lightning.utilities.rank_zero_deprecation` in v1.3.7 and will be removed in v1.6"
     )
     return rank_zero_deprecation(*args, stacklevel=stacklevel, **kwargs)
 
 
 def _info(*args, stacklevel: int = 2, **kwargs):
     if python_version() >= "3.8.0":
-        kwargs['stacklevel'] = stacklevel
+        kwargs["stacklevel"] = stacklevel
     log.info(*args, **kwargs)
 
 
 def _debug(*args, stacklevel: int = 2, **kwargs):
     if python_version() >= "3.8.0":
-        kwargs['stacklevel'] = stacklevel
+        kwargs["stacklevel"] = stacklevel
     log.debug(*args, **kwargs)
 
 
@@ -140,9 +141,7 @@ def distributed_available() -> bool:
 
 
 def sync_ddp_if_available(
-    result: Union[torch.Tensor],
-    group: Optional[Any] = None,
-    reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
@@ -161,9 +160,7 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(
-    result: Union[torch.Tensor],
-    group: Optional[Any] = None,
-    reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -198,7 +195,6 @@ def sync_ddp(
 
 
 class AllGatherGrad(torch.autograd.Function):
-
     @staticmethod
     def forward(ctx, tensor, group=group.WORLD):
         ctx.group = group
@@ -320,6 +316,7 @@ def register_ddp_comm_hook(
         )
     """
     from pytorch_lightning.utilities import rank_zero_warn
+
     if not _TORCH_GREATER_EQUAL_1_8:
         rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
         return
@@ -335,10 +332,7 @@ def register_ddp_comm_hook(
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
     rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
-    model.register_comm_hook(
-        state=ddp_comm_state,
-        hook=ddp_comm_hook,
-    )
+    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
 
 
 def tpu_distributed() -> bool:

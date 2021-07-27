@@ -31,7 +31,6 @@ else:
 
 
 class MNISTDataModule(LightningDataModule):
-
     def __init__(self, data_dir: str = "./", batch_size: int = 32, use_trials: bool = False) -> None:
         super().__init__()
 
@@ -66,7 +65,6 @@ class MNISTDataModule(LightningDataModule):
 
 
 class SklearnDataModule(LightningDataModule):
-
     def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 10):
         super().__init__()
         self.batch_size = batch_size
@@ -76,10 +74,12 @@ class SklearnDataModule(LightningDataModule):
         self._y_type = y_type
 
     def _split_data(self):
-        self.x_train, self.x_test, self.y_train, self.y_test = \
-            train_test_split(self._x, self._y, test_size=0.20, random_state=42)
-        self.x_train, self.x_valid, self.y_train, self.y_valid = \
-            train_test_split(self.x_train, self.y_train, test_size=0.40, random_state=42)
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
+            self._x, self._y, test_size=0.20, random_state=42
+        )
+        self.x_train, self.x_valid, self.y_train, self.y_valid = train_test_split(
+            self.x_train, self.y_train, test_size=0.40, random_state=42
+        )
 
     def train_dataloader(self):
         return DataLoader(
@@ -102,7 +102,6 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-
     def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
         data = make_classification(
             n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42
@@ -111,7 +110,6 @@ class ClassifDataModule(SklearnDataModule):
 
 
 class RegressDataModule(SklearnDataModule):
-
     def __init__(self, num_features=16, length=800, batch_size=10):
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)
         y = [[v] for v in y]

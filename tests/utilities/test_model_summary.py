@@ -33,7 +33,7 @@ class EmptyModule(LightningModule):
         self.example_input_array = torch.zeros(1, 2, 3, 4, 5)
 
     def forward(self, *args, **kwargs):
-        return {'loss': self.parameter.sum()}
+        return {"loss": self.parameter.sum()}
 
 
 class PreCalculatedModel(BoringModel):
@@ -125,9 +125,9 @@ class DeepNestedModel(LightningModule):
                 nn.Linear(5, 5),
                 nn.Sequential(
                     nn.Linear(5, 5),
-                    nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 3))))
-                )
-            )
+                    nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 5), nn.Sequential(nn.Linear(5, 3)))),
+                ),
+            ),
         )
         self.branch2 = nn.Linear(5, 10)
         self.head = UnorderedModel()
@@ -139,14 +139,14 @@ class DeepNestedModel(LightningModule):
 
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
-    with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
-        summarize(UnorderedModel, mode='temp')
+    with pytest.raises(MisconfigurationException, match="`mode` can be None, .* got temp"):
+        summarize(UnorderedModel, mode="temp")
 
-    with pytest.raises(MisconfigurationException, match='`weights_summary` can be None, .* got temp'):
-        Trainer(weights_summary='temp')
+    with pytest.raises(MisconfigurationException, match="`weights_summary` can be None, .* got temp"):
+        Trainer(weights_summary="temp")
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_empty_model_summary_shapes(mode: str):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
@@ -157,12 +157,15 @@ def test_empty_model_summary_shapes(mode: str):
 
 
 @RunIf(min_gpus=1)
-@pytest.mark.parametrize('mode', ["full", "top"])
-@pytest.mark.parametrize(['device'], [
-    pytest.param(torch.device('cpu')),
-    pytest.param(torch.device('cuda', 0)),
-    pytest.param(torch.device('cuda', 0)),
-])
+@pytest.mark.parametrize("mode", ["full", "top"])
+@pytest.mark.parametrize(
+    ["device"],
+    [
+        pytest.param(torch.device("cpu")),
+        pytest.param(torch.device("cuda", 0)),
+        pytest.param(torch.device("cuda", 0)),
+    ],
+)
 def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
@@ -200,7 +203,7 @@ def test_mixed_dtype_model_summary():
     ]
 
 
-@pytest.mark.parametrize('max_depth', [-1, 0])
+@pytest.mark.parametrize("max_depth", [-1, 0])
 def test_hooks_removed_after_summarize(max_depth):
     """ Test that all hooks were properly removed after summary, even ones that were not run. """
     model = UnorderedModel()
@@ -211,7 +214,7 @@ def test_hooks_removed_after_summarize(max_depth):
         assert handle.id not in handle.hooks_dict_ref()
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()
@@ -229,13 +232,10 @@ def test_rnn_summary_shapes(mode):
         [b, t, i],  # rnn
         [b, t, h],  # linear
     ]
-    assert summary.out_sizes == [
-        [[b, t, h], [[1, b, h], [1, b, h]]],  # rnn
-        [b, t, o]  # linear
-    ]
+    assert summary.out_sizes == [[[b, t, h], [[1, b, h], [1, b, h]]], [b, t, o]]  # rnn  # linear
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
@@ -249,21 +249,21 @@ def test_summary_parameter_count(mode):
     ]
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
     summary = summarize(model, mode=mode)
     assert summary.layer_types == [
-        'Linear',
-        'Linear',
-        'Linear',
-        'ReLU',
-        'Conv2d',
+        "Linear",
+        "Linear",
+        "Linear",
+        "ReLU",
+        "Conv2d",
     ]
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_summary_with_scripted_modules(mode):
     model = PartialScriptModel()
     summary = summarize(model, mode=mode)
@@ -272,26 +272,27 @@ def test_summary_with_scripted_modules(mode):
     assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
-@pytest.mark.parametrize(['example_input', 'expected_size'], [
-    pytest.param([], UNKNOWN_SIZE),
-    pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
-    pytest.param(torch.tensor(0), UNKNOWN_SIZE),
-    pytest.param(dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
-    pytest.param(torch.zeros(2, 3, 4), [2, 3, 4]),
-    pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
-    pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
-])
+@pytest.mark.parametrize("mode", ["full", "top"])
+@pytest.mark.parametrize(
+    ["example_input", "expected_size"],
+    [
+        pytest.param([], UNKNOWN_SIZE),
+        pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
+        pytest.param(torch.tensor(0), UNKNOWN_SIZE),
+        pytest.param(dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
+        pytest.param(torch.zeros(2, 3, 4), [2, 3, 4]),
+        pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
+        pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
+    ],
+)
 def test_example_input_array_types(example_input, expected_size, mode):
     """ Test the types of example inputs supported for display in the summary. """
 
     class DummyModule(nn.Module):
-
         def forward(self, *args, **kwargs):
             return None
 
     class DummyLightningModule(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.layer = DummyModule()
@@ -306,7 +307,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     assert summary.in_sizes == [expected_size]
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_model_size(mode):
     """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
@@ -314,7 +315,7 @@ def test_model_size(mode):
     assert model.pre_calculated_model_size == summary.model_size
 
 
-@pytest.mark.parametrize('mode', ["full", "top"])
+@pytest.mark.parametrize("mode", ["full", "top"])
 def test_empty_model_size(mode):
     """ Test empty model size is zero. """
     model = EmptyModule()
@@ -349,7 +350,7 @@ def test_lazy_model_summary():
     with pytest.warns(
         UserWarning,
         match=r"A layer with UninitializedParameter was found. "
-        r"Thus, the total number of parameters detected may be inaccurate."
+        r"Thus, the total number of parameters detected may be inaccurate.",
     ):
         if _TORCH_GREATER_EQUAL_1_9:
             assert summary.total_parameters == 0
@@ -374,7 +375,7 @@ def test_max_depth_equals_mode_interface():
     assert str(summary_full) == str(summary_minus1)
 
 
-@pytest.mark.parametrize('max_depth', [-1, 0, 1, 3, 999])
+@pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
     """Test that only the modules up to the desired depth are shown"""
     model = DeepNestedModel()
@@ -384,7 +385,7 @@ def test_max_depth_param(max_depth):
             assert lname.count(".") < max_depth
 
 
-@pytest.mark.parametrize('max_depth', [-99, -2, "invalid"])
+@pytest.mark.parametrize("max_depth", [-99, -2, "invalid"])
 def test_raise_invalid_max_depth_value(max_depth):
     with pytest.raises(ValueError, match=f"`max_depth` can be -1, 0 or > 0, got {max_depth}"):
         summarize(DeepNestedModel(), max_depth=max_depth)
