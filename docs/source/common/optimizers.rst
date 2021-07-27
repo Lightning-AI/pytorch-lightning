@@ -243,9 +243,7 @@ If you want to call schedulers that require a metric value after each epoch, con
 
         # If the selected scheduler is a ReduceLROnPlateau scheduler.
         if isinstance(sch, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            loss = torch.stack([x['loss'] for x in outputs]).mean()
-            loss = self.all_gather(loss).mean()
-            sch.step(loss)
+            sch.step(self.trainer.callback_metrics["loss"])
 
 -----
 
