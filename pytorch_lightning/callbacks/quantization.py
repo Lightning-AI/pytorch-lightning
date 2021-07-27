@@ -154,7 +154,7 @@ class QuantizationAwareTraining(Callback):
     """
 
     OBSERVER_TYPES = ("histogram", "average")
-    ALL_DISABLE_OBSERVER_STAGES = ("train", "validate", "test", "predict")
+    DISABLE_OBSERVER_STAGES = ("train", "validate", "test", "predict")
 
     def __init__(
         self,
@@ -190,11 +190,10 @@ class QuantizationAwareTraining(Callback):
         self._convert_on_fit_end = quantize_on_fit_end
 
         disable_observers = set(disable_observers)
-        unsupported_stages = disable_observers - set(self.ALL_DISABLE_OBSERVER_STAGES)
+        unsupported_stages = disable_observers - set(self.DISABLE_OBSERVER_STAGES)
         if unsupported_stages:
             raise MisconfigurationException(
-                f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are '
-                f"{self.ALL_DISABLE_OBSERVER_STAGES}."
+                f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.DISABLE_OBSERVER_STAGES}.'
             )
         self._disable_observer_stages = disable_observers
 
