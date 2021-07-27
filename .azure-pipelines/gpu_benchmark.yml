@@ -1,0 +1,27 @@
+name: GPU Parity testing
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # At the end of every day
+
+jobs:
+  parity-test:
+    timeoutInMinutes: 120
+
+    cancelTimeoutInMinutes: 2
+
+    pool: gridai-spot-pool
+
+    container:
+      # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.8-torch1.6"
+
+    workspace:
+      clean: all
+
+    steps:
+      - bash: |
+          python -m pytest benchmarks -v --durations=0
+        displayName: 'Testing: benchmarks'
+        env:
+          PL_RUNNING_BENCHMARKS: 1

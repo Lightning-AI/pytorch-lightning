@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from pprint import pprint
 from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
@@ -23,13 +22,13 @@ from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, Ten
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
 class LoggerConnector:
-
-    def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results = []
@@ -46,7 +45,7 @@ class LoggerConnector:
 
     def on_trainer_init(
         self,
-        logger: LightningLoggerBase,
+        logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]],
         flush_logs_every_n_steps: int,
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
@@ -66,13 +65,11 @@ class LoggerConnector:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, Iterable, LightningLoggerBase]) -> None:
+    def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if logger is True:
-            version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
-
             # default logger
             self.trainer.logger = TensorBoardLogger(
-                save_dir=self.trainer.default_root_dir, version=version, name='lightning_logs'
+                save_dir=self.trainer.default_root_dir, version=self.trainer.slurm_job_id, name="lightning_logs"
             )
         elif logger is False:
             self.trainer.logger = None
@@ -159,8 +156,7 @@ class LoggerConnector:
         for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
             callback_metrics = {
-                k: v
-                for k, v in metrics.items() if "dataloader_idx" not in k or f"dataloader_idx_{dl_idx}" in k
+                k: v for k, v in metrics.items() if "dataloader_idx" not in k or f"dataloader_idx_{dl_idx}" in k
             }
             if has_been_initialized:
                 self.eval_loop_results[dl_idx].update(callback_metrics)
@@ -179,17 +175,21 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state.fn != TrainerFn.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
+            self.trainer.state.fn != TrainerFn.FITTING
+            and self.trainer.evaluating
+            and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
         ):
-            print('-' * 80)
+            print("-" * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS')
-                pprint({
-                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    for k, v in results.items()
-                })
-                print('-' * 80)
+                print(f"DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS")
+                pprint(
+                    {
+                        k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
+                        for k, v in results.items()
+                    }
+                )
+                print("-" * 80)
 
         results = self.eval_loop_results
         # clear mem
@@ -226,7 +226,7 @@ class LoggerConnector:
 
     def _log_gpus_metrics(self):
         for key, mem in self.gpus_metrics.items():
-            gpu_id = int(key.split('/')[0].split(':')[1])
+            gpu_id = int(key.split("/")[0].split(":")[1])
             if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
@@ -312,3 +312,9 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
+
+    def teardown(self):
+        args = (torch.Tensor, move_data_to_device, "cpu")
+        self._logged_metrics = apply_to_collection(self._logged_metrics, *args)
+        self._progress_bar_metrics = apply_to_collection(self._progress_bar_metrics, *args)
+        self._callback_metrics = apply_to_collection(self._callback_metrics, *args)

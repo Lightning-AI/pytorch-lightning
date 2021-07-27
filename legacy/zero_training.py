@@ -22,7 +22,6 @@ PATH_LEGACY = os.path.dirname(__file__)
 
 
 class RandomDataset(Dataset):
-
     def __init__(self, size, length: int = 100):
         self.len = length
         self.data = torch.randn(length, size)
@@ -35,7 +34,6 @@ class RandomDataset(Dataset):
 
 
 class DummyModel(pl.LightningModule):
-
     def __init__(self):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
@@ -79,16 +77,12 @@ class DummyModel(pl.LightningModule):
 
 def main_train(dir_path, max_epochs: int = 5):
 
-    trainer = pl.Trainer(
-        default_root_dir=dir_path,
-        checkpoint_callback=True,
-        max_epochs=max_epochs,
-    )
+    trainer = pl.Trainer(default_root_dir=dir_path, checkpoint_callback=True, max_epochs=max_epochs)
 
     model = DummyModel()
     trainer.fit(model)
 
 
-if __name__ == '__main__':
-    path_dir = os.path.join(PATH_LEGACY, 'checkpoints', str(pl.__version__))
+if __name__ == "__main__":
+    path_dir = os.path.join(PATH_LEGACY, "checkpoints", str(pl.__version__))
     main_train(path_dir)

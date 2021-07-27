@@ -28,10 +28,7 @@ if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
-    training_type_plugin = DDPPlugin(
-        ddp_comm_hook=default.fp16_compress_hook,
-        sync_batchnorm=True,
-    )
+    training_type_plugin = DDPPlugin(ddp_comm_hook=default.fp16_compress_hook, sync_batchnorm=True)
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
@@ -41,7 +38,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook)
+    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
     expected_comm_hook = default.fp16_compress_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -65,7 +62,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook)
+    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
     expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -90,7 +87,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook)
+    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
     expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -100,10 +97,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
-    training_type_plugin = DDPSpawnPlugin(
-        ddp_comm_hook=default.fp16_compress_hook,
-        sync_batchnorm=True,
-    )
+    training_type_plugin = DDPSpawnPlugin(ddp_comm_hook=default.fp16_compress_hook, sync_batchnorm=True)
     trainer = Trainer(
         max_epochs=1,
         gpus=2,

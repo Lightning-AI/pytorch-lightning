@@ -3,27 +3,29 @@
 IPU support
 ===========
 
+Lightning supports the Graphcore `Intelligence Processing Unit (IPU) <https://www.graphcore.ai/products/ipu>`__, built for Artificial Intelligence and Machine Learning.
+
 .. note::
-    IPU Support is experimental and a work in progress (see :ref:`known-limitations`). If you run into any problems, please leave an issue.
+  IPU support is experimental and a work in progress (see :ref:`known-limitations`). If you run into any problems, please leave an issue.
 
-Lightning supports `Graphcore Information Processing Units (IPUs) <https://www.graphcore.ai/products/ipu>`_, processors built for Artificial Intelligence and Machine Learning.
-
-IPU Terminology
+IPU terminology
 ---------------
 
-IPUs consist of many individual cores, allowing parallelization across computation. Due to the high bandwidth speed between cores,
+IPUs consist of many individual cores, called *tiles*, allowing highly parallel computation. Due to the high bandwidth between tiles,
 IPUs facilitate machine learning loads where parallelization is essential. Because computation is heavily parallelized,
 IPUs operate in a different way to conventional accelerators such as CPU/GPUs.
-IPUs do not require large batch sizes for maximum parallelization, can provide optimizations across the compiled graph and rely on model parallelism to fully utilize cores for larger models.
+IPUs do not require large batch sizes for maximum parallelization, can provide optimizations across the compiled graph and rely on model parallelism to fully utilize tiles for larger models.
 
-IPUs are also found within IPU pods, a collection of IPU enabled machines for larger workloads. See the `IPU Architecture <https://www.graphcore.ai/products/ipu>`__ for more information.
+IPUs are used to build IPU-PODs, rack-based systems of IPU-Machines for larger workloads. See the `IPU Architecture <https://www.graphcore.ai/products/ipu>`__ for more information.
+
+See the `Graphcore Glossary <https://docs.graphcore.ai/projects/graphcore-glossary/>`__ for the definitions of other IPU-specific terminology.
 
 How to access IPUs
 ------------------
 
-To use IPUs you must have access to a server with IPU devices attached. To get access see `getting started <https://www.graphcore.ai/getstarted>`_.
+To use IPUs you must have access to a system with IPU devices. To get access see `getting started <https://www.graphcore.ai/getstarted>`__.
 
-You must ensure that the server with IPUs attached has enabled the SDK popart and poplar packages. Instructions should be given by Graphcore.
+You must ensure that the IPU system has enabled the PopART and Poplar packages from the SDK. Instructions are in the Getting Started guide for your IPU system, on the Graphcore `documents portal <https://docs.graphcore.ai/page/getting-started.html>`__.
 
 Training with IPUs
 ------------------
@@ -36,7 +38,7 @@ Specify the number of IPUs to train with. Note that when training with IPUs, you
 
 IPUs only support specifying a single number to allocate devices, which is handled via the underlying libraries.
 
-Mixed Precision & 16 bit precision
+Mixed precision & 16 bit precision
 ----------------------------------
 
 Lightning also supports training in mixed precision with IPUs.
@@ -54,7 +56,7 @@ set the precision flag.
     trainer = pl.Trainer(ipus=8, precision=16)
     trainer.fit(model)
 
-You can also use pure 16-bit training, where the weights are also in 16 bit precision.
+You can also use pure 16-bit training, where the weights are also in 16-bit precision.
 
 .. code-block:: python
 
@@ -66,14 +68,14 @@ You can also use pure 16-bit training, where the weights are also in 16 bit prec
     trainer = pl.Trainer(ipus=8, precision=16)
     trainer.fit(model)
 
-Advanced IPU Options
+Advanced IPU options
 --------------------
 
-IPUs provide further optimizations to speed up training. By using the ``IPUPlugin`` we can set the ``device_iterations``, which controls the number of iterations run directly on the IPU devices before returning to host. Increasing the number of on device iterations will improve throughput as there is less device to host communication required.
+IPUs provide further optimizations to speed up training. By using the ``IPUPlugin`` we can set the ``device_iterations``, which controls the number of iterations run directly on the IPU devices before returning to the host. Increasing the number of on-device iterations will improve throughput, as there is less device to host communication required.
 
 .. note::
 
-    When using model parallel, it is a hard requirement to increase the number of device iterations to ensure we fully saturate the devices via micro-batching. see :ref:`ipu-model-parallelism` for more information.
+    When using model parallelism, it is a hard requirement to increase the number of device iterations to ensure we fully saturate the devices via micro-batching. see :ref:`ipu-model-parallelism` for more information.
 
 .. code-block:: python
 
@@ -84,7 +86,7 @@ IPUs provide further optimizations to speed up training. By using the ``IPUPlugi
     trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=32))
     trainer.fit(model)
 
-Note that by default we return the last device iteration loss. You can override this by passing in your own ``poptorch.Options`` and setting the AnchorMode as described in the `poptorch documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/reference.html#poptorch.Options.anchorMode>`__.
+Note that by default we return the last device iteration loss. You can override this by passing in your own ``poptorch.Options`` and setting the AnchorMode as described in the `PopTorch documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/reference.html#poptorch.Options.anchorMode>`__.
 
 .. code-block:: python
 
@@ -106,7 +108,7 @@ Note that by default we return the last device iteration loss. You can override 
     )
     trainer.fit(model)
 
-You can also override all options by passing the ``poptorch.Options`` to the plugin. See `poptorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`_ for more information.
+You can also override all options by passing the ``poptorch.Options`` to the plugin. See `PopTorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`__ for more information.
 
 PopVision Graph Analyser
 ------------------------
@@ -132,18 +134,18 @@ This will dump all reports to ``report_dir/`` which can then be opened using the
 
 .. _ipu-model-parallelism:
 
-Model Parallelism
+Model parallelism
 -----------------
 
-Due to the IPU architecture, larger models should be parallelized across IPUs by design. Currently poptorch provides the capabilities via annotations as described in `Parallel Execution <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/overview.html#id1>`__
+Due to the IPU architecture, larger models should be parallelized across IPUs by design. Currently PopTorch provides the capabilities via annotations as described in `parallel execution strategies <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/overview.html#execution-strategies>`__.
 
 Below is an example using the block annotation in a LightningModule.
 
 .. note::
 
-    Currently when using model parallelism, we do not infer the number of IPUs required for you. This is done via the annotations themselves. If you specify 4 different IDs when defining Blocks, this means your model will be split onto 4 different IPUs.
+    Currently, when using model parallelism we do not infer the number of IPUs required for you. This is done via the annotations themselves. If you specify 4 different IDs when defining Blocks, this means your model will be split onto 4 different IPUs.
 
-    This is also mutually exclusive with the Trainer flag, i.e. if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total; replicating the model 4 times in data parallel.
+    This is also mutually exclusive with the Trainer flag. In other words, if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total: data parallelism will be used to replicate the two-IPU model 4 times.
 
     When pipelining the model you must also increase the `device_iterations` to ensure full data saturation of the devices data, i.e whilst one device in the model pipeline processes a batch of data, the other device can start on the next batch. For example if the model is split onto 4 IPUs, we require `device_iterations` to be at-least 4.
 
@@ -221,7 +223,7 @@ You can also use the block context manager within the forward function, or any o
 
 .. _known-limitations:
 
-Known Limitations
+Known limitations
 -----------------
 
 Currently there are some known limitations that are being addressed in the near future to make the experience seamless when moving from different devices.

@@ -26,11 +26,16 @@ class HyperparametersMixin:
 
     __jit_unused_properties__ = ["hparams", "hparams_initial"]
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._log_hyperparams = True
+
     def save_hyperparameters(
         self,
         *args,
         ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None
+        frame: Optional[types.FrameType] = None,
+        logger: bool = True,
     ) -> None:
         """Save arguments to ``hparams`` attribute.
 
@@ -40,6 +45,7 @@ class HyperparametersMixin:
             ignore: an argument name or a list of argument names from
                 class ``__init__`` to be ignored
             frame: a frame object. Default is None
+            logger: Whether to send the hyperparameters to the logger. Default: True
 
         Example::
             >>> class ManuallyArgsModel(HyperparametersMixin):
@@ -92,6 +98,7 @@ class HyperparametersMixin:
             "arg1": 1
             "arg3": 3.14
         """
+        self._log_hyperparams = logger
         # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back

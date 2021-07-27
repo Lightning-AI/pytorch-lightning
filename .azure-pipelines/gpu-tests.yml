@@ -32,7 +32,7 @@ jobs:
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=256m"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
 
     workspace:
       clean: all
@@ -57,7 +57,7 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
@@ -73,6 +73,8 @@ jobs:
 
     - bash: |
         bash tests/special_tests.sh
+      env:
+        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: special'
 
     - bash: |
@@ -99,10 +101,6 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
       condition: succeededOrFailed()
 
-    - bash: |
-        python -m pytest benchmarks -v --maxfail=2 --durations=0
-      displayName: 'Testing: benchmarks'
-
     - script: |
         set -e
         python -m pytest pl_examples -v --maxfail=2 --durations=0
@@ -112,3 +110,7 @@ jobs:
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'
+
+    - bash: |
+        python -m pytest benchmarks -v --maxfail=2 --durations=0
+      displayName: 'Testing: benchmarks'
