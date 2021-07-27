@@ -342,7 +342,7 @@ class Trainer(
         super().__init__()
         Trainer._log_api_event("init")
         self.state = TrainerState()
-        distributed_backend = distributed_backend or accelerator
+
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
@@ -357,6 +357,7 @@ class Trainer(
             tpu_cores,
             ipus,
             distributed_backend,
+            accelerator,
             gpus,
             gpu_ids,
             num_nodes,
