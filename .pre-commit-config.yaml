@@ -64,7 +64,14 @@ repos:
       - id: black
         name: Format code
 
+  - repo: https://github.com/PyCQA/flake8
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        name: Check PEP8
+
   - repo: https://github.com/asottile/yesqa
     rev: v1.2.3
     hooks:
       - id: yesqa
+        name: Unused noqa

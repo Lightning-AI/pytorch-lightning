@@ -20,17 +20,3 @@ jobs:
           grep mypy requirements/test.txt | xargs -0 pip install
           pip list
       - run: mypy
-
-  python-format-flake8:
-    name: Python typing flake8
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: Install flake8
-        run: |
-          grep flake8 requirements/test.txt | xargs -0 pip install
-          pip list
-      - run: flake8 .
