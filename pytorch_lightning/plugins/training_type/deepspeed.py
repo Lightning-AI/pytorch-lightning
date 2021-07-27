@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
-from torch.nn import Module
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
@@ -34,7 +33,9 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning, rank_zero_warn
+from pytorch_lightning.utilities.warnings import _warn, LightningDeprecationWarning, rank_zero_warn, WarningCache
+
+warning_cache = WarningCache()
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -119,7 +120,7 @@ class DeepSpeedPlugin(DDPPlugin):
         cpu_checkpointing: bool = False,
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
-        save_full_weights: bool = True,
+        load_full_weights: bool = False,
         cpu_offload: bool = False,
         cpu_offload_params: bool = False,
         cpu_offload_use_pin_memory: bool = False,
@@ -250,7 +251,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
             synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
 
-            save_full_weights: Gathers weights across all processes before saving to disk
+            load_full_weights: Gathers weights across all processes before saving to disk
                 when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
                 rather than individual sharded weight files.
                 Disable to save sharded states individually.
@@ -314,7 +315,7 @@ class DeepSpeedPlugin(DDPPlugin):
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
         self.remote_device = remote_device
-        self.save_full_weights = save_full_weights
+        self.load_full_weights = load_full_weights
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -641,6 +642,10 @@ class DeepSpeedPlugin(DDPPlugin):
     def deepspeed_engine(self):
         return self.model
 
+    @property
+    def _multi_device(self) -> bool:
+        return self.num_processes > 1 or self.num_nodes > 1
+
     def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -648,17 +653,12 @@ class DeepSpeedPlugin(DDPPlugin):
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
         """
-        if self.save_full_weights and self.zero_stage_3:
-            # todo (sean): expose this as general function in deepspeed
-            state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
-            if self.is_global_zero:
-                # State dict keys will include reference to wrapper LightningDeepSpeedModule
-                # Delete `module` prefix before saving.
-                state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
-                checkpoint['state_dict'] = state_dict
-                return super().save_checkpoint(checkpoint, filepath)
-            return
-
+        if self.zero_stage_3 and self._multi_device:
+            warning_cache.warn(
+                'When saving the DeepSpeed Stage 3 checkpoint, '
+                'each worker will save a shard of the checkpoint within a directory.'
+                'If a single file is required after training, see <TODO> for instructions.'
+            )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
         # dump states as a checkpoint dictionary object
         _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
@@ -666,7 +666,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
     def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
-        if self.save_full_weights and self.zero_stage_3:
+        if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
@@ -678,10 +678,15 @@ class DeepSpeedPlugin(DDPPlugin):
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
         )
+        return client_state
+
+    @property
+    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+        return False  # managed by DeepSpeed
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
-        if self.save_full_weights and self.zero_stage_3:
+        if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()
             self._restore_zero_state(checkpoint)
 
@@ -732,7 +737,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
-        if self.save_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
                 "A single checkpoint file was saved using ZeRO Stage 3. This means optimizer states and "
                 "scheduler states can not be restored. If you'd like to restore these states, you must"

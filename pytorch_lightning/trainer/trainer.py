@@ -810,6 +810,8 @@ class Trainer(
         self.checkpoint_connector.restore_model()
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
 
     def _run(self, model: 'pl.LightningModule') -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
@@ -835,9 +837,6 @@ class Trainer(
 
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
             self._restore_training()
-
-        # restore optimizers, etc.
-        self.checkpoint_connector.restore_training_state()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module

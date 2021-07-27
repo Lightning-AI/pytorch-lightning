@@ -569,9 +569,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelManualOptim)
 
 
-def run_checkpoint_test(
-    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
-):
+def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumulate_grad_batches: int = 2):
     seed_everything(1)
     if automatic_optimization:
         model = ModelParallelClassificationModel()
@@ -582,7 +580,7 @@ def run_checkpoint_test(
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
+        plugins=[DeepSpeedPlugin(stage=3)],
         gpus=2,
         precision=16,
         accumulate_grad_batches=accumulate_grad_batches,
@@ -600,12 +598,7 @@ def run_checkpoint_test(
         model = ModelParallelClassificationModel()
     else:
         model = ManualModelParallelClassificationModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=2,
-        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
-        precision=16
-    )
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins=[DeepSpeedPlugin(stage=3)], precision=16)
 
     results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]['test_acc'] > 0.7
@@ -617,16 +610,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
     and see convergence.
     """
-    run_checkpoint_test(tmpdir, save_full_weights=False)
-
-
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
-    """
-    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    where we save the full weights to one file.
-    """
-    run_checkpoint_test(tmpdir, save_full_weights=True)
+    run_checkpoint_test(tmpdir)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
@@ -668,10 +652,10 @@ def test_deepspeed_multigpu_stage_3_full_weights_warns_resume_training(tmpdir):
         trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
+@RunIf(min_gpus=1, deepspeed=True, special=False)
+def test_deepspeed_multigpu_stage_3_save_warning(tmpdir):
     """
-    Test to ensure with Stage 3 and multiple GPUs that we can resume training if save_full_weights is false.
+    Test to ensure with Stage 3 and multiple GPUs that we recieve a warning that we're saving sharded checkpoints.
     """
     initial_model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
@@ -683,7 +667,30 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        plugins=DeepSpeedPlugin(stage=3, save_full_weights=False),
+        plugins=DeepSpeedPlugin(stage=3),
+        gpus=1,
+        precision=16,
+        callbacks=[ck]
+    )
+    initial_trainer.fit(initial_model, datamodule=dm)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=False)
+def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can resume training.
+    """
+    initial_model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
+
+    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
+    initial_trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        plugins=DeepSpeedPlugin(stage=3),
         gpus=1,
         precision=16,
         callbacks=[ck]
@@ -694,8 +701,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 
         def on_train_batch_start(
             self,
-            trainer: 'pl.Trainer',
-            pl_module: 'pl.LightningModule',
+            trainer: Trainer,
+            pl_module: LightningModule,
             batch: Any,
             batch_idx: int,
             dataloader_idx: int,
@@ -715,12 +722,14 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
             # assert model state is loaded correctly
             for current_param, initial_param in zip(pl_module.parameters(), initial_model.parameters()):
                 assert torch.equal(current_param.cpu(), initial_param.cpu())
+            # assert epoch has correctly been restored
+            assert trainer.current_epoch == 1
 
     model = ModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        plugins=DeepSpeedPlugin(stage=3, save_full_weights=False),
+        plugins=DeepSpeedPlugin(stage=3),
         gpus=1,
         precision=16,
         resume_from_checkpoint=ck.best_model_path,
@@ -735,7 +744,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
     where we save the full weights to one file.
     """
-    run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
+    run_checkpoint_test(tmpdir, automatic_optimization=False, accumulate_grad_batches=1)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)

@@ -211,7 +211,8 @@ class CheckpointConnector:
 
     def restore_optimizers_and_schedulers(self) -> None:
         """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
-        if not self._loaded_checkpoint:
+        if not self._loaded_checkpoint or \
+                not self.trainer.training_type_plugin.lightning_restore_optimizer_and_schedulers:
             return
 
         # validation
