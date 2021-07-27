@@ -16,10 +16,10 @@ from typing import Callable, Union
 
 import pytest
 import torch
+from torchmetrics.functional import mean_relative_error
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
-from torchmetrics.functional import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf
