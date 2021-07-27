@@ -60,7 +60,7 @@ def test_v1_5_0_wandb_unused_sync_step(_):
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     class OldSignature(Callback):
-        def on_save_checkpoint(self, trainer, pl_module):  # noqa
+        def on_save_checkpoint(self, trainer, pl_module):
             ...
 
     model = BoringModel()
@@ -198,11 +198,11 @@ def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     callback_warning_cache.clear()
 
     class OldSignature(Callback):
-        def on_train_epoch_end(self, trainer, pl_module, outputs):  # noqa
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
             ...
 
     class OldSignatureModel(BoringModel):
-        def on_train_epoch_end(self, outputs):  # noqa
+        def on_train_epoch_end(self, outputs):
             ...
 
     model = BoringModel()
