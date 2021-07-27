@@ -230,6 +230,21 @@ If you want to call ``lr_scheduler.step()`` every ``n`` steps/epochs, do the fol
         if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
             sch.step()
 
+If you want to call schedulers that require a metric value after each epoch, consider doing the following:
+
+.. testcode::
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_epoch_end(self, outputs):
+        sch = self.lr_schedulers()
+
+        # If the selected scheduler is a ReduceLROnPlateau scheduler.
+        if isinstance(sch, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            sch.step(self.trainer.callback_metrics["loss"])
+
 -----
 
 Use closure for LBFGS-like optimizers
@@ -299,10 +314,14 @@ Under the hood, Lightning does the following:
 
     for epoch in epochs:
         for batch in data:
-            loss = model.training_step(batch, batch_idx, ...)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+
+            def closure():
+                loss = model.training_step(batch, batch_idx, ...)
+                optimizer.zero_grad()
+                loss.backward()
+                return loss
+
+            optimizer.step(closure)
 
         for lr_scheduler in lr_schedulers:
             lr_scheduler.step()
@@ -314,13 +333,21 @@ In the case of multiple optimizers, Lightning does the following:
     for epoch in epochs:
         for batch in data:
             for opt in optimizers:
-                loss = model.training_step(batch, batch_idx, optimizer_idx)
-                opt.zero_grad()
-                loss.backward()
-                opt.step()
+
+                def closure():
+                    loss = model.training_step(batch, batch_idx, optimizer_idx)
+                    opt.zero_grad()
+                    loss.backward()
+                    return loss
+
+                opt.step(closure)
 
         for lr_scheduler in lr_schedulers:
             lr_scheduler.step()
+
+As can be seen in the code snippet above, Lightning defines a closure with ``training_step``, ``zero_grad``
+and ``backward`` for the optimizer to execute. This mechanism is in place to support optimizers which operate on the
+output of the closure (e.g. the loss) or need to call the closure several times (e.g. :class:`~torch.optim.LBFGS`).
 
 .. warning::
    Before 1.2.2, Lightning internally calls ``backward``, ``step`` and ``zero_grad`` in the order.
@@ -396,8 +423,11 @@ For example, here step optimizer A every batch and optimizer B every 2 batches.
         # update discriminator every 2 steps
         if optimizer_idx == 1:
             if (batch_idx + 1) % 2 == 0:
-                # the closure (which includes the `training_step`) won't run if the line below isn't executed
+                # the closure (which includes the `training_step`) will be executed by `optimizer.step`
                 optimizer.step(closure=optimizer_closure)
+            else:
+                # optional: call the closure by itself to run `training_step` + `backward` without an optimizer step
+                optimizer_closure()
 
         # ...
         # add as many optimizers as you want
