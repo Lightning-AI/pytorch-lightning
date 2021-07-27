@@ -20,13 +20,13 @@ from copy import deepcopy
 import numpy as np
 import pytest
 import torch
-from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel
@@ -36,7 +36,7 @@ PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
 def _get_python_cprofile_total_duration(profile):
-    return sum([x.inlinetime for x in profile.getstats()])
+    return sum(x.inlinetime for x in profile.getstats())
 
 
 def _sleep_generator(durations):
@@ -322,7 +322,7 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     assert path.read_text("utf-8")
 
     if _KINETO_AVAILABLE:
-        files = sorted([file for file in os.listdir(tmpdir) if file.endswith(".json")])
+        files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"test-{pytorch_profiler.filename}" in f for f in files)
         path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
         assert path.read_text("utf-8")
@@ -372,24 +372,12 @@ def test_pytorch_profiler_nested(tmpdir):
 
     events_name = {e.name for e in pytorch_profiler.function_events}
 
-    if platform.system() == "Windows":
-        expected = {"a", "add", "b", "c", "profiler::_record_function_enter", "profiler::_record_function_exit"}
-    else:
-        expected = {"add", "zeros", "ones", "zero_", "b", "fill_", "c", "a", "empty"}
+    names = {"a", "b", "c"}
+    ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
+    if _TORCH_GREATER_EQUAL_1_7:
+        ops = {"aten::" + op for op in ops}
 
-    if Version(torch.__version__) >= Version("1.7.0"):
-        expected = {
-            "aten::zeros",
-            "aten::add",
-            "aten::zero_",
-            "c",
-            "b",
-            "a",
-            "aten::fill_",
-            "aten::empty",
-            "aten::ones",
-        }
-
+    expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 

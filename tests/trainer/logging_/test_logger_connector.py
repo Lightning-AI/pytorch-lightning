@@ -29,7 +29,7 @@ from tests.helpers.runif import RunIf
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted([f for f in dir(Callback) if not f.startswith("_")])
+    funcs_name = sorted(f for f in dir(Callback) if not f.startswith("_"))
 
     callbacks_func = [
         "on_before_backward",

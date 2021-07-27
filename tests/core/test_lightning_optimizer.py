@@ -302,7 +302,7 @@ class OptimizerWithHooks(Optimizer):
             d = {"params": params, "mod": mod, "layer_type": mod_class}
             self.params.append(d)
 
-        super(OptimizerWithHooks, self).__init__(self.params, {"lr": 0.01})
+        super().__init__(self.params, {"lr": 0.01})
 
     def _save_input(self, mod, i):
         """Saves input of layer"""
