@@ -397,7 +397,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else None,
+            schedulers[0] if schedulers else  _get_default_scheduler_config(),
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
@@ -414,6 +414,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 "Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
+
         scheduler = lr_scheduler["scheduler"]
 
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
@@ -431,7 +432,8 @@ class DeepSpeedPlugin(DDPPlugin):
         # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
         lr_scheduler["scheduler"] = deepspeed_scheduler
-        self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
+        if scheduler:
+            self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
 
     @contextlib.contextmanager

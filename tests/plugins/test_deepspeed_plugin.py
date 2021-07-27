@@ -33,6 +33,21 @@ class ModelParallelBoringModel(BoringModel):
         self.configure_sharded_model()
 
 
+class ModelParallelBoringModelNoSchedulers(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = None
+
+    def configure_sharded_model(self) -> None:
+        self.layer = torch.nn.Linear(32, 2)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        self.configure_sharded_model()
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+
 class ModelParallelBoringModelManualOptim(BoringModel):
     def __init__(self):
         super().__init__()
@@ -687,3 +702,18 @@ def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
         # Assert model parameters are identical after loading
         for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
             assert torch.equal(orig_param, trained_model_param)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_no_schedulers(tmpdir):
+    """
+    Test to ensure ZeRO Stage 3 works with a parallel model.
+    """
+    model = ModelParallelBoringModelNoSchedulers()
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+    trainer.test(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelNoSchedulers)
