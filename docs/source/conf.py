@@ -142,7 +142,11 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = [f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md", "notebooks/course_UvA-DL/*", "notebooks/sample-template*"]
+exclude_patterns = [
+    f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
+    "notebooks/course_UvA-DL/*",
+    "notebooks/sample-template*",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
