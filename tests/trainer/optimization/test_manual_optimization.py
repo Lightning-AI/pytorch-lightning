@@ -966,36 +966,26 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
-            return {"train_loss_1": torch.tensor([0.0]), "train_loss_2": torch.tensor([0.0])}
+            return {"train_loss": torch.tensor([0.0])}
 
         def training_epoch_end(self, outputs):
-            scheduler_1, scheduler_2 = self.lr_schedulers()
+            scheduler = self.lr_schedulers()
 
-            loss = torch.stack([x["train_loss_1"] for x in outputs]).mean()
-            scheduler_1.step(loss)
-
-            loss = torch.stack([x["train_loss_2"] for x in outputs]).mean()
-            scheduler_2.step(loss)
+            loss = torch.stack([x["train_loss"] for x in outputs]).mean()
+            scheduler.step(loss)
 
         def configure_optimizers(self):
-            optimizer_1 = torch.optim.SGD(self.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.parameters(), lr=0.1)
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
 
             if self.scheduler_as_dict:
-                scheduler_1 = {
-                    "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1),
-                    "monitor": "train_loss_1",
-                }
-
-                scheduler_2 = {
-                    "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_2),
-                    "monitor": "train_loss_2",
+                scheduler = {
+                    "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                    "monitor": "train_loss",
                 }
             else:
-                scheduler_1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
-                scheduler_2 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_2)
+                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
-            return [optimizer_1, optimizer_2], [scheduler_1, scheduler_2]
+            return [optimizer], [scheduler]
 
     model = TestModel(scheduler_as_dict=scheduler_as_dict)
 
