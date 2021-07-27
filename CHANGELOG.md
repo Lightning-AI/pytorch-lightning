@@ -233,6 +233,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `accumulate_grad_batches` not been recomputed during model reload ([#5334](https://github.com/PyTorchLightning/pytorch-lightning/pull/5334))
 - Fixed a `TypeError` when wrapping optimizers in the `HorovodPlugin` and running `Trainer.test` ([#7840](https://github.com/PyTorchLightning/pytorch-lightning/pull/7840))
 - Fixed `BackboneFinetuning` restoration ([#8501](https://github.com/PyTorchLightning/pytorch-lightning/pull/8501))
+- Fixed `lr_scheduler` with metric (e.g. `torch.optim.lr_scheduler.ReduceLROnPlateau`) when using `automatic_optimization = False` ([#7643](https://github.com/PyTorchLightning/pytorch-lightning/pull/7643))
 
 
 ## [1.3.8] - 2021-07-01
