@@ -34,7 +34,6 @@ class ModelParallelBoringModel(BoringModel):
 
 
 class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
-
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
