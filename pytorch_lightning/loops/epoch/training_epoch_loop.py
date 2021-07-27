@@ -166,7 +166,7 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.batch_idx, self.is_last_batch)
+        should_check_val = self._should_check_val_fx(self.total_batch_idx, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
