@@ -121,7 +121,7 @@ class TrainerOptimizersMixin(ABC):
         for scheduler in schedulers:
             if is_manual_optimization:
                 if isinstance(scheduler, dict):
-                    invalid_keys = {'interval', 'frequency', 'reduce_on_plateau', 'monitor', 'strict'}
+                    invalid_keys = {"interval", "frequency", "reduce_on_plateau", "monitor", "strict"}
                     keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
 
                     if keys_to_warn:
@@ -134,28 +134,28 @@ class TrainerOptimizersMixin(ABC):
                     scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
                     lr_schedulers.append({**default_config, **scheduler})
                 else:
-                    lr_schedulers.append({**default_config, 'scheduler': scheduler})
+                    lr_schedulers.append({**default_config, "scheduler": scheduler})
             else:
                 if isinstance(scheduler, dict):
                     # check provided keys
                     extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
                     if extra_keys:
-                        rank_zero_warn(f'Found unsupported keys in the lr scheduler dict: {extra_keys}', RuntimeWarning)
-                    if 'scheduler' not in scheduler:
+                        rank_zero_warn(f"Found unsupported keys in the lr scheduler dict: {extra_keys}", RuntimeWarning)
+                    if "scheduler" not in scheduler:
                         raise MisconfigurationException(
                             'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                         )
-                    if 'interval' in scheduler and scheduler['interval'] not in ('step', 'epoch'):
+                    if "interval" in scheduler and scheduler["interval"] not in ("step", "epoch"):
                         raise MisconfigurationException(
                             f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
                             f' but is "{scheduler["interval"]}"'
                         )
-                    scheduler['reduce_on_plateau'] = isinstance(
-                        scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
+                    scheduler["reduce_on_plateau"] = isinstance(
+                        scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau
                     )
-                    if scheduler['reduce_on_plateau'] and scheduler.get('monitor', None) is None:
+                    if scheduler["reduce_on_plateau"] and scheduler.get("monitor", None) is None:
                         raise MisconfigurationException(
-                            'The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
+                            "The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used."
                             ' For example: {"optimizer": optimizer, "lr_scheduler":'
                             ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                         )
@@ -163,17 +163,15 @@ class TrainerOptimizersMixin(ABC):
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     if monitor is None:
                         raise MisconfigurationException(
-                            '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`'
-                            ' scheduler is used. For example:'
+                            "`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
+                            " scheduler is used. For example:"
                             ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                         )
-                    lr_schedulers.append({
-                        **default_config, 'scheduler': scheduler,
-                        'reduce_on_plateau': True,
-                        'monitor': monitor
-                    })
+                    lr_schedulers.append(
+                        {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
+                    )
                 elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-                    lr_schedulers.append({**default_config, 'scheduler': scheduler})
+                    lr_schedulers.append({**default_config, "scheduler": scheduler})
                 else:
                     raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
         return lr_schedulers
