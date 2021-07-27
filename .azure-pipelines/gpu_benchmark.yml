@@ -1,4 +1,4 @@
-schedule:
+schedules:
   - cron: "0 0 * * *" # At the end of every day
     displayName: Daily midnight benchmark
     branches:
@@ -13,6 +13,7 @@ jobs:
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.8-torch1.8"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=32b"
     workspace:
       clean: all
 
