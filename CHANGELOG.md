@@ -57,7 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Removed deprecated `metrics` ([#8586](https://github.com/PyTorchLightning/pytorch-lightning/pull/8586/))
 
 
 -
@@ -92,7 +92,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `extract_batch_size` utility and corresponding tests to extract batch dimension from multiple batch types. ([#8357](https://github.com/PyTorchLightning/pytorch-lightning/pull/8357/))
+- Added `extract_batch_size` utility and corresponding tests to extract batch dimension from multiple batch types ([#8357](https://github.com/PyTorchLightning/pytorch-lightning/pull/8357/))
 - Added support for named parameter groups in `LearningRateMonitor` ([#7987](https://github.com/PyTorchLightning/pytorch-lightning/pull/7987))
 - Added `dataclass` support for `pytorch_lightning.utilities.apply_to_collection` ([#7935](https://github.com/PyTorchLightning/pytorch-lightning/pull/7935))
 - Added support to `LightningModule.to_torchscript` for saving to custom filesystems with `fsspec` ([#7617](https://github.com/PyTorchLightning/pytorch-lightning/pull/7617))
