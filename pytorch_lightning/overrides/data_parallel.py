@@ -26,9 +26,9 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 def _ignore_scalar_return_in_dp():
     # Users get confused by this warning so we silence it
     warnings.filterwarnings(
-        'ignore',
-        message='Was asked to gather along dimension 0, but all input tensors were scalars;'
-        ' will instead unsqueeze and return a vector.'
+        "ignore",
+        message="Was asked to gather along dimension 0, but all input tensors were scalars;"
+        " will instead unsqueeze and return a vector.",
     )
 
 
@@ -53,7 +53,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     """
 
-    def __init__(self, pl_module: 'pl.LightningModule') -> None:
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__(pl_module)
         _ignore_scalar_return_in_dp()
 
@@ -67,11 +67,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
             data = unsqueeze_scalar_tensor(data)
             return data
 
-        output = apply_to_collection(
-            output,
-            dtype=(numbers.Number, torch.Tensor),
-            function=output_transform,
-        )
+        output = apply_to_collection(output, dtype=(numbers.Number, torch.Tensor), function=output_transform)
         return output
 
     def update_replica_device_attributes(self, inputs: Any) -> None:
@@ -107,14 +103,14 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
 
 def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
-    """ Converts a Python scalar number to a torch tensor and places it on the given device. """
+    """Converts a Python scalar number to a torch tensor and places it on the given device."""
     if isinstance(data, numbers.Number):
         data = torch.tensor([data], device=device)
     return data
 
 
 def unsqueeze_scalar_tensor(data: Any) -> Any:
-    """ Un-squeezes a 0-dim tensor. """
+    """Un-squeezes a 0-dim tensor."""
     if isinstance(data, torch.Tensor) and data.dim() == 0:
         data = data.unsqueeze(0)
     return data

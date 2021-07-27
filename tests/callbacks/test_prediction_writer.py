@@ -21,9 +21,7 @@ from tests.helpers import BoringModel
 
 
 def test_prediction_writer(tmpdir):
-
     class CustomPredictionWriter(BasePredictionWriter):
-
         def __init__(self, writer_interval: str):
             super().__init__(writer_interval)
 

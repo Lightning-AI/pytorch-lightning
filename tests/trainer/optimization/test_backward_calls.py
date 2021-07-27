@@ -9,7 +9,7 @@ from tests.base import EvalModelTemplate
 @pytest.mark.parametrize("num_steps", [1, 2, 3])
 @patch("torch.Tensor.backward")
 def test_backward_count_simple(torch_backward, num_steps):
-    """ Test that backward is called exactly once per step. """
+    """Test that backward is called exactly once per step."""
     model = EvalModelTemplate()
     trainer = Trainer(max_steps=num_steps)
     trainer.fit(model)
@@ -23,7 +23,7 @@ def test_backward_count_simple(torch_backward, num_steps):
 
 @patch("torch.Tensor.backward")
 def test_backward_count_with_grad_accumulation(torch_backward):
-    """ Test that backward is called the correct number of times when accumulating gradients. """
+    """Test that backward is called the correct number of times when accumulating gradients."""
     model = EvalModelTemplate()
     trainer = Trainer(max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2)
     trainer.fit(model)
@@ -38,7 +38,7 @@ def test_backward_count_with_grad_accumulation(torch_backward):
 
 @patch("torch.Tensor.backward")
 def test_backward_count_with_closure(torch_backward):
-    """ Using a closure (e.g. with LBFGS) should lead to no extra backward calls. """
+    """Using a closure (e.g. with LBFGS) should lead to no extra backward calls."""
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__lbfgs
     trainer = Trainer(max_steps=5)

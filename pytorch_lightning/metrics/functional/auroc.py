@@ -25,7 +25,7 @@ def auroc(
     target: torch.Tensor,
     num_classes: Optional[int] = None,
     pos_label: Optional[int] = None,
-    average: Optional[str] = 'macro',
+    average: Optional[str] = "macro",
     max_fpr: Optional[float] = None,
     sample_weights: Optional[Sequence] = None,
 ) -> torch.Tensor:

@@ -24,7 +24,6 @@ def test_overfit_multiple_val_loaders(tmpdir):
     """
 
     class TestModel(BoringModel):
-
         def validation_step(self, batch, batch_idx, dataloader_idx):
             output = self.layer(batch[0])
             loss = self.loss(batch, output)
@@ -41,17 +40,13 @@ def test_overfit_multiple_val_loaders(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        overfit_batches=1,
-        log_every_n_steps=1,
-        weights_summary=None,
+        default_root_dir=tmpdir, max_epochs=2, overfit_batches=1, log_every_n_steps=1, weights_summary=None
     )
 
     trainer.fit(model)
 
 
-@pytest.mark.parametrize('overfit', [1, 2, 0.1, 0.25, 1.0])
+@pytest.mark.parametrize("overfit", [1, 2, 0.1, 0.25, 1.0])
 def test_overfit_basic(tmpdir, overfit):
     """
     Tests that only training_step can be used
@@ -59,11 +54,6 @@ def test_overfit_basic(tmpdir, overfit):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        overfit_batches=overfit,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=overfit, weights_summary=None)
 
     trainer.fit(model)

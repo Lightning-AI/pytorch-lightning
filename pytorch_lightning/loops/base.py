@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 from deprecate import void
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress, Tracker
+from pytorch_lightning.trainer.progress import BaseProgress, Progress
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -46,18 +46,19 @@ class Loop(ABC):
     """
 
     def __init__(self) -> None:
+        # TODO: replace by progress tracking
         self.iteration_count: int = 0
         self.restarting = False
-        self._trainer: Optional['pl.Trainer'] = None
+        self._trainer: Optional["pl.Trainer"] = None
 
     @property
-    def trainer(self) -> Optional['pl.Trainer']:
+    def trainer(self) -> Optional["pl.Trainer"]:
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: 'pl.Trainer'):
-        """Connect the Trainer to this loop and all children."""
-        if not isinstance(trainer, pl.Trainer) and trainer is not None:
+    def trainer(self, trainer: "pl.Trainer"):
+        """Connects this loop's trainer and its children"""
+        if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
                 f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
             )
@@ -76,10 +77,8 @@ class Loop(ABC):
         """Determine whether to return immediately from the call to :meth:`run`."""
         return False
 
-    def connect(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
-        """Connects Loop with all the necessary things like connectors and accelerators."""
-        # TODO(@justusschock): Make the trainer a weakref/proxy
-        self.trainer = trainer
+    def connect(self, **kwargs: "Loop") -> None:
+        """Optionally connect one or multiple loops to this one. Linked loops should form a tree."""
 
     def on_skip(self) -> Optional[Any]:
         """
@@ -112,6 +111,7 @@ class Loop(ABC):
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
                 self.iteration_count += 1
+                self.restarting = False
             except StopIteration:
                 break
 
@@ -158,7 +158,7 @@ class Loop(ABC):
         """
         return {}
 
-    def on_load_checkpoint(self, state_dict: Dict):
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
@@ -179,27 +179,22 @@ class Loop(ABC):
             if isinstance(v, BaseProgress):
                 destination[prefix + k] = v.state_dict()
             elif isinstance(v, Loop):
-                v.state_dict(destination, prefix + k + '.')
+                v.state_dict(destination, prefix + k + ".")
 
         return destination
 
-    def load_state_dict(self, state_dict: Dict, prefix="", restart_progress: bool = True):
-        """ Loads the state of this loop and all its children. """
+    def load_state_dict(self, state_dict: Dict, prefix: str = "", restart_progress: bool = True) -> None:
+        """Loads the state of this loop and all its children."""
         self._load_from_state_dict(state_dict.copy(), prefix, restart_progress)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
 
-    def _load_from_state_dict(self, state_dict, prefix, restart_progress):
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, restart_progress: bool) -> None:
         for k, v in self.__dict__.items():
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[prefix + k])
                 if restart_progress:
-
-                    def restart(tracker: Tracker):
-                        tracker.reset_on_restart()
-
-                    apply_to_collection(v, Tracker, restart)
-
+                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True

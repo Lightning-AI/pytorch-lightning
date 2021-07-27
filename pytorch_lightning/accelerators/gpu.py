@@ -24,7 +24,7 @@ _log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
-    """ Accelerator for GPU devices. """
+    """Accelerator for GPU devices."""
 
     def setup_environment(self) -> None:
         super().setup_environment()
@@ -32,7 +32,7 @@ class GPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         torch.cuda.set_device(self.root_device)
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
         """
         Raises:
             MisconfigurationException:
@@ -52,3 +52,7 @@ class GPUAccelerator(Accelerator):
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
+
+    def teardown(self) -> None:
+        super().teardown()
+        self._move_optimizer_state(torch.device("cpu"))
