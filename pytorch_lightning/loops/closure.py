@@ -23,19 +23,18 @@ class ClosureResult:
 
 
 class Closure:
-
     def __init__(self):
         super().__init__()
         self._result = ClosureResult()
 
     @property
     def result(self) -> ClosureResult:
-        """ The cached result from the last time the closure was called. """
+        """The cached result from the last time the closure was called."""
         return self._result
 
     @abstractmethod
     def closure(self, *args, **kwargs):
-        """ Implements the behavior of the closure once it is getting called. """
+        """Implements the behavior of the closure once it is getting called."""
         pass
 
     def __call__(self, *args, **kwargs) -> Optional[Tensor]:
@@ -45,7 +44,7 @@ class Closure:
 
 
 class LightningClosure(Closure):
-    """ Training step and backward closure. """
+    """Training step and backward closure."""
 
     warning_cache: Optional[WarningCache] = None
 
@@ -70,9 +69,7 @@ class LightningClosure(Closure):
             output = self._step_fn()
 
             if output is None:
-                self.warning_cache.warn(
-                    "training_step returned None. If this was on purpose, ignore this warning..."
-                )
+                self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
 
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
