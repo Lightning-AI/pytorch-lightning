@@ -11,18 +11,83 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+-
+
+
+-
+
+
+-
+
+
+-
+
+
+-
 
 ### Changed
 
+-
+
+
+-
+
+
+-
+
+
+-
+
+
+-
 
 ### Deprecated
 
+-
+
+
+-
+
+
+-
+
+
+-
+
+
+-
 
 ### Removed
 
+-
+
+
+-
+
+
+-
+
+
+-
+
+
+-
 
 ### Fixed
 
+-
+
+
+-
+
+
+-
+
+
+-
+
+
+-
 
 
 ## [1.4.0] - 2021-07-27
