@@ -685,7 +685,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
         match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers',
     ):
         if stage == "test":
-            if ckpt_path in ('specific', 'best'):
+            if ckpt_path in ("specific", "best"):
                 trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
             ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
             trainer.test(model, test_dataloaders=train_dl, ckpt_path=ckpt_path)
@@ -724,7 +724,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
         match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers',
     ):
         if stage == "test":
-            if ckpt_path in ('specific', 'best'):
+            if ckpt_path in ("specific", "best"):
                 trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
             ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
             trainer.test(model, test_dataloaders=test_multi_dl, ckpt_path=ckpt_path)

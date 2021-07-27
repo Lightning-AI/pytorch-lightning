@@ -1152,9 +1152,9 @@ class Trainer(
                 f"You can pass `{fn}(ckpt_path='best')` to avoid this warning "
                 "or `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
             )
-            ckpt_path = 'best'
+            ckpt_path = "best"
 
-        if ckpt_path == 'best':
+        if ckpt_path == "best":
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:

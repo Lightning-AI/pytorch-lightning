@@ -470,7 +470,7 @@ class ModelParallelClassificationModel(LightningModule):
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if not hasattr(self, 'model'):
+        if not hasattr(self, "model"):
             self.configure_sharded_model()
 
 
@@ -542,7 +542,7 @@ def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumu
     trainer.fit(model, datamodule=dm)
 
     results = trainer.test(model, datamodule=dm)
-    assert results[0]['test_acc'] > 0.7
+    assert results[0]["test_acc"] > 0.7
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results[0]["test_acc"] > 0.7
     assert saved_results == results
@@ -554,7 +554,7 @@ def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumu
     trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins=[DeepSpeedPlugin(stage=3)], precision=16)
 
     results = trainer.test(model, datamodule=dm)
-    assert results[0]['test_acc'] > 0.7
+    assert results[0]["test_acc"] > 0.7
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -585,22 +585,22 @@ def test_deepspeed_multigpu_stage_3_full_weights_warns_resume_training(tmpdir):
         plugins=DeepSpeedPlugin(stage=3),
         gpus=1,
         precision=16,
-        callbacks=[ck]
+        callbacks=[ck],
     )
     trainer.fit(model, datamodule=dm)
     model = ModelParallelClassificationModel()
     with pytest.warns(
         UserWarning,
         match="A single checkpoint file was saved using ZeRO Stage 3. "
-        "This means optimizer states and scheduler states can not be restored"
+        "This means optimizer states and scheduler states can not be restored",
     ):
         trainer = Trainer(
             default_root_dir=tmpdir,
             fast_dev_run=True,
-            plugins='deepspeed_stage_3',
+            plugins="deepspeed_stage_3",
             gpus=1,
             precision=16,
-            resume_from_checkpoint=ck.best_model_path
+            resume_from_checkpoint=ck.best_model_path,
         )
         trainer.fit(model, datamodule=dm)
 
@@ -623,7 +623,7 @@ def test_deepspeed_multigpu_stage_3_save_warning(tmpdir):
         plugins=DeepSpeedPlugin(stage=3),
         gpus=1,
         precision=16,
-        callbacks=[ck]
+        callbacks=[ck],
     )
     initial_trainer.fit(initial_model, datamodule=dm)
 
@@ -646,19 +646,13 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         plugins=DeepSpeedPlugin(stage=3),
         gpus=1,
         precision=16,
-        callbacks=[ck]
+        callbacks=[ck],
     )
     initial_trainer.fit(initial_model, datamodule=dm)
 
     class TestCallback(Callback):
-
         def on_train_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            batch_idx: int,
-            dataloader_idx: int,
+            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             original_deepspeed_plugin = initial_trainer.accelerator.training_type_plugin
             current_deepspeed_plugin = trainer.accelerator.training_type_plugin
@@ -669,7 +663,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
             original_optimizer_dict = original_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
             current_optimizer_dict = current_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
             for orig_tensor, current_tensor in zip(
-                original_optimizer_dict['fp32_flat_groups'], current_optimizer_dict['fp32_flat_groups']
+                original_optimizer_dict["fp32_flat_groups"], current_optimizer_dict["fp32_flat_groups"]
             ):
                 assert torch.all(orig_tensor.eq(current_tensor))
             # assert model state is loaded correctly
@@ -686,7 +680,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         gpus=1,
         precision=16,
         resume_from_checkpoint=ck.best_model_path,
-        callbacks=TestCallback()
+        callbacks=TestCallback(),
     )
     trainer.fit(model, datamodule=dm)
 

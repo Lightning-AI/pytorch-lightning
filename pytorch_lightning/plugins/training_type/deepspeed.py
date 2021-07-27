@@ -16,7 +16,6 @@ import json
 import logging
 import os
 import platform
-
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
@@ -680,13 +679,13 @@ class DeepSpeedPlugin(DDPPlugin):
         """
         if self.zero_stage_3 and self._multi_device:
             warning_cache.warn(
-                'When saving the DeepSpeed Stage 3 checkpoint, '
-                'each worker will save a shard of the checkpoint within a directory.'
-                'If a single file is required after training, see <TODO> for instructions.'
+                "When saving the DeepSpeed Stage 3 checkpoint, "
+                "each worker will save a shard of the checkpoint within a directory."
+                "If a single file is required after training, see <TODO> for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
         # dump states as a checkpoint dictionary object
-        _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
+        _exclude_keys = ["state_dict", "optimizer_states", "lr_schedulers"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
@@ -731,10 +730,10 @@ class DeepSpeedPlugin(DDPPlugin):
             missing_keys = []
             unexpected_keys = []
             error_msgs = []
-            state_dict = ckpt['state_dict']
+            state_dict = ckpt["state_dict"]
 
             # copy state_dict so _load_from_state_dict can modify it
-            metadata = getattr(state_dict, '_metadata', None)
+            metadata = getattr(state_dict, "_metadata", None)
             state_dict = state_dict.copy()
             if metadata is not None:
                 state_dict._metadata = metadata
@@ -752,7 +751,7 @@ class DeepSpeedPlugin(DDPPlugin):
                         strict=True,
                         missing_keys=missing_keys,
                         unexpected_keys=unexpected_keys,
-                        error_msgs=error_msgs
+                        error_msgs=error_msgs,
                     )
 
             for name, child in module._modules.items():
