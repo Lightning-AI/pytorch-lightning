@@ -647,12 +647,14 @@ class TrainingBatchLoop(Loop):
         if len(self.trainer.optimizers) > 1:
             training_step_fx = getattr(lightning_module, "training_step")
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
-            if has_opt_idx_in_train_step and not lightning_module.automatic_optimization:
-                raise ValueError(
-                    "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
-                    " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
-                    " argument or set `self.automatic_optimization = True`."
-                )
+            if has_opt_idx_in_train_step:
+                if not lightning_module.automatic_optimization:
+                    raise ValueError(
+                        "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
+                        " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
+                        " argument or set `self.automatic_optimization = True`."
+                    )
+                step_kwargs["optimizer_idx"] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
