@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Adding utility function for calculating model size in bytes ([#8500](https://github.com/PyTorchLightning/pytorch-lightning/pull/8500))
 
 
 -
