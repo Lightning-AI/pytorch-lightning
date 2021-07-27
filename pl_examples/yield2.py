@@ -30,21 +30,24 @@ class BoringModel(LightningModule):
         self.layer2 = torch.nn.Linear(32, 32)
         self.head = torch.nn.Linear(32, 2)
 
+    # potential future directions
+    # 1) yield loss + optimizer
+    # 2) last statement must be a return
+    # 3) yield loss + extras for step_end and epoch_end
     def training_step(self, batch, batch_idx, optimizer_idx=0):
         loss0 = self.head(self.layer1(batch)).sum()
-        # self.log("train_loss_0", loss0)
         yield loss0
 
         print("yield 0")
 
         loss1 = self.head(self.layer2(batch)).sum()
-        # self.log("train_loss_1", loss0)
 
         print("yield 1")
 
         yield loss1
 
     def configure_optimizers(self):
+        # scheduler dict?
         opt1 = torch.optim.SGD(self.layer1.parameters(), lr=0.1)
         opt2 = torch.optim.SGD(self.layer2.parameters(), lr=0.1)
         return opt1, opt2
