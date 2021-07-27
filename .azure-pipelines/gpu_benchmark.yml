@@ -1,13 +1,14 @@
-name: GPU Parity testing
-
-on:
-  schedule:
-    - cron: "0 0 * * *" # At the end of every day
+schedule:
+  - cron: "0 0 * * *" # At the end of every day
+    displayName: Daily midnight benchmark
+    branches:
+      include:
+        - master
 
 jobs:
   - job: benchmarks
-    timeoutInMinutes: 90
-    cancelTimeoutInMinutes: 2
+    timeoutInMinutes: "90"
+    cancelTimeoutInMinutes: "2"
     pool: gridai-spot-pool
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04

@@ -21,4 +21,4 @@ jobs:
 
       - name: Azure Pipelines
         run: |
-          check-jsonschema .azure-pipelines/*.yml --schemafile "https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.174.2/service-schema.json"
+          check-jsonschema .azure-pipelines/*.yml --schemafile "https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.188.1/service-schema.json"
