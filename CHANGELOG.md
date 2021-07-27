@@ -281,6 +281,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed restrictions in the trainer that loggers can only log from rank 0. Existing logger behavior has not changed. ([#8608](https://github.com/PyTorchLightning/pytorch-lightning/pull/8608))
 
 
+- Disable quantization aware training observers by default during validating/testing/predicting stages ([#8540](https://github.com/PyTorchLightning/pytorch-lightning/pull/8540))
+
+
 - `Trainer.request_dataloader` now takes a `RunningStage` enum instance ([#8858](https://github.com/PyTorchLightning/pytorch-lightning/pull/8858))
 
 
