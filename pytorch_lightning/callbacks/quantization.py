@@ -290,6 +290,10 @@ class QuantizationAwareTraining(Callback):
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "validate" in self._disable_observer_stages and not trainer.sanity_checking:
+            # ``torch.quantization.MovingAveragePerChannelMinMaxObserver`` and ``torch.quantization.HistogramObserver``
+            # need to see at least one batch to infer the shapes of quantization ``scale`` and ``zero_point``. So we
+            # don't disable observers during the sanity check so that they can infer the shapes of quantization
+            # parameters with validation data.
             self._disable_observer(pl_module)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
