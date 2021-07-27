@@ -342,6 +342,12 @@ class Trainer(
         super().__init__()
         Trainer._log_api_event("init")
         self.state = TrainerState()
+
+        if distributed_backend is not None:
+            rank_zero_deprecation(
+                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
+                f" Use `Trainer(accelerator={distributed_backend})` instead."
+            )
         distributed_backend = distributed_backend or accelerator
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
