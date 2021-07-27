@@ -64,16 +64,6 @@ repos:
       - id: black
         name: Format code
 
-  - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.4.0
-    hooks:
-      - id: check-github-workflows # Validate GitHub Workflows against the schema provided by Schemastore
-        files: ^\.github/workflows/
-        types: [ yaml ]
-      - id: check-azure-pipelines # Validate Azure Pipelines config against the schema provided by Microsoft
-        files: ^\.azure-pipelines/
-        types: [ yaml ]
-
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2
     hooks:

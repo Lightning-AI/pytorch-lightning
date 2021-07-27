@@ -1,0 +1,24 @@
+name: CI action schema
+on: # Trigger the workflow on push or pull request, but only for the master branch
+  push: {}
+  pull_request:
+    branches: [master, "release/*"]
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install pkg
+        run: |
+          pip install check-jsonschema
+
+      - name: GH Workflows
+        run: |
+          check-jsonschema .github/workflows/*.yml --schemafile "https://json.schemastore.org/github-workflow"
+
+      - name: Azure Pipelines
+        run: |
+          check-jsonschema .azure-pipelines/*.yml --schemafile "https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.174.2/service-schema.json"
