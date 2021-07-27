@@ -173,8 +173,8 @@ class TrainingBatchLoop(Loop):
         Args:
             batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
-            opt_idx: the index of the current optimizer
-            optimizer: the current optimizer
+            opt_idx: the index of the current optimizer or `None` in case of manual optimization
+            optimizer: the current optimizer or `None` in case of manual optimization
         """
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
