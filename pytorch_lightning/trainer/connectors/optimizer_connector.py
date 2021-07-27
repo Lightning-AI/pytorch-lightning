@@ -20,8 +20,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class OptimizerConnector:
-
-    def __init__(self, trainer: 'pl.Trainer') -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = proxy(trainer)
 
     def on_trainer_init(self) -> None:
@@ -49,48 +48,48 @@ class OptimizerConnector:
             opt_indices = []
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
-            if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
+            if isinstance(lr_scheduler["opt_idx"], int) and lr_scheduler["opt_idx"] not in opt_indices:
                 continue
 
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
                 continue
 
-            current_idx = self.trainer.fit_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
+            current_idx = self.trainer.fit_loop.batch_idx if interval == "step" else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
-            if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
+            if lr_scheduler["interval"] == interval and current_idx % lr_scheduler["frequency"] == 0:
                 # If instance of ReduceLROnPlateau, we need a monitor
                 monitor_key, monitor_val = None, None
-                if lr_scheduler['reduce_on_plateau']:
-                    monitor_key = lr_scheduler['monitor']
+                if lr_scheduler["reduce_on_plateau"]:
+                    monitor_key = lr_scheduler["monitor"]
                     monitor_val = self.trainer.callback_metrics.get(monitor_key)
                     if monitor_val is None:
-                        if lr_scheduler.get('strict', True):
+                        if lr_scheduler.get("strict", True):
                             avail_metrics = list(self.trainer.callback_metrics)
                             raise MisconfigurationException(
-                                f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                                f' which is not available. Available metrics are: {avail_metrics}.'
-                                ' Condition can be set using `monitor` key in lr scheduler dict'
+                                f"ReduceLROnPlateau conditioned on metric {monitor_key}"
+                                f" which is not available. Available metrics are: {avail_metrics}."
+                                " Condition can be set using `monitor` key in lr scheduler dict"
                             )
                         rank_zero_warn(
-                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            ' which is not available but strict is set to `False`.'
-                            ' Skipping learning rate update.',
+                            f"ReduceLROnPlateau conditioned on metric {monitor_key}"
+                            " which is not available but strict is set to `False`."
+                            " Skipping learning rate update.",
                             RuntimeWarning,
                         )
                         continue
                 # update LR
-                old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                old_lr = lr_scheduler["scheduler"].optimizer.param_groups[0]["lr"]
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_ready()
 
-                if lr_scheduler['reduce_on_plateau']:
-                    lr_scheduler['scheduler'].step(monitor_val)
+                if lr_scheduler["reduce_on_plateau"]:
+                    lr_scheduler["scheduler"].step(monitor_val)
                 else:
-                    lr_scheduler['scheduler'].step()
+                    lr_scheduler["scheduler"].step()
 
-                new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                new_lr = lr_scheduler["scheduler"].optimizer.param_groups[0]["lr"]
 
                 self.trainer.fit_loop.epoch_loop.scheduler_progress.increment_completed()
 
@@ -102,5 +101,5 @@ class OptimizerConnector:
                         old_lr,
                         new_lr,
                         monitor_key=monitor_key,
-                        monitor_val=monitor_val
+                        monitor_val=monitor_val,
                     )

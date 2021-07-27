@@ -35,7 +35,6 @@ def test_is_overridden():
     assert not is_overridden("whatever", model, parent=LightningDataModule)
 
     class TestModel(BoringModel):
-
         def foo(self):
             pass
 
@@ -50,7 +49,6 @@ def test_is_overridden():
     assert is_overridden("train_dataloader", datamodule)
 
     class WrappedModel(TestModel):
-
         def __new__(cls, *args, **kwargs):
             obj = super().__new__(cls)
             obj.foo = cls.wrap(obj.foo)
@@ -59,7 +57,6 @@ def test_is_overridden():
 
         @staticmethod
         def wrap(fn):
-
             @wraps(fn)
             def wrapper():
                 fn()
@@ -85,7 +82,6 @@ def test_is_overridden():
 
     # `_PatchDataLoader.patch_loader_code` support
     class TestModel(BoringModel):
-
         def on_fit_start(self):
             assert is_overridden("train_dataloader", self)
             self.on_fit_start_called = True

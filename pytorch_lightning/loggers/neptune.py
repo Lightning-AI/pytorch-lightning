@@ -178,7 +178,7 @@ class NeptuneLogger(LightningLoggerBase):
             If required Neptune package is not installed on the device.
     """
 
-    LOGGER_JOIN_CHAR = '-'
+    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
@@ -188,13 +188,13 @@ class NeptuneLogger(LightningLoggerBase):
         offline_mode: bool = False,
         experiment_name: Optional[str] = None,
         experiment_id: Optional[str] = None,
-        prefix: str = '',
-        **kwargs
+        prefix: str = "",
+        **kwargs,
     ):
         if neptune is None:
             raise ImportError(
-                'You want to use `neptune` logger which is not installed yet,'
-                ' install it with `pip install neptune-client`.'
+                "You want to use `neptune` logger which is not installed yet,"
+                " install it with `pip install neptune-client`."
             )
         super().__init__()
         self.api_key = api_key
@@ -213,9 +213,9 @@ class NeptuneLogger(LightningLoggerBase):
         state = self.__dict__.copy()
 
         # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
-        state['_experiment'] = None
+        state["_experiment"] = None
         if self.offline_mode:
-            state['experiment_id'] = None
+            state["experiment_id"] = None
 
         return state
 
@@ -244,7 +244,7 @@ class NeptuneLogger(LightningLoggerBase):
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for key, val in params.items():
-            self.experiment.set_property(f'param__{key}', val)
+            self.experiment.set_property(f"param__{key}", val)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
@@ -255,7 +255,7 @@ class NeptuneLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded, currently ignored
         """
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
@@ -277,13 +277,13 @@ class NeptuneLogger(LightningLoggerBase):
     @property
     def name(self) -> str:
         if self.offline_mode:
-            return 'offline-name'
+            return "offline-name"
         return self.experiment.name
 
     @property
     def version(self) -> str:
         if self.offline_mode:
-            return 'offline-id-1234'
+            return "offline-id-1234"
         return self.experiment.id
 
     @rank_zero_only
@@ -376,7 +376,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     def _create_or_get_experiment(self):
         if self.offline_mode:
-            project = neptune.Session(backend=neptune.OfflineBackend()).get_project('dry-run/project')
+            project = neptune.Session(backend=neptune.OfflineBackend()).get_project("dry-run/project")
         else:
             session = neptune.Session.with_default_backend(api_token=self.api_key)
             project = session.get_project(self.project_name)
@@ -386,7 +386,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment_id = exp.id
         else:
             exp = project.get_experiments(id=self.experiment_id)[0]
-            self.experiment_name = exp.get_system_properties()['name']
+            self.experiment_name = exp.get_system_properties()["name"]
             self.params = exp.get_parameters()
             self.properties = exp.get_properties()
             self.tags = exp.get_tags()

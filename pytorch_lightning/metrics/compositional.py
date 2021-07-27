@@ -21,7 +21,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class CompositionalMetric(_CompositionalMetric):
-
     @deprecated_metrics(target=_CompositionalMetric)
     def __init__(
         self,

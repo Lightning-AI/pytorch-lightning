@@ -31,11 +31,10 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
-    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
     def experiment(self):
-
         @rank_zero_only
         def get_experiment():
             return fn(self)
@@ -66,14 +65,14 @@ class LightningLoggerBase(ABC):
     def __init__(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
     ):
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
 
-    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """
         Called after model checkpoint callback saves a new checkpoint
 
@@ -85,7 +84,7 @@ class LightningLoggerBase(ABC):
     def update_agg_funcs(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
     ):
         """
         Update aggregation methods.
@@ -109,9 +108,9 @@ class LightningLoggerBase(ABC):
     def experiment(self) -> Any:
         """Return the experiment object associated with this logger."""
 
-    def _aggregate_metrics(self,
-                           metrics: Dict[str, float],
-                           step: Optional[int] = None) -> Tuple[int, Optional[Dict[str, float]]]:
+    def _aggregate_metrics(
+        self, metrics: Dict[str, float], step: Optional[int] = None
+    ) -> Tuple[int, Optional[Dict[str, float]]]:
         """
         Aggregates metrics.
 
@@ -223,7 +222,7 @@ class LightningLoggerBase(ABC):
         return {key: _sanitize_callable(val) for key, val in params.items()}
 
     @staticmethod
-    def _flatten_dict(params: Dict[Any, Any], delimiter: str = '/') -> Dict[str, Any]:
+    def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any]:
         """
         Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
@@ -250,8 +249,7 @@ class LightningLoggerBase(ABC):
                     key = str(key)
                     if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
-                        for d in _dict_generator(value, prefixes + [key]):
-                            yield d
+                        yield from _dict_generator(value, prefixes + [key])
                     else:
                         yield prefixes + [key, value if value is not None else str(None)]
             else:
@@ -300,7 +298,7 @@ class LightningLoggerBase(ABC):
             kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         """
         Record model graph
 
@@ -347,7 +345,7 @@ class LightningLoggerBase(ABC):
 
     def _add_prefix(self, metrics: Dict[str, float]):
         if self._prefix:
-            metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
+            metrics = {f"{self._prefix}{self.LOGGER_JOIN_CHAR}{k}": v for k, v in metrics.items()}
 
         return metrics
 
@@ -368,14 +366,14 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return list(self._logger_iterable)[index]
 
-    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         for logger in self._logger_iterable:
             logger.after_save_checkpoint(checkpoint_callback)
 
     def update_agg_funcs(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
     ):
         for logger in self._logger_iterable:
             logger.update_agg_funcs(agg_key_funcs, agg_default_func)
@@ -396,7 +394,7 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
@@ -419,17 +417,17 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return '_'.join([str(logger.name) for logger in self._logger_iterable])
+        return "_".join([str(logger.name) for logger in self._logger_iterable])
 
     @property
     def version(self) -> str:
-        return '_'.join([str(logger.version) for logger in self._logger_iterable])
+        return "_".join([str(logger.version) for logger in self._logger_iterable])
 
 
-class DummyExperiment(object):
-    """ Dummy experiment """
+class DummyExperiment:
+    """Dummy experiment"""
 
-    def nop(*args, **kw):
+    def nop(self, *args, **kw):
         pass
 
     def __getattr__(self, _):
@@ -476,7 +474,7 @@ class DummyLogger(LightningLoggerBase):
 def merge_dicts(
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-    default_func: Callable[[Sequence[float]], float] = np.mean
+    default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
     """
     Merge a sequence with dictionaries into one dictionary by aggregating the

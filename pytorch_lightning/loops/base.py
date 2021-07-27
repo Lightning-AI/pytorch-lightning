@@ -46,17 +46,15 @@ class Loop(ABC):
     """
 
     def __init__(self) -> None:
-        # TODO: replace by progress tracking
-        self.iteration_count: int = 0
         self.restarting = False
-        self._trainer: Optional['pl.Trainer'] = None
+        self._trainer: Optional["pl.Trainer"] = None
 
     @property
-    def trainer(self) -> Optional['pl.Trainer']:
+    def trainer(self) -> Optional["pl.Trainer"]:
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: 'pl.Trainer'):
+    def trainer(self, trainer: "pl.Trainer"):
         """Connects this loop's trainer and its children"""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
@@ -110,7 +108,6 @@ class Loop(ABC):
                 self.on_advance_start(*args, **kwargs)
                 self.advance(*args, **kwargs)
                 self.on_advance_end()
-                self.iteration_count += 1
                 self.restarting = False
             except StopIteration:
                 break
@@ -179,12 +176,12 @@ class Loop(ABC):
             if isinstance(v, BaseProgress):
                 destination[prefix + k] = v.state_dict()
             elif isinstance(v, Loop):
-                v.state_dict(destination, prefix + k + '.')
+                v.state_dict(destination, prefix + k + ".")
 
         return destination
 
     def load_state_dict(self, state_dict: Dict, prefix: str = "", restart_progress: bool = True) -> None:
-        """ Loads the state of this loop and all its children. """
+        """Loads the state of this loop and all its children."""
         self._load_from_state_dict(state_dict.copy(), prefix, restart_progress)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
