@@ -203,7 +203,7 @@ def test_quantization_disable_observers(tmpdir, disable_observers):
 
 @RunIf(quantization=True)
 def test_quantization_val_test_predict(tmpdir):
-    """Test the default quantization aware training not affected by valiation, testing and predicting"""
+    """Test the default quantization aware training not affected by validating, testing and predicting"""
     seed_everything(42)
     num_features = 16
     dm = RegressDataModule(num_features=num_features)
