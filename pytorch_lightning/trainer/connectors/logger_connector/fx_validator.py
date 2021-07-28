@@ -65,7 +65,6 @@ class FxValidator:
         on_save_checkpoint=None,
         on_load_checkpoint=None,
         setup=None,
-        state_id=None,
         teardown=None,
         configure_sharded_model=None,
         training_step=dict(on_step=(False, True), on_epoch=(False, True)),
