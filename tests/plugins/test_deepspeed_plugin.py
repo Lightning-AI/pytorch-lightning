@@ -610,7 +610,7 @@ def test_deepspeed_multigpu_stage_3_full_weights_warns_resume_training(tmpdir):
         trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=False)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_3_save_warning(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we recieve a warning that we're saving sharded checkpoints.
@@ -633,7 +633,7 @@ def test_deepspeed_multigpu_stage_3_save_warning(tmpdir):
     initial_trainer.fit(initial_model, datamodule=dm)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=False)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can resume training.
