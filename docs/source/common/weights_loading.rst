@@ -39,7 +39,7 @@ To change the checkpoint path pass in:
 .. code-block:: python
 
     # saves checkpoints to '/your/path/to/save/checkpoints' at every epoch end
-    trainer = Trainer(default_root_dir='/your/path/to/save/checkpoints')
+    trainer = Trainer(default_root_dir="/your/path/to/save/checkpoints")
 
 You can customize the checkpointing behavior to monitor any quantity of your training or validation steps. For example, if you want to update your checkpoints based on your validation loss:
 
@@ -52,6 +52,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
+
     class LitAutoEncoder(LightningModule):
         def validation_step(self, batch, batch_idx):
             x, y = batch
@@ -61,10 +62,11 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
             loss = F.cross_entropy(y_hat, y)
 
             # 2. log `val_loss`
-            self.log('val_loss', loss)
+            self.log("val_loss", loss)
+
 
     # 3. Init ModelCheckpoint callback, monitoring 'val_loss'
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss')
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
 
     # 4. Add your callback to the callbacks list
     trainer = Trainer(callbacks=[checkpoint_callback])
@@ -75,20 +77,22 @@ You can also control more advanced options, like `save_top_k`, to save the best 
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
+
     class LitAutoEncoder(LightningModule):
         def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.backbone(x)
             loss = F.cross_entropy(y_hat, y)
-            self.log('val_loss', loss)
+            self.log("val_loss", loss)
+
 
     # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
     checkpoint_callback = ModelCheckpoint(
-        monitor='val_loss',
-        dirpath='my/path/',
-        filename='sample-mnist-{epoch:02d}-{val_loss:.2f}',
+        monitor="val_loss",
+        dirpath="my/path/",
+        filename="sample-mnist-{epoch:02d}-{val_loss:.2f}",
         save_top_k=3,
-        mode='min',
+        mode="min",
     )
 
     trainer = Trainer(callbacks=[checkpoint_callback])
@@ -97,7 +101,7 @@ You can retrieve the checkpoint after training by calling
 
 .. code-block:: python
 
-        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
+        checkpoint_callback = ModelCheckpoint(dirpath="my/path/")
         trainer = Trainer(callbacks=[checkpoint_callback])
         trainer.fit(model)
         checkpoint_callback.best_model_path
@@ -118,14 +122,14 @@ under the `hyper_parameters` key in the checkpoint.
 .. code-block:: python
 
     class MyLightningModule(LightningModule):
-
-       def __init__(self, learning_rate, *args, **kwargs):
+        def __init__(self, learning_rate, *args, **kwargs):
             super().__init__()
             self.save_hyperparameters()
 
+
     # all init args were saved to the checkpoint
     checkpoint = torch.load(CKPT_PATH)
-    print(checkpoint['hyper_parameters'])
+    print(checkpoint["hyper_parameters"])
     # {'learning_rate': the_value}
 
 Manual saving
@@ -177,7 +181,6 @@ But if you don't want to use the values saved in the checkpoint, pass in your ow
 .. testcode::
 
     class LitModel(LightningModule):
-
         def __init__(self, in_dim, out_dim):
             super().__init__()
             self.save_hyperparameters()
@@ -209,7 +212,7 @@ do the following:
 .. code-block:: python
 
    model = LitModel()
-   trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+   trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
 
    # automatically restores model, epoch, step, LR schedulers, apex, etc...
    trainer.fit(model)
