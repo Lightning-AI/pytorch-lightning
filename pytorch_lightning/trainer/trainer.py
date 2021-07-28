@@ -862,6 +862,15 @@ class Trainer(
         self.data_connector.prepare_data(model)
         self.callback_connector._attach_model_callbacks(model, self)
 
+        if self._ckpt_path:
+            # only one process running at this point for TPUs, as spawn isn't triggered yet
+            # todo: move this logic internally within the barrier.
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
+
+            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
+            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
+
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -913,18 +922,8 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
-
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
-            self._restore_training()
-
-        if self._ckpt_path:
-            # only one process running at this point for TPUs, as spawn isn't triggered yet
-            # todo: move this logic internally within the barrier.
-            if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
-
-            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
-            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
+        # restore optimizers, etc.
+        self.checkpoint_connector.restore_training_state()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         self._dispatch()
