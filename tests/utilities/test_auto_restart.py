@@ -101,6 +101,7 @@ def _generate_state(base_seed, worker_id):
     return state
 
 
+@RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize("env_setting,expected", [("0", False), ("1", True)])
 def test_fault_tolerant_enabled(env_setting, expected):
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": env_setting}):
