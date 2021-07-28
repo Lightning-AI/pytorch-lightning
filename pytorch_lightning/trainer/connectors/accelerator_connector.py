@@ -110,9 +110,16 @@ class AcceleratorConnector:
         if distributed_backend is not None:
             rank_zero_deprecation(
                 f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(accelerator={distributed_backend})` instead."
+                f" Use `Trainer(training_type={distributed_backend})` instead."
             )
-        distributed_backend = distributed_backend or accelerator
+
+        if accelerator is not None and accelerator in self.training_types:
+            rank_zero_deprecation(
+                f"Passing {accelerator} `training_type` to the `accelerator` flag in Trainer has been deprecated"
+                f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={accelerator})` instead."
+            )
+
+        self.distributed_backend = training_type or distributed_backend or accelerator
 
         self.num_processes = num_processes
         self.devices = devices
@@ -121,7 +128,6 @@ class AcceleratorConnector:
         self.parallel_device_ids = gpu_ids
         self.tpu_cores = tpu_cores
         self.ipus = ipus
-        self.distributed_backend = distributed_backend
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
@@ -331,6 +337,10 @@ class AcceleratorConnector:
     @property
     def accelerator_types(self) -> List[str]:
         return ["auto"] + list(DeviceType)
+
+    @property
+    def training_types(self) -> List[str]:
+        return ["single"] + list(DistributedType)
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
