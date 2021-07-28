@@ -98,6 +98,6 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
 
-        trainer_fn(ckpt_path=None)
+        trainer_fn(model)
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit

@@ -163,7 +163,7 @@ class InternalDebugger:
 
     @property
     def num_seen_sanity_check_batches(self):
-        count = len([x for x in self.saved_val_losses if x["sanity_check"]])
+        count = sum(1 for x in self.saved_val_losses if x["sanity_check"])
         return count
 
     @property

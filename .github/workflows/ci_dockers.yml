@@ -123,21 +123,6 @@ jobs:
           push: false
         timeout-minutes: 50
 
-  build-nvidia:
-    runs-on: ubuntu-20.04
-    # todo: temporarily skip as the base container does not fit to agent
-    if: false
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build NVIDIA Docker
-        uses: docker/build-push-action@v2
-        with:
-          file: dockers/nvidia/Dockerfile
-          push: false
-        timeout-minutes: 50
-
   build-ipu:
     runs-on: ubuntu-20.04
     strategy:
