@@ -417,11 +417,11 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return "_".join([str(logger.name) for logger in self._logger_iterable])
+        return "_".join(str(logger.name) for logger in self._logger_iterable)
 
     @property
     def version(self) -> str:
-        return "_".join([str(logger.version) for logger in self._logger_iterable])
+        return "_".join(str(logger.version) for logger in self._logger_iterable)
 
 
 class DummyExperiment:
