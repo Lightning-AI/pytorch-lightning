@@ -137,7 +137,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Save the loops state with the checkpoint (opt-in) ([#8362](https://github.com/PyTorchLightning/pytorch-lightning/pull/8362))
     * Save a checkpoint to restore the state on exception (opt-in) ([#8362](https://github.com/PyTorchLightning/pytorch-lightning/pull/8362))
     * Added `state_dict` and `load_state_dict` utilities for `CombinedLoader` + utilities for dataloader ([#8364](https://github.com/PyTorchLightning/pytorch-lightning/pull/8364))
-
 - Added `rank_zero_only` to `LightningModule.log` function ([#7966](https://github.com/PyTorchLightning/pytorch-lightning/pull/7966))
 - Added `metric_attribute` to `LightningModule.log` function ([#7966](https://github.com/PyTorchLightning/pytorch-lightning/pull/7966))
 - Added a warning if `Trainer(log_every_n_steps)` is a value too high for the training dataloader ([#7734](https://github.com/PyTorchLightning/pytorch-lightning/pull/7734))
