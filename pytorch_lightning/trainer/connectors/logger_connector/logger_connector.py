@@ -57,12 +57,12 @@ class LoggerConnector:
     @property
     def should_flush_logs(self) -> bool:
         should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
-        return should_flush or self.trainer.should_stop
+        return should_flush or self.trainer._active_loop.should_stop
 
     @property
     def should_update_logs(self) -> bool:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        return should_log_every_n_steps or self.trainer.should_stop
+        return should_log_every_n_steps or self.trainer._active_loop.should_stop
 
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if logger is True:

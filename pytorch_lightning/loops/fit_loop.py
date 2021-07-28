@@ -126,31 +126,23 @@ class FitLoop(Loop):
 
     @property
     def done(self) -> bool:
-        """Evaluates when to leave the loop.
-
-        Returns True if trainer.should_stop was set (e.g. by early stopping)
-        or if the maximum number of steps or epochs is reached.
-        """
+        """Evaluates when to leave the loop."""
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
         stop_epochs = self.max_epochs is not None and self.current_epoch >= self.max_epochs
+        return stop_steps or stop_epochs
 
-        should_stop = False
-        if self.trainer.should_stop:
-            # early stopping
-            met_min_epochs = self.current_epoch >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-            if met_min_epochs and met_min_steps:
-                should_stop = True
-            else:
-                log.info(
-                    "Trainer was signaled to stop but required minimum epochs"
-                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
-                    " not been met. Training will continue..."
-                )
-        self.trainer.should_stop = should_stop
-
-        return stop_steps or should_stop or stop_epochs
+    def stop(self) -> None:
+        """Checks whether a minimum number of epochs and steps have been met before stopping."""
+        met_min_epochs = self.current_epoch >= self.min_epochs if self.min_epochs else True
+        met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+        if met_min_epochs and met_min_steps:
+            return super().stop()
+        log.info(
+            "Trainer was signaled to stop but required minimum epochs"
+            f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
+            " not been met. Training will continue..."
+        )
 
     @property
     def skip(self) -> bool:

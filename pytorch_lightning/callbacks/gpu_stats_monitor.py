@@ -249,4 +249,4 @@ class GPUStatsMonitor(Callback):
 
     @staticmethod
     def _should_log(trainer) -> bool:
-        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop
+        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer._active_loop.should_stop

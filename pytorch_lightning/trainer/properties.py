@@ -628,6 +628,18 @@ class TrainerProperties(ABC):
         if self.state.fn == TrainerFn.PREDICTING:
             return self.predicted_ckpt_path
 
+    @property
+    def should_stop(self) -> bool:
+        # FIXME: deprecate, ask users to access it themselves
+        return self._active_loop.should_stop
+
+    @should_stop.setter
+    def should_stop(self, should_stop: bool) -> None:
+        # FIXME: deprecate this setter, ask users to call `.stop()` manually
+        if should_stop:
+            self._active_loop.stop()
+        self._active_loop.should_stop = should_stop
+
     """
     Logging properties
     """

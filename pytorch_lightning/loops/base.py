@@ -49,6 +49,7 @@ class Loop(ABC):
 
     def __init__(self) -> None:
         self.restarting = False
+        self.should_stop = False
         self._trainer: Optional["pl.Trainer"] = None
 
     @property
@@ -105,17 +106,28 @@ class Loop(ABC):
 
         self.on_run_start(*args, **kwargs)
 
-        while not self.done:
+        while not self.done and not self.should_stop:
             try:
                 self.on_advance_start(*args, **kwargs)
-                self.advance(*args, **kwargs)
-                self.on_advance_end()
+                if not self.should_stop:
+                    self.advance(*args, **kwargs)
+                if not self.should_stop:
+                    self.on_advance_end()
                 self.restarting = False
             except StopIteration:
                 break
 
         output = self.on_run_end()
+
+        self.should_stop = False
         return output
+
+    def stop(self) -> None:
+        """Manually stop a loop and its linked loops."""
+        self.should_stop = True
+        for v in self.__dict__.values():
+            if isinstance(v, Loop):
+                v.stop()
 
     @abstractmethod
     def reset(self) -> None:

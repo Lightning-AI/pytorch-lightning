@@ -68,11 +68,10 @@ class TrainingEpochLoop(loops.Loop):
     @property
     def done(self) -> bool:
         """Returns whether the training should be stopped.
-        The criteria are that the number of steps reached the max steps,
-        the last batch is reached or the trainer signals to stop (e.g. by early stopping).
+        The criteria are that the number of steps reached the max steps, or the last batch is reached
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+        return max_steps_reached or self._num_training_batches_reached(self.is_last_batch)
 
     def connect(
         self,
@@ -368,7 +367,9 @@ class TrainingEpochLoop(loops.Loop):
         if is_last_batch and is_infinite_dataset:
             return True
 
-        if self.trainer.should_stop:
+        # FIXME: this is here to run validation when trainer is signaled to stop
+        # but with the changes here, this won't happen.
+        if self.should_stop:
             return True
 
         # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
