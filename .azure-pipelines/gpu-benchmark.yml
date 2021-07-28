@@ -1,0 +1,25 @@
+schedules:
+  - cron: "0 0 * * *" # At the end of every day
+    displayName: Daily midnight benchmark
+    branches:
+      include:
+        - "master"
+
+jobs:
+  - job: benchmarks
+    timeoutInMinutes: "90"
+    cancelTimeoutInMinutes: "2"
+    pool: gridai-spot-pool
+    container:
+      # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.8-torch1.8"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=32g"
+    workspace:
+      clean: all
+
+    steps:
+      - bash: |
+          python -m pytest benchmarks -v --durations=0
+        displayName: 'Testing: benchmarks'
+        env:
+          PL_RUNNING_BENCHMARKS: 1

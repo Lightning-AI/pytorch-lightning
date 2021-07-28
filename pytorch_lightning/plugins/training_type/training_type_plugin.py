@@ -105,7 +105,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @abstractmethod
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes"""
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         """Reduce the early stopping decision across all processes"""
@@ -130,7 +130,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
+    def lightning_module(self) -> "pl.LightningModule":
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -156,15 +156,15 @@ class TrainingTypePlugin(Plugin, ABC):
         for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_stage()
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the predicting loop
         self._results = trainer.run_stage()
 
@@ -219,7 +219,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """Called before resetting the predict dataloader."""
         return dataloader
 
-    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
+    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
@@ -268,7 +268,7 @@ class TrainingTypePlugin(Plugin, ABC):
             except AttributeError as err:
                 key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
                 checkpoint.pop(key, None)
-                rank_zero_warn(f'Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}')
+                rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
                 atomic_save(checkpoint, filepath)
 
     @contextlib.contextmanager

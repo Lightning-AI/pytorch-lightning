@@ -24,12 +24,7 @@ def test_num_training_batches(tmpdir):
     """
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = EvalModelTemplate()
-    trainer = Trainer(
-        limit_val_batches=100,
-        limit_train_batches=100,
-        max_epochs=1,
-        default_root_dir=tmpdir,
-    )
+    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -40,12 +35,7 @@ def test_num_training_batches(tmpdir):
 
     # when we have more batches in the dataloader we should limit them
     model = EvalModelTemplate()
-    trainer = Trainer(
-        limit_val_batches=7,
-        limit_train_batches=7,
-        max_epochs=1,
-        default_root_dir=tmpdir,
-    )
+    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -117,7 +107,7 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # run tests for both val and test
     # ------------------------------------------------------
-    for split in ['val', 'test']:
+    for split in ["val", "test"]:
 
         # ------------------------------------------------------
         # test overfit_batches as percent
@@ -144,7 +134,7 @@ def test_overfit_batch_limits(tmpdir):
         # ------------------------------------------------------
         # test limit_xxx_batches as percent AND int
         # ------------------------------------------------------
-        if split == 'val':
+        if split == "val":
             loader_num_batches, dataloaders = Trainer(limit_val_batches=0.1)._reset_eval_dataloader(model, split)
             assert loader_num_batches[0] == int(0.1 * len(val_loader))
 

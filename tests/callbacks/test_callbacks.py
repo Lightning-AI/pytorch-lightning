@@ -11,37 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
 from unittest.mock import call, Mock
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
 from tests.helpers import BoringModel
 
 
 def test_callbacks_configured_in_model(tmpdir):
-    """ Test the callback system with callbacks added through the model hook. """
+    """Test the callback system with callbacks added through the model hook."""
 
     model_callback_mock = Mock()
     trainer_callback_mock = Mock()
 
     class TestModel(BoringModel):
-
         def configure_callbacks(self):
             return [model_callback_mock]
 
     model = TestModel()
     trainer_options = dict(
-        default_root_dir=tmpdir,
-        checkpoint_callback=False,
-        fast_dev_run=True,
-        progress_bar_refresh_rate=0,
+        default_root_dir=tmpdir, checkpoint_callback=False, fast_dev_run=True, progress_bar_refresh_rate=0
     )
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
         # some methods in callbacks configured through model won't get called
-        uncalled_methods = [
-            call.on_init_start(_trainer),
-            call.on_init_end(_trainer),
-        ]
+        uncalled_methods = [call.on_init_start(_trainer), call.on_init_end(_trainer)]
         for uncalled in uncalled_methods:
             assert uncalled not in model_callback.method_calls
 
@@ -79,20 +73,16 @@ def test_callbacks_configured_in_model(tmpdir):
 
 
 def test_configure_callbacks_hook_multiple_calls(tmpdir):
-    """ Test that subsequent calls to `configure_callbacks` do not change the callbacks list. """
+    """Test that subsequent calls to `configure_callbacks` do not change the callbacks list."""
     model_callback_mock = Mock()
 
     class TestModel(BoringModel):
-
         def configure_callbacks(self):
             return [model_callback_mock]
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        checkpoint_callback=False,
-        progress_bar_refresh_rate=1,
+        default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False, progress_bar_refresh_rate=1
     )
 
     callbacks_before_fit = trainer.callbacks.copy()
@@ -109,6 +99,36 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
 
-        trainer_fn(ckpt_path=None)
+        trainer_fn(model)
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
+
+
+class OldStatefulCallback(Callback):
+    def __init__(self, state):
+        self.state = state
+
+    @property
+    def state_id(self):
+        return type(self)
+
+    def on_save_checkpoint(self, *args):
+        return {"state": self.state}
+
+    def on_load_checkpoint(self, trainer, pl_module, callback_state):
+        self.state = callback_state["state"]
+
+
+def test_resume_callback_state_saved_by_type(tmpdir):
+    """Test that a legacy checkpoint that didn't use a state identifier before can still be loaded."""
+    model = BoringModel()
+    callback = OldStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer.fit(model)
+    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
+    assert ckpt_path.exists()
+
+    callback = OldStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    trainer.fit(model)
+    assert callback.state == 111

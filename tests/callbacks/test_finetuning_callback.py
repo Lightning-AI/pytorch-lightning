@@ -26,13 +26,12 @@ from tests.helpers import BoringModel, RandomDataset
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
-
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         epoch = trainer.current_epoch
         if self.unfreeze_backbone_at_epoch <= epoch:
             optimizer = trainer.optimizers[0]
-            current_lr = optimizer.param_groups[0]['lr']
+            current_lr = optimizer.param_groups[0]["lr"]
             backbone_lr = self.previous_backbone_lr
             if epoch < 6:
                 assert backbone_lr <= current_lr
@@ -46,7 +45,6 @@ def test_finetuning_callback(tmpdir):
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.ReLU())
@@ -74,19 +72,13 @@ def test_finetuning_callback(tmpdir):
     model = FinetuningBoringModel()
     callback = TestBackboneFinetuningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
-    trainer = Trainer(
-        limit_train_batches=4,
-        default_root_dir=tmpdir,
-        callbacks=[callback],
-        max_epochs=8,
-    )
+    trainer = Trainer(limit_train_batches=4, default_root_dir=tmpdir, callbacks=[callback], max_epochs=8)
     trainer.fit(model)
 
     assert model.backbone.has_been_used
 
 
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
-
     def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
         """Called when the epoch begins."""
 
@@ -102,7 +94,6 @@ def test_finetuning_callback_warning(tmpdir):
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Linear(32, 2, bias=False)
@@ -133,12 +124,7 @@ def test_finetuning_callback_warning(tmpdir):
     callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
-        trainer = Trainer(
-            limit_train_batches=1,
-            default_root_dir=tmpdir,
-            callbacks=[callback, chk],
-            max_epochs=2,
-        )
+        trainer = Trainer(limit_train_batches=1, default_root_dir=tmpdir, callbacks=[callback, chk], max_epochs=2)
         trainer.fit(model)
 
     assert model.backbone.has_been_used
@@ -152,7 +138,6 @@ def test_freeze_unfreeze_function(tmpdir):
     seed_everything(42)
 
     class FreezeModel(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(nn.Linear(32, 32), nn.BatchNorm1d(32), nn.ReLU(), nn.Linear(32, 2))
@@ -187,7 +172,6 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
     seed_everything(42)
 
     class FreezeModel(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.backbone = nn.Sequential(
@@ -228,7 +212,6 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
 
 
 class OnEpochLayerFinetuning(BaseFinetuning):
-
     def freeze_before_training(self, pl_module: LightningModule):
         self.freeze(pl_module.layer)
 
@@ -242,7 +225,6 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
     seed_everything(42)
 
     class FreezeModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.layer = nn.Sequential(
@@ -266,12 +248,12 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
     trainer.fit(model)
     assert len(cb._internal_optimizer_metadata[0]) == 6
-    assert cb._internal_optimizer_metadata[0][0]["params"] == ['layer.0.weight']
-    assert cb._internal_optimizer_metadata[0][1]["params"] == ['layer.1.weight', 'layer.1.bias']
-    assert cb._internal_optimizer_metadata[0][2]["params"] == ['layer.2.weight']
-    assert cb._internal_optimizer_metadata[0][3]["params"] == ['layer.3.weight', 'layer.3.bias']
-    assert cb._internal_optimizer_metadata[0][4]["params"] == ['layer.4.weight']
-    assert cb._internal_optimizer_metadata[0][5]["params"] == ['layer.5.weight', 'layer.5.bias']
+    assert cb._internal_optimizer_metadata[0][0]["params"] == ["layer.0.weight"]
+    assert cb._internal_optimizer_metadata[0][1]["params"] == ["layer.1.weight", "layer.1.bias"]
+    assert cb._internal_optimizer_metadata[0][2]["params"] == ["layer.2.weight"]
+    assert cb._internal_optimizer_metadata[0][3]["params"] == ["layer.3.weight", "layer.3.bias"]
+    assert cb._internal_optimizer_metadata[0][4]["params"] == ["layer.4.weight"]
+    assert cb._internal_optimizer_metadata[0][5]["params"] == ["layer.5.weight", "layer.5.bias"]
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
@@ -287,12 +269,10 @@ def test_on_before_accelerator_backend_setup(tmpdir):
     """
 
     class TestCallback(Callback):
-
         def on_before_accelerator_backend_setup(self, trainer, pl_module):
             pl_module.on_before_accelerator_backend_setup_called = True
 
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.on_before_accelerator_backend_setup_called = False
@@ -315,7 +295,6 @@ def test_complex_nested_model():
     """
 
     class ConvBlock(nn.Module):
-
         def __init__(self, in_channels, out_channels):
             super().__init__()
             self.conv = nn.Conv2d(in_channels, out_channels, 3)
@@ -328,13 +307,9 @@ def test_complex_nested_model():
             return self.bn(x)
 
     class ConvBlockParam(nn.Module):
-
         def __init__(self, in_channels, out_channels):
             super().__init__()
-            self.module_dict = nn.ModuleDict({
-                "conv": nn.Conv2d(in_channels, out_channels, 3),
-                "act": nn.ReLU(),
-            })
+            self.module_dict = nn.ModuleDict({"conv": nn.Conv2d(in_channels, out_channels, 3), "act": nn.ReLU()})
             # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
             self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
             self.bn = nn.BatchNorm2d(out_channels)
@@ -345,10 +320,9 @@ def test_complex_nested_model():
             return self.bn(x)
 
     model = nn.Sequential(
-        OrderedDict([
-            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
-            ("decoder", ConvBlock(128, 10)),
-        ])
+        OrderedDict(
+            [("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))), ("decoder", ConvBlock(128, 10))]
+        )
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model
@@ -368,7 +342,6 @@ def test_complex_nested_model():
 
 
 class TestCallbacksRestoreCallback(BaseFinetuning):
-
     def freeze_before_training(self, pl_module):
         self.freeze(pl_module.layer[:3])
 
@@ -378,7 +351,6 @@ class TestCallbacksRestoreCallback(BaseFinetuning):
 
 
 class FinetuningBoringModel(BoringModel):
-
     def __init__(self):
         super().__init__()
         self.layer = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 2))
@@ -414,22 +386,22 @@ def test_callbacks_restore(tmpdir):
 
     # original parameters
     assert callback._internal_optimizer_metadata[0][0] == {
-        'lr': 0.1,
-        'momentum': 0,
-        'dampening': 0,
-        'weight_decay': 0,
-        'nesterov': False,
-        'params': ['layer.3.weight', 'layer.3.bias']
+        "lr": 0.1,
+        "momentum": 0,
+        "dampening": 0,
+        "weight_decay": 0,
+        "nesterov": False,
+        "params": ["layer.3.weight", "layer.3.bias"],
     }
 
     # new param group
     assert callback._internal_optimizer_metadata[0][1] == {
-        'lr': 0.01,
-        'momentum': 0,
-        'dampening': 0,
-        'weight_decay': 0,
-        'nesterov': False,
-        'params': ['layer.0.weight', 'layer.0.bias']
+        "lr": 0.01,
+        "momentum": 0,
+        "dampening": 0,
+        "weight_decay": 0,
+        "nesterov": False,
+        "params": ["layer.0.weight", "layer.0.bias"],
     }
 
     trainer_kwargs["max_epochs"] = 3
@@ -446,7 +418,6 @@ def test_callbacks_restore_backbone(tmpdir):
     """
 
     class BackboneBoringModel(BoringModel):
-
         def __init__(self):
             super().__init__()
             self.layer = nn.Linear(32, 2)
@@ -462,7 +433,7 @@ def test_callbacks_restore_backbone(tmpdir):
         limit_val_batches=1,
         max_epochs=2,
         progress_bar_refresh_rate=0,
-        callbacks=[ckpt, BackboneFinetuning(unfreeze_backbone_at_epoch=1)]
+        callbacks=[ckpt, BackboneFinetuning(unfreeze_backbone_at_epoch=1)],
     )
     trainer.fit(BackboneBoringModel())
 
@@ -474,6 +445,6 @@ def test_callbacks_restore_backbone(tmpdir):
         max_epochs=3,
         progress_bar_refresh_rate=0,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
-        resume_from_checkpoint=ckpt.last_model_path
+        resume_from_checkpoint=ckpt.last_model_path,
     )
     trainer.fit(BackboneBoringModel())

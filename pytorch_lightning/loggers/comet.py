@@ -69,15 +69,16 @@ class CometLogger(LightningLoggerBase):
         import os
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import CometLogger
+
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            api_key=os.environ.get('COMET_API_KEY'),
-            workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
-            save_dir='.',  # Optional
-            project_name='default_project',  # Optional
-            rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
-            experiment_key=os.environ.get('COMET_EXPERIMENT_KEY'),  # Optional
-            experiment_name='default'  # Optional
+            api_key=os.environ.get("COMET_API_KEY"),
+            workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
+            save_dir=".",  # Optional
+            project_name="default_project",  # Optional
+            rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
+            experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
+            experiment_name="default",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -86,13 +87,14 @@ class CometLogger(LightningLoggerBase):
     .. code-block:: python
 
         from pytorch_lightning.loggers import CometLogger
+
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            save_dir='.',
-            workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
-            project_name='default_project',  # Optional
-            rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
-            experiment_name='default'  # Optional
+            save_dir=".",
+            workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
+            project_name="default_project",  # Optional
+            rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
+            experiment_name="default",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -124,7 +126,7 @@ class CometLogger(LightningLoggerBase):
             If neither ``api_key`` nor ``save_dir`` are passed as arguments.
     """
 
-    LOGGER_JOIN_CHAR = '-'
+    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
@@ -135,8 +137,8 @@ class CometLogger(LightningLoggerBase):
         experiment_name: Optional[str] = None,
         experiment_key: Optional[str] = None,
         offline: bool = False,
-        prefix: str = '',
-        **kwargs
+        prefix: str = "",
+        **kwargs,
     ):
         if comet_ml is None:
             raise ImportError(
@@ -205,9 +207,7 @@ class CometLogger(LightningLoggerBase):
             if self.mode == "online":
                 if self._experiment_key is None:
                     self._experiment = CometExperiment(
-                        api_key=self.api_key,
-                        project_name=self._project_name,
-                        **self._kwargs,
+                        api_key=self.api_key, project_name=self._project_name, **self._kwargs
                     )
                     self._experiment_key = self._experiment.get_key()
                 else:
@@ -219,9 +219,7 @@ class CometLogger(LightningLoggerBase):
                     )
             else:
                 self._experiment = CometOfflineExperiment(
-                    offline_directory=self.save_dir,
-                    project_name=self._project_name,
-                    **self._kwargs,
+                    offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
                 )
         finally:
             if self._future_experiment_key is not None:
@@ -248,7 +246,7 @@ class CometLogger(LightningLoggerBase):
                 metrics[key] = val.cpu().detach()
 
         metrics_without_epoch = metrics.copy()
-        epoch = metrics_without_epoch.pop('epoch', None)
+        epoch = metrics_without_epoch.pop("epoch", None)
         metrics_without_epoch = self._add_prefix(metrics_without_epoch)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
@@ -318,6 +316,6 @@ class CometLogger(LightningLoggerBase):
         state["_experiment"] = None
         return state
 
-    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)

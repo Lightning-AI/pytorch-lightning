@@ -27,7 +27,6 @@ from tests.helpers.runif import RunIf
 
 
 def test_training_type_plugins_registry_with_new_plugin():
-
     class TestPlugin:
 
         distributed_backend = "test_plugin"
@@ -57,21 +56,10 @@ def test_training_type_plugins_registry_with_new_plugin():
     "plugin_name, init_params",
     [
         ("deepspeed", {}),
-        ("deepspeed_stage_2", {
-            "stage": 2
-        }),
-        ("deepspeed_stage_2_offload", {
-            "stage": 2,
-            "offload_optimizer": True
-        }),
-        ("deepspeed_stage_3", {
-            "stage": 3
-        }),
-        ("deepspeed_stage_3_offload", {
-            "stage": 3,
-            "offload_parameters": True,
-            "offload_optimizer": True
-        }),
+        ("deepspeed_stage_2", {"stage": 2}),
+        ("deepspeed_stage_2_offload", {"stage": 2, "offload_optimizer": True}),
+        ("deepspeed_stage_3", {"stage": 3}),
+        ("deepspeed_stage_3_offload", {"stage": 3, "offload_parameters": True, "offload_optimizer": True}),
     ],
 )
 def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init_params):
@@ -85,11 +73,7 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
 @pytest.mark.parametrize("plugin", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
 def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins=plugin,
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, plugins=plugin, precision=16)
 
     assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
 
@@ -118,10 +102,7 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
 )
 def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugin_name, plugin):
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins=plugin_name,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, plugins=plugin_name)
 
     assert isinstance(trainer.training_type_plugin, plugin)
 

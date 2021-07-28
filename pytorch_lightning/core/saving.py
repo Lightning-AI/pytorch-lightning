@@ -41,16 +41,13 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf.errors import UnsupportedValueType, ValidationError
 
 # the older shall be on the top
-CHECKPOINT_PAST_HPARAMS_KEYS = (
-    'hparams',
-    'module_arguments',  # used in 0.7.6
-)
+CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
-class ModelIO(object):
-    CHECKPOINT_HYPER_PARAMS_KEY = 'hyper_parameters'
-    CHECKPOINT_HYPER_PARAMS_NAME = 'hparams_name'
-    CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
+class ModelIO:
+    CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
+    CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
+    CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"
 
     @classmethod
     def load_from_checkpoint(
@@ -134,15 +131,15 @@ class ModelIO(object):
             checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         if hparams_file is not None:
-            extension = hparams_file.split('.')[-1]
-            if extension.lower() == 'csv':
+            extension = hparams_file.split(".")[-1]
+            if extension.lower() == "csv":
                 hparams = load_hparams_from_tags_csv(hparams_file)
-            elif extension.lower() in ('yml', 'yaml'):
+            elif extension.lower() in ("yml", "yaml"):
                 hparams = load_hparams_from_yaml(hparams_file)
             else:
-                raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
+                raise ValueError(".csv, .yml or .yaml is required for `hparams_file`")
 
-            hparams['on_gpu'] = False
+            hparams["on_gpu"] = False
 
             # overwrite hparams by the given file
             checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
@@ -201,7 +198,7 @@ class ModelIO(object):
         model.on_load_checkpoint(checkpoint)
 
         # load the state_dict on the model automatically
-        keys = model.load_state_dict(checkpoint['state_dict'], strict=strict)
+        keys = model.load_state_dict(checkpoint["state_dict"], strict=strict)
 
         if not strict:
             if keys.missing_keys:

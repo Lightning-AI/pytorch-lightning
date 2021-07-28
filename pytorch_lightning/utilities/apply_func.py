@@ -169,15 +169,17 @@ def apply_to_collections(
     if isinstance(data1, Mapping) and data2 is not None:
         # use union because we want to fail if a key does not exist in both
         zipped = {k: (data1[k], data2[k]) for k in data1.keys() | data2.keys()}
-        return elem_type({
-            k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            for k, v in zipped.items()
-        })
+        return elem_type(
+            {
+                k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+                for k, v in zipped.items()
+            }
+        )
 
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
-        assert len(data1) == len(data2), 'Sequence collections have different sizes'
+        assert len(data1) == len(data2), "Sequence collections have different sizes"
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)

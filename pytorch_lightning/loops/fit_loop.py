@@ -69,7 +69,7 @@ class FitLoop(Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.batch_progress.current.ready - 1
+        return self.epoch_loop.batch_idx
 
     @property
     def split_idx(self) -> int:
@@ -106,12 +106,12 @@ class FitLoop(Loop):
 
     @property
     def _skip_backward(self) -> bool:
-        """ Determines whether the loop will skip backward during automatic optimization. """
+        """Determines whether the loop will skip backward during automatic optimization."""
         return self.epoch_loop.batch_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
-        """ Determines whether the loop will skip backward during automatic optimization. """
+        """Determines whether the loop will skip backward during automatic optimization."""
         self.epoch_loop.batch_loop._skip_backward = value
 
     @property
@@ -142,9 +142,9 @@ class FitLoop(Loop):
                 should_stop = True
             else:
                 log.info(
-                    'Trainer was signaled to stop but required minimum epochs'
-                    f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                    ' not been met. Training will continue...'
+                    "Trainer was signaled to stop but required minimum epochs"
+                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
+                    " not been met. Training will continue..."
                 )
         self.trainer.should_stop = should_stop
 
@@ -216,7 +216,7 @@ class FitLoop(Loop):
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
-        # NOTE: the iteration_count/current_epoch is already incremented
+        # NOTE: the current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
@@ -239,7 +239,7 @@ class FitLoop(Loop):
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
-        return self.epoch_loop.batch_loop.should_accumulate()
+        return self.epoch_loop._should_accumulate()
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

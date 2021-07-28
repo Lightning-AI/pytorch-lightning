@@ -30,7 +30,6 @@ from tests.helpers.utils import pl_multi_process_test
 
 
 class BoringModelNoDataloaders(BoringModel):
-
     def train_dataloader(self):
         raise NotImplementedError
 
@@ -84,7 +83,6 @@ def test_error_process_iterable_dataloader(_):
 
 
 class BoringModelTPU(BoringModel):
-
     def on_train_start(self) -> None:
         assert self.device == torch.device("xla")
         assert os.environ.get("PT_XLA_DEBUG") == "1"

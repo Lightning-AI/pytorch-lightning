@@ -107,7 +107,7 @@ class FastForwardSampler(Sampler):
         return current_iteration
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
-        """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
+        """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
     def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
@@ -176,7 +176,7 @@ class CaptureIterableDataset(IterableDataset):
 
             if isinstance(generator, Generator):
                 # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split('.')[0]
+                generator_name = generator.__qualname__.split(".")[0]
             else:
                 # assume the retrieved iterator is coming from sampler.
                 is_legacy = True
@@ -330,9 +330,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
 
 
 def _dataloader_to_state_dict(
-    dataloader: DataLoader,
-    iterator: Iterator,
-    num_batches_processed: int = None,
+    dataloader: DataLoader, iterator: Iterator, num_batches_processed: int = None
 ) -> List[Dict[str, Any]]:
     """
     Convert a dataloader to its associated state dict

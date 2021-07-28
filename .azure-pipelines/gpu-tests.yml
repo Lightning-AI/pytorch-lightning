@@ -9,19 +9,19 @@ trigger:
       - '*'
   branches:
     include:
-      - master
-      - release/*
-      - refs/tags/*
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
 pr:
-  - master
-  - release/*
+  - "master"
+  - "release/*"
 
 jobs:
   - job: pytest
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: 45
+    timeoutInMinutes: "45"
     # how much time to give 'run always even if cancelled tasks' before stopping them
-    cancelTimeoutInMinutes: 2
+    cancelTimeoutInMinutes: "2"
 
     pool: gridai-spot-pool
 
@@ -92,14 +92,15 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
       condition: succeededOrFailed()
 
-    - task: PublishCodeCoverageResults@1
-      displayName: 'Publish coverage report'
-      inputs:
-        codeCoverageTool: 'cobertura'
-        summaryFileLocation: 'coverage.xml'
-        reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
-        testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
-      condition: succeededOrFailed()
+    # todo: re-enable after schema check pass, also atm it seems does not have any effect
+    #- task: PublishCodeCoverageResults@2
+    #  displayName: 'Publish coverage report'
+    #  inputs:
+    #    codeCoverageTool: 'Cobertura'
+    #    summaryFileLocation: 'coverage.xml'
+    #    reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
+    #    testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
+    #  condition: succeededOrFailed()
 
     - script: |
         set -e
