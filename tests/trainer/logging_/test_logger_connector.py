@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from inspect import getmembers, isfunction
 from unittest import mock
 
 import pytest
@@ -27,11 +26,10 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import MetricS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.models.test_hooks import get_members
 
 
 def test_fx_validator(tmpdir):
-from tests.models.test_hooks import get_members
-
     funcs_name = sorted(get_members(Callback))
 
     callbacks_func = [
