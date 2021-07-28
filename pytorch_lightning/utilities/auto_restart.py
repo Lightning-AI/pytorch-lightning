@@ -87,12 +87,8 @@ class FastForwardSampler(Sampler):
         return len(self._sampler)
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
-        """ Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
-        return {
-            self.worker_id: {
-                "current_iteration": self._compute_current_iteration(num_batches_processed),
-            }
-        }
+        """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
+        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         """
