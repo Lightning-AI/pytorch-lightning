@@ -44,7 +44,7 @@ class Callback(abc.ABC):
         return self.__class__.__qualname__
 
     @property
-    def _legacy_state_id(self) -> Type:
+    def _legacy_state_id(self) -> Type["Callback"]:
         """State identifier for checkpoints saved prior to version 1.5.0."""
         return type(self)
 
