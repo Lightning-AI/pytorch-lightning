@@ -135,18 +135,18 @@ class QuantizationAwareTraining(Callback):
         quantize_on_fit_end: perform the quantization in `on_fit_end`.
             Note that once converted, the model cannot be put in training mode again.
 
-        disable_observers: disable fake-quantization modules' observers during the provided stages:
+        observer_enabled_stages: allow fake-quantization modules' observers to do calibration during provided stages:
 
-            - ``'train'``: the observers will be disabled during training.
-            - ``'validate'``: the observers will be disabled during validating.
+            - ``'train'``: the observers can do calibration during training.
+            - ``'validate'``: the observers can do calibration during validating.
               Note that we don't disable observers during the sanity check as the model hasn't been calibrated with
               training data yet. After the sanity check, the fake-quantization modules are restored to initial states.
-            - ``'test'``: the observers will be disabled during testing.
-            - ``'predict'``: the observers will be disabled during predicting.
+            - ``'test'``: the observers can do calibration during testing.
+            - ``'predict'``: the observers can do calibration during predicting.
 
             Note that we only handle observers belonging to fake-quantization modules. When ``qconfig`` is a ``str`` and
             ``observer_type`` is ``'histogram'``, the observers won't belong to any fake-quantization modules and will
-            not be disabled.
+            not be controlled by the callback.
 
     .. _PyTorch Quantization: https://pytorch.org/docs/stable/quantization.html#quantization-aware-training
     .. _torch.quantization.QConfig: https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig
@@ -164,7 +164,7 @@ class QuantizationAwareTraining(Callback):
         modules_to_fuse: Optional[Sequence] = None,
         input_compatible: bool = True,
         quantize_on_fit_end: bool = True,
-        disable_observers: Sequence[str] = ("validate", "test", "predict"),
+        observer_enabled_stages: Sequence[str] = ("train",),
     ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
@@ -189,13 +189,13 @@ class QuantizationAwareTraining(Callback):
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
 
-        disable_observers = set(disable_observers)
-        unsupported_stages = disable_observers - set(self.OBSERVER_STAGES)
+        observer_enabled_stages = set(observer_enabled_stages)
+        unsupported_stages = observer_enabled_stages - set(self.OBSERVER_STAGES)
         if unsupported_stages:
             raise MisconfigurationException(
                 f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.OBSERVER_STAGES}.'
             )
-        self._disable_observer_stages = disable_observers
+        self._observer_disabled_stages = set(self.OBSERVER_STAGES) - observer_enabled_stages
 
         self._forward_calls = 0
         self._fake_quant_to_initial_state_dict = {}
@@ -280,15 +280,15 @@ class QuantizationAwareTraining(Callback):
             pl_module.forward = self.__module_forward
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "train" in self._disable_observer_stages:
+        if "train" in self._observer_disabled_stages:
             self._disable_observer(pl_module)
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "train" in self._disable_observer_stages:
+        if "train" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "validate" in self._disable_observer_stages and not trainer.sanity_checking:
+        if "validate" in self._observer_disabled_stages and not trainer.sanity_checking:
             # ``torch.quantization.MovingAveragePerChannelMinMaxObserver`` and ``torch.quantization.HistogramObserver``
             # need to see at least one batch to infer the shapes of quantization ``scale`` and ``zero_point``. So we
             # don't disable observers during the sanity check so that they can infer the shapes of quantization
@@ -296,7 +296,7 @@ class QuantizationAwareTraining(Callback):
             self._disable_observer(pl_module)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "validate" in self._disable_observer_stages:
+        if "validate" in self._observer_disabled_stages:
             if trainer.sanity_checking:
                 for fake_quant, state_dict in self._fake_quant_to_initial_state_dict.items():
                     fake_quant.load_state_dict(state_dict)
@@ -304,17 +304,17 @@ class QuantizationAwareTraining(Callback):
                 self._restore_last_observer_enabled()
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "test" in self._disable_observer_stages:
+        if "test" in self._observer_disabled_stages:
             self._disable_observer(pl_module)
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "test" in self._disable_observer_stages:
+        if "test" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "predict" in self._disable_observer_stages:
+        if "predict" in self._observer_disabled_stages:
             self._disable_observer(pl_module)
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if "predict" in self._disable_observer_stages:
+        if "predict" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()

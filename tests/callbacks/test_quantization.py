@@ -54,7 +54,10 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
     fusing_layers = [(f"layer_{i}", f"layer_{i}a") for i in range(3)] if fuse else None
     qcb = QuantizationAwareTraining(
-        observer_type=observe, modules_to_fuse=fusing_layers, quantize_on_fit_end=convert, disable_observers=()
+        observer_type=observe,
+        modules_to_fuse=fusing_layers,
+        quantize_on_fit_end=convert,
+        observer_enabled_stages=("train", "validate"),
     )
     trainer = Trainer(callbacks=[qcb], **trainer_args)
     trainer.fit(qmodel, datamodule=dm)
@@ -116,7 +119,7 @@ def test_quantization_exceptions(tmpdir):
         QuantizationAwareTraining(collect_quantization=1.2)
 
     with pytest.raises(MisconfigurationException, match="Unsupported stages"):
-        QuantizationAwareTraining(disable_observers=("abc",))
+        QuantizationAwareTraining(observer_enabled_stages=("abc",))
 
     fusing_layers = [(f"layers.mlp_{i}", f"layers.NONE-mlp_{i}a") for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
@@ -161,15 +164,14 @@ def _get_observer_enabled(fake_quant: FakeQuantizeBase):
 
 
 @pytest.mark.parametrize(
-    "disable_observers",
+    "observer_enabled_stages",
     [("train", "validate", "test", "predict"), ("train",), ("validate",), ("test",), ("predict",), ()],
 )
 @RunIf(quantization=True)
-def test_quantization_disable_observers(tmpdir, disable_observers):
+def test_quantization_disable_observers(tmpdir, observer_enabled_stages):
     """Test disabling observers"""
-    # ``torch.quantization.FakeQuantize`` checks observer_enabled[0] == 1.
     qmodel = RegressionModel()
-    qcb = QuantizationAwareTraining(disable_observers=disable_observers)
+    qcb = QuantizationAwareTraining(observer_enabled_stages=observer_enabled_stages)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir)
 
     # Quantize qmodel.
@@ -189,7 +191,7 @@ def test_quantization_disable_observers(tmpdir, disable_observers):
 
         on_stage_start(trainer, qmodel)
         expected_stage_observer_enabled = torch.as_tensor(
-            [False] * len(fake_quants) if stage in disable_observers else before_stage_observer_enabled
+            before_stage_observer_enabled if stage in observer_enabled_stages else [False] * len(fake_quants)
         )
         assert torch.equal(
             torch.as_tensor(list(map(_get_observer_enabled, fake_quants))), expected_stage_observer_enabled
