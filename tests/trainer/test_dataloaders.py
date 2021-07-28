@@ -326,8 +326,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
         (RandomIterableDataset(32, 128), 0),
         (RandomIterableDataset(32, 128), 10),
         (RandomIterableDatasetWithLen(32, 128), 0),
-        # TODO: enable this after #6671 is merged
-        # (RandomIterableDatasetWithLen(32, 128), 10),
+        (RandomIterableDatasetWithLen(32, 128), 10),
     ],
 )
 def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
