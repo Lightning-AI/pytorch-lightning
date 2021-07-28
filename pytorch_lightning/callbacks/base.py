@@ -53,7 +53,7 @@ class Callback(abc.ABC):
         identifier = f"{self.__class__.__qualname__}[{attrs}]"
         return identifier
 
-    def on_configure_sharded_model(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+    def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before configure sharded model"""
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

@@ -14,13 +14,11 @@
 import glob
 import os
 import sys
-from pathlib import Path
 
 import pytest
 
 from pytorch_lightning import Callback, Trainer
 from tests import _PATH_LEGACY
-from tests.helpers import BoringModel
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
 CHECKPOINT_EXTENSION = ".ckpt"
@@ -100,7 +98,6 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
 
 class OldStatefulCallback(Callback):
-
     def __init__(self, state):
         self.state = state
 
@@ -113,27 +110,3 @@ class OldStatefulCallback(Callback):
 
     def on_load_checkpoint(self, trainer, pl_module, callback_state):
         self.state = callback_state["state"]
-
-
-def test_resume_callback_state_saved_by_type(tmpdir):
-    """ Test that a legacy checkpoint that didn't use a state identifier before can still be loaded. """
-    model = BoringModel()
-    callback = OldStatefulCallback(state=111)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        callbacks=[callback],
-    )
-    trainer.fit(model)
-    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
-    assert ckpt_path.exists()
-
-    callback = OldStatefulCallback(state=222)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=2,
-        callbacks=[callback],
-        resume_from_checkpoint=ckpt_path,
-    )
-    trainer.fit(model)
-    assert callback.state == 111

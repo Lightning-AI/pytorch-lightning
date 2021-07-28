@@ -153,10 +153,10 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk['callbacks'][f"ModelCheckpoint[monitor={monitor}]"]
-        assert mc_specific_data['dirpath'] == checkpoint.dirpath
-        assert mc_specific_data['monitor'] == monitor
-        assert mc_specific_data['current_score'] == score
+        mc_specific_data = chk["callbacks"][f"ModelCheckpoint[monitor={monitor}]"]
+        assert mc_specific_data["dirpath"] == checkpoint.dirpath
+        assert mc_specific_data["monitor"] == monitor
+        assert mc_specific_data["current_score"] == score
 
         if not reduce_lr_on_plateau:
             actual_step_count = chk["lr_schedulers"][0]["_step_count"]
@@ -264,10 +264,10 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk['callbacks'][f"ModelCheckpoint[monitor={monitor}]"]
-        assert mc_specific_data['dirpath'] == checkpoint.dirpath
-        assert mc_specific_data['monitor'] == monitor
-        assert mc_specific_data['current_score'] == score
+        mc_specific_data = chk["callbacks"][f"ModelCheckpoint[monitor={monitor}]"]
+        assert mc_specific_data["dirpath"] == checkpoint.dirpath
+        assert mc_specific_data["monitor"] == monitor
+        assert mc_specific_data["current_score"] == score
 
         if not reduce_lr_on_plateau:
             actual_step_count = chk["lr_schedulers"][0]["_step_count"]

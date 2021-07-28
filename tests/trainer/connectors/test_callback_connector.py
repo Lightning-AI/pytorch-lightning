@@ -59,7 +59,6 @@ class StatefulCallback0(Callback):
 
 
 class StatefulCallback1(Callback):
-
     def __init__(self, unique=None, other=None):
         self._unique = unique
         self._other = other
@@ -94,7 +93,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
             # callback2 and callback3 have the same type
             callback1,
             callback2,
-        ]
+        ],
     )
     trainer.fit(model)
 
