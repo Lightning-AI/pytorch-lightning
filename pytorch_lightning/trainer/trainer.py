@@ -838,15 +838,13 @@ class Trainer(
 
         return result
 
-    def _restore_training(self) -> None:
+    def _restore_checkpoint(self) -> None:
         # restore modules after setup
         self.checkpoint_connector.resume_start()
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
-        # restore optimizers, etc.
-        self.checkpoint_connector.restore_training_state()
 
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
@@ -862,14 +860,8 @@ class Trainer(
         self.data_connector.prepare_data(model)
         self.callback_connector._attach_model_callbacks(model, self)
 
-        if self._ckpt_path:
-            # only one process running at this point for TPUs, as spawn isn't triggered yet
-            # todo: move this logic internally within the barrier.
-            if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
-
-            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
-            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
+        if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._load_checkpoint_weights()
 
         # ----------------------------
         # SET UP TRAINING
@@ -880,7 +872,7 @@ class Trainer(
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
 
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
-            self._restore_training()
+            self._restore_checkpoint()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -922,6 +914,11 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
+
+        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._load_checkpoint_weights()
+            self._restore_checkpoint()
+
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()
 
@@ -946,6 +943,14 @@ class Trainer(
         self.state.stage = None
 
         return self.accelerator.results
+
+    def _load_checkpoint_weights(self):
+        # only one process running at this point for TPUs, as spawn isn't triggered yet
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
+            self.training_type_plugin.barrier()
+        rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
+        self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
