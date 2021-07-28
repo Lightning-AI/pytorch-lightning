@@ -340,7 +340,7 @@ class AcceleratorConnector:
 
     @property
     def training_types(self) -> List[str]:
-        return ["single"] + list(DistributedType)
+        return ["single"] + list(DistributedType) + TrainingTypePluginsRegistry.available_plugins()
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
