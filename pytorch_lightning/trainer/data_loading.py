@@ -248,7 +248,6 @@ class TrainerDataLoadingMixin(ABC):
 
         # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
         if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
-            assert False
             # force the seed in the ``Dataset``
             seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch + self.global_rank
 
