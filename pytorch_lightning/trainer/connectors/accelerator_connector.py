@@ -88,6 +88,7 @@ class AcceleratorConnector:
         tpu_cores,
         ipus,
         distributed_backend,
+        accelerator,
         gpus,
         gpu_ids,
         num_nodes,
@@ -104,6 +105,13 @@ class AcceleratorConnector:
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._accelerator_type = None
+
+        if distributed_backend is not None:
+            rank_zero_deprecation(
+                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
+                f" Use `Trainer(accelerator={distributed_backend})` instead."
+            )
+        distributed_backend = distributed_backend or accelerator
 
         self.num_processes = num_processes
         self.devices = devices

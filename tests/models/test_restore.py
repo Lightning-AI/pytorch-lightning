@@ -360,7 +360,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
-    trainer.test(ckpt_path=None)
+    trainer.test(model)
 
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"

@@ -210,7 +210,7 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
     )
     trainer.fit(model)
     if use_callbacks or stochastic_weight_avg:
-        assert len([cb for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]) == 1
+        assert sum(1 for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)) == 1
         assert trainer.callbacks[0]._swa_lrs == (1e-3 if use_callbacks else 0.1)
     else:
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)

@@ -957,6 +957,49 @@ def test_lr_schedulers(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.parametrize("scheduler_as_dict", [True, False])
+def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
+    class TestModel(BoringModel):
+        def __init__(self, scheduler_as_dict):
+            super().__init__()
+            self.scheduler_as_dict = scheduler_as_dict
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            return {"train_loss": torch.tensor([0.0])}
+
+        def training_epoch_end(self, outputs):
+            scheduler = self.lr_schedulers()
+
+            loss = torch.stack([x["train_loss"] for x in outputs]).mean()
+            scheduler.step(loss)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+
+            if self.scheduler_as_dict:
+                scheduler = {
+                    "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                    "monitor": "train_loss",
+                }
+            else:
+                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+
+            return [optimizer], [scheduler]
+
+    model = TestModel(scheduler_as_dict=scheduler_as_dict)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
+    )
+
+    if scheduler_as_dict:
+        with pytest.warns(RuntimeWarning, match="but the keys will be ignored"):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
+
+
 def test_lr_scheduler_step_not_called(tmpdir):
     """
     Test `lr_scheduler.step()` is not called in manual optimization.

@@ -118,22 +118,22 @@ pip install pytorch-lightning
   conda install pytorch-lightning -c conda-forge
   ```
 
-  #### Install stable 1.3.x
+  #### Install stable 1.4.x
 
-  the actual status of 1.3 [stable] is following:
+  the actual status of 1.4 [stable] is following:
 
-  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.3.x&event=push)
-  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.3.x&event=push)
-  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.3.x&event=push)
-  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.3.x&event=push)
-  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.3.x&event=push)
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.4.x&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.4.x&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.4.x&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.4.x&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.4.x&event=push)
 
   Install future release from the source
   ```bash
-  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.3.x --upgrade
+  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.4.x --upgrade
   ```
 
-  #### Install bleeding-edge - future 1.4
+  #### Install bleeding-edge - future 1.5
 
   Install nightly from the source (no guarantees)
   ```bash
