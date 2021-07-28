@@ -35,10 +35,15 @@ class Callback(abc.ABC):
 
     @property
     def state_id(self) -> str:
+        """
+        Identifier for the state of the callback. Used to store and retrieve a callback's state from the
+        checkpoint dictionary by ``checkpoint["callbacks"][state_id]``.
+        """
         return self.__class__.__qualname__
 
     @property
     def _legacy_state_id(self) -> Type:
+        """State identifier for checkpoints saved prior to version 1.5.0."""
         return type(self)
 
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
