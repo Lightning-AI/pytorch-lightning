@@ -242,6 +242,7 @@ If you want to call schedulers that require a metric value after each epoch, con
         super().__init__()
         self.automatic_optimization = False
 
+
     def training_epoch_end(self, outputs):
         sch = self.lr_schedulers()
 

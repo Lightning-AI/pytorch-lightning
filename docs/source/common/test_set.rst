@@ -20,7 +20,7 @@ To run the test set after training completes, use this method.
     trainer.fit(model)
 
     # (1) load the best checkpoint automatically (lightning tracks this for you)
-    trainer.test(ckpt_path='best')
+    trainer.test(ckpt_path="best")
 
     # (2) test using a specific checkpoint
     trainer.test(ckpt_path="/path/to/my_checkpoint.ckpt")
