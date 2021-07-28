@@ -41,8 +41,6 @@ class TrainingEpochLoop(loops.Loop):
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
         self.global_step: int = 0
-        # the total batch index across all epochs
-        self.total_batch_idx: int = 0
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.is_last_batch: Optional[bool] = None
@@ -56,6 +54,13 @@ class TrainingEpochLoop(loops.Loop):
         self._dataloader_idx: Optional[int] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+
+    @property
+    def total_batch_idx(self) -> int:
+        """Returns the current batch index (across epochs)"""
+        # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
+        # but before the next `ready` increase
+        return self.batch_progress.total.ready - 1
 
     @property
     def batch_idx(self) -> int:
@@ -180,13 +185,8 @@ class TrainingEpochLoop(loops.Loop):
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
-        self.total_batch_idx += 1
-
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
-
-        if self.done:
-            raise StopIteration
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
