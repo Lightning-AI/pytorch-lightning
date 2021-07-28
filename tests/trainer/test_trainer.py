@@ -639,14 +639,24 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
                 trainer_fn(ckpt_path=ckpt_path)
+            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+                trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+
+            trainer_fn(model, ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
-        # ckpt_path is None, meaning we don't load any checkpoints and
-        # use the weights from the end of training
-        trainer_fn(ckpt_path=ckpt_path)
+        # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
+        trainer_fn(model, ckpt_path=ckpt_path)
         assert getattr(trainer, path_attr) is None
+
+        if save_top_k > 0:
+            # ckpt_path is None with no model provided means load the best weights
+            with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
+                trainer_fn(ckpt_path=ckpt_path)
+                assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -659,6 +669,9 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
                 ].absolute()
             )
             trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == ckpt_path
+
+            trainer_fn(model, ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == ckpt_path
 
 
@@ -1223,9 +1236,9 @@ def test_trainer_setup_call(tmpdir, stage):
     if stage == "fit":
         trainer.fit(model)
     elif stage == "validate":
-        trainer.validate(model, ckpt_path=None)
+        trainer.validate(model)
     else:
-        trainer.test(model, ckpt_path=None)
+        trainer.test(model)
 
     assert trainer.stage == stage
     assert trainer.lightning_module.stage == stage
