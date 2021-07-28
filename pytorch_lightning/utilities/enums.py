@@ -77,6 +77,7 @@ class DistributedType(LightningEnum):
     DP = "dp"
     DDP = "ddp"
     DDP2 = "ddp2"
+    DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"

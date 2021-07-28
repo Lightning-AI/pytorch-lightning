@@ -748,7 +748,7 @@ class AcceleratorConnector:
                 self.distributed_backend = "ddp_spawn"
 
         # special case with DDP on CPUs
-        if self.distributed_backend == "ddp_cpu":
+        if self.distributed_backend == DistributedType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
