@@ -89,6 +89,7 @@ class AcceleratorConnector:
         ipus,
         distributed_backend,
         accelerator,
+        training_type,
         gpus,
         gpu_ids,
         num_nodes,
@@ -214,11 +215,11 @@ class AcceleratorConnector:
             self._set_devices_to_cpu_num_processes()
             self._accelerator_type = DeviceType.CPU
 
-        if self.distributed_backend in ["auto"] + list(DeviceType):
+        if self.distributed_backend in self.accelerator_types:
             self.distributed_backend = None
 
     def _validate_accelerator_and_devices(self) -> None:
-        if self.distributed_backend not in ["auto"] + list(DeviceType) and self.devices is not None:
+        if self.distributed_backend not in self.accelerator_types and self.devices is not None:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
@@ -326,6 +327,10 @@ class AcceleratorConnector:
         self._training_type_plugin = training_type
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
+
+    @property
+    def accelerator_types(self) -> List[str]:
+        return ["auto"] + list(DeviceType)
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:

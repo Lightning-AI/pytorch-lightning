@@ -33,7 +33,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import Plugin
+from pytorch_lightning.plugins import Plugin, TrainingTypePlugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -139,6 +139,7 @@ class Trainer(
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
+        training_type: Optional[Union[str, TrainingTypePlugin]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = "top",
@@ -358,6 +359,7 @@ class Trainer(
             ipus,
             distributed_backend,
             accelerator,
+            training_type,
             gpus,
             gpu_ids,
             num_nodes,
