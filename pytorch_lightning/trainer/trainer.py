@@ -871,7 +871,7 @@ class Trainer(
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
 
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if not self.accelerator.restore_checkpoint_after_pre_dispatch and self.state.fn == TrainerFn.FITTING:
             self._restore_checkpoint()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
@@ -915,7 +915,7 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+        if self.accelerator.restore_checkpoint_after_pre_dispatch and self.state.fn == TrainerFn.FITTING:
             self._load_checkpoint_weights()
             self._restore_checkpoint()
 
