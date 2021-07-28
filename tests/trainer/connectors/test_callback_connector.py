@@ -64,7 +64,7 @@ class StatefulCallback1(Callback):
         self._other = other
 
     @property
-    def state_identifier(self):
+    def state_id(self):
         return self._generate_state_id(unique=self._unique)
 
     def on_save_checkpoint(self, *args):

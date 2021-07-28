@@ -33,7 +33,7 @@ from tests.helpers.simple_models import ClassificationModel
 _logger = logging.getLogger(__name__)
 
 
-def test_early_stopping_state_identifier():
+def test_early_stopping_state_id():
     early_stopping = EarlyStopping(monitor="val_loss")
     assert early_stopping.state_id == "EarlyStopping[monitor=val_loss]"
 

@@ -43,7 +43,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_model_checkpoint_state_identifier():
+def test_model_checkpoint_state_id():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     assert early_stopping.state_id == "ModelCheckpoint[monitor=val_loss]"
 
