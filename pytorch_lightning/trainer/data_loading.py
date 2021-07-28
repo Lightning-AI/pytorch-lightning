@@ -157,15 +157,10 @@ class TrainerDataLoadingMixin(ABC):
 
     @staticmethod
     def _resolve_batch_sampler(
-        dl_args,
-        dataloader,
-        sampler,
-        mode: Optional[RunningStage] = None,
-        should_use_forward_sampler: Optional[bool] = False
+        dataloader, sampler, mode: Optional[RunningStage] = None, use_forward_sampler: bool = False
     ) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
-
         # checking the batch sampler type is different than PyTorch default.
         if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
             batch_sampler = type(batch_sampler)(
@@ -176,28 +171,21 @@ class TrainerDataLoadingMixin(ABC):
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if should_use_forward_sampler:
+            if use_forward_sampler:
                 fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
+            return {
+                "sampler": None,
+                "shuffle": False,
+                "batch_sampler": batch_sampler,
+                "batch_size": 1,
+                "drop_last": False,
+            }
 
-            dl_args['batch_sampler'] = batch_sampler
-            dl_args['batch_size'] = 1
-            dl_args['shuffle'] = False
-            dl_args['sampler'] = None
-            dl_args['drop_last'] = False
-        else:
-            if should_use_forward_sampler:
-                fast_forward_sampler = sampler = FastForwardSampler(sampler)
-
-            dl_args['sampler'] = sampler
-            dl_args['shuffle'] = False
-            dl_args['batch_sampler'] = None
-
-        if should_use_forward_sampler:
-            # the forward sampler need to be informed about
-            batch_size = dl_args["batch_size"]
-            fast_forward_sampler.setup(batch_size)
-
-        return dl_args
+        if use_forward_sampler:
+            fast_forward_sampler = sampler = FastForwardSampler(sampler)
+            fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
+        return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         if not isinstance(dataloader, DataLoader):
@@ -218,7 +206,9 @@ class TrainerDataLoadingMixin(ABC):
 
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(self._resolve_batch_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(
+            self._resolve_batch_sampler(dataloader, sampler, mode=mode, use_forward_sampler=_fault_tolerant_enabled())
+        )
 
         required_args = {
             p.name
@@ -255,20 +245,20 @@ class TrainerDataLoadingMixin(ABC):
                     "manually add the `DistributedSampler` as: "
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
-        if not contains_dataset:
-            dl_args.pop('dataset')
+
+        if "dataset" not in params:
+            dl_kwargs.pop("dataset")
         else:
             # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
-            if _fault_tolerant_enabled() and isinstance(dl_args["dataset"], IterableDataset):
+            if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
                 # force the seed in the ``Dataset``
                 seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch + self.global_rank
 
-                if dl_args.get("generator") is None:
-                    dl_args["generator"] = torch.Generator().manual_seed(seed)
+                if dl_kwargs.get("generator") is None:
+                    dl_kwargs["generator"] = torch.Generator().manual_seed(seed)
 
-                dl_args["dataset"] = CaptureIterableDataset(
-                    dataset=dl_args["dataset"],
-                    initial_seed=dl_args["generator"].initial_seed(),
+                dl_kwargs["dataset"] = CaptureIterableDataset(
+                    dataset=dl_kwargs["dataset"], initial_seed=dl_kwargs["generator"].initial_seed()
                 )
 
         dl_cls = type(dataloader)
