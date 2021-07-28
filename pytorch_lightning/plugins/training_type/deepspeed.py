@@ -766,10 +766,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
-                "A single checkpoint file was saved using ZeRO Stage 3. This means optimizer states and "
-                "scheduler states can not be restored. If you'd like to restore these states, you must"
-                "set save_full_weights=False, i.e Trainer(plugins=DeepSpeedPlugin(save_full_weights=False)) "
-                "when training the model initially."
+                "A single checkpoint file has been given. This means optimizer states and "
+                "scheduler states can not be restored. If you'd like to restore these states, you must "
+                "provide a path to the originally saved DeepSpeed checkpoint."
             )
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:

@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn.functional as F
+from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -329,8 +330,6 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     trainer.fit(model)
     trainer.test(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer)
-
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_custom_precision_params(tmpdir):
@@ -396,15 +395,11 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
-    Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+    Test to ensure that DeepSpeed with multiple GPUs works.
     """
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins=[DeepSpeedPlugin(zero_optimization=False, stage=2)],
-        gpus=2,
-        fast_dev_run=True,
-        precision=16,
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=2)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     trainer.test(model)
@@ -508,7 +503,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     trainer.fit(model)
     trainer.test(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -524,7 +519,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     trainer.fit(model)
     trainer.test(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelManualOptim)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
 def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumulate_grad_batches: int = 2):
@@ -782,17 +777,22 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
         assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
 
 
-def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
+def _assert_save_model_is_equal(model, tmpdir, trainer):
+
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
+
+    single_ckpt_path = os.path.join(tmpdir, "single_model.pt")
+
     # carry out the check only on rank 0
     if trainer.global_rank == 0:
-        saved_model = cls.load_from_checkpoint(checkpoint_path)
+        convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
+        state_dict = torch.load(single_ckpt_path)
         if model.dtype == torch.half:
-            saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
+            model = model.float()  # moved model to float32 for comparison with single fp32 saved weights
         model = model.cpu()
         # Assert model parameters are identical after loading
-        for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
+        for orig_param, trained_model_param in zip(model.parameters(), state_dict.values()):
             assert torch.equal(orig_param, trained_model_param)
 
 
@@ -807,4 +807,4 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     )
     trainer.fit(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelNoSchedulers)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
