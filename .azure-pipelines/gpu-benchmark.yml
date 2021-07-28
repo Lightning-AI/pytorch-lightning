@@ -3,7 +3,7 @@ schedules:
     displayName: Daily midnight benchmark
     branches:
       include:
-        - master
+        - "master"
 
 jobs:
   - job: benchmarks
