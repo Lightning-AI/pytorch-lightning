@@ -6,7 +6,6 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn.functional as F
-from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -17,9 +16,13 @@ from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
+
+if _DEEPSPEED_AVAILABLE:
+    from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 
 
 class ModelParallelBoringModel(BoringModel):
