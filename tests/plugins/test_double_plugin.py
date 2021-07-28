@@ -26,7 +26,6 @@ from tests.helpers.runif import RunIf
 
 
 class RandomFloatIntDataset(Dataset):
-
     def __init__(self, size, length):
         self.len = length
         self.float_data = torch.randn(length, size)
@@ -40,40 +39,39 @@ class RandomFloatIntDataset(Dataset):
 
 
 class DoublePrecisionBoringModel(BoringModel):
-
     def training_step(self, batch, batch_idx):
         float_data, int_data = batch
-        assert torch.tensor([0.]).dtype == torch.float64
-        assert torch.tensor([0.], dtype=torch.float16).dtype == torch.float16
+        assert torch.tensor([0.0]).dtype == torch.float64
+        assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         assert float_data.dtype == torch.float64
         output = self(float_data)
         loss = self.loss(batch, output)
         return {"loss": loss}
 
     def training_epoch_end(self, outputs) -> None:
-        assert torch.tensor([0.]).dtype == torch.float32
+        assert torch.tensor([0.0]).dtype == torch.float32
         return super().training_epoch_end(outputs)
 
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
-        assert torch.tensor([0.]).dtype == torch.float64
-        assert torch.tensor([0.], dtype=torch.float16).dtype == torch.float16
+        assert torch.tensor([0.0]).dtype == torch.float64
+        assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
 
     def test_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
-        assert torch.tensor([0.]).dtype == torch.float64
-        assert torch.tensor([0.], dtype=torch.float16).dtype == torch.float16
+        assert torch.tensor([0.0]).dtype == torch.float64
+        assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         assert batch.dtype == torch.float64
-        assert torch.tensor([0.]).dtype == torch.float64
-        assert torch.tensor([0.], dtype=torch.float16).dtype == torch.float16
+        assert torch.tensor([0.0]).dtype == torch.float64
+        assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         return self(batch)
 
     def on_fit_start(self):
@@ -92,7 +90,6 @@ class DoublePrecisionBoringModel(BoringModel):
 
 
 class DoublePrecisionBoringModelNoForward(BoringModel):
-
     def training_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
@@ -125,7 +122,6 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 
 
 class DoublePrecisionBoringModelComplexBuffer(BoringModel):
-
     def __init__(self):
         super().__init__()
 
@@ -137,25 +133,20 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
 
 
 @pytest.mark.parametrize(
-    'boring_model', [
+    "boring_model",
+    [
         DoublePrecisionBoringModel,
         DoublePrecisionBoringModelNoForward,
         pytest.param(
             DoublePrecisionBoringModelComplexBuffer,
-            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="torch.complex not available")
+            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="torch.complex not available"),
         ),
-    ]
+    ],
 )
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
 
-    trainer = Trainer(
-        max_epochs=2,
-        default_root_dir=tmpdir,
-        fast_dev_run=2,
-        precision=64,
-        log_every_n_steps=1,
-    )
+    trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision=64, log_every_n_steps=1)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
@@ -168,7 +159,7 @@ def test_double_precision_ddp(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
         gpus=2,
         fast_dev_run=2,
         precision=64,

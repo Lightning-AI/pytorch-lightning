@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class PrecisionRecallCurve(_PrecisionRecallCurve):
-
     @deprecated_metrics(target=_PrecisionRecallCurve)
     def __init__(
         self,

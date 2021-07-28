@@ -335,7 +335,7 @@ auto_scale_batch_size
 Automatically tries to find the largest batch size that fits into memory,
 before any training.
 
-.. code-block::
+.. code-block:: python
 
     # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=None)
@@ -1353,7 +1353,6 @@ By setting to False, you have to add your own distributed sampler:
 
 .. code-block:: python
 
-
     # in your LightningModule or LightningDataModule
     def train_dataloader(self):
         # default used by the Trainer
@@ -1575,7 +1574,7 @@ Can specify as float or int.
     trainer = Trainer(val_check_interval=1000)
 
 
-.. code-block::
+.. code-block:: python
 
     # Here is the computation to estimate the total number of batches seen within an epoch.
 

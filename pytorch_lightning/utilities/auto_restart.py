@@ -167,8 +167,8 @@ class CaptureIterableDataset(IterableDataset):
         # create a dictionary of generator present within the dataset attributes
         dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, (Generator, Iterator))}
 
-        # iterate over the generator. If a generator was created from a ``Sampler```,
-        # it will be wrapped into a ``FastForwardSampler``.
+        # iterate over the generator. If a generator was created from a `Sampler`,
+        # it will be wrapped into a `FastForwardSampler`.
         for (generator_attr_name, generator) in dataset_sampler_generators.items():
 
             if isinstance(generator, Sampler):
@@ -180,7 +180,7 @@ class CaptureIterableDataset(IterableDataset):
 
             if isinstance(generator, Generator):
                 # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split('.')[0]
+                generator_name = generator.__qualname__.split(".")[0]
             else:
                 # assume the retrieved iterator is coming from sampler.
                 is_legacy = True
@@ -188,17 +188,17 @@ class CaptureIterableDataset(IterableDataset):
             # validate the base generator name matches a sampler name.
             if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
-                # wrap the generator into a ``FastForwardSampler``
+                # wrap the generator into a `FastForwardSampler`
                 sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
-                # if ``CaptureIterableDataset`` was available, the sampler should reload its own state.
+                # if `CaptureIterableDataset` was available, the sampler should reload its own state.
                 if self._state_dict is not None:
                     sampler.load_state_dict(self._state_dict[generator_attr_name])
 
                 # store the samplers
                 self.samplers[generator_attr_name] = sampler
 
-                # replace generator with the generator from the ``FastForwardSampler``.
+                # replace generator with the generator from the `FastForwardSampler`.
                 dataset_dict[generator_attr_name] = iter(sampler)
 
     def reset_on_epoch(self) -> None:
@@ -209,7 +209,7 @@ class CaptureIterableDataset(IterableDataset):
         # if the dataset contained samplers, they will be transformers into generators
         self.iter_data = iter(self.dataset)
 
-        # wrap any generator associated to a Sampler into a ``FastForwardSampler``.
+        # wrap any generator associated to a Sampler into a `FastForwardSampler`.
         self._wrap_generator_samplers()
         return self
 
@@ -308,11 +308,11 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     iter_dataloader = iter(dataloader)
     # get current num workers
     num_workers = getattr(iter_dataloader, "_num_workers", 0)
-    # as ``state_dict``` are workers dependent, Lightning doesn't support changing
-    # the ``num_workers`` for fault tolerant training
+    # as `state_dict` are workers dependent, Lightning doesn't support changing
+    # the `num_workers` for fault tolerant training
     if state_dict["num_workers"] != num_workers:
         raise MisconfigurationException(
-            f"The provided ``num_workers`` {num_workers} doesn't match the one used "
+            f"The provided `num_workers` {num_workers} doesn't match the one used "
             f"while generating the checkpoint: {state_dict['num_workers']}"
         )
     # when using multiple workers, we will cycle back the worker queue idx to
@@ -334,9 +334,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
 
 
 def _dataloader_to_state_dict(
-    dataloader: DataLoader,
-    iterator: Iterator,
-    num_batches_processed: int = None,
+    dataloader: DataLoader, iterator: Iterator, num_batches_processed: int = None
 ) -> List[Dict[str, Any]]:
     """
     Convert a dataloader to its associated state dict
@@ -374,7 +372,7 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
         next_worker = (next(iterator._worker_queue_idx_cycle)) % num_workers
         # get the current worker from next one
         previous_worker = (next_worker - 1) % num_workers
-        # reset back the ``worker_queue_idx`` to current one, so we can keep
+        # reset back the `worker_queue_idx` to current one, so we can keep
         # going without perturbation.
         while next(iterator._worker_queue_idx_cycle) != previous_worker:
             pass

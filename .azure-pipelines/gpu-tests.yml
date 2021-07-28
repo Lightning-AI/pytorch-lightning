@@ -57,7 +57,7 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 

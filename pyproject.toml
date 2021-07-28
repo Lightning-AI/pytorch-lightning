@@ -19,6 +19,11 @@ force_sort_within_sections = "False"
 order_by_type = "False"
 
 
+[tool.black]
+line-length = 120
+skip-magic-trailing-comma = true
+
+
 [tool.mypy]
 files = ["pytorch_lightning", "pl_examples", "benchmarks"]
 disallow_untyped_defs = "True"
@@ -30,7 +35,6 @@ warn_unused_ignores = "True"
 allow_redefinition = "True"
 # disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
 disable_error_code = "attr-defined"
-
 
 # TODO: Fix typing for these modules
 [[tool.mypy.overrides]]

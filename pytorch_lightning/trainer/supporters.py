@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 
 
-class TensorRunningAccum(object):
+class TensorRunningAccum:
     """Tracks a running accumulation values (min, max, mean) without graph
     references.
 
@@ -95,25 +95,24 @@ class TensorRunningAccum(object):
 
     def mean(self):
         """Get mean value from stored elements."""
-        return self._agg_memory('mean')
+        return self._agg_memory("mean")
 
     def max(self):
         """Get maximal value from stored elements."""
-        return self._agg_memory('max')
+        return self._agg_memory("max")
 
     def min(self):
         """Get minimal value from stored elements."""
-        return self._agg_memory('min')
+        return self._agg_memory("min")
 
     def _agg_memory(self, how: str):
         if self.last_idx is not None:
             if self.rotated:
                 return getattr(self.memory, how)()
-            return getattr(self.memory[:self.current_idx], how)()
+            return getattr(self.memory[: self.current_idx], how)()
 
 
-class PredictionCollection(object):
-
+class PredictionCollection:
     def __init__(self, global_rank: int, world_size: int):
         self.global_rank = global_rank
         self.world_size = world_size
@@ -140,8 +139,7 @@ class PredictionCollection(object):
                 self._add_prediction(feature_name, values, filename)
 
     def to_disk(self) -> None:
-        """Write predictions to file(s).
-        """
+        """Write predictions to file(s)."""
         for filepath, predictions in self.predictions.items():
             fs = get_filesystem(filepath)
             # normalize local filepaths only
@@ -172,7 +170,7 @@ class PredictionCollection(object):
                 torch.save(outputs, fp)
 
 
-class CycleIterator(object):
+class CycleIterator:
     """
     Iterator for restarting a dataloader if it runs out of samples
     """
@@ -185,7 +183,7 @@ class CycleIterator(object):
                 if None: infinite
         """
         if length is None:
-            length = float('inf')
+            length = float("inf")
 
         self.length = length
         self.loader = loader
@@ -232,13 +230,14 @@ class CycleIterator(object):
         return self.length
 
 
-class CombinedDataset(object):
+class CombinedDataset:
     """
     Combine multiple datasets and compute their statistics
     """
-    COMPUTE_FUNCS = {'min_size': min, 'max_size_cycle': max}
 
-    def __init__(self, datasets: Union[Sequence, Mapping], mode: str = 'min_size'):
+    COMPUTE_FUNCS = {"min_size": min, "max_size_cycle": max}
+
+    def __init__(self, datasets: Union[Sequence, Mapping], mode: str = "min_size"):
         """
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.Dataset,
@@ -250,17 +249,17 @@ class CombinedDataset(object):
         if mode not in self.COMPUTE_FUNCS.keys():
             raise MisconfigurationException(
                 f'You have selected unsupported mode "{mode}",'
-                f' please select one the: {list(self.COMPUTE_FUNCS.keys())}.'
+                f" please select one the: {list(self.COMPUTE_FUNCS.keys())}."
             )
         self.mode = mode
 
     @property
     def max_len(self) -> Union[int, float]:
-        return self._calc_num_data(self.datasets, 'max_size_cycle')
+        return self._calc_num_data(self.datasets, "max_size_cycle")
 
     @property
     def min_len(self) -> Union[int, float]:
-        return self._calc_num_data(self.datasets, 'min_size')
+        return self._calc_num_data(self.datasets, "min_size")
 
     def _calc_num_data(self, datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
         """
@@ -312,7 +311,7 @@ class CombinedDataset(object):
         try:
             return len(dataset)
         except (TypeError, NotImplementedError):
-            return float('inf')
+            return float("inf")
 
     def __len__(self) -> int:
         """Return the minimum length of the datasets."""
@@ -324,7 +323,7 @@ class DataLoaderDict(Dict):
     pass
 
 
-class CombinedLoader(object):
+class CombinedLoader:
     """
     Combines different dataloaders and allows sampling in parallel.
     Supported modes are 'min_size', which raises StopIteration after the shortest loader
@@ -347,9 +346,10 @@ class CombinedLoader(object):
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
     """
-    SUPPORTED_MODES = ('min_size', 'max_size_cycle')
 
-    def __init__(self, loaders: Any, mode: str = 'min_size'):
+    SUPPORTED_MODES = ("min_size", "max_size_cycle")
+
+    def __init__(self, loaders: Any, mode: str = "min_size"):
         """
         Args:
             loaders: the loaders to sample from. Can be all kind of collection
@@ -362,14 +362,14 @@ class CombinedLoader(object):
         self.loaders = loaders
 
         datasets = apply_to_collection(
-            self.loaders, Iterable, getattr, 'dataset', None, wrong_dtype=(Sequence, Mapping)
+            self.loaders, Iterable, getattr, "dataset", None, wrong_dtype=(Sequence, Mapping)
         )
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         self.dataset = CombinedDataset(datasets, mode)
 
         self.mode = mode
 
-        if self.mode == 'max_size_cycle':
+        if self.mode == "max_size_cycle":
             self._wrap_loaders_max_size_cycle()
 
         self._loaders_iter_state_dict = None
@@ -406,14 +406,14 @@ class CombinedLoader(object):
 
     def load_state_dict(self, state_dict):
         # store the samplers state.
-        # They would be reloaded once the ``CombinedIterator`` as been created
+        # They would be reloaded once the `CombinedIterator` as been created
         # and the workers are created.
         self._loaders_iter_state_dict = state_dict
 
         def mock_reset_fn(self, *_, **__):
             pass
 
-        # mock reset call, so we can rotate the ``_worker_queue_idx_cycle`` to failed worker
+        # mock reset call, so we can rotate the `_worker_queue_idx_cycle` to failed worker
         # and get the first batch from it
         _MultiProcessingDataLoaderIter._original_reset = _MultiProcessingDataLoaderIter._reset
         _MultiProcessingDataLoaderIter._reset = mock_reset_fn
@@ -426,11 +426,11 @@ class CombinedLoader(object):
 
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
             if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # provide the ``state_dict`` to the ``CaptureIterableDataset``
-                # as it is responsible for passing down the state to associated ``FastForwardSampler``
+                # provide the `state_dict` to the `CaptureIterableDataset`
+                # as it is responsible for passing down the state to associated `FastForwardSampler`
                 dataloader.dataset.load_state_dict(state_dict)
             else:
-                # for ``Mapping-based`` dataset, the ``fast_forward_sampler`` was attached
+                # for `Mapping-based` dataset, the `fast_forward_sampler` was attached
                 # on the dataloader for simplicity
                 dataloader.fast_forward_sampler.load_state_dict(state_dict)
 
@@ -444,8 +444,8 @@ class CombinedLoader(object):
                 iterator._sampler_state_dict = [state_dict]
             return iterator
 
-        # apply the ``create_loader_iters`` on the collection of ``DataLoader / Iterator``.
-        # each ``Iterator``` was created from the ``DataLoader``.
+        # apply the `create_loader_iters` on the collection of `DataLoader / Iterator`.
+        # each `Iterator` was created from the `DataLoader`.
         iterator._loader_iters = apply_to_collections(
             self.loaders, self._loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
         )
@@ -453,7 +453,7 @@ class CombinedLoader(object):
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
+        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, "sampler", None)
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
@@ -477,7 +477,7 @@ class CombinedLoader(object):
         Create and return an iterator, `CombinedLoaderIterator`, for the combined loader.
         """
 
-        # prevent ``NotImplementedError`` from PyTorch:
+        # prevent `NotImplementedError` from PyTorch:
         # https://github.com/pytorch/pytorch/blob/v1.9.0/torch/utils/data/dataloader.py#L541
         def __getstate__patch__(*_):
             return {}
@@ -510,7 +510,7 @@ class CombinedLoader(object):
         return self._calc_num_batches(self.loaders)
 
 
-class CombinedLoaderIterator(object):
+class CombinedLoaderIterator:
     """
     Custom Iterator returning data from multple loaders, and allows sampling in parallel
     """
@@ -562,12 +562,12 @@ class CombinedLoaderIterator(object):
             if not _fault_tolerant_enabled():
                 return batch
             # when fault tolerant is enabled, the iterator will return
-            # ``FastForwardSampler`` state_dict metadata
+            # `FastForwardSampler` state_dict metadata
             # along side with the user data.
             # the metadata are extracted and store directly on the iterator
-            # to simplify the collection on ``state_dict`` call.
+            # to simplify the collection on `state_dict` call.
             batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
-            # store the ``sampler_state_dict`` on the iterator
+            # store the `sampler_state_dict` on the iterator
             CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
             return batch
 
@@ -599,7 +599,7 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
         data = list(data.values())
 
     if not isinstance(data, Sequence):
-        raise TypeError(f'Expected data to be int, Sequence or Mapping, but got {type(data).__name__}')
+        raise TypeError(f"Expected data to be int, Sequence or Mapping, but got {type(data).__name__}")
 
     new_data = []
 
