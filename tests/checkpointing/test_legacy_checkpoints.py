@@ -17,7 +17,7 @@ import sys
 
 import pytest
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Trainer
 from tests import _PATH_LEGACY
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
@@ -95,18 +95,3 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     # trainer.fit(model)
 
     sys.path = orig_sys_paths
-
-
-class OldStatefulCallback(Callback):
-    def __init__(self, state):
-        self.state = state
-
-    @property
-    def state_id(self):
-        return type(self)
-
-    def on_save_checkpoint(self, *args):
-        return {"state": self.state}
-
-    def on_load_checkpoint(self, trainer, pl_module, callback_state):
-        self.state = callback_state["state"]
