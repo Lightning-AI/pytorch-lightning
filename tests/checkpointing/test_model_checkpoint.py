@@ -857,7 +857,6 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
-
     assert ckpt_last["callbacks"]["ModelCheckpoint"] == ckpt_last_epoch["callbacks"]["ModelCheckpoint"]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
