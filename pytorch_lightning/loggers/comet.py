@@ -69,15 +69,16 @@ class CometLogger(LightningLoggerBase):
         import os
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import CometLogger
+
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            api_key=os.environ.get('COMET_API_KEY'),
-            workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
-            save_dir='.',  # Optional
-            project_name='default_project',  # Optional
-            rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
-            experiment_key=os.environ.get('COMET_EXPERIMENT_KEY'),  # Optional
-            experiment_name='default'  # Optional
+            api_key=os.environ.get("COMET_API_KEY"),
+            workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
+            save_dir=".",  # Optional
+            project_name="default_project",  # Optional
+            rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
+            experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
+            experiment_name="default",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -86,13 +87,14 @@ class CometLogger(LightningLoggerBase):
     .. code-block:: python
 
         from pytorch_lightning.loggers import CometLogger
+
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            save_dir='.',
-            workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
-            project_name='default_project',  # Optional
-            rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
-            experiment_name='default'  # Optional
+            save_dir=".",
+            workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
+            project_name="default_project",  # Optional
+            rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
+            experiment_name="default",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 

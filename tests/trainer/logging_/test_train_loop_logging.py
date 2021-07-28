@@ -551,7 +551,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             self.log("on_epoch_end", 5)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             self.log("on_train_epoch_end", 6)
 
     model = BoringModel()
