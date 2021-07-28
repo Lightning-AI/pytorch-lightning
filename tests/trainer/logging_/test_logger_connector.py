@@ -30,7 +30,9 @@ from tests.helpers.runif import RunIf
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted(m for m, _ in getmembers(Callback, predicate=isfunction) if not m.startswith("_"))
+from tests.models.test_hooks import get_members
+
+    funcs_name = sorted(get_members(Callback))
 
     callbacks_func = [
         "on_before_backward",
