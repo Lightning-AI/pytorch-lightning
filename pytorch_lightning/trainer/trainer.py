@@ -916,7 +916,8 @@ class Trainer(
         self._pre_dispatch()
 
         if self.accelerator.restore_checkpoint_after_pre_dispatch and self.state.fn == TrainerFn.FITTING:
-            self._load_checkpoint_weights()
+            if self._ckpt_path:
+                self._load_checkpoint_weights()
             self._restore_checkpoint()
 
         # restore optimizers, etc.
