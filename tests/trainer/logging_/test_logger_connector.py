@@ -106,7 +106,6 @@ def test_fx_validator(tmpdir):
         "on_train_end",
         "on_validation_end",
         "setup",
-        "state_id",
         "teardown",
     ]
 
