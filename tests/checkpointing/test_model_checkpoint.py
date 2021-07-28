@@ -1037,7 +1037,7 @@ def test_configure_model_checkpoint(tmpdir):
 
     # default configuration
     trainer = Trainer(checkpoint_callback=True, callbacks=[], **kwargs)
-    assert len([c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]) == 1
+    assert sum(1 for c in trainer.callbacks if isinstance(c, ModelCheckpoint)) == 1
     assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
 
     # custom callback passed to callbacks list, checkpoint_callback=True is ignored

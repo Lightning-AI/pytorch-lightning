@@ -796,7 +796,7 @@ def test_hooks_with_different_argument_names(tmpdir):
 
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    trainer.test(ckpt_path=None)
+    trainer.test(model)
 
     preds = trainer.predict(model)
     assert len(preds) == 2
