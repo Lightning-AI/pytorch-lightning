@@ -23,12 +23,12 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 from torch import optim
+from torchmetrics.classification.accuracy import Accuracy
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN

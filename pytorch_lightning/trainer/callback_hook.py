@@ -22,11 +22,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -91,22 +87,10 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``train`` epoch
-        """
+    def on_train_epoch_end(self):
+        """Called when the epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                warning_cache.deprecation(
-                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
-                    " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5"
-                )
-                callback.on_train_epoch_end(self, self.lightning_module, outputs)
-            else:
-                callback.on_train_epoch_end(self, self.lightning_module)
+            callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
