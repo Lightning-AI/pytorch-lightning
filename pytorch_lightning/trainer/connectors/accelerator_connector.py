@@ -803,7 +803,7 @@ class AcceleratorConnector:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
-        if self.distributed_backend == "horovod":
+        if self.distributed_backend == DistributedType.HOROVOD:
             self._set_horovod_backend()
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
