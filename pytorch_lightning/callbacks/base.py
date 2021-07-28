@@ -49,6 +49,13 @@ class Callback(abc.ABC):
         return type(self)
 
     def _generate_state_id(self, **kwargs: Any) -> str:
+        """
+        Formats a set of key-value pairs into a state id string by joining the string representation of each pair
+        into a comma separated list with the callback class name prefixed. Useful for defining a :attr:`state_id`.
+
+        Args:
+            **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
+        """
         attrs = ", ".join(f"{k}={v}" for k, v in kwargs.items())
         identifier = f"{self.__class__.__qualname__}[{attrs}]"
         return identifier
