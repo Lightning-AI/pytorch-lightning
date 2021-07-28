@@ -246,20 +246,23 @@ class TrainerDataLoadingMixin(ABC):
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
 
-        if "dataset" not in params:
-            dl_kwargs.pop("dataset")
-        else:
-            # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
-            if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
-                # force the seed in the ``Dataset``
-                seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch + self.global_rank
+        # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
+        if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
+            assert False
+            # force the seed in the ``Dataset``
+            seed = int(os.getenv("PL_GLOBAL_SEED", 0)) + self.current_epoch + self.global_rank
 
-                if dl_kwargs.get("generator") is None:
-                    dl_kwargs["generator"] = torch.Generator().manual_seed(seed)
+            if dl_kwargs.get("generator") is None:
+                dl_kwargs["generator"] = torch.Generator().manual_seed(seed)
 
-                dl_kwargs["dataset"] = CaptureIterableDataset(
-                    dataset=dl_kwargs["dataset"], initial_seed=dl_kwargs["generator"].initial_seed()
-                )
+            dl_kwargs["dataset"] = CaptureIterableDataset(
+                dataset=dl_kwargs["dataset"], initial_seed=dl_kwargs["generator"].initial_seed()
+            )
+            dl_kwargs["sampler"] = None
+
+        if isinstance(dl_kwargs["dataset"], IterableDataset):
+            del dl_kwargs["sampler"]
+            del dl_kwargs["batch_sampler"]
 
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)
