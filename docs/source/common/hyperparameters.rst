@@ -159,7 +159,7 @@ improve readability and reproducibility.
     .. code-block:: python
 
         class LitMNIST(LightningModule):
-            def __init__(self, conf, *args, **kwargs):
+            def __init__(self, conf: Optional[Union[Dict, Namespace, DictConfig]] = None, **kwargs):
                 super().__init__()
                 # save the config and any extra arguments
                 self.save_hyperparameters(conf)
