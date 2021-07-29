@@ -75,6 +75,9 @@ class LightningArgumentParser(ArgumentParser):
             lightning_class: A callable or any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether allow any subclass of the given class.
+
+        Returns:
+            A list with the names of the class arguments added.
         """
         if callable(lightning_class) and not inspect.isclass(lightning_class):
             lightning_class = class_from_function(lightning_class)
@@ -201,12 +204,12 @@ class LightningCLI:
         save_config_filename: str = "config.yaml",
         save_config_overwrite: bool = False,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
-        trainer_defaults: Dict[str, Any] = None,
-        seed_everything_default: int = None,
+        trainer_defaults: Optional[Dict[str, Any]] = None,
+        seed_everything_default: Optional[int] = None,
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
         env_parse: bool = False,
-        parser_kwargs: Dict[str, Any] = None,
+        parser_kwargs: Optional[Dict[str, Any]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
     ) -> None:
@@ -273,8 +276,6 @@ class LightningCLI:
         self.setup_parser(**parser_kwargs)
         self.parse_arguments(self.parser)
 
-        # FIXME: typeddict?
-        # FIXME: support for None subcommand
         subcommand: Optional[str] = self.config["subcommand"]
         seed = self.config[subcommand].get("seed_everything")
         if seed is not None:
@@ -290,7 +291,7 @@ class LightningCLI:
     def setup_parser(self, **kwargs: Any) -> None:
         """Initialize and setup the parser, subcommands, and arguments"""
         self.parser = self.init_parser(**kwargs)
-        self._subcommand_method_arguments: Dict[str, Set[str]] = {}
+        self._subcommand_method_arguments: Dict[str, List[str]] = {}
         self._add_subcommands(self.parser)
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
@@ -368,14 +369,14 @@ class LightningCLI:
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
-        """Parses command line arguments and stores it in self.config"""
+        """Parses command line arguments and stores it in ``self.config``"""
         self.config = parser.parse_args()
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes"""
 
     def instantiate_classes(self) -> None:
-        """Instantiates the classes using settings from self.config"""
+        """Instantiates the classes and sets their attributes."""
         self.config_init = self.parser.instantiate_classes(self.config)
         config = self.config_init[self.config["subcommand"]]
         self.datamodule = self.config.get("data")
