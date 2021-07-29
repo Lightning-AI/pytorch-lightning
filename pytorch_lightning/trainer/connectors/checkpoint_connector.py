@@ -308,7 +308,7 @@ class CheckpointConnector:
             structured dictionary: {
                 'epoch':                     training epoch
                 'global_step':               training global step
-                'pytorch-lightning_version': PyTorch Lightning's version
+                'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
                 'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
