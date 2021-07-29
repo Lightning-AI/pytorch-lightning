@@ -46,7 +46,7 @@ If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` b
     trainer = Trainer(gradient_clip_val=0.5)  # gradient_clip_algorithm='norm' by default
 
     # clip gradients' maximum magnitude to <=0.5
-    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value')
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm="value")
 
 ----------
 
@@ -82,7 +82,7 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     trainer = Trainer(auto_scale_batch_size=None)
 
     # Autoscale batch size
-    trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
+    trainer = Trainer(auto_scale_batch_size=None | "power" | "binsearch")
 
     # find the batch size
     trainer.tune(model)
@@ -107,7 +107,7 @@ search for batch sizes larger than the size of the training dataset.
     .. code-block:: python
 
         def train_dataloader(self):
-            return DataLoader(train_dataset, batch_size=self.batch_size|self.hparams.batch_size)
+            return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
 
 .. warning::
 

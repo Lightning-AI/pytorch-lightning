@@ -46,6 +46,7 @@ class TestTubeLogger(LightningLoggerBase):
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import TestTubeLogger
+
         logger = TestTubeLogger("tt_logs", name="my_exp_name")
         trainer = Trainer(logger=logger)
 
@@ -54,6 +55,8 @@ class TestTubeLogger(LightningLoggerBase):
     .. code-block:: python
 
         from pytorch_lightning import LightningModule
+
+
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # example
