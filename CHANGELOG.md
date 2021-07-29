@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `state_id` property to the `Callback` base class ([#6886](https://github.com/PyTorchLightning/pytorch-lightning/pull/6886))
 
 
--
+- Added `finish()` method to `WandbLogger` for convenience to signal an experiment is over and to facilitate running several experiments in the same process ([#8617](https://github.com/PyTorchLightning/pytorch-lightning/pull/8617))
 
 
 -
