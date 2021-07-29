@@ -19,15 +19,10 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, 
 
 from torch.optim import Optimizer
 
-from pytorch_lightning import seed_everything
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities import rank_zero_warn, warnings
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, rank_zero_warn, warnings
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
 
@@ -192,7 +187,7 @@ class SaveConfigCallback(Callback):
 
     def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
         # `ArgumentParser` is un-pickleable. Drop it
-        return (self.__class__, (None, self.config, self.config_filename), {})
+        return self.__class__, (None, self.config, self.config_filename), {}
 
 
 class LightningCLI:
@@ -278,21 +273,25 @@ class LightningCLI:
         self.setup_parser(**parser_kwargs)
         self.parse_arguments(self.parser)
 
-        subcommand = self.config["subcommand"]
+        # FIXME: typeddict?
+        # FIXME: support for None subcommand
+        subcommand: Optional[str] = self.config["subcommand"]
         seed = self.config[subcommand].get("seed_everything")
         if seed is not None:
             seed_everything(seed, workers=True)
 
         self.before_instantiate_classes()
         self.instantiate_classes()
+        self.add_configure_optimizers_method_to_model()
 
-        self.run_subcommand()
+        if subcommand is not None:
+            self._run_subcommand()
 
     def setup_parser(self, **kwargs: Any) -> None:
         """Initialize and setup the parser, subcommands, and arguments"""
         self.parser = self.init_parser(**kwargs)
-        self.subcommand_method_arguments: Dict[str, Set[str]] = {}
-        self.add_subcommands(self.parser)
+        self._subcommand_method_arguments: Dict[str, Set[str]] = {}
+        self._add_subcommands(self.parser)
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser"""
@@ -316,45 +315,38 @@ class LightningCLI:
         if self.datamodule_class is not None:
             parser.add_lightning_class_args(self.datamodule_class, "data", subclass_mode=self.subclass_mode_data)
 
-    @property
-    def subcommands(self) -> Dict[str, Set[str]]:
+    @staticmethod
+    def subcommands() -> Dict[str, Set[str]]:
         """Defines the list of available subcommands and the arguments to skip"""
         return {
-            "fit": {"model", "train_dataloader", "val_dataloaders", "datamodule"},
-            "validate": {"model", "val_dataloaders", "datamodule"},
-            "test": {"model", "test_dataloaders", "datamodule"},
+            "fit": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
+            "validate": {"model", "dataloaders", "val_dataloaders", "datamodule"},
+            "test": {"model", "dataloaders", "test_dataloaders", "datamodule"},
             "predict": {"model", "dataloaders", "datamodule"},
-            "tune": {"model", "train_dataloader", "val_dataloaders", "datamodule"},
+            "tune": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
         }
 
-    def add_subcommands(self, parser: LightningArgumentParser) -> None:
+    def _add_subcommands(self, parser: LightningArgumentParser) -> None:
         parser_subcommands = parser.add_subcommands()
-        for subcommand in self.subcommands:
-            subcommand_parser = self.prepare_subcommand_parser(subcommand)
+        for subcommand in self.subcommands():
+            subcommand_parser = self._prepare_subcommand_parser(subcommand)
             fn = getattr(self.trainer_class, subcommand)
-            description = self._get_short_description(fn)
+            description = _get_short_description(fn)
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
-    def prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
+    def _prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
         parser = self.init_parser()
         # default + core + custom arguments
         self.add_default_arguments(parser)
         self.add_core_arguments(parser)
         self.add_arguments(parser)
         # subcommand arguments
-        skip = self.subcommands[subcommand]
+        subcommands = self.subcommands()
+        skip = subcommands[subcommand]
         added = parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
         # need to save which arguments were added to pass them to the method later
-        self.subcommand_method_arguments[subcommand] = added
+        self._subcommand_method_arguments[subcommand] = added
         return parser
-
-    @staticmethod
-    def _get_short_description(component: object) -> Optional[str]:
-        try:
-            docstring = parse(component.__doc__)
-            return docstring.short_description
-        except ValueError:
-            rank_zero_warn(f"Failed parsing docstring for {component}")
 
     def add_arguments(self, parser: LightningArgumentParser) -> None:
         """
@@ -365,7 +357,7 @@ class LightningCLI:
         """
 
     def link_optimizers_and_lr_schedulers(self) -> None:
-        """Creates argument links for optimizers and lr_schedulers that specified a link_to"""
+        """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
         for key, (class_type, link_to) in self.parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
                 continue
@@ -384,47 +376,33 @@ class LightningCLI:
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
-        self.config_init = self.parser.instantiate_subclasses(self.config)
+        self.config_init = self.parser.instantiate_classes(self.config)
         config = self.config_init[self.config["subcommand"]]
-        self.instantiate_datamodule(config.get("data", {}))
-        self.instantiate_model(config.get("model", {}))
-        self.instantiate_trainer(config["trainer"])
+        self.datamodule = self.config.get("data")
+        self.model = self.config["model"]
+        callbacks = [self.config_init[c] for c in self.parser.callback_keys]
+        self.trainer = self.instantiate_trainer(config["trainer"], callbacks)
 
-    def instantiate_datamodule(self, config: Dict[str, Any]) -> None:
-        """Instantiates the datamodule using self.config_init['data'] if given"""
-        if self.datamodule_class is None:
-            self.datamodule = None
-        elif self.subclass_mode_data:
-            self.datamodule = config
-        else:
-            self.datamodule = self.datamodule_class(**config)
-
-    def instantiate_model(self, config: Dict[str, Any]) -> None:
-        """Instantiates the model using self.config_init['model']"""
-        if self.subclass_mode_model:
-            self.model = config
-        else:
-            self.model = self.model_class(**config)
-
-    def instantiate_trainer(self, config: Dict[str, Any]) -> None:
-        """Instantiates the trainer using self.config_init['trainer']"""
-        if config.get("callbacks") is None:
-            config["callbacks"] = []
+    def instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
+        """Instantiates the trainer."""
+        config.setdefault("callbacks", [])
+        config["callbacks"].extend(callbacks)
         if "callbacks" in self.trainer_defaults:
             if isinstance(self.trainer_defaults["callbacks"], list):
                 config["callbacks"].extend(self.trainer_defaults["callbacks"])
             else:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
-        if self.save_config_callback is not None:
+        if self.save_config_callback and not self.config["fast_dev_run"]:
             config_callback = self.save_config_callback(
                 self.parser, self.config, self.save_config_filename, overwrite=self.save_config_overwrite
             )
             config["callbacks"].append(config_callback)
-        self.trainer = self.trainer_class(**config)
+        return self.trainer_class(**config)
 
     def add_configure_optimizers_method_to_model(self) -> None:
         """
-        Adds to the model an automatically generated configure_optimizers method
+        Adds to the model an automatically generated ``configure_optimizers`` method.
+
         If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC',
         then a `configure_optimizers` method is automatically implemented in the model class.
         """
@@ -454,7 +432,7 @@ class LightningCLI:
             )
 
         if is_overridden("configure_optimizers", self.model):
-            warnings.warn(
+            warnings._warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
             )
@@ -481,25 +459,27 @@ class LightningCLI:
 
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
-    def run_subcommand(self) -> None:
-        """Run the chosen subcommand"""
+    def _run_subcommand(self) -> None:
+        """Run the chosen subcommand."""
         subcommand = self.config["subcommand"]
-        fn_kwargs = self.prepare_subcommand_kwargs(subcommand)
 
-        if hasattr(self, f"before_{subcommand}"):
-            getattr(self, f"before_{subcommand}")()
+        before_fn = getattr(self, f"before_{subcommand}")
+        if callable(before_fn):
+            before_fn()
 
         default = getattr(self.trainer, subcommand)
         fn = getattr(self, subcommand, default)
+        fn_kwargs = self._prepare_subcommand_kwargs(subcommand)
         fn(**fn_kwargs)
 
-        if hasattr(self, f"after_{subcommand}"):
-            getattr(self, f"after_{subcommand}")()
+        after_fn = getattr(self, f"after_{subcommand}")
+        if callable(after_fn):
+            after_fn()
 
-    def prepare_subcommand_kwargs(self, subcommand: str) -> Dict[str, Any]:
-        """Prepares the keyword arguments to pass to the subcommand to run"""
+    def _prepare_subcommand_kwargs(self, subcommand: str) -> Dict[str, Any]:
+        """Prepares the keyword arguments to pass to the subcommand to run."""
         fn_kwargs = {
-            k: v for k, v in self.config_init[subcommand].items() if k in self.subcommand_method_arguments[subcommand]
+            k: v for k, v in self.config_init[subcommand].items() if k in self._subcommand_method_arguments[subcommand]
         }
         fn_kwargs["model"] = self.model
         if self.datamodule is not None:
@@ -535,3 +515,11 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
     module = __import__(class_module, fromlist=[class_name])
     args_class = getattr(module, class_name)
     return args_class(*args, **kwargs)
+
+
+def _get_short_description(component: object) -> Optional[str]:
+    try:
+        docstring = parse(component.__doc__)
+        return docstring.short_description
+    except ValueError:
+        rank_zero_warn(f"Failed parsing docstring for {component}")

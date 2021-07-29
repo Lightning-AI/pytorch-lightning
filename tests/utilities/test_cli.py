@@ -697,7 +697,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
-@pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
+@pytest.mark.parametrize("fn", [None] + [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
     class TestCLI(LightningCLI):
         def __init__(self, *args, **kwargs):
@@ -749,6 +749,22 @@ def test_lightning_cli_trainer_fn(fn):
         def after_tune(self):
             self.called.append("after_tune")
 
-    with mock.patch("sys.argv", ["any.py", fn]):
+    argv = ["any.py"]
+    if fn is not None:
+        argv.append(fn)
+
+    with mock.patch("sys.argv", argv):
         cli = TestCLI(BoringModel)
-    assert cli.called == [f"before_{fn}", fn, f"after_{fn}"]
+    assert cli.called == [] if fn is None else [f"before_{fn}", fn, f"after_{fn}"]
+
+
+def test_subcommands():
+    subcommands = LightningCLI.subcommands()
+    trainer = Trainer()
+    for subcommand, exclude in subcommands.items():
+        fn = getattr(trainer, subcommand)
+        parameters = list(inspect.signature(fn).parameters)
+        for e in exclude:
+            # if this fails, it's because the parameter has been removed from the associated `Trainer` function
+            # and the `LightningCLI` subcommand exclusion list needs to be updated
+            assert e in parameters
