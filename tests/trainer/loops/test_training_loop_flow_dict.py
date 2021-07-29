@@ -116,7 +116,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
 
             # verify we saw the current num of batches
             assert len(outputs) == 2
-            assert len(set(id(output) for output in outputs)) == 2
+            assert len({id(output) for output in outputs}) == 2
             assert [output["batch_idx"] for output in outputs] == [0, 1]
 
             for b in outputs:
@@ -171,7 +171,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
 
             # verify we saw the current num of batches
             assert len(outputs) == 2
-            assert len(set(id(output) for output in outputs)) == 2
+            assert len({id(output) for output in outputs}) == 2
             assert [output["batch_idx"] for output in outputs] == [0, 1]
 
             for b in outputs:
