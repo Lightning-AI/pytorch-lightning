@@ -268,9 +268,18 @@ class AttributeDict(Dict):
     "new_key": 42
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+    # def __init__(self, *args: Any, **kwargs: Any) -> None:
+    #    super().__init__(*args, **kwargs)
+    #    self.__dict__ = self
+
+    def __getattr__(self, key: str) -> Optional[Any]:
+        try:
+            return self[key]
+        except KeyError as exp:
+            raise AttributeError(f'Missing attribute "{key}"') from exp
+
+    def __setattr__(self, key: str, val: Any) -> None:
+        self[key] = val
 
     def __repr__(self) -> str:
         if not len(self):
