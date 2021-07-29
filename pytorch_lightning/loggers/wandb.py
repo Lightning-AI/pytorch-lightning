@@ -246,6 +246,14 @@ class WandbLogger(LightningLoggerBase):
         if self._checkpoint_callback:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
+    def finish(self) -> None:
+        """
+        Convenience method to manually signal that the current experiment is over. It is equivalent to calling
+        :func:`wandb.finish` and allows for creating a new wandb experiment in the same process as :class:`wandb.run`
+        would be shared globally otherwise.
+        """
+        self.experiment.finish()
+
     def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         # get checkpoints to be saved with associated score
         checkpoints = {
