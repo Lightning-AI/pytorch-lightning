@@ -402,7 +402,7 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=2)], gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     trainer.test(model)
