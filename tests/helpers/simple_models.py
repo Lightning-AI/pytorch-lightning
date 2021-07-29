@@ -15,6 +15,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
+from torchmetrics import Accuracy, MeanSquaredError
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.metrics import Accuracy, MeanSquaredError

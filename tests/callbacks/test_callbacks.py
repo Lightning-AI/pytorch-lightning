@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
 from unittest.mock import call, Mock
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
 from tests.helpers import BoringModel
 
 
@@ -98,6 +99,36 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
 
-        trainer_fn(ckpt_path=None)
+        trainer_fn(model)
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
+
+
+class OldStatefulCallback(Callback):
+    def __init__(self, state):
+        self.state = state
+
+    @property
+    def state_id(self):
+        return type(self)
+
+    def on_save_checkpoint(self, *args):
+        return {"state": self.state}
+
+    def on_load_checkpoint(self, trainer, pl_module, callback_state):
+        self.state = callback_state["state"]
+
+
+def test_resume_callback_state_saved_by_type(tmpdir):
+    """Test that a legacy checkpoint that didn't use a state identifier before can still be loaded."""
+    model = BoringModel()
+    callback = OldStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer.fit(model)
+    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
+    assert ckpt_path.exists()
+
+    callback = OldStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+    trainer.fit(model)
+    assert callback.state == 111

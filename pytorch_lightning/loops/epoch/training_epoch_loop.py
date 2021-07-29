@@ -22,7 +22,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -43,11 +42,6 @@ class TrainingEpochLoop(loops.Loop):
         self.global_step: int = 0
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
-        # the current split index when the batch gets split into chunks in truncated backprop through time
-        self.split_idx: Optional[int] = None
-        # the number of batches seen this run, updates immediately after batch_loop.run()
-        # TODO: replace by progress tracking
-        self.batches_seen: int = 0
         self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
@@ -63,7 +57,9 @@ class TrainingEpochLoop(loops.Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the current batch index (within this epoch)"""
-        return self.iteration_count
+        # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
+        # but before the next `ready` increase
+        return self.batch_progress.current.ready - 1
 
     @property
     def done(self) -> bool:
@@ -85,17 +81,13 @@ class TrainingEpochLoop(loops.Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
-        self.iteration_count = 0
-        self.batches_seen = 0
         self.is_last_batch = False
         self._dataloader_idx = 0
 
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-        if self.restarting:
-            self.iteration_count = self.batches_seen = self.batch_progress.current.completed
-        else:
+        if not self.restarting:
             self.batch_progress.current.reset()
             self.scheduler_progress.current.reset()
             self.batch_loop.optim_progress.reset_on_epoch()
@@ -128,8 +120,7 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
-            self.batches_seen += 1
+            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx)
 
         self.batch_progress.increment_processed()
 
@@ -148,7 +139,7 @@ class TrainingEpochLoop(loops.Loop):
 
         # hook
         self.trainer.call_hook(
-            "on_train_batch_end", processed_batch_end_outputs, batch, self.iteration_count, self._dataloader_idx
+            "on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, self._dataloader_idx
         )
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
@@ -172,7 +163,7 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.iteration_count, self.is_last_batch)
+        should_check_val = self._should_check_val_fx(self.batch_idx, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -203,7 +194,7 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             MisconfigurationException: ``train_epoch_end`` does not return ``None``
         """
-        if self.batches_seen == 0:
+        if self.batch_progress.current.ready == 0:
             # dataloader/iterator did not produce a batch
             return
 
@@ -233,7 +224,7 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
         # call train epoch end hooks
-        self._on_train_epoch_end_hook(processed_outputs)
+        self.trainer.call_hook("on_train_epoch_end")
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
@@ -256,58 +247,29 @@ class TrainingEpochLoop(loops.Loop):
         with torch.no_grad():
             self.val_loop.run()
 
-    def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
-        """Runs ``on_train_epoch_end hook``."""
-        # We cannot rely on Trainer.call_hook because the signatures might be different across
-        # lightning module and callback
-        # As a result, we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
-
-        # This implementation is copied from Trainer.call_hook
-        hook_name = "on_train_epoch_end"
-        prev_fx_name = self.trainer.lightning_module._current_fx_name
-        self.trainer.lightning_module._current_fx_name = hook_name
-
-        # always profile hooks
-        with self.trainer.profiler.profile(hook_name):
-
-            # first call trainer hook
-            if hasattr(self.trainer, hook_name):
-                trainer_hook = getattr(self.trainer, hook_name)
-                trainer_hook(processed_epoch_output)
-
-            # next call hook in lightningModule
-            model_ref = self.trainer.lightning_module
-            if is_overridden(hook_name, model_ref):
-                hook_fx = getattr(model_ref, hook_name)
-                if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self._warning_cache.deprecation(
-                        "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
-                        " `outputs` parameter has been deprecated."
-                        " Support for the old signature will be removed in v1.5"
-                    )
-                    model_ref.on_train_epoch_end(processed_epoch_output)
-                else:
-                    model_ref.on_train_epoch_end()
-
-            # call the accelerator hook
-            if hasattr(self.trainer.accelerator, hook_name):
-                accelerator_hook = getattr(self.trainer.accelerator, hook_name)
-                accelerator_hook()
-
-        # restore current_fx when nested context
-        self.trainer.lightning_module._current_fx_name = prev_fx_name
+    def _accumulated_batches_reached(self) -> bool:
+        """Determine if accumulation will be finished by the end of the current batch."""
+        return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
-        """Checks if we are in the last batch or if there are more batches to follow."""
+        """Checks if we are in the last batch or if there are more batches to follow.
 
-        # TODO: Can we combine this with training_batch_loop's arg that does a similar check?
-        return self.batches_seen == self.trainer.num_training_batches or is_last_batch
+        Args:
+            is_last_batch: Whether the current batch is the last one
+        """
+        return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
+
+    def _should_accumulate(self) -> bool:
+        """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
+        accumulation_done = self._accumulated_batches_reached()
+        is_final_batch = self._num_training_batches_reached()
+        return not (accumulation_done or is_final_batch)
 
     def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
     ) -> None:
         """Adds the batch outputs to the epoch outputs and prepares reduction"""
-        hook_overridden = self._should_add_batch_output_to_epoch_output()
+        hook_overridden = is_overridden("training_epoch_end", self.trainer.lightning_module)
         if not hook_overridden:
             return
 
@@ -322,24 +284,6 @@ class TrainingEpochLoop(loops.Loop):
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
-
-    def _should_add_batch_output_to_epoch_output(self) -> bool:
-        """
-        We add to the epoch outputs if
-        1. The model defines training_epoch_end OR
-        2. The model overrides on_train_epoch_end which has `outputs` in the signature
-        """
-        # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
-        lightning_module = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", lightning_module):
-            return True
-
-        if is_overridden("on_train_epoch_end", lightning_module):
-            model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
-            if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                return True
-
-        return False
 
     @staticmethod
     def _prepare_outputs(
@@ -398,7 +342,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval"""
-        if interval == "step" and self.batch_loop.should_accumulate():
+        if interval == "step" and self._should_accumulate():
             return
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
@@ -407,12 +351,8 @@ class TrainingEpochLoop(loops.Loop):
         )
 
     def _increment_accumulated_grad_global_step(self) -> None:
-        """increments global step"""
-        num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
-        num_training_batches_reached = self._num_training_batches_reached()
-
-        # progress global step according to grads progress
-        if num_accumulated_batches_reached or num_training_batches_reached:
+        """Increments global step according to grads progress"""
+        if not self._should_accumulate():
             self.global_step = self.trainer.accelerator.update_global_step(
                 self.total_batch_idx, self.trainer.global_step
             )

@@ -92,29 +92,18 @@ for TPU use
 
     import torch_xla.core.xla_model as xm
 
+
     def train_dataloader(self):
-        dataset = MNIST(
-            os.getcwd(),
-            train=True,
-            download=True,
-            transform=transforms.ToTensor()
-        )
+        dataset = MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
 
         # required for TPU support
         sampler = None
         if use_tpu:
             sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=True
+                dataset, num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal(), shuffle=True
             )
 
-        loader = DataLoader(
-            dataset,
-            sampler=sampler,
-            batch_size=32
-        )
+        loader = DataLoader(dataset, sampler=sampler, batch_size=32)
 
         return loader
 
