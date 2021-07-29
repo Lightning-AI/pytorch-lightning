@@ -166,7 +166,7 @@ class TrainingBatchLoop(Loop):
         split_batch: Any,
         opt_idx: Optional[int] = None,
         optimizer: Optional[torch.optim.Optimizer] = None,
-    ):
+    ) -> Optional[ClosureResult]:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
@@ -514,45 +514,6 @@ class TrainingBatchLoop(Loop):
                 yield None
         else:
             yield None
-
-    def training_step_and_backward(
-        self,
-        split_batch: Any,
-        batch_idx: int,
-        opt_idx: int,
-        optimizer: torch.optim.Optimizer,
-        hiddens: Optional[Tensor],
-    ) -> STEP_OUTPUT:
-        """Wrap forward, zero_grad and backward in a closure so second order methods work"""
-        with self.trainer.profiler.profile("training_step_and_backward"):
-            # lightning module hook
-            result = self._training_step(split_batch, batch_idx, opt_idx, hiddens)
-
-            if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
-                is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
-
-                if is_first_batch_to_accumulate:
-                    self._on_before_zero_grad(optimizer)
-                    self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
-                # backward pass
-                if result is not None:
-                    with self.trainer.profiler.profile("backward"):
-                        self.backward(result, optimizer, opt_idx)
-
-                    # when in dev debugging track the losses
-                    self.trainer.dev_debugger.track_train_loss_history(batch_idx, result.loss)
-
-                    # check if loss or model weights are nan
-                    if self.trainer.terminate_on_nan:
-                        self._check_finite(result.loss)
-
-                else:
-                    self._warning_cache.warn(
-                        "training_step returned None. If this was on purpose, ignore this warning..."
-                    )
-
-        return result
 
     def _check_finite(self, loss: Tensor) -> None:
         """Checks fotr finite parameters and loss values.

@@ -156,10 +156,11 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop._make_closure(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
@@ -229,10 +230,11 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward(
+    opt_closure = trainer.fit_loop.epoch_loop.batch_loop._make_closure(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
-    assert opt_closure_result["loss"].item() == 171
+    opt_closure_result = opt_closure()
+    assert opt_closure_result.item() == 171
 
 
 def test_train_step_no_return(tmpdir):

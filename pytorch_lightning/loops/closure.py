@@ -16,7 +16,8 @@ class ClosureResult:
 
     @property
     def loss(self):
-        return self.closure_loss.detach().clone()
+        if self.closure_loss is not None:
+            return self.closure_loss.detach().clone()
 
 
 class Closure:
@@ -36,7 +37,8 @@ class Closure:
 
     def __call__(self, *args, **kwargs) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
-        return self._result.loss
+        if self._result is not None:
+            return self._result.loss
 
 
 class LightningClosure(Closure):
