@@ -1255,12 +1255,21 @@ def result_collection_reload(trainer_kwargs):
             self.breaking_batch_idx = 3
             self.has_validated_sum = False
             self.dummy_metric = DummyMetric()
-            self.dummy_metric_dynamic = DummyMetric()
 
         def training_step(self, batch, batch_idx):
             assert len(batch) == 1
             if self.has_reloaded:
-                if batch_idx >= self.breaking_batch_idx:
+                # hack as the state is being reset on epoch end
+                if batch_idx == 3 and self.current_epoch == 0:
+                    self.metric_state = self.trainer.fit_loop._results[
+                        "training_step.tracking_metric"
+                    ].value.state_dict()
+                if batch_idx == 0 and self.current_epoch == 1:
+                    self.trainer.fit_loop._results["training_step.tracking_metric"].value.load_state_dict(
+                        self.metric_state
+                    )
+
+                if batch_idx >= self.breaking_batch_idx and self.current_epoch == 1:
                     self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                     self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
 
