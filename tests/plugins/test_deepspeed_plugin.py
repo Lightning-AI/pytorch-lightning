@@ -396,7 +396,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu(tmpdir):
     """
     Test to ensure that DeepSpeed with multiple GPUs works.
     """
@@ -415,6 +415,33 @@ def test_deepspeed_fp32_works(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, gpus=1, plugins="deepspeed_stage_3", fast_dev_run=True)
     trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=False)
+def test_deepspeed_multigpu_single_file(tmpdir):
+    """
+    Test to ensure that DeepSpeed with multiple GPUs works, loading from a single file checkpoint.
+    """
+    model = BoringModel()
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.save_checkpoint(checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=1, fast_dev_run=True, precision=16
+    )
+    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+        trainer.test(model, ckpt_path=checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3, load_full_weights=True)],
+        gpus=1,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.test(model, ckpt_path=checkpoint_path)
 
 
 class ModelParallelClassificationModel(LightningModule):

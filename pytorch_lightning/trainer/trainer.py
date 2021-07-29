@@ -915,10 +915,11 @@ class Trainer(
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
 
-        if self.accelerator.restore_checkpoint_after_pre_dispatch and self.state.fn == TrainerFn.FITTING:
+        if self.accelerator.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
-            self._restore_checkpoint()
+            if self.state.fn == TrainerFn.FITTING:
+                self._restore_checkpoint()
 
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()

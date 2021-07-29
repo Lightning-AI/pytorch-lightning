@@ -705,6 +705,11 @@ class DeepSpeedPlugin(DDPPlugin):
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
         )
+        if client_state is None:
+            raise MisconfigurationException(
+                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
+                "or a single checkpoint file with Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))."
+            )
         return client_state
 
     @property
