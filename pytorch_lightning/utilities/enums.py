@@ -40,7 +40,7 @@ class LightningEnum(str, Enum):
 class AMPType(LightningEnum):
     """Type of Automatic Mixed Precission used for training.
 
-    >>> # you can math the type with string
+    >>> # you can match the type with string
     >>> AMPType.APEX == 'apex'
     True
     """
@@ -52,7 +52,7 @@ class AMPType(LightningEnum):
 class DistributedType(LightningEnum):
     """Define type of ditributed computing.
 
-    >>> # you can math the type with string
+    >>> # you can match the type with string
     >>> DistributedType.DDP == 'ddp'
     True
     >>> # which is case invariant
@@ -77,6 +77,7 @@ class DistributedType(LightningEnum):
     DP = "dp"
     DDP = "ddp"
     DDP2 = "ddp2"
+    DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
@@ -87,11 +88,11 @@ class DistributedType(LightningEnum):
 
 
 class DeviceType(LightningEnum):
-    """Define Device type byt its nature - acceleatrors.
+    """Define Device type by its nature - acceleatrors.
 
     >>> DeviceType.CPU == DeviceType.from_str('cpu')
     True
-    >>> # you can math the type with string
+    >>> # you can match the type with string
     >>> DeviceType.GPU == 'GPU'
     True
     >>> # which is case invariant

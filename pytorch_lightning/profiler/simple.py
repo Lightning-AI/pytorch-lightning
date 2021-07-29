@@ -88,7 +88,7 @@ class SimpleProfiler(BaseProfiler):
         if self.extended:
 
             if len(self.recorded_durations) > 0:
-                max_key = np.max([len(k) for k in self.recorded_durations.keys()])
+                max_key = max(len(k) for k in self.recorded_durations.keys())
 
                 def log_row(action, mean, num_calls, total, per):
                     row = f"{sep}{action:<{max_key}s}\t|  {mean:<15}\t|"

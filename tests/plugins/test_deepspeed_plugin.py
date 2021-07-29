@@ -9,10 +9,10 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -31,6 +31,11 @@ class ModelParallelBoringModel(BoringModel):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
+
+
+class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
 class ModelParallelBoringModelManualOptim(BoringModel):
@@ -687,3 +692,17 @@ def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
         # Assert model parameters are identical after loading
         for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
             assert torch.equal(orig_param, trained_model_param)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_no_schedulers(tmpdir):
+    """
+    Test to ensure ZeRO Stage 3 works with a parallel model and no schedulers.
+    """
+    model = ModelParallelBoringModelNoSchedulers()
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelNoSchedulers)

@@ -69,12 +69,12 @@ class FitLoop(Loop):
     @property
     def batch_idx(self) -> int:
         """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.batch_progress.current.ready - 1
+        return self.epoch_loop.batch_idx
 
     @property
     def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt"""
-        return self.epoch_loop.split_idx
+        return self.epoch_loop.batch_loop.split_idx
 
     @property
     def min_steps(self) -> int:
@@ -216,7 +216,7 @@ class FitLoop(Loop):
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
-        # NOTE: the iteration_count/current_epoch is already incremented
+        # NOTE: the current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
@@ -239,7 +239,7 @@ class FitLoop(Loop):
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
-        return self.epoch_loop.batch_loop.should_accumulate()
+        return self.epoch_loop._should_accumulate()
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

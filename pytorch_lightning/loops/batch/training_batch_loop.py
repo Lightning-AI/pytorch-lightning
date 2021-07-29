@@ -48,7 +48,7 @@ class TrainingBatchLoop(Loop):
         self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
-        self.batch_idx: int = 0
+        # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.optim_progress = OptimizationProgress()
 
@@ -106,7 +106,6 @@ class TrainingBatchLoop(Loop):
     def reset(self) -> None:
         """Resets the loop state"""
         self._hiddens = None
-        self.batch_idx = 0
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
@@ -130,7 +129,6 @@ class TrainingBatchLoop(Loop):
         """
         void(batch, dataloader_idx)
         split_idx, split_batch = self._remaining_splits.pop(0)
-        self.batch_idx = batch_idx
         self.split_idx = split_idx
 
         # let logger connector extract current batch size
@@ -163,25 +161,26 @@ class TrainingBatchLoop(Loop):
         return len(self.get_active_optimizers(batch_idx))
 
     def _run_optimization(
-        self, batch_idx: int, split_batch: Any, opt_idx: int = 0, optimizer: Optional[torch.optim.Optimizer] = None
+        self,
+        batch_idx: int,
+        split_batch: Any,
+        opt_idx: Optional[int] = None,
+        optimizer: Optional[torch.optim.Optimizer] = None,
     ):
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
             batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
-            opt_idx: the index of the current optimizer
-            optimizer: the current optimizer
+            opt_idx: the index of the current optimizer or `None` in case of manual optimization
+            optimizer: the current optimizer or `None` in case of manual optimization
         """
-        # TODO(@awaelchli): In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
-        #   opt_idx=0 to opt_idx=None in the signature here
-
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
 
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens)
 
-        if self.should_accumulate():
+        if self.trainer.fit_loop.should_accumulate():
             # For gradient accumulation
 
             # -------------------
@@ -462,27 +461,6 @@ class TrainingBatchLoop(Loop):
         )
         return grad_norm_dict
 
-    def _accumulated_batches_reached(self) -> bool:
-        """Determine if accumulation will be finished by the end of the current batch."""
-        # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
-        return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-
-    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
-        """Checks whether sufficient training batches have been processed.
-
-        Args:
-            is_last_batch: Whether the current batch is the last one
-        """
-        # FIXME(@awaelchli): use progress tracking of batches instead of manual batch_idx
-        return (self.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
-
-    def should_accumulate(self) -> bool:
-        """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
-        # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
-        is_final_batch = self._num_training_batches_reached()
-        return not (accumulation_done or is_final_batch)
-
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.
 
@@ -603,7 +581,7 @@ class TrainingBatchLoop(Loop):
         else:
             result.closure_loss = self.trainer.accelerator.backward(result.closure_loss, optimizer, *args, **kwargs)
 
-        if not self.should_accumulate():
+        if not self.trainer.fit_loop.should_accumulate():
             # track gradients
             grad_norm_dict = self._track_and_norm_grad(optimizer=optimizer)
             if grad_norm_dict:
@@ -666,10 +644,10 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self._warning_cache.deprecation(
-                        "`training_step` hook signature has changed in v1.3."
-                        " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5"
+                    raise ValueError(
+                        "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
+                        " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
+                        " argument or set `self.automatic_optimization = True`."
                     )
                 step_kwargs["optimizer_idx"] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
