@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager
+from copy import copy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
@@ -318,7 +319,7 @@ class TrainingBatchLoop(Loop):
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
             # the loss will get scaled for amp. avoid any modifications to it
             loss = closure_loss.detach().clone()
-        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
+        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=copy(training_step_output))
 
     def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
         """Adds the :param:`training_step_output` to the trainer's results

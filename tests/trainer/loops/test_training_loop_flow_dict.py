@@ -108,7 +108,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
             acc = acc + batch_idx
 
             self.training_step_called = True
-            out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
+            out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
             return out
 
         def training_epoch_end(self, outputs):
@@ -116,11 +116,13 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
 
             # verify we saw the current num of batches
             assert len(outputs) == 2
+            assert len(set(id(output) for output in outputs)) == 2
+            assert [output["batch_idx"] for output in outputs] == [0, 1]
 
             for b in outputs:
                 assert isinstance(b, dict)
                 assert self.count_num_graphs(b) == 0
-                assert {"random_things", "loss"} == set(b.keys())
+                assert {"random_things", "loss", "batch_idx"} == set(b.keys())
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
@@ -155,7 +157,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
             acc = acc + batch_idx
 
             self.training_step_called = True
-            self.out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)]}
+            self.out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
             return self.out
 
         def training_step_end(self, tr_step_output):
@@ -169,11 +171,13 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
 
             # verify we saw the current num of batches
             assert len(outputs) == 2
+            assert len(set(id(output) for output in outputs)) == 2
+            assert [output["batch_idx"] for output in outputs] == [0, 1]
 
             for b in outputs:
                 assert isinstance(b, dict)
                 assert self.count_num_graphs(b) == 0
-                assert {"random_things", "loss"} == set(b.keys())
+                assert {"random_things", "loss", "batch_idx"} == set(b.keys())
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
