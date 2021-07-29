@@ -114,7 +114,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
         trainer = Trainer(
             default_root_dir=str(tmpdir),
             gpus=int(torch.cuda.is_available()),
-            precision=16 if torch.cuda.is_available() else 32,
+            precision=(16 if torch.cuda.is_available() else 32),
             checkpoint_callback=True,
             callbacks=[es, stop],
             max_epochs=21,
