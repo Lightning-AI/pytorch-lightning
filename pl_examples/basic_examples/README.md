@@ -58,16 +58,3 @@ To run this demo do the following:
 1. Log into the jumphost node of your SLURM-managed cluster.
 2. Create a conda environment with Lightning and a GPU PyTorch version.
 3. Choose a script to submit
-
-#### DDP
-Submit this job to run with DistributedDataParallel (2 nodes, 2 gpus each)
-```bash
-sbatch submit_ddp_job.sh YourEnv
-```
-
-#### DDP2
-Submit this job to run with a different implementation of DistributedDataParallel.
-In this version, each node acts like DataParallel but syncs across nodes like DDP.
-```bash
-sbatch submit_ddp2_job.sh YourEnv
-```

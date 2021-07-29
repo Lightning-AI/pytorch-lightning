@@ -14,13 +14,11 @@
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainingTricksConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -43,7 +41,7 @@ class TrainingTricksConnector:
         self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
 
         # gradient norm tracking
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.trainer.track_grad_norm = float(track_grad_norm)
 

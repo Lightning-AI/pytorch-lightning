@@ -17,7 +17,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --durations=0 --capture=no --disable-warnings'
 
 # find tests marked as `@RunIf(special=True)`
 grep_output=$(grep --recursive --line-number --word-regexp 'tests' 'benchmarks' --regexp 'special=True')
@@ -68,7 +68,21 @@ for i in "${!files_arr[@]}"; do
   done < <(echo "$test_code")
 done
 
-nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+if nvcc --version; then
+    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+fi
+
+# needs to run outside of `pytest`
+python tests/utilities/test_warnings.py
+if [ $? -eq 0 ]; then
+    report+="Ran\ttests/utilities/test_warnings.py\n"
+fi
+
+# test that a user can manually launch individual processes
+args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.fast_dev_run 1"
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/simple_image_classifier.py ${args}
+report+="Ran\tmanual ddp launch test\n"
 
 # echo test report
 printf '=%.s' {1..80}

@@ -15,8 +15,8 @@
 from abc import ABC
 from typing import Optional
 
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
@@ -27,9 +27,9 @@ class TrainerModelHooksMixin(ABC):
     Use the utilities from ``pytorch_lightning.utilities.signature_utils`` instead.
     """
 
-    lightning_module: LightningModule
+    lightning_module: "pl.LightningModule"
 
-    def is_function_implemented(self, f_name: str, model: Optional[LightningModule] = None) -> bool:
+    def is_function_implemented(self, f_name: str, model: Optional["pl.LightningModule"] = None) -> bool:
         rank_zero_deprecation(
             "Internal: TrainerModelHooksMixin.is_function_implemented is deprecated in v1.4"
             " and will be removed in v1.6."

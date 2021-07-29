@@ -44,16 +44,17 @@ Example:
 
     from pytorch_lightning.callbacks import Callback
 
-    class MyPrintingCallback(Callback):
 
+    class MyPrintingCallback(Callback):
         def on_init_start(self, trainer):
-            print('Starting to init trainer!')
+            print("Starting to init trainer!")
 
         def on_init_end(self, trainer):
-            print('trainer is init now')
+            print("trainer is init now")
 
         def on_train_end(self, trainer, pl_module):
-            print('do something when training ends')
+            print("do something when training ends")
+
 
     trainer = Trainer(callbacks=[MyPrintingCallback()])
 
@@ -351,10 +352,22 @@ on_load_checkpoint
 .. automethod:: pytorch_lightning.callbacks.Callback.on_load_checkpoint
     :noindex:
 
+on_before_backward
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_backward
+    :noindex:
+
 on_after_backward
 ^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_after_backward
+    :noindex:
+
+on_before_optimizer_step
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_optimizer_step
     :noindex:
 
 on_before_zero_grad

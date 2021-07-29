@@ -38,9 +38,8 @@ def get_filesystem(path: Union[str, Path]):
     if "://" in path:
         # use the fileystem from the protocol specified
         return fsspec.filesystem(path.split(":", 1)[0])
-    else:
-        # use local filesystem
-        return LocalFileSystem()
+    # use local filesystem
+    return LocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):

@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.types import _PARAMETERS
@@ -50,56 +49,29 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: LightningModule,
+        model: "pl.LightningModule",
         closure_loss: Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
+        optimizer: Optional[Optimizer],
         *args: Any,
         **kwargs: Any,
-    ) -> Tensor:
-        """performs the actual backpropagation
+    ) -> None:
+        """Run before precision plugin executes backward
 
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer index
-            should_accumulate: whether to accumulate gradients or not
-
+            optimizer: current optimizer being used. ``None`` if using manual optimization
         """
-        opt = model.trainer.optimizers if optimizer is None else optimizer
-        scaled_loss: ContextManager[Tensor] = amp.scale_loss(closure_loss, opt)
-
-        # enter apex context
-        closure_loss = scaled_loss.__enter__()
-
-        # do backward pass
-        # TODO: not entirely sure, why we need this
-        if model is not None and isinstance(model, LightningModule):
-            model.backward(closure_loss, optimizer, opt_idx, **kwargs)
-
-            # TODO: avoid dev_debugger and track these calls with mock
-            model.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-
-        else:
-            closure_loss.backward(*args, **kwargs)
-
-        # exit amp context
-        error = scaled_loss.__exit__(None, None, None)
-        if error:
-            raise Exception("apex unscale error")
-
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
-        return closure_loss
+        opt = optimizer or model.trainer.optimizers
+        with amp.scale_loss(closure_loss, opt) as closure_loss:
+            super().backward(model, closure_loss, optimizer, *args, **kwargs)
 
     @staticmethod
     def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
         """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
-            scheduler = scheduler['scheduler']
+            scheduler = scheduler["scheduler"]
             state = None
 
             for optimizer in optimizers:
@@ -118,20 +90,22 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: LightningModule,
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        """
-        always called before the optimizer step.
-        """
-        # apex amp does not support closures.
-        lambda_closure()
-
-        if not pl_module.automatic_optimization:
-            pl_module.trainer.call_hook("on_after_backward")
-
+        """Hook to do something before each optimizer step."""
+        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        # the following should be in a `optimizer_step` hook but we don't have one in the precision plugin.
+        lambda_closure()  # APEX amp does not support closures
         optimizer.step(**kwargs)
         return False
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if "amp_scaling_state" in checkpoint:
+            amp.load_state_dict(checkpoint["amp_scaling_state"])
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        checkpoint["amp_scaling_state"] = amp.state_dict()

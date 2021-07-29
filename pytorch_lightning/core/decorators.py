@@ -55,10 +55,11 @@ def auto_move_data(fn: Callable) -> Callable:
     @wraps(fn)
     def auto_transfer_args(self, *args, **kwargs):
         from pytorch_lightning.core.lightning import LightningModule
+
         if not isinstance(self, LightningModule):
             return fn(self, *args, **kwargs)
 
-        args, kwargs = self.transfer_batch_to_device((args, kwargs))
+        args, kwargs = self.transfer_batch_to_device((args, kwargs), device=self.device, dataloader_idx=None)
         return fn(self, *args, **kwargs)
 
     rank_zero_deprecation(
@@ -71,12 +72,11 @@ def auto_move_data(fn: Callable) -> Callable:
 
 def parameter_validation(fn: Callable) -> Callable:
     """
-    Decorator for :meth:`~pytorch_lightning.core.LightningModule.to` method.
     Validates that the module parameter lengths match after moving to the device. It is useful
     when tying weights on TPU's.
 
     Args:
-        fn: ``.to`` method
+        fn: ``model_to_device`` method
 
     Note:
         TPU's require weights to be tied/shared after moving the module to the device.
@@ -90,17 +90,17 @@ def parameter_validation(fn: Callable) -> Callable:
 
     @wraps(fn)
     def inner_fn(self, *args, **kwargs):
-        pre_layer_count = len(list(self.parameters()))
+        pre_layer_count = len(list(self.model.parameters()))
         module = fn(self, *args, **kwargs)
-        self.on_post_move_to_device()
-        post_layer_count = len(list(self.parameters()))
+        self.model.on_post_move_to_device()
+        post_layer_count = len(list(self.model.parameters()))
 
         if not pre_layer_count == post_layer_count:
             rank_zero_warn(
-                f'The model layers do not match after moving to the target device.'
-                ' If your model employs weight sharing on TPU,'
-                ' please tie your weights using the `on_post_move_to_device` model hook.\n'
-                f'Layer count: [Before: {pre_layer_count} After: {post_layer_count}]'
+                f"The model layers do not match after moving to the target device."
+                " If your model employs weight sharing on TPU,"
+                " please tie your weights using the `on_post_move_to_device` model hook.\n"
+                f"Layer count: [Before: {pre_layer_count} After: {post_layer_count}]"
             )
 
         return module

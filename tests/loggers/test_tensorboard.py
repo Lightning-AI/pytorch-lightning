@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from argparse import Namespace
 from unittest import mock
@@ -19,20 +20,15 @@ import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
-from packaging.version import Version
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
-@RunIf(min_torch="1.5.0")
 def test_tensorboard_hparams_reload(tmpdir):
-
     class CustomModel(BoringModel):
-
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
             self.save_hyperparameters()
@@ -61,12 +57,10 @@ def test_tensorboard_hparams_reload(tmpdir):
     event_acc = EventAccumulator(folder_path)
     event_acc.Reload()
 
-    data_pt_1_5 = b'\x12\x1b"\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
-    data_pt_1_6 = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-    hparams_data = data_pt_1_6 if Version(torch.__version__) >= Version("1.6.0") else data_pt_1_5
+    hparams_data = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
 
-    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
-    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
+    assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.plugin_name == "hparams"
+    assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.content == hparams_data
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
@@ -96,7 +90,7 @@ def test_tensorboard_manual_versioning(tmpdir):
 
 
 def test_tensorboard_named_version(tmpdir):
-    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402' """
+    """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'"""
 
     name = "tb_versioning"
     (tmpdir / name).mkdir()
@@ -119,15 +113,51 @@ def test_tensorboard_no_name(tmpdir, name):
     assert os.listdir(tmpdir / "version_0")
 
 
+def test_tensorboard_log_sub_dir(tmpdir):
+    class TestLogger(TensorBoardLogger):
+        # for reproducibility
+        @property
+        def version(self):
+            return "version"
+
+        @property
+        def name(self):
+            return "name"
+
+    trainer_args = dict(default_root_dir=tmpdir, max_steps=1)
+
+    # no sub_dir specified
+    save_dir = tmpdir / "logs"
+    logger = TestLogger(save_dir)
+    trainer = Trainer(**trainer_args, logger=logger)
+    assert trainer.logger.log_dir == os.path.join(save_dir, "name", "version")
+
+    # sub_dir specified
+    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    trainer = Trainer(**trainer_args, logger=logger)
+    assert trainer.logger.log_dir == os.path.join(save_dir, "name", "version", "sub_dir")
+
+    # test home dir (`~`) handling
+    save_dir = "~/tmp"
+    explicit_save_dir = os.path.expanduser(save_dir)
+    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    trainer = Trainer(**trainer_args, logger=logger)
+    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+
+    # test env var (`$`) handling
+    test_env_dir = "some_directory"
+    os.environ["test_env_dir"] = test_env_dir
+    save_dir = "$test_env_dir/tmp"
+    explicit_save_dir = f"{test_env_dir}/tmp"
+    logger = TestLogger(save_dir, sub_dir="sub_dir")
+    trainer = Trainer(**trainer_args, logger=logger)
+    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+
+
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
-    metrics = {
-        "float": 0.3,
-        "int": 1,
-        "FloatTensor": torch.tensor(0.1),
-        "IntTensor": torch.tensor(1),
-    }
+    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
 
 
@@ -138,11 +168,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {
-            "a": {
-                "b": "c"
-            }
-        },
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -157,11 +183,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {
-            "a": {
-                "b": "c"
-            }
-        },
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -177,11 +199,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {
-            "a": {
-                "b": "c"
-            }
-        },
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
         # "namespace": Namespace(foo=Namespace(bar="buzz")),
         # "layer": torch.nn.BatchNorm1d,
@@ -194,8 +212,8 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmpdir, example_input_array):
-    """ test that log graph works with both model.example_input_array and
-        if array is passed externaly
+    """test that log graph works with both model.example_input_array and
+    if array is passed externaly
     """
     model = BoringModel()
     if example_input_array is not None:
@@ -206,85 +224,59 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
 
 
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
-    """ test that log graph throws warning if model.example_input_array is None """
+    """test that log graph throws warning if model.example_input_array is None"""
     model = BoringModel()
     model.example_input_array = None
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
-        match='Could not log computational graph since the `model.example_input_array`'
-        ' attribute is not set or `input_array` was not given'
+        match="Could not log computational graph since the `model.example_input_array`"
+        " attribute is not set or `input_array` was not given",
     ):
         logger.log_graph(model)
 
 
-@mock.patch('pytorch_lightning.loggers.TensorBoardLogger.log_metrics')
-@pytest.mark.parametrize('expected', [
-    ([5, 11, 17]),
-])
-def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmpdir):
-    """
-    Tests to ensure that tensorboard log properly when accumulated_gradients > 1
-    """
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
+    """Tests to ensure that tensorboard log properly when accumulated_gradients > 1"""
 
     class TestModel(BoringModel):
-
         def __init__(self):
             super().__init__()
-            self._count = 0
-            self._indexes = []
+            self.indexes = []
 
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log('count', self._count, on_step=True, on_epoch=True)
-            self.log('loss', loss, on_step=True, on_epoch=True)
-
-            if not self.trainer.train_loop.should_accumulate():
+        def training_step(self, *args):
+            self.log("foo", 1, on_step=True, on_epoch=True)
+            if not self.trainer.fit_loop.should_accumulate():
                 if self.trainer.logger_connector.should_update_logs:
-                    self._indexes.append(self.trainer.global_step)
-
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log('val_loss', loss, on_step=True, on_epoch=True)
-            return loss
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=.001)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-            return [optimizer], [lr_scheduler]
+                    self.indexes.append(self.trainer.global_step)
+            return super().training_step(*args)
 
     model = TestModel()
     model.training_epoch_end = None
-    model.validation_epoch_end = None
-
     logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=12,
         limit_val_batches=0,
         max_epochs=3,
-        gpus=0,
         accumulate_grad_batches=2,
         logger=[logger_0],
         log_every_n_steps=3,
     )
     trainer.fit(model)
 
-    mock_count_epochs = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_epoch" in m[2]["metrics"]]
-    assert mock_count_epochs == expected
+    calls = [m[2] for m in mock_log_metrics.mock_calls]
+    count_epochs = [c["step"] for c in calls if "foo_epoch" in c["metrics"]]
+    assert count_epochs == [5, 11, 17]
 
-    mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
-    assert model._indexes == mock_count_steps
+    count_steps = [c["step"] for c in calls if "foo_step" in c["metrics"]]
+    assert count_steps == model.indexes
 
 
-@mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
+@mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter")
 def test_tensorboard_finalize(summary_writer, tmpdir):
-    """ Test that the SummaryWriter closes in finalize. """
+    """Test that the SummaryWriter closes in finalize."""
     logger = TensorBoardLogger(save_dir=tmpdir)
     logger.finalize("any")
     summary_writer().flush.assert_called()
@@ -303,20 +295,32 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
 
 
-@mock.patch('pytorch_lightning.loggers.tensorboard.log')
+@mock.patch("pytorch_lightning.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
     """
     Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths.
     """
     os.chdir(tmpdir)  # need to use relative paths
-    source = os.path.join('.', 'lightning_logs')
-    dest = os.path.join('.', 'sym_lightning_logs')
+    source = os.path.join(".", "lightning_logs")
+    dest = os.path.join(".", "sym_lightning_logs")
 
     os.makedirs(source, exist_ok=True)
     os.symlink(source, dest)
 
-    logger = TensorBoardLogger(save_dir=dest, name='')
+    logger = TensorBoardLogger(save_dir=dest, name="")
     _ = logger.version
 
     log.warning.assert_not_called()
+
+
+def test_tensorboard_missing_folder_warning(tmpdir, caplog):
+    """Verify that the logger throws a warning for invalid directory"""
+
+    name = "fake_dir"
+    logger = TensorBoardLogger(save_dir=tmpdir, name=name)
+
+    with caplog.at_level(logging.WARNING):
+        assert logger.version == 0
+
+    assert "Missing logger folder:" in caplog.text

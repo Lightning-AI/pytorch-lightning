@@ -13,59 +13,46 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
-    """ Accelerator for GPU devices. """
+    """Accelerator for GPU devices."""
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup_environment(self) -> None:
+        super().setup_environment()
+        if "cuda" not in str(self.root_device):
+            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
+        torch.cuda.set_device(self.root_device)
+
+    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         self.set_nvidia_flags(trainer.local_rank)
-        torch.cuda.set_device(self.root_device)
         return super().setup(trainer, model)
 
     def on_train_start(self) -> None:
         # clear cache before training
-        # use context because of:
-        # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
-
-    def teardown(self) -> None:
-        self.lightning_module.cpu()
-
-        # clean up memory
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
         # set the correct cuda visible devices (using pci order)
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
+        all_gpu_ids = ",".join(str(x) for x in range(torch.cuda.device_count()))
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
-    def to_device(self, batch: Any) -> Any:
-        # no need to transfer batch to device in DP mode
-        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
-        if not isinstance(self.training_type_plugin, DataParallelPlugin):
-            batch = super().to_device(batch)
-
-        return batch
+    def teardown(self) -> None:
+        super().teardown()
+        self._move_optimizer_state(torch.device("cpu"))

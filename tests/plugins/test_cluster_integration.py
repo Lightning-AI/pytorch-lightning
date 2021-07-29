@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPShardedPlugin, DeepSpeedPlugin, RPCSequentialPlugin
+from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPShardedPlugin, DeepSpeedPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers.runif import RunIf
@@ -27,12 +27,7 @@ from tests.helpers.runif import RunIf
 def environment_combinations():
     expected = dict(global_rank=3, local_rank=1, node_rank=1, world_size=4)
     # Lightning
-    variables = {
-        "CUDA_VISIBLE_DEVICES": "0,1,2,4",
-        "LOCAL_RANK": "1",
-        "NODE_RANK": "1",
-        "WORLD_SIZE": "8",
-    }
+    variables = {"CUDA_VISIBLE_DEVICES": "0,1,2,4", "LOCAL_RANK": "1", "NODE_RANK": "1", "WORLD_SIZE": "8"}
     environment = LightningEnvironment()
     yield environment, variables, expected
     # SLURM
@@ -60,17 +55,10 @@ def environment_combinations():
 
 
 @pytest.mark.parametrize(
-    "plugin_cls",
-    [
-        DDPPlugin,
-        DDPShardedPlugin,
-        DDP2Plugin,
-        pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
-        pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
-    ],
+    "plugin_cls", [DDPPlugin, DDPShardedPlugin, DDP2Plugin, pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True))]
 )
 def test_ranks_available_manual_plugin_selection(plugin_cls):
-    """ Test that the rank information is readily available after Trainer initialization. """
+    """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
 
@@ -79,13 +67,9 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 
         with mock.patch.dict(os.environ, variables):
             plugin = plugin_cls(
-                parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)],
-                cluster_environment=cluster,
+                parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
             )
-            trainer = Trainer(
-                plugins=[plugin],
-                num_nodes=num_nodes,
-            )
+            trainer = Trainer(plugins=[plugin], num_nodes=num_nodes)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]
@@ -106,7 +90,7 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)
 def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs):
-    """ Test that the rank information is readily available after Trainer initialization. """
+    """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
 
@@ -123,7 +107,7 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)
-            assert type(trainer.training_type_plugin.cluster_environment) == type(cluster)
+            assert type(trainer.training_type_plugin.cluster_environment) is type(cluster)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]

@@ -12,29 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions to operate on metric values. """
+import numbers
+from typing import Any
 
 import torch
 
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def metrics_to_scalars(metrics: dict) -> dict:
-    """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
+def metrics_to_scalars(metrics: Any) -> Any:
+    """
+    Recursively walk through a collection and convert single-item tensors to scalar values
 
-    # TODO: this is duplicated in MetricsHolder. should be unified
-    new_metrics = {}
-    for k, v in metrics.items():
-        if isinstance(v, torch.Tensor):
-            if v.numel() != 1:
-                raise MisconfigurationException(
-                    f"The metric `{k}` does not contain a single element"
-                    f" thus it cannot be converted to float. Found `{v}`"
-                )
-            v = v.item()
+    Raises:
+        MisconfigurationException:
+            If ``value`` contains multiple elements, hence preventing conversion to ``float``
+    """
 
-        if isinstance(v, dict):
-            v = metrics_to_scalars(v)
+    def to_item(value: torch.Tensor) -> numbers.Number:
+        if value.numel() != 1:
+            raise MisconfigurationException(
+                f"The metric `{value}` does not contain a single element" f" thus it cannot be converted to float."
+            )
+        return value.item()
 
-        new_metrics[k] = v
-
-    return new_metrics
+    return apply_to_collection(metrics, torch.Tensor, to_item)

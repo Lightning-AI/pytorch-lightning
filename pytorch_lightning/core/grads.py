@@ -18,12 +18,11 @@ from typing import Dict, Union
 
 from torch.nn import Module
 
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.grads import grad_norm as new_grad_norm
 
 
 class GradInformation(Module):
-
     def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.
 

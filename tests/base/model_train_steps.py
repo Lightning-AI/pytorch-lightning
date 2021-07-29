@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
-from collections import OrderedDict
 
 
 class TrainingStepVariations(ABC):
@@ -31,18 +30,7 @@ class TrainingStepVariations(ABC):
 
         # calculate loss
         loss_train = self.loss(y, y_hat)
-        log_train = loss_train
-
-        # alternate between tensors and scalars for "log" and "progress_bar"
-        if batch_idx % 2 == 0:
-            log_train = log_train.item()
-
-        output = OrderedDict({
-            'loss': loss_train,
-            'progress_bar': dict(some_val=log_train * log_train),
-            'log': dict(train_some_val=log_train * log_train),
-        })
-        return output
+        return {"loss": loss_train}
 
     def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
         """Training step for multiple train loaders"""
@@ -50,30 +38,15 @@ class TrainingStepVariations(ABC):
         assert isinstance(batch, dict)
         assert len(batch) == 2
 
-        assert 'a_b' in batch and 'c_d_e' in batch, batch.keys()
-        assert isinstance(batch['a_b'], list) and len(batch['a_b']) == 2
-        assert isinstance(batch['c_d_e'], list) and len(batch['c_d_e']) == 3
+        assert "a_b" in batch and "c_d_e" in batch, batch.keys()
+        assert isinstance(batch["a_b"], list) and len(batch["a_b"]) == 2
+        assert isinstance(batch["c_d_e"], list) and len(batch["c_d_e"]) == 3
 
         # forward pass
-        x, y = batch['a_b'][0]
+        x, y = batch["a_b"][0]
         x = x.view(x.size(0), -1)
         y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
-        log_val = loss_val
-
-        # alternate between tensors and scalars for "log" and "progress_bar"
-        if batch_idx % 2 == 0:
-            log_val = log_val.item()
-
-        output = OrderedDict({
-            'loss': loss_val,
-            'progress_bar': {
-                'some_val': log_val * log_val
-            },
-            'log': {
-                'train_some_val': log_val * log_val
-            },
-        })
-        return output
+        return {"loss": loss_val}

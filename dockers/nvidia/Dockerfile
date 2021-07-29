@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
-FROM nvcr.io/nvidia/pytorch:21.04-py3
+FROM nvcr.io/nvidia/pytorch:21.06-py3
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 ARG LIGHTNING_VERSION=""
 
@@ -34,19 +34,21 @@ RUN \
         rm *.zip ; \
     fi && \
 # save the examples
-    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
 
 # Installations
     python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
-    pip install "Pillow>=8.1" --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning && \
+    pip install jupyterlab[all] -U && \
     pip list
 
-RUN pip install lightning-grid -U
+RUN pip install lightning-grid -U && \
+    pip install "py>=1.10" "protobuf>=3.15.6" --upgrade-strategy only-if-needed
 
 ENV PYTHONPATH="/workspace"
 

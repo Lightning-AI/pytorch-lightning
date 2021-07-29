@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import mock
 from unittest.mock import patch
 
 import numpy as np
@@ -24,7 +22,6 @@ from tests.helpers.utils import reset_seed
 
 
 class ModelWithManualGradTracker(BoringModel):
-
     def __init__(self, norm_type, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stored_grad_norms, self.norm_type = [], float(norm_type)
@@ -37,11 +34,11 @@ class ModelWithManualGradTracker(BoringModel):
         # just return a loss, no log or progress bar meta
         output = self(batch)
         loss = self.loss(batch, output)
-        return {'loss': loss}
+        return {"loss": loss}
 
     def on_after_backward(self):
         out, norms = {}, []
-        prefix = f'grad_{self.norm_type}_norm_'
+        prefix = f"grad_{self.norm_type}_norm_"
         for name, p in self.named_parameters():
             if p.grad is None:
                 continue
@@ -55,19 +52,23 @@ class ModelWithManualGradTracker(BoringModel):
 
         # handle total norm
         norm = np.linalg.norm(norms, self.norm_type)
-        out[prefix + 'total'] = round(norm, 4)
+        out[prefix + "total"] = round(norm, 4)
         self.stored_grad_norms.append(out)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize("norm_type", [1., 1.25, 2, 3, 5, 10, 'inf'])
+@pytest.mark.parametrize("norm_type", [1.0, 1.25, 2, 3, 5, 10, "inf"])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
-
     reset_seed()
 
-    # use a custom grad tracking module and a list logger
-    model = ModelWithManualGradTracker(norm_type)
+    class TestModel(ModelWithManualGradTracker):
+        logged_metrics = []
+
+        def on_train_batch_end(self, *_) -> None:
+            # copy so they don't get reduced
+            self.logged_metrics.append(self.trainer.logged_metrics.copy())
+
+    model = TestModel(norm_type)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -76,29 +77,19 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         log_every_n_steps=1,  # request grad_norms every batch
     )
     trainer.fit(model)
-
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    logged_metrics = trainer.dev_debugger.logged_metrics
-    assert len(logged_metrics) == len(model.stored_grad_norms)
 
+    assert len(model.logged_metrics) == len(model.stored_grad_norms)
     # compare the logged metrics against tracked norms on `.backward`
-    for mod, log in zip(model.stored_grad_norms, logged_metrics):
-        common = mod.keys() & log.keys()
-
-        log, mod = [log[k] for k in common], [mod[k] for k in common]
-
-        assert np.allclose(log, mod, rtol=rtol)
+    for mod, log in zip(model.stored_grad_norms, model.logged_metrics):
+        for k in mod.keys() & log.keys():
+            assert np.allclose(mod[k], log[k], rtol=rtol), k
 
 
 @pytest.mark.parametrize("log_every_n_steps", [1, 2, 3])
 def test_grad_tracking_interval(tmpdir, log_every_n_steps):
-    """ Test that gradient norms get tracked in the right interval and that everytime the same keys get logged. """
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        track_grad_norm=2,
-        log_every_n_steps=log_every_n_steps,
-        max_steps=10,
-    )
+    """Test that gradient norms get tracked in the right interval and that everytime the same keys get logged."""
+    trainer = Trainer(default_root_dir=tmpdir, track_grad_norm=2, log_every_n_steps=log_every_n_steps, max_steps=10)
 
     with patch.object(trainer.logger, "log_metrics") as mocked:
         model = BoringModel()
@@ -111,5 +102,9 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
             if grad_norm_dict:
                 grad_norm_dicts.append(grad_norm_dict)
 
-        assert len(grad_norm_dicts) == expected
-        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts)
+        # logging on n steps + 1 epochs
+        assert len(grad_norm_dicts) == expected + 1
+        # check all metrics derived from steps have the same keys
+        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts[:-1])
+        epoch_end_keys = [k.replace("step", "epoch") for k in grad_norm_dicts[0]]
+        assert epoch_end_keys == list(grad_norm_dicts[-1])

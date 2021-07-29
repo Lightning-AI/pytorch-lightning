@@ -13,14 +13,13 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
 class ModelHooks:
@@ -235,7 +234,7 @@ class ModelHooks:
         Called in the training loop at the very beginning of the epoch.
         """
 
-    def on_train_epoch_end(self, unused: Optional = None) -> None:
+    def on_train_epoch_end(self) -> None:
         """
         Called in the training loop at the very end of the epoch.
 
@@ -296,21 +295,47 @@ class ModelHooks:
             optimizer: The optimizer for which grads should be zeroed.
         """
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """
+        Called before ``loss.backward()``.
+
+        Args:
+            loss: Loss divided by number of batches for gradient accumulation and scaled if using native AMP.
+        """
+        pass
+
     def on_after_backward(self) -> None:
         """
-        Called in the training loop after loss.backward() and before optimizers do anything.
-        This is the ideal place to inspect or log gradient information.
+        Called after ``loss.backward()`` and before optimizers are stepped.
+
+        Note:
+            If using native AMP, the gradients will not be unscaled at this point.
+            Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
+        """
+
+    def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """
+        Called before ``optimizer.step()``.
+
+        The hook is only called if gradients do not need to be accumulated.
+        See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+        If using native AMP, the loss will be unscaled before calling this hook.
+        See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
+        for more information on the scaling of gradients.
+
+        Args:
+            optimizer: Current optimizer being used.
+            optimizer_idx: Index of the current optimizer being used.
 
         Example::
 
-            def on_after_backward(self):
+            def on_before_optimizer_step(self, optimizer, optimizer_idx):
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     for k, v in self.named_parameters():
                         self.logger.experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
-
         """
 
     def on_post_move_to_device(self) -> None:
@@ -428,17 +453,17 @@ class DataHooks:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
-    def train_dataloader(self) -> Union[DataLoader, List[DataLoader], Dict[str, DataLoader]]:
+    def train_dataloader(self) -> TRAIN_DATALOADERS:
         """
         Implement one or more PyTorch DataLoaders for training.
 
         Return:
-            Either a single PyTorch :class:`~torch.utils.data.DataLoader` or a collection of these
-            (list, dict, nested lists and dicts). In the case of multiple dataloaders, please see
-            this :ref:`page <multiple-training-dataloaders>`
+            A collection of :class:`torch.utils.data.DataLoader` specifying training samples.
+            In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a positive integer.
 
         For data processing use the following pattern:
 
@@ -503,12 +528,13 @@ class DataHooks:
         """
         rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
-    def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+    def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a postive integer.
 
         For data processing use the following pattern:
 
@@ -533,7 +559,7 @@ class DataHooks:
             There is no need to set it yourself.
 
         Return:
-            Single or multiple PyTorch DataLoaders.
+            A :class:`torch.utils.data.DataLoader` or a sequence of them specifying testing samples.
 
         Example::
 
@@ -563,12 +589,13 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+    def val_dataloader(self) -> EVAL_DATALOADERS:
         r"""
         Implement one or multiple PyTorch DataLoaders for validation.
 
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+        The dataloader you return will not be reloaded unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        a positive integer.
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 
@@ -584,7 +611,7 @@ class DataHooks:
             There is no need to set it yourself.
 
         Return:
-            Single or multiple PyTorch DataLoaders.
+            A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
         Examples::
 
@@ -614,7 +641,7 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def predict_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+    def predict_dataloader(self) -> EVAL_DATALOADERS:
         r"""
         Implement one or multiple PyTorch DataLoaders for prediction.
 
@@ -632,7 +659,7 @@ class DataHooks:
             There is no need to set it yourself.
 
         Return:
-            Single or multiple PyTorch DataLoaders.
+            A :class:`torch.utils.data.DataLoader` or a sequence of them specifying prediction samples.
 
         Note:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
@@ -651,7 +678,7 @@ class DataHooks:
     def on_predict_dataloader(self) -> None:
         """Called before requesting the predict dataloader."""
 
-    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
@@ -669,6 +696,9 @@ class DataHooks:
         Note:
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
+            To check the current state of execution of this hook you can use
+            ``self.trainer.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -677,6 +707,7 @@ class DataHooks:
         Args:
             batch: A batch of data that needs to be transferred to a new device.
             device: The target device as defined in PyTorch.
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A reference to the data on the new device.
@@ -700,14 +731,16 @@ class DataHooks:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
         """
-        device = device or self.device
         return move_data_to_device(batch, device)
 
     def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true index in the future.
+        Note:
+            To check the current state of execution of this hook you can use
+            ``self.trainer.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -715,7 +748,7 @@ class DataHooks:
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
-            dataloader_idx: DataLoader idx for batch
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A batch of data
@@ -740,7 +773,10 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
+        Note:
+            To check the current state of execution of this hook you can use
+            ``self.trainer.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -748,7 +784,7 @@ class DataHooks:
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
-            dataloader_idx: DataLoader idx for batch (Default: 0)
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A batch of data
@@ -798,7 +834,8 @@ class CheckpointHooks:
         else you might want to save.
 
         Args:
-            checkpoint: Checkpoint to be saved
+            checkpoint: The full checkpoint dictionary before it gets dumped to a file.
+                Implementations of this hook can insert additional data into this dictionary.
 
         Example::
 

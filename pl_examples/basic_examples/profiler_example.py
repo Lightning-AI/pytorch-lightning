@@ -29,7 +29,7 @@ import torchvision
 import torchvision.models as models
 import torchvision.transforms as T
 
-from pl_examples import cli_lightning_logo
+from pl_examples import _DATASETS_PATH, cli_lightning_logo
 from pytorch_lightning import LightningDataModule, LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
 
@@ -43,7 +43,6 @@ DEFAULT_CMD_LINE = (
 
 
 class ModelToProfile(LightningModule):
-
     def __init__(self, name: str = "resnet50"):
         super().__init__()
         self.model = getattr(models, name)(pretrained=True)
@@ -62,6 +61,10 @@ class ModelToProfile(LightningModule):
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
+    def predict_step(self, batch, batch_idx, dataloader_idx: int = None):
+        inputs = batch[0]
+        return self.model(inputs)
+
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 
@@ -71,11 +74,13 @@ class CIFAR10DataModule(LightningDataModule):
     transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
 
     def train_dataloader(self, *args, **kwargs):
-        trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=self.transform)
+        trainset = torchvision.datasets.CIFAR10(
+            root=_DATASETS_PATH, train=True, download=True, transform=self.transform
+        )
         return torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=0)
 
     def val_dataloader(self, *args, **kwargs):
-        valset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=self.transform)
+        valset = torchvision.datasets.CIFAR10(root=_DATASETS_PATH, train=False, download=True, transform=self.transform)
         return torch.utils.data.DataLoader(valset, batch_size=32, shuffle=True, num_workers=0)
 
 
@@ -86,6 +91,6 @@ def cli_main():
     LightningCLI(ModelToProfile, CIFAR10DataModule)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_lightning_logo()
     cli_main()

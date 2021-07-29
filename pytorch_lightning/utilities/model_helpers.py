@@ -11,33 +11,61 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+from typing import Optional, Type, Union
+from unittest.mock import Mock
 
-from typing import Union
-
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
-def is_overridden(method_name: str, model: Union[LightningModule, LightningDataModule]) -> bool:
-    # if you pass DataModule instead of None or a LightningModule, we use LightningDataModule as super
-    # TODO - refector this function to accept model_name, instance, parent so it makes more sense
-    super_object = LightningModule if not isinstance(model, LightningDataModule) else LightningDataModule
+def is_overridden(
+    method_name: str,
+    instance: Optional[object] = None,
+    parent: Optional[Type[object]] = None,
+    model: Optional[Union["pl.LightningModule", "pl.LightningDataModule"]] = None,
+) -> bool:
+    if model is not None and instance is None:
+        rank_zero_deprecation(
+            "`is_overriden(model=...)` has been deprecated and will be removed in v1.6."
+            "Please use `is_overriden(instance=...)`"
+        )
+        instance = model
 
-    if not hasattr(model, method_name) or not hasattr(super_object, method_name):
-        # in case of calling deprecated method
+    if instance is None:
+        # if `self.lightning_module` was passed as instance, it can be `None`
         return False
 
-    instance_attr = getattr(model, method_name)
-    if not instance_attr:
-        return False
-    super_attr = getattr(super_object, method_name)
+    if parent is None:
+        if isinstance(instance, pl.LightningModule):
+            parent = pl.LightningModule
+        elif isinstance(instance, pl.LightningDataModule):
+            parent = pl.LightningDataModule
+        if parent is None:
+            raise ValueError("Expected a parent")
 
-    # when code pointers are different, it was implemented
-    if hasattr(instance_attr, 'patch_loader_code'):
-        # cannot pickle __code__ so cannot verify if PatchDataloader
-        # exists which shows dataloader methods have been overwritten.
-        # so, we hack it by using the string representation
-        is_overridden = instance_attr.patch_loader_code != str(super_attr.__code__)
-    else:
-        is_overridden = instance_attr.__code__ is not super_attr.__code__
-    return is_overridden
+    instance_attr = getattr(instance, method_name, None)
+    # `functools.wraps()` support
+    if hasattr(instance_attr, "__wrapped__"):
+        instance_attr = instance_attr.__wrapped__
+    # `Mock(wraps=...)` support
+    if isinstance(instance_attr, Mock):
+        # access the wrapped function
+        instance_attr = instance_attr._mock_wraps
+    # `partial` support
+    elif isinstance(instance_attr, partial):
+        instance_attr = instance_attr.func
+    if instance_attr is None:
+        return False
+
+    parent_attr = getattr(parent, method_name, None)
+    if parent_attr is None:
+        raise ValueError("The parent should define the method")
+
+    # cannot pickle `__code__` so cannot verify if `PatchDataloader`
+    # exists which shows dataloader methods have been overwritten.
+    # so, we hack it by using the string representation
+    instance_code = getattr(instance_attr, "patch_loader_code", None) or instance_attr.__code__
+    parent_code = parent_attr.__code__
+
+    return instance_code != parent_code

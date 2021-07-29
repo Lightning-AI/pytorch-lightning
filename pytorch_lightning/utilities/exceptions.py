@@ -14,4 +14,12 @@
 
 
 class MisconfigurationException(Exception):
-    pass
+    """
+    Exception used to inform users of mis-use with PyTorch Lightning
+    """
+
+
+class DeadlockDetectedException(Exception):
+    """
+    Exception used when a deadlock has been detected and processes are being killed
+    """

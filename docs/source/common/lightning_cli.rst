@@ -1,6 +1,7 @@
 .. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
+    import torch
     from unittest import mock
     from typing import List
     from pytorch_lightning.core.lightning import LightningModule
@@ -9,6 +10,7 @@
 
     original_run = LightningCLI.run
     LightningCLI.run = lambda self: None
+
 
     class MyModel(LightningModule):
         def __init__(
@@ -19,12 +21,20 @@
         ):
             pass
 
+
+    class MyClassModel(LightningModule):
+        def __init__(self, num_classes: int):
+            pass
+
+
     class MyDataModule(LightningDataModule):
         def __init__(self, batch_size: int = 8):
-            pass
+            self.num_classes = 5
+
 
     def send_email(address, message):
         pass
+
 
     MyModelBaseClass = MyModel
     MyDataModuleBaseClass = MyDataModule
@@ -44,8 +54,8 @@
 Lightning CLI and config files
 ------------------------------
 
-Another source of boilerplate code that Lightning can help to reduce is in the implementation of training command line
-tools. Furthermore, it provides a standardized way to configure trainings using a single file that includes settings for
+Another source of boilerplate code that Lightning can help to reduce is in the implementation of command line tools.
+Furthermore, it provides a standardized way to configure trainings using a single file that includes settings for
 :class:`~pytorch_lightning.trainer.trainer.Trainer` and user extended
 :class:`~pytorch_lightning.core.lightning.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes. The full configuration is automatically saved
@@ -53,7 +63,7 @@ in the log directory. This has the benefit of greatly simplifying the reproducib
 
 The main requirement for user extended classes to be made configurable is that all relevant init arguments must have
 type hints. This is not a very demanding requirement since it is good practice to do anyway. As a bonus if the arguments
-are described in the docstrings, then the help of the training tool will display them.
+are described in the docstrings, then the help of the command line tool will display them.
 
 .. warning:: ``LightningCLI`` is in beta and subject to change.
 
@@ -64,7 +74,7 @@ LightningCLI
 ^^^^^^^^^^^^
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
-class. The minimal installation of pytorch-lightning does not include this support. To enable it either install
+class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
 lightning with the :code:`all` extras require or install the package :code:`jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
@@ -91,8 +101,8 @@ practice to create a configuration file and provide this to the tool. A way to d
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
-finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the
-model, (:code:`cli.model`).
+finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the model,
+(:code:`cli.model`).
 
 The :class:`~pytorch_lightning.utilities.cli.LightningCLI` is configured to run
 :meth:`~pytorch_lightning.trainer.Trainer.fit` by default. This can be changed either by setting
@@ -131,12 +141,7 @@ information to define its configurable arguments.
 .. testcode:: mymodel
 
     class MyModel(LightningModule):
-
-        def __init__(
-            self,
-            encoder_layers: int = 12,
-            decoder_layers: List[int] = [2, 4]
-        ):
+        def __init__(self, encoder_layers: int = 12, decoder_layers: List[int] = [2, 4]):
             """Example encoder-decoder model
 
             Args:
@@ -202,6 +207,83 @@ Note that there is a section for each class (model and trainer) including all th
 grouping is also used in the formatting of the help shown previously.
 
 
+Use of command line arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For every CLI implemented, users are encouraged to learn how to run it by reading the documentation printed with the
+:code:`--help` option and use the :code:`--print_config` option to guide the writing of config files. A few more details
+that might not be clear by only reading the help are the following.
+
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` is based on argparse and as such follows the same arguments style
+as many POSIX command line tools. Long options are prefixed with two dashes and its corresponding values should be
+provided with an empty space or an equal sign, as :code:`--option value` or :code:`--option=value`. Command line options
+are parsed from left to right, therefore if a setting appears multiple times the value most to the right will override
+the previous ones. If a class has an init parameter that is required (i.e. no default value), it is given as
+:code:`--option` which makes it explicit and more readable instead of relying on positional arguments.
+
+When calling a CLI, all options can be provided using individual arguments. However, given the large amount of options
+that the CLIs have, it is recommended to use a combination of config files and individual arguments. Therefore, a common
+pattern could be a single config file and only a few individual arguments that override defaults or values in the
+config, for example:
+
+.. code-block:: bash
+
+    $ python trainer.py --config experiment_defaults.yaml --trainer.max_epochs 100
+
+Another common pattern could be having multiple config files:
+
+.. code-block:: bash
+
+    $ python trainer.py --config config1.yaml --config config2.yaml [...]
+
+As explained before, :code:`config1.yaml` is parsed first and then :code:`config2.yaml`. Therefore, if individual
+settings are defined in both files, then the ones in :code:`config2.yaml` will be used. Settings in :code:`config1.yaml`
+that are not in :code:`config2.yaml` are be kept.
+
+Groups of options can also be given as independent config files:
+
+.. code-block:: bash
+
+    $ python trainer.py --trainer trainer.yaml --model model.yaml --data data.yaml [...]
+
+When running experiments in clusters it could be desired to use a config which needs to be accessed from a remote
+location. :class:`~pytorch_lightning.utilities.cli.LightningCLI` comes with `fsspec
+<https://filesystem-spec.readthedocs.io/en/stable/>`_ support which allows reading from many types of remote file
+systems. One example is if you have installed the `gcsfs <https://gcsfs.readthedocs.io/en/stable/>`_ then a config could
+be stored in an S3 bucket and accessed as:
+
+.. code-block:: bash
+
+    $ python trainer.py --config s3://bucket/config.yaml [...]
+
+In some cases people might what to pass an entire config in an environment variable, which could also be used instead of
+a path to a file, for example:
+
+.. code-block:: bash
+
+    $ python trainer.py --trainer "$TRAINER_CONFIG" --model "$MODEL_CONFIG" [...]
+
+An alternative for environment variables could be to instantiate the CLI with :code:`env_parse=True`. In this case the
+help shows the names of the environment variables for all options. A global config would be given in :code:`PL_CONFIG`
+and there wouldn't be a need to specify any command line argument.
+
+It is also possible to set a path to a config file of defaults. If the file exists it would be automatically loaded
+without having to specify any command line argument. Arguments given would override the values in the default config
+file. Loading a defaults file :code:`my_cli_defaults.yaml` in the current working directory would be implemented as:
+
+.. testcode::
+
+    cli = LightningCLI(
+        MyModel,
+        MyDataModule,
+        parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]},
+    )
+
+To load a file in the user's home directory would be just changing to :code:`~/.my_cli_defaults.yaml`. Note that this
+setting is given through :code:`parser_kwargs`. More parameters are supported. For details see the `ArgumentParser API
+<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_ documentation.
+
+
 Trainer Callbacks and arguments with class type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -241,12 +323,7 @@ specified by an import path and init arguments. For example, with a tool impleme
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    cli = LightningCLI(
-        MyModelBaseClass,
-        MyDataModuleBaseClass,
-        subclass_mode_model=True,
-        subclass_mode_data=True
-    )
+    cli = LightningCLI(MyModelBaseClass, MyDataModuleBaseClass, subclass_mode_model=True, subclass_mode_data=True)
 
 A possible config file could be as follows:
 
@@ -300,12 +377,7 @@ parameters have as type a class, then in the configuration these would be specif
 .. testcode::
 
     class MyMainModel(LightningModule):
-
-        def __init__(
-            self,
-            encoder: EncoderBaseClass,
-            decoder: DecoderBaseClass
-        ):
+        def __init__(self, encoder: EncoderBaseClass, decoder: DecoderBaseClass):
             """Example encoder-decoder submodules model
 
             Args:
@@ -362,22 +434,17 @@ before and after the execution. The code would be something like:
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.add_argument('--notification_email', default='will@email.com')
+            parser.add_argument("--notification_email", default="will@email.com")
 
         def before_run(self):
-            send_email(
-                address=self.config['notification_email'],
-                message='Trainer running'
-            )
+            send_email(address=self.config["notification_email"], message="Trainer running")
 
         def after_run(self):
-            send_email(
-                address=self.config['notification_email'],
-                message='Trainer finished'
-            )
+            send_email(address=self.config["notification_email"], message="Trainer finished")
+
 
     cli = MyLightningCLI(MyModel)
 
@@ -385,6 +452,110 @@ Note that the config object :code:`self.config` is a dictionary whose keys are g
 has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`. You can also access the trainer function
 that is meant to run with :code:`self.config["trainer_fn"].value`.
+
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.
+
+
+Configurable callbacks
+^^^^^^^^^^^^^^^^^^^^^^
+
+As explained previously, any callback can be added by including it in the config via :code:`class_path` and
+:code:`init_args` entries. However, there are other cases in which a callback should always be present and be
+configurable. This can be implemented as follows:
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import EarlyStopping
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(EarlyStopping, "my_early_stopping")
+            parser.set_defaults({"my_early_stopping.patience": 5})
+
+
+    cli = MyLightningCLI(MyModel)
+
+To change the configuration of the :code:`EarlyStopping` in the config it would be:
+
+.. code-block:: yaml
+
+    model:
+      ...
+    trainer:
+      ...
+    my_early_stopping:
+      patience: 5
+
+.. note::
+
+    The example above overrides a default in :code:`add_arguments_to_parser`. This is included to show that defaults can
+    be changed if needed. However, note that overriding of defaults in the source code is not intended to be used to
+    store the best hyperparameters for a task after experimentation. To ease reproducibility the source code should be
+    stable. It is better practice to store the best hyperparameters for a task in a configuration file independent from
+    the source code.
+
+
+Class type defaults
+^^^^^^^^^^^^^^^^^^^
+
+The support for classes as type hints allows to try many possibilities with the same CLI. This is a useful feature, but
+it can make it tempting to use an instance of a class as a default. For example:
+
+.. testcode::
+
+    class MyMainModel(LightningModule):
+        def __init__(
+            self,
+            backbone: torch.nn.Module = MyModel(encoder_layers=24),  # BAD PRACTICE!
+        ):
+            super().__init__()
+            self.backbone = backbone
+
+Normally classes are mutable as it is in this case. The instance of :code:`MyModel` would be created the moment that the
+module that defines :code:`MyMainModel` is first imported. This means that the default of :code:`backbone` will be
+initialized before the CLI class runs :code:`seed_everything` making it non-reproducible. Furthermore, if
+:code:`MyMainModel` is used more than once in the same Python process and the :code:`backbone` parameter is not
+overridden, the same instance would be used in multiple places which very likely is not what the developer intended.
+Having an instance as default also makes it impossible to generate the complete config file since for arbitrary classes
+it is not known which arguments were used to instantiate it.
+
+A good solution to these problems is to not have a default or set the default to a special value (e.g. a
+string) which would be checked in the init and instantiated accordingly. If a class parameter has no default and the CLI
+is subclassed then a default can be set as follows:
+
+.. testcode::
+
+    default_backbone = {
+        "class_path": "import.path.of.MyModel",
+        "init_args": {
+            "encoder_layers": 24,
+        },
+    }
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.set_defaults({"model.backbone": default_backbone})
+
+A more compact version that avoids writing a dictionary would be:
+
+.. testcode::
+
+    from jsonargparse import lazy_instance
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.set_defaults({"model.backbone": lazy_instance(MyModel, encoder_layers=24)})
+
+
+Argument linking
+^^^^^^^^^^^^^^^^
 
 Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
 model and data module depend on a common parameter. For example in some cases both classes require to know the
@@ -396,10 +567,11 @@ like shown below, the :code:`batch_size` only has to be provided in the :code:`d
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.link_arguments('data.batch_size', 'model.batch_size')
+            parser.link_arguments("data.batch_size", "model.batch_size")
+
 
     cli = MyLightningCLI(MyModel, MyDataModule)
 
@@ -416,13 +588,157 @@ The linking of arguments is observed in the help of the tool, which for this exa
         model.batch_size <-- data.batch_size
                               Number of samples in a batch (type: int)
 
+Sometimes a parameter value is only available after class instantiation. An example could be that your model requires
+the number of classes to instantiate its fully connected layer (for a classification task) but the value is not
+available until the data module has been instantiated. The code below illustrates how to address this.
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
+
+
+    cli = MyLightningCLI(MyClassModel, MyDataModule)
+
+Instantiation links are used to automatically determine the order of instantiation, in this case data first.
+
 .. tip::
 
     The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
 
-.. tip::
 
-    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
-    methods that can be extended to customize a CLI.
+Optimizers and learning rate schedulers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optimizers and learning rate schedulers can also be made configurable. The most common case is when a model only has a
+single optimizer and optionally a single learning rate scheduler. In this case the model's
+:class:`~pytorch_lightning.core.lightning.LightningModule` could be left without implementing the
+:code:`configure_optimizers` method since it is normally always the same and just adds boilerplate. The following code
+snippet shows how to implement it:
+
+.. testcode::
+
+    import torch
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(torch.optim.Adam)
+            parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
+
+
+    cli = MyLightningCLI(MyModel)
+
+With this the :code:`configure_optimizers` method is automatically implemented and in the config the :code:`optimizer`
+and :code:`lr_scheduler` groups would accept all of the options for the given classes, in this example :code:`Adam` and
+:code:`ExponentialLR`. Therefore, the config file would be structured like:
+
+.. code-block:: yaml
+
+    optimizer:
+      lr: 0.01
+    lr_scheduler:
+      gamma: 0.2
+    model:
+      ...
+    trainer:
+      ...
+
+And any of these arguments could be passed directly through command line. For example:
+
+.. code-block:: bash
+
+    $ python train.py --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
+
+There is also the possibility of selecting among multiple classes by giving them as a tuple. For example:
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
+
+In this case in the config the :code:`optimizer` group instead of having directly init settings, it should specify
+:code:`class_path` and optionally :code:`init_args`. Sub-classes of the classes in the tuple would also be accepted.
+A corresponding example of the config file would be:
+
+.. code-block:: yaml
+
+    optimizer:
+      class_path: torch.optim.Adam
+      init_args:
+        lr: 0.01
+
+And the same through command line:
+
+.. code-block:: bash
+
+    $ python train.py --optimizer.class_path=torch.optim.Adam --optimizer.init_args.lr=0.01
+
+The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
+example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
+
+
+    class MyModel(LightningModule):
+        def __init__(self, optimizer_init: dict, lr_scheduler_init: dict):
+            super().__init__()
+            self.optimizer_init = optimizer_init
+            self.lr_scheduler_init = lr_scheduler_init
+
+        def configure_optimizers(self):
+            optimizer = instantiate_class(self.parameters(), self.optimizer_init)
+            scheduler = instantiate_class(optimizer, self.lr_scheduler_init)
+            return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(
+                torch.optim.Adam,
+                link_to="model.optimizer_init",
+            )
+            parser.add_lr_scheduler_args(
+                torch.optim.lr_scheduler.ReduceLROnPlateau,
+                link_to="model.lr_scheduler_init",
+            )
+
+
+    cli = MyLightningCLI(MyModel)
+
+For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
+a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including
+:code:`class_path` and :code:`init_args` entries. The function
+:func:`~pytorch_lightning.utilities.cli.instantiate_class` takes care of importing the class defined in
+:code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
+:code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
+
+
+Notes related to reproducibility
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The topic of reproducibility is complex and it is impossible to guarantee reproducibility by just providing a class that
+people can use in unexpected ways. Nevertheless :class:`~pytorch_lightning.utilities.cli.LightningCLI` tries to give a
+framework and recommendations to make reproducibility simpler.
+
+When an experiment is run, it is good practice to use a stable version of the source code, either being a released
+package or at least a commit of some version controlled repository. For each run of a CLI the config file is
+automatically saved including all settings. This is useful to figure out what was done for a particular run without
+requiring to look at the source code. If by mistake the exact version of the source code is lost or some defaults
+changed, having the full config means that most of the information is preserved.
+
+The class is targeted at implementing CLIs because running a command from a shell provides a separation with the Python
+source code. Ideally the CLI would be placed in your path as part of the installation of a stable package, instead of
+running from a clone of a repository that could have uncommitted local modifications. Creating installable packages that
+include CLIs is out of the scope of this document. This is mentioned only as a teaser for people who would strive for
+the best practices possible.

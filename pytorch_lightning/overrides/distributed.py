@@ -18,13 +18,12 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-
-    def __init__(self, pl_module: LightningModule):
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
@@ -63,6 +62,9 @@ def _find_tensors(obj):  # pragma: no-cover
 # Note: Keep track of Pytorch DDP and update if there is a change
 # https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any):
+    # `prepare_for_backward` is `DistributedDataParallel` specific.
+    if not isinstance(model, DistributedDataParallel):
+        return
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
         model.require_forward_param_sync = True
         # We'll return the output object verbatim since it is a freeform
@@ -114,7 +116,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         assert len(indices) == self.total_size
 
         # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
 
         return iter(indices)
@@ -131,6 +133,9 @@ class IndexBatchSamplerWrapper:
         for batch in self._sampler:
             self.batch_indices = batch
             yield batch
+
+    def __len__(self) -> int:
+        return len(self._sampler)
 
     @property
     def drop_last(self) -> bool:

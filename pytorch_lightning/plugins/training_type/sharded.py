@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Dict, Optional
 
 import torch
-from torch.optim import Optimizer
 
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import is_lightning_optimizer
+import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
@@ -31,9 +30,9 @@ if _FAIRSCALE_AVAILABLE:
 
 
 class DDPShardedPlugin(DDPPlugin):
-    """ Optimizer and gradient sharded training provided by FairScale. """
+    """Optimizer and gradient sharded training provided by FairScale."""
 
-    _REDUCE_BUFFER_SIZE_DEFAULT = 2**23  # 8M
+    _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
 
     def configure_ddp(self):
         self._wrap_optimizers()
@@ -48,13 +47,14 @@ class DDPShardedPlugin(DDPPlugin):
     def _reinit_optimizers_with_oss(self):
         optimizers = self.lightning_module.trainer.optimizers
         for x, optimizer in enumerate(optimizers):
-            if is_lightning_optimizer(optimizer):
+            if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.lightning_module.trainer.precision == 16
+                    precision = self.lightning_module.trainer.precision
+                    is_fp16 = precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.
@@ -71,7 +71,7 @@ class DDPShardedPlugin(DDPPlugin):
         self._reinit_optimizers_with_oss()
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if is_lightning_optimizer(optimizer):
+        if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
         optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
@@ -85,7 +85,7 @@ class DDPShardedPlugin(DDPPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> "pl.LightningModule":
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedPlugin` requires `fairscale` to be installed."
@@ -93,8 +93,17 @@ class DDPShardedPlugin(DDPPlugin):
             )
         return unwrap_lightning_module_sharded(self._model)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
     def post_training_step(self):
         pass
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_sharded_find_unused_parameters_false",
+            cls,
+            description="DDP Sharded Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )

@@ -160,7 +160,7 @@ for the entire speech to text .yaml file.
         max_epochs: 5
         max_steps: null # computed at runtime if not set
         num_nodes: 1
-        distributed_backend: ddp
+        accelerator: ddp
         ...
     # configure the ASR model
     model:
@@ -598,7 +598,7 @@ Specify TTS Model Configurations with YAML File
         gpus: -1 # number of gpus
         max_epochs: 350
         num_nodes: 1
-        distributed_backend: ddp
+        accelerator: ddp
         ...
 
     # configure the TTS model

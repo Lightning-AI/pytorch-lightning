@@ -22,18 +22,24 @@ log = logging.getLogger(__name__)
 
 
 def print_nan_gradients(model: nn.Module) -> None:
-    """ Iterates over model parameters and prints out parameter + gradient information if NaN. """
+    """Iterates over model parameters and prints out parameter + gradient information if NaN."""
     for param in model.parameters():
         if (param.grad is not None) and torch.isnan(param.grad.float()).any():
             log.info(param, param.grad)
 
 
 def detect_nan_parameters(model: nn.Module) -> None:
-    """ Iterates over model parameters and prints gradients if any parameter is not finite. """
+    """
+    Iterates over model parameters and prints gradients if any parameter is not finite.
+
+    Raises:
+        ValueError:
+            If ``NaN`` or ``inf`` values are found
+    """
     for name, param in model.named_parameters():
         if not torch.isfinite(param).all():
             print_nan_gradients(model)
             raise ValueError(
-                f'Detected nan and/or inf values in `{name}`.'
-                ' Check your forward pass for numerically unstable operations.'
+                f"Detected nan and/or inf values in `{name}`."
+                " Check your forward pass for numerically unstable operations."
             )

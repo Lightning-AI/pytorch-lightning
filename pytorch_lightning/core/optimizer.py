@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import types
 from contextlib import contextmanager
 from typing import Callable, Optional
 from weakref import proxy
@@ -20,10 +19,6 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-
-def is_lightning_optimizer(optimizer):
-    return isinstance(optimizer, LightningOptimizer)
 
 
 def do_nothing_closure():
@@ -38,7 +33,7 @@ class LightningOptimizer:
 
     def __init__(self, optimizer: Optimizer):
 
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ('step', "__del__")}
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
@@ -121,7 +116,7 @@ class LightningOptimizer:
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
         """
-        with self._trainer.train_loop.block_ddp_sync_behaviour(not sync_grad):
+        with self._trainer.fit_loop.epoch_loop.batch_loop.block_ddp_sync_behaviour(not sync_grad):
             self._toggle_model()
             yield
             self._untoggle_model()
@@ -207,7 +202,7 @@ class LightningOptimizer:
             profiler_name = "closure_{self._optimizer_idx}"
             closure = do_nothing_closure
         else:
-            if not isinstance(closure, types.FunctionType):
+            if not callable(closure):
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
@@ -215,6 +210,8 @@ class LightningOptimizer:
         self._total_optimizer_step_calls += 1
 
     def __repr__(self):
-        groups = [{k: round(v, 12) if isinstance(v, float) else v
-                   for k, v in sorted(group.items()) if k != "params"} for group in self.param_groups]
+        groups = [
+            {k: round(v, 12) if isinstance(v, float) else v for k, v in sorted(group.items()) if k != "params"}
+            for group in self.param_groups
+        ]
         return f"{self.__class__.__name__}(groups={groups})"

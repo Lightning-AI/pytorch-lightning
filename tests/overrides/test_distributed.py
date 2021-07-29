@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Iterable
+
 import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from pytorch_lightning.utilities.data import has_len
 
 
 @pytest.mark.parametrize("shuffle", [False, True])
@@ -29,7 +32,7 @@ def test_unrepeated_distributed_sampler(shuffle, tmpdir):
     for rank in range(world_size):
         samplers.append(UnrepeatedDistributedSampler(dataset, rank=rank, num_replicas=world_size, shuffle=shuffle))
 
-    indices = [[v for v in s] for s in samplers]
+    indices = [list(s) for s in samplers]
     assert len(indices[0]) == 26
     assert len(indices[1]) == 26
     assert len(indices[2]) == 26
@@ -54,3 +57,13 @@ def test_index_batch_sampler(tmpdir):
 
     for batch in index_batch_sampler:
         assert index_batch_sampler.batch_indices == batch
+
+
+def test_index_batch_sampler_methods():
+    dataset = range(15)
+    sampler = SequentialSampler(dataset)
+    batch_sampler = BatchSampler(sampler, 3, False)
+    index_batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+    assert isinstance(index_batch_sampler, Iterable)
+    assert has_len(index_batch_sampler)

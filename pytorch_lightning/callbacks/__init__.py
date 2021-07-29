@@ -25,22 +25,24 @@ from pytorch_lightning.callbacks.pruning import ModelPruning
 from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from pytorch_lightning.callbacks.timer import Timer
+from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 
 __all__ = [
-    'BackboneFinetuning',
-    'BaseFinetuning',
-    'Callback',
-    'EarlyStopping',
-    'GPUStatsMonitor',
-    'GradientAccumulationScheduler',
-    'LambdaCallback',
-    'LearningRateMonitor',
-    'ModelCheckpoint',
-    'ModelPruning',
-    'BasePredictionWriter',
-    'ProgressBar',
-    'ProgressBarBase',
-    'QuantizationAwareTraining',
-    'StochasticWeightAveraging',
-    'Timer',
+    "BackboneFinetuning",
+    "BaseFinetuning",
+    "Callback",
+    "EarlyStopping",
+    "GPUStatsMonitor",
+    "XLAStatsMonitor",
+    "GradientAccumulationScheduler",
+    "LambdaCallback",
+    "LearningRateMonitor",
+    "ModelCheckpoint",
+    "ModelPruning",
+    "BasePredictionWriter",
+    "ProgressBar",
+    "ProgressBarBase",
+    "QuantizationAwareTraining",
+    "StochasticWeightAveraging",
+    "Timer",
 ]

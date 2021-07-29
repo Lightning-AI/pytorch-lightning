@@ -9,36 +9,30 @@ trigger:
       - '*'
   branches:
     include:
-      - master
-      - release/*
-      - refs/tags/*
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
 pr:
-  - master
-  - release/*
+  - "master"
+  - "release/*"
 
 jobs:
   - job: pytest
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: 45
+    timeoutInMinutes: "45"
     # how much time to give 'run always even if cancelled tasks' before stopping them
-    cancelTimeoutInMinutes: 2
+    cancelTimeoutInMinutes: "2"
 
     pool: gridai-spot-pool
 
-    #strategy:
-    #  matrix:
-    #    PT16:
-    #      torch.version: '1.6'
-    #      python.version: '3.7'
-
     # ToDo: this need to have installed docker in the base image...
-    #container: pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
-    #container: "pytorchlightning/pytorch_lightning:base-cuda-py$[ variables['python.version'] ]-torch1.6"
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.8-torch1.6"
-      #endpoint: azureContainerRegistryConnection
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all"
+      # run on torch 1.8 as it's the LTS version
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
+      # default shm size is 64m. Increase it to avoid:
+      # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
 
     workspace:
       clean: all
@@ -55,18 +49,15 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
-        export GIT_TERMINAL_PROMPT=1
-        #sudo apt-get install -y cmake
-        # python -m pip install "pip==20.1"
-        pip install --requirement requirements.txt
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
-        pip install fairscale>=0.3.4 --upgrade-strategy only-if-needed
+        pip install fairscale>=0.3.4
+        pip install deepspeed>=0.4.0 -U
+        pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
@@ -82,6 +73,8 @@ jobs:
 
     - bash: |
         bash tests/special_tests.sh
+      env:
+        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: special'
 
     - bash: |
@@ -99,30 +92,26 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
       condition: succeededOrFailed()
 
-    - task: PublishCodeCoverageResults@1
-      displayName: 'Publish coverage report'
-      inputs:
-        codeCoverageTool: 'cobertura'
-        summaryFileLocation: 'coverage.xml'
-        reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
-        testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
-      condition: succeededOrFailed()
+    # todo: re-enable after schema check pass, also atm it seems does not have any effect
+    #- task: PublishCodeCoverageResults@2
+    #  displayName: 'Publish coverage report'
+    #  inputs:
+    #    codeCoverageTool: 'Cobertura'
+    #    summaryFileLocation: 'coverage.xml'
+    #    reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
+    #    testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
+    #  condition: succeededOrFailed()
+
+    - script: |
+        set -e
+        python -m pytest pl_examples -v --maxfail=2 --durations=0
+        bash pl_examples/run_examples.sh --trainer.gpus=1
+        bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=ddp
+        bash pl_examples/run_examples.sh --trainer.gpus=2 --trainer.accelerator=ddp --trainer.precision=16
+      env:
+        PL_USE_MOCKED_MNIST: "1"
+      displayName: 'Testing: examples'
 
     - bash: |
         python -m pytest benchmarks -v --maxfail=2 --durations=0
       displayName: 'Testing: benchmarks'
-
-    - script: |
-        set -e
-        python setup.py install --user
-        rm -rf pytorch_lightning
-        pip list
-        python -m pytest pl_examples -v --maxfail=2 --durations=0
-        bash pl_examples/run_examples-args.sh --trainer.gpus 1 --trainer.max_epochs 1 --data.batch_size 64 --trainer.limit_train_batches 5 --trainer.limit_val_batches 3
-        bash pl_examples/run_ddp-examples.sh --trainer.max_epochs 1 --data.batch_size 32 --trainer.limit_train_batches 2 --trainer.limit_val_batches 2
-        # cd pl_examples/basic_examples
-        # bash submit_ddp_job.sh
-        # bash submit_ddp2_job.sh
-      env:
-        PL_USE_MOCKED_MNIST: "1"
-      displayName: 'Examples'
