@@ -781,22 +781,24 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
-
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    checkpoint_path = trainer.accelerator.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-
-    single_ckpt_path = os.path.join(tmpdir, "single_model.pt")
+    trainer.accelerator.barrier()
 
     # carry out the check only on rank 0
-    if trainer.global_rank == 0:
+    if trainer.is_global_zero:
+        single_ckpt_path = os.path.join(tmpdir, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
         state_dict = torch.load(single_ckpt_path)
-        if model.dtype == torch.half:
-            model = model.float()  # moved model to float32 for comparison with single fp32 saved weights
+
         model = model.cpu()
         # Assert model parameters are identical after loading
-        for orig_param, trained_model_param in zip(model.parameters(), state_dict.values()):
-            assert torch.equal(orig_param, trained_model_param)
+        for orig_param, saved_model_param in zip(model.parameters(), state_dict.values()):
+            if model.dtype == torch.half:
+                # moved model to float32 for comparison with single fp32 saved weights
+                saved_model_param = saved_model_param.half()
+            assert torch.equal(orig_param, saved_model_param)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
