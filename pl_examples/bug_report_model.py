@@ -1,8 +1,5 @@
-import os
-
 import torch
 from torch.utils.data import DataLoader, Dataset
-
 from pytorch_lightning import LightningModule, Trainer
 
 
@@ -28,38 +25,19 @@ class BoringModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self(batch).sum()
-        self.log("train_loss", loss)
-        return {"loss": loss}
-
-    def validation_step(self, batch, batch_idx):
-        loss = self(batch).sum()
-        self.log("valid_loss", loss)
-
-    def test_step(self, batch, batch_idx):
-        loss = self(batch).sum()
-        self.log("test_loss", loss)
+        print(f"training_step, {batch_idx=}: {loss=}")
+        return loss
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        return torch.optim.SGD(self.parameters(), lr=0.1)
 
-
-def run():
-    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        limit_train_batches=1,
-        limit_val_batches=1,
-        num_sanity_val_steps=0,
-        max_epochs=1,
-        weights_summary=None,
-    )
-    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-    trainer.test(model, dataloaders=test_data)
+    def training_epoch_end(self, outputs):
+        print("training_epoch_end:", [id(x["loss"]) for x in outputs])
 
 
 if __name__ == "__main__":
-    run()
+    dl = DataLoader(RandomDataset(32, 100), batch_size=10)
+
+    model = BoringModel()
+    trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
+    trainer.fit(model, dl)
