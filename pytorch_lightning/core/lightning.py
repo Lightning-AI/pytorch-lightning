@@ -479,6 +479,7 @@ class LightningModule(
         sync_dist_op: Optional[Any] = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
+        rank_zero_only: Optional[bool] = None,
     ) -> None:
         """
         Log a dictionary of values at once.
@@ -519,6 +520,7 @@ class LightningModule(
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx,
+                rank_zero_only=rank_zero_only,
             )
 
     @staticmethod
