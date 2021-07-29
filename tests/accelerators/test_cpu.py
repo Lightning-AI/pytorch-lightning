@@ -163,6 +163,16 @@ def test_plugin_on_reset_dataloader_hooks(tmpdir):
     assert plugin.predict_count == 1
 
 
+def test_restore_checkpoint_after_pre_dispatch_default():
+    """
+    Assert default for restore_checkpoint_after_pre_dispatch is False.
+    """
+    plugin = SingleDevicePlugin(torch.device("cpu"))
+    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
+    assert not accelerator.restore_checkpoint_after_pre_dispatch
+    assert not plugin.restore_checkpoint_after_pre_dispatch
+
+
 @pytest.mark.parametrize("restore_after_pre_dispatch", [True, False])
 def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatch):
     """
@@ -192,9 +202,12 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
-    accelerator = CPUAccelerator(
-        training_type_plugin=TestPlugin(torch.device("cpu")), precision_plugin=PrecisionPlugin()
-    )
+    plugin = TestPlugin(torch.device("cpu"))
+    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
+
+    assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+    assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+
     trainer = Trainer(
         default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
     )
