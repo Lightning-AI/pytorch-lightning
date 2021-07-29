@@ -24,9 +24,11 @@ import torch
 from torch import Tensor
 from torch.quantization import QConfig
 
-try:
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+
+if _TORCH_GREATER_EQUAL_1_8:
     from torch.quantization import FakeQuantizeBase
-except ImportError:
+else:
     # For torch 1.6 and 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 

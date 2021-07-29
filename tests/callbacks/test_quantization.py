@@ -19,20 +19,21 @@ import torch
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 from torch import Tensor
 
-try:
-    from torch.quantization import FakeQuantizeBase
-except ImportError:
-    # For torch 1.6 and 1.7.
-    from torch.quantization import FakeQuantize as FakeQuantizeBase
-
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from tests.helpers.boring_model import RandomDataset
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel
+
+if _TORCH_GREATER_EQUAL_1_8:
+    from torch.quantization import FakeQuantizeBase
+else:
+    # For torch 1.6 and 1.7.
+    from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 
 @pytest.mark.parametrize("observe", ["average", "histogram"])
