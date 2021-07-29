@@ -253,10 +253,9 @@ class DeepSpeedPlugin(DDPPlugin):
 
             synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
 
-            load_full_weights: Gathers weights across all processes before saving to disk
-                when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
-                rather than individual sharded weight files.
-                Disable to save sharded states individually.
+            load_full_weights: True when loading a single checkpoint file containing the model state dict
+                when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
+                per worker.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
