@@ -410,7 +410,7 @@ class DataHooks:
         .. code-block:: python
 
             model.prepare_data()
-            initiailize_distributed()
+            initialize_distributed()
             model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()
