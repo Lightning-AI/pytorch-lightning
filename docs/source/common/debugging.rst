@@ -99,7 +99,7 @@ By default it only prints the top-level modules. If you want to show all submodu
 
 .. testcode::
 
-    trainer = Trainer(weights_summary='full')
+    trainer = Trainer(weights_summary="full")
 
 You can also display the intermediate input- and output sizes of all your layers by setting the
 ``example_input_array`` attribute in your LightningModule. It will print a table like this

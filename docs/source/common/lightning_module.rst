@@ -213,6 +213,7 @@ Here's the pseudocode of what it does under the hood:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -250,6 +251,7 @@ The matching pseudocode is:
     for batch in train_dataloader:
         # forward
         out = training_step(val_batch)
+        outs.append(out)
 
         # clear gradients
         optimizer.zero_grad()
@@ -279,11 +281,16 @@ In this case, implement the `training_step_end` method
          return {'loss': loss, 'pred': pred}
 
      def training_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts[0]['pred']
-         gpu_1_prediction = batch_parts[1]['pred']
+         # predictions from each GPU
+         predictions = batch_parts['pred']
+         # losses from each GPU
+         losses = batch_parts['loss']
+
+         gpu_0_prediction = predictions[0]
+         gpu_1_prediction = predictions[1]
 
          # do something with both outputs
-         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
+         return (losses[0] + losses[1]) / 2
 
      def training_epoch_end(self, training_step_outputs):
         for out in training_step_outputs:
@@ -383,11 +390,16 @@ In this case, implement the `validation_step_end` method
          return {'loss': loss, 'pred': pred}
 
      def validation_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts.pred[0]['pred']
-         gpu_1_prediction = batch_parts.pred[1]['pred']
+         # predictions from each GPU
+         predictions = batch_parts['pred']
+         # losses from each GPU
+         losses = batch_parts['loss']
+
+         gpu_0_prediction = predictions[0]
+         gpu_1_prediction = predictions[1]
 
          # do something with both outputs
-         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
+         return (losses[0] + losses[1]) / 2
 
      def validation_epoch_end(self, validation_step_outputs):
         for out in validation_step_outputs:
@@ -1053,7 +1065,11 @@ truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
 
 Truncated back prop breaks performs backprop every k steps of
-a much longer sequence.
+a much longer sequence. This is made possible by passing training batches
+splitted along the time-dimensions into splits of size k to the
+``training_step``. In order to keep the same forward propagation behavior, all
+hidden states should be kept in-between each time-dimension split.
+
 
 If this is enabled, your batches will automatically get truncated
 and the trainer will apply Truncated Backprop to it.
@@ -1070,23 +1086,40 @@ recurrent network trajectories."
 
     class MyModel(LightningModule):
 
-        def __init__(self):
+        def __init__(self, input_size, hidden_size, num_layers):
             super().__init__()
+            # batch_first has to be set to True
+            self.lstm = nn.LSTM(
+                input_size=input_size,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+            )
+
+            ...
+
             # Important: This property activates truncated backpropagation through time
             # Setting this value to 2 splits the batch into sequences of size 2
             self.truncated_bptt_steps = 2
 
         # Truncated back-propagation through time
         def training_step(self, batch, batch_idx, hiddens):
+            x, y = batch
+
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
-            out, (hiddens, _) = self.lstm(data, hiddens)
+            out, hiddens = self.lstm(x, hiddens)
+
+            ...
+
             return {
                 "loss": ...,
                 "hiddens": hiddens
             }
 
-Lightning takes care to split your batch along the time-dimension.
+Lightning takes care of splitting your batch along the time-dimension. It is
+assumed to be the second dimension of your batches. Therefore, in the
+example above we have set ``batch_first=True``.
 
 .. code-block:: python
 
@@ -1160,9 +1193,11 @@ for more information.
             on_before_zero_grad()
             optimizer_zero_grad()
 
+            on_before_backward()
             backward()
             on_after_backward()
 
+            on_before_optimizer_step()
             optimizer_step()
 
             on_train_batch_end()
@@ -1213,6 +1248,12 @@ get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
+    :noindex:
+
+on_before_backward
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_backward
     :noindex:
 
 on_after_backward
@@ -1411,6 +1452,12 @@ on_test_model_train
 ~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
+    :noindex:
+
+on_before_optimizer_step
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
     :noindex:
 
 optimizer_step

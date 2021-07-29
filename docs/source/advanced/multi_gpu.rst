@@ -639,38 +639,39 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 ----------
 
-TorchElastic
---------------
-Lightning supports the use of TorchElastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Torch Distributed Elastic
+-------------------------
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
 
 .. code-block:: python
 
     Trainer(gpus=8, accelerator='ddp')
 
-
-Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
-
-.. code-block:: bash
-
-    etcd --enable-v2
-         --listen-client-urls http://0.0.0.0:2379,http://127.0.0.1:4001
-         --advertise-client-urls PUBLIC_HOSTNAME:2379
-
-
-And then launch the elastic job with:
+To launch a fault-tolerant job, run the following on all nodes.
 
 .. code-block:: bash
 
-    python -m torchelastic.distributed.launch
+    python -m torch.distributed.run
+            --nnodes=NUM_NODES
+            --nproc_per_node=TRAINERS_PER_NODE
+            --rdzv_id=JOB_ID
+            --rdzv_backend=c10d
+            --rdzv_endpoint=HOST_NODE_ADDR
+            YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
+
+To launch an elastic job, run the following on at least ``MIN_SIZE`` nodes and at most ``MAX_SIZE`` nodes.
+
+.. code-block:: bash
+
+    python -m torch.distributed.run
             --nnodes=MIN_SIZE:MAX_SIZE
             --nproc_per_node=TRAINERS_PER_NODE
             --rdzv_id=JOB_ID
-            --rdzv_backend=etcd
-            --rdzv_endpoint=ETCD_HOST:ETCD_PORT
+            --rdzv_backend=c10d
+            --rdzv_endpoint=HOST_NODE_ADDR
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
 
-
-See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
+See the official `Torch Distributed Elastic documentation <https://pytorch.org/docs/stable/distributed.elastic.html>`_ for details
 on installation and more use cases.
 
 ----------

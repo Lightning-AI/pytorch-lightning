@@ -11,20 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
+
 import pytest
 
-from pytorch_lightning.trainer.progress import (
-    BatchProgress,
-    EpochLoopProgress,
-    EpochProgress,
-    FitLoopProgress,
-    OptimizerProgress,
-    Progress,
-    Tracker,
-)
+from pytorch_lightning.trainer.progress import BaseProgress, OptimizerProgress, Progress, Tracker
 
 
-def test_progress_geattr_setattr():
+def test_progress_getattr_setattr():
     p = Tracker(ready=10, completed=None)
     # can read
     assert p.completed is None
@@ -68,56 +62,25 @@ def test_base_progress_from_defaults():
     assert actual == expected
 
 
-def test_epoch_loop_progress_increment_epoch():
-    p = EpochLoopProgress()
-    p.increment_epoch_completed()
-    p.increment_epoch_completed()
-    assert p.epoch.total == Tracker(completed=2)
-    assert p.epoch.current == Tracker()
-    assert p.epoch.batch.current == Tracker()
-
-
 def test_epoch_loop_progress_increment_sequence():
     """Test sequences for incrementing batches reads and epochs."""
-    batch = BatchProgress(total=Tracker(started=None))
-    epoch = EpochProgress(batch=batch)
-    loop = EpochLoopProgress(epoch=epoch)
+    batch = Progress()
 
     batch.increment_ready()
-    assert batch.total == Tracker(ready=1, started=None)
+    assert batch.total == Tracker(ready=1)
     assert batch.current == Tracker(ready=1)
 
     batch.increment_started()
-    assert batch.total == Tracker(ready=1, started=None)
-    assert batch.current == Tracker(ready=1)
+    assert batch.total == Tracker(ready=1, started=1)
+    assert batch.current == Tracker(ready=1, started=1)
 
     batch.increment_processed()
-    assert batch.total == Tracker(ready=1, started=None, processed=1)
-    assert batch.current == Tracker(ready=1, processed=1)
+    assert batch.total == Tracker(ready=1, started=1, processed=1)
+    assert batch.current == Tracker(ready=1, started=1, processed=1)
 
     batch.increment_completed()
-    assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert batch.current == Tracker(ready=1, processed=1, completed=1)
-
-    assert epoch.total == Tracker()
-    assert epoch.current == Tracker()
-    loop.increment_epoch_completed()
-    assert batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
-    assert batch.current == Tracker()
-    assert epoch.total == Tracker(completed=1)
-    assert epoch.current == Tracker()
-
-    batch.increment_ready()
-    assert batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert batch.current == Tracker(ready=1)
-    assert epoch.total == Tracker(completed=1)
-    assert epoch.current == Tracker()
-
-    loop.reset_on_epoch()
-    assert batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
-    assert batch.current == Tracker()
-    assert epoch.total == Tracker(completed=1)
-    assert epoch.current == Tracker()
+    assert batch.total == Tracker(ready=1, started=1, processed=1, completed=1)
+    assert batch.current == Tracker(ready=1, started=1, processed=1, completed=1)
 
 
 def test_optimizer_progress_default_factory():
@@ -133,86 +96,7 @@ def test_optimizer_progress_default_factory():
     assert p2.step.total.completed == 0
 
 
-def test_fit_loop_progress_serialization():
-    fit_loop = FitLoopProgress()
-    state_dict = fit_loop.state_dict()
-    # yapf: disable
-    assert state_dict == {
-        'epoch': {
-            # number of epochs across `fit` calls
-            'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            # number of epochs this `fit` call
-            'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            'batch': {
-                # number of batches across `fit` calls
-                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                # number of batches this epoch
-                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            },
-            # `fit` optimization progress
-            'optim': {
-                # optimizers progress
-                'optimizer': {
-                    'step': {
-                        # `optimizer.step` calls across `fit` calls
-                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                        # `optimizer.step` calls this epoch
-                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                    },
-                    'zero_grad': {
-                        # `optimizer.zero_grad` calls across `fit` calls
-                        'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                        # `optimizer.zero_grad` calls this epoch
-                        'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': 0},
-                    },
-                },
-                'scheduler': {
-                    # `scheduler.step` calls across `fit` calls
-                    'total': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
-                    # `scheduler.step` calls this epoch
-                    'current': {'completed': 0, 'processed': None, 'ready': 0, 'started': None},
-                },
-            },
-            # `fit` validation progress
-            'val': {
-                'epoch': {
-                    # number of `validation` calls across `fit` calls
-                    'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    # number of `validation` calls this `fit` call
-                    'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    'batch': {
-                        # number of batches across `fit` `validation` calls
-                        'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                        # number of batches this `fit` `validation` call
-                        'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                    },
-                }
-            },
-        }
-    }
-    # yapf: enable
-    new_loop = FitLoopProgress.from_state_dict(state_dict)
-    assert fit_loop == new_loop
-
-
-def test_epoch_loop_progress_serialization():
-    loop = EpochLoopProgress()
-    state_dict = loop.state_dict()
-    # yapf: disable
-    assert state_dict == {
-        'epoch': {
-            # number of times `validate` has been called
-            'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            # either 0 or 1 as `max_epochs` does not apply to the `validate` loop
-            'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            'batch': {
-                # number of batches across `validate` calls
-                'total': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-                # number of batches this `validate` call
-                'current': {'completed': 0, 'processed': 0, 'ready': 0, 'started': 0},
-            },
-        }
-    }
-    # yapf: enable
-    new_loop = EpochLoopProgress.from_state_dict(state_dict)
-    assert loop == new_loop
+def test_deepcopy():
+    _ = deepcopy(BaseProgress())
+    _ = deepcopy(Progress())
+    _ = deepcopy(Tracker())

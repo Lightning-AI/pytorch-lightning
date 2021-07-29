@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
-    """ Plugin that handles communication on a single device. """
+    """Plugin that handles communication on a single device."""
 
     def __init__(self, device: torch.device):
         super().__init__()
@@ -53,7 +53,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return tensor
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes"""
         return tensor
 
     @property
@@ -61,9 +61,6 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.device
 
     def model_to_device(self) -> None:
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
-
         self._model.to(self.root_device)
 
     def setup(self, model: torch.nn.Module) -> torch.nn.Module:
@@ -85,5 +82,4 @@ class SingleDevicePlugin(TrainingTypePlugin):
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
-            with torch.cuda.device(self.root_device):
-                torch.cuda.empty_cache()
+            torch.cuda.empty_cache()

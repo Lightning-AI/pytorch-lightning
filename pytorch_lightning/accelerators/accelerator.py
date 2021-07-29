@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from collections import defaultdict
-from typing import Any, Callable, DefaultDict, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -22,6 +21,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -50,11 +50,7 @@ class Accelerator:
 
     """
 
-    def __init__(
-        self,
-        precision_plugin: PrecisionPlugin,
-        training_type_plugin: TrainingTypePlugin,
-    ) -> None:
+    def __init__(self, precision_plugin: PrecisionPlugin, training_type_plugin: TrainingTypePlugin) -> None:
         """
         Args:
             precision_plugin: the plugin to handle precision-specific parts
@@ -67,7 +63,7 @@ class Accelerator:
         self.lr_schedulers: List = []
         self.optimizer_frequencies: List = []
 
-    def connect(self, model: 'pl.LightningModule') -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         """Transfers ownership of the model to this plugin"""
         self.training_type_plugin.connect(model)
 
@@ -79,7 +75,7 @@ class Accelerator:
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
@@ -92,16 +88,16 @@ class Accelerator:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self.training_type_plugin.start_evaluating(trainer)
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self._move_optimizer_state()
 
@@ -111,20 +107,19 @@ class Accelerator:
 
         self.precision_plugin.pre_dispatch()
 
-    def _move_optimizer_state(self) -> None:
-        """ Moves the state of the optimizers to the GPU if needed. """
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
+        """Moves the state of the optimizers to the GPU if needed."""
+        device = device or self.root_device
         for opt in self.optimizers:
-            state: DefaultDict = defaultdict(dict)
             for p, v in opt.state.items():
-                state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
-            opt.state = state
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
 
-    def dispatch(self, trainer: 'pl.Trainer') -> None:
+    def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.dispatch(trainer)
         self.precision_plugin.dispatch(trainer)
 
-    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
@@ -142,7 +137,7 @@ class Accelerator:
         self.training_type_plugin.model = new_model
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
+    def lightning_module(self) -> "pl.LightningModule":
         """
         Returns the pure LightningModule.
         To get the potentially wrapped model use :attr:`Accelerator.model`
@@ -173,16 +168,15 @@ class Accelerator:
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
+        device = device or self.root_device
 
-        if model is not None:
+        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
+            # no need to transfer batch to device in DP mode
             return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
 
         return move_data_to_device(batch, device)
 
-    def training_step(
-        self,
-        step_kwargs: Dict[str, Union[Any, int]],
-    ) -> STEP_OUTPUT:
+    def training_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual training step.
 
         Args:
@@ -195,8 +189,6 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
@@ -215,8 +207,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
@@ -232,8 +222,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
@@ -249,8 +237,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
         """
-        step_kwargs = self.to_device(step_kwargs)
-
         with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
@@ -278,30 +264,21 @@ class Accelerator:
         """
         return self.training_type_plugin.validation_step_end(output)
 
-    def backward(
-        self,
-        closure_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tensor:
+    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
-            should_accumulate: whether to accumulate gradients
         """
-        self.training_type_plugin.pre_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        self.training_type_plugin.pre_backward(closure_loss)
+        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        output = self.precision_plugin.backward(
-            self.lightning_module, closure_loss, optimizer, optimizer_idx, should_accumulate, *args, **kwargs
-        )
+        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
 
-        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
+        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        self.training_type_plugin.post_backward(closure_loss)
 
-        return output
+        return closure_loss
 
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         """performs the actual optimizer step.
@@ -338,13 +315,10 @@ class Accelerator:
     ) -> None:
         """clips all the optimizer parameters to the given value"""
         self.precision_plugin.clip_gradients(
-            optimizer,
-            clip_val,
-            gradient_clip_algorithm=gradient_clip_algorithm,
-            model=self.model,
+            optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm, model=self.model
         )
 
-    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """
         Creates optimizers and schedulers
 
@@ -360,7 +334,7 @@ class Accelerator:
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, model: 'pl.LightningModule') -> None:
+    def setup_training_type_plugin(self, model: "pl.LightningModule") -> None:
         """Attaches the training type plugin to the accelerator."""
         self.training_type_plugin.setup(model)
 
@@ -369,14 +343,7 @@ class Accelerator:
         model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
         self.optimizers = optimizers
-        self.schedulers = schedulers
-
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        """Pushes the batch to the root device"""
-        step_kwargs['batch'] = self.batch_to_device(
-            step_kwargs['batch'], self.root_device, dataloader_idx=step_kwargs.get('dataloader_idx', None)
-        )
-        return step_kwargs
+        self.lr_schedulers = schedulers
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
@@ -391,15 +358,15 @@ class Accelerator:
         return self.precision_plugin.precision
 
     @property
-    def scaler(self) -> Optional['GradScaler']:
-        return getattr(self.precision_plugin, 'scaler', None)
+    def scaler(self) -> Optional["GradScaler"]:
+        return getattr(self.precision_plugin, "scaler", None)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         """
-        return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
+        return getattr(self.training_type_plugin, "optimizer_state", lambda x: x.state_dict())(optimizer)
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """
@@ -482,7 +449,7 @@ class Accelerator:
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'pl.LightningModule') -> None:
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
@@ -491,8 +458,7 @@ class Accelerator:
             Will be removed in v1.5.0.
         """
         rank_zero_warn(
-            'Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
-            ' It will be removed in v1.5.'
+            "Accelerator method `connect_training_type_plugin` was deprecated in v1.3. It will be removed in v1.5."
         )
         self.setup_training_type_plugin(model)
 
@@ -504,8 +470,7 @@ class Accelerator:
             Will be removed in v1.5.0.
         """
         rank_zero_warn(
-            'Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
-            ' It will be removed in v1.5.'
+            "Accelerator method `connect_precision_plugin` was deprecated in v1.3. It will be removed in v1.5."
         )
         self.setup_precision_plugin()
 

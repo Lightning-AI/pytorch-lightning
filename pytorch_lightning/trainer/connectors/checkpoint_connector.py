@@ -20,15 +20,10 @@ from typing import Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import (
-    _OMEGACONF_AVAILABLE,
-    DeviceType,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -36,13 +31,10 @@ if _OMEGACONF_AVAILABLE:
 
 
 class CheckpointConnector:
-
     def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        # used to validate checkpointing logic
-        self.has_trained = False
-        self._loaded_checkpoint = dict()
+        self._loaded_checkpoint = {}
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -68,8 +60,7 @@ class CheckpointConnector:
             return
 
         # clear cache before restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
@@ -80,15 +71,14 @@ class CheckpointConnector:
         self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
 
     def resume_end(self) -> None:
-        """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
+        """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
         if self.resume_checkpoint_path:
             rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
-        self._loaded_checkpoint = dict()
+        self._loaded_checkpoint = {}
 
         # clear cache after restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
@@ -122,7 +112,7 @@ class CheckpointConnector:
         self.resume_end()
 
     def restore_datamodule(self) -> None:
-        """ Calls hooks on the datamodule to give it a chance to restore its state from the checkpoint. """
+        """Calls hooks on the datamodule to give it a chance to restore its state from the checkpoint."""
         if not self._loaded_checkpoint:
             return
 
@@ -152,7 +142,7 @@ class CheckpointConnector:
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
-        """ Restore only the model weights. """
+        """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
             checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
@@ -170,13 +160,13 @@ class CheckpointConnector:
 
         # restore precision plugin (scaler etc.)
         self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
-        # restore progress (loops etc.)
-        self.restore_progress()
+        # restore loops and their progress
+        self.restore_loops()
 
         self.restore_optimizers_and_schedulers()
 
     def restore_callbacks(self) -> None:
-        """ Restores all callbacks from the pre-loaded checkpoint. """
+        """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
 
@@ -189,16 +179,16 @@ class CheckpointConnector:
             )
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
-    def restore_progress(self) -> None:
+    def restore_loops(self) -> None:
         """
-        Restores the training progress from the pre-loaded checkpoint. This currently includes only the global step
-        and current epoch.
+        Restores the loop progress from the pre-loaded checkpoint.
+        Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
         """
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.fit_loop.global_step = self._loaded_checkpoint['global_step']
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint['epoch']
+        self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
+        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -209,6 +199,9 @@ class CheckpointConnector:
 
         # Division deals with global step stepping once per accumulated batch
         # Inequality deals with different global step for odd vs even num_training_batches
+        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
+            self.trainer.current_epoch
+        )
         n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
         expected_steps = self.trainer.num_training_batches / n_accum
         if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
@@ -219,8 +212,15 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
+        state_dict = self._loaded_checkpoint.get("loops")
+        if state_dict:
+            self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+            self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
+            self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
+            self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
+
     def restore_optimizers_and_schedulers(self) -> None:
-        """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
+        """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
 
@@ -234,7 +234,7 @@ class CheckpointConnector:
         self.restore_lr_schedulers()
 
     def restore_optimizers(self) -> None:
-        """ Restores the optimizer states from the pre-loaded checkpoint. """
+        """Restores the optimizer states from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
 
@@ -250,14 +250,14 @@ class CheckpointConnector:
                             state[k] = v.cuda(self.trainer.root_gpu)
 
     def restore_lr_schedulers(self) -> None:
-        """ Restores the learning rate scheduler states from the pre-loaded checkpoint. """
+        """Restores the learning rate scheduler states from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
 
         # restore the lr schedulers
-        lr_schedulers = self._loaded_checkpoint['lr_schedulers']
+        lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-            scheduler['scheduler'].load_state_dict(lrs_state)
+            scheduler["scheduler"].load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -276,7 +276,7 @@ class CheckpointConnector:
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
 
         fs.makedirs(folderpath, exist_ok=True)
-        filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
+        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
 
         # give model a chance to do something on hpc_save
         model = self.trainer.lightning_module
@@ -294,8 +294,7 @@ class CheckpointConnector:
             if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
-                'warning, `hyper_parameters` dropped from checkpoint.'
-                f' An attribute is not picklable {err}'
+                "warning, `hyper_parameters` dropped from checkpoint." f" An attribute is not picklable {err}"
             )
             atomic_save(checkpoint, filepath)
 
@@ -309,7 +308,7 @@ class CheckpointConnector:
             structured dictionary: {
                 'epoch':                     training epoch
                 'global_step':               training global step
-                'pytorch-lightning_version': PyTorch Lightning's version
+                'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
                 'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
@@ -336,15 +335,17 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
 
         checkpoint = {
-            'epoch': current_epoch,
-            'global_step': global_step,
-            'pytorch-lightning_version': pl.__version__,
-            'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
+            "epoch": current_epoch,
+            "global_step": global_step,
+            "pytorch-lightning_version": pl.__version__,
+            "state_dict": self.trainer.accelerator.lightning_module_state_dict(),
         }
+        if _fault_tolerant_enabled():
+            checkpoint["loops"] = self._get_loops_state_dict()
 
         if not weights_only:
             # dump callbacks
-            checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer.on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -352,19 +353,19 @@ class CheckpointConnector:
                 optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
-            checkpoint['optimizer_states'] = optimizer_states
+            checkpoint["optimizer_states"] = optimizer_states
 
             # dump lr schedulers
             lr_schedulers = []
             for scheduler in self.trainer.lr_schedulers:
-                lr_schedulers.append(scheduler['scheduler'].state_dict())
-            checkpoint['lr_schedulers'] = lr_schedulers
+                lr_schedulers.append(scheduler["scheduler"].state_dict())
+            checkpoint["lr_schedulers"] = lr_schedulers
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
         if model.hparams:
-            if hasattr(model, '_hparams_name'):
+            if hasattr(model, "_hparams_name"):
                 checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
             if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
@@ -393,7 +394,7 @@ class CheckpointConnector:
         )
         self.restore(checkpoint_path)
 
-    def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
+    def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
@@ -417,7 +418,7 @@ class CheckpointConnector:
         ckpt_vs = []
         for name in files:
             name = name.split(name_key)[-1]
-            name = re.sub('[^0-9]', '', name)
+            name = re.sub("[^0-9]", "", name)
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)
@@ -427,7 +428,7 @@ class CheckpointConnector:
 
         max_suffix = self.max_ckpt_version_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
-        return f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
+        return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
 
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -438,3 +439,11 @@ class CheckpointConnector:
         """
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
+
+    def _get_loops_state_dict(self):
+        return {
+            "fit_loop": self.trainer.fit_loop.state_dict(),
+            "validate_loop": self.trainer.validate_loop.state_dict(),
+            "test_loop": self.trainer.test_loop.state_dict(),
+            "predict_loop": self.trainer.predict_loop.state_dict(),
+        }

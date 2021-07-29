@@ -18,9 +18,9 @@ import sys
 import pytest
 
 from pytorch_lightning import Trainer
-from tests import PATH_LEGACY
+from tests import _PATH_LEGACY
 
-LEGACY_CHECKPOINTS_PATH = os.path.join(PATH_LEGACY, 'checkpoints')
+LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
 CHECKPOINT_EXTENSION = ".ckpt"
 
 
@@ -69,7 +69,9 @@ CHECKPOINT_EXTENSION = ".ckpt"
         "1.3.4",
         "1.3.5",
         "1.3.6",
-    ]
+        "1.3.7",
+        "1.3.8",
+    ],
 )
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
@@ -79,7 +81,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     sys.path.insert(0, path_dir)
     from zero_training import DummyModel
 
-    path_ckpts = sorted(glob.glob(os.path.join(path_dir, f'*{CHECKPOINT_EXTENSION}')))
+    path_ckpts = sorted(glob.glob(os.path.join(path_dir, f"*{CHECKPOINT_EXTENSION}")))
     assert path_ckpts, 'No checkpoints found in folder "%s"' % path_dir
     path_ckpt = path_ckpts[-1]
 

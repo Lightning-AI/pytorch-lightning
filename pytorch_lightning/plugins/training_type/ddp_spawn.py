@@ -14,13 +14,12 @@
 import logging
 import os
 import re
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
+import torch.distributed
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import Optimizer
 
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -36,7 +35,13 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    distributed_available,
+    rank_zero_info,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -67,13 +72,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         if num_nodes is not None:
             rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6. "
+                "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
                 "Notice that it will be overriden by the trainer setting."
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
             rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6. "
+                "Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
                 "Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
@@ -110,7 +115,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return self._local_rank
 
     def __getstate__(self):
-        """ Makes this plugin pickleable without destroying the queue in the current process. """
+        """Makes this plugin pickleable without destroying the queue in the current process."""
         state = self.__dict__.copy()
         state["mp_queue"] = None
         return state
@@ -147,10 +152,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     @property
     def mp_spawn_kwargs(self):
-        return {
-            "args": (self.lightning_module.trainer, self.mp_queue),
-            "nprocs": self.num_processes,
-        }
+        return {"args": (self.lightning_module.trainer, self.mp_queue), "nprocs": self.num_processes}
 
     def start_training(self, trainer):
         mp.spawn(self.new_process, **self.mp_spawn_kwargs)
@@ -219,9 +221,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()`` breaking manual_optimization
-        if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
+        # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
+        if (
+            _TORCH_GREATER_EQUAL_1_7
+            and not self.lightning_module.automatic_optimization
+            and not self._ddp_kwargs.get("find_unused_parameters", False)
         ):
             rank_zero_warn(
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
@@ -232,7 +236,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
+        if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self._model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -243,9 +247,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
+            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
 
@@ -258,7 +260,9 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
+            torch.distributed.init_process_group(
+                self.torch_distributed_backend, rank=global_rank, world_size=world_size
+            )
 
             # on rank=0 let everyone know training is starting
             rank_zero_info(
@@ -286,7 +290,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+                and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
@@ -310,24 +315,27 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.load_state_dict(ckpt)
 
     def barrier(self, *args, **kwargs) -> None:
-        if not torch_distrib.is_initialized():
+        if not distributed_available():
             return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
-            torch_distrib.barrier(device_ids=self.determine_ddp_device_ids())
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
-            torch_distrib.barrier()
+            torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
+        if not distributed_available():
+            return obj
         return self.dist.broadcast(obj)
 
     def model_to_device(self):
         if self.root_device.type == "cuda":
+            # set the device on the spawned subprocesses
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+    def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward"""
-        if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
+        if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
@@ -362,3 +370,12 @@ class DDPSpawnPlugin(ParallelPlugin):
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_spawn_find_unused_parameters_false",
+            cls,
+            description="DDPSpawn Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )

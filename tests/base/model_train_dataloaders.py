@@ -17,7 +17,6 @@ from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedE
 
 
 class TrainDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, train: bool, *args, **kwargs):
         """placeholder"""
@@ -45,7 +44,7 @@ class TrainDataloaderVariations(ABC):
         loaders_c_d_e = [
             self.dataloader(num_samples=50, train=True),
             self.dataloader(num_samples=50, train=True),
-            self.dataloader(num_samples=50, train=True)
+            self.dataloader(num_samples=50, train=True),
         ]
         # Dict[str, List[DataLoader]]
         loaders = {"a_b": loaders_a_b, "c_d_e": loaders_c_d_e}

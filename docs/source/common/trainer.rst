@@ -335,7 +335,7 @@ auto_scale_batch_size
 Automatically tries to find the largest batch size that fits into memory,
 before any training.
 
-.. code-block::
+.. code-block:: python
 
     # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=None)
@@ -1297,8 +1297,8 @@ Note:
       Lightning will set it to 20 in these environments if the user does not provide a value.
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-reload_dataloaders_every_epoch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+reload_dataloaders_every_n_epochs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -1308,19 +1308,20 @@ reload_dataloaders_every_epoch
 
 |
 
-Set to True to reload dataloaders every epoch.
+Set to a postive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
-    # if False (default)
+    # if 0 (default)
     train_loader = model.train_dataloader()
     for epoch in epochs:
         for batch in train_loader:
             ...
 
-    # if True
+    # if a positive integer
     for epoch in epochs:
-        train_loader = model.train_dataloader()
+        if not epoch % reload_dataloaders_every_n_epochs:
+            train_loader = model.train_dataloader()
         for batch in train_loader:
 
 .. _replace-sampler-ddp:
@@ -1351,7 +1352,6 @@ Lightning will not replace the existing one.
 By setting to False, you have to add your own distributed sampler:
 
 .. code-block:: python
-
 
     # in your LightningModule or LightningDataModule
     def train_dataloader(self):
@@ -1574,7 +1574,7 @@ Can specify as float or int.
     trainer = Trainer(val_check_interval=1000)
 
 
-.. code-block::
+.. code-block:: python
 
     # Here is the computation to estimate the total number of batches seen within an epoch.
 

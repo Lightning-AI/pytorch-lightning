@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
+    """Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -37,65 +37,32 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 
-    def backward(
-        self,
-        model: 'pl.LightningModule',
-        closure_loss: torch.Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
-    ) -> torch.Tensor:
-        """performs the actual backpropagation
-
-        Args:
-            model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
-        """
+    def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         closure_loss = self.scaler.scale(closure_loss)
-
-        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
-
-        # unscale gradient to allow analyze within `on_after_backward`
-        if not should_accumulate and model.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-
-        return closure_loss
+        return super().pre_backward(model, closure_loss)
 
     def pre_optimizer_step(
         self,
-        pl_module: 'pl.LightningModule',
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
     ) -> bool:
-        """always called before the optimizer step.
-        Checks that the optimizer is not LBFGS, as this one is not supported by native amp
-        """
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
                 " To request, please file a Github issue in PyTorch and tag @mcarilli"
             )
-
-        if not pl_module.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-            pl_module.trainer.call_hook("on_after_backward")
+        result = True
+        if model.automatic_optimization:
+            result = lambda_closure()
+        self.scaler.unscale_(optimizer)
+        super().pre_optimizer_step(model, optimizer, optimizer_idx, lambda_closure, **kwargs)
+        # lambda_closure returning None indicates that backward has been skipped
+        if result is not None:
             self.scaler.step(optimizer)
             self.scaler.update()
-        else:
-            result = lambda_closure()
-            # lambda_closure returning None indicates that backward has been skipped
-            if result is not None:
-                self.scaler.step(optimizer)
-                self.scaler.update()
-
         return False
 
     @contextmanager

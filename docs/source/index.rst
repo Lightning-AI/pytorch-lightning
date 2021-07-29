@@ -22,6 +22,7 @@ PyTorch Lightning Documentation
    :caption: Best practices
 
    guides/speed
+   guides/data
    starter/style_guide
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
    benchmarking/benchmarks
@@ -61,6 +62,7 @@ PyTorch Lightning Documentation
    notebooks/lightning_examples/datamodules.ipynb
    notebooks/lightning_examples/cifar10-baseline.ipynb
    notebooks/lightning_examples/basic-gan.ipynb
+   notebooks/lightning_examples/mnist-tpu-training.ipynb
    notebooks/lightning_examples/text-transformers.ipynb
    notebooks/lightning_examples/reinforce-learning-DQN.ipynb
    notebooks/lightning_examples/augmentation_kornia.ipynb
@@ -103,26 +105,25 @@ PyTorch Lightning Documentation
    clouds/cluster
    common/child_modules
    common/debugging
-   common/loggers
    common/early_stopping
    common/hyperparameters
+   common/production_inference
+   advanced/ipu
    common/lightning_cli
    advanced/lr_finder
+   common/loggers
    advanced/multi_gpu
    advanced/advanced_gpu
-   advanced/multiple_loaders
    common/weights_loading
    common/optimizers
    advanced/profiler
-   common/single_gpu
    advanced/sequences
+   common/single_gpu
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
-   advanced/ipu
    advanced/tpu
    common/test_set
-   common/production_inference
 
 .. toctree::
    :maxdepth: 1
@@ -133,7 +134,7 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: community
+   :name: Community
    :caption: Community
 
 

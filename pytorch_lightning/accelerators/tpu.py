@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
+import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -20,22 +21,18 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_5, _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
-    # the patch is not required after 1.5.0
-    if _TORCH_GREATER_EQUAL_1_5:
-        from torch_xla._patched_functions import _apply_patches
-        _apply_patches()  # patches `torch.nn.utils.clip_grad_norm_`
-
 
 class TPUAccelerator(Accelerator):
-    """ Accelerator for TPU devices. """
+    """Accelerator for TPU devices."""
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
         """
         Raises:
             MisconfigurationException:
@@ -53,4 +50,12 @@ class TPUAccelerator(Accelerator):
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
-        xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
+        xm.optimizer_step(optimizer, optimizer_args={"closure": lambda_closure, **kwargs})
+
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
+        """Moves the state of the optimizers to the TPU if needed."""
+        # TODO: `self.root_device` would raise error if called outside the spawn process
+        # while training on 8 and more cores.
+        for opt in self.optimizers:
+            for p, v in opt.state.items():
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
