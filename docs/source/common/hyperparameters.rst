@@ -116,7 +116,7 @@ at which point it is very useful to know how that model was trained (i.e.: what 
 Lightning has a few ways of saving that information for you in checkpoints and yaml files. The goal here is to
 improve readability and reproducibility.
 
-1. Using :meth:`~pytorch_lightning.core.lightning.LightningModule. save_hyperparameters` within your
+1.  Using :meth:`~pytorch_lightning.core.lightning.LightningModule. save_hyperparameters` within your
     :class:`~pytorch_lightning.core.lightning.LightningModule` ``__init__`` function will enable Lightning
     to store all the provided arguments within the ``self.hparams`` attribute. These hyper-parameters will
     also be stored within the model checkpoint, which simplifies model re-instantiation in production settings.
