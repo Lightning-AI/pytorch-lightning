@@ -79,13 +79,13 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
       def __init__(self):
         super().__init__()
 
-        # mnist images are (1, 28, 28) (channels, width, height)
+        # mnist images are (1, 28, 28) (channels, height, width)
         self.layer_1 = nn.Linear(28 * 28, 128)
         self.layer_2 = nn.Linear(128, 256)
         self.layer_3 = nn.Linear(256, 10)
 
       def forward(self, x):
-        batch_size, channels, width, height = x.size()
+        batch_size, channels, height, width = x.size()
 
         # (b, 1, 28, 28) -> (b, 1*28*28)
         x = x.view(batch_size, -1)
@@ -423,7 +423,7 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             self.layer_3 = nn.Linear(256, 10)
 
         def forward(self, x):
-            batch_size, channels, width, height = x.size()
+            batch_size, channels, height, width = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
             x = F.relu(x)
@@ -801,7 +801,7 @@ within it.
     class MNISTClassifier(LightningModule):
 
         def forward(self, x):
-            batch_size, channels, width, height = x.size()
+            batch_size, channels, height, width = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
             x = F.relu(x)
@@ -830,7 +830,7 @@ In this case, we've set this LightningModel to predict logits. But we could also
     class MNISTRepresentator(LightningModule):
 
         def forward(self, x):
-            batch_size, channels, width, height = x.size()
+            batch_size, channels, height, width = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
             x1 = F.relu(x)
