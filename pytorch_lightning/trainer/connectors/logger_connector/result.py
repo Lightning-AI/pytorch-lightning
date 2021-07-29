@@ -604,6 +604,16 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
+    def sync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and not result_metric._is_synced:
+                result_metric.sync()
+
+    def unsync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and result_metric._is_synced:
+                result_metric.unsync()
+
     def __str__(self) -> str:
         # sample output: `ResultCollection(minimize=1.23, {})`
         minimize = f"minimize={self.minimize}, " if self.minimize is not None else ""
