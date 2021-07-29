@@ -410,7 +410,7 @@ class DataHooks:
         .. code-block:: python
 
             model.prepare_data()
-                if ddp/tpu: init()
+            initiailize_distributed()
             model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()
