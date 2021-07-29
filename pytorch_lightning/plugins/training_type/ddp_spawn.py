@@ -256,7 +256,10 @@ class DDPSpawnPlugin(ParallelPlugin):
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
+            LightningDistributedModule(self.model)
+            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            else self.model,
+            device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
 
