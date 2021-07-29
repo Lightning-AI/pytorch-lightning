@@ -241,7 +241,7 @@ class EvaluationEpochLoop(Loop):
 
     def _track_output_for_epoch_end(
         self, outputs: List[STEP_OUTPUT], output: Optional[STEP_OUTPUT]
-    ) -> List[Union[ResultCollection, Dict, Tensor]]:
+    ) -> List[STEP_OUTPUT]:
         if output is not None:
             if isinstance(output, dict):
                 output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
