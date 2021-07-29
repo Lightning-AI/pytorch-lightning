@@ -698,7 +698,7 @@ class DeepSpeedPlugin(DDPPlugin):
             checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint_file(checkpoint_path)
 
-        # Rely on deepspeed completely to load the checkpoint and necessary information
+        # Rely on deepspeed to load the checkpoint and necessary information
         from pytorch_lightning.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
