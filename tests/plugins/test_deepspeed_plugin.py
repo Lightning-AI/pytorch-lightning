@@ -611,42 +611,33 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     run_checkpoint_test(tmpdir)
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_full_weights_warns_resume_training(tmpdir):
+@RunIf(min_gpus=1, deepspeed=True, special=False)
+def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning
     that the optimizer state and scheduler states cannot be restored.
     """
-    model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
+    model = BoringModel()
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.save_checkpoint(checkpoint_path)
 
-    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        plugins=DeepSpeedPlugin(stage=3),
+        fast_dev_run=True,
+        plugins=DeepSpeedPlugin(stage=3, load_full_weights=True),
         gpus=1,
         precision=16,
-        callbacks=[ck],
+        resume_from_checkpoint=checkpoint_path,
     )
-    trainer.fit(model, datamodule=dm)
-    model = ModelParallelClassificationModel()
     with pytest.warns(
         UserWarning,
-        match="A single checkpoint file was saved using ZeRO Stage 3. "
-        "This means optimizer states and scheduler states can not be restored",
+        match="A single checkpoint file has been given. This means optimizer states and "
+        "scheduler states can not be restored. If you'd like to restore these states, you must "
+        "provide a path to the originally saved DeepSpeed checkpoint.",
     ):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            plugins="deepspeed_stage_3",
-            gpus=1,
-            precision=16,
-            resume_from_checkpoint=ck.best_model_path,
-        )
         trainer.fit(model, datamodule=dm)
 
 

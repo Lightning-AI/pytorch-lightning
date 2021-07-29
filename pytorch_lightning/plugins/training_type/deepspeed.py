@@ -713,7 +713,14 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def lightning_restore_optimizer_and_schedulers(self) -> bool:
-        return False  # managed by DeepSpeed
+        # managed by DeepSpeed
+        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            rank_zero_warn(
+                "A single checkpoint file has been given. This means optimizer states and "
+                "scheduler states can not be restored. If you'd like to restore these states, you must "
+                "provide a path to the originally saved DeepSpeed checkpoint."
+            )
+        return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
@@ -768,12 +775,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
-        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            rank_zero_warn(
-                "A single checkpoint file has been given. This means optimizer states and "
-                "scheduler states can not be restored. If you'd like to restore these states, you must "
-                "provide a path to the originally saved DeepSpeed checkpoint."
-            )
+        pass
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
