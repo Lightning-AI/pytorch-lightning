@@ -78,11 +78,11 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     trainer.fit(model)
 
     ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
-    state0 = ckpt["callbacks"][type(callback0)]
-    state1 = ckpt["callbacks"][type(callback1)]
+    state0 = ckpt["callbacks"]["StatefulCallback0"]
+    state1 = ckpt["callbacks"]["StatefulCallback1"]
     assert "content0" in state0 and state0["content0"] == 0
     assert "content1" in state1 and state1["content1"] == 1
-    assert type(checkpoint_callback) in ckpt["callbacks"]
+    assert "ModelCheckpoint" in ckpt["callbacks"]
 
 
 def test_attach_model_callbacks():

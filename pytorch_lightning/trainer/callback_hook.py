@@ -15,18 +15,14 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -91,22 +87,10 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``train`` epoch
-        """
+    def on_train_epoch_end(self):
+        """Called when the epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                warning_cache.deprecation(
-                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
-                    " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5"
-                )
-                callback.on_train_epoch_end(self, self.lightning_module, outputs)
-            else:
-                callback.on_train_epoch_end(self, self.lightning_module)
+            callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
@@ -263,7 +247,7 @@ class TrainerCallbackHookMixin(ABC):
         parameters = list(signature(fn).parameters)
         return len(parameters) == 1 and parameters[0] != "args"
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
@@ -277,16 +261,15 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[type(callback)] = state
+                callback_states[callback.state_id] = state
         return callback_states
 
-    def on_load_checkpoint(self, checkpoint):
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
-
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        callback_states = checkpoint.get("callbacks")
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -303,7 +286,7 @@ class TrainerCallbackHookMixin(ABC):
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(type(callback))
+            state = callback_states.get(callback.state_id, callback_states.get(callback._legacy_state_id))
             if state:
                 state = deepcopy(state)
                 if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):

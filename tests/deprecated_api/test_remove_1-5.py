@@ -27,7 +27,6 @@ from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
@@ -194,49 +193,6 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
-def test_v1_5_0_old_on_train_epoch_end(tmpdir):
-    callback_warning_cache.clear()
-
-    class OldSignature(Callback):
-        def on_train_epoch_end(self, trainer, pl_module, outputs):  # noqa
-            ...
-
-    class OldSignatureModel(BoringModel):
-        def on_train_epoch_end(self, outputs):  # noqa
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.fit(model)
-
-    callback_warning_cache.clear()
-
-    model = OldSignatureModel()
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.fit(model)
-
-    trainer.fit_loop.epoch_loop._warning_cache.clear()
-
-    class NewSignature(Callback):
-        def on_train_epoch_end(self, trainer, pl_module):
-            ...
-
-    trainer.callbacks = [NewSignature()]
-    with no_deprecated_call(match="`Callback.on_train_epoch_end` signature has changed in v1.3."):
-        trainer.fit(model)
-
-    class NewSignatureModel(BoringModel):
-        def on_train_epoch_end(self):
-            ...
-
-    model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_train_epoch_end` signature has changed in v1.3."):
-        trainer.fit(model)
-
-
 @pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
 def test_v1_5_0_profiler_output_filename(tmpdir, cls):
     filepath = str(tmpdir / "test.txt")
@@ -289,12 +245,6 @@ def test_v1_5_0_lightning_module_write_prediction(tmpdir):
         model = DeprecatedWritePredictionsModel()
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
         trainer.test(model)
-
-
-def test_v1_5_0_trainer_logging_mixin(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.metrics_to_scalars({})
 
 
 def test_v1_5_0_lighting_module_grad_norm(tmpdir):

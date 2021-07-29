@@ -24,7 +24,6 @@ import pytest
 import torch
 from torchmetrics import Accuracy
 
-import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -551,7 +550,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             self.log("on_epoch_end", 5)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             self.log("on_train_epoch_end", 6)
 
     model = BoringModel()
@@ -581,7 +580,7 @@ def test_metric_are_properly_reduced(tmpdir):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
-            self.val_acc = pl.metrics.Accuracy()
+            self.val_acc = Accuracy()
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)

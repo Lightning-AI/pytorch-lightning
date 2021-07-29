@@ -11,6 +11,7 @@
     original_fit = LightningCLI.fit
     LightningCLI.fit = lambda self: None
 
+
     class MyModel(LightningModule):
         def __init__(
             self,
@@ -20,16 +21,20 @@
         ):
             pass
 
+
     class MyClassModel(LightningModule):
         def __init__(self, num_classes: int):
             pass
+
 
     class MyDataModule(LightningDataModule):
         def __init__(self, batch_size: int = 8):
             self.num_classes = 5
 
+
     def send_email(address, message):
         pass
+
 
     MyModelBaseClass = MyModel
     MyDataModuleBaseClass = MyDataModule
@@ -123,12 +128,7 @@ information to define its configurable arguments.
 .. testcode:: mymodel
 
     class MyModel(LightningModule):
-
-        def __init__(
-            self,
-            encoder_layers: int = 12,
-            decoder_layers: List[int] = [2, 4]
-        ):
+        def __init__(self, encoder_layers: int = 12, decoder_layers: List[int] = [2, 4]):
             """Example encoder-decoder model
 
             Args:
@@ -263,7 +263,7 @@ file. Loading a defaults file :code:`my_cli_defaults.yaml` in the current workin
     cli = LightningCLI(
         MyModel,
         MyDataModule,
-        parser_kwargs={'default_config_files': ['my_cli_defaults.yaml']},
+        parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]},
     )
 
 To load a file in the user's home directory would be just changing to :code:`~/.my_cli_defaults.yaml`. Note that this
@@ -310,12 +310,7 @@ specified by an import path and init arguments. For example, with a tool impleme
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    cli = LightningCLI(
-        MyModelBaseClass,
-        MyDataModuleBaseClass,
-        subclass_mode_model=True,
-        subclass_mode_data=True
-    )
+    cli = LightningCLI(MyModelBaseClass, MyDataModuleBaseClass, subclass_mode_model=True, subclass_mode_data=True)
 
 A possible config file could be as follows:
 
@@ -369,12 +364,7 @@ parameters have as type a class, then in the configuration these would be specif
 .. testcode::
 
     class MyMainModel(LightningModule):
-
-        def __init__(
-            self,
-            encoder: EncoderBaseClass,
-            decoder: DecoderBaseClass
-        ):
+        def __init__(self, encoder: EncoderBaseClass, decoder: DecoderBaseClass):
             """Example encoder-decoder submodules model
 
             Args:
@@ -431,22 +421,17 @@ before and after the execution of fit. The code would be something like:
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.add_argument('--notification_email', default='will@email.com')
+            parser.add_argument("--notification_email", default="will@email.com")
 
         def before_fit(self):
-            send_email(
-                address=self.config['notification_email'],
-                message='trainer.fit starting'
-            )
+            send_email(address=self.config["notification_email"], message="trainer.fit starting")
 
         def after_fit(self):
-            send_email(
-                address=self.config['notification_email'],
-                message='trainer.fit finished'
-            )
+            send_email(address=self.config["notification_email"], message="trainer.fit finished")
+
 
     cli = MyLightningCLI(MyModel)
 
@@ -472,11 +457,12 @@ configurable. This can be implemented as follows:
     from pytorch_lightning.callbacks import EarlyStopping
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.add_lightning_class_args(EarlyStopping, 'my_early_stopping')
-            parser.set_defaults({'my_early_stopping.patience': 5})
+            parser.add_lightning_class_args(EarlyStopping, "my_early_stopping")
+            parser.set_defaults({"my_early_stopping.patience": 5})
+
 
     cli = MyLightningCLI(MyModel)
 
@@ -509,7 +495,6 @@ it can make it tempting to use an instance of a class as a default. For example:
 .. testcode::
 
     class MyMainModel(LightningModule):
-
         def __init__(
             self,
             backbone: torch.nn.Module = MyModel(encoder_layers=24),  # BAD PRACTICE!
@@ -532,15 +517,16 @@ is subclassed then a default can be set as follows:
 .. testcode::
 
     default_backbone = {
-        'class_path': 'import.path.of.MyModel',
-        'init_args': {
-            'encoder_layers': 24,
+        "class_path": "import.path.of.MyModel",
+        "init_args": {
+            "encoder_layers": 24,
         },
     }
 
+
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.set_defaults({'model.backbone': default_backbone})
+            parser.set_defaults({"model.backbone": default_backbone})
 
 A more compact version that avoids writing a dictionary would be:
 
@@ -548,9 +534,10 @@ A more compact version that avoids writing a dictionary would be:
 
     from jsonargparse import lazy_instance
 
+
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.set_defaults({'model.backbone': lazy_instance(MyModel, encoder_layers=24)})
+            parser.set_defaults({"model.backbone": lazy_instance(MyModel, encoder_layers=24)})
 
 
 Argument linking
@@ -566,10 +553,11 @@ like shown below, the :code:`batch_size` only has to be provided in the :code:`d
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.link_arguments('data.batch_size', 'model.batch_size')
+            parser.link_arguments("data.batch_size", "model.batch_size")
+
 
     cli = MyLightningCLI(MyModel, MyDataModule)
 
@@ -594,10 +582,11 @@ available until the data module has been instantiated. The code below illustrate
 
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.link_arguments('data.num_classes', 'model.num_classes', apply_on='instantiate')
+            parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
+
 
     cli = MyLightningCLI(MyClassModel, MyDataModule)
 
@@ -624,11 +613,12 @@ snippet shows how to implement it:
     import torch
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
+
 
     cli = MyLightningCLI(MyModel)
 
@@ -658,7 +648,6 @@ There is also the possibility of selecting among multiple classes by giving them
 .. testcode::
 
     class MyLightningCLI(LightningCLI):
-
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
 
@@ -686,8 +675,8 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
 
     from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
 
-    class MyModel(LightningModule):
 
+    class MyModel(LightningModule):
         def __init__(self, optimizer_init: dict, lr_scheduler_init: dict):
             super().__init__()
             self.optimizer_init = optimizer_init
@@ -698,17 +687,18 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
             scheduler = instantiate_class(optimizer, self.lr_scheduler_init)
             return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}
 
-    class MyLightningCLI(LightningCLI):
 
+    class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
                 torch.optim.Adam,
-                link_to='model.optimizer_init',
+                link_to="model.optimizer_init",
             )
             parser.add_lr_scheduler_args(
                 torch.optim.lr_scheduler.ReduceLROnPlateau,
-                link_to='model.lr_scheduler_init',
+                link_to="model.lr_scheduler_init",
             )
+
 
     cli = MyLightningCLI(MyModel)
 

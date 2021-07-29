@@ -137,6 +137,7 @@ See following short example of a sample function taking one position string and 
 ```python
 from typing import Optional
 
+
 def my_func(param_a: int, param_b: Optional[float] = None) -> str:
     """Sample function.
 
@@ -310,10 +311,7 @@ def test_explain_what_is_being_tested(tmpdir):
     # BoringModel is a functional model. You might want to set methods to None to test your behaviour
     # Example: model.training_step_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, # will save everything within a tmpdir generated for this test
-        ...
-    )
+    trainer = Trainer(default_root_dir=tmpdir, ...)  # will save everything within a tmpdir generated for this test
     trainer.fit(model)
     trainer.test()  # [OPTIONAL]
 
