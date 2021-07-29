@@ -38,8 +38,8 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model)
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            else self.model, 
-            sharded_optimizer=self.lightning_module.trainer.optimizers
+            else self.model,
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
         )
         setattr(self._model, "require_backward_grad_sync", False)
 

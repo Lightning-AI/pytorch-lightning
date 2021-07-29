@@ -259,7 +259,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             LightningDistributedModule(self.model)
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             else self.model,
-            device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
+            device_ids=self.determine_ddp_device_ids(),
+            **self._ddp_kwargs,
         )
         self._register_ddp_hooks()
 
