@@ -144,12 +144,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(result.training_step_output)
+                    self.batch_outputs[opt_idx].append(copy(result.training_step_output))
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(result.training_step_output)
+                self.batch_outputs[0].append(copy(result.training_step_output))
 
     def teardown(self) -> None:
         # release memory
@@ -319,7 +319,7 @@ class TrainingBatchLoop(Loop):
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
             # the loss will get scaled for amp. avoid any modifications to it
             loss = closure_loss.detach().clone()
-        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=copy(training_step_output))
+        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
 
     def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
         """Adds the :param:`training_step_output` to the trainer's results
