@@ -338,7 +338,6 @@ class TrainingBatchLoop(Loop):
 
         loss = None
         hiddens = None
-        results.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
