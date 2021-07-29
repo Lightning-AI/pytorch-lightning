@@ -42,7 +42,6 @@ log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn: Callable) -> Callable:
-
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
         if rank_zero_only.rank == 0:
@@ -143,9 +142,7 @@ def distributed_available() -> bool:
 
 
 def sync_ddp_if_available(
-    result: torch.Tensor,
-    group: Optional[Any] = None,
-    reduce_op: Optional[Union[ReduceOp, str]] = None,
+    result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
@@ -164,9 +161,7 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(
-    result: torch.Tensor,
-    group: Optional[Any] = None,
-    reduce_op: Optional[Union[ReduceOp, str]] = None,
+    result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -224,9 +219,7 @@ class AllGatherGrad(torch.autograd.Function):
 
 
 def all_gather_ddp_if_available(
-    tensor: torch.Tensor,
-    group: Optional[torch.distributed.ProcessGroup] = None,
-    sync_grads: bool = False
+    tensor: torch.Tensor, group: Optional[torch.distributed.ProcessGroup] = None, sync_grads: bool = False
 ) -> torch.Tensor:
     """
     Function to gather a tensor from several distributed processes
