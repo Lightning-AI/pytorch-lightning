@@ -1961,7 +1961,7 @@ class LightningModule(
         """
         rank_zero_deprecation(
             "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7. Please "
-            "use the get_model_size_mb method under utilities/memory.py"
+            "use the `utilities.memory.get_model_size_mb` method under utilities/memory.py"
         )
 
         tmp_name = f"{uuid.uuid4().hex}.pt"

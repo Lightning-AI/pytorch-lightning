@@ -21,6 +21,6 @@ def test_v1_7_0_deprecated_model_size():
     model = BoringModel()
     with pytest.deprecated_call(
         match="The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7. "
-        "Please use the get_model_size_mb method under utilities/memory.py"
+        "Please use the `utilities.memory.get_model_size_mb` method under utilities/memory.py"
     ):
         _ = model.model_size
