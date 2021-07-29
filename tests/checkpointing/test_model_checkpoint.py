@@ -862,7 +862,6 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
-    assert ckpt_last["callbacks"]["ModelCheckpoint"] == ckpt_last_epoch["callbacks"]["ModelCheckpoint"]
 
     ckpt_id = "ModelCheckpoint[monitor=early_stop_on]"
     assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
