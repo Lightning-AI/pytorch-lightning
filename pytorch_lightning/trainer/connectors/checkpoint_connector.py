@@ -15,9 +15,10 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
+from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -35,6 +36,7 @@ class CheckpointConnector:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
         self._loaded_checkpoint = {}
+        self._persistent_metrics = False
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -140,6 +142,12 @@ class CheckpointConnector:
 
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
+
+        # reset state on non-rank 0
+        if not self.trainer.is_global_zero:
+            for module in self.trainer.lightning_module.modules():
+                if isinstance(module, Metric):
+                    module.reset()
 
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """Restore only the model weights."""
@@ -338,7 +346,7 @@ class CheckpointConnector:
             "epoch": current_epoch,
             "global_step": global_step,
             "pytorch-lightning_version": pl.__version__,
-            "state_dict": self.trainer.accelerator.lightning_module_state_dict(),
+            "state_dict": self._get_lightning_module_state_dict(),
         }
         if _fault_tolerant_enabled():
             checkpoint["loops"] = self._get_loops_state_dict()
@@ -440,7 +448,27 @@ class CheckpointConnector:
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
 
-    def _get_loops_state_dict(self):
+    def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
+        if _fault_tolerant_enabled():
+            for _, module in self.trainer.lightning_module.named_modules():
+                if isinstance(module, Metric):
+                    if self._persistent_metrics:
+                        module.persistent(True)
+                    if not module._is_synced:
+                        module.sync()
+            self._persistent_metrics = True
+
+        state_dict = self.trainer.accelerator.lightning_module_state_dict()
+
+        if _fault_tolerant_enabled():
+            for _, module in self.trainer.lightning_module.named_modules():
+                if isinstance(module, Metric):
+                    if module._is_synced:
+                        module.unsync()
+
+        return state_dict
+
+    def _get_loops_state_dict(self) -> Dict[str, Any]:
         return {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),

@@ -604,6 +604,16 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
+    def sync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and not result_metric._is_synced:
+                result_metric.sync()
+
+    def unsync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and result_metric._is_synced:
+                result_metric.unsync()
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})"
 
