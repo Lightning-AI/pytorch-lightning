@@ -19,6 +19,7 @@ import uuid
 import torch
 from torch.nn import Module
 
+
 def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
     """Detach all tensors in `in_dict`.
 
