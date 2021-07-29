@@ -586,7 +586,7 @@ def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumu
     )
     trainer.fit(model, datamodule=dm)
 
-    results = trainer.test(model, datamodule=dm)
+    results = trainer.test(datamodule=dm)
     assert results[0]["test_acc"] > 0.7
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results[0]["test_acc"] > 0.7
@@ -598,7 +598,7 @@ def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumu
         model = ManualModelParallelClassificationModel()
     trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins=[DeepSpeedPlugin(stage=3)], precision=16)
 
-    results = trainer.test(model, datamodule=dm)
+    results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]["test_acc"] > 0.7
 
 
