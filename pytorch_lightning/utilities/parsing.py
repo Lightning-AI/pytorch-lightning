@@ -268,10 +268,6 @@ class AttributeDict(Dict):
     "new_key": 42
     """
 
-    # def __init__(self, *args: Any, **kwargs: Any) -> None:
-    #    super().__init__(*args, **kwargs)
-    #    self.__dict__ = self
-
     def __getattr__(self, key: str) -> Optional[Any]:
         try:
             return self[key]
@@ -280,15 +276,6 @@ class AttributeDict(Dict):
 
     def __setattr__(self, key: str, val: Any) -> None:
         self[key] = val
-
-    def __repr__(self) -> str:
-        if not len(self):
-            return ""
-        max_key_length = max(len(str(k)) for k in self)
-        tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
-        rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
-        out = "\n".join(rows)
-        return out
 
 
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
