@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Trainer to automate the training."""
+import gc
 import logging
 import os
 import traceback
@@ -982,6 +983,7 @@ class Trainer(
         self.accelerator.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
+        gc.collect()
 
     def _dispatch(self):
         if self.evaluating:
