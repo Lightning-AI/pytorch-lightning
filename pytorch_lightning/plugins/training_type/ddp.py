@@ -165,6 +165,13 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
+        print("HELLO")
+
+        self.barrier()
+
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
+
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         assert self.local_rank == 0
@@ -178,9 +185,6 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # create a temporary directory used to synchronize processes on deadlock.
-        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -323,6 +327,8 @@ class DDPPlugin(ParallelPlugin):
                 self.torch_distributed_backend, rank=global_rank, world_size=world_size
             )
 
+            torch.distributed.barrier()
+
             # on rank=0 let everyone know training is starting
             rank_zero_info(
                 f"{'-' * 100}\n"
@@ -339,9 +345,6 @@ class DDPPlugin(ParallelPlugin):
             self.model = self.configure_sync_batchnorm(self.model)
 
         self.configure_ddp()
-
-        # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
@@ -410,8 +413,18 @@ class DDPPlugin(ParallelPlugin):
     def _share_information_to_prevent_deadlock(self):
         self._share_pids()
 
-        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+        # there should be a unique sync_dir per nodes.
+        if self.local_rank == 0:
+            # create a temporary directory used to synchronize processes on deadlock.
+            self._sync_dir = tempfile.mkdtemp()
+
+        sync_dirs = []
+        node_zero = 0
+        for _ in range(self.num_nodes):
+            sync_dirs.append(self.broadcast(self._sync_dir, node_zero))
+            node_zero += (self.world_size // self.num_nodes)
+
+        self._sync_dir = sync_dirs[self.node_rank] 
 
     def _share_pids(self):
         """
@@ -436,7 +449,7 @@ class DDPPlugin(ParallelPlugin):
 
         # return if all processes wrote a file in the `sync_dir`.
         # todo (tchaton) Add support for non-shared file-system which will fail.
-        if len(os.listdir(sync_dir)) == self.world_size:
+        if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
         for pid in self._pids:

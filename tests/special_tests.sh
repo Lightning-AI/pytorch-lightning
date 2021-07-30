@@ -78,6 +78,9 @@ if [ $? -eq 0 ]; then
     report+="Ran\ttests/utilities/test_warnings.py\n"
 fi
 
+# test deadlock is properly handled with TorchElastic.
+python -m torch.distributed.launch --nproc_per_node=2 --max_restarts 0 tests/plugins/environments/torch_elastic_deadlock.py
+
 # test that a user can manually launch individual processes
 args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.fast_dev_run 1"
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/simple_image_classifier.py ${args} &
