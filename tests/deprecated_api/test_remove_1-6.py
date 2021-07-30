@@ -323,3 +323,8 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
 def test_v1_6_0_passing_training_type_to_accelerator_trainer_flag():
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.6."):
         Trainer(accelerator="ddp_spawn")
+
+
+def test_v1_6_0_passing_training_type_to_plugins_flag():
+    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.6."):
+        Trainer(plugins="ddp_spawn")
