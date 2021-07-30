@@ -1,15 +1,14 @@
-
 import os
 import sys
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from tests.helpers.boring_model import BoringModel
 
-if os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1':
+if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
 
     class CustomException(Exception):
         pass
-
 
     class Model(BoringModel):
         def training_step(self, batch, batch_idx):
