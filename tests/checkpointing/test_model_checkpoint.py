@@ -1259,33 +1259,20 @@ def result_collection_reload(trainer_kwargs):
         def training_step(self, batch, batch_idx):
             assert len(batch) == 1
             if self.has_reloaded:
-                # hack as the state is being reset on epoch end
-                if batch_idx == 3 and self.current_epoch == 0:
-                    self.metric_state = self.trainer.fit_loop._results[
-                        "training_step.tracking_metric"
-                    ].value.state_dict()
-                if batch_idx == 0 and self.current_epoch == 1:
-                    self.trainer.fit_loop._results["training_step.tracking_metric"].value.load_state_dict(
-                        self.metric_state
-                    )
+                self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
 
-                if batch_idx >= self.breaking_batch_idx and self.current_epoch == 1:
-                    self.log("tracking", batch_idx, on_step=True, on_epoch=True)
-                    self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
+                self.dummy_metric(batch_idx)
+                self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                    self.dummy_metric(batch_idx)
-                    self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
-
-                    value = self.trainer.fit_loop._results["training_step.tracking_metric"].value
-                    value_2 = self.trainer.fit_loop._results["training_step.tracking"].value
-                    shift = 0
-                    if num_processes == 2:
-                        shift = 3 if self.trainer.is_global_zero else -3
-                    expected = sum(range(batch_idx + 1)) + shift
-                    assert expected == value == value_2
+                value = self.trainer.fit_loop._results["training_step.tracking_metric"].value
+                value_2 = self.trainer.fit_loop._results["training_step.tracking"].value
+                shift = 0
+                if num_processes == 2:
+                    shift = 3 if self.trainer.is_global_zero else -3
+                expected = sum(range(batch_idx + 1)) + shift
+                assert expected == value == value_2
             else:
-                if self.trainer.current_epoch == 2:
-                    return
                 if batch_idx == self.breaking_batch_idx:
                     # simulate failure mid epoch
                     raise CustomException
@@ -1305,7 +1292,7 @@ def result_collection_reload(trainer_kwargs):
             return super().training_step(batch, batch_idx)
 
         def on_epoch_end(self) -> None:
-            if self.trainer.current_epoch:
+            if self.has_reloaded:
                 total = sum(range(5)) * num_processes
                 metrics = self.trainer.fit_loop._results.metrics(on_step=False)
                 assert self.trainer.fit_loop._results["training_step.tracking"].value == total
@@ -1342,7 +1329,7 @@ def result_collection_reload(trainer_kwargs):
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload(tmpdir):
     result_collection_reload(
-        {"default_root_dir": tmpdir, "max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
+        {"default_root_dir": tmpdir, "max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0, "accelerator": "ddp", "gpus": 1}
     )
 
 

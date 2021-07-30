@@ -36,7 +36,6 @@ class CheckpointConnector:
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
         self._loaded_checkpoint = {}
-        self._persistent_metrics = False
 
     @property
     def hpc_resume_path(self) -> Optional[str]:
@@ -220,7 +219,7 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
-        state_dict = self._loaded_checkpoint.get("loops")
+        state_dict = self._loaded_checkpoint.pop("loops", None)
         if state_dict:
             self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
@@ -450,21 +449,18 @@ class CheckpointConnector:
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         if _fault_tolerant_enabled():
-            for _, module in self.trainer.lightning_module.named_modules():
-                if isinstance(module, Metric):
-                    if self._persistent_metrics:
-                        module.persistent(True)
-                    if not module._is_synced:
-                        module.sync()
-            self._persistent_metrics = True
+            metrics = [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
+            for metric in metrics:
+                metric.persistent(True)
+                if not metric._is_synced:
+                    metric.sync()
 
         state_dict = self.trainer.accelerator.lightning_module_state_dict()
 
         if _fault_tolerant_enabled():
-            for _, module in self.trainer.lightning_module.named_modules():
-                if isinstance(module, Metric):
-                    if module._is_synced:
-                        module.unsync()
+            for metric in metrics:
+                if metric._is_synced:
+                    metric.unsync()
 
         return state_dict
 
