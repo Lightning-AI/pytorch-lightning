@@ -306,6 +306,17 @@ class AcceleratorConnector:
 
     def handle_given_plugins(self) -> None:
 
+        if self.training_type is not None:
+            for plug in self.plugins:
+                exception_msg = (
+                    f"You have passed `Trainer(training_type={self.training_type})`"
+                    f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
+                )
+                if isinstance(plug, str) and (plug in TrainingTypePluginsRegistry or plug in list(DistributedType)):
+                    raise MisconfigurationException(exception_msg)
+                elif isinstance(plug, TrainingTypePlugin):
+                    raise MisconfigurationException(exception_msg)
+
         training_type = self._training_type_plugin
         precision = None
         cluster_environment = None
@@ -557,7 +568,10 @@ class AcceleratorConnector:
 
     @property
     def is_training_type_in_plugins(self) -> bool:
-        return any(isinstance(plug, str) and plug in TrainingTypePluginsRegistry for plug in self.plugins)
+        return any(
+            (isinstance(plug, str) and plug in TrainingTypePluginsRegistry) or isinstance(plug, TrainingTypePlugin)
+            for plug in self.plugins
+        )
 
     @property
     def is_using_torchelastic(self) -> bool:
