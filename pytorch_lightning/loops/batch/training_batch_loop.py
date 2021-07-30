@@ -25,7 +25,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.closure import LightningClosure, ClosureResult
+from pytorch_lightning.loops.closure import ClosureResult, LightningClosure
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import OptimizationProgress

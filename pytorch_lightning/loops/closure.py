@@ -1,6 +1,6 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Callable, Any
+from typing import Any, Callable, Optional
 
 from torch import Tensor
 
