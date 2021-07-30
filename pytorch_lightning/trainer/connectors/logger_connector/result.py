@@ -258,7 +258,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d["meta"] = d["meta"].__getstate__()
         d["_class"] = self.__class__.__name__
-        d["_is_synced"] = False # don't consider the state as synced on reload
+        d["_is_synced"] = False  # don't consider the state as synced on reload
         return d
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:

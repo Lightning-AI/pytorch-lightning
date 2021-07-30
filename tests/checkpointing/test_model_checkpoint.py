@@ -1329,7 +1329,14 @@ def result_collection_reload(trainer_kwargs):
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload(tmpdir):
     result_collection_reload(
-        {"default_root_dir": tmpdir, "max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0, "accelerator": "ddp", "gpus": 1}
+        {
+            "default_root_dir": tmpdir,
+            "max_epochs": 1,
+            "limit_train_batches": 5,
+            "limit_val_batches": 0,
+            "accelerator": "ddp",
+            "gpus": 1,
+        }
     )
 
 
