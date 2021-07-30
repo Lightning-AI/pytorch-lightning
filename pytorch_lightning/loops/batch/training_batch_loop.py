@@ -236,6 +236,7 @@ class TrainingBatchLoop(Loop):
             loss_val = loss.detach().clone()
 
             # when in dev debugging track the losses
+            # TODO: remove dev debugger tracking loss history
             self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss_val)
 
             # check if loss or model weights are nan
@@ -259,11 +260,6 @@ class TrainingBatchLoop(Loop):
             and is_first_batch_to_accumulate
         ):
             return zero_grad_fn
-
-    # def _make_closure(self, *closure_args: Any, **closure_kwargs: Any) -> Callable:
-    #     """Wraps the training step closure into a partial object which will be called within ``optimizer.step``."""
-    #     partial_func = partial(self._training_step_and_backward_closure, *closure_args, **closure_kwargs)
-    #     return update_wrapper(partial_func, self._training_step_and_backward_closure)
 
     def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
         """Checks if the closure results is finite and optionally breaks if it is not
