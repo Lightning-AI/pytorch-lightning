@@ -64,6 +64,7 @@ module = [
     "pytorch_lightning.trainer.evaluation_loop",
     "pytorch_lightning.trainer.connectors.logger_connector",
     "pytorch_lightning.utilities.cli",
+    "pytorch_lightning.utilities.distributed",
     "pytorch_lightning.utilities.device_dtype_mixin",
     "pytorch_lightning.utilities.device_parser",
     "pytorch_lightning.utilities.parsing",
