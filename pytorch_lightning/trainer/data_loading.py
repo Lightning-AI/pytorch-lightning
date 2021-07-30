@@ -138,7 +138,11 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.sampler, DistributedSampler
         )
 
-        if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
+        if (
+            self.accelerator_connector.replace_sampler_ddp
+            and need_dist_sampler
+            and not has_iterable_dataset(dataloader)
+        ):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
