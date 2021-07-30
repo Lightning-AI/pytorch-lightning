@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import logging
 import math
 import os
@@ -1885,6 +1886,8 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_1 = torch.cuda.memory_allocated(0)
     deepcopy(trainer)
     memory_2 = torch.cuda.memory_allocated(0)
@@ -1892,6 +1895,9 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
+
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_3 = torch.cuda.memory_allocated(0)
 
     assert initial == memory_1 == memory_3
