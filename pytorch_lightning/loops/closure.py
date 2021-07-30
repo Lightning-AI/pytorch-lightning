@@ -75,6 +75,6 @@ class LightningClosure(Closure):
 
             if self._backward_fn is not None and output is not None:
                 with self._profiler.profile("backward"):
-                    self._backward_fn(output)
+                    output.closure_loss = self._backward_fn(output.closure_loss)
 
         return output

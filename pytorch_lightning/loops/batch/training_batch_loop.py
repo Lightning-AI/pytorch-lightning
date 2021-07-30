@@ -15,7 +15,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial, update_wrapper
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -215,7 +215,7 @@ class TrainingBatchLoop(Loop):
 
     def _make_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
-        backward_fn = self._make_backward_fn(batch_idx, opt_idx, optimizer)
+        backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         closure = LightningClosure(
@@ -229,16 +229,20 @@ class TrainingBatchLoop(Loop):
 
         return step_fn
 
-    def _make_backward_fn(self, batch_idx, opt_idx, optimizer):
-        def backward_fn(output: STEP_OUTPUT):
-            self.backward(output, optimizer, opt_idx)
+    def _make_backward_fn(self, batch_idx, optimizer, opt_idx):
+        def backward_fn(loss: Tensor):
+            self.backward(loss, optimizer, opt_idx)
+
+            loss_val = loss.detach().clone()
 
             # when in dev debugging track the losses
-            self.trainer.dev_debugger.track_train_loss_history(batch_idx, output.loss)
+            self.trainer.dev_debugger.track_train_loss_history(batch_idx, loss_val)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
-                self._check_finite(output.loss)
+                self._check_finite(loss_val)
+
+            return loss
 
         if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
             return backward_fn
@@ -527,20 +531,21 @@ class TrainingBatchLoop(Loop):
         detect_nan_parameters(model)
 
     def backward(
-        self, result: STEP_OUTPUT, optimizer: Optional[torch.optim.Optimizer], *args: Any, **kwargs: Any
-    ) -> None:
+        self,
+        loss: Tensor,
+        optimizer: Optional[torch.optim.Optimizer],
+        opt_idx: Optional[int] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
         """Performs the backward step.
 
         Args:
-            result: The output of the trainstep (including the loss value)
+            loss: The loss value to back-propagate on
             optimizer: Current optimizer being used. ``None`` if using manual optimization.
             opt_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
         """
-        # backward can be called manually in the training loop
-        if isinstance(result, Tensor):
-            self.trainer.accelerator.backward(result, optimizer, *args, **kwargs)
-        else:
-            result.closure_loss = self.trainer.accelerator.backward(result.closure_loss, optimizer, *args, **kwargs)
+        self.trainer.accelerator.backward(loss, optimizer, opt_idx, *args, **kwargs)
 
         if not self.trainer.fit_loop.should_accumulate():
             # track gradients
@@ -548,6 +553,7 @@ class TrainingBatchLoop(Loop):
             if grad_norm_dict:
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
+        return loss
 
     def _update_running_loss(self, current_loss: Tensor) -> None:
         """Updates the running loss value with the current value"""
