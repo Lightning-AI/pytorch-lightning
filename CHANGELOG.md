@@ -70,9 +70,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
-- Fixed horovod auto-detection when horovod is not installed and the launcher is `mpirun` ([#8610](https://github.com/PyTorchLightning/pytorch-lightning/pull/8610))
 
 ### Fixed
+
+- Fixed `trainer.fit_loop.split_idx` always returning `None` ([#8601](https://github.com/PyTorchLightning/pytorch-lightning/pull/8601))
+
 
 - Fixed references for `ResultCollection.extra` ([#8622](https://github.com/PyTorchLightning/pytorch-lightning/pull/8622))
 
@@ -80,9 +82,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed reference issues during epoch end result collection ([#8621](https://github.com/PyTorchLightning/pytorch-lightning/pull/8621))
 
 
-- Fixed `trainer.fit_loop.split_idx` always returning `None` ([#8601](https://github.com/PyTorchLightning/pytorch-lightning/pull/8601))
+- Fixed horovod auto-detection when horovod is not installed and the launcher is `mpirun` ([#8610](https://github.com/PyTorchLightning/pytorch-lightning/pull/8610))
 
--
+
+- Fixed an issue with `training_step` outputs not getting collected correctly for `training_epoch_end` ([#8613](https://github.com/PyTorchLightning/pytorch-lightning/pull/8613))
 
 
 -
