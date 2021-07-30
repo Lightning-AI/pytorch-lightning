@@ -1,6 +1,6 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 from torch import Tensor
 
@@ -11,17 +11,28 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 @dataclass
 class ClosureResult:
-    closure_loss: Tensor
-    result_collection: ResultCollection
+    closure_loss: Optional[Tensor]
+    result_collection: Optional[ResultCollection]
 
     @property
-    def loss(self):
+    def loss(self) -> Optional[Tensor]:
         if self.closure_loss is not None:
             return self.closure_loss.detach().clone()
 
 
-class Closure:
-    def __init__(self):
+class Closure(ABC):
+    """
+    Abstract base class for optimizer closures in Lightning.
+
+    Formally, a closure is binding variables from an external scope to a function that does a computation on these
+    variables without taking them explicitly as input. This has the benefit that a closure can be passed to an
+    object which later can call it like a function but without requiring to pass in any arguments.
+
+    This class provides a simple abstraction making the instance of this class callable like a function while capturing
+    the :class:`ClosureResult` and caching it.
+    """
+
+    def __init__(self) -> None:
         super().__init__()
         self._result = None
 
@@ -31,27 +42,49 @@ class Closure:
         return self._result
 
     @abstractmethod
-    def closure(self, *args, **kwargs):
+    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
-    def __call__(self, *args, **kwargs) -> Optional[Tensor]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
         if self._result is not None:
             return self._result.loss
 
 
 class LightningClosure(Closure):
-    """Training step and backward closure."""
+    """
+    An implementation of a :class:`Closure` for optimization in Lightning that combines three elementary
+    closures into one: ``training_step``, ``backward`` and ``zero_grad``.
+
+    The LightningClosure gets created by the training loop(s) and is then passed to the
+    :meth:`torch.optim.Optimizer.step` method. An optimizer is responsible for calling the closure and optionally
+    do something with the output.
+
+    Args:
+        step_fn: This is typically the :meth:`pytorch_lightning.core.lightning.LightningModule.training_step
+            wrapped with processing for its outputs
+        backward_fn: A function that takes a loss value as input, performs back-propagation and returns the loss value.
+            Can be set to ``None`` to skip the backward operation.
+        zero_grad_fn: A function that zeroes the gradients. Can be set to ``None`` to skip zero_grad, for example
+            when accumulating gradients.
+        profiler: A profiler for profiling the actions of the passed in closure functions.
+
+    Example:
+
+        closure = LightningClosure()
+        optimizer = torch.optim.Adam(...)
+        optimizer.step(closure)
+    """
 
     warning_cache: Optional[WarningCache] = None
 
     def __init__(
         self,
-        step_fn: Callable,
-        backward_fn: Callable,  # set to None for manual or skip_backward
-        zero_grad_fn: Callable,  # set to None if accumulating
-        profiler: BaseProfiler,
+        step_fn: Callable[[], dict],
+        backward_fn: Optional[Callable[[Tensor], Tensor]] = None,
+        zero_grad_fn: Optional[Callable[[], None]] = None,
+        profiler: Optional[BaseProfiler] = None,
     ):
         super().__init__()
         self._step_fn = step_fn
