@@ -1982,7 +1982,8 @@ class LightningModule(
     def model_size(self) -> float:
         rank_zero_deprecation(
             "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`."
+            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+            stacklevel=5,
         )
         return get_model_size_mb(self)
 
