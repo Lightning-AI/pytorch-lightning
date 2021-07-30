@@ -219,7 +219,7 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
-        state_dict = self._loaded_checkpoint.get("loops")
+        state_dict = self._loaded_checkpoint.pop("loops", None)
         if state_dict:
             self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])

@@ -857,7 +857,7 @@ class AcceleratorConnector:
     @staticmethod
     def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+        return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,

@@ -175,14 +175,15 @@ class Loop(ABC):
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
         for k, v in self.__dict__.items():
+            key = prefix + k
             if isinstance(v, BaseProgress):
-                destination[prefix + k] = v.state_dict()
+                destination[key] = v.state_dict()
             elif isinstance(v, Loop):
-                v.state_dict(destination, prefix + k + ".")
+                v.state_dict(destination, key + ".")
             elif isinstance(v, ResultCollection):
                 # sync / unsync metrics
                 v.sync()
-                destination[prefix + k] = v.state_dict()
+                destination[key] = v.state_dict()
                 v.unsync()
 
         return destination
@@ -204,8 +205,9 @@ class Loop(ABC):
         self, state_dict: Dict, prefix: str, restart_progress: bool, metrics: Optional[Dict[str, Metric]] = None
     ) -> None:
         for k, v in self.__dict__.items():
+            key = prefix + k
             if isinstance(v, BaseProgress):
-                v.load_state_dict(state_dict[prefix + k])
+                v.load_state_dict(state_dict[key])
                 if restart_progress:
                     apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
 
