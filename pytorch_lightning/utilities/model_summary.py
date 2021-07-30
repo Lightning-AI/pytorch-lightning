@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -27,6 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
 
+log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
@@ -451,7 +453,6 @@ def summarize(
     Return:
         The model summary object
     """
-    model_summary = None
 
     # temporary mapping from mode to max_depth
     if max_depth is None:
@@ -466,5 +467,5 @@ def summarize(
             raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
     else:
         model_summary = ModelSummary(lightning_module, max_depth=max_depth)
-
+    log.info("\n" + str(model_summary))
     return model_summary
