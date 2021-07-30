@@ -15,4 +15,4 @@ import os
 
 _BENCHMARK_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_BENCHMARK_ROOT)
-_PATH_DATASETS = os.path.join(_PROJECT_ROOT, 'Datasets')
+_PATH_DATASETS = os.path.join(_PROJECT_ROOT, "Datasets")

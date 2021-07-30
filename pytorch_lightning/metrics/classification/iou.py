@@ -19,7 +19,6 @@ from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class IoU(_IoU):
-
     @deprecated_metrics(target=_IoU)
     def __init__(
         self,
@@ -27,7 +26,7 @@ class IoU(_IoU):
         ignore_index: Optional[int] = None,
         absent_score: float = 0.0,
         threshold: float = 0.5,
-        reduction: str = 'elementwise_mean',
+        reduction: str = "elementwise_mean",
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -39,6 +38,12 @@ class IoU(_IoU):
             Use :class:`~torchmetrics.IoU`. Will be removed in v1.5.0.
         """
         void(
-            num_classes, ignore_index, absent_score, threshold, reduction, compute_on_step, dist_sync_on_step,
-            process_group
+            num_classes,
+            ignore_index,
+            absent_score,
+            threshold,
+            reduction,
+            compute_on_step,
+            dist_sync_on_step,
+            process_group,
         )

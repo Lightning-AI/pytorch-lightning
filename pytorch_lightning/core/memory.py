@@ -11,12 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import os
-import shutil
-import subprocess
-from typing import Dict, Union
-
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 rank_zero_deprecation(
@@ -26,9 +20,8 @@ rank_zero_deprecation(
     "removed in v1.7."
 )
 
-# To support backward compatibility as get_memory_profile and get_gpu_memory_map have been
-# moved
-from pytorch_lightning.utilities.memory import get_gpu_memory_map, get_memory_profile
+# To support backward compatibility as get_memory_profile and get_gpu_memory_map have been moved
+from pytorch_lightning.utilities.memory import get_gpu_memory_map, get_memory_profile  # noqa: E402 F401 # isort: skip
 
 rank_zero_deprecation(
     "pytorch_lightning.core.memory.LayerSummary and "
@@ -37,6 +30,5 @@ rank_zero_deprecation(
     "will be removed in v1.7."
 )
 
-# To support backward compatibility as LayerSummary and ModelSummary have been
-# moved
+# To support backward compatibility as LayerSummary and ModelSummary have been moved
 from pytorch_lightning.utilities.model_summary import LayerSummary, ModelSummary  # noqa: E402 F401 # isort: skip

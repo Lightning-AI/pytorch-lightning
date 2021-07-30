@@ -29,7 +29,7 @@ def iou(
     absent_score: float = 0.0,
     threshold: float = 0.5,
     num_classes: Optional[int] = None,
-    reduction: str = 'elementwise_mean',
+    reduction: str = "elementwise_mean",
 ) -> torch.Tensor:
     """
     .. deprecated::

@@ -31,7 +31,6 @@ EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
-# yapf: disable
 TRAIN_DATALOADERS = Union[
     DataLoader,
     Sequence[DataLoader],
@@ -41,7 +40,6 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Dict[str, DataLoader]],
     Dict[str, Sequence[DataLoader]],
 ]
-# yapf: enable
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
 LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]

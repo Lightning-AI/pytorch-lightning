@@ -22,11 +22,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -34,19 +30,19 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    lightning_module: 'pl.LightningModule'
+    lightning_module: "pl.LightningModule"
 
-    def on_before_accelerator_backend_setup(self, model: 'pl.LightningModule') -> None:
+    def on_before_accelerator_backend_setup(self, model: "pl.LightningModule") -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def configure_sharded_model(self, model: 'pl.LightningModule') -> None:
+    def configure_sharded_model(self, model: "pl.LightningModule") -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_configure_sharded_model(self, model)
 
-    def setup(self, model: 'pl.LightningModule', stage: Optional[str]) -> None:
+    def setup(self, model: "pl.LightningModule", stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage=stage)
@@ -91,22 +87,10 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``train`` epoch
-        """
+    def on_train_epoch_end(self):
+        """Called when the epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                warning_cache.deprecation(
-                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
-                    " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5"
-                )
-                callback.on_train_epoch_end(self, self.lightning_module, outputs)
-            else:
-                callback.on_train_epoch_end(self, self.lightning_module)
+            callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
@@ -286,7 +270,7 @@ class TrainerCallbackHookMixin(ABC):
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        callback_states = checkpoint.get('callbacks')
+        callback_states = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -298,7 +282,8 @@ class TrainerCallbackHookMixin(ABC):
             rank_zero_warn(
                 "Be aware that when using ``resume_from_checkpoint``, "
                 "callbacks used to create the checkpoint need to be provided. "
-                f"Please, add the following callbacks: {list(difference)}. ", UserWarning
+                f"Please, add the following callbacks: {list(difference)}. ",
+                UserWarning,
             )
 
         for callback in self.callbacks:

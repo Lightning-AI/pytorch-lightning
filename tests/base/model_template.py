@@ -58,7 +58,7 @@ class EvalModelTemplate(
         batch_size: int = 32,
         in_features: int = 28 * 28,
         learning_rate: float = 0.001 * 8,
-        optimizer_name: str = 'adam',
+        optimizer_name: str = "adam",
         data_root: str = _PATH_DATASETS,
         out_features: int = 10,
         hidden_dim: int = 1000,
@@ -130,7 +130,7 @@ class EvalModelTemplate(
             batch_size=32,
             in_features=28 * 28,
             learning_rate=0.001 * 8,
-            optimizer_name='adam',
+            optimizer_name="adam",
             data_root=_PATH_DATASETS,
             out_features=10,
             hidden_dim=1000,
@@ -139,19 +139,15 @@ class EvalModelTemplate(
         )
 
         if continue_training:
-            args.update(
-                test_tube_do_checkpoint_load=True,
-                hpc_exp_number=hpc_exp_number,
-            )
+            args.update(test_tube_do_checkpoint_load=True, hpc_exp_number=hpc_exp_number)
 
         return args
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class GenericParentEvalModelTemplate(Generic[T], EvalModelTemplate):
-
     def __init__(
         self,
         drop_prob: float,

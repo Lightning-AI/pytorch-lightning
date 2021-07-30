@@ -21,6 +21,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, DeviceType, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
@@ -32,7 +33,7 @@ PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
 
 
-class LayerSummary(object):
+class LayerSummary:
     """
     Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
     It collects the following information:
@@ -115,16 +116,16 @@ class LayerSummary(object):
 
     @property
     def layer_type(self) -> str:
-        """ Returns the class name of the module. """
+        """Returns the class name of the module."""
         return str(self._module.__class__.__name__)
 
     @property
     def num_parameters(self) -> int:
-        """ Returns the number of parameters in this module. """
+        """Returns the number of parameters in this module."""
         return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
-class ModelSummary(object):
+class ModelSummary:
     """
     Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
@@ -274,7 +275,7 @@ class ModelSummary(object):
         return summary
 
     def _forward_example_input(self) -> None:
-        """ Run the example input through each layer to get input- and output sizes. """
+        """Run the example input through each layer to get input- and output sizes."""
         model = self._model
         trainer = self._model.trainer
 
@@ -410,7 +411,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10**shift)
+    number = number * (10 ** shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
@@ -421,6 +422,7 @@ def get_human_readable_count(number: int) -> str:
 def _is_lazy_weight_tensor(p: Tensor) -> bool:
     if _TORCH_GREATER_EQUAL_1_8:
         from torch.nn.parameter import UninitializedParameter
+
         if isinstance(p, UninitializedParameter):
             warning_cache.warn(
                 "A layer with UninitializedParameter was found. "
@@ -430,9 +432,9 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
     return False
 
 
-def summarize(lightning_module: "pl.LightningModule",
-              mode: Optional[str] = "top",
-              max_depth: Optional[int] = None) -> Optional[ModelSummary]:
+def summarize(
+    lightning_module: "pl.LightningModule", mode: Optional[str] = "top", max_depth: Optional[int] = None
+) -> Optional[ModelSummary]:
     """
     Summarize the LightningModule specified by `lightning_module`.
 

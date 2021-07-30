@@ -52,7 +52,11 @@ _PYTORCH_PRUNING_METHOD = {
 _PARAM_TUPLE = Tuple[nn.Module, str]
 _PARAM_LIST = Sequence[_PARAM_TUPLE]
 _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
-_LayerRef = TypedDict('_LayerRef', {'data': nn.Module, 'names': List[Tuple[int, str]]})
+
+
+class _LayerRef(TypedDict):
+    data: nn.Module
+    names: List[Tuple[int, str]]
 
 
 class ModelPruning(Callback):
@@ -85,19 +89,18 @@ class ModelPruning(Callback):
 
         .. code-block:: python
 
-            parameters_to_prune = [
-                (model.mlp_1, "weight"),
-                (model.mlp_2, "weight")
-            ]
+            parameters_to_prune = [(model.mlp_1, "weight"), (model.mlp_2, "weight")]
 
-            trainer = Trainer(callbacks=[
-                ModelPruning(
-                    pruning_fn='l1_unstructured',
-                    parameters_to_prune=parameters_to_prune,
-                    amount=0.01,
-                    use_global_unstructured=True,
-                )
-            ])
+            trainer = Trainer(
+                callbacks=[
+                    ModelPruning(
+                        pruning_fn="l1_unstructured",
+                        parameters_to_prune=parameters_to_prune,
+                        amount=0.01,
+                        use_global_unstructured=True,
+                    )
+                ]
+            )
 
         When ``parameters_to_prune`` is ``None``, ``parameters_to_prune`` will contain all parameters from the model.
         The user can override ``filter_parameters_to_prune`` to filter any ``nn.Module`` to be pruned.
@@ -244,7 +247,8 @@ class ModelPruning(Callback):
         """
         pruning_fn = (
             _PYTORCH_PRUNING_METHOD[pruning_fn]
-            if self._use_global_unstructured else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
+            if self._use_global_unstructured
+            else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
         )
         assert callable(pruning_fn)
         if self._use_global_unstructured:
@@ -329,7 +333,7 @@ class ModelPruning(Callback):
         return (mask == 0).sum().item(), mask.numel()
 
     def apply_pruning(self, amount: Union[int, float]) -> None:
-        """ Applies pruning to ``parameters_to_prune``. """
+        """Applies pruning to ``parameters_to_prune``."""
         if self._verbose:
             prev_stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
 
@@ -364,7 +368,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:
+    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -389,21 +393,22 @@ class ModelPruning(Callback):
 
         if (
             self._use_lottery_ticket_hypothesis(current_epoch)
-            if callable(self._use_lottery_ticket_hypothesis) else self._use_lottery_ticket_hypothesis
+            if callable(self._use_lottery_ticket_hypothesis)
+            else self._use_lottery_ticket_hypothesis
         ):
             self.apply_lottery_ticket_hypothesis()
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:  # type: ignore
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         if self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_train_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
-    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not trainer.sanity_checking and not self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_validation_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
-    def on_train_end(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:
+    def on_train_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
@@ -426,10 +431,7 @@ class ModelPruning(Callback):
         return apply_to_collection(state_dict, torch.Tensor, move_to_cpu)
 
     def on_save_checkpoint(
-        self,
-        trainer: 'pl.Trainer',
-        pl_module: LightningModule,
-        checkpoint: Dict[str, Any],
+        self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]
     ) -> Dict[str, Any]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
@@ -439,9 +441,7 @@ class ModelPruning(Callback):
 
     @staticmethod
     def sanitize_parameters_to_prune(
-        pl_module: LightningModule,
-        parameters_to_prune: _PARAM_LIST = (),
-        parameter_names: Sequence[str] = (),
+        pl_module: LightningModule, parameters_to_prune: _PARAM_LIST = (), parameter_names: Sequence[str] = ()
     ) -> _PARAM_LIST:
         """
         This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
@@ -457,10 +457,12 @@ class ModelPruning(Callback):
         current_modules = [m for m in pl_module.modules() if not isinstance(m, _MODULE_CONTAINERS)]
 
         if not parameters_to_prune:
-            parameters_to_prune = [(m, p) for p in parameters for m in current_modules
-                                   if getattr(m, p, None) is not None]
+            parameters_to_prune = [
+                (m, p) for p in parameters for m in current_modules if getattr(m, p, None) is not None
+            ]
         elif (
-            isinstance(parameters_to_prune, (list, tuple)) and len(parameters_to_prune) > 0
+            isinstance(parameters_to_prune, (list, tuple))
+            and len(parameters_to_prune) > 0
             and all(len(p) == 2 for p in parameters_to_prune)
             and all(isinstance(a, nn.Module) and isinstance(b, str) for a, b in parameters_to_prune)
         ):
