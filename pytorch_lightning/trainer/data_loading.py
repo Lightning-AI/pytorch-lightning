@@ -120,11 +120,6 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
-        # don't do anything if it's not a dataloader
-        is_dataloader = isinstance(dataloader, DataLoader)
-        # don't manipulate iterable datasets
-        is_iterable_ds = has_iterable_dataset(dataloader)
-
         if isinstance(dataloader, CombinedLoader):
             # apply ``auto_add_sampler`` on all the collection of loaders
             dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
