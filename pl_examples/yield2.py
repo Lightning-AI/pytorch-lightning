@@ -33,12 +33,12 @@ class BoringModel(LightningModule):
     # 2) last statement must be a return
     # 3) yield loss + extras for step_end and epoch_end
     def training_step(self, batch, batch_idx, optimizer_idx=0):
-        loss0 = self.head(self.layer1(batch)).sum()
+        loss0 = self.layer1(batch).sum()
         yield loss0
 
         print("yield 0")
 
-        loss1 = self.head(self.layer2(batch)).sum()
+        loss1 = self.layer2(batch).sum()
 
         print("yield 1")
 
@@ -64,11 +64,11 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,
-        gpus=2,
-        accelerator="ddp",
+        gpus=1,
+        # accelerator="ddp",
         # accelerator="ddp_cpu",
         # plugins=DDPPlugin(),
-        # num_processes=2,
+        # num_processes=1,
     )
 
     yield_batch_loop = YieldLoop()
