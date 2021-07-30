@@ -20,6 +20,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_debug
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -71,6 +72,19 @@ class DDPShardedPlugin(DDPPlugin):
         if self.model.trainer.state.fn != TrainerFn.FITTING:
             return
         self._reinit_optimizers_with_oss()
+
+    def _wrap_model(self):
+        # skip warpping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
+            return
+        self._model = ShardedDataParallel(
+            LightningShardedDataParallel(self.model),
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
+            # For multi-node training, enabling bucketing will improve performance.
+            reduce_buffer_size=self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0,
+        )
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if isinstance(optimizer, LightningOptimizer):

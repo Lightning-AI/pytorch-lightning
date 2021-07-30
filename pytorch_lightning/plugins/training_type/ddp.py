@@ -50,6 +50,7 @@ from pytorch_lightning.utilities.distributed import (
     ReduceOp,
     sync_ddp_if_available,
 )
+from pytorch_lightning.utilities.distributed import rank_zero_debug
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -291,6 +292,17 @@ class DDPPlugin(ParallelPlugin):
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
+    def _wrap_model(self):
+        # skip warpping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
+            return
+        self._model = DistributedDataParallel(
+            LightningDistributedModule(self.model),
+            device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
+        )
+
     def _register_ddp_hooks(self) -> None:
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
@@ -306,13 +318,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self):
         self.pre_configure_ddp()
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model)
-            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            else self.model,
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
-        )
+        self._wrap_model()
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
