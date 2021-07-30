@@ -26,10 +26,11 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import MetricS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.models.test_hooks import get_members
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted(f for f in dir(Callback) if not f.startswith("_"))
+    funcs_name = sorted(get_members(Callback))
 
     callbacks_func = [
         "on_before_backward",

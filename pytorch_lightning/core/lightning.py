@@ -19,7 +19,6 @@ import logging
 import numbers
 import os
 import tempfile
-import uuid
 from abc import ABC
 from contextlib import contextmanager
 from pathlib import Path
@@ -44,6 +43,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
+from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
@@ -694,8 +694,10 @@ class LightningModule(
             def training_step(self, batch, batch_idx, optimizer_idx):
                 if optimizer_idx == 0:
                     # do training_step with encoder
+                    ...
                 if optimizer_idx == 1:
                     # do training_step with decoder
+                    ...
 
 
         If you add truncated back propagation through time you will also get an additional
@@ -709,7 +711,7 @@ class LightningModule(
                 ...
                 out, hiddens = self.lstm(data, hiddens)
                 ...
-                return {'loss': loss, 'hiddens': hiddens}
+                return {"loss": loss, "hiddens": hiddens}
 
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
@@ -750,7 +752,7 @@ class LightningModule(
 
                 out = self(x)
 
-                # softmax uses only a portion of the batch in the denomintaor
+                # softmax uses only a portion of the batch in the denominator
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
                 return loss
@@ -764,12 +766,13 @@ class LightningModule(
                 x, y = batch
 
                 out = self.encoder(x)
-                return {'pred': out}
+                return {"pred": out}
+
 
             def training_step_end(self, training_step_outputs):
-                gpu_0_pred = training_step_outputs[0]['pred']
-                gpu_1_pred = training_step_outputs[1]['pred']
-                gpu_n_pred = training_step_outputs[n]['pred']
+                gpu_0_pred = training_step_outputs[0]["pred"]
+                gpu_1_pred = training_step_outputs[1]["pred"]
+                gpu_n_pred = training_step_outputs[n]["pred"]
 
                 # this softmax now uses the full batch
                 loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
@@ -817,7 +820,7 @@ class LightningModule(
 
             def training_epoch_end(self, training_step_outputs):
                 for out in training_step_outputs:
-                    # do something here
+                    ...
         """
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -851,7 +854,7 @@ class LightningModule(
             val_outs = []
             for val_batch in val_data:
                 out = validation_step(val_batch)
-                if defined('validation_step_end'):
+                if defined("validation_step_end"):
                     out = validation_step_end(out)
                 val_outs.append(out)
             val_outs = validation_epoch_end(val_outs)
@@ -860,10 +863,13 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one val dataloader:
-            def validation_step(self, batch, batch_idx)
+            def validation_step(self, batch, batch_idx):
+                ...
+
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idx)
+            def validation_step(self, batch, batch_idx, dataloader_idx):
+                ...
 
         Examples::
 
@@ -895,6 +901,7 @@ class LightningModule(
             # CASE 2: multiple validation dataloaders
             def validation_step(self, batch, batch_idx, dataloader_idx):
                 # dataloader_idx tells you which dataset this is.
+                ...
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -940,7 +947,8 @@ class LightningModule(
                 out = self.encoder(x)
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
-                self.log('val_loss', loss)
+                self.log("val_loss", loss)
+
 
             # --------------
             # with validation_step_end to do softmax over the full batch
@@ -951,9 +959,10 @@ class LightningModule(
                 out = self(x)
                 return out
 
+
             def validation_step_end(self, val_step_outputs):
                 for out in val_step_outputs:
-                    # do something with these
+                    ...
 
         See Also:
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
@@ -989,7 +998,7 @@ class LightningModule(
 
                 def validation_epoch_end(self, val_step_outputs):
                     for out in val_step_outputs:
-                        # do something
+                        ...
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -1001,7 +1010,7 @@ class LightningModule(
                     for dataloader_output_result in outputs:
                         dataloader_outs = dataloader_output_result.dataloader_i_outputs
 
-                    self.log('final_metric', final_value)
+                    self.log("final_metric", final_value)
         """
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -1035,10 +1044,13 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one test dataloader:
-            def test_step(self, batch, batch_idx)
+            def test_step(self, batch, batch_idx):
+                ...
+
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idx)
+            def test_step(self, batch, batch_idx, dataloader_idx):
+                ...
 
         Examples::
 
@@ -1070,6 +1082,7 @@ class LightningModule(
             # CASE 2: multiple test dataloaders
             def test_step(self, batch, batch_idx, dataloader_idx):
                 # dataloader_idx tells you which dataset this is.
+                ...
 
         Note:
             If you don't need to test you don't need to implement this method.
@@ -1113,7 +1126,8 @@ class LightningModule(
 
                 out = self(x)
                 loss = self.softmax(out)
-                self.log('test_loss', loss)
+                self.log("test_loss", loss)
+
 
             # --------------
             # with test_step_end to do softmax over the full batch
@@ -1124,11 +1138,12 @@ class LightningModule(
                 out = self.encoder(x)
                 return out
 
+
             def test_step_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
-                self.log('test_loss', loss)
+                self.log("test_loss", loss)
 
         See Also:
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
@@ -1182,7 +1197,7 @@ class LightningModule(
                             # do something
                             final_value += test_step_out
 
-                    self.log('final_metric', final_value)
+                    self.log("final_metric", final_value)
         """
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
@@ -1274,25 +1289,25 @@ class LightningModule(
 
             lr_dict = {
                 # REQUIRED: The scheduler instance
-                'scheduler': lr_scheduler,
+                "scheduler": lr_scheduler,
                 # The unit of the scheduler's step size, could also be 'step'.
                 # 'epoch' updates the scheduler on epoch end whereas 'step'
                 # updates it after a optimizer update.
-                'interval': 'epoch',
+                "interval": "epoch",
                 # How many epochs/steps should pass between calls to
                 # `scheduler.step()`. 1 corresponds to updating the learning
                 # rate after every epoch/step.
-                'frequency': 1,
+                "frequency": 1,
                 # Metric to to monitor for schedulers like `ReduceLROnPlateau`
-                'monitor': 'val_loss',
+                "monitor": "val_loss",
                 # If set to `True`, will enforce that the value specified 'monitor'
                 # is available when the scheduler is updated, thus stopping
                 # training if not found. If set to `False`, it will only produce a warning
-                'strict': True,
+                "strict": True,
                 # If using the `LearningRateMonitor` callback to monitor the
                 # learning rate progress, this keyword can be used to specify
                 # a custom logged name
-                'name': None,
+                "name": None,
             }
 
         When there are schedulers in which the ``.step()`` method is conditioned on a value, such as the
@@ -1305,12 +1320,13 @@ class LightningModule(
             def configure_optimizers(self):
                 optimizer = Adam(...)
                 return {
-                    'optimizer': optimizer,
-                    'lr_scheduler': {
-                        'scheduler': ReduceLROnPlateau(optimizer, ...),
-                        'monitor': 'metric_to_track',
-                    }
+                    "optimizer": optimizer,
+                    "lr_scheduler": {
+                        "scheduler": ReduceLROnPlateau(optimizer, ...),
+                        "monitor": "metric_to_track",
+                    },
                 }
+
 
             # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
             def configure_optimizers(self):
@@ -1320,13 +1336,13 @@ class LightningModule(
                 scheduler2 = LambdaLR(optimizer2, ...)
                 return (
                     {
-                        'optimizer': optimizer1,
-                        'lr_scheduler': {
-                            'scheduler': scheduler1,
-                            'monitor': 'metric_to_track',
-                        }
+                        "optimizer": optimizer1,
+                        "lr_scheduler": {
+                            "scheduler": scheduler1,
+                            "monitor": "metric_to_track",
+                        },
                     },
-                    {'optimizer': optimizer2, 'lr_scheduler': scheduler2}
+                    {"optimizer": optimizer2, "lr_scheduler": scheduler2},
                 )
 
         Metrics can be made available to monitor by simply logging it using
@@ -1350,8 +1366,8 @@ class LightningModule(
                     optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
                     optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
                     return [
-                        {'optimizer': optimizer_one, 'frequency': 5},
-                        {'optimizer': optimizer_two, 'frequency': 10},
+                        {"optimizer": optimizer_one, "frequency": 5},
+                        {"optimizer": optimizer_two, "frequency": 10},
                     ]
 
             In this example, the first optimizer will be used for the first 5 steps,
@@ -1578,13 +1594,22 @@ class LightningModule(
         .. code-block:: python
 
             # learning rate warm-up
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+            def optimizer_step(
+                self,
+                epoch,
+                batch_idx,
+                optimizer,
+                optimizer_idx,
+                optimizer_closure,
+                on_tpu,
+                using_native_amp,
+                using_lbfgs,
+            ):
                 # warm up lr
                 if self.trainer.global_step < 500:
-                    lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+                    lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                     for pg in optimizer.param_groups:
-                        pg['lr'] = lr_scale * self.learning_rate
+                        pg["lr"] = lr_scale * self.learning_rate
 
                 # update params
                 optimizer.step(closure=optimizer_closure)
@@ -1948,16 +1973,12 @@ class LightningModule(
 
     @property
     def model_size(self) -> float:
-        """
-        The model's size in megabytes. The computation includes everything in the
-        :meth:`~torch.nn.Module.state_dict`, i.e., by default the parameteters and buffers.
-        """
-        # todo: think about better way without need to dump model to drive
-        tmp_name = f"{uuid.uuid4().hex}.pt"
-        torch.save(self.state_dict(), tmp_name)
-        size_mb = os.path.getsize(tmp_name) / 1e6
-        os.remove(tmp_name)
-        return size_mb
+        rank_zero_deprecation(
+            "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+            stacklevel=5,
+        )
+        return get_model_size_mb(self)
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """
