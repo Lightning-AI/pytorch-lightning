@@ -418,9 +418,9 @@ class DDPPlugin(ParallelPlugin):
         node_zero = 0
         for _ in range(self.num_nodes):
             sync_dirs.append(self.broadcast(self._sync_dir, node_zero))
-            node_zero += (self.world_size // self.num_nodes)
+            node_zero += self.world_size // self.num_nodes
 
-        self._sync_dir = sync_dirs[self.node_rank] 
+        self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
         """
