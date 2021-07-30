@@ -175,7 +175,7 @@ def test_swa_warns(tmpdir, caplog):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
-    assert "Swapping scheduler" in caplog.text
+    assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
 
 
 def test_swa_raises():

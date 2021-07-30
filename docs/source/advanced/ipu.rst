@@ -34,7 +34,7 @@ Specify the number of IPUs to train with. Note that when training with IPUs, you
 
 .. code-block:: python
 
-    trainer = pl.Trainer(ipus=8) # Train using data parallel on 8 IPUs
+    trainer = pl.Trainer(ipus=8)  # Train using data parallel on 8 IPUs
 
 IPUs only support specifying a single number to allocate devices, which is handled via the underlying libraries.
 
@@ -102,10 +102,7 @@ Note that by default we return the last device iteration loss. You can override 
     training_opts.anchorMode(poptorch.AnchorMode.All)
     training_opts.deviceIterations(32)
 
-    trainer = Trainer(
-        ipus=8,
-        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
-    )
+    trainer = Trainer(ipus=8, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts))
     trainer.fit(model)
 
 You can also override all options by passing the ``poptorch.Options`` to the plugin. See `PopTorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`__ for more information.
@@ -127,7 +124,7 @@ Lightning supports dumping all reports to a directory to open using the tool.
     from pytorch_lightning.plugins import IPUPlugin
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(autoreport_dir='report_dir/'))
+    trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(autoreport_dir="report_dir/"))
     trainer.fit(model)
 
 This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html#opening-reports>`__.
@@ -155,8 +152,8 @@ Below is an example using the block annotation in a LightningModule.
     import pytorch_lightning as pl
     import poptorch
 
-    class MyLightningModule(pl.LightningModule):
 
+    class MyLightningModule(pl.LightningModule):
         def __init__(self):
             super().__init__()
             # This will place layer1, layer2+layer3, layer4, softmax on different IPUs at runtime.
@@ -175,6 +172,7 @@ Below is an example using the block annotation in a LightningModule.
 
         ...
 
+
     model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=20))
     trainer.fit(model)
@@ -187,8 +185,8 @@ You can also use the block context manager within the forward function, or any o
     import pytorch_lightning as pl
     import poptorch
 
-    class MyLightningModule(pl.LightningModule):
 
+    class MyLightningModule(pl.LightningModule):
         def __init__(self):
             super().__init__()
             self.layer1 = torch.nn.Linear(5, 10)
@@ -214,7 +212,9 @@ You can also use the block context manager within the forward function, or any o
             with poptorch.Block(ipu_id=3):
                 x = self.softmax(x)
             return x
+
         ...
+
 
     model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, plugins=IPUPlugin(device_iterations=20))

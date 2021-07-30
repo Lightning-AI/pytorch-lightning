@@ -510,6 +510,17 @@ class Accelerator:
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
 
+    @property
+    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+        """
+        Override to delay restoring from checkpoint till after pre-dispatch.
+        This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
+
+        Returns:
+            If true, restore checkpoint after pre_dispatch.
+        """
+        return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
+
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
 

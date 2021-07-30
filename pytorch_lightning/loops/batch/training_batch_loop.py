@@ -47,6 +47,7 @@ class TrainingBatchLoop(Loop):
         self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
+        # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.optim_progress = OptimizationProgress()
 
@@ -159,19 +160,20 @@ class TrainingBatchLoop(Loop):
         return len(self.get_active_optimizers(batch_idx))
 
     def _run_optimization(
-        self, batch_idx: int, split_batch: Any, opt_idx: int = 0, optimizer: Optional[torch.optim.Optimizer] = None
+        self,
+        batch_idx: int,
+        split_batch: Any,
+        opt_idx: Optional[int] = None,
+        optimizer: Optional[torch.optim.Optimizer] = None,
     ):
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
             batch_idx: the index of the current batch
             split_batch: the current tbptt split of the whole batch
-            opt_idx: the index of the current optimizer
-            optimizer: the current optimizer
+            opt_idx: the index of the current optimizer or `None` in case of manual optimization
+            optimizer: the current optimizer or `None` in case of manual optimization
         """
-        # TODO(@awaelchli): In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
-        #   opt_idx=0 to opt_idx=None in the signature here
-
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
 
@@ -336,15 +338,16 @@ class TrainingBatchLoop(Loop):
 
         loss = None
         hiddens = None
-        results.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
-            loss = training_step_output.pop("loss", None)
-            hiddens = training_step_output.pop("hiddens", None)
+            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
+            loss = training_step_output.get("loss")
+            hiddens = training_step_output.get("hiddens")
             # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
             hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
-            results.extra = training_step_output
+            # use the setter instead of `dict.update` because it calls `detach` on the tensor items
+            results.extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
 
         # handle scalar return
         elif isinstance(training_step_output, Tensor):
@@ -624,10 +627,10 @@ class TrainingBatchLoop(Loop):
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
             if has_opt_idx_in_train_step:
                 if not lightning_module.automatic_optimization:
-                    self._warning_cache.deprecation(
-                        "`training_step` hook signature has changed in v1.3."
-                        " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
-                        " the old signature will be removed in v1.5"
+                    raise ValueError(
+                        "Your `LightningModule.training_step` signature contains an `optimizer_idx` argument but"
+                        " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
+                        " argument or set `self.automatic_optimization = True`."
                     )
                 step_kwargs["optimizer_idx"] = opt_idx
             elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:

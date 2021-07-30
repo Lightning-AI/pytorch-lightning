@@ -242,15 +242,14 @@ class CaptureIterableDataset(IterableDataset):
         .. code-block:: python
 
             {
-                "batch": data returned by DataLoader
+                "batch": ...,  # data returned by DataLoader
                 "__pl_samplers": {
                     "sampler0": {
-                        0: { "current_iteration": ... }
-                        1: { "current_iteration": ... }
-                        ...
-                    }
-                    "sampler1": ...
-                }
+                        0: {"current_iteration": ...},
+                        1: {"current_iteration": ...},
+                    },
+                    "sampler1": ...,
+                },
             }
 
         Each sampler in the worker process tracks the current iteration. We return all of them to the main process
@@ -388,11 +387,8 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     .. code-block:: python
 
         {
-            "data": data returned by Dataset
-            "__pl_samplers": {
-                "sampler_name0": state_dict
-                "sampler_name1": state_dict
-            }
+            "data": ...,  # data returned by Dataset
+            "__pl_samplers": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
     batch = default_collate(samples)
