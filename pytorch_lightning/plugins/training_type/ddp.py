@@ -411,6 +411,7 @@ class DDPPlugin(ParallelPlugin):
         self._share_pids()
 
         # remove `PL_DDP_SYNC_TMPDIR` from os.environ
+        # FIXME: Add better support for deadlock detection. Changed TMPDIR at on every trainer.{call_fn}.
         self._sync_dir = os.getenv("PL_DDP_SYNC_TMPDIR")
 
     def _share_pids(self):
