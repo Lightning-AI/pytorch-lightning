@@ -195,7 +195,10 @@ class StochasticWeightAveraging(Callback):
                 scheduler_cfg = trainer.lr_schedulers[0]
                 if scheduler_cfg["interval"] != "epoch" or scheduler_cfg["frequency"] != 1:
                     rank_zero_warn(f"SWA is currently only supported every epoch. Found {scheduler_cfg}")
-                rank_zero_info(f"Swapping scheduler {scheduler_cfg['scheduler']} for {self._swa_scheduler}")
+                rank_zero_info(
+                    f"Swapping scheduler `{scheduler_cfg['scheduler'].__class__.__name__}`"
+                    f" for `{self._swa_scheduler.__class__.__name__}`"
+                )
                 trainer.lr_schedulers[0] = default_scheduler_cfg
             else:
                 trainer.lr_schedulers.append(default_scheduler_cfg)

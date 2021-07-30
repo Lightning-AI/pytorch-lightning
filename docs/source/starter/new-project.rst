@@ -602,7 +602,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                 group = [param_group['lr'] for param_group in optimizer.param_groups]
                 self.old_lrs.append(group)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             for opt_idx, optimizer in enumerate(trainer.optimizers):
                 old_lr_group = self.old_lrs[opt_idx]
                 new_lr_group = []

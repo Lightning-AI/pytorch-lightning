@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
@@ -97,7 +96,6 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
@@ -838,13 +836,22 @@ class Trainer(
 
         return result
 
-    def _restore_checkpoint(self) -> None:
+    def _restore_modules_and_callbacks(self) -> None:
         # restore modules after setup
-        self.checkpoint_connector.resume_start()
+        if self.state.fn == TrainerFn.FITTING:
+            self.checkpoint_connector.resume_start()
         self.checkpoint_connector.restore_datamodule()
         self.checkpoint_connector.restore_model()
         # restore callback states
         self.checkpoint_connector.restore_callbacks()
+
+    def _load_checkpoint_weights(self):
+        # only one process running at this point for TPUs, as spawn isn't triggered yet
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
+            self.accelerator.barrier()
+        rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
+        self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
@@ -871,8 +878,9 @@ class Trainer(
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
 
-        if not self.accelerator.restore_checkpoint_after_pre_dispatch and self.state.fn == TrainerFn.FITTING:
-            self._restore_checkpoint()
+        # check if we should delay restoring checkpoint till later
+        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -918,8 +926,7 @@ class Trainer(
         if self.accelerator.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
-            if self.state.fn == TrainerFn.FITTING:
-                self._restore_checkpoint()
+            self._restore_modules_and_callbacks()
 
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()
@@ -945,14 +952,6 @@ class Trainer(
         self.state.stage = None
 
         return self.accelerator.results
-
-    def _load_checkpoint_weights(self):
-        # only one process running at this point for TPUs, as spawn isn't triggered yet
-        # todo: move this logic internally within the barrier.
-        if not self._device_type == DeviceType.TPU:
-            self.training_type_plugin.barrier()
-        rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
-        self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
@@ -1221,10 +1220,6 @@ class Trainer(
         model._metric_attributes = None
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        # Note this implementation is copy/pasted into the TrainLoop class in TrainingEpochLoop._on_train_epoch_end_hook
-        # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
-        # If making changes to this function, ensure that those changes are also made to
-        # TrainingEpochLoop._on_train_epoch_end_hook
         if self.lightning_module:
             prev_fx_name = self.lightning_module._current_fx_name
             self.lightning_module._current_fx_name = hook_name
