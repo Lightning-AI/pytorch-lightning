@@ -54,18 +54,18 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
             return
         self._reinit_optimizers_with_oss()
 
-    def _wrap_model(self):
+    def _wrap_model(self) -> bool:
         # skip warpping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn != TrainerFn.FITTING:
+            self._model = LightningDistributedModule(self.model) if not isinstance(self.model, (LightningDistributedModule)) else self.model 
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
-            return
+            return False
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model)
-            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            else self.model, 
+            LightningShardedDataParallel(self.model), 
             sharded_optimizer=self.lightning_module.trainer.optimizers
         )
+        return True
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if isinstance(optimizer, OSS):
