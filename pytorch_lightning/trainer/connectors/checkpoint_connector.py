@@ -142,7 +142,7 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
-        # reset state on non-rank 0
+        # reset metrics states on non-rank 0 as the states have been synced on-saving.
         if not self.trainer.is_global_zero:
             for module in self.trainer.lightning_module.modules():
                 if isinstance(module, Metric):
