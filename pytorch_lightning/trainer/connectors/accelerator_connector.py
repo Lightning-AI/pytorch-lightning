@@ -107,18 +107,6 @@ class AcceleratorConnector:
         self._distrib_type = None
         self._accelerator_type = None
 
-        if distributed_backend is not None:
-            rank_zero_deprecation(
-                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
-                f" Use `Trainer(training_type={distributed_backend})` instead."
-            )
-
-        if accelerator is not None and accelerator in list(DistributedType):
-            rank_zero_deprecation(
-                f"Passing {accelerator} `training_type` to the `accelerator` flag in Trainer has been deprecated"
-                f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={accelerator})` instead."
-            )
-
         self.training_type = training_type
         self.distributed_backend = distributed_backend or accelerator
 
@@ -152,6 +140,8 @@ class AcceleratorConnector:
             plugins = [plugins]
 
         self.plugins = plugins
+
+        self._deprecation_and_warn_for_accelerator_and_distributed_backend(distributed_backend, accelerator)
 
         self._validate_accelerator_and_devices()
         self._warn_if_devices_flag_ignored()
@@ -282,6 +272,29 @@ class AcceleratorConnector:
             self.devices = self.gpus
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
+
+    def _deprecation_and_warn_for_accelerator_and_distributed_backend(self, distributed_backend, accelerator) -> None:
+        if distributed_backend is not None:
+            rank_zero_deprecation(
+                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
+                f" Use `Trainer(training_type={distributed_backend})` instead."
+            )
+            if self.training_type is not None:
+                rank_zero_warn(
+                    f"`Trainer(distributed_backend={distributed_backend})` will be ignored, as you have set"
+                    f" `Trainer(training_type={self.training_type})`"
+                )
+
+        if accelerator is not None and accelerator in list(DistributedType):
+            rank_zero_deprecation(
+                f"Passing {accelerator} `training_type` to the `accelerator` flag in Trainer has been deprecated"
+                f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={accelerator})` instead."
+            )
+            if self.training_type is not None:
+                rank_zero_warn(
+                    f"`Trainer(accelerator={accelerator})` will be ignored, as you have set"
+                    f" `Trainer(training_type={self.training_type})`"
+                )
 
     def _set_training_type_plugin(self, training_type: Union[str, TrainingTypePlugin]) -> None:
         if isinstance(self.training_type, str) and self.training_type in TrainingTypePluginsRegistry:
