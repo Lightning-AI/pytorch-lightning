@@ -142,7 +142,7 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
-        # reset metrics states on non-rank 0 as the states have been synced on-saving.
+        # reset metrics states on non-rank 0 as all states have been accumulated on rank 0 via syncing on checkpointing.
         if not self.trainer.is_global_zero:
             for module in self.trainer.lightning_module.modules():
                 if isinstance(module, Metric):
@@ -219,7 +219,7 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
-        state_dict = self._loaded_checkpoint.pop("loops", None)
+        state_dict = self._loaded_checkpoint.get("loops")
         if state_dict:
             self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
@@ -452,13 +452,13 @@ class CheckpointConnector:
             metrics = [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
             for metric in metrics:
                 metric.persistent(True)
-                if not metric._is_synced:
-                    metric.sync()
+                metric.sync()
 
         state_dict = self.trainer.accelerator.lightning_module_state_dict()
 
         if _fault_tolerant_enabled():
             for metric in metrics:
+                # on cpu, sync is a no-op and therefore `unsync` call would fail as the metrics is not synced.
                 if metric._is_synced:
                     metric.unsync()
 

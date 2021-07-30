@@ -210,7 +210,7 @@ class Loop(ABC):
                     apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
 
             elif isinstance(v, ResultCollection):
-                if isinstance(self.trainer, pl.Trainer) and getattr(self.trainer, "lightning_module", None) is not None:
+                if self.trainer is not None and getattr(self.trainer, "lightning_module", None) is not None:
                     metric_attributes = {
                         name: module
                         for name, module in self.trainer.lightning_module.named_modules()
@@ -219,7 +219,12 @@ class Loop(ABC):
                     if metrics:
                         metric_attributes.update(metrics)
 
-                    # re-attach metrics references
+                    # The `ResultCollection` objects has 2 types of metrics: tensor and torchmetrics.Metric.
+                    # When creating a checkpoint, the Metric type are been dropped from the loop state_dict
+                    # to serialize only pure Python primitives.
+                    # However, their states are saved alongside the model state_dict.
+                    # On reload, we need to re-attach the Metrics back the ResultCollection.
+                    # The references are provided through ``metric_attributes`` dictionary.
                     v.load_state_dict(
                         state_dict[prefix + k],
                         metrics=metric_attributes,
