@@ -320,8 +320,6 @@ class DDPPlugin(ParallelPlugin):
                 self.torch_distributed_backend, rank=global_rank, world_size=world_size
             )
 
-            torch.distributed.barrier()
-
             # on rank=0 let everyone know training is starting
             rank_zero_info(
                 f"{'-' * 100}\n"
