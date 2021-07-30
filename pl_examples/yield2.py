@@ -10,7 +10,6 @@ from pytorch_lightning.plugins import DDPPlugin
 
 
 class RandomDataset(Dataset):
-
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -23,7 +22,6 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.layer1 = torch.nn.Linear(32, 32)
@@ -66,6 +64,8 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,
+        gpus=2,
+        accelerator="ddp",
         # accelerator="ddp_cpu",
         # plugins=DDPPlugin(),
         # num_processes=2,
@@ -77,5 +77,5 @@ def run():
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
