@@ -1,9 +1,7 @@
-import sys
-
 import os
 import sys
 
-if os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '0':
+if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "0":
     sys.exit(0)
 
 from pytorch_lightning import Trainer
@@ -23,6 +21,7 @@ class Model(BoringModel):
             # rank 1: continues training but will hang on the next barrier in the training loop
             raise CustomException
         return super().training_step(batch, batch_idx)
+
 
 model = Model()
 
