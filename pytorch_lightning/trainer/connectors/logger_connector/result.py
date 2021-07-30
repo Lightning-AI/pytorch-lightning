@@ -607,7 +607,7 @@ class ResultCollection(dict):
 
     def sync(self) -> None:
         for result_metric in self.result_metrics:
-            if result_metric.is_tensor and not result_metric._is_synced:
+            if result_metric.is_tensor:
                 result_metric.sync()
 
     def unsync(self) -> None:
