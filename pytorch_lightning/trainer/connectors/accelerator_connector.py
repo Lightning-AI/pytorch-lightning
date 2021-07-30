@@ -748,7 +748,7 @@ class AcceleratorConnector:
                 self.distributed_backend = "ddp_spawn"
 
         # special case with DDP on CPUs
-        if self.distributed_backend == "ddp_cpu":
+        if self.distributed_backend == DistributedType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
@@ -803,7 +803,7 @@ class AcceleratorConnector:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
-        if self.distributed_backend == "horovod":
+        if self.distributed_backend == DistributedType.HOROVOD:
             self._set_horovod_backend()
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
