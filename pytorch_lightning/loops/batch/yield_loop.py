@@ -1,10 +1,9 @@
 import inspect
-from typing import Any, Optional, Generator
+from typing import Any, Generator, Optional
 
 from torch import Tensor
-from pytorch_lightning.loops import Loop
 
-from pytorch_lightning.loops import TrainingBatchLoop
+from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.utilities import AttributeDict
 
 

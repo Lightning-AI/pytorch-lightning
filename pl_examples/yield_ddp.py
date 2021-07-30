@@ -1,10 +1,10 @@
 import os
+
 import torch
 import torch.distributed as dist
+import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.optim as optim
-import torch.multiprocessing as mp
-
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 
@@ -25,7 +25,7 @@ loss_fn = nn.MSELoss()
 
 class ToyModel(nn.Module):
     def __init__(self):
-        super(ToyModel, self).__init__()
+        super().__init__()
         self.net1 = nn.Linear(10, 10)
         self.relu = nn.ReLU()
         self.net2 = nn.Linear(10, 5)
