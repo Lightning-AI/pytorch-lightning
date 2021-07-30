@@ -32,4 +32,4 @@ except Exception:
     pass
 
 # sys.exit(0) It works, but ``torch.distributed.run`` adds a barrier blocking the process ...
-sys.exit(42)
+sys.exit(0)

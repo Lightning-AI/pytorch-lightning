@@ -450,7 +450,6 @@ class DDPPlugin(ParallelPlugin):
 
         for pid in self._pids:
             if pid != os.getpid():
-                os.kill(pid, signal.SIGTERM)
-                # os.kill(pid, signal.SIGKILL)
-            shutil.rmtree(sync_dir)
-            raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+                os.kill(pid, signal.SIGKILL)
+        shutil.rmtree(sync_dir)
+        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
