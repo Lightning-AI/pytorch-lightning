@@ -1313,10 +1313,6 @@ def result_collection_reload(trainer_kwargs):
 
     trainer.accelerator.barrier()
 
-    if trainer.is_global_zero:
-        checkpoint = torch.load(checkpoint_path)
-        assert checkpoint["state_dict"]["dummy_metric.sum"] == 3 * num_processes
-
     trainer_kwargs["resume_from_checkpoint"] = checkpoint_path
     trainer_kwargs["max_epochs"] = 2
 
