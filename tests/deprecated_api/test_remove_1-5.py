@@ -19,7 +19,6 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -164,26 +163,6 @@ def test_v1_5_0_running_sanity_check():
     trainer = Trainer()
     with pytest.deprecated_call(match="has been renamed to `Trainer.sanity_checking`"):
         assert not trainer.running_sanity_check
-
-
-def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
-    class OldSignatureModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            assert optimizer_idx == 0
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self):
-            return [optim.SGD(self.parameters(), lr=1e-2), optim.SGD(self.parameters(), lr=1e-2)]
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-
-    with pytest.deprecated_call(match="`training_step` .* `optimizer_idx` .* manual .* will be removed in v1.5"):
-        trainer.fit(model)
 
 
 def test_v1_5_0_model_checkpoint_period(tmpdir):

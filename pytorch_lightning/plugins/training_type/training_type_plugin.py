@@ -235,6 +235,17 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return False
 
+    @property
+    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+        """
+        Override to delay restoring from checkpoint till after pre-dispatch.
+        This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
+
+        Returns:
+            If true, restore checkpoint after pre_dispatch.
+        """
+        return False
+
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
         Provide a hook to count optimizer step calls.

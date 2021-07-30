@@ -115,7 +115,7 @@ However, if you decide to implement the rest of the optional methods, the recomm
 
 In practice, this code looks like:
 
-.. code-block:: python
+.. code-block::
 
     class LitModel(pl.LightningModule):
 
@@ -123,27 +123,27 @@ In practice, this code looks like:
 
         def forward(...):
 
-        def training_step(...)
+        def training_step(...):
 
-        def training_step_end(...)
+        def training_step_end(...):
 
-        def training_epoch_end(...)
+        def training_epoch_end(...):
 
-        def validation_step(...)
+        def validation_step(...):
 
-        def validation_step_end(...)
+        def validation_step_end(...):
 
-        def validation_epoch_end(...)
+        def validation_epoch_end(...):
 
-        def test_step(...)
+        def test_step(...):
 
-        def test_step_end(...)
+        def test_step_end(...):
 
-        def test_epoch_end(...)
+        def test_epoch_end(...):
 
-        def configure_optimizers(...)
+        def configure_optimizers(...):
 
-        def any_extra_hook(...)
+        def any_extra_hook(...):
 
 Forward vs training_step
 ========================
@@ -151,10 +151,11 @@ We recommend using forward for inference/predictions and keeping training_step i
 
 .. code-block:: python
 
-    def forward(...):
+    def forward(self, x):
         embeddings = self.encoder(x)
 
-    def training_step(...):
+
+    def training_step(self):
         x, y = ...
         z = self.encoder(x)
         pred = self.decoder(z)
@@ -164,7 +165,7 @@ However, when using DataParallel, you will need to call forward manually
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         x, y = ...
         z = self(x)  # < ---------- instead of self.encoder(x)
         pred = self.decoder(z)

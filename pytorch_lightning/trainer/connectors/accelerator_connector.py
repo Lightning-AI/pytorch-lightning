@@ -748,7 +748,7 @@ class AcceleratorConnector:
                 self.distributed_backend = "ddp_spawn"
 
         # special case with DDP on CPUs
-        if self.distributed_backend == "ddp_cpu":
+        if self.distributed_backend == DistributedType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
@@ -803,7 +803,7 @@ class AcceleratorConnector:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
-        if self.distributed_backend == "horovod":
+        if self.distributed_backend == DistributedType.HOROVOD:
             self._set_horovod_backend()
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
@@ -857,7 +857,7 @@ class AcceleratorConnector:
     @staticmethod
     def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+        return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,
