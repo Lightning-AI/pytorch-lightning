@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
@@ -314,11 +313,7 @@ class TrainingEpochLoop(loops.Loop):
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
             # with 1 step (no tbptt) don't use a sequence at epoch end
-            if (
-                isinstance(opt_outputs, list)
-                and len(opt_outputs) == 1
-                and not isinstance(opt_outputs[0], ResultCollection)
-            ):
+            if isinstance(opt_outputs, list) and len(opt_outputs) == 1:
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
@@ -376,9 +371,10 @@ class TrainingEpochLoop(loops.Loop):
                     batch_outputs = [batch_outputs]
 
                 for tbptt_output in batch_outputs:
-                    out = tbptt_output.extra
+                    out = {}
                     if tbptt_output.minimize is not None:
                         out["loss"] = tbptt_output.minimize.detach()
+                    out.update(tbptt_output.extra)
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension
