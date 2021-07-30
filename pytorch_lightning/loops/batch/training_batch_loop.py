@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager
+from copy import copy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
@@ -144,12 +145,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(result.training_step_output)
+                    self.batch_outputs[opt_idx].append(copy(result.training_step_output))
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(result.training_step_output)
+                self.batch_outputs[0].append(copy(result.training_step_output))
 
     def teardown(self) -> None:
         # release memory
@@ -338,15 +339,16 @@ class TrainingBatchLoop(Loop):
 
         loss = None
         hiddens = None
-        results.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
-            loss = training_step_output.pop("loss", None)
-            hiddens = training_step_output.pop("hiddens", None)
+            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
+            loss = training_step_output.get("loss")
+            hiddens = training_step_output.get("hiddens")
             # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
             hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
-            results.extra = training_step_output
+            # use the setter instead of `dict.update` because it calls `detach` on the tensor items
+            results.extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
 
         # handle scalar return
         elif isinstance(training_step_output, Tensor):
