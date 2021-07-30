@@ -31,7 +31,7 @@ when constructing your `Trainer` object.
 
 The profiler's results will be printed at the completion of a training `fit()`.
 
-.. code-block:: python
+.. code-block::
 
     Profiler Report
 
@@ -61,7 +61,7 @@ This option uses Python's cProfiler_ to provide a report of time spent on *each*
 
     trainer = Trainer(..., profiler="advanced")
 
-    or
+    # or
 
     profiler = AdvancedProfiler()
     trainer = Trainer(..., profiler=profiler)
@@ -71,7 +71,7 @@ report can be quite long, so you can also specify an `output_filename` to save t
 of logging it to the output in your terminal. The output below shows the profiling for the action
 `get_train_batch`.
 
-.. code-block:: python
+.. code-block::
 
     Profiler Report
 
@@ -101,14 +101,16 @@ to track and the profiler will record performance for code executed within this 
 
     from pytorch_lightning.profiler import Profiler, PassThroughProfiler
 
+
     class MyModel(LightningModule):
         def __init__(self, profiler=None):
             self.profiler = profiler or PassThroughProfiler()
 
         def custom_processing_step(self, data):
-            with profiler.profile('my_custom_action'):
-                # custom processing step
+            with profiler.profile("my_custom_action"):
+                ...
             return data
+
 
     profiler = Profiler()
     model = MyModel(profiler)
@@ -128,7 +130,7 @@ have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`__
 
     trainer = Trainer(..., profiler="pytorch")
 
-    or
+    # or
 
     profiler = PyTorchProfiler(...)
     trainer = Trainer(..., profiler=profiler)
@@ -148,7 +150,7 @@ The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the s
 
 .. note:: When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time. This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously. It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use the `SimpleProfiler`.   # noqa E501
 
-.. code-block:: python
+.. code-block::
 
     Profiler Report
 
