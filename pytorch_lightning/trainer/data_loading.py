@@ -19,7 +19,6 @@ from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import torch
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
@@ -121,7 +120,7 @@ class TrainerDataLoadingMixin(ABC):
 
     def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
         if isinstance(dataloader, CombinedLoader):
-            # apply ``auto_add_sampler`` on all the collection of loaders
+            # apply `auto_add_sampler` on all the collection of loaders
             dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
             return dataloader
 
@@ -129,13 +128,10 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        need_dist_sampler = self.accelerator_connector.is_distributed and not isinstance(
-            dataloader.sampler, DistributedSampler
-        )
-
         if (
             self.accelerator_connector.replace_sampler_ddp
-            and need_dist_sampler
+            and self.accelerator_connector.is_distributed
+            and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         ):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
@@ -155,9 +151,7 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     @staticmethod
-    def _resolve_batch_sampler(
-        dataloader, sampler, mode: Optional[RunningStage] = None, use_forward_sampler: bool = False
-    ) -> Dict[str, Any]:
+    def _resolve_batch_sampler(dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
@@ -170,9 +164,10 @@ class TrainerDataLoadingMixin(ABC):
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if use_forward_sampler:
+            if _fault_tolerant_enabled():
                 fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
                 fast_forward_sampler.setup(dataloader_batch_size=1)
+
             return {
                 "sampler": None,
                 "shuffle": False,
@@ -181,9 +176,10 @@ class TrainerDataLoadingMixin(ABC):
                 "drop_last": False,
             }
 
-        if use_forward_sampler:
+        if _fault_tolerant_enabled():
             fast_forward_sampler = sampler = FastForwardSampler(sampler)
             fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
+
         return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
@@ -205,9 +201,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(
-            self._resolve_batch_sampler(dataloader, sampler, mode=mode, use_forward_sampler=_fault_tolerant_enabled())
-        )
+        dl_kwargs.update(self._resolve_batch_sampler(dataloader, sampler, mode=mode))
 
         required_args = {
             p.name
@@ -245,7 +239,7 @@ class TrainerDataLoadingMixin(ABC):
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
 
-        # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
+        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
         if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
             initial_seed = dl_kwargs["generator"].initial_seed() if dl_kwargs.get("generator") is not None else None
             dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"], initial_seed=initial_seed)
