@@ -241,7 +241,7 @@ class TrainingTypePlugin(Plugin, ABC):
         Override to delay restoring from checkpoint till after pre-dispatch.
         This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
 
-        Returns: 
+        Returns:
             If true, restore checkpoint after pre_dispatch.
         """
         return False
