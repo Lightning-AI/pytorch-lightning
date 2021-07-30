@@ -113,13 +113,14 @@ class AcceleratorConnector:
                 f" Use `Trainer(training_type={distributed_backend})` instead."
             )
 
-        if accelerator is not None and accelerator in self.training_types:
+        if accelerator is not None and accelerator in list(DistributedType):
             rank_zero_deprecation(
                 f"Passing {accelerator} `training_type` to the `accelerator` flag in Trainer has been deprecated"
                 f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={accelerator})` instead."
             )
 
-        self.distributed_backend = training_type or distributed_backend or accelerator
+        self.training_type = training_type
+        self.distributed_backend = distributed_backend or accelerator
 
         self.num_processes = num_processes
         self.devices = devices
@@ -156,7 +157,11 @@ class AcceleratorConnector:
         self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
-        self.set_distributed_mode()
+
+        if self.training_type is not None:
+            self._set_training_type_plugin(self.training_type)
+        else:
+            self.set_distributed_mode()
         self.configure_slurm_ddp()
 
         self.handle_given_plugins()
@@ -278,9 +283,17 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
+    def _set_training_type_plugin(self, training_type: Union[str, TrainingTypePlugin]) -> None:
+        if isinstance(self.training_type, str) and self.training_type in TrainingTypePluginsRegistry:
+            self._training_type_plugin = TrainingTypePluginsRegistry.get(self.training_type)
+        if isinstance(self.training_type, str):
+            self.set_distributed_mode(self.training_type)
+        elif isinstance(self.training_type, TrainingTypePlugin):
+            self._training_type_plugin = self.training_type
+
     def handle_given_plugins(self) -> None:
 
-        training_type = None
+        training_type = self._training_type_plugin
         precision = None
         cluster_environment = None
 
