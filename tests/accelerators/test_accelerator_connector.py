@@ -613,3 +613,21 @@ def test_devices_with_cpu_only_supports_integer():
 
     with pytest.raises(MisconfigurationException, match="The flag `devices` only supports integer"):
         Trainer(accelerator="cpu", devices="1,3")
+
+
+def test_exception_when_training_type_used_with_distributed_backend():
+
+    with pytest.raises(MisconfigurationException, match="but have also passed"):
+        Trainer(distributed_backend="ddp_cpu", training_type="ddp_spawn")
+
+
+def test_exception_when_training_type_used_with_accelerator():
+
+    with pytest.raises(MisconfigurationException, match="but have also passed"):
+        Trainer(accelerator="ddp", training_type="ddp_spawn")
+
+
+def test_exception_when_training_type_used_with_plugins():
+
+    with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
+        Trainer(plugins="ddp_find_unused_parameters_false", training_type="ddp_spawn")

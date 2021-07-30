@@ -141,7 +141,7 @@ class AcceleratorConnector:
 
         self.plugins = plugins
 
-        self._deprecation_and_warn_for_accelerator_and_distributed_backend(distributed_backend, accelerator)
+        self._handle_accelerator_and_distributed_backend(distributed_backend, accelerator)
 
         self._validate_accelerator_and_devices()
         self._warn_if_devices_flag_ignored()
@@ -273,16 +273,17 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
-    def _deprecation_and_warn_for_accelerator_and_distributed_backend(self, distributed_backend, accelerator) -> None:
+    def _handle_accelerator_and_distributed_backend(self, distributed_backend, accelerator) -> None:
         if distributed_backend is not None:
             rank_zero_deprecation(
                 f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
                 f" Use `Trainer(training_type={distributed_backend})` instead."
             )
             if self.training_type is not None:
-                rank_zero_warn(
-                    f"`Trainer(distributed_backend={distributed_backend})` will be ignored, as you have set"
-                    f" `Trainer(training_type={self.training_type})`"
+                raise MisconfigurationException(
+                    f"You have passed `Trainer(training_type={self.training_type})` but have"
+                    f" also passed `Trainer(distributed_backend={distributed_backend})`."
+                    f"HINT: Use just `Trainer(training_type={self.training_type})` instead."
                 )
 
         if accelerator is not None and accelerator in list(DistributedType):
@@ -291,9 +292,10 @@ class AcceleratorConnector:
                 f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={accelerator})` instead."
             )
             if self.training_type is not None:
-                rank_zero_warn(
-                    f"`Trainer(accelerator={accelerator})` will be ignored, as you have set"
-                    f" `Trainer(training_type={self.training_type})`"
+                raise MisconfigurationException(
+                    f"You have passed `Trainer(training_type={self.training_type})` but have"
+                    f" also passed `Trainer(accelerator={accelerator})`."
+                    f"HINT: Use just `Trainer(training_type={self.training_type})` instead."
                 )
 
     def _set_training_type_plugin(self, training_type: Union[str, TrainingTypePlugin]) -> None:
@@ -375,10 +377,6 @@ class AcceleratorConnector:
     @property
     def accelerator_types(self) -> List[str]:
         return ["auto"] + list(DeviceType)
-
-    @property
-    def training_types(self) -> List[str]:
-        return ["single"] + list(DistributedType) + TrainingTypePluginsRegistry.available_plugins()
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
