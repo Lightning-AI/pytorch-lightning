@@ -515,7 +515,9 @@ class Accelerator:
         """
         Override to delay restoring from checkpoint till after pre-dispatch.
         This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
-        Returns: If true, restore checkpoint after pre_dispatch.
+
+        Returns: 
+            If true, restore checkpoint after pre_dispatch.
         """
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
