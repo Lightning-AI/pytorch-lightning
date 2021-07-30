@@ -116,8 +116,11 @@ at which point it is very useful to know how that model was trained (i.e.: what 
 Lightning has a few ways of saving that information for you in checkpoints and yaml files. The goal here is to
 improve readability and reproducibility.
 
-1.  The first way is to ask lightning to save the values of anything in the __init__ for you to the checkpoint. This also
-    makes those values available via `self.hparams`.
+1.  Using :meth:`~pytorch_lightning.core.lightning.LightningModule. save_hyperparameters` within your
+    :class:`~pytorch_lightning.core.lightning.LightningModule` ``__init__`` function will enable Lightning
+    to store all the provided arguments within the ``self.hparams`` attribute. These hyper-parameters will
+    also be stored within the model checkpoint, which simplifies model re-instantiation in production settings.
+    This also makes those values available via ``self.hparams``.
 
     .. code-block:: python
 
@@ -153,28 +156,35 @@ improve readability and reproducibility.
         model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
-3.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
+3.  You can also convert full objects such as ``dict`` or ``Namespace`` to ``hparams`` so they get saved to the
+    checkpoint.
 
     .. code-block:: python
 
-        # using a argparse.Namespace
         class LitMNIST(LightningModule):
-            def __init__(self, conf, *args, **kwargs):
+            def __init__(self, conf: Optional[Union[Dict, Namespace, DictConfig]] = None, **kwargs):
                 super().__init__()
+                # save the config and any extra arguments
                 self.save_hyperparameters(conf)
+                self.save_hyperparameters(kwargs)
 
                 self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
                 self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
                 self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
 
 
-        conf = OmegaConf.create(...)
-        model = LitMNIST(conf)
+        conf = {...}
+        # OR
+        # conf = parser.parse_args()
+        # OR
+        # conf = OmegaConf.create(...)
+        model = LitMNIST(conf=conf, anything=10)
 
         # Now possible to access any stored variables from hparams
         model.hparams.anything
 
-
+        # for this to work, you need to access with `self.hparams.layer_1_dim`, not `conf.layer_1_dim`
+        model = LitMNIST.load_from_checkpoint(PATH)
 
 ----------
 

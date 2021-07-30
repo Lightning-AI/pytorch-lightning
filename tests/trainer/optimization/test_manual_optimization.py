@@ -1098,3 +1098,17 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     assert set(trainer.logged_metrics) == {"epoch", "loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
+
+
+def test_manual_optimization_training_step_signature(tmpdir):
+    """Test that Lightning raises an exception if the training_step signature has an optimier_idx by mistake."""
+
+    class ConfusedAutomaticManualModel(ManualOptModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+    model = ConfusedAutomaticManualModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+
+    with pytest.raises(ValueError, match="Your `LightningModule.training_step` signature contains an `optimizer_idx`"):
+        trainer.fit(model)
