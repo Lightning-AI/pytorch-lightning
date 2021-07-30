@@ -165,13 +165,6 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-        print("HELLO")
-
-        self.barrier()
-
-        # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
-
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         assert self.local_rank == 0
@@ -346,6 +339,9 @@ class DDPPlugin(ParallelPlugin):
 
         self.configure_ddp()
 
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
+
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
 
@@ -454,6 +450,7 @@ class DDPPlugin(ParallelPlugin):
 
         for pid in self._pids:
             if pid != os.getpid():
-                os.kill(pid, signal.SIGKILL)
+                os.kill(pid, signal.SIGTERM)
+                # os.kill(pid, signal.SIGKILL)
             shutil.rmtree(sync_dir)
             raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")

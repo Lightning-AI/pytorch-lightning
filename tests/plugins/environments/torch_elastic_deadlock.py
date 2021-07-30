@@ -12,6 +12,7 @@ class CustomException(Exception):
 class TestModel(BoringModel):
     def training_step(self, batch, batch_idx):
         if batch_idx == 1 and self.trainer.is_global_zero:
+            #pass
             # rank 0: raises an exception
             # rank 1: continues training but will hang on the next barrier in the training loop
             raise CustomException
@@ -27,7 +28,8 @@ assert isinstance(trainer.training_type_plugin, DDPPlugin)
 try:
     # simulate random failure in training_step on rank 0
     trainer.fit(model)
-except Exception as e:
-    assert "CustomException" in str(e)
+except Exception:
+    pass
 
-sys.exit(0)
+# sys.exit(0) It works, but ``torch.distributed.run`` adds a barrier blocking the process ...
+sys.exit(42)
