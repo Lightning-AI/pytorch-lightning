@@ -211,30 +211,30 @@ class Loop(ABC):
                 if restart_progress:
                     apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
 
-            elif isinstance(v, ResultCollection):
-                if self.trainer is not None and getattr(self.trainer, "lightning_module", None) is not None:
-                    metric_attributes = {
-                        name: module
-                        for name, module in self.trainer.lightning_module.named_modules()
-                        if isinstance(module, Metric)
-                    }
-                    if metrics:
-                        metric_attributes.update(metrics)
+            elif (
+                isinstance(v, ResultCollection)
+                and self.trainer is not None
+                and getattr(self.trainer, "lightning_module", None) is not None
+            ):
+                metric_attributes = {
+                    name: module
+                    for name, module in self.trainer.lightning_module.named_modules()
+                    if isinstance(module, Metric)
+                }
+                if metrics:
+                    metric_attributes.update(metrics)
 
-                    # The `ResultCollection` objects has 2 types of metrics: tensor and torchmetrics.Metric.
-                    # When creating a checkpoint, the Metric type are been dropped from the loop state_dict
-                    # to serialize only pure Python primitives.
-                    # However, their states are saved alongside the model state_dict.
-                    # On reload, we need to re-attach the Metrics back the ResultCollection.
-                    # The references are provided through ``metric_attributes`` dictionary.
-                    v.load_state_dict(
-                        state_dict[prefix + k],
-                        metrics=metric_attributes,
-                        sync_fn=self.trainer.training_type_plugin.reduce,
-                    )
+                # The `ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
+                # When creating a checkpoint, the `Metric`s are dropped from the loop `state_dict` to serialize only
+                # Python primitives. However, their states are saved with the model's `state_dict`.
+                # On reload, we need to re-attach the `Metric`s back to the `ResultCollection`.
+                # The references are provided through the `metric_attributes` dictionary.
+                v.load_state_dict(
+                    state_dict[prefix + k], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
+                )
 
-                    if not self.trainer.is_global_zero:
-                        v.reset(metrics=False)
+                if not self.trainer.is_global_zero:
+                    v.reset(metrics=False)
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True

@@ -219,7 +219,7 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
-        state_dict = self._loaded_checkpoint.pop("loops", None)
+        state_dict = self._loaded_checkpoint.get("loops")
         if state_dict:
             self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
@@ -448,19 +448,22 @@ class CheckpointConnector:
         self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
-        if _fault_tolerant_enabled():
-            metrics = [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
-            for metric in metrics:
-                metric.persistent(True)
-                metric.sync()
+        metrics = (
+            [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
+            if _fault_tolerant_enabled()
+            else []
+        )
+
+        for metric in metrics:
+            metric.persistent(True)
+            metric.sync()
 
         state_dict = self.trainer.accelerator.lightning_module_state_dict()
 
-        if _fault_tolerant_enabled():
-            for metric in metrics:
-                # on cpu, sync is a no-op and therefore `unsync` call would fail as the metrics is not synced.
-                if metric._is_synced:
-                    metric.unsync()
+        for metric in metrics:
+            # sync can be a no-op (e.g. on cpu) so `unsync` would raise an user error exception if we don't check
+            if metric._is_synced:
+                metric.unsync()
 
         return state_dict
 
