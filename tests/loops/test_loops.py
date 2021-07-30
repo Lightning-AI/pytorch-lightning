@@ -100,6 +100,7 @@ def test_loop_restore():
     class Simple(Loop):
         def __init__(self, dataset: Iterator):
             super().__init__()
+            self.iteration_count = 0
             self.dataset = dataset
 
         @property
@@ -126,6 +127,9 @@ def test_loop_restore():
                 raise CustomException
 
             self.outputs.append(value)
+
+        def on_advance_end(self) -> None:
+            self.iteration_count += 1
 
         def state_dict(self) -> Dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}

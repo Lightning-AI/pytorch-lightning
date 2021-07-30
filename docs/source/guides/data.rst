@@ -79,10 +79,7 @@ and Lightning will use the correct one under-the-hood.
             return torch.utils.data.DataLoader(self.train_dataset)
 
         def val_dataloader(self):
-            return [
-                torch.utils.data.DataLoader(self.val_dataset_1),
-                torch.utils.data.DataLoader(self.val_dataset_2)
-            ]
+            return [torch.utils.data.DataLoader(self.val_dataset_1), torch.utils.data.DataLoader(self.val_dataset_2)]
 
         def test_dataloader(self):
             return torch.utils.data.DataLoader(self.test_dataset)
@@ -114,20 +111,13 @@ datasets).
         def __len__(self):
             return min(len(d) for d in self.datasets)
 
-    class LitModel(LightningModule):
 
+    class LitModel(LightningModule):
         def train_dataloader(self):
-            concat_dataset = ConcatDataset(
-                datasets.ImageFolder(traindir_A),
-                datasets.ImageFolder(traindir_B)
-            )
+            concat_dataset = ConcatDataset(datasets.ImageFolder(traindir_A), datasets.ImageFolder(traindir_B))
 
             loader = torch.utils.data.DataLoader(
-                concat_dataset,
-                batch_size=args.batch_size,
-                shuffle=True,
-                num_workers=args.workers,
-                pin_memory=True
+                concat_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, pin_memory=True
             )
             return loader
 
@@ -148,7 +138,6 @@ For more details please have a look at :paramref:`~pytorch_lightning.trainer.tra
 .. testcode::
 
     class LitModel(LightningModule):
-
         def train_dataloader(self):
 
             loader_a = torch.utils.data.DataLoader(range(6), batch_size=4)
@@ -156,8 +145,7 @@ For more details please have a look at :paramref:`~pytorch_lightning.trainer.tra
 
             # pass loaders as a dict. This will create batches like this:
             # {'a': batch from loader_a, 'b': batch from loader_b}
-            loaders = {'a': loader_a,
-                       'b': loader_b}
+            loaders = {"a": loader_a, "b": loader_b}
 
             # OR:
             # pass loaders as sequence. This will create batches like this:
@@ -171,13 +159,12 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 .. testcode::
 
     class LitModel(LightningModule):
-
         def train_dataloader(self):
 
             loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
             loader_b = torch.utils.data.DataLoader(range(16), batch_size=2)
 
-            return {'a': loader_a, 'b': loader_b}
+            return {"a": loader_a, "b": loader_b}
 
         def training_step(self, batch, batch_idx):
             # access a dictionnary with a batch from each DataLoader
@@ -188,7 +175,6 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
 .. testcode::
 
     class LitModel(LightningModule):
-
         def train_dataloader(self):
 
             loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
@@ -197,16 +183,7 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             loader_c = torch.utils.data.DataLoader(range(64), batch_size=4)
 
             # pass loaders as a nested dict. This will create batches like this:
-            loaders = {
-                'loaders_a_b': [
-                    loader_a,
-                    loader_b
-                ],
-                'loaders_c_d': {
-                    'c': loader_c,
-                    'd': loader_d
-                }
-            }
+            loaders = {"loaders_a_b": [loader_a, loader_b], "loaders_c_d": {"c": loader_c, "d": loader_d}}
             return loaders
 
         def training_step(self, batch, batch_idx):
@@ -248,10 +225,11 @@ needs to wrap the DataLoaders with `CombinedLoader`.
 
     from pytorch_lightning.trainer.supporters import CombinedLoader
 
+
     def val_dataloader(self):
         loader_1 = DataLoader()
         loader_2 = DataLoader()
-        loaders = {'a': loader_a,'b': loader_b}
+        loaders = {"a": loader_a, "b": loader_b}
         combined_loaders = CombinedLoader(loaders, "max_size_cycle")
         return combined_loaders
 
@@ -298,6 +276,7 @@ When using PackedSequence, do 2 things:
         y = [item[1] for item in batch]
         return x, y
 
+
     # In module
     def training_step(self, batch, batch_nb):
         x = rnn.pack_sequence(batch[0], enforce_sorted=False)
@@ -316,8 +295,8 @@ Lightning can handle TBPTT automatically via this flag.
 
     from pytorch_lightning import LightningModule
 
-    class MyModel(LightningModule):
 
+    class MyModel(LightningModule):
         def __init__(self):
             super().__init__()
             # Important: This property activates truncated backpropagation through time
@@ -329,10 +308,7 @@ Lightning can handle TBPTT automatically via this flag.
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(data, hiddens)
-            return {
-                "loss": ...,
-                "hiddens": hiddens
-            }
+            return {"loss": ..., "hiddens": hiddens}
 
 .. note:: If you need to modify how the batch is split,
     override :func:`~pytorch_lightning.core.LightningModule.tbptt_split_batch`.
@@ -356,16 +332,16 @@ option when using sequential data.
 
     # IterableDataset
     class CustomDataset(IterableDataset):
-
         def __init__(self, data):
             self.data_source
 
         def __iter__(self):
             return iter(self.data_source)
 
+
     # Setup DataLoader
     def train_dataloader(self):
-        seq_data = ['A', 'long', 'time', 'ago', 'in', 'a', 'galaxy', 'far', 'far', 'away']
+        seq_data = ["A", "long", "time", "ago", "in", "a", "galaxy", "far", "far", "away"]
         iterable_dataset = CustomDataset(seq_data)
 
         dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)

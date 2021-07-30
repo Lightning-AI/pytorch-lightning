@@ -377,9 +377,8 @@ class ResultCollection(dict):
 
     @minimize.setter
     def minimize(self, loss: Optional[torch.Tensor]) -> None:
-        if loss is not None:
-            if not isinstance(loss, torch.Tensor):
-                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
+        if loss is not None and not isinstance(loss, torch.Tensor):
+            raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
         self._minimize = loss
 
     @property
@@ -388,7 +387,8 @@ class ResultCollection(dict):
         Extras are any keys other than the loss returned by
         :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
         """
-        return self.get("_extra", {})
+        self.setdefault("_extra", {})
+        return self["_extra"]
 
     @extra.setter
     def extra(self, extra: Dict[str, Any]) -> None:
@@ -605,7 +605,16 @@ class ResultCollection(dict):
         return self.to(device="cpu")
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})"
+        # sample output: `ResultCollection(minimize=1.23, {})`
+        minimize = f"minimize={self.minimize}, " if self.minimize is not None else ""
+        # remove empty values
+        self_str = str({k: v for k, v in self.items() if v})
+        return f"{self.__class__.__name__}({minimize}{self_str})"
+
+    def __repr__(self):
+        # sample output: `{True, cpu, minimize=tensor(1.23 grad_fn=<SumBackward0>), {'_extra': {}}}`
+        minimize = f"minimize={repr(self.minimize)}, " if self.minimize is not None else ""
+        return f"{{{self.training}, {repr(self.device)}, " + minimize + f"{super().__repr__()}}}"
 
     def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()

@@ -88,6 +88,7 @@ class AcceleratorConnector:
         tpu_cores,
         ipus,
         distributed_backend,
+        accelerator,
         gpus,
         gpu_ids,
         num_nodes,
@@ -104,6 +105,13 @@ class AcceleratorConnector:
         self._device_type = DeviceType.CPU
         self._distrib_type = None
         self._accelerator_type = None
+
+        if distributed_backend is not None:
+            rank_zero_deprecation(
+                f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
+                f" Use `Trainer(accelerator={distributed_backend})` instead."
+            )
+        distributed_backend = distributed_backend or accelerator
 
         self.num_processes = num_processes
         self.devices = devices
@@ -740,7 +748,7 @@ class AcceleratorConnector:
                 self.distributed_backend = "ddp_spawn"
 
         # special case with DDP on CPUs
-        if self.distributed_backend == "ddp_cpu":
+        if self.distributed_backend == DistributedType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
@@ -795,7 +803,7 @@ class AcceleratorConnector:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
-        if self.distributed_backend == "horovod":
+        if self.distributed_backend == DistributedType.HOROVOD:
             self._set_horovod_backend()
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
@@ -849,7 +857,7 @@ class AcceleratorConnector:
     @staticmethod
     def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+        return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,

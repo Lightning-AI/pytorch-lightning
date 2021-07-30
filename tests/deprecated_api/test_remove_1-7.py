@@ -11,24 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+""" Test deprecated functionality which will be removed in v1.7.0 """
+import pytest
 
-import torch
-from torchmetrics.functional import accuracy as _accuracy
-
-from pytorch_lightning.metrics.utils import deprecated_metrics, void
+from tests.helpers import BoringModel
 
 
-@deprecated_metrics(target=_accuracy)
-def accuracy(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    threshold: float = 0.5,
-    top_k: Optional[int] = None,
-    subset_accuracy: bool = False,
-) -> torch.Tensor:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
-    """
-    return void(preds, target, threshold, top_k, subset_accuracy)
+def test_v1_7_0_deprecated_model_size():
+    model = BoringModel()
+    with pytest.deprecated_call(
+        match="LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7"
+    ):
+        _ = model.model_size

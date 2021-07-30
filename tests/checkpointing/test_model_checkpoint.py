@@ -148,7 +148,7 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks"][type(checkpoint)]
+        mc_specific_data = chk["callbacks"]["ModelCheckpoint"]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -259,7 +259,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk["callbacks"][type(checkpoint)]
+        mc_specific_data = chk["callbacks"]["ModelCheckpoint"]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -857,9 +857,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
-
-    ch_type = type(model_checkpoint)
-    assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
+    assert ckpt_last["callbacks"]["ModelCheckpoint"] == ckpt_last_epoch["callbacks"]["ModelCheckpoint"]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
@@ -1039,7 +1037,7 @@ def test_configure_model_checkpoint(tmpdir):
 
     # default configuration
     trainer = Trainer(checkpoint_callback=True, callbacks=[], **kwargs)
-    assert len([c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]) == 1
+    assert sum(1 for c in trainer.callbacks if isinstance(c, ModelCheckpoint)) == 1
     assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
 
     # custom callback passed to callbacks list, checkpoint_callback=True is ignored
@@ -1097,7 +1095,7 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"][type(model_checkpoint)] for ckpt in ckpts]
+    ckpts = [ckpt["callbacks"]["ModelCheckpoint"] for ckpt in ckpts]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
 
 
