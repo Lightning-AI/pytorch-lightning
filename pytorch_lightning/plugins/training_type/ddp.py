@@ -411,7 +411,7 @@ class DDPPlugin(ParallelPlugin):
         self._share_pids()
 
         # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+        self._sync_dir = os.getenv("PL_DDP_SYNC_TMPDIR")
 
     def _share_pids(self):
         """
