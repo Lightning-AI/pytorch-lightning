@@ -849,8 +849,8 @@ class Trainer(
         # only one process running at this point for TPUs, as spawn isn't triggered yet
         # todo: move this logic internally within the barrier.
         if not self._device_type == DeviceType.TPU:
-            self.training_type_plugin.barrier()
-        rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
+            self.accelerator.barrier()
+        rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:

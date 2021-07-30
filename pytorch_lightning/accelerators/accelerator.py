@@ -513,7 +513,7 @@ class Accelerator:
     @property
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
         """
-        Override to delay restoring from checkpoint till after predispatch.
+        Override to delay restoring from checkpoint till after pre-dispatch.
         This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
         Returns: If true, restore checkpoint after pre_dispatch.
         """
