@@ -248,9 +248,8 @@ class TrainerDataLoadingMixin(ABC):
 
         # wrap the ``IterableDataset`` into a ``CaptureIterableDataset`` to record sampler states.
         if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
-            dl_kwargs["dataset"] = CaptureIterableDataset(
-                dataset=dl_kwargs["dataset"], initial_seed=dl_kwargs["generator"].initial_seed()
-            )
+            initial_seed = dl_kwargs["generator"].initial_seed() if dl_kwargs.get("generator") is not None else None
+            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"], initial_seed=initial_seed)
             dl_kwargs["sampler"] = None
 
         if isinstance(dl_kwargs["dataset"], IterableDataset):
