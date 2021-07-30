@@ -16,8 +16,8 @@ import gc
 import os
 import shutil
 import subprocess
-from typing import Dict, Union
 import uuid
+from typing import Dict, Union
 
 import torch
 from torch.nn import Module
@@ -145,7 +145,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
     gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
-  
+
 def get_model_size_mb(model: Module) -> float:
     """
     Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
@@ -162,4 +162,3 @@ def get_model_size_mb(model: Module) -> float:
     size_mb = os.path.getsize(tmp_name) / 1e6
     os.remove(tmp_name)
     return size_mb
-
