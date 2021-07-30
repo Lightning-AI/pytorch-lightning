@@ -306,16 +306,17 @@ class AcceleratorConnector:
 
     def handle_given_plugins(self) -> None:
 
-        if self.training_type is not None:
-            for plug in self.plugins:
-                exception_msg = (
+        for plug in self.plugins:
+            if self.training_type is not None and self._is_plugin_training_type(plug):
+                raise MisconfigurationException(
                     f"You have passed `Trainer(training_type={self.training_type})`"
                     f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
                 )
-                if isinstance(plug, str) and (plug in TrainingTypePluginsRegistry or plug in list(DistributedType)):
-                    raise MisconfigurationException(exception_msg)
-                elif isinstance(plug, TrainingTypePlugin):
-                    raise MisconfigurationException(exception_msg)
+            elif self._is_plugin_training_type(plug):
+                rank_zero_deprecation(
+                    f"Passing {plug} `training_type` to the `plugins` flag in Trainer has been deprecated"
+                    f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={plug})` instead."
+                )
 
         training_type = self._training_type_plugin
         precision = None
@@ -565,6 +566,11 @@ class AcceleratorConnector:
             if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
             else None
         )
+
+    def _is_plugin_training_type(self, plugin: Union[str, TrainingTypePlugin]) -> bool:
+        if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(DistributedType)):
+            return True
+        return isinstance(plugin, TrainingTypePlugin)
 
     @property
     def is_training_type_in_plugins(self) -> bool:
