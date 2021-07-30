@@ -836,7 +836,7 @@ class Trainer(
 
         return result
 
-    def _restore_checkpoint(self) -> None:
+    def _restore_modules_and_callbacks(self) -> None:
         # restore modules after setup
         if self.state.fn == TrainerFn.FITTING:
             self.checkpoint_connector.resume_start()
@@ -880,7 +880,7 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
-            self._restore_checkpoint()
+            self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -926,7 +926,7 @@ class Trainer(
         if self.accelerator.restore_checkpoint_after_pre_dispatch:
             if self._ckpt_path:
                 self._load_checkpoint_weights()
-            self._restore_checkpoint()
+            self._restore_modules_and_callbacks()
 
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()
