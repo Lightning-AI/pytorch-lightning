@@ -1889,9 +1889,14 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     # before measuring the memory force release any leftover allocations, including CUDA tensors
     gc.collect()
     memory_1 = torch.cuda.memory_allocated(0)
+    assert memory_1 == initial
+
     deepcopy(trainer)
+
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_1 == memory_2 == initial
+    assert memory_2 == initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
@@ -1899,5 +1904,4 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     # before measuring the memory force release any leftover allocations, including CUDA tensors
     gc.collect()
     memory_3 = torch.cuda.memory_allocated(0)
-
-    assert initial == memory_1 == memory_3
+    assert memory_3 == initial
