@@ -63,6 +63,7 @@ module = [
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.trainer.evaluation_loop",
     "pytorch_lightning.trainer.connectors.logger_connector",
+    "pytorch_lightning.utilities.argparse",
     "pytorch_lightning.utilities.cli",
     "pytorch_lightning.utilities.device_dtype_mixin",
     "pytorch_lightning.utilities.device_parser",
