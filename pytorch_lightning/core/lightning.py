@@ -750,7 +750,7 @@ class LightningModule(
 
                 out = self(x)
 
-                # softmax uses only a portion of the batch in the denomintaor
+                # softmax uses only a portion of the batch in the denominator
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
                 return loss
