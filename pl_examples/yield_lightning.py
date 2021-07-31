@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loops.batch.yield_loop import YieldLoop
+from pytorch_lightning.loops.batch.yield_loop import YieldLoop, Yield
 from pytorch_lightning.plugins import DDPPlugin
 
 
@@ -21,7 +21,7 @@ class RandomDataset(Dataset):
         return self.len
 
 
-class BoringModel(LightningModule):
+class BoringModel(Yield, LightningModule):
     def __init__(self):
         super().__init__()
         self.layer1 = torch.nn.Linear(32, 32)
@@ -64,7 +64,7 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,
-        gpus=1,
+        # gpus=1,
         # accelerator="ddp",
         # accelerator="ddp_cpu",
         # plugins=DDPPlugin(),

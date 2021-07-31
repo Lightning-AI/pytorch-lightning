@@ -5,6 +5,19 @@ from torch import Tensor
 
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+class Yield:
+    """
+    Interface for the LightningModule to define a flavor for automatic optimization where
+    the training step method yields losses for each optimizer instead of returning them.
+    """
+
+    def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
+        # the optimizer_idx is just here to shortcut the implementation for this POC
+        # TODO: generalize and override the build_kwargs function in YieldLoop
+        pass
 
 
 class YieldLoop(TrainingBatchLoop):
@@ -13,6 +26,11 @@ class YieldLoop(TrainingBatchLoop):
 
     def on_run_start(self, *args, **kwargs):
         super().on_run_start(*args, **kwargs)
+        if not isinstance(self.trainer.lightning_module, Yield):
+            raise MisconfigurationException(
+                "Given LightingModule does not inherit the Yield interface for automatic optimization, but a"
+                " YieldLoop was requested."
+            )
         assert inspect.isgeneratorfunction(self.trainer.lightning_module.training_step)
         assert self.trainer.lightning_module.automatic_optimization
 
