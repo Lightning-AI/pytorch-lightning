@@ -745,7 +745,7 @@ class AcceleratorConnector:
                     "You requested multiple GPUs but did not specify a backend, e.g."
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
                 )
-                self.distributed_backend = "ddp_spawn"
+                self.distributed_backend = DistributedType.DDP_SPAWN
 
         # special case with DDP on CPUs
         if self.distributed_backend == DistributedType.DDP_CPU:
