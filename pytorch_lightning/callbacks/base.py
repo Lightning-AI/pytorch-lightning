@@ -56,7 +56,7 @@ class Callback(abc.ABC):
         Args:
             **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
         """
-        attrs = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+        attrs = ", ".join(f"{repr(k)}={repr(v)}" for k, v in kwargs.items())
         identifier = f"{self.__class__.__qualname__}[{attrs}]"
         return identifier
 
