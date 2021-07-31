@@ -247,12 +247,15 @@ class DDPSpawnPlugin(ParallelPlugin):
         # skip warpping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn != TrainerFn.FITTING:
-            self._model = LightningDistributedModule(self.model) if not isinstance(self.model, (LightningDistributedModule)) else self.model 
+            self._model = (
+                LightningDistributedModule(self.model)
+                if not isinstance(self.model, (LightningDistributedModule))
+                else self.model
+            )
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
-            return 
+            return
         self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
-            device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
+            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
 
     def _register_ddp_hooks(self) -> None:

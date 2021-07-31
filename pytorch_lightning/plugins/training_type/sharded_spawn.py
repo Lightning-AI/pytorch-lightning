@@ -20,6 +20,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_debug
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -58,12 +59,11 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         # skip warpping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn != TrainerFn.FITTING:
-            self._model = LightningDistributedModule(self.model) if not isinstance(self.model, (LightningDistributedModule)) else self.model 
+            self._model = self.model
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
             return
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model), 
-            sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
         )
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:

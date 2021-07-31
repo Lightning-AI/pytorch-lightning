@@ -70,7 +70,7 @@ class DDPShardedPlugin(DDPPlugin):
         # skip warpping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn != TrainerFn.FITTING:
-            self._model = LightningDistributedModule(self.model) if not isinstance(self.model, (LightningDistributedModule)) else self.model 
+            self._model = self.model
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
             return
         self._model = ShardedDataParallel(
