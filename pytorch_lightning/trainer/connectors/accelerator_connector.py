@@ -738,8 +738,10 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
+            elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._distrib_type = DistributedType.DDP
+            elif self.num_gpus == 0 and self.num_processes > 1:
+                self.distributed_backend = DistributedType.DDP_SPAWN
             elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."

@@ -538,7 +538,7 @@ def test_accelerator_cpu_with_multiple_gpus():
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPPlugin)])
+@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPSpawnPlugin)])
 def test_accelerator_cpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="cpu", devices=devices)
