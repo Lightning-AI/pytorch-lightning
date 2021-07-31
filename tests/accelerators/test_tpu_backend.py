@@ -260,3 +260,16 @@ def test_ddp_cpu_not_supported_on_tpus():
 
     with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
         Trainer(accelerator="ddp_cpu")
+
+
+@RunIf(tpu=True)
+@pytest.mark.parametrize("training_type", ["tpu_spawn", "tpu_spawn_debug"])
+def test_training_type_choice_tpu_str(tmpdir, training_type):
+    trainer = Trainer(training_type=training_type, accelerator="tpu", devices=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+
+
+@RunIf(tpu=True)
+def test_training_type_choice_tpu_plugin(tmpdir):
+    trainer = Trainer(training_type=TPUSpawnPlugin(), accelerator="tpu", devices=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)

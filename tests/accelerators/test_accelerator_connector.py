@@ -635,16 +635,38 @@ def test_exception_when_training_type_used_with_plugins():
     [
         ("ddp_spawn", DDPSpawnPlugin),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
-        ("ddp", DDPPlugin),
-        ("ddp_find_unused_parameters_false", DDPPlugin),
+        # ("ddp", DDPPlugin),
+        # ("ddp_find_unused_parameters_false", DDPPlugin),
     ],
 )
 def test_training_type_choice_cpu_str(tmpdir, training_type, plugin):
-    trainer = Trainer(training_type=training_type, num_processes=2)
+    trainer = Trainer(training_type=training_type, accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
 def test_training_type_choice_cpu_plugin(tmpdir, plugin):
-    trainer = Trainer(training_type=plugin(), num_processes=2)
+    trainer = Trainer(training_type=plugin(), accelerator="cpu", devices=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize(
+    ["training_type", "plugin"],
+    [
+        ("ddp_spawn", DDPSpawnPlugin),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPPlugin),
+    ],
+)
+def test_training_type_choice_gpu_str(tmpdir, training_type, plugin):
+    trainer = Trainer(training_type=training_type, accelerator="gpu", devices=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+def test_training_type_choice_gpu_plugin(tmpdir, plugin):
+    trainer = Trainer(training_type=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
