@@ -292,18 +292,17 @@ class DDPPlugin(ParallelPlugin):
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
-    def _wrap_model(self) -> bool:
+    def _wrap_model(self) -> None:
         # skip warpping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn != TrainerFn.FITTING:
             self._model = LightningDistributedModule(self.model) if not isinstance(self.model, (LightningDistributedModule)) else self.model 
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
-            return False
+            return
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model),
             device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
-        return True
 
     def _register_ddp_hooks(self) -> None:
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
@@ -319,9 +318,8 @@ class DDPPlugin(ParallelPlugin):
             )
 
     def configure_ddp(self):
-        if not self._wrap_model():
-            return
         self.pre_configure_ddp()
+        self._wrap_model()
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
