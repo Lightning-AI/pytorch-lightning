@@ -538,3 +538,9 @@ def test_set_devices_if_none_ipu():
 
     trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.devices == 8
+
+
+@RunIf(ipu=True)
+def test_training_type_choice_ipu_plugin(tmpdir):
+    trainer = Trainer(training_type=IPUPlugin(), accelerator="ipu", devices=8)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
