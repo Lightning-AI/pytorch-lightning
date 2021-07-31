@@ -628,3 +628,23 @@ def test_exception_when_training_type_used_with_accelerator():
 def test_exception_when_training_type_used_with_plugins():
     with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
         Trainer(plugins="ddp_find_unused_parameters_false", training_type="ddp_spawn")
+
+
+@pytest.mark.parametrize(
+    ["training_type", "plugin"],
+    [
+        ("ddp_spawn", DDPSpawnPlugin),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPPlugin),
+    ],
+)
+def test_training_type_choice_cpu_str(tmpdir, training_type, plugin):
+    trainer = Trainer(training_type=training_type, num_processes=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+def test_training_type_choice_cpu_plugin(tmpdir, plugin):
+    trainer = Trainer(training_type=plugin(), num_processes=2)
+    assert isinstance(trainer.training_type_plugin, plugin)
