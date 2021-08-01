@@ -738,9 +738,9 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
+            elif not self.has_gpu and (self.num_nodes > 1 or self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
-            elif self.num_gpus > 1 and not _use_cpu:
+            elif self.has_gpu and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
@@ -755,7 +755,7 @@ class AcceleratorConnector:
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
             self._distrib_type = DistributedType.DDP_SPAWN
-            if self.num_gpus > 0:
+            if self.has_gpu:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
                 )
@@ -773,12 +773,12 @@ class AcceleratorConnector:
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
-        if self.num_gpus > 0 and not _use_cpu:
+        if self.has_gpu and not _use_cpu:
             self._device_type = DeviceType.GPU
 
         _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _use_cpu:
+        if not self.has_gpu and self._distrib_type in _gpu_distrib_types and not _use_cpu:
             rank_zero_warn(
                 f"{self._distrib_type} is not supported on CPUs, hence setting the distributed type to `ddp`."
             )
@@ -848,7 +848,7 @@ class AcceleratorConnector:
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
-        if self.num_gpus > 1 or self.num_nodes > 1:
+        if self.has_gpu or self.num_nodes > 1:
             raise MisconfigurationException(
                 "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
                 "horovodrun / mpirun to configure the number of processes."
