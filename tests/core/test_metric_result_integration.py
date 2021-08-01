@@ -27,6 +27,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -456,6 +457,9 @@ def result_collection_reload(trainer_kwargs):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(
+    not _TORCH_GREATER_EQUAL_1_7, reason="fault tolerant training is not support for PyTorch 1.6 and below"
+)
 def test_result_collection_reload(tmpdir):
     result_collection_reload(
         {"default_root_dir": tmpdir, "max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
@@ -464,6 +468,9 @@ def test_result_collection_reload(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(
+    not _TORCH_GREATER_EQUAL_1_7, reason="fault tolerant training is not support for PyTorch 1.6 and below"
+)
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
     result_collection_reload(
         {
@@ -479,6 +486,9 @@ def test_result_collection_reload_1_gpu_ddp(tmpdir):
 
 @RunIf(min_gpus=2, special=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(
+    not _TORCH_GREATER_EQUAL_1_7, reason="fault tolerant training is not support for PyTorch 1.6 and below"
+)
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(
         {
