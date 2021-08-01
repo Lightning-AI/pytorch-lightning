@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
+from contextlib import suppress
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -353,3 +356,137 @@ def test_result_collection_extra_reference():
     """Unit-test to check that the `extra` dict reference is properly set."""
     rc = ResultCollection(True)
     assert rc.extra is rc["_extra"]
+
+
+class DummyMeanMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
+
+    def update(self, increment):
+        self.sum += increment
+        self.count += 1
+
+    def compute(self):
+        return self.sum // self.count
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
+
+
+def result_collection_reload(trainer_kwargs):
+    num_processes = trainer_kwargs.get("gpus", 1)
+
+    class CustomException(Exception):
+        pass
+
+    class ExtendedBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.has_reloaded = False
+            self.breaking_batch_idx = 3
+            self.has_validated_sum = False
+            self.dummy_metric = DummyMeanMetric()
+
+        def training_step(self, batch, batch_idx):
+            assert len(batch) == 1
+            if self.has_reloaded:
+                self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
+
+                self.dummy_metric(batch_idx)
+                self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
+
+                value = self.trainer.fit_loop._results["training_step.tracking_metric"].value
+                value_2 = self.trainer.fit_loop._results["training_step.tracking"].value
+                shift = 0
+                if num_processes == 2:
+                    shift = 3 if self.trainer.is_global_zero else -3
+                expected = sum(range(batch_idx + 1)) + shift
+                assert expected == value == value_2
+            else:
+                if batch_idx == self.breaking_batch_idx:
+                    # simulate failure mid epoch
+                    raise CustomException
+
+                self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
+
+                self.dummy_metric(batch_idx)
+                self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
+
+                value = self.trainer.fit_loop._results["training_step.tracking"].value
+                assert value == sum(range(batch_idx + 1))
+
+                value = self.trainer.fit_loop._results["training_step.tracking_2"]
+                assert value == sum(range(batch_idx + 1))
+
+            return super().training_step(batch, batch_idx)
+
+        def on_epoch_end(self) -> None:
+            if self.has_reloaded:
+                total = sum(range(5)) * num_processes
+                metrics = self.trainer.fit_loop._results.metrics(on_step=False)
+                assert self.trainer.fit_loop._results["training_step.tracking"].value == total
+                assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
+                assert self.trainer.fit_loop._results["training_step.tracking_2"].value == total
+                assert metrics[MetricSource.CALLBACK]["tracking_2"] == self.dummy_metric.compute() == 2
+                self.has_validated_sum = True
+
+    model = ExtendedBoringModel()
+
+    trainer = Trainer(**trainer_kwargs)
+
+    with suppress(CustomException):
+        trainer.fit(model)
+
+    checkpoint_path = trainer.accelerator.broadcast(os.path.join(trainer_kwargs["default_root_dir"], "ckpt.pt"))
+    trainer.save_checkpoint(checkpoint_path)
+
+    trainer.accelerator.barrier()
+
+    trainer_kwargs["resume_from_checkpoint"] = checkpoint_path
+    trainer_kwargs["max_epochs"] = 2
+
+    trainer = Trainer(**trainer_kwargs)
+    model.has_reloaded = True
+    trainer.fit(model)
+    assert model.has_validated_sum
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_result_collection_reload(tmpdir):
+    result_collection_reload(
+        {"default_root_dir": tmpdir, "max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
+    )
+
+
+@RunIf(min_gpus=1)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_result_collection_reload_1_gpu_ddp(tmpdir):
+    result_collection_reload(
+        {
+            "default_root_dir": tmpdir,
+            "max_epochs": 1,
+            "limit_train_batches": 5,
+            "limit_val_batches": 0,
+            "accelerator": "ddp",
+            "gpus": 1,
+        }
+    )
+
+
+@RunIf(min_gpus=2, special=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_result_collection_reload_2_gpus(tmpdir):
+    result_collection_reload(
+        {
+            "default_root_dir": tmpdir,
+            "max_epochs": 1,
+            "limit_train_batches": 5,
+            "limit_val_batches": 0,
+            "accelerator": "ddp",
+            "gpus": 2,
+        }
+    )
