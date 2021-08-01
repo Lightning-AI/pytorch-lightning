@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import (
+    DataParallelPlugin,
     DDP2Plugin,
     DDPPlugin,
     DDPShardedPlugin,
@@ -658,6 +659,11 @@ def test_training_type_choice_cpu_plugin(tmpdir, plugin):
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
         ("ddp", DDPPlugin),
         ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp2", DDP2Plugin),
+        ("dp", DataParallelPlugin),
+        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
+        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_training_type_choice_gpu_str(tmpdir, training_type, plugin):

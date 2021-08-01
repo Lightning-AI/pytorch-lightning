@@ -156,6 +156,7 @@ class AcceleratorConnector:
 
         self.handle_given_plugins()
         self.update_device_type_if_ipu_plugin()
+        self.update_device_type_if_training_type_plugin_passed()
 
         self._validate_accelerator_type()
         self._set_devices_if_none()
@@ -923,6 +924,17 @@ class AcceleratorConnector:
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
         if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != DeviceType.IPU:
             self._device_type = DeviceType.IPU
+
+    def update_device_type_if_training_type_plugin_passed(self) -> None:
+        if isinstance(self.training_type, TrainingTypePlugin) or any(
+            isinstance(plug, TrainingTypePlugin) for plug in self.plugins
+        ):
+            if self.use_ipu:
+                self._device_type = DeviceType.IPU
+            elif self.use_tpu:
+                self._device_type = DeviceType.TPU
+            elif self.use_gpu:
+                self._device_type = DeviceType.GPU
 
     def configure_slurm_ddp(self):
         # extract SLURM flag vars
