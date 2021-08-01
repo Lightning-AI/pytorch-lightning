@@ -21,7 +21,7 @@ from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
-import gc
+
 import cloudpickle
 import pytest
 import torch
