@@ -88,7 +88,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
-    
+
     # Check that gpus are unique. Duplicate gpus are not supported by the backend.
     _check_unique(gpus)
 
@@ -191,6 +191,7 @@ def _get_all_available_gpus() -> List[int]:
     """
     return list(range(torch.cuda.device_count()))
 
+
 def _check_unique(device_ids: List[int]) -> None:
     """
     Checks that the device_ids are unique.
@@ -204,6 +205,7 @@ def _check_unique(device_ids: List[int]) -> None:
     """
     if len(device_ids) != len(set(device_ids)):
         raise MisconfigurationException("Device ID's (GPU/TPU) must be unique.")
+
 
 def _check_data_type(device_ids: Any) -> None:
     """
