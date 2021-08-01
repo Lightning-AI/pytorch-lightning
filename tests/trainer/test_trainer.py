@@ -20,7 +20,7 @@ from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
-
+import gc
 import cloudpickle
 import pytest
 import torch
@@ -1880,6 +1880,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
+    gc.collect()
 
     assert trainer.training_type_plugin.model is model
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
@@ -1892,6 +1893,8 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
+    gc.collect()
+
     memory_3 = torch.cuda.memory_allocated(0)
 
     assert initial == memory_1 == memory_3

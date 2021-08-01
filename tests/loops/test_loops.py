@@ -380,7 +380,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
     checkpoint = torch.load(ckpt_path)
-
+    
     optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
     sch_progress = trainer.fit_loop.epoch_loop.scheduler_progress
 
@@ -497,6 +497,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        'epoch_loop.val_loop._results': ANY,
+        'epoch_loop._results': ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
