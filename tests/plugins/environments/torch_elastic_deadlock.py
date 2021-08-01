@@ -33,4 +33,7 @@ if os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1':
     except Exception:
         pass
 
+    # used to capture success from 
+    print("SUCCEEDED")
+
     sys.exit(0)
