@@ -13,8 +13,11 @@
 # limitations under the License.
 
 import gc
+import os
+import uuid
 
 import torch
+from torch.nn import Module
 
 
 def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
@@ -87,3 +90,21 @@ def garbage_collection_cuda():
         if not is_oom_error(exception):
             # Only handle OOM errors
             raise
+
+
+def get_model_size_mb(model: Module) -> float:
+    """
+    Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
+
+    The computation includes everything in the :meth:`~torch.nn.Module.state_dict`,
+    i.e., by default the parameteters and buffers.
+
+    Returns:
+        Number of megabytes in the parameters of the input module.
+    """
+    # TODO: Implement a method without needing to download the model
+    tmp_name = f"{uuid.uuid4().hex}.pt"
+    torch.save(model.state_dict(), tmp_name)
+    size_mb = os.path.getsize(tmp_name) / 1e6
+    os.remove(tmp_name)
+    return size_mb
