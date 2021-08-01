@@ -32,7 +32,7 @@ if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
     except Exception:
         pass
 
-    # used to capture success from 
+    # used to capture success from this script in the CI.
     print("SUCCEEDED")
 
     sys.exit(0)
