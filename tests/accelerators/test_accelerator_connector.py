@@ -623,8 +623,8 @@ def test_unsupported_distrib_types_on_cpu(training_type):
         trainer = Trainer(accelerator=training_type, num_processes=2)
 
     assert trainer._distrib_type == DistributedType.DDP
-    
-    
+
+
 def test_accelerator_ddp_for_cpu(tmpdir):
     trainer = Trainer(accelerator="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
