@@ -72,7 +72,6 @@ class FastForwardSampler(Sampler):
             i += 1
 
         # here: i == self._current_iteration
-        # recreate iterator to be sure loading is reflected there as well
         while True:
             self._current_iteration += 1
             try:
