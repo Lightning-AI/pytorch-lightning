@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch

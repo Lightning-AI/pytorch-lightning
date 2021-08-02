@@ -41,8 +41,8 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
-    patch_dataloader_iterator,
     IteratorState,
+    patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
