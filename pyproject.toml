@@ -21,7 +21,6 @@ order_by_type = "False"
 
 [tool.black]
 line-length = 120
-skip-magic-trailing-comma = true
 
 
 [tool.mypy]

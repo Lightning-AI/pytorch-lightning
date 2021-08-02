@@ -4,6 +4,7 @@ pytest>=6.0
 check-manifest
 twine==3.2
 mypy>=0.900
+flake8>=3.9.2
 pre-commit>=1.0
 
 cloudpickle>=1.3
