@@ -14,7 +14,7 @@
 
 import io
 from pathlib import Path
-from typing import Any, Dict, IO, Optional, Union
+from typing import Any, Callable, Dict, IO, Optional, Union
 
 import fsspec
 import torch
@@ -24,7 +24,9 @@ from packaging.version import Version
 
 def load(
     path_or_url: Union[str, IO, Path],
-    map_location: Optional[Union[str, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]] = None,
+    map_location: Optional[
+        Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
+    ] = None,
 ) -> Any:
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
