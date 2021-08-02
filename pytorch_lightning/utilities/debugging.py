@@ -41,7 +41,7 @@ def enabled_only(fn: Callable) -> Optional[Callable]:
 
 
 class InternalDebugger:
-    def __init__(self, trainer: 'pl.Trainer') -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
         self.saved_train_losses: List[Dict[str, Union[float, torch.Tensor, object]]] = []
@@ -152,9 +152,7 @@ class InternalDebugger:
 
     @enabled_only
     def track_early_stopping_history(
-        self,
-        callback: 'pl.callbacks.early_stopping.EarlyStopping',
-        current: torch.Tensor,
+        self, callback: "pl.callbacks.early_stopping.EarlyStopping", current: torch.Tensor
     ) -> None:
         debug_dict = {
             "epoch": self.trainer.current_epoch,
