@@ -231,7 +231,9 @@ class TrainingTypePlugin(Plugin, ABC):
         Override to delay setting optimizers and schedulers till after dispatch.
         This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
         However this may break certain precision plugins such as APEX which require optimizers to be set.
-        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+
+        Returns:
+            If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
 
@@ -240,7 +242,9 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         Override to delay restoring from checkpoint till after predispatch.
         This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
-        Returns: If true, restore checkpoint after pre_dispatch.
+
+        Returns:
+            If true, restore checkpoint after pre_dispatch.
         """
         return False
 

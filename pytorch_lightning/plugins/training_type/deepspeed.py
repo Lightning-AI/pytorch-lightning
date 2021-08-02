@@ -707,7 +707,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if client_state is None:
             raise MisconfigurationException(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))."
+                "or a single checkpoint file with `Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))`."
             )
         return client_state
 
