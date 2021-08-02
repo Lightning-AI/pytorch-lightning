@@ -279,7 +279,7 @@ git rebase upstream/master
 git push -f
 ```
 
-#### How to add new tests?\*\*
+#### How to add new tests?
 
 We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
 
