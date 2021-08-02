@@ -755,7 +755,7 @@ class AcceleratorConnector:
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
             self._distrib_type = DistributedType.DDP_SPAWN
-            if self.has_gpu:
+            if self.num_gpus > 0:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
                 )
@@ -773,7 +773,7 @@ class AcceleratorConnector:
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
-        if self.has_gpu and not _use_cpu:
+        if self.num_gpus > 0 and not _use_cpu:
             self._device_type = DeviceType.GPU
 
         _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
