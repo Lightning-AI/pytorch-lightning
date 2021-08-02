@@ -39,8 +39,8 @@ from pytorch_lightning.utilities.auto_restart import (
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
     CaptureIterableDataset,
-    FastForwardSampler,
     CaptureMapDataset,
+    FastForwardSampler,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
