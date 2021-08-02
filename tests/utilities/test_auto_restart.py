@@ -260,7 +260,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator = torch.Generator()
     generator.manual_seed(initial_seed)
     dataset = RangeIterableDataset(range(20), num_workers, batch_size, True)
-    dataset = CaptureIterableDataset(dataset, num_workers)
+    dataset = CaptureIterableDataset(dataset)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
@@ -539,7 +539,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         debugging=True,
         shuffle=True,
     )
-    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
 
@@ -599,7 +599,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         shuffle=True,
     )
 
-    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
