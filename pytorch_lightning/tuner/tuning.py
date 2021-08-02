@@ -74,7 +74,7 @@ class Tuner:
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Optional[int]:
         """
         Iteratively try to find the largest batch size for a given model
@@ -145,7 +145,7 @@ class Tuner:
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Optional[_LRFinder]:
         """
         Enables the user to do a range test of good initial learning rates,
