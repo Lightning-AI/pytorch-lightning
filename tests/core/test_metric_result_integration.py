@@ -377,6 +377,12 @@ class DummyMeanMetric(Metric):
 
 
 def result_collection_reload(**kwargs):
+
+    """
+    This test is going to validate ResultCollection is properly being reload
+    and final accumulation with Fault Tolerant Training is correct.
+    """
+
     if not _fault_tolerant_enabled():
         pytest.skip("Fault tolerant not available")
 
@@ -392,7 +398,17 @@ def result_collection_reload(**kwargs):
             self.has_validated_sum = False
             self.dummy_metric = DummyMeanMetric()
 
+        @property
+        def results(self):
+            return self.trainer.fit_loop._results
+
         def training_step(self, batch, batch_idx):
+
+            # In the training step, we will accumulate metrics using batch_idx from 0 to 4
+            # Without failure, we would expect to get `total=10 * world_size` and `num_batches=5 * world_size`
+            # Therefore, compute on `epoch_end` should provide 2 as `10 / 5`.
+            # However, below we will simulate a failure on ``batch_idx=3``.
+
             if self.trainer.fit_loop.restarting:
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                 self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
@@ -400,8 +416,11 @@ def result_collection_reload(**kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.trainer.fit_loop._results["training_step.tracking_metric"].value
-                value_2 = self.trainer.fit_loop._results["training_step.tracking"].value
+                value = self.results["training_step.tracking_metric"].value
+                value_2 = self.results["training_step.tracking"].value
+
+                # On failure, the Metric states are being accumulated on rank 0 and zeroed-out on other ranks.
+                # The shift indicates we failed while the state was ``shift={sign(is_global_zero > 0)} * sum(range(3))``
                 shift = 0
                 if num_processes == 2:
                     shift = 3 if self.trainer.is_global_zero else -3
@@ -418,10 +437,10 @@ def result_collection_reload(**kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.trainer.fit_loop._results["training_step.tracking"].value
+                value = self.results["training_step.tracking"].value
                 assert value == sum(range(batch_idx + 1))
 
-                value = self.trainer.fit_loop._results["training_step.tracking_2"]
+                value = self.results["training_step.tracking_2"]
                 assert value == sum(range(batch_idx + 1))
 
             return super().training_step(batch, batch_idx)
@@ -429,10 +448,10 @@ def result_collection_reload(**kwargs):
         def on_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
                 total = sum(range(5)) * num_processes
-                metrics = self.trainer.fit_loop._results.metrics(on_step=False)
-                assert self.trainer.fit_loop._results["training_step.tracking"].value == total
+                metrics = self.results.metrics(on_step=False)
+                assert self.results["training_step.tracking"].value == total
                 assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
-                assert self.trainer.fit_loop._results["training_step.tracking_2"].value == total
+                assert self.results["training_step.tracking_2"].value == total
                 assert metrics[MetricSource.CALLBACK]["tracking_2"] == self.dummy_metric.compute() == 2
                 self.has_validated_sum = True
 
