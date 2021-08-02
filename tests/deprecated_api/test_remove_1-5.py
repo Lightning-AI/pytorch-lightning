@@ -58,7 +58,7 @@ def test_v1_5_0_wandb_unused_sync_step(_):
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     class OldSignature(Callback):
-        def on_save_checkpoint(self, trainer, pl_module):  # noqa
+        def on_save_checkpoint(self, trainer, pl_module):
             ...
 
     model = BoringModel()
