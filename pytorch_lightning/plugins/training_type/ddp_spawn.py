@@ -244,16 +244,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def _wrap_model(self) -> None:
-        # skip warpping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            self._model = (
-                LightningDistributedModule(self.model)
-                if not isinstance(self.model, (LightningDistributedModule))
-                else self.model
-            )
-            rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
-            return
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
@@ -270,6 +260,11 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
 
     def configure_ddp(self):
+        # skip warpping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
+            return
         self.pre_configure_ddp()
         self._wrap_model()
         self._register_ddp_hooks()
@@ -379,16 +374,28 @@ class DDPSpawnPlugin(ParallelPlugin):
         return tensor
 
     def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        if isinstance(self.model, DistributedDataParallel):
+            return self.model(*args, **kwargs)
+        else:
+            return self.model.training_step(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        if isinstance(self.model, DistributedDataParallel):
+            return self.model(*args, **kwargs)
+        else:
+            return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        if isinstance(self.model, DistributedDataParallel):
+            return self.model(*args, **kwargs)
+        else:
+            return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+        if isinstance(self.model, DistributedDataParallel):
+            return self.model(*args, **kwargs)
+        else:
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:

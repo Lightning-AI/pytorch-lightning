@@ -35,6 +35,11 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
 
     def configure_ddp(self):
+        # skip warpping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
+            return
         self._wrap_optimizers()
         self._wrap_model()
         setattr(self._model, "require_backward_grad_sync", False)
@@ -56,12 +61,6 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         self._reinit_optimizers_with_oss()
 
     def _wrap_model(self):
-        # skip warpping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            self._model = self.model
-            rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
-            return
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
         )
