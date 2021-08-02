@@ -906,8 +906,8 @@ def test_dataloader_to_state_dict_and_reload():
     assert state_dict == {'num_workers': 0, 'previous_worker': None, 0: {'current_iteration': 24}}
 
 
-@pytest.mark.parametrize("use_fault_tolerant", ['0', '1'])
 @RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("use_fault_tolerant", ['0', '1'])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """
     this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
