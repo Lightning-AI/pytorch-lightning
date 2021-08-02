@@ -151,6 +151,15 @@ class TrainingTypePlugin(Plugin, ABC):
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
+    def on_load_checkpoint(self, checkpoint: Mapping[str, Any]) -> None:
+        self.lightning_module.on_load_checkpoint(checkpoint)
+
+    def load_model_state(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        checkpoint = self.load_checkpoint_file(checkpoint_path)
+        self.on_load_checkpoint(checkpoint)
+        self.load_model_state_dict(checkpoint)
+        return checkpoint
+
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
