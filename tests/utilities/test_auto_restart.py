@@ -16,8 +16,8 @@ import os
 import random
 import random as python_random
 from collections.abc import Iterable
+from copy import deepcopy
 from functools import wraps
-from pprint import pprint
 from typing import Optional
 from unittest import mock
 
@@ -902,25 +902,27 @@ class RandomGeneratorGetItemDataset(Dataset):
 
 
 # TODO: num_workers
+# NOTE: we are not able to restore if we fail during the first N=num_workers batches
 @pytest.mark.parametrize(
     "dataset_class",
     [
+        SequentialGetItemDataset,
         RandomTorchGetItemDataset,
-        # SequentialGetItemDataset,
         # RandomNumpyGetItemDataset,
         # RandomPythonGetItemDataset,
         # RandomGeneratorGetItemDataset,
     ],
 )
-def test_dataset_rng_states_restart(dataset_class):
+@pytest.mark.parametrize("num_workers", [1, 2, 3, 4])  # TODO: 0
+def test_dataset_rng_states_restart(dataset_class, num_workers):
     # set the manual seed initially
     torch.manual_seed(1)
-    num_workers = 2
+    batch_size = 1
 
     dataset = CaptureMapDataset(dataset_class(8, 8))
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
-    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
+    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     dataloader_iter = iter(dataloader)
 
     def wrapper_next_data(fn, it, dl):
@@ -935,6 +937,7 @@ def test_dataset_rng_states_restart(dataset_class):
                 it.merged_states = {"dataset": {}, "sampler": {}}
             it.merged_states["dataset"].update(dataset_state)
             it.merged_states["sampler"].update(sampler_state)
+            it.merged_states["latest_worker"] = list(dataset_state.keys())[0]
             # print(dataset_state.keys())
             counter += 1
             return batch
@@ -943,13 +946,15 @@ def test_dataset_rng_states_restart(dataset_class):
 
     dataloader_iter._next_data = wrapper_next_data(dataloader_iter._next_data, dataloader_iter, dataloader)
 
-    # fetch 2 batches
+    # fetch 4 batches
+    _ = next(dataloader_iter)
+    _ = next(dataloader_iter)
     _ = next(dataloader_iter)
     _ = next(dataloader_iter)
 
     # (A) capture the state after fetching 2 batches
     state = ff_sampler.state_dict(2)  # main process
-    merged_states = dataloader_iter.merged_states
+    merged_states = deepcopy(dataloader_iter.merged_states)
 
     # (B) simulate 2 additional batches
     batch02 = next(dataloader_iter)
@@ -960,15 +965,14 @@ def test_dataset_rng_states_restart(dataset_class):
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
 
-    pprint(merged_states.keys())
-
     # load the state dict saved at (A)
     ff_sampler.load_state_dict(merged_states["sampler"])
-    dataset.load_state_dict(merged_states["dataset"])
+    dataset.load_state_dict(
+        merged_states["dataset"], latest_worker_id=merged_states["latest_worker"], num_workers=num_workers
+    )
 
-    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers)
+    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     dataloader_iter = iter(dataloader)
-
     dataloader_iter._next_data = wrapper_next_data(dataloader_iter._next_data, dataloader_iter, dataloader)
 
     # fetch 2 random batches, these should match exactly the batches seen at (B)

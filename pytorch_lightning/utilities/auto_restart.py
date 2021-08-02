@@ -176,12 +176,12 @@ class CaptureMapDataset(Dataset):
 
     def __getitem__(self, item):
         if self._cached_state_dict is not None:
-            self._set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+            if self.worker_id in self._cached_state_dict:
+                self._set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
-        state_dict = self.state_dict()
         data = self.dataset[item]
-        # print(self.worker_id, "data", data, "state", state_dict)
+        state_dict = self.state_dict()
         return data, state_dict
 
     def __len__(self):
@@ -192,9 +192,14 @@ class CaptureMapDataset(Dataset):
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
-    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         state_dict = deepcopy(state_dict)
+
+        next_worker_id = latest_worker_id + 1
+        old2new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+        # remap states to worker ids starting at 0
+        state_dict = {new_id: state_dict[old_id] for old_id, new_id in old2new_worker_id_map if old_id in state_dict}
         self._cached_state_dict = state_dict
 
     def state_dict(self):
