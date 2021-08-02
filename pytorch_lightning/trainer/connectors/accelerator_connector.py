@@ -740,7 +740,7 @@ class AcceleratorConnector:
                 self._set_horovod_backend()
             elif not self.has_gpu and (self.num_nodes > 1 or self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
-            elif self.has_gpu and not _use_cpu:
+            elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
@@ -776,15 +776,16 @@ class AcceleratorConnector:
         if self.has_gpu and not _use_cpu:
             self._device_type = DeviceType.GPU
 
-        _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP2)
+        _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
         if not self.has_gpu and self._distrib_type in _gpu_distrib_types and not _use_cpu:
-            rank_zero_warn(
-                f"{self._distrib_type} is not supported on CPUs, hence setting the distributed type to `ddp`."
-            )
-            # todo: in some cases it yield in comparison None and int
+
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
-                self._distrib_type = DistributedType.DDP
+                if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
+                    rank_zero_warn(
+                        f"{self._distrib_type} is not supported on CPUs, hence setting the distributed type to `ddp`."
+                    )
+                    self._distrib_type = DistributedType.DDP
             else:
                 rank_zero_warn("You are running on single node with no parallelization, so distributed has no effect.")
                 self._distrib_type = None
