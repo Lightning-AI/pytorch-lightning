@@ -169,6 +169,55 @@ def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
             attr.set_state(v)
 
 
+class CaptureMapDataset(Dataset):
+    def __init__(self, dataset: Dataset):
+        self.dataset = dataset
+        self._cached_state_dict = None
+
+    def __getitem__(self, item):
+        if self._cached_state_dict is not None:
+            self._set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+            self._cached_state_dict = None
+
+        data = self.dataset[item]
+        state_dict = self.state_dict()
+        # print(self.worker_id, "data", data, "state", state_dict)
+        return data, state_dict
+
+    def __len__(self):
+        return len(self.dataset)
+
+    @property
+    def worker_id(self) -> int:
+        worker_info = get_worker_info()
+        return worker_info.id if worker_info else 0
+
+    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
+        # as workers aren't available, the ``state_dict``` is cached until workers are made available.
+        state_dict = deepcopy(state_dict)
+        self._cached_state_dict = state_dict
+
+    def state_dict(self):
+        return {self.worker_id: {"rng_states": self._get_rng_states()}}
+
+    def _get_rng_states(self):
+        def _collect(gen: torch.Generator):
+            return gen.get_state()
+
+        states = recursively_traverse_for_dtype(self.dataset, _collect, torch.Generator) or {}
+        states["__global_torch"] = torch.get_rng_state()
+        # states["__global_numpy"] = np.random.get_state()
+        # states["__global_python"] = python_get_rng_state()
+        return states
+
+    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
+        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
+        # np.random.set_state(rng_state_dict.pop("__global_numpy"))
+        # python_set_rng_state(rng_state_dict.pop("__global_python"))
+
+        _set_rng_states_on_obj(self.dataset, rng_state_dict)
+
+
 class CaptureIterableDataset(IterableDataset):
     """
     The ``CaptureIterableDataset`` is used to wrap an :class:`torch.utils.data.IterableDataset`.
@@ -425,6 +474,7 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
 def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
     """
     A collate function that adds the state dict of all samplers used in the worker processes.
+    This function gets executed within the worker processes.
 
     The structure will be:
 

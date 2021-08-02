@@ -108,6 +108,11 @@ class TrainingEpochLoop(loops.Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         _, (batch, is_last) = next(dataloader_iter)
+        batch, state = sanitize_batch(
+            batch, dataloader, batch_idx
+        )  # access dataloader.fast_forward_sampler.state_dict(batch_idx) and merge with random state from batch
+        # alternative: wrap dataloader.iterator._next_data and split data/state
+        # state gets attached to dataloader.iterator (.state)
         self.is_last_batch = is_last
 
         # ------------------------------------
