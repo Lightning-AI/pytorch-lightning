@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -96,7 +95,6 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
