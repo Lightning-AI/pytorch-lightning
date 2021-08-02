@@ -464,7 +464,7 @@ class CheckpointConnector:
         state_dict = self.trainer.accelerator.lightning_module_state_dict()
 
         for metric in metrics:
-            # sync can be a no-op (e.g. on cpu) so `unsync` would raise an user error exception if we don't check
+            # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check
             if metric._is_synced:
                 metric.unsync()
 
