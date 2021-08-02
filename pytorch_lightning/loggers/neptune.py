@@ -60,11 +60,11 @@ class NeptuneLogger(LightningLoggerBase):
         # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
         # We are using an api_key for the anonymous user "neptuner" but you can use your own.
         neptune_logger = NeptuneLogger(
-            api_key='ANONYMOUS',
-            project_name='shared/pytorch-lightning-integration',
-            experiment_name='default',  # Optional,
-            params={'max_epochs': 10},  # Optional,
-            tags=['pytorch-lightning', 'mlp']  # Optional,
+            api_key="ANONYMOUS",
+            project_name="shared/pytorch-lightning-integration",
+            experiment_name="default",  # Optional,
+            params={"max_epochs": 10},  # Optional,
+            tags=["pytorch-lightning", "mlp"],  # Optional,
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -77,10 +77,10 @@ class NeptuneLogger(LightningLoggerBase):
         # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
         neptune_logger = NeptuneLogger(
             offline_mode=True,
-            project_name='USER_NAME/PROJECT_NAME',
-            experiment_name='default',  # Optional,
-            params={'max_epochs': 10},  # Optional,
-            tags=['pytorch-lightning', 'mlp']  # Optional,
+            project_name="USER_NAME/PROJECT_NAME",
+            experiment_name="default",  # Optional,
+            params={"max_epochs": 10},  # Optional,
+            tags=["pytorch-lightning", "mlp"],  # Optional,
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -91,28 +91,24 @@ class NeptuneLogger(LightningLoggerBase):
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # log metrics
-                self.logger.experiment.log_metric('acc_train', ...)
+                self.logger.experiment.log_metric("acc_train", ...)
                 # log images
-                self.logger.experiment.log_image('worse_predictions', ...)
+                self.logger.experiment.log_image("worse_predictions", ...)
                 # log model checkpoint
-                self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
+                self.logger.experiment.log_artifact("model_checkpoint.pt", ...)
                 self.logger.experiment.whatever_neptune_supports(...)
 
             def any_lightning_module_function_or_hook(self):
-                self.logger.experiment.log_metric('acc_train', ...)
-                self.logger.experiment.log_image('worse_predictions', ...)
-                self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
+                self.logger.experiment.log_metric("acc_train", ...)
+                self.logger.experiment.log_image("worse_predictions", ...)
+                self.logger.experiment.log_artifact("model_checkpoint.pt", ...)
                 self.logger.experiment.whatever_neptune_supports(...)
 
     If you want to log objects after the training is finished use ``close_after_fit=False``:
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(
-            ...
-            close_after_fit=False,
-            ...
-        )
+        neptune_logger = NeptuneLogger(..., close_after_fit=False, ...)
         trainer = Trainer(logger=neptune_logger)
         trainer.fit()
 
@@ -123,7 +119,7 @@ class NeptuneLogger(LightningLoggerBase):
         from sklearn.metrics import accuracy_score
 
         accuracy = accuracy_score(y_true, y_pred)
-        neptune_logger.experiment.log_metric('test_accuracy', accuracy)
+        neptune_logger.experiment.log_metric("test_accuracy", accuracy)
 
         # Log charts
         from scikitplot.metrics import plot_confusion_matrix
@@ -131,10 +127,10 @@ class NeptuneLogger(LightningLoggerBase):
 
         fig, ax = plt.subplots(figsize=(16, 12))
         plot_confusion_matrix(y_true, y_pred, ax=ax)
-        neptune_logger.experiment.log_image('confusion_matrix', fig)
+        neptune_logger.experiment.log_image("confusion_matrix", fig)
 
         # Save checkpoints folder
-        neptune_logger.experiment.log_artifact('my/checkpoints')
+        neptune_logger.experiment.log_artifact("my/checkpoints")
 
         # When you are done, stop the experiment
         neptune_logger.experiment.stop()

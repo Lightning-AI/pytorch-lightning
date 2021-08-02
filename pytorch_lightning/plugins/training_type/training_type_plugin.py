@@ -249,6 +249,14 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return False
 
+    @property
+    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+        """
+        Override to disable Lightning restoring optimizers/schedulers.
+        This is useful for plugins which manage restoring optimizers/schedulers.
+        """
+        return True
+
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
         Provide a hook to count optimizer step calls.
