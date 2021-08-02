@@ -435,7 +435,7 @@ def test_deepspeed_stage_3_save_warning(tmpdir):
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_multigpu_single_file(tmpdir):
     """
-    Test to ensure that DeepSpeed with multiple GPUs works, loading from a single file checkpoint.
+    Test to ensure that DeepSpeed loads from a single file checkpoint.
     """
     model = BoringModel()
     checkpoint_path = os.path.join(tmpdir, "model.pt")
