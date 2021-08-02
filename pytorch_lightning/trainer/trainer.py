@@ -77,6 +77,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -942,8 +943,14 @@ class Trainer(
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_end")
 
-        # teardown
-        self._call_teardown_hook(model)
+        # teardown if necessary (similar calls for spawn plugins are excluded as they have
+        # been included at the end of `new_process` functions)
+        if self._distrib_type not in (
+            DistributedType.DDP_SPAWN,
+            DistributedType.TPU_SPAWN,
+            DistributedType.DDP_SHARDED_SPAWN,
+        ):
+            self._call_teardown_hook(model)
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -1208,7 +1215,7 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-        self.profiler.teardown(stage=fn)
+
         self.teardown(stage=fn)
         model.teardown(stage=fn)
 
@@ -1216,6 +1223,14 @@ class Trainer(
         model._current_dataloader_idx = None
         # these could have become stale if metrics are defined in `setup`
         model._metric_attributes = None
+
+        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
+        # It might be related to xla tensors blocked when moving the cpu kill loggers.
+        if self.logger is not None:
+            self.logger.finalize("success")
+
+        # summarize profile results
+        self.profiler.describe()
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         if self.lightning_module:

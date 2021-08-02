@@ -203,6 +203,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
+        # ensure that spawned processes go through teardown before joining (for more context, see
+        # https://github.com/PyTorchLightning/pytorch-lightning/pull/8217#issuecomment-871261949).
+        trainer._call_teardown_hook(self.lightning_module)
+
     def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()

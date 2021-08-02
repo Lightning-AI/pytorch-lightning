@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -206,10 +205,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer.call_hook("on_validation_end", *args, **kwargs)
-
-        if self.trainer.state.fn != TrainerFn.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
 
         # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
