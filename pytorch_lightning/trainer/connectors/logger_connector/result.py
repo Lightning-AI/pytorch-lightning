@@ -192,7 +192,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_sum_reduction:
                 self.value += value.mean() * batch_size
         else:
-            self.value = value  # noqa: attribute-defined-outside-init
+            self.value = value
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
