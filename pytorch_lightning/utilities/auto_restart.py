@@ -14,6 +14,7 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
+from functools import wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
@@ -494,3 +495,27 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     if not isinstance(dataset, CaptureIterableDataset):
         return batch
     return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: dataset.state_dict()}
+
+
+def patch_dataloader_iterator(dataloader, iterator):
+    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
+    iterator.states = {"dataset": {}, "sampler": {}}
+
+    def _next_data_wrapper(fn, it, dl):
+        num_samples_fetched = 1
+
+        @wraps(fn)
+        def wrapper():
+            nonlocal num_samples_fetched
+            batch, dataset_state = fn()
+            # TODO: handle FF batch_sampler
+            sampler_state = dl.sampler.state_dict(num_samples_fetched)
+            it.states["dataset"].update(dataset_state)
+            it.states["sampler"].update(sampler_state)
+            it.states["latest_worker"] = list(dataset_state.keys())[0]
+            num_samples_fetched += 1
+            return batch
+
+        return wrapper
+
+    iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader)

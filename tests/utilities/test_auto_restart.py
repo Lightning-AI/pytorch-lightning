@@ -924,27 +924,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     ff_sampler = FastForwardSampler(random_sampler)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     dataloader_iter = iter(dataloader)
-
-    def wrapper_next_data(fn, it, dl):
-        counter = 1
-
-        @wraps(fn)
-        def wrapper():
-            nonlocal counter
-            batch, dataset_state = fn()  # should contain user data + random state
-            sampler_state = dl.sampler.state_dict(counter)
-            if not hasattr(it, "merged_states"):
-                it.merged_states = {"dataset": {}, "sampler": {}}
-            it.merged_states["dataset"].update(dataset_state)
-            it.merged_states["sampler"].update(sampler_state)
-            it.merged_states["latest_worker"] = list(dataset_state.keys())[0]
-            # print(dataset_state.keys())
-            counter += 1
-            return batch
-
-        return wrapper
-
-    dataloader_iter._next_data = wrapper_next_data(dataloader_iter._next_data, dataloader_iter, dataloader)
+    patch_dataloader_iterator(dataloader, dataloader_iter)
 
     # fetch 4 batches
     _ = next(dataloader_iter)
@@ -953,8 +933,8 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     _ = next(dataloader_iter)
 
     # (A) capture the state after fetching 2 batches
-    state = ff_sampler.state_dict(2)  # main process
-    merged_states = deepcopy(dataloader_iter.merged_states)
+    # state = ff_sampler.state_dict(2)  # main process
+    states = deepcopy(dataloader_iter.states)
 
     # (B) simulate 2 additional batches
     batch02 = next(dataloader_iter)
@@ -966,14 +946,12 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     ff_sampler = FastForwardSampler(random_sampler)
 
     # load the state dict saved at (A)
-    ff_sampler.load_state_dict(merged_states["sampler"])
-    dataset.load_state_dict(
-        merged_states["dataset"], latest_worker_id=merged_states["latest_worker"], num_workers=num_workers
-    )
+    ff_sampler.load_state_dict(states["sampler"])
+    dataset.load_state_dict(states["dataset"], latest_worker_id=states["latest_worker"], num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     dataloader_iter = iter(dataloader)
-    dataloader_iter._next_data = wrapper_next_data(dataloader_iter._next_data, dataloader_iter, dataloader)
+    patch_dataloader_iterator(dataloader, dataloader_iter)
 
     # fetch 2 random batches, these should match exactly the batches seen at (B)
     batch10 = next(dataloader_iter)
