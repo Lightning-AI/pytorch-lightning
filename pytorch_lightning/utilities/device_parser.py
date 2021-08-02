@@ -197,14 +197,14 @@ def _check_unique(device_ids: List[int]) -> None:
     Checks that the device_ids are unique.
 
     Args:
-        device_ids: list of ints corresponding to gpus/tpu_cores indices
+        device_ids: list of ints corresponding to gpus indices
 
     Raises:
         MisconfigurationException:
-            If ``device_ids`` of GPU/TPUs aren't unique
+            If ``device_ids`` of GPUs aren't unique
     """
     if len(device_ids) != len(set(device_ids)):
-        raise MisconfigurationException("Device ID's (GPU/TPU) must be unique.")
+        raise MisconfigurationException("Device ID's (GPU) must be unique.")
 
 
 def _check_data_type(device_ids: Any) -> None:
