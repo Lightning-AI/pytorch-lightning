@@ -18,7 +18,8 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torchmetrics import Metric
+from torch.nn import ModuleDict, ModuleList
+from torchmetrics import Metric, MetricCollection
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
@@ -353,3 +354,64 @@ def test_result_collection_extra_reference():
     """Unit-test to check that the `extra` dict reference is properly set."""
     rc = ResultCollection(True)
     assert rc.extra is rc["_extra"]
+
+
+def test_metric_collections(tmpdir):
+    """This test ensures the metric attribute is properly found even with complex nested metric structure"""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metrics_list = ModuleList([DummyMetric() for _ in range(2)])
+            self.metrics_dict = ModuleDict({"a": DummyMetric(), "b": DummyMetric()})
+            self.metrics_collection_dict = MetricCollection({"a": DummyMetric(), "b": DummyMetric()})
+            self.metrics_collection_dict_nested = ModuleDict(
+                {"a": ModuleList([ModuleDict({"b": DummyMetric()}), DummyMetric()])}
+            )
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            self.metrics_list[0](batch_idx)
+            self.metrics_list[1](batch_idx)
+
+            self.metrics_dict["a"](batch_idx)
+            self.metrics_dict["b"](batch_idx)
+
+            self.metrics_collection_dict["a"](batch_idx)
+            self.metrics_collection_dict["b"](batch_idx)
+
+            self.metrics_collection_dict_nested["a"][0]["b"](batch_idx)
+            self.metrics_collection_dict_nested["a"][1](batch_idx)
+
+            self.log("a", self.metrics_list[0])
+            self.log("b", self.metrics_list[1])
+
+            self.log("c", self.metrics_dict["a"])
+            self.log("d", self.metrics_dict["b"])
+
+            self.log("e", self.metrics_collection_dict["a"])
+            self.log("f", self.metrics_collection_dict["b"])
+
+            self.log("g", self.metrics_collection_dict_nested["a"][0]["b"])
+            self.log("h", self.metrics_collection_dict_nested["a"][1])
+
+            return loss
+
+        def on_train_epoch_end(self) -> None:
+            results = self.trainer.fit_loop.epoch_loop._results
+            assert results["training_step.a"].meta.metric_attribute == "metrics_list.0"
+            assert results["training_step.b"].meta.metric_attribute == "metrics_list.1"
+
+            assert results["training_step.c"].meta.metric_attribute == "metrics_dict.a"
+            assert results["training_step.d"].meta.metric_attribute == "metrics_dict.b"
+
+            assert results["training_step.e"].meta.metric_attribute == "metrics_collection_dict.a"
+            assert results["training_step.f"].meta.metric_attribute == "metrics_collection_dict.b"
+
+            assert results["training_step.g"].meta.metric_attribute == "metrics_collection_dict_nested.a.0.b"
+            assert results["training_step.h"].meta.metric_attribute == "metrics_collection_dict_nested.a.1"
+
+    model = TestModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
+    trainer.fit(model)
