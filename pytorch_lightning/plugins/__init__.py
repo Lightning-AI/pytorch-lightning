@@ -46,7 +46,7 @@ __all__ = [
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
-    "FullyShardedNativeMixedPrecisionPlugin"
+    "FullyShardedNativeMixedPrecisionPlugin",
     "SingleDevicePlugin",
     "SingleTPUPlugin",
     "TPUHalfPrecisionPlugin",

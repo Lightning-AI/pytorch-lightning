@@ -35,6 +35,9 @@ class PredictionEpochLoop(Loop):
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
+    def connect(self, **kwargs: "Loop") -> None:
+        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+
     def reset(self) -> None:
         """Resets the loops internal state"""
         self._all_batch_indices: List[int] = []
@@ -47,7 +50,7 @@ class PredictionEpochLoop(Loop):
         dataloader_idx: int,
         dl_max_batches: int,
         num_dataloaders: int,
-        return_predictions: bool = False
+        return_predictions: bool = False,
     ) -> None:
         """
         Prepares the loops internal state
@@ -70,7 +73,7 @@ class PredictionEpochLoop(Loop):
         dataloader_idx: int,
         dl_max_batches: int,
         num_dataloaders: int,
-        return_predictions: bool = False
+        return_predictions: bool = False,
     ) -> None:
         """
         Runs one prediction step.
@@ -151,9 +154,9 @@ class PredictionEpochLoop(Loop):
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
         """
-        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if self._num_dataloaders > 1:
-            step_kwargs['dataloader_idx'] = dataloader_idx
+            step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:

@@ -13,8 +13,11 @@
 # limitations under the License.
 
 import gc
+import os
+import uuid
 
 import torch
+from torch.nn import Module
 
 
 def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
@@ -35,7 +38,7 @@ def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
     for k, v in in_dict.items():
         if isinstance(v, dict):
             v = recursive_detach(v, to_cpu=to_cpu)
-        elif callable(getattr(v, 'detach', None)):
+        elif callable(getattr(v, "detach", None)):
             v = v.detach()
             if to_cpu:
                 v = v.cpu()
@@ -44,32 +47,36 @@ def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
 
 
 def is_oom_error(exception):
-    return is_cuda_out_of_memory(exception) \
-        or is_cudnn_snafu(exception) \
-        or is_out_of_cpu_memory(exception)
+    return is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
 def is_cuda_out_of_memory(exception):
-    return isinstance(exception, RuntimeError) \
-        and len(exception.args) == 1 \
-        and "CUDA" in exception.args[0] \
+    return (
+        isinstance(exception, RuntimeError)
+        and len(exception.args) == 1
+        and "CUDA" in exception.args[0]
         and "out of memory" in exception.args[0]
+    )
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
 def is_cudnn_snafu(exception):
     # For/because of https://github.com/pytorch/pytorch/issues/4107
-    return isinstance(exception, RuntimeError) \
-        and len(exception.args) == 1 \
+    return (
+        isinstance(exception, RuntimeError)
+        and len(exception.args) == 1
         and "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
+    )
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/cpu_memory.py
 def is_out_of_cpu_memory(exception):
-    return isinstance(exception, RuntimeError) \
-        and len(exception.args) == 1 \
+    return (
+        isinstance(exception, RuntimeError)
+        and len(exception.args) == 1
         and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]
+    )
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
@@ -83,3 +90,21 @@ def garbage_collection_cuda():
         if not is_oom_error(exception):
             # Only handle OOM errors
             raise
+
+
+def get_model_size_mb(model: Module) -> float:
+    """
+    Calculates the size of a Module in megabytes by saving the model to a temporary file and reading its size.
+
+    The computation includes everything in the :meth:`~torch.nn.Module.state_dict`,
+    i.e., by default the parameteters and buffers.
+
+    Returns:
+        Number of megabytes in the parameters of the input module.
+    """
+    # TODO: Implement a method without needing to download the model
+    tmp_name = f"{uuid.uuid4().hex}.pt"
+    torch.save(model.state_dict(), tmp_name)
+    size_mb = os.path.getsize(tmp_name) / 1e6
+    os.remove(tmp_name)
+    return size_mb

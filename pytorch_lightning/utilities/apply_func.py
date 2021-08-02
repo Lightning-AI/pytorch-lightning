@@ -14,7 +14,7 @@
 import dataclasses
 import operator
 from abc import ABC
-from collections import Collection, OrderedDict
+from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
@@ -66,52 +66,6 @@ def _is_dataclass_instance(obj):
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
-def _remove_empty_collection(coll: Collection):
-    if bool(coll):
-        return coll
-    return None
-
-
-def recursively_traverse_for_dtype(obj, func, dtype):
-
-    if isinstance(obj, dtype):
-        return func(obj)
-    if isinstance(obj, Collection) and not isinstance(obj, str):
-        updated = apply_to_collection(
-            obj,
-            object,
-            partial(
-                recursively_traverse_for_dtype,
-                func=func,
-                dtype=dtype,
-            ),
-            wrong_dtype=Collection,
-            include_none=False
-        )
-    else:
-        updated = {}
-        try:
-            for k, v in obj.__dict__.items():
-                if isinstance(v, dtype):
-                    updated[k] = func(v)
-                else:
-                    try:
-                        updated[k] = recursively_traverse_for_dtype(v, func, dtype)
-
-                    except AttributeError:
-                        pass
-        except AttributeError:
-            pass
-
-    # may also convert current dict (`updated`) to None
-    new_updated = apply_to_collection(
-        updated, Collection, _remove_empty_collection, include_none=False, wrong_dtype=(torch.Tensor, np.ndarray)
-    )
-    # remove all NoneTypes
-    new_updated = apply_to_collection(new_updated, type(None), _remove_empty_collection, include_none=False)
-    return new_updated
-
-
 def apply_to_collection(
     data: Any,
     dtype: Union[type, tuple],
@@ -141,20 +95,13 @@ def apply_to_collection(
     if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
         return function(data, *args, **kwargs)
 
-    # range is a type implemented in C and is afaik the only sequence-like
-    # that does not accept other sequences for construction
-    if isinstance(data, range):
-        data = tuple(data)
-
     elem_type = type(data)
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
         out = []
         for k, v in data.items():
-            v = apply_to_collection(
-                v, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
-            )
+            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
                 out.append((k, v))
         return elem_type(OrderedDict(out))
@@ -164,9 +111,7 @@ def apply_to_collection(
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
-            v = apply_to_collection(
-                d, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
-            )
+            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
@@ -174,15 +119,7 @@ def apply_to_collection(
     if _is_dataclass_instance(data):
         out = {}
         for field in data.__dataclass_fields__:
-            v = apply_to_collection(
-                getattr(data, field),
-                dtype,
-                function,
-                *args,
-                wrong_dtype=wrong_dtype,
-                include_none=include_none,
-                **kwargs
-            )
+            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
                 out[field] = v
         return elem_type(**out)
@@ -232,15 +169,17 @@ def apply_to_collections(
     if isinstance(data1, Mapping) and data2 is not None:
         # use union because we want to fail if a key does not exist in both
         zipped = {k: (data1[k], data2[k]) for k in data1.keys() | data2.keys()}
-        return elem_type({
-            k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            for k, v in zipped.items()
-        })
+        return elem_type(
+            {
+                k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+                for k, v in zipped.items()
+            }
+        )
 
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
-        assert len(data1) == len(data2), 'Sequence collections have different sizes'
+        assert len(data1) == len(data2), "Sequence collections have different sizes"
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)
@@ -308,7 +247,11 @@ def move_data_to_device(batch: Any, device: torch.device):
             return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
-        return data.to(device, **kwargs)
+        data_output = data.to(device, **kwargs)
+        if data_output is not None:
+            return data_output
+        # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
+        return data
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)

@@ -19,11 +19,10 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class ConfigValidator:
-
-    def __init__(self, trainer: 'pl.Trainer') -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
 
-    def verify_loop_configurations(self, model: 'pl.LightningModule') -> None:
+    def verify_loop_configurations(self, model: "pl.LightningModule") -> None:
         r"""
         Checks that the model is configured correctly before the run is started.
 
@@ -33,88 +32,88 @@ class ConfigValidator:
         """
         if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             self.__verify_train_loop_configuration(model)
-            self.__verify_eval_loop_configuration(model, 'val')
+            self.__verify_eval_loop_configuration(model, "val")
             self.__verify_manual_optimization_support(model)
         elif self.trainer.state.fn == TrainerFn.VALIDATING:
-            self.__verify_eval_loop_configuration(model, 'val')
+            self.__verify_eval_loop_configuration(model, "val")
         elif self.trainer.state.fn == TrainerFn.TESTING:
-            self.__verify_eval_loop_configuration(model, 'test')
+            self.__verify_eval_loop_configuration(model, "test")
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
 
-    def __verify_train_loop_configuration(self, model: 'pl.LightningModule') -> None:
+    def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
         # verify model has a training step
         # -----------------------------------
-        has_training_step = is_overridden('training_step', model)
+        has_training_step = is_overridden("training_step", model)
         if not has_training_step:
             raise MisconfigurationException(
-                'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
+                " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
             )
 
         # -----------------------------------
         # verify model has a train dataloader
         # -----------------------------------
-        has_train_dataloader = is_overridden('train_dataloader', model)
+        has_train_dataloader = is_overridden("train_dataloader", model)
         if not has_train_dataloader:
             raise MisconfigurationException(
-                'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
+                " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
             )
 
         # -----------------------------------
         # verify model has optimizer
         # -----------------------------------
-        has_optimizers = is_overridden('configure_optimizers', model)
+        has_optimizers = is_overridden("configure_optimizers", model)
         if not has_optimizers:
             raise MisconfigurationException(
-                'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                "No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a"
+                " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
             )
 
         trainer = self.trainer
 
-        trainer.overriden_optimizer_step = is_overridden('optimizer_step', model)
-        trainer.overriden_optimizer_zero_grad = is_overridden('optimizer_zero_grad', model)
+        trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
+        trainer.overriden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
         automatic_optimization = model.automatic_optimization
         going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
         has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
         if has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
             rank_zero_warn(
-                'When using `Trainer(accumulate_grad_batches != 1)` and overriding'
-                '`LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch'
-                '(rather, they are called on every optimization step).'
+                "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
+                "`LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
+                "(rather, they are called on every optimization step)."
             )
 
-    def __verify_eval_loop_configuration(self, model: 'pl.LightningModule', stage: str) -> None:
-        loader_name = f'{stage}_dataloader'
-        step_name = 'validation_step' if stage == 'val' else 'test_step'
+    def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
+        loader_name = f"{stage}_dataloader"
+        step_name = "validation_step" if stage == "val" else "test_step"
 
         has_loader = is_overridden(loader_name, model)
         has_step = is_overridden(step_name, model)
 
         if has_loader and not has_step:
-            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop')
+            rank_zero_warn(f"you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop")
         if has_step and not has_loader:
-            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
+            rank_zero_warn(f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop")
 
-    def __verify_predict_loop_configuration(self, model: 'pl.LightningModule') -> None:
-        has_predict_dataloader = is_overridden('predict_dataloader', model)
+    def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
+        has_predict_dataloader = is_overridden("predict_dataloader", model)
         if not has_predict_dataloader:
-            raise MisconfigurationException('Dataloader not found for `Trainer.predict`')
+            raise MisconfigurationException("Dataloader not found for `Trainer.predict`")
 
-    def __verify_dp_batch_transfer_support(self, model: 'pl.LightningModule') -> None:
+    def __verify_dp_batch_transfer_support(self, model: "pl.LightningModule") -> None:
         """Raise Misconfiguration exception since these hooks are not supported in DP mode"""
         # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
         for hook in batch_transfer_hooks:
             if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
-                raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
+                raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
 
-    def __verify_manual_optimization_support(self, model: 'pl.LightningModule') -> None:
+    def __verify_manual_optimization_support(self, model: "pl.LightningModule") -> None:
         if model.automatic_optimization:
             return
         if self.trainer.gradient_clip_val > 0:

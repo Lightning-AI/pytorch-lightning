@@ -97,14 +97,16 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
     from argparse import ArgumentParser
 
+
     def main(hparams):
         model = LightningModule()
         trainer = Trainer(gpus=hparams.gpus)
         trainer.fit(model)
 
-    if __name__ == '__main__':
+
+    if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument('--gpus', default=None)
+        parser.add_argument("--gpus", default=None)
         args = parser.parse_args()
 
         main(args)
@@ -123,12 +125,14 @@ So you can run it like so:
 
     from argparse import ArgumentParser
 
+
     def main(args):
         model = LightningModule()
         trainer = Trainer.from_argparse_args(args)
         trainer.fit(model)
 
-    if __name__ == '__main__':
+
+    if __name__ == "__main__":
         parser = ArgumentParser()
         parser = Trainer.add_argparse_args(parser)
         args = parser.parse_args()
@@ -295,10 +299,10 @@ Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
 .. testcode::
 
     # using PyTorch built-in AMP, default used by the Trainer
-    trainer = Trainer(amp_backend='native')
+    trainer = Trainer(amp_backend="native")
 
     # using NVIDIA Apex
-    trainer = Trainer(amp_backend='apex')
+    trainer = Trainer(amp_backend="apex")
 
 amp_level
 ^^^^^^^^^
@@ -335,13 +339,13 @@ auto_scale_batch_size
 Automatically tries to find the largest batch size that fits into memory,
 before any training.
 
-.. code-block::
+.. code-block:: python
 
     # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=None)
 
     # run batch size scaling, result overrides hparams.batch_size
-    trainer = Trainer(auto_scale_batch_size='binsearch')
+    trainer = Trainer(auto_scale_batch_size="binsearch")
 
     # call tune to find the batch size
     trainer.tune(model)
@@ -552,8 +556,9 @@ See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to cus
 .. testcode::
 
     from pytorch_lightning.callbacks import ModelCheckpoint
+
     # Init ModelCheckpoint callback, monitoring 'val_loss'
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss')
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
 
     # Add your callback to the callbacks list
     trainer = Trainer(callbacks=[checkpoint_callback])
@@ -856,10 +861,10 @@ Options:
     trainer = Trainer(log_gpu_memory=None)
 
     # log all the GPUs (on master node only)
-    trainer = Trainer(log_gpu_memory='all')
+    trainer = Trainer(log_gpu_memory="all")
 
     # log only the min and max memory on the master node
-    trainer = Trainer(log_gpu_memory='min_max')
+    trainer = Trainer(log_gpu_memory="min_max")
 
 .. note:: Might slow performance because it uses the output of ``nvidia-smi``.
 
@@ -881,11 +886,7 @@ logger
     from pytorch_lightning.loggers import TensorBoardLogger
 
     # default logger used by trainer
-    logger = TensorBoardLogger(
-        save_dir=os.getcwd(),
-        version=1,
-        name='lightning_logs'
-    )
+    logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
     Trainer(logger=logger)
 
 max_epochs
@@ -1112,8 +1113,8 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
     from pytorch_lightning.plugins.environments import ClusterEnvironment
 
-    class MyCluster(ClusterEnvironment):
 
+    class MyCluster(ClusterEnvironment):
         def master_address(self):
             return your_master_address
 
@@ -1122,6 +1123,7 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
         def world_size(self):
             return the_world_size
+
 
     trainer = Trainer(plugins=[MyCluster()], ...)
 
@@ -1216,7 +1218,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level='O2', precision=16)
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16)
 
     If you need to configure the apex init for your particular use case, or want to customize the
     16-bit training behaviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
@@ -1323,6 +1325,7 @@ Set to a postive integer to reload dataloaders every n epochs.
         if not epoch % reload_dataloaders_every_n_epochs:
             train_loader = model.train_dataloader()
         for batch in train_loader:
+            ...
 
 .. _replace-sampler-ddp:
 
@@ -1353,7 +1356,6 @@ By setting to False, you have to add your own distributed sampler:
 
 .. code-block:: python
 
-
     # in your LightningModule or LightningDataModule
     def train_dataloader(self):
         # default used by the Trainer
@@ -1383,7 +1385,7 @@ checkpoint, training will start from the beginning of the next epoch.
     trainer = Trainer(resume_from_checkpoint=None)
 
     # resume from a specific checkpoint
-    trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
+    trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
@@ -1529,10 +1531,7 @@ with the hidden
         def training_step(self, batch, batch_idx, hiddens):
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(data, hiddens)
-            return {
-                "loss": ...,
-                "hiddens": hiddens
-            }
+            return {"loss": ..., "hiddens": hiddens}
 
 To modify how the batch is split,
 override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
@@ -1575,7 +1574,7 @@ Can specify as float or int.
     trainer = Trainer(val_check_interval=1000)
 
 
-.. code-block::
+.. code-block:: python
 
     # Here is the computation to estimate the total number of batches seen within an epoch.
 
@@ -1612,7 +1611,7 @@ Directory of where to save weights if specified.
     trainer = Trainer(weights_save_path=os.getcwd())
 
     # save to your custom path
-    trainer = Trainer(weights_save_path='my/path')
+    trainer = Trainer(weights_save_path="my/path")
 
 Example::
 
@@ -1641,10 +1640,10 @@ Options: 'full', 'top', None.
 .. testcode::
 
     # default used by the Trainer (ie: print summary of top level modules)
-    trainer = Trainer(weights_summary='top')
+    trainer = Trainer(weights_summary="top")
 
     # print full summary of all modules and submodules
-    trainer = Trainer(weights_summary='full')
+    trainer = Trainer(weights_summary="full")
 
     # don't print a summary
     trainer = Trainer(weights_summary=None)
@@ -1704,11 +1703,11 @@ The metrics available to callbacks. These are automatically set when you log via
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('a_val', 2)
+        self.log("a_val", 2)
 
 
     callback_metrics = trainer.callback_metrics
-    assert callback_metrics['a_val'] == 2
+    assert callback_metrics["a_val"] == 2
 
 current_epoch
 *************
@@ -1744,11 +1743,11 @@ The metrics sent to the logger (visualizer).
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('a_val', 2, log=True)
+        self.log("a_val", 2, log=True)
 
 
     logged_metrics = trainer.logged_metrics
-    assert logged_metrics['a_val'] == 2
+    assert logged_metrics["a_val"] == 2
 
 log_dir
 *******
@@ -1771,7 +1770,7 @@ Whether this process is the global zero in multi-node training
 
     def training_step(self, batch, batch_idx):
         if self.trainer.is_global_zero:
-            print('in node 0, accelerator 0')
+            print("in node 0, accelerator 0")
 
 progress_bar_metrics
 ********************
@@ -1781,8 +1780,8 @@ The metrics sent to the progress bar.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('a_val', 2, prog_bar=True)
+        self.log("a_val", 2, prog_bar=True)
 
 
     progress_bar_metrics = trainer.progress_bar_metrics
-    assert progress_bar_metrics['a_val'] == 2
+    assert progress_bar_metrics["a_val"] == 2
