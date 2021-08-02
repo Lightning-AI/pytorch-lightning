@@ -27,6 +27,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -464,7 +465,7 @@ def result_collection_reload(**kwargs):
         trainer.fit(model)
     assert not model.has_validated_sum
 
-    tmpdir = trainer_kwargs["default_root_dir"]
+    tmpdir = trainer.training_type_plugin.broadcast(trainer_kwargs["default_root_dir"], 0) if num_processes >=2 else trainer_kwargs["default_root_dir"]
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
@@ -474,17 +475,20 @@ def result_collection_reload(**kwargs):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload(tmpdir):
     result_collection_reload(default_root_dir=tmpdir)
 
 
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=1)
 
 
 @RunIf(min_gpus=2, special=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=2)
