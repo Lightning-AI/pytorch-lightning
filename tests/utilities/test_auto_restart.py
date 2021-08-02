@@ -266,7 +266,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator = torch.Generator()
     generator.manual_seed(initial_seed)
     dataset = RangeIterableDataset(range(20), num_workers, batch_size, True)
-    dataset = CaptureIterableDataset(dataset, num_workers)
+    dataset = CaptureIterableDataset(dataset)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
@@ -413,7 +413,7 @@ class MetaLearningDataset(IterableDataset):
 
         if (isinstance(global_rank, int) and world_size is None) or (
             isinstance(world_size, int) and global_rank is None
-        ):  # noqa E129
+        ):
             raise MisconfigurationException("Both ``world_size`` and ``global_rank`` should be provided !")
 
         self.unique_labels = np.unique(self.labels)
@@ -545,7 +545,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         debugging=True,
         shuffle=True,
     )
-    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
 
@@ -605,7 +605,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         shuffle=True,
     )
 
-    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
@@ -803,8 +803,8 @@ def test_dataloader_to_state_dict_and_reload():
     assert state_dict == {"num_workers": 0, "previous_worker": None, 0: {"current_iteration": 24}}
 
 
-@pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 @RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """
     this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.

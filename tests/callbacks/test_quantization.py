@@ -21,6 +21,7 @@ from torchmetrics.functional import mean_relative_error
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel
@@ -40,7 +41,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
     trainer = Trainer(**trainer_args)
     trainer.fit(model, datamodule=dm)
-    org_size = model.model_size
+    org_size = get_model_size_mb(model)
     org_score = torch.mean(torch.tensor([mean_relative_error(model(x), y) for x, y in dm.test_dataloader()]))
 
     fusing_layers = [(f"layer_{i}", f"layer_{i}a") for i in range(3)] if fuse else None
@@ -62,7 +63,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
         qmodel.eval()
         torch.quantization.convert(qmodel, inplace=True)
 
-    quant_size = qmodel.model_size
+    quant_size = get_model_size_mb(qmodel)
     # test that the trained model is smaller then initial
     size_ratio = quant_size / org_size
     assert size_ratio < 0.65

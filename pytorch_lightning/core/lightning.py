@@ -19,7 +19,6 @@ import logging
 import numbers
 import os
 import tempfile
-import uuid
 from abc import ABC
 from contextlib import contextmanager
 from pathlib import Path
@@ -44,6 +43,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
@@ -320,11 +320,11 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "default",  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
+        tbptt_reduce_fx: Optional = None,  # todo: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # todo: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
+        sync_dist_op: Optional = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -472,11 +472,11 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "default",  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
-        tbptt_reduce_fx: Optional[Any] = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional[Any] = None,  # noqa: Remove in 1.6
+        tbptt_reduce_fx: Optional[Any] = None,  # todo: Remove in 1.6
+        tbptt_pad_token: Optional[Any] = None,  # todo: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Optional[Any] = None,  # noqa: Remove in 1.6
+        sync_dist_op: Optional[Any] = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
     ) -> None:
@@ -1980,16 +1980,12 @@ class LightningModule(
 
     @property
     def model_size(self) -> float:
-        """
-        The model's size in megabytes. The computation includes everything in the
-        :meth:`~torch.nn.Module.state_dict`, i.e., by default the parameteters and buffers.
-        """
-        # todo: think about better way without need to dump model to drive
-        tmp_name = f"{uuid.uuid4().hex}.pt"
-        torch.save(self.state_dict(), tmp_name)
-        size_mb = os.path.getsize(tmp_name) / 1e6
-        os.remove(tmp_name)
-        return size_mb
+        rank_zero_deprecation(
+            "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+            stacklevel=5,
+        )
+        return get_model_size_mb(self)
 
     def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """

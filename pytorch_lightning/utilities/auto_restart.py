@@ -241,11 +241,10 @@ class CaptureIterableDataset(IterableDataset):
         user data and metadata containing the ``FastForwardSampler`` samplers state_dict.
     """
 
-    def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None) -> None:
+    def __init__(self, dataset: IterableDataset) -> None:
         super().__init__()
         self.dataset = deepcopy(dataset)
         self._state_dict: Optional[Dict[int, Any]] = None
-        self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
 
     @property
