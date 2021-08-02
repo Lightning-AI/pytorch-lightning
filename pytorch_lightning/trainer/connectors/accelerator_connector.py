@@ -849,7 +849,7 @@ class AcceleratorConnector:
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
-        if self.has_gpu or self.num_nodes > 1:
+        if self.num_gpus > 1 or self.num_nodes > 1:
             raise MisconfigurationException(
                 "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
                 "horovodrun / mpirun to configure the number of processes."
