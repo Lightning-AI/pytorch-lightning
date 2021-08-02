@@ -80,11 +80,7 @@ def recursively_traverse_for_dtype(obj, func, dtype):
         updated = apply_to_collection(
             obj,
             object,
-            partial(
-                recursively_traverse_for_dtype,
-                func=func,
-                dtype=dtype,
-            ),
+            partial(recursively_traverse_for_dtype, func=func, dtype=dtype),
             wrong_dtype=Collection,
             include_none=False,
         )
