@@ -41,6 +41,8 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
+    patch_dataloader_iterator,
+    IteratorState,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -933,7 +935,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     _ = next(dataloader_iter)
 
     # (A) capture the state after fetching 4 batches
-    states = deepcopy(dataloader_iter.states)
+    state: IteratorState = deepcopy(dataloader_iter.state)
 
     # (B) simulate 2 additional batches
     batch02 = next(dataloader_iter)
@@ -945,8 +947,8 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     ff_sampler = FastForwardSampler(random_sampler)
 
     # load the state dict saved at (A)
-    ff_sampler.load_state_dict(states["sampler"])
-    dataset.load_state_dict(states["dataset"], latest_worker_id=states["latest_worker"], num_workers=num_workers)
+    ff_sampler.load_state_dict(state.sampler_states)
+    dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     dataloader_iter = iter(dataloader)

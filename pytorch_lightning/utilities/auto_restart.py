@@ -14,13 +14,15 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import dataclass, field
 from functools import wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union, Tuple
 
 import numpy as np
 import torch
+from torch import Tensor
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
@@ -170,58 +172,64 @@ def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
             attr.set_state(v)
 
 
+@dataclass
+class IteratorState:
+    dataset_states: Dict[int, Any] = field(default_factory=dict)
+    sampler_states: Dict[int, Any] = field(default_factory=dict)
+    latest_worker_id: int = 0
+    num_workers: int = 0
+
+
 class CaptureMapDataset(Dataset):
-    def __init__(self, dataset: Dataset):
+    def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
         self._cached_state_dict = None
-
-    def __getitem__(self, item):
-        if self._cached_state_dict is not None:
-            if self.worker_id in self._cached_state_dict:
-                self._set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
-            self._cached_state_dict = None
-
-        data = self.dataset[item]
-        state_dict = self.state_dict()
-        return data, state_dict
-
-    def __len__(self):
-        return len(self.dataset)
 
     @property
     def worker_id(self) -> int:
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
+    def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
+        if self._cached_state_dict is not None:
+            if self.worker_id in self._cached_state_dict:
+                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+            self._cached_state_dict = None
+
+        data = self.dataset[item]
+        state_dict = self._state_dict()
+        return data, state_dict
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
     def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         state_dict = deepcopy(state_dict)
 
-        next_worker_id = latest_worker_id + 1
-        old2new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
         # remap states to worker ids starting at 0
-        state_dict = {new_id: state_dict[old_id] for old_id, new_id in old2new_worker_id_map if old_id in state_dict}
+        next_worker_id = latest_worker_id + 1
+        old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+        state_dict = {new_id: state_dict[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state_dict}
         self._cached_state_dict = state_dict
 
-    def state_dict(self):
-        return {self.worker_id: {"rng_states": self._get_rng_states()}}
+    def _state_dict(self):
+        return {self.worker_id: {"rng_states": collect_rng_states()}}
 
-    def _get_rng_states(self):
-        def _collect(gen: torch.Generator):
-            return gen.get_state()
 
-        states = recursively_traverse_for_dtype(self.dataset, _collect, torch.Generator) or {}
-        states["__global_torch"] = torch.get_rng_state()
-        # states["__global_numpy"] = np.random.get_state()
-        # states["__global_python"] = python_get_rng_state()
-        return states
+def collect_rng_states() -> Dict[str, Any]:
+    states = {"torch": torch.get_rng_state()}
+    # states["__global_numpy"] = list(np.random.get_state())
+    # states["__global_numpy"][1] = states["__global_numpy"][1].astype(np.int32)
+    # states["__global_numpy"] = tuple(states["__global_numpy"])
+    # states["__global_python"] = python_get_rng_state()
+    return states
 
-    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
-        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
-        # np.random.set_state(rng_state_dict.pop("__global_numpy"))
-        # python_set_rng_state(rng_state_dict.pop("__global_python"))
 
-        _set_rng_states_on_obj(self.dataset, rng_state_dict)
+def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
+    torch.set_rng_state(rng_state_dict.pop("torch"))
+    # np.random.set_state(rng_state_dict.pop("__global_numpy"))
+    # python_set_rng_state(rng_state_dict.pop("__global_python"))
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -497,9 +505,9 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: dataset.state_dict()}
 
 
-def patch_dataloader_iterator(dataloader, iterator):
+def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
-    iterator.states = {"dataset": {}, "sampler": {}}
+    iterator.state = IteratorState(num_workers=dataloader.num_workers)
 
     def _next_data_wrapper(fn, it, dl):
         num_samples_fetched = 1
@@ -510,9 +518,10 @@ def patch_dataloader_iterator(dataloader, iterator):
             batch, dataset_state = fn()
             # TODO: handle FF batch_sampler
             sampler_state = dl.sampler.state_dict(num_samples_fetched)
-            it.states["dataset"].update(dataset_state)
-            it.states["sampler"].update(sampler_state)
-            it.states["latest_worker"] = list(dataset_state.keys())[0]
+            it.state: IteratorState
+            it.state.sampler_states.update(sampler_state)
+            it.state.dataset_states.update(dataset_state)
+            it.state.latest_worker_id = list(dataset_state.keys())[0]
             num_samples_fetched += 1
             return batch
 
