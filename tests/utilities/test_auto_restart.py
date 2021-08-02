@@ -932,8 +932,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     _ = next(dataloader_iter)
     _ = next(dataloader_iter)
 
-    # (A) capture the state after fetching 2 batches
-    # state = ff_sampler.state_dict(2)  # main process
+    # (A) capture the state after fetching 4 batches
     states = deepcopy(dataloader_iter.states)
 
     # (B) simulate 2 additional batches
