@@ -735,7 +735,7 @@ class DeepSpeedPlugin(DDPPlugin):
         we gather parameters that may be sharded across processes before loading
         the state dictionary when using ZeRO stage 3.
         This is then automatically synced across processes.
-        
+
         Args:
             ckpt: The ckpt file.
         """

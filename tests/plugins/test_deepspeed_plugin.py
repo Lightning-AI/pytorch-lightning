@@ -446,6 +446,9 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=1, fast_dev_run=True, precision=16
     )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert not plugin.load_full_weights
     with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
         trainer.test(model, ckpt_path=checkpoint_path)
 
@@ -456,6 +459,9 @@ def test_deepspeed_multigpu_single_file(tmpdir):
         fast_dev_run=True,
         precision=16,
     )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert plugin.load_full_weights
     trainer.test(model, ckpt_path=checkpoint_path)
 
 
@@ -639,29 +645,6 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         "provide a path to the originally saved DeepSpeed checkpoint.",
     ):
         trainer.fit(model, datamodule=dm)
-
-
-@RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_save_warning(tmpdir):
-    """
-    Test to ensure with Stage 3 and multiple GPUs that we recieve a warning that we're saving sharded checkpoints.
-    """
-    initial_model = ModelParallelClassificationModel()
-    dm = ClassifDataModule()
-
-    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
-    initial_trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        plugins=DeepSpeedPlugin(stage=3),
-        gpus=1,
-        precision=16,
-        callbacks=[ck],
-    )
-    initial_trainer.fit(initial_model, datamodule=dm)
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
