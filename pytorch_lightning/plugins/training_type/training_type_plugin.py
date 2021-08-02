@@ -135,11 +135,6 @@ class TrainingTypePlugin(Plugin, ABC):
         return unwrap_lightning_module(self._model)
 
     @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
-        """Whether to allow Lightning to restore optimizers/schedulers."""
-        return True
-
-    @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         """
         Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run. The result is
