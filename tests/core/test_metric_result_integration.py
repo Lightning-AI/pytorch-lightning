@@ -27,8 +27,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -465,7 +464,11 @@ def result_collection_reload(**kwargs):
         trainer.fit(model)
     assert not model.has_validated_sum
 
-    tmpdir = trainer.training_type_plugin.broadcast(trainer_kwargs["default_root_dir"], 0) if num_processes >=2 else trainer_kwargs["default_root_dir"]
+    tmpdir = (
+        trainer.training_type_plugin.broadcast(trainer_kwargs["default_root_dir"], 0)
+        if num_processes >= 2
+        else trainer_kwargs["default_root_dir"]
+    )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
