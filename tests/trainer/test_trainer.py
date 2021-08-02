@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import logging
 import math
 import os
@@ -1153,6 +1154,14 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(accelerator="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
+        (
+            dict(accelerator="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(accelerator="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
     ],
 )
 def test_trainer_config(trainer_kwargs, expected, monkeypatch):
@@ -1884,13 +1893,22 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_1 = torch.cuda.memory_allocated(0)
+    assert memory_1 == initial
+
     deepcopy(trainer)
+
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_1 == memory_2 == initial
+    assert memory_2 == initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
-    memory_3 = torch.cuda.memory_allocated(0)
 
-    assert initial == memory_1 == memory_3
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
+    memory_3 = torch.cuda.memory_allocated(0)
+    assert memory_3 == initial
