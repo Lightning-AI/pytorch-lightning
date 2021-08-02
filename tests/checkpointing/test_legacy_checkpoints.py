@@ -126,4 +126,3 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
         res = trainer.test(model, datamodule=dm)
         assert res[0]["test_loss"] <= 0.7
         assert res[0]["test_acc"] >= 0.85
-        print(res)
