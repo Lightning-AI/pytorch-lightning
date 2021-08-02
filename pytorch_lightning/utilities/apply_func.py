@@ -86,7 +86,7 @@ def recursively_traverse_for_dtype(obj, func, dtype):
                 dtype=dtype,
             ),
             wrong_dtype=Collection,
-            include_none=False
+            include_none=False,
         )
     else:
         updated = {}

@@ -141,7 +141,6 @@ class FastForwardSampler(Sampler):
         # self.restarting = True
 
     def _get_rng_states(self):
-
         def _collect(gen: torch.Generator):
             return gen.get_state()
 

@@ -681,6 +681,7 @@ def create_dataloader():
     apply_to_collection(loader_dict, DataLoader, Trainer._add_sampler_metadata_collate)
     return CombinedLoader(loader_dict)
 
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -852,7 +853,6 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
 
 
 class SequentialGetItemDataset(Dataset):
-
     def __init__(self, length, *_):
         self.len = length
 
@@ -864,32 +864,28 @@ class SequentialGetItemDataset(Dataset):
 
 
 class RandomTorchGetItemDataset(Dataset):
-
     def __init__(self, length, size):
         self.size = size
         self.len = length
 
     def __getitem__(self, index):
-        return torch.rand(self.size, )
+        return torch.rand(self.size)
 
     def __len__(self):
         return self.len
 
 
 class RandomNumpyGetItemDataset(RandomTorchGetItemDataset):
-
     def __getitem__(self, index):
-        return np.random.rand(self.size, )
+        return np.random.rand(self.size)
 
 
 class RandomPythonGetItemDataset(RandomTorchGetItemDataset):
-
     def __getitem__(self, index):
         return torch.tensor([python_random.random() for _ in range(self.size)])
 
 
 class RandomGeneratorGetItemDataset(Dataset):
-
     def __init__(self, length, size):
         self.size = size
         self.len = length
@@ -904,13 +900,14 @@ class RandomGeneratorGetItemDataset(Dataset):
 
 # TODO: num_workers
 @pytest.mark.parametrize(
-    "dataset_class", [
+    "dataset_class",
+    [
         RandomTorchGetItemDataset,
         SequentialGetItemDataset,
         RandomNumpyGetItemDataset,
         RandomPythonGetItemDataset,
         RandomGeneratorGetItemDataset,
-    ]
+    ],
 )
 def test_dataset_rng_states_restart(dataset_class):
     # set the manual seed initially
