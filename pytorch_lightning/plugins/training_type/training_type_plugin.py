@@ -39,7 +39,7 @@ class TrainingTypePlugin(Plugin, ABC):
     """
 
     def __init__(self) -> None:
-        self._model = None
+        self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
 
@@ -105,7 +105,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @abstractmethod
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes"""
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         """Reduce the early stopping decision across all processes"""
@@ -121,16 +121,16 @@ class TrainingTypePlugin(Plugin, ABC):
         """Hook to do something after each optimizer step."""
 
     @property
-    def model(self) -> Module:
+    def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule"""
         return self._model
 
     @model.setter
-    def model(self, new_model: Module) -> None:
+    def model(self, new_model: Optional[Module]) -> None:
         self._model = new_model
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
+    def lightning_module(self) -> "pl.LightningModule":
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -156,15 +156,15 @@ class TrainingTypePlugin(Plugin, ABC):
         for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_stage()
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the predicting loop
         self._results = trainer.run_stage()
 
@@ -219,7 +219,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """Called before resetting the predict dataloader."""
         return dataloader
 
-    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
+    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
@@ -232,6 +232,17 @@ class TrainingTypePlugin(Plugin, ABC):
         This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
         However this may break certain precision plugins such as APEX which require optimizers to be set.
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return False
+
+    @property
+    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+        """
+        Override to delay restoring from checkpoint till after pre-dispatch.
+        This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
+
+        Returns:
+            If true, restore checkpoint after pre_dispatch.
         """
         return False
 
@@ -268,7 +279,7 @@ class TrainingTypePlugin(Plugin, ABC):
             except AttributeError as err:
                 key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
                 checkpoint.pop(key, None)
-                rank_zero_warn(f'Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}')
+                rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
                 atomic_save(checkpoint, filepath)
 
     @contextlib.contextmanager
@@ -304,7 +315,7 @@ class TrainingTypePlugin(Plugin, ABC):
         raise NotImplementedError
 
     @classmethod
-    def register_plugins(cls, plugin_registry):
+    def register_plugins(cls, plugin_registry) -> None:
         pass
 
     @property

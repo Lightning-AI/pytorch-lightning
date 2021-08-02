@@ -15,7 +15,6 @@ from weakref import proxy
 
 
 class ModelConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 

@@ -18,7 +18,6 @@ from tests.helpers.runif import RunIf
 
 
 class CustomParallelPlugin(DDPPlugin):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.
@@ -31,11 +30,6 @@ def test_sync_batchnorm_set(tmpdir):
     model = BoringModel()
     plugin = CustomParallelPlugin()
     assert plugin.sync_batchnorm is None
-    trainer = Trainer(
-        max_epochs=1,
-        plugins=[plugin],
-        default_root_dir=tmpdir,
-        sync_batchnorm=True,
-    )
+    trainer = Trainer(max_epochs=1, plugins=[plugin], default_root_dir=tmpdir, sync_batchnorm=True)
     trainer.fit(model)
     assert plugin.sync_batchnorm is True

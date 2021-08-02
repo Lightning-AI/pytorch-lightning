@@ -65,7 +65,7 @@ class BaseProfiler(AbstractProfiler):
         if output_filename is not None:
             rank_zero_deprecation(
                 "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
-                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5",
+                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5"
             )
             filepath = Path(output_filename)
             self.dirpath = filepath.parent
@@ -164,10 +164,7 @@ class BaseProfiler(AbstractProfiler):
         return os.linesep.join(output)
 
     def setup(
-        self,
-        stage: Optional[str] = None,
-        local_rank: Optional[int] = None,
-        log_dir: Optional[str] = None,
+        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
     ) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage

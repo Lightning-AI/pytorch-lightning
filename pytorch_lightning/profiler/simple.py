@@ -74,7 +74,7 @@ class SimpleProfiler(BaseProfiler):
 
     def _make_report(self) -> Tuple[list, float]:
         total_duration = time.monotonic() - self.start_time
-        report = [[a, d, 100. * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
+        report = [[a, d, 100.0 * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[2], reverse=True)
         return report, total_duration
 
@@ -88,7 +88,7 @@ class SimpleProfiler(BaseProfiler):
         if self.extended:
 
             if len(self.recorded_durations) > 0:
-                max_key = np.max([len(k) for k in self.recorded_durations.keys()])
+                max_key = max(len(k) for k in self.recorded_durations.keys())
 
                 def log_row(action, mean, num_calls, total, per):
                     row = f"{sep}{action:<{max_key}s}\t|  {mean:<15}\t|"

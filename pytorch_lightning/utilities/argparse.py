@@ -95,9 +95,9 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
 
     env_args = {}
     for arg_name, _, _ in cls_arg_defaults:
-        env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
+        env = template % {"cls_name": cls.__name__.upper(), "cls_argument": arg_name.upper()}
         val = os.environ.get(env)
-        if not (val is None or val == ''):
+        if not (val is None or val == ""):
             # todo: specify the possible exception
             with suppress(Exception):
                 # converting to native types like int/float/bool
@@ -127,7 +127,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:
-            arg_types = (arg_type, )
+            arg_types = (arg_type,)
 
         name_type_default.append((arg, arg_types, arg_default))
 
@@ -143,12 +143,7 @@ def _get_abbrev_qualified_cls_name(cls):
     return f"{cls.__module__}.{cls.__qualname__}"
 
 
-def add_argparse_args(
-    cls,
-    parent_parser: ArgumentParser,
-    *,
-    use_argument_group=True,
-) -> ArgumentParser:
+def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=True) -> ArgumentParser:
     r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
@@ -194,12 +189,9 @@ def add_argparse_args(
         group_name = _get_abbrev_qualified_cls_name(cls)
         parser = parent_parser.add_argument_group(group_name)
     else:
-        parser = ArgumentParser(
-            parents=[parent_parser],
-            add_help=False,
-        )
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
-    ignore_arg_names = ['self', 'args', 'kwargs']
+    ignore_arg_names = ["self", "args", "kwargs"]
     if hasattr(cls, "get_deprecated_arg_names"):
         ignore_arg_names += cls.get_deprecated_arg_names()
 
@@ -235,7 +227,7 @@ def add_argparse_args(
         else:
             use_type = arg_types[0]
 
-        if arg == 'gpus' or arg == 'tpu_cores':
+        if arg == "gpus" or arg == "tpu_cores":
             use_type = _gpus_allowed_type
 
         # hack for types in (int, float)
@@ -243,16 +235,11 @@ def add_argparse_args(
             use_type = _int_or_float_type
 
         # hack for track_grad_norm
-        if arg == 'track_grad_norm':
+        if arg == "track_grad_norm":
             use_type = float
 
         parser.add_argument(
-            f'--{arg}',
-            dest=arg,
-            default=arg_default,
-            type=use_type,
-            help=args_help.get(arg),
-            **arg_kwargs,
+            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
         )
 
     if use_argument_group:
@@ -269,22 +256,22 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
         if not stripped:
             continue
         line_indent = len(line) - len(stripped)
-        if stripped.startswith(('Args:', 'Arguments:', 'Parameters:')):
+        if stripped.startswith(("Args:", "Arguments:", "Parameters:")):
             arg_block_indent = line_indent + 4
         elif arg_block_indent is None:
             continue
         elif line_indent < arg_block_indent:
             break
         elif line_indent == arg_block_indent:
-            current_arg, arg_description = stripped.split(':', maxsplit=1)
+            current_arg, arg_description = stripped.split(":", maxsplit=1)
             parsed[current_arg] = arg_description.lstrip()
         elif line_indent > arg_block_indent:
-            parsed[current_arg] += f' {stripped}'
+            parsed[current_arg] += f" {stripped}"
     return parsed
 
 
 def _gpus_allowed_type(x) -> Union[int, str]:
-    if ',' in x:
+    if "," in x:
         return str(x)
     return int(x)
 
@@ -297,6 +284,6 @@ def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
 
 
 def _int_or_float_type(x) -> Union[int, float]:
-    if '.' in str(x):
+    if "." in str(x):
         return float(x)
     return int(x)
