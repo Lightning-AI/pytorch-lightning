@@ -682,7 +682,7 @@ class DeepSpeedPlugin(DDPPlugin):
             # todo (sean): Add link to docs once docs are merged.
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
-                "each worker will save a shard of the checkpoint within a directory."
+                "each worker will save a shard of the checkpoint within a directory. "
                 "If a single file is required after training, see <TODO> for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
@@ -735,6 +735,7 @@ class DeepSpeedPlugin(DDPPlugin):
         we gather parameters that may be sharded across processes before loading
         the state dictionary when using ZeRO stage 3.
         This is then automatically synced across processes.
+        
         Args:
             ckpt: The ckpt file.
         """
