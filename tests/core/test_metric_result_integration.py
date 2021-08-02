@@ -27,7 +27,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -376,8 +376,11 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(trainer_kwargs):
-    num_processes = trainer_kwargs.get("gpus", 1)
+def result_collection_reload(**kwargs):
+    if not _fault_tolerant_enabled():
+        pytest.skip("Fault tolerant not available")
+
+    num_processes = kwargs.get("gpus", 1)
 
     class CustomException(Exception):
         pass
@@ -385,14 +388,12 @@ def result_collection_reload(trainer_kwargs):
     class ExtendedBoringModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.has_reloaded = False
             self.breaking_batch_idx = 3
             self.has_validated_sum = False
             self.dummy_metric = DummyMeanMetric()
 
         def training_step(self, batch, batch_idx):
-            assert len(batch) == 1
-            if self.has_reloaded:
+            if self.trainer.fit_loop.restarting:
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                 self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
 
@@ -426,7 +427,7 @@ def result_collection_reload(trainer_kwargs):
             return super().training_step(batch, batch_idx)
 
         def on_epoch_end(self) -> None:
-            if self.has_reloaded:
+            if self.trainer.fit_loop.restarting:
                 total = sum(range(5)) * num_processes
                 metrics = self.trainer.fit_loop._results.metrics(on_step=False)
                 assert self.trainer.fit_loop._results["training_step.tracking"].value == total
@@ -436,67 +437,35 @@ def result_collection_reload(trainer_kwargs):
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
-
+    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
+    trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
 
     with suppress(CustomException):
         trainer.fit(model)
+    assert not model.has_validated_sum
 
-    checkpoint_path = trainer.accelerator.broadcast(os.path.join(trainer_kwargs["default_root_dir"], "ckpt.pt"))
-    trainer.save_checkpoint(checkpoint_path)
-
-    trainer.accelerator.barrier()
-
-    trainer_kwargs["resume_from_checkpoint"] = checkpoint_path
-    trainer_kwargs["max_epochs"] = 2
+    tmpdir = trainer_kwargs["default_root_dir"]
+    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
     trainer = Trainer(**trainer_kwargs)
-    model.has_reloaded = True
     trainer.fit(model)
     assert model.has_validated_sum
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(
-    not _TORCH_GREATER_EQUAL_1_7, reason="fault tolerant training is not support for PyTorch 1.6 and below"
-)
 def test_result_collection_reload(tmpdir):
-    result_collection_reload(
-        {"default_root_dir": tmpdir, "max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
-    )
+    result_collection_reload(default_root_dir=tmpdir)
 
 
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(
-    not _TORCH_GREATER_EQUAL_1_7, reason="fault tolerant training is not support for PyTorch 1.6 and below"
-)
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(
-        {
-            "default_root_dir": tmpdir,
-            "max_epochs": 1,
-            "limit_train_batches": 5,
-            "limit_val_batches": 0,
-            "accelerator": "ddp",
-            "gpus": 1,
-        }
-    )
+    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=1)
 
 
 @RunIf(min_gpus=2, special=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(
-    not _TORCH_GREATER_EQUAL_1_7, reason="fault tolerant training is not support for PyTorch 1.6 and below"
-)
 def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(
-        {
-            "default_root_dir": tmpdir,
-            "max_epochs": 1,
-            "limit_train_batches": 5,
-            "limit_val_batches": 0,
-            "accelerator": "ddp",
-            "gpus": 2,
-        }
-    )
+    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=2)
