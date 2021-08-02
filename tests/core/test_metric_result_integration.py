@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
+from contextlib import suppress
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -25,6 +28,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -354,6 +358,144 @@ def test_result_collection_extra_reference():
     """Unit-test to check that the `extra` dict reference is properly set."""
     rc = ResultCollection(True)
     assert rc.extra is rc["_extra"]
+
+
+class DummyMeanMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
+
+    def update(self, increment):
+        self.sum += increment
+        self.count += 1
+
+    def compute(self):
+        return self.sum // self.count
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
+
+
+def result_collection_reload(**kwargs):
+
+    """
+    This test is going to validate ResultCollection is properly being reload
+    and final accumulation with Fault Tolerant Training is correct.
+    """
+
+    if not _fault_tolerant_enabled():
+        pytest.skip("Fault tolerant not available")
+
+    num_processes = kwargs.get("gpus", 1)
+
+    class CustomException(Exception):
+        pass
+
+    class ExtendedBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.breaking_batch_idx = 3
+            self.has_validated_sum = False
+            self.dummy_metric = DummyMeanMetric()
+
+        @property
+        def results(self):
+            return self.trainer.fit_loop._results
+
+        def training_step(self, batch, batch_idx):
+
+            # In the training step, we will accumulate metrics using batch_idx from 0 to 4
+            # Without failure, we would expect to get `total=10 * world_size` and `num_batches=5 * world_size`
+            # Therefore, compute on `epoch_end` should provide 2 as `10 / 5`.
+            # However, below we will simulate a failure on `batch_idx=3`.
+
+            if self.trainer.fit_loop.restarting:
+                self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
+
+                self.dummy_metric(batch_idx)
+                self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
+
+                value = self.results["training_step.tracking_metric"].value
+                value_2 = self.results["training_step.tracking"].value
+
+                # On failure, the Metric states are being accumulated on rank 0 and zeroed-out on other ranks.
+                # The shift indicates we failed while the state was `shift=sign(is_global_zero > 0) * [0..3]`
+                shift = 0
+                if num_processes == 2:
+                    shift = 3 if self.trainer.is_global_zero else -3
+                expected = sum(range(batch_idx + 1)) + shift
+                assert expected == value == value_2
+            else:
+                if batch_idx == self.breaking_batch_idx:
+                    # simulate failure mid epoch
+                    raise CustomException
+
+                self.log("tracking", batch_idx, on_step=True, on_epoch=True)
+                self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
+
+                self.dummy_metric(batch_idx)
+                self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
+
+                value = self.results["training_step.tracking"].value
+                assert value == sum(range(batch_idx + 1))
+
+                value = self.results["training_step.tracking_2"]
+                assert value == sum(range(batch_idx + 1))
+
+            return super().training_step(batch, batch_idx)
+
+        def on_epoch_end(self) -> None:
+            if self.trainer.fit_loop.restarting:
+                total = sum(range(5)) * num_processes
+                metrics = self.results.metrics(on_step=False)
+                assert self.results["training_step.tracking"].value == total
+                assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2
+                assert self.results["training_step.tracking_2"].value == total
+                assert metrics[MetricSource.CALLBACK]["tracking_2"] == self.dummy_metric.compute() == 2
+                self.has_validated_sum = True
+
+    model = ExtendedBoringModel()
+    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
+    trainer_kwargs.update(kwargs)
+    trainer = Trainer(**trainer_kwargs)
+
+    with suppress(CustomException):
+        trainer.fit(model)
+    assert not model.has_validated_sum
+
+    tmpdir = (
+        trainer.training_type_plugin.broadcast(trainer_kwargs["default_root_dir"], 0)
+        if num_processes >= 2
+        else trainer_kwargs["default_root_dir"]
+    )
+    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    trainer_kwargs["resume_from_checkpoint"] = ckpt_path
+
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+    assert model.has_validated_sum
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
+def test_result_collection_reload(tmpdir):
+    result_collection_reload(default_root_dir=tmpdir)
+
+
+@RunIf(min_gpus=1)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
+def test_result_collection_reload_1_gpu_ddp(tmpdir):
+    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=1)
+
+
+@RunIf(min_gpus=2, special=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
+def test_result_collection_reload_2_gpus(tmpdir):
+    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=2)
 
 
 def test_metric_collections(tmpdir):
