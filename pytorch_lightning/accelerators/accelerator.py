@@ -448,7 +448,7 @@ class Accelerator:
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:  # noqa
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
