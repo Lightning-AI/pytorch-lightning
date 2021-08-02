@@ -738,7 +738,7 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif not self.has_gpu and (self.num_nodes > 1 or self.num_processes > 1):
+            elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
             elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
@@ -778,7 +778,7 @@ class AcceleratorConnector:
 
         _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if not self.has_gpu and self._distrib_type in _gpu_distrib_types and not _use_cpu:
+        if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _use_cpu:
 
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
