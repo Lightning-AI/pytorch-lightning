@@ -13,6 +13,7 @@ env:
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   pypi-release:
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
 
     steps:
@@ -47,12 +48,14 @@ jobs:
           verbose: true
 
   docker-XLA:
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         python_version: ["3.7"]
         xla_version: ["1.6", "1.7", "1.8", "1.9"] # todo: , "nightly"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -79,6 +82,7 @@ jobs:
         timeout-minutes: 55
 
   docker-CUDA:
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -113,6 +117,7 @@ jobs:
         timeout-minutes: 55
 
   docker-Conda:
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -154,6 +159,7 @@ jobs:
         timeout-minutes: 55
 
   docker-IPU:
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

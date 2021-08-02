@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -30,7 +31,11 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _sampler_metadata_collate
+from pytorch_lightning.utilities.auto_restart import (
+    _sampler_metadata_collate,
+    CaptureIterableDataset,
+    FastForwardSampler,
+)
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -114,22 +119,21 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
-        # don't do anything if it's not a dataloader
-        is_dataloader = isinstance(dataloader, DataLoader)
-        # don't manipulate iterable datasets
-        is_iterable_ds = has_iterable_dataset(dataloader)
-
         if isinstance(dataloader, CombinedLoader):
+            # apply `auto_add_sampler` on all the collection of loaders
             dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
             return dataloader
 
-        if not is_dataloader or is_iterable_ds:
+        # don't do anything if it's not a dataloader
+        if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        need_dist_sampler = self.accelerator_connector.is_distributed and not isinstance(
-            dataloader.sampler, DistributedSampler
-        )
-        if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
+        if (
+            self.accelerator_connector.replace_sampler_ddp
+            and self.accelerator_connector.is_distributed
+            and not isinstance(dataloader.sampler, DistributedSampler)
+            and not has_iterable_dataset(dataloader)
+        ):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
@@ -137,10 +141,12 @@ class TrainerDataLoadingMixin(ABC):
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp`=False if you want to use your custom sampler."
                 )
-
-            # replace with distributed sampler
             sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
-            dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
+        else:
+            # use current sampler
+            sampler = dataloader.sampler
+
+        dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
 
         return dataloader
 
@@ -157,6 +163,11 @@ class TrainerDataLoadingMixin(ABC):
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+            if _fault_tolerant_enabled():
+                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
+
             return {
                 "sampler": None,
                 "shuffle": False,
@@ -164,6 +175,11 @@ class TrainerDataLoadingMixin(ABC):
                 "batch_size": 1,
                 "drop_last": False,
             }
+
+        if _fault_tolerant_enabled():
+            fast_forward_sampler = sampler = FastForwardSampler(sampler)
+            fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
+
         return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
@@ -222,6 +238,15 @@ class TrainerDataLoadingMixin(ABC):
                     "manually add the `DistributedSampler` as: "
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
+
+        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+        if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
+            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+            dl_kwargs["sampler"] = None
+
+        if isinstance(dl_kwargs["dataset"], IterableDataset):
+            del dl_kwargs["sampler"]
+            del dl_kwargs["batch_sampler"]
 
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)

@@ -42,14 +42,6 @@ def test_v1_5_0_model_checkpoint_save_checkpoint():
         model_ckpt.save_checkpoint(trainer, object())
 
 
-def test_v1_5_0_model_checkpoint_save_function():
-    model_ckpt = ModelCheckpoint()
-    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
-        model_ckpt.save_function = lambda *_, **__: None
-    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
-        _ = model_ckpt.save_function
-
-
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_v1_5_0_wandb_unused_sync_step(_):
     with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
