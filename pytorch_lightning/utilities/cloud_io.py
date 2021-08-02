@@ -14,15 +14,18 @@
 
 import io
 from pathlib import Path
-from typing import IO, Union
+from typing import Any, Dict, IO, Optional, Union
 
 import fsspec
 import torch
-from fsspec.implementations.local import LocalFileSystem
+from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
 from packaging.version import Version
 
 
-def load(path_or_url: Union[str, IO, Path], map_location=None):
+def load(
+    path_or_url: Union[str, IO, Path],
+    map_location: Optional[Union[str, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]] = None,
+) -> Any:
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
@@ -33,7 +36,7 @@ def load(path_or_url: Union[str, IO, Path], map_location=None):
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]):
+def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified
@@ -42,7 +45,7 @@ def get_filesystem(path: Union[str, Path]):
     return LocalFileSystem()
 
 
-def atomic_save(checkpoint, filepath: str):
+def atomic_save(checkpoint: Any, filepath: str) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
