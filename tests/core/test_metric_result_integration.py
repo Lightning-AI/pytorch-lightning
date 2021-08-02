@@ -557,4 +557,3 @@ def test_metric_collections(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
     trainer.fit(model)
-
