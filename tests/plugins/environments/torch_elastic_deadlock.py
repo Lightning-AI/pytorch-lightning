@@ -1,8 +1,10 @@
 import os
 import sys
+from contextlib import suppress
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from tests.helpers.boring_model import BoringModel
 
 if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
@@ -25,11 +27,9 @@ if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
     )
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
-    try:
+    with suppress(DeadlockDetectedException):
         # simulate random failure in training_step on rank 0
         trainer.fit(model)
-    except Exception:
-        pass
 
     # used to capture success from this script in the CI.
     print("SUCCEEDED")

@@ -413,10 +413,10 @@ class DDPPlugin(ParallelPlugin):
             self._sync_dir = tempfile.mkdtemp()
 
         sync_dirs = []
-        node_zero = 0
+        global_node_rank_zero = 0
         for _ in range(self.num_nodes):
-            sync_dirs.append(self.broadcast(self._sync_dir, node_zero))
-            node_zero += self.world_size // self.num_nodes
+            sync_dirs.append(self.broadcast(self._sync_dir, global_node_rank_zero))
+            global_node_rank_zero += self.world_size // self.num_nodes
 
         self._sync_dir = sync_dirs[self.node_rank]
 

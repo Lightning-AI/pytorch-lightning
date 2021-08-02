@@ -78,11 +78,12 @@ if [ $? -eq 0 ]; then
     report+="Ran\ttests/utilities/test_warnings.py\n"
 fi
 
-# test deadlock is properly handled with TorchElastic.
+# test deadlock is properly handled with TorchElastic.
 LOGS=$(PL_RUNNING_SPECIAL_TESTS=1 python -m torch.distributed.launch --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
 if  [ -z "$LOGS" ]; then
     exit 1
 fi
+report+="Ran\ttests/plugins/environments/torch_elastic_deadlock.py\n"
 
 # test that a user can manually launch individual processes
 args="--trainer.gpus 2 --trainer.accelerator ddp --trainer.fast_dev_run 1"
