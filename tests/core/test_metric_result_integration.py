@@ -357,7 +357,6 @@ def test_result_collection_extra_reference():
 
 
 def test_metric_collections(tmpdir):
-
     """This test ensures the metric attribute is properly found even with complex nested metric structure"""
 
     class TestModel(BoringModel):
