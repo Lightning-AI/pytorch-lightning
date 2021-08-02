@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
 if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd  # noqa: E402
+    import horovod.torch as hvd
 else:
     print("You requested to import Horovod which is missing or not supported for your OS.")
 
