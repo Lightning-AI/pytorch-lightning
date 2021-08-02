@@ -47,7 +47,7 @@ def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
     return LocalFileSystem()
 
 
-def atomic_save(checkpoint: Any, filepath: str) -> None:
+def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
