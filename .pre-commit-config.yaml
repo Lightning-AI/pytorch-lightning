@@ -85,6 +85,7 @@ repos:
           - mdformat-gfm
           - mdformat-black
           - mdformat_frontmatter
+        exclude: CHANGELOG.md
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2
