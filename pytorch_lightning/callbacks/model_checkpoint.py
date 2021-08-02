@@ -345,7 +345,9 @@ class ModelCheckpoint(Callback):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
-            "dirpath": self.dirpath
+            "dirpath": self.dirpath,
+            "world_size": trainer.world_size,
+            "node_rank": trainer.node_rank,
         }
 
     def on_load_checkpoint(

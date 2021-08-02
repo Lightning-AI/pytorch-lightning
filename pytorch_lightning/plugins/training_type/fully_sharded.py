@@ -186,7 +186,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         checkpoint = {}
         rank_zero_info(
             f"FullyShardedDataParallel has {self.num_processes} processes. Serializing model
-            state restore to avoid CPU OOMs."
+            state restoration to avoid CPU OOMs."
         )
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
