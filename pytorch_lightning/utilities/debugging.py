@@ -44,17 +44,17 @@ class InternalDebugger:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.enabled = os.environ.get("PL_DEV_DEBUG", "0") == "1"
         self.trainer = trainer
-        self.saved_train_losses: List[Dict[str, Union[float, torch.Tensor, object]]] = []
-        self.saved_val_losses: List[Dict[str, Union[float, torch.Tensor, object]]] = []
-        self.saved_test_losses: List[Dict[str, Union[float, torch.Tensor, object]]] = []
-        self.early_stopping_history: List[Dict[str, Union[float, torch.Tensor, object]]] = []
-        self.checkpoint_callback_history: List[Dict[str, Union[float, torch.Tensor, object]]] = []
+        self.saved_train_losses: List[Dict[str, Any]] = []
+        self.saved_val_losses: List[Dict[str, Any]] = []
+        self.saved_test_losses: List[Dict[str, Any]] = []
+        self.early_stopping_history: List[Dict[str, Any]] = []
+        self.checkpoint_callback_history: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
         self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
-        self.train_dataloader_calls: List[Dict[str, Union[int, str, object]]] = []
-        self.val_dataloader_calls: List[Dict[str, Union[int, str, object]]] = []
-        self.test_dataloader_calls: List[Dict[str, Union[int, str, object]]] = []
-        self.dataloader_sequence_calls: List[Dict[str, Union[int, str, object]]] = []
+        self.train_dataloader_calls: List[Dict[str, Any]] = []
+        self.val_dataloader_calls: List[Dict[str, Any]] = []
+        self.test_dataloader_calls: List[Dict[str, Any]] = []
+        self.dataloader_sequence_calls: List[Dict[str, Any]] = []
 
     @enabled_only
     def track_event(
