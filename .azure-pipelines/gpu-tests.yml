@@ -29,7 +29,7 @@ jobs:
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
       # run on torch 1.8 as it's the LTS version
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.9"
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
@@ -51,7 +51,7 @@ jobs:
     - bash: |
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale>=0.3.4
-        pip install "deepspeed>=0.4.0, !=0.4.4"  # FIXME: bug with 0.4.4
+        pip install deepspeed==0.4.3 # bug with 0.4.4
         pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
