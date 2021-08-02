@@ -179,8 +179,8 @@ class CaptureMapDataset(Dataset):
             self._set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
-        data = self.dataset[item]
         state_dict = self.state_dict()
+        data = self.dataset[item]
         # print(self.worker_id, "data", data, "state", state_dict)
         return data, state_dict
 
