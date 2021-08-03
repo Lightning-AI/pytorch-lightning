@@ -26,6 +26,7 @@ from typing import Any
 import cloudpickle
 import pytest
 import torch
+from torch.utils.data.dataset import Dataset
 from omegaconf import OmegaConf
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -1955,11 +1956,26 @@ def test_trainer_inter_batch_parallelism(tmpdir):
 
     CYCLES_PER_MS = int(get_cycles_per_ms())
 
-    class TestModel(BoringModel):
+    BATCH_SIZE = 128
+    EMB_SZ = 100
+    EMB_DIM = 64
+
+    class RandomDataset(Dataset):
+
+        def __getitem__(self, index):
+            return torch.randint(EMB_DIM, [BATCH_SIZE])
+
+    class RecommenderModel(BoringModel):
 
         def __init__(self, non_blocking: bool):
             super().__init__()
+            self.layer = None
+            self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
             self.non_blocking = non_blocking
+
+        def forward(self, indices: torch.Tensor):
+            breakpoint()
+            result = self.local_embedding(indices)
 
         def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
             torch.cuda._sleep(CYCLES_PER_MS * 1_000)
@@ -1973,15 +1989,20 @@ def test_trainer_inter_batch_parallelism(tmpdir):
                 torch.cuda.synchronize()
             return training_step_outputs
 
-    model = TestModel(non_blocking=False)
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+    model = RecommenderModel(non_blocking=False)
+
+    breakpoint()
 
     t0 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=False, gpus=1)
-    trainer.fit(model)
+    trainer.fit(model, train_dataloader=RandomDataset())
 
     t1 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=True, gpus=1)
-    trainer.fit(model)
+    trainer.fit(model, train_dataloader=RandomDataset())
 
     t2 = time()
 

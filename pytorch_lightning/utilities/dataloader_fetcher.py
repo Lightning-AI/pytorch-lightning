@@ -50,9 +50,7 @@ class LightningStreamEvent:
     def wait(self) -> None:
         if self.cuda_inter_batch_parallelism:
             event = self.events.pop(0)
-            t0 = time.time()
             event.wait()
-            time()
 
 
 def profiled_iterator(iterator, profiler):
