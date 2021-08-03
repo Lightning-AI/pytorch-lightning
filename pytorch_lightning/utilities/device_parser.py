@@ -57,7 +57,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
-            A list of ints or a string containing list of comma separated integers
+            A list of unique ints or a string containing list of comma separated unique integers
             indicates specific GPUs to use.
             An int 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
@@ -88,6 +88,10 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
+
+    # Check that gpus are unique. Duplicate gpus are not supported by the backend.
+    _check_unique(gpus)
+
     return _sanitize_gpu_ids(gpus)
 
 
@@ -186,6 +190,21 @@ def _get_all_available_gpus() -> List[int]:
          a list of all available gpus
     """
     return list(range(torch.cuda.device_count()))
+
+
+def _check_unique(device_ids: List[int]) -> None:
+    """
+    Checks that the device_ids are unique.
+
+    Args:
+        device_ids: list of ints corresponding to gpus indices
+
+    Raises:
+        MisconfigurationException:
+            If ``device_ids`` of GPUs aren't unique
+    """
+    if len(device_ids) != len(set(device_ids)):
+        raise MisconfigurationException("Device ID's (GPU) must be unique.")
 
 
 def _check_data_type(device_ids: Any) -> None:
