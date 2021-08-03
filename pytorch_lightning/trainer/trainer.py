@@ -62,7 +62,6 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -96,7 +95,6 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
@@ -498,7 +496,7 @@ class Trainer(
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -541,8 +539,6 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        self.checkpoint_connector.resume_start()
-
         self._run(model)
 
         assert self.state.stopped
@@ -555,7 +551,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # noqa TODO: remove with 1.6
+        val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -633,7 +629,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # noqa TODO: remove with 1.6
+        test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
@@ -784,7 +780,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -838,6 +834,23 @@ class Trainer(
 
         return result
 
+    def _restore_modules_and_callbacks(self) -> None:
+        # restore modules after setup
+        if self.state.fn == TrainerFn.FITTING:
+            self.checkpoint_connector.resume_start()
+        self.checkpoint_connector.restore_datamodule()
+        self.checkpoint_connector.restore_model()
+        # restore callback states
+        self.checkpoint_connector.restore_callbacks()
+
+    def _load_checkpoint_weights(self):
+        # only one process running at this point for TPUs, as spawn isn't triggered yet
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
+            self.accelerator.barrier()
+        rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
+        self.checkpoint_connector.restore_model_weights(self._ckpt_path)
+
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
@@ -852,14 +865,8 @@ class Trainer(
         self.data_connector.prepare_data(model)
         self.callback_connector._attach_model_callbacks(model, self)
 
-        if self._ckpt_path:
-            # only one process running at this point for TPUs, as spawn isn't triggered yet
-            # todo: move this logic internally within the barrier.
-            if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
-
-            rank_zero_info(f"Loading checkpoint from {self._ckpt_path}")
-            self.checkpoint_connector.restore_model_weights(self._ckpt_path)
+        if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._load_checkpoint_weights()
 
         # ----------------------------
         # SET UP TRAINING
@@ -869,11 +876,9 @@ class Trainer(
         self.accelerator.setup_environment()
         self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
 
-        # restore modules after setup
-        self.checkpoint_connector.restore_datamodule()
-        self.checkpoint_connector.restore_model()
-        # restore callback states
-        self.checkpoint_connector.restore_callbacks()
+        # check if we should delay restoring checkpoint till later
+        if not self.accelerator.restore_checkpoint_after_pre_dispatch:
+            self._restore_modules_and_callbacks()
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
@@ -904,7 +909,7 @@ class Trainer(
         {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         Search for `start_training` or `start_evaluating` or `start_predicting` in
         `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
-        """  # noqa: W605
+        """
 
         # ----------------------------
         # TRAIN
@@ -915,6 +920,12 @@ class Trainer(
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
+
+        if self.accelerator.restore_checkpoint_after_pre_dispatch:
+            if self._ckpt_path:
+                self._load_checkpoint_weights()
+            self._restore_modules_and_callbacks()
+
         # restore optimizers, etc.
         self.checkpoint_connector.restore_training_state()
 
@@ -1310,7 +1321,7 @@ class Trainer(
             )
 
     def _on_expection(self):
-        if not self.is_global_zero or not _fault_tolerant_enabled():
+        if not _fault_tolerant_enabled():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")

@@ -1,4 +1,5 @@
 # Copyright The PyTorch Lightning team.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -10,8 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
-from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.gpu import GPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.ipu import IPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.tpu import TPUAccelerator  # noqa: F401
+""" Test deprecated functionality which will be removed in v1.7.0 """
+import pytest
+
+from tests.helpers import BoringModel
+
+
+def test_v1_7_0_deprecated_model_size():
+    model = BoringModel()
+    with pytest.deprecated_call(
+        match="LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7"
+    ):
+        _ = model.model_size

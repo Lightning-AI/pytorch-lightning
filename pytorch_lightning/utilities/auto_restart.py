@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Union
@@ -39,7 +40,7 @@ class FastForwardSampler(Sampler):
         self.restarting: bool = False
         self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
-        self._cached_state_dict: Optional[Dict[str, Any]] = None
+        self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
 
     def __getattr__(self, key: str) -> Any:
@@ -60,35 +61,44 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
-        # split restart logic to avoid user with tempering with "fast-forwarding"
+        # the `state dict` was cached as workers were unavailable before
+        # reload it now
+        self._load_cached_state()
 
-        if not self.restarting:
-            for batch in self._sampler:
-                self._current_iteration += 1
-                yield batch
+        i = 0
+        sampler_iter = iter(self._sampler)
+        while i < self._current_iteration:
+            next(sampler_iter)
+            i += 1
 
-        else:
-            for i, batch in enumerate(self._sampler):
-
-                # the `state dict` was cached as workers were available before.
-                if self._cached_state_dict is not None and self.worker_id in self._cached_state_dict:
-
-                    # reload the current state dict
-                    self.load_state_dict(self._cached_state_dict, workers_initialized=True)
-                    self._cached_state_dict = None
-
-                # when the current index matching the current_iteration, we have "fast forwarded" the sampler.
-                if self._current_iteration <= i:
-                    if self._current_iteration == i:
-                        self.restarting = False
-                    self._current_iteration += 1
-                    yield batch
+        # here: i == self._current_iteration
+        while True:
+            self._current_iteration += 1
+            try:
+                yield next(sampler_iter)
+            except StopIteration:
+                break
 
         self._current_iteration = 0
         self.restarting = False
 
     def __len__(self) -> int:
-        return len(self.sampler)
+        return len(self._sampler)
+
+    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
+        """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
+        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
+
+    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
+        """
+        Loads the saved state for the wrapped sampler.
+        If the ``state_dict`` contains multiple states, it means there were multiple workers.
+        The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
+        """
+        # as workers aren't available, the ``state_dict``` is cached until workers are made available.
+        state_dict = deepcopy(state_dict)
+        self._cached_state_dict = state_dict
+        self.restarting = True
 
     def _compute_current_iteration(self, num_batches_processed: Optional[int] = None) -> int:
         """
@@ -106,23 +116,12 @@ class FastForwardSampler(Sampler):
 
         return current_iteration
 
-    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
-        """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
-        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
-
-    def load_state_dict(self, state_dict: Dict[int, Any], workers_initialized: bool = False) -> None:
-        """
-        Loads the saved state for the wrapped sampler.
-        If the ``state_dict`` contains multiple states, it means there were multiple workers.
-        The state will be cached and fully reloaded (fast-forward) the first time :meth:`__iter__` is called.
-        """
-        # as workers aren't available, the `state_dict` is cached until workers are made available.
-        if len(state_dict) > 1 and not workers_initialized:
-            self._cached_state_dict = deepcopy(state_dict)
-            self.restarting = True
+    def _load_cached_state(self):
+        if self._cached_state_dict is None or self.worker_id not in self._cached_state_dict:
             return
-        self._current_iteration = state_dict[self.worker_id]["current_iteration"]
-        self.restarting = True
+        self._current_iteration = self._cached_state_dict[self.worker_id]["current_iteration"]
+        # delete cached state, prevent reloading every time iter() is called
+        self._cached_state_dict = None
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -134,11 +133,10 @@ class CaptureIterableDataset(IterableDataset):
         user data and metadata containing the ``FastForwardSampler`` samplers state_dict.
     """
 
-    def __init__(self, dataset: IterableDataset, initial_seed: Optional[int] = None) -> None:
+    def __init__(self, dataset: IterableDataset) -> None:
         super().__init__()
         self.dataset = deepcopy(dataset)
         self._state_dict: Optional[Dict[int, Any]] = None
-        self.initial_seed = initial_seed
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
 
     @property
@@ -242,15 +240,14 @@ class CaptureIterableDataset(IterableDataset):
         .. code-block:: python
 
             {
-                "batch": data returned by DataLoader
+                "batch": ...,  # data returned by DataLoader
                 "__pl_samplers": {
                     "sampler0": {
-                        0: { "current_iteration": ... }
-                        1: { "current_iteration": ... }
-                        ...
-                    }
-                    "sampler1": ...
-                }
+                        0: {"current_iteration": ...},
+                        1: {"current_iteration": ...},
+                    },
+                    "sampler1": ...,
+                },
             }
 
         Each sampler in the worker process tracks the current iteration. We return all of them to the main process
@@ -388,11 +385,8 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     .. code-block:: python
 
         {
-            "data": data returned by Dataset
-            "__pl_samplers": {
-                "sampler_name0": state_dict
-                "sampler_name1": state_dict
-            }
+            "data": ...,  # data returned by Dataset
+            "__pl_samplers": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
     batch = default_collate(samples)

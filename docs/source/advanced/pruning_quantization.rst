@@ -47,8 +47,9 @@ You can also perform iterative pruning, apply the `lottery ticket hypothesis <ht
         elif epoch == 50:
             return 0.25
 
-       elif 75 < epoch < 99 :
+        elif 75 < epoch < 99:
             return 0.01
+
 
     # the amount can be also be a callable
     trainer = Trainer(callbacks=[ModelPruning("l1_unstructured", amount=compute_amount)])
@@ -71,49 +72,50 @@ Lightning includes :class:`~pytorch_lightning.callbacks.QuantizationAwareTrainin
 
 .. code-block:: python
 
-	from pytorch_lightning.callbacks import QuantizationAwareTraining
+    from pytorch_lightning.callbacks import QuantizationAwareTraining
 
-	class RegressionModel(LightningModule):
 
-	    def __init__(self):
-	        super().__init__()
-	        self.layer_0 = nn.Linear(16, 64)
-	        self.layer_0a = torch.nn.ReLU()
-	        self.layer_1 = nn.Linear(64, 64)
-	        self.layer_1a = torch.nn.ReLU()
-	        self.layer_end = nn.Linear(64, 1)
+    class RegressionModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer_0 = nn.Linear(16, 64)
+            self.layer_0a = torch.nn.ReLU()
+            self.layer_1 = nn.Linear(64, 64)
+            self.layer_1a = torch.nn.ReLU()
+            self.layer_end = nn.Linear(64, 1)
 
-	    def forward(self, x):
-	        x = self.layer_0(x)
-	        x = self.layer_0a(x)
-	        x = self.layer_1(x)
-	        x = self.layer_1a(x)
-	        x = self.layer_end(x)
-	        return x
+        def forward(self, x):
+            x = self.layer_0(x)
+            x = self.layer_0a(x)
+            x = self.layer_1(x)
+            x = self.layer_1a(x)
+            x = self.layer_end(x)
+            return x
 
-	trainer = Trainer(callbacks=[QuantizationAwareTraining()])
-	qmodel = RegressionModel()
-	trainer.fit(qmodel, ...)
 
-	batch = iter(my_dataloader()).next()
-	qmodel(qmodel.quant(batch[0]))
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()])
+    qmodel = RegressionModel()
+    trainer.fit(qmodel, ...)
 
-	tsmodel = qmodel.to_torchscript()
-	tsmodel(tsmodel.quant(batch[0]))
+    batch = iter(my_dataloader()).next()
+    qmodel(qmodel.quant(batch[0]))
+
+    tsmodel = qmodel.to_torchscript()
+    tsmodel(tsmodel.quant(batch[0]))
 
 You can further customize the callback:
 
 .. code-block:: python
 
 
-	qcb = QuantizationAwareTraining(
-	    # specification of quant estimation quality
-	    observer_type='histogram',
-	    # specify which layers shall be merged together to increase efficiency
-	    modules_to_fuse=[(f'layer_{i}', f'layer_{i}a') for i in range(2)]
-	    # make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
-	    input_compatible=True
-	)
+    qcb = QuantizationAwareTraining(
+        # specification of quant estimation quality
+        observer_type="histogram",
+        # specify which layers shall be merged together to increase efficiency
+        modules_to_fuse=[(f"layer_{i}", f"layer_{i}a") for i in range(2)],
+        # make your model compatible with all original input/outputs, in such case the model is wrapped in a shell with entry/exit layers.
+        input_compatible=True,
+    )
 
     batch = iter(my_dataloader()).next()
     qmodel(batch[0])
