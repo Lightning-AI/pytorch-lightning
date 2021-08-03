@@ -3,7 +3,7 @@ Advanced GPU Optimized Training & Model Parallelism
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training plugins to support these cases and offer substantial improvements in memory usage.
 
-In many cases these plugins are some flavour of model parallelism however we only introduce concepts at a high level to get you started. Refer to the `FairScale documentation <https://fairscale.readthedocs.io/en/latest/deep_dive/oss_sdp_fsdp.html>`__ to for more information about model parallelism.
+In many cases these plugins are some flavour of model parallelism however we only introduce concepts at a high level to get you started. Refer to the `FairScale documentation <https://fairscale.readthedocs.io/en/latest/deep_dive/oss_sdp_fsdp.html>`__  for more information about model parallelism.
 
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
@@ -530,7 +530,6 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 Collating Single File Checkpoint for DeepSpeed ZeRO Stage 3
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-
 After training using ZeRO Stage 3, you'll notice that your checkpoints are a directory of sharded model and optimizer states. If you'd like to collate a single file from the checkpoint directory please use `this custom gist <https://gist.github.com/SeanNaren/e0535977df8e165247f7ff9ae445be1b>`__ which handles all the Lightning states additionally when collating the file.
 
 .. code-block:: bash
@@ -544,7 +543,7 @@ After training using ZeRO Stage 3, you'll notice that your checkpoints are a dir
 
 .. warning::
 
-    This single file checkpoint does not include the optimizer/lr states. This means we cannot restore training via `resume_from_checkpoint`. Ensure to keep the sharded checkpoint directory if this is required.
+    This single file checkpoint does not include the optimizer/lr-scheduler states. This means we cannot restore training via the `resume_from_checkpoint` Trainer argument. Ensure to keep the sharded checkpoint directory if this is required.
 
 Custom DeepSpeed Config
 """""""""""""""""""""""
