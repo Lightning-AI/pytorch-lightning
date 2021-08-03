@@ -52,6 +52,12 @@ repos:
         args: [--py36-plus]
         name: Upgrade code
 
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.2.3
+    hooks:
+      - id: yesqa
+        name: Unused noqa
+
   - repo: https://github.com/PyCQA/isort
     rev: 5.9.2
     hooks:
@@ -63,6 +69,13 @@ repos:
     hooks:
       - id: black
         name: Format code
+
+  - repo: https://github.com/asottile/blacken-docs
+    rev: v1.10.0
+    hooks:
+      - id: blacken-docs
+        args: [ --line-length=120 ]
+        additional_dependencies: [ black==21.7b0 ]
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2

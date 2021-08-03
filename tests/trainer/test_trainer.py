@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import logging
 import math
 import os
@@ -556,7 +557,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
         trainer.fit(model)
 
     message = f"minimum epochs ({min_epochs}) or minimum steps (None) has not been met. Training will continue"
-    num_messages = len([record.message for record in caplog.records if message in record.message])
+    num_messages = sum(1 for record in caplog.records if message in record.message)
     assert num_messages == min_epochs - 2
     assert model.training_step_invoked == min_epochs * 2
 
@@ -639,14 +640,24 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
                 trainer_fn(ckpt_path=ckpt_path)
+            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+                trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+
+            trainer_fn(model, ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
-        # ckpt_path is None, meaning we don't load any checkpoints and
-        # use the weights from the end of training
-        trainer_fn(ckpt_path=ckpt_path)
+        # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
+        trainer_fn(model, ckpt_path=ckpt_path)
         assert getattr(trainer, path_attr) is None
+
+        if save_top_k > 0:
+            # ckpt_path is None with no model provided means load the best weights
+            with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
+                trainer_fn(ckpt_path=ckpt_path)
+                assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -659,6 +670,9 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
                 ].absolute()
             )
             trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == ckpt_path
+
+            trainer_fn(model, ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == ckpt_path
 
 
@@ -1140,6 +1154,14 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(accelerator="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
+        (
+            dict(accelerator="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(accelerator="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
     ],
 )
 def test_trainer_config(trainer_kwargs, expected, monkeypatch):
@@ -1223,9 +1245,9 @@ def test_trainer_setup_call(tmpdir, stage):
     if stage == "fit":
         trainer.fit(model)
     elif stage == "validate":
-        trainer.validate(model, ckpt_path=None)
+        trainer.validate(model)
     else:
-        trainer.test(model, ckpt_path=None)
+        trainer.test(model)
 
     assert trainer.stage == stage
     assert trainer.lightning_module.stage == stage
@@ -1728,7 +1750,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1), pytest.param("ddp", 2, marks=RunIf(skip_windows=True))]
+    "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesModel()
@@ -1872,13 +1894,22 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_1 = torch.cuda.memory_allocated(0)
+    assert memory_1 == initial
+
     deepcopy(trainer)
+
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
     memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_1 == memory_2 == initial
+    assert memory_2 == initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
-    memory_3 = torch.cuda.memory_allocated(0)
 
-    assert initial == memory_1 == memory_3
+    # before measuring the memory force release any leftover allocations, including CUDA tensors
+    gc.collect()
+    memory_3 = torch.cuda.memory_allocated(0)
+    assert memory_3 == initial

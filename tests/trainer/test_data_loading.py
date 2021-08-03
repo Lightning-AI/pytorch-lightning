@@ -117,7 +117,7 @@ def test_dataloader_warnings(num_workers):
 def test_replace_sampler_raises():
     trainer = Trainer()
     with pytest.raises(ValueError, match="needs to subclass `torch.utils.data.DataLoader"):
-        trainer.replace_sampler(object(), object(), mode="fit")  # noqa
+        trainer.replace_sampler(object(), object(), mode="fit")
 
 
 def test_dataloaders_with_missing_keyword_arguments():

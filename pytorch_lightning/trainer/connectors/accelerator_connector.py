@@ -667,7 +667,7 @@ class AcceleratorConnector:
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
-            use_ddp_cpu_spawn = self.use_ddp and self.use_cpu
+            use_ddp_cpu_spawn = use_ddp_spawn and self.use_cpu
             use_tpu_spawn = self.use_tpu and self._distrib_type == DistributedType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
@@ -798,17 +798,19 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
+            elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._distrib_type = DistributedType.DDP
+            elif self.num_gpus == 0 and self.num_processes > 1:
+                self.distributed_backend = DistributedType.DDP_SPAWN
             elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
                 )
-                self.distributed_backend = "ddp_spawn"
+                self.distributed_backend = DistributedType.DDP_SPAWN
 
         # special case with DDP on CPUs
-        if self.distributed_backend == "ddp_cpu":
+        if self.distributed_backend == DistributedType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
@@ -839,12 +841,13 @@ class AcceleratorConnector:
         _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
         if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _use_cpu:
-            rank_zero_warn(
-                "You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`."
-            )
-            # todo: in some cases it yield in comparison None and int
+
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
-                self._distrib_type = DistributedType.DDP
+                if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
+                    rank_zero_warn(
+                        f"{self._distrib_type} is not supported on CPUs, hence setting the distributed type to `ddp`."
+                    )
+                    self._distrib_type = DistributedType.DDP
             else:
                 rank_zero_warn("You are running on single node with no parallelization, so distributed has no effect.")
                 self._distrib_type = None
@@ -863,7 +866,7 @@ class AcceleratorConnector:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
-        if self.distributed_backend == "horovod":
+        if self.distributed_backend == DistributedType.HOROVOD:
             self._set_horovod_backend()
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
@@ -917,7 +920,7 @@ class AcceleratorConnector:
     @staticmethod
     def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+        return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,

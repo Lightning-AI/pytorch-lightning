@@ -234,7 +234,7 @@ class ModelHooks:
         Called in the training loop at the very beginning of the epoch.
         """
 
-    def on_train_epoch_end(self, unused: Optional = None) -> None:
+    def on_train_epoch_end(self) -> None:
         """
         Called in the training loop at the very end of the epoch.
 
@@ -410,7 +410,7 @@ class DataHooks:
         .. code-block:: python
 
             model.prepare_data()
-                if ddp/tpu: init()
+            initialize_distributed()
             model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()

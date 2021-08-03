@@ -43,6 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -676,3 +677,18 @@ def test_training_type_choice_gpu_str(tmpdir, training_type, plugin):
 def test_training_type_choice_gpu_plugin(tmpdir, plugin):
     trainer = Trainer(training_type=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
+
+
+@pytest.mark.parametrize("training_type", ["ddp2", "dp"])
+def test_unsupported_distrib_types_on_cpu(training_type):
+
+    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting the distributed type to `ddp`."):
+        trainer = Trainer(accelerator=training_type, num_processes=2)
+
+    assert trainer._distrib_type == DistributedType.DDP
+
+
+def test_accelerator_ddp_for_cpu(tmpdir):
+    trainer = Trainer(accelerator="ddp", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)

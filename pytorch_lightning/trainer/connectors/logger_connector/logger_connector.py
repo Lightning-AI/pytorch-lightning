@@ -241,9 +241,9 @@ class LoggerConnector:
         self._epoch_end_reached = False
 
     def epoch_end_reached(self):
-        self.trainer.logger_connector._epoch_end_reached = True
-        self.trainer.logger_connector._batch_idx = None
-        self.trainer.logger_connector._split_idx = None
+        self._epoch_end_reached = True
+        self._batch_idx = None
+        self._split_idx = None
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
