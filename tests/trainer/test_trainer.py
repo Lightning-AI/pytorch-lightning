@@ -17,12 +17,13 @@ import math
 import os
 import pickle
 import sys
-from time import time
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import ANY, call, patch
+from time import time
 from typing import Any
+from unittest.mock import ANY, call, patch
+
 import cloudpickle
 import pytest
 import torch
@@ -1981,7 +1982,7 @@ def test_trainer_inter_batch_parallelism(tmpdir):
             torch.cuda._sleep(CYCLES_PER_MS * 1_000)
             if not self.non_blocking:
                 torch.cuda.synchronize()
-            return batch 
+            return batch
 
         def training_step_end(self, training_step_outputs):
             torch.cuda._sleep(CYCLES_PER_MS * 1_000)
