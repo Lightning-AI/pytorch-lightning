@@ -479,6 +479,8 @@ class LightningModule(
         sync_dist_op: Optional[Any] = None,  # todo: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
+        batch_size: Optional[int] = None,
+        rank_zero_only: Optional[bool] = None,
     ) -> None:
         """
         Log a dictionary of values at once.
@@ -502,6 +504,10 @@ class LightningModule(
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
+            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+                but some data structures might need to explicitly provide it.
+            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
+                would produce a deadlock as not all processes would perform this log call.
         """
         for k, v in dictionary.items():
             self.log(
@@ -519,6 +525,8 @@ class LightningModule(
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx,
+                batch_size=batch_size,
+                rank_zero_only=rank_zero_only,
             )
 
     @staticmethod
