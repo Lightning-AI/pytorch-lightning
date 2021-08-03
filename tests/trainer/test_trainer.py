@@ -17,11 +17,12 @@ import math
 import os
 import pickle
 import sys
+from time import time
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
-
+from typing import Any
 import cloudpickle
 import pytest
 import torch
@@ -1915,9 +1916,73 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert memory_3 == initial
 
 
+def get_cycles_per_ms() -> float:
+    """
+    Measure and return approximate number of cycles per millisecond for torch.cuda._sleep
+
+    Copied from: github.com/pytorch/pytorch/blob/master/test/test_cuda.py
+    """
+
+    def measure() -> float:
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        torch.cuda._sleep(1000000)
+        end.record()
+        end.synchronize()
+        cycles_per_ms = 1000000 / start.elapsed_time(end)
+        return cycles_per_ms
+
+    # Get 10 values and remove the 2 max and 2 min and return the avg.
+    # This is to avoid system disturbance that skew the results, e.g.
+    # the very first cuda call likely does a bunch of init, which takes
+    # much longer than subsequent calls.
+    #
+    # Tested on both Tesla V100, Quadro GP100, Titan RTX, RTX 3090 GPUs
+    # and seems to return stable values. Therefore, we enable caching
+    # using lru_cache decorator above.
+    num = 10
+    vals = []
+    for _ in range(num):
+        vals.append(measure())
+    vals = sorted(vals)
+    stats = vals[2 : num - 2]
+    return sum(stats) / len(stats)
+
+
 @RunIf(min_gpus=1)
 def test_trainer_inter_batch_parallelism(tmpdir):
 
-    model = BoringModel()
+    CYCLES_PER_MS = int(get_cycles_per_ms())
+
+    class TestModel(BoringModel):
+
+        def __init__(self, non_blocking: bool):
+            super().__init__()
+            self.non_blocking = non_blocking
+
+        def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
+            torch.cuda._sleep(CYCLES_PER_MS * 1_000)
+            if not self.non_blocking:
+                torch.cuda.synchronize()
+            return batch 
+
+        def training_step_end(self, training_step_outputs):
+            torch.cuda._sleep(CYCLES_PER_MS * 1_000)
+            if not self.non_blocking:
+                torch.cuda.synchronize()
+            return training_step_outputs
+
+    model = TestModel(non_blocking=False)
+
+    t0 = time()
+    trainer = Trainer(max_epochs=2, inter_batch_parallelism=False, gpus=1)
+    trainer.fit(model)
+
+    t1 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=True, gpus=1)
     trainer.fit(model)
+
+    t2 = time()
+
+    assert (t1 - t0) > (t2 - t1)
