@@ -33,7 +33,6 @@ from torchmetrics import Metric
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
@@ -44,6 +43,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
+from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
@@ -1715,6 +1715,10 @@ class LightningModule(
         """
         Summarize this LightningModule.
 
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of `pytorch_lightning.utilities.model_summary.summarize`
+            and will be removed in v1.7.
+
         Args:
             mode: Can be either ``'top'`` (summarize only direct submodules) or ``'full'`` (summarize all layers).
 
@@ -1727,24 +1731,13 @@ class LightningModule(
         Return:
             The model summary object
         """
-        model_summary = None
+        warning_cache.deprecation(
+            "The `LightningModule.summarize` method is deprecated in v1.5 and will be removed in v1.7. "
+            "Use `pytorch_lightning.utilities.model_summary.summarize` instead.",
+            stacklevel=6,
+        )
 
-        # temporary mapping from mode to max_depth
-        if max_depth is None:
-            if mode in ModelSummary.MODES:
-                max_depth = ModelSummary.MODES[mode]
-                rank_zero_deprecation(
-                    f"Argument `mode` in `LightningModule.summarize` is deprecated in v1.4"
-                    f" and will be removed in v1.6. Use `max_depth={max_depth}` to replicate `mode={mode}` behavior."
-                )
-                model_summary = ModelSummary(self, max_depth=max_depth)
-            elif mode is not None:
-                raise MisconfigurationException(f"`mode` can be None, {', '.join(ModelSummary.MODES)}, got {mode}")
-        else:
-            model_summary = ModelSummary(self, max_depth=max_depth)
-
-        log.info("\n" + str(model_summary))
-        return model_summary
+        return summarize(self, mode, max_depth)
 
     def freeze(self) -> None:
         r"""
