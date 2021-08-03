@@ -308,6 +308,8 @@ class Trainer(
 
             ipus: How many IPUs to train on.
 
+            training_type: Supports different training strategies with aliases as well custom training type plugins.
+
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.

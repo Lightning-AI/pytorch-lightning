@@ -617,6 +617,21 @@ def test_devices_with_cpu_only_supports_integer():
         Trainer(accelerator="cpu", devices="1,3")
 
 
+@pytest.mark.parametrize("training_type", ["ddp2", "dp"])
+def test_unsupported_distrib_types_on_cpu(training_type):
+
+    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting the distributed type to `ddp`."):
+        trainer = Trainer(accelerator=training_type, num_processes=2)
+
+    assert trainer._distrib_type == DistributedType.DDP
+
+
+def test_accelerator_ddp_for_cpu(tmpdir):
+    trainer = Trainer(accelerator="ddp", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+
+
 def test_exception_when_training_type_used_with_distributed_backend():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
         Trainer(distributed_backend="ddp_cpu", training_type="ddp_spawn")
@@ -637,8 +652,8 @@ def test_exception_when_training_type_used_with_plugins():
     [
         ("ddp_spawn", DDPSpawnPlugin),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
-        # ("ddp", DDPPlugin),
-        # ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPPlugin),
     ],
 )
 def test_training_type_choice_cpu_str(tmpdir, training_type, plugin):
@@ -677,18 +692,3 @@ def test_training_type_choice_gpu_str(tmpdir, training_type, plugin):
 def test_training_type_choice_gpu_plugin(tmpdir, plugin):
     trainer = Trainer(training_type=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
-
-
-@pytest.mark.parametrize("training_type", ["ddp2", "dp"])
-def test_unsupported_distrib_types_on_cpu(training_type):
-
-    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting the distributed type to `ddp`."):
-        trainer = Trainer(accelerator=training_type, num_processes=2)
-
-    assert trainer._distrib_type == DistributedType.DDP
-
-
-def test_accelerator_ddp_for_cpu(tmpdir):
-    trainer = Trainer(accelerator="ddp", num_processes=2)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
