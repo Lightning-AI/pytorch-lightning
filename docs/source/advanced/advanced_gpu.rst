@@ -1,7 +1,9 @@
-Advanced GPU Optimized Training
-===============================
+Advanced GPU Optimized Training & Model Parallelism
+===================================================
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training plugins to support these cases and offer substantial improvements in memory usage.
+
+In many cases these plugins are some flavour of model parallelism however we only introduce concepts at a high level to get you started. Refer to the `FairScale documentation <https://fairscale.readthedocs.io/en/latest/deep_dive/oss_sdp_fsdp.html>`__  for more information about model parallelism.
 
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
@@ -13,6 +15,8 @@ Choosing an Advanced Distributed GPU Plugin
 If you would like to stick with PyTorch DDP, see :ref:`ddp-optimizations`.
 
 Unlike PyTorch's DistributedDataParallel (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory-optimized plugins can accommodate bigger models and larger batches as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
+
+There are many considerations when choosing a plugin as described below. In addition, check out the visualization of various plugin benchmarks using `minGPT <https://github.com/SeanNaren/minGPT>`__ `here <https://share.streamlit.io/seannaren/mingpt/streamlit/app.py>`__.
 
 Pre-training vs Fine-tuning
 """""""""""""""""""""""""""
@@ -216,6 +220,9 @@ If you run into an issue with the install or later in training, ensure that the 
 
     DeepSpeed currently only supports single optimizer, single scheduler within the training loop.
 
+    When saving a checkpoint we rely on DeepSpeed which saves a directory containing the model and various components.
+
+
 .. _deepspeed-zero-stage-2:
 
 DeepSpeed ZeRO Stage 2
@@ -223,9 +230,6 @@ DeepSpeed ZeRO Stage 2
 
 By default, we enable `DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
 As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described in a few sections below.
-
-.. note::
-    To use ZeRO, you must use ``precision=16``.
 
 .. code-block:: python
 
@@ -246,9 +250,6 @@ DeepSpeed ZeRO Stage 2 Offload
 """"""""""""""""""""""""""""""
 
 Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
-
-.. note::
-    To use ZeRO-Offload, you must use ``precision=16``.
 
 .. code-block:: python
 
@@ -332,6 +333,10 @@ Below we describe how to enable all of these to see benefit. **With all these im
 
 Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains a lot of helpful information when configuring your own models.
 
+.. note::
+
+    When saving a model using DeepSpeed and Stage 3, model states and optimizer states will be saved in separate sharded states (based on the world size). See :ref:`deepspeed-zero-stage-3-single-file` to obtain a single checkpoint file.
+
 .. code-block:: python
 
     from pytorch_lightning import Trainer
@@ -398,6 +403,10 @@ DeepSpeed ZeRO Stage 3 Offload
 """"""""""""""""""""""""""""""
 
 DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to reduce memory usage as ZeRO Stage 2 does, however additionally allows you to offload the parameters as well for even more memory saving.
+
+.. note::
+
+    When saving a model using DeepSpeed and Stage 3, model states and optimizer states will be saved in separate sharded states (based on the world size). See :ref:`deepspeed-zero-stage-3-single-file` to obtain a single checkpoint file.
 
 .. code-block:: python
 
@@ -515,6 +524,27 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 * Treat your GPU/CPU memory as one large pool. In some cases, you may not want to offload certain things (like activations) to provide even more space to offload model parameters
 * When offloading to the CPU, make sure to bump up the batch size as GPU memory will be freed
 * We also support sharded checkpointing. By passing ``save_full_weights=False`` to the ``DeepSpeedPlugin``, we'll save shards of the model which allows you to save extremely large models. However to load the model and run test/validation/predict you must use the Trainer object.
+
+.. _deepspeed-zero-stage-3-single-file:
+
+Collating Single File Checkpoint for DeepSpeed ZeRO Stage 3
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+After training using ZeRO Stage 3, you'll notice that your checkpoints are a directory of sharded model and optimizer states. If you'd like to collate a single file from the checkpoint directory please use the below command, which handles all the Lightning states additionally when collating the file.
+
+.. code-block:: python
+
+    from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+
+    # lightning deepspeed has saved a directory instead of a file
+    save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/"
+    output_path = "lightning_model.pt"
+    convert_zero_checkpoint_to_fp32_state_dict(save_path, output_path)
+
+
+.. warning::
+
+    This single file checkpoint does not include the optimizer/lr-scheduler states. This means we cannot restore training via the `resume_from_checkpoint` Trainer argument. Ensure to keep the sharded checkpoint directory if this is required.
 
 Custom DeepSpeed Config
 """""""""""""""""""""""
