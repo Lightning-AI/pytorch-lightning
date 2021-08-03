@@ -27,11 +27,11 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
-from torch.utils.data.dataset import Dataset
 from omegaconf import OmegaConf
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Dataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -1962,12 +1962,10 @@ def test_trainer_inter_batch_parallelism(tmpdir):
     EMB_DIM = 64
 
     class RandomDataset(Dataset):
-
         def __getitem__(self, index):
             return torch.randint(EMB_DIM, [BATCH_SIZE])
 
     class RecommenderModel(BoringModel):
-
         def __init__(self, non_blocking: bool):
             super().__init__()
             self.layer = None
