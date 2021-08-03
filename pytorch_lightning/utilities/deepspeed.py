@@ -10,7 +10,13 @@
 # for being able to run Model.load_from_checkpoint('...').
 #
 # example usage within the lightning checkpoint directory where 'latest' is found:
-# python -m pytorch_lightning.utilities.collate_deepspeed_checkpoint . pytorch_model.ckpt
+#
+# from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+#
+# lightning deepspeed has saved a directory instead of a file
+# save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/"
+# output_path = "lightning_model.pt"
+# convert_zero_checkpoint_to_fp32_state_dict(save_path, output_path)
 
 import os
 
@@ -28,7 +34,7 @@ if _DEEPSPEED_AVAILABLE:
 device = torch.device("cpu")
 
 
-def ds_checkpoint_dir(checkpoint_dir, tag=None):
+def ds_checkpoint_dir(checkpoint_dir: str, tag: str = None):
     if tag is None:
         latest_path = os.path.join(checkpoint_dir, "latest")
         if os.path.isfile(latest_path):
@@ -44,7 +50,7 @@ def ds_checkpoint_dir(checkpoint_dir, tag=None):
     return directory
 
 
-def convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir, output_file, tag=None):
+def convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir: str, output_file: str, tag: str = None):
     """
     Convert ZeRO 2 or 3 checkpoint into a single fp32 consolidated ``state_dict`` file that can be
     loaded with ``torch.load(file)`` + ``load_state_dict()`` and used for training without DeepSpeed.
