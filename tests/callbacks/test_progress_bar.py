@@ -24,7 +24,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.progress import tqdm
+from pytorch_lightning.callbacks.progress import Tqdm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -399,8 +399,8 @@ def test_tensor_to_float_conversion(tmpdir):
     ],
 )
 def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
-    """Check that the specialized tqdm.format_num appends 0 to floats and strings"""
-    assert tqdm.format_num(input_num) == expected
+    """Check that the specialized tqdm.format_num appends 0 to floats and strings."""
+    assert Tqdm.format_num(input_num) == expected
 
 
 class PrintModel(BoringModel):
