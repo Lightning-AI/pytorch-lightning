@@ -159,6 +159,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
+        inter_batch_parallelism: bool = False,
     ):
         r"""
         Customize every aspect of training via flags
@@ -334,6 +335,10 @@ class Trainer(
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
+            inter_batch_parallelism: The most common approach is to process input batches sequentially.
+                However, setting inter_batch_parallelism to True, enable hidding the next batch transfer latency 
+                to device behind the forward and backward call from the model. 
+
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -344,7 +349,7 @@ class Trainer(
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self, multiple_trainloader_mode)
+        self.data_connector = DataConnector(self, multiple_trainloader_mode, inter_batch_parallelism)
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(

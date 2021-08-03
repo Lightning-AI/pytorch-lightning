@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
-
+from typing import Callable, Iterator, Optional, Union
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.fetcher import LightningFetcher
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle", inter_batch_parallelism: bool = False):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
+        self.inter_batch_parallelism = inter_batch_parallelism
 
     def on_trainer_init(
         self,
@@ -61,10 +63,14 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader):
-        profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(prefetch_iterator(train_dataloader)), "get_train_batch"
+        fetcher = LightningFetcher(
+            train_dataloader,
+            self.inter_batch_parallelism,
+            self.trainer.accelerator.batch_to_device,
+            self.trainer.accelerator.root_device
         )
-        return profiled_dl
+        self.iterator = iter(fetcher)
+        return self.iterator
 
     def prepare_data(self, model):
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0

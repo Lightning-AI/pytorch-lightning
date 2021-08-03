@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union, Tuple
 
 import torch
 
@@ -38,6 +38,7 @@ class TrainingEpochLoop(loops.Loop):
         super().__init__()
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
+
         self.global_step: int = 0
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
@@ -107,19 +108,16 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        _, (batch, is_last) = next(dataloader_iter)
+        _, batch, is_last, event = next(next(dataloader_iter))
         self.is_last_batch = is_last
 
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
-        with self.trainer.profiler.profile("training_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
-
         self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx)
+            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx, event)
 
         self.batch_progress.increment_processed()
 

@@ -16,6 +16,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
+from pytorch_lightning.utilities.fetcher import LightningStreamEvent
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
@@ -47,6 +48,7 @@ class TrainingBatchLoop(Loop):
         super().__init__()
         self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
+        self.event: Optional[LightningStreamEvent] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
@@ -73,7 +75,7 @@ class TrainingBatchLoop(Loop):
     def connect(self, **kwargs: "Loop") -> None:
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
-    def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
+    def run(self, batch: Any, batch_idx: int, dataloader_idx: int, event: LightningStreamEvent) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
 
         Args:
@@ -95,6 +97,8 @@ class TrainingBatchLoop(Loop):
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
             return AttributeDict(signal=-1)
+
+        self.event = event
 
         self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
@@ -510,6 +514,8 @@ class TrainingBatchLoop(Loop):
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
+            
+            self.event.wait()
             result = self._training_step(split_batch, batch_idx, opt_idx, hiddens)
 
             if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
