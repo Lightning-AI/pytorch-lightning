@@ -1,8 +1,10 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Any
-import pytorch_lightning as pl
+from typing import Any, Callable
+
 import torch
+
+import pytorch_lightning as pl
 
 
 @dataclass()
@@ -47,9 +49,15 @@ def profiled_iterator(iterator, profiler):
         yield next(iterator)
 
 
-class LightningFetcher(object):
-
-    def __init__(self, datalaoder, inter_batch_parallelism: bool, batch_to_device: Callable, profiler: 'pl.profiler.base.BaseProfiler', device: torch.device) -> None:
+class LightningFetcher:
+    def __init__(
+        self,
+        datalaoder,
+        inter_batch_parallelism: bool,
+        batch_to_device: Callable,
+        profiler: "pl.profiler.base.BaseProfiler",
+        device: torch.device,
+    ) -> None:
         self.datalaoder = datalaoder
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
         self.profiler = profiler
@@ -61,8 +69,8 @@ class LightningFetcher(object):
         return self.prefect_function()
 
     def apply_stream(self, batch) -> Any:
-            with self.stream.stream_context():
-                return self.batch_to_device(batch)
+        with self.stream.stream_context():
+            return self.batch_to_device(batch)
 
     def prefect_function(self) -> Any:
         try:
@@ -75,11 +83,11 @@ class LightningFetcher(object):
 
             # yield last and has next
             yield self.counter, last, False, self.stream
-            
+
             # prepare for next batch
             last = val
             self.counter += 1
-        
+
         # yield last, no longer has next
         yield self.counter, self.apply_stream(last), True, self.stream
 

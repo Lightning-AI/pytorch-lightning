@@ -16,7 +16,6 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from pytorch_lightning.utilities.dataloader_fetcher import LightningStreamEvent
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
@@ -33,6 +32,7 @@ from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.dataloader_fetcher import LightningStreamEvent
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
