@@ -316,9 +316,7 @@ def test_explain_what_is_being_tested(tmpdir):
     # BoringModel is a functional model. You might want to set methods to None to test your behaviour
     # Example: model.training_step_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, ...
-    )  # will save everything within a tmpdir generated for this test
+    trainer = Trainer(default_root_dir=tmpdir, ...)  # will save everything within a tmpdir generated for this test
     trainer.fit(model)
     trainer.test()  # [OPTIONAL]
 

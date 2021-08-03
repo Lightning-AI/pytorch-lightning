@@ -46,7 +46,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.23.0
+    rev: v2.23.2
     hooks:
       - id: pyupgrade
         args: [--py36-plus]
@@ -59,7 +59,7 @@ repos:
         name: Unused noqa
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.9.2
+    rev: 5.9.3
     hooks:
       - id: isort
         name: Format imports
@@ -78,12 +78,12 @@ repos:
         additional_dependencies: [ black==21.7b0 ]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.7
+    rev: 0.7.8
     hooks:
       - id: mdformat
         additional_dependencies:
           - mdformat-gfm
-          - mdformat-black
+          #- mdformat-black
           - mdformat_frontmatter
         exclude: CHANGELOG.md
 
