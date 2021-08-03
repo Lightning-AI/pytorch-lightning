@@ -935,12 +935,20 @@ class AcceleratorConnector:
         if isinstance(self.training_type, TrainingTypePlugin) or any(
             isinstance(plug, TrainingTypePlugin) for plug in self.plugins
         ):
-            if self.use_ipu:
-                self._device_type = DeviceType.IPU
-            elif self.use_tpu:
-                self._device_type = DeviceType.TPU
-            elif self.use_gpu:
-                self._device_type = DeviceType.GPU
+            if self._accelerator_type is not None:
+                if self.use_ipu:
+                    self._device_type = DeviceType.IPU
+                elif self.use_tpu:
+                    self._device_type = DeviceType.TPU
+                elif self.use_gpu:
+                    self._device_type = DeviceType.GPU
+            else:
+                if self.has_ipu:
+                    self._device_type = DeviceType.IPU
+                elif self.has_tpu:
+                    self._device_type = DeviceType.TPU
+                elif self.has_gpu:
+                    self._device_type = DeviceType.GPU
 
     def configure_slurm_ddp(self):
         # extract SLURM flag vars
