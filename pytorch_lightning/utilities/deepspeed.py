@@ -1,6 +1,18 @@
 #!/usr/bin/env python
-# Copyright (c) Microsoft Corporation
-# Licensed under the MIT license.
+# Copyright 2020 The PyTorch Lightning team and Microsoft Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 # Modified script from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py
 #
 # This script extracts fp32 consolidated weights from a zero 2 and 3 DeepSpeed checkpoints. It gets
@@ -31,7 +43,7 @@ if _DEEPSPEED_AVAILABLE:
         get_optim_files,
     )
 
-device = torch.device("cpu")
+CPU_DEVICE = torch.device("cpu")
 
 
 def ds_checkpoint_dir(checkpoint_dir: str, tag: str = None):
@@ -78,10 +90,10 @@ def convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir: str, output_file:
     ]
     checkpoint_dir = ds_checkpoint_dir(checkpoint_dir)
     optim_files = get_optim_files(checkpoint_dir)
-    optim_state = torch.load(optim_files[0], map_location=device)
+    optim_state = torch.load(optim_files[0], map_location=CPU_DEVICE)
     zero_stage = optim_state["optimizer_state_dict"]["zero_stage"]
     model_file = get_model_state_file(checkpoint_dir, zero_stage)
-    client_state = torch.load(model_file, map_location=device)
+    client_state = torch.load(model_file, map_location=CPU_DEVICE)
     client_state = {key: value for key, value in client_state.items() if key not in deepspeed_states}
     # State dict keys will include reference to wrapper LightningDeepSpeedModule
     # Delete `module` prefix before saving.
