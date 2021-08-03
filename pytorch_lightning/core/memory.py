@@ -20,7 +20,7 @@ rank_zero_deprecation(
 )
 
 # To support backward compatibility as get_memory_profile and get_gpu_memory_map have been moved
-from pytorch_lightning.utilities.memory import get_gpu_memory_map, get_memory_profile  # noqa: E402 F401 # isort: skip
+from pytorch_lightning.utilities.memory import get_gpu_memory_map, get_memory_profile  # noqa: E402, F401 # isort: skip
 
 rank_zero_deprecation(
     "`pytorch_lightning.core.memory.LayerSummary` and"
@@ -29,4 +29,4 @@ rank_zero_deprecation(
 )
 
 # To support backward compatibility as LayerSummary and ModelSummary have been moved
-from pytorch_lightning.utilities.model_summary import LayerSummary, ModelSummary  # noqa: E402 F401 # isort: skip
+from pytorch_lightning.utilities.model_summary import LayerSummary, ModelSummary  # noqa: E402, F401 # isort: skip
