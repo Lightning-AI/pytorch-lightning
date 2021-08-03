@@ -29,7 +29,7 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
@@ -40,6 +40,8 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -97,6 +99,13 @@ def _generate_state(base_seed, worker_id):
         data_val = (data_val ^ (data_val >> XSHIFT)) & MASK32
         state.append(data_val)
     return state
+
+
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("env_setting,expected", [("0", False), ("1", True)])
+def test_fault_tolerant_enabled(env_setting, expected):
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": env_setting}):
+        assert _fault_tolerant_enabled() == expected
 
 
 def test_fast_forward_getattr():
@@ -251,7 +260,7 @@ def test_fast_forward_sampler_over_iterative_dataset(num_workers):
     generator = torch.Generator()
     generator.manual_seed(initial_seed)
     dataset = RangeIterableDataset(range(20), num_workers, batch_size, True)
-    dataset = CaptureIterableDataset(dataset, num_workers)
+    dataset = CaptureIterableDataset(dataset)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
@@ -530,7 +539,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         debugging=True,
         shuffle=True,
     )
-    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
 
@@ -590,7 +599,7 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         shuffle=True,
     )
 
-    dataset = CaptureIterableDataset(dataset, initial_seed=initial_seed)
+    dataset = CaptureIterableDataset(dataset)
     dataset.load_state_dict(state_dict)
     dataloader = DataLoader(dataset, num_workers=num_workers, batch_size=1, generator=generator)
     Trainer._add_sampler_metadata_collate(dataloader)
@@ -638,9 +647,18 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     )
 
 
-def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler"):
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(max_torch="1.6")
+def test_fault_tolerant_not_supported():
+    with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
+        _fault_tolerant_enabled()
+
+
+def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
     dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
-    return CaptureIterableDataset(dataset)
+    if wrap:
+        dataset = CaptureIterableDataset(dataset)
+    return dataset
 
 
 def create_dataloader():
@@ -689,7 +707,6 @@ def test_combined_dataloader_state_dict_and_reload():
     This test makes sure the CombinedLoader used in the condition of Lightning properly
     capture its children DataLoader states.
     """
-
     dataloader = create_dataloader()
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
@@ -796,3 +813,57 @@ def test_dataloader_to_state_dict_and_reload():
 
     state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
     assert state_dict == {"num_workers": 0, "previous_worker": None, 0: {"current_iteration": 24}}
+
+
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
+def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
+    """
+    this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
+    """
+
+    class CustomBatchSampler(BatchSampler):
+        pass
+
+    dataset = range(50)
+
+    class TestModel(BoringModel):
+        def train_dataloader(self):
+            return {
+                "a": [
+                    DataLoader(create_iterable_dataset(3, 1, wrap=False), num_workers=0, batch_size=3),
+                    DataLoader(dataset, batch_size=8),
+                    DataLoader(
+                        dataset,
+                        batch_sampler=CustomBatchSampler(SequentialSampler(dataset), batch_size=8, drop_last=False),
+                    ),
+                ],
+                "b": DataLoader(
+                    create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler", wrap=False),
+                    num_workers=0,
+                    batch_size=2,
+                ),
+            }
+
+        def training_step(self, batch, batch_idx):
+            pass
+
+    class Check(Callback):
+        def on_train_batch_start(self, trainer, *_) -> None:
+            loaders = trainer.train_dataloader.loaders
+            if use_fault_tolerant == "1":
+                assert isinstance(loaders["a"][0].loader.dataset, CaptureIterableDataset)
+                assert isinstance(loaders["a"][1].loader.sampler, FastForwardSampler)
+                assert isinstance(loaders["a"][2].loader.batch_sampler, FastForwardSampler)
+                assert isinstance(loaders["b"].loader.dataset, CaptureIterableDataset)
+            else:
+                assert isinstance(loaders["a"][0].loader.dataset, RangeIterableDataset)
+                assert isinstance(loaders["a"][1].loader.sampler, SequentialSampler)
+                assert isinstance(loaders["a"][2].loader.batch_sampler, CustomBatchSampler)
+                assert isinstance(loaders["b"].loader.dataset, RangeIterableDataset)
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}):
+        model = TestModel()
+        model.training_epoch_end = None
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
+        trainer.fit(model)
