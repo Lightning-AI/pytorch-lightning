@@ -383,10 +383,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        if isinstance(self.model, DistributedDataParallel):
-            return self.model(*args, **kwargs)
-        else:
-            return self.lightning_module.predict_step(*args, **kwargs)
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
