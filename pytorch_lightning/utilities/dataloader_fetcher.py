@@ -60,7 +60,6 @@ def profiled_iterator(iterator, profiler):
         yield next(iterator)
 
 
-<<<<<<< HEAD
 class LightningFetcher(object):
 
     """
@@ -74,22 +73,14 @@ class LightningFetcher(object):
     batch 1:       [HtoD]             [forward][backward]
     """
 
-=======
-class LightningFetcher:
->>>>>>> aa1709e606e3326689eac043ca863d920ac4e567
     def __init__(
         self,
         datalaoder,
         inter_batch_parallelism: bool,
         batch_to_device: Callable,
-<<<<<<< HEAD
         profiler: 'pl.profiler.base.BaseProfiler',
         device: torch.device,
         num_prefetch_batch: int = 1,
-=======
-        profiler: "pl.profiler.base.BaseProfiler",
-        device: torch.device,
->>>>>>> aa1709e606e3326689eac043ca863d920ac4e567
     ) -> None:
         self.datalaoder = datalaoder
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
