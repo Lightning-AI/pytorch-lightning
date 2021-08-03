@@ -1,8 +1,8 @@
-from contextlib import contextmanager
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Any, Generator, List
-import pytorch_lightning as pl
+from typing import Any, Callable, Generator, List
+
 import torch
 
 import pytorch_lightning as pl
@@ -63,7 +63,7 @@ def profiled_iterator(iterator, profiler):
 class LightningFetcher(object):
 
     """
-    This class is used to perform ``pre-fecthing`` for the ``train`` dataloader and apply iter batch parallelism if enabled. 
+    This class is used to perform ``pre-fecthing`` for the ``train`` dataloader and apply iter batch parallelism if enabled.
 
     batch 0: [HtoD][forward][backward]
     batch 1:                          [HtoD][forward][backward]
@@ -86,7 +86,7 @@ class LightningFetcher(object):
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
         self.profiler = profiler
         self.batch_to_device = batch_to_device
-        
+
         self.num_prefetch_batch = num_prefetch_batch
         if num_prefetch_batch != 1:
             raise NotImplementedError
