@@ -291,7 +291,7 @@ class AcceleratorConnector:
 
         if accelerator is not None and accelerator in list(DistributedType):
             rank_zero_deprecation(
-                f"Passing {accelerator} `training_type` to the `accelerator` flag in Trainer has been deprecated"
+                f"Passing {accelerator} `accelerator_strategy` to the `accelerator` flag in Trainer has been deprecated"
                 f" in v1.5 and will be removed in v1.6. Use `Trainer(accelerator_strategy={accelerator})` instead."
             )
             if self.accelerator_strategy is not None:
@@ -319,7 +319,7 @@ class AcceleratorConnector:
                 )
             if self._is_plugin_training_type(plug):
                 rank_zero_deprecation(
-                    f"Passing {plug} `training_type` to the `plugins` flag in Trainer has been deprecated"
+                    f"Passing {plug} `accelerator_strategy` to the `plugins` flag in Trainer has been deprecated"
                     f" in v1.5 and will be removed in v1.6. Use `Trainer(accelerator_strategy={plug})` instead."
                 )
 

@@ -632,23 +632,23 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 
 
-def test_exception_when_training_type_used_with_distributed_backend():
+def test_exception_when_accelerator_strategy_used_with_distributed_backend():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
         Trainer(distributed_backend="ddp_cpu", accelerator_strategy="ddp_spawn")
 
 
-def test_exception_when_training_type_used_with_accelerator():
+def test_exception_when_accelerator_strategy_used_with_accelerator():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
         Trainer(accelerator="ddp", accelerator_strategy="ddp_spawn")
 
 
-def test_exception_when_training_type_used_with_plugins():
+def test_exception_when_accelerator_strategy_used_with_plugins():
     with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
         Trainer(plugins="ddp_find_unused_parameters_false", accelerator_strategy="ddp_spawn")
 
 
 @pytest.mark.parametrize(
-    ["training_type", "plugin"],
+    ["accelerator_strategy", "plugin"],
     [
         ("ddp_spawn", DDPSpawnPlugin),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
@@ -656,20 +656,20 @@ def test_exception_when_training_type_used_with_plugins():
         ("ddp_find_unused_parameters_false", DDPPlugin),
     ],
 )
-def test_training_type_choice_cpu_str(tmpdir, training_type, plugin):
-    trainer = Trainer(accelerator_strategy=training_type, accelerator="cpu", devices=2)
+def test_accelerator_strategy_choice_cpu_str(tmpdir, accelerator_strategy, plugin):
+    trainer = Trainer(accelerator_strategy=accelerator_strategy, accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
-def test_training_type_choice_cpu_plugin(tmpdir, plugin):
+def test_accelerator_strategy_choice_cpu_plugin(tmpdir, plugin):
     trainer = Trainer(accelerator_strategy=plugin(), accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
-    ["training_type", "plugin"],
+    ["accelerator_strategy", "plugin"],
     [
         ("ddp_spawn", DDPSpawnPlugin),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
@@ -682,14 +682,14 @@ def test_training_type_choice_cpu_plugin(tmpdir, plugin):
         pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_training_type_choice_gpu_str(tmpdir, training_type, plugin):
-    trainer = Trainer(accelerator_strategy=training_type, accelerator="gpu", devices=2)
+def test_accelerator_strategy_choice_gpu_str(tmpdir, accelerator_strategy, plugin):
+    trainer = Trainer(accelerator_strategy=accelerator_strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
-def test_training_type_choice_gpu_plugin(tmpdir, plugin):
+def test_accelerator_strategy_choice_gpu_plugin(tmpdir, plugin):
     trainer = Trainer(accelerator_strategy=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
