@@ -317,7 +317,7 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
 
     _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
     with pytest.deprecated_call(match="will be removed in v1.6"):
-        from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F811 F401
+        from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401
 
 
 def test_v1_6_0_passing_training_type_to_accelerator_trainer_flag():
