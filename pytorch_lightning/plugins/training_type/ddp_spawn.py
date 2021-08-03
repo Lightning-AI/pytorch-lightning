@@ -243,11 +243,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
-    def _wrap_model(self) -> None:
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
-        )
-
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
@@ -259,14 +254,16 @@ class DDPSpawnPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-    def configure_ddp(self):
-        # skip warpping the model if we are not fitting as no gradients need to be exchanged
+    def configure_ddp(self) -> None:
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn != TrainerFn.FITTING:
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
             return
+        self._model = DistributedDataParallel(
+            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
+        )
         self.pre_configure_ddp()
-        self._wrap_model()
         self._register_ddp_hooks()
 
     def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:
@@ -374,28 +371,25 @@ class DDPSpawnPlugin(ParallelPlugin):
         return tensor
 
     def training_step(self, *args, **kwargs):
-        if isinstance(self.model, DistributedDataParallel):
-            return self.model(*args, **kwargs)
-        else:
-            return self.model.training_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
         if isinstance(self.model, DistributedDataParallel):
             return self.model(*args, **kwargs)
         else:
-            return self.model.validation_step(*args, **kwargs)
+            return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        if isinstance(self.model, DistributedDataParallel):
-            return self.model(*args, **kwargs)
-        else:
-            return self.model.test_step(*args, **kwargs)
+        # if isinstance(self.model, DistributedDataParallel):
+        #     return self.model(*args, **kwargs)
+        # else:
+        return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
         if isinstance(self.model, DistributedDataParallel):
             return self.model(*args, **kwargs)
         else:
-            return self.model.predict_step(*args, **kwargs)
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
