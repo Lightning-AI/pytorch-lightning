@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import subprocess
 
 import torch
 
@@ -41,13 +40,6 @@ def test_deepspeed_collate_checkpoint(tmpdir):
         # ensure function call works
         output_path = os.path.join(tmpdir, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, output_path)
-        _assert_checkpoint_equal(model, output_path)
-
-        # ensure utility script work
-        output_path = os.path.join(tmpdir, "single_model_script.pt")
-        cmd = f"python -m pytorch_lightning.utilities.collate_deepspeed_checkpoint {checkpoint_path} {output_path}"
-        exit_code = subprocess.call(cmd, shell=True)
-        assert exit_code == 0
         _assert_checkpoint_equal(model, output_path)
 
 

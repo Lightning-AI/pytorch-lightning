@@ -12,7 +12,6 @@
 # example usage within the lightning checkpoint directory where 'latest' is found:
 # python -m pytorch_lightning.utilities.collate_deepspeed_checkpoint . pytorch_model.ckpt
 
-import argparse
 import os
 
 import torch
@@ -85,22 +84,3 @@ def convert_zero_checkpoint_to_fp32_state_dict(checkpoint_dir, output_file, tag=
 
     print(f"Saving fp32 state dict to {output_file}")
     torch.save(client_state, output_file)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "checkpoint_dir", type=str, help="path to the desired checkpoint folder, e.g., path/checkpoint-12"
-    )
-    parser.add_argument(
-        "output_file",
-        type=str,
-        help="path to the pytorch fp32 state_dict output file (e.g. path/checkpoint-12/pytorch_model.bin)",
-    )
-    parser.add_argument("-d", "--debug", action="store_true", help="enable debug")
-    args = parser.parse_args()
-
-    # variable is used within DeepSpeed utilities
-    debug = args.debug
-
-    convert_zero_checkpoint_to_fp32_state_dict(args.checkpoint_dir, args.output_file)
