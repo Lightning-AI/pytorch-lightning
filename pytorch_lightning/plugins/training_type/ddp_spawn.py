@@ -380,9 +380,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        # if isinstance(self.model, DistributedDataParallel):
-        #     return self.model(*args, **kwargs)
-        # else:
         return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
