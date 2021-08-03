@@ -1,5 +1,5 @@
-Advanced GPU Optimized Training & Model Parallelism
-===================================================
+Model Parallel GPU Training
+===========================
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training plugins to support these cases and offer substantial improvements in memory usage.
 
