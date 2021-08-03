@@ -634,17 +634,17 @@ def test_accelerator_ddp_for_cpu(tmpdir):
 
 def test_exception_when_training_type_used_with_distributed_backend():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(distributed_backend="ddp_cpu", training_type="ddp_spawn")
+        Trainer(distributed_backend="ddp_cpu", accelerator_strategy="ddp_spawn")
 
 
 def test_exception_when_training_type_used_with_accelerator():
     with pytest.raises(MisconfigurationException, match="but have also passed"):
-        Trainer(accelerator="ddp", training_type="ddp_spawn")
+        Trainer(accelerator="ddp", accelerator_strategy="ddp_spawn")
 
 
 def test_exception_when_training_type_used_with_plugins():
     with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
-        Trainer(plugins="ddp_find_unused_parameters_false", training_type="ddp_spawn")
+        Trainer(plugins="ddp_find_unused_parameters_false", accelerator_strategy="ddp_spawn")
 
 
 @pytest.mark.parametrize(
@@ -657,13 +657,13 @@ def test_exception_when_training_type_used_with_plugins():
     ],
 )
 def test_training_type_choice_cpu_str(tmpdir, training_type, plugin):
-    trainer = Trainer(training_type=training_type, accelerator="cpu", devices=2)
+    trainer = Trainer(accelerator_strategy=training_type, accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
 def test_training_type_choice_cpu_plugin(tmpdir, plugin):
-    trainer = Trainer(training_type=plugin(), accelerator="cpu", devices=2)
+    trainer = Trainer(accelerator_strategy=plugin(), accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
@@ -683,14 +683,14 @@ def test_training_type_choice_cpu_plugin(tmpdir, plugin):
     ],
 )
 def test_training_type_choice_gpu_str(tmpdir, training_type, plugin):
-    trainer = Trainer(training_type=training_type, accelerator="gpu", devices=2)
+    trainer = Trainer(accelerator_strategy=training_type, accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
 def test_training_type_choice_gpu_plugin(tmpdir, plugin):
-    trainer = Trainer(training_type=plugin(), accelerator="gpu", devices=2)
+    trainer = Trainer(accelerator_strategy=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
@@ -698,7 +698,7 @@ def test_training_type_choice_gpu_plugin(tmpdir, plugin):
 @pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
 def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
-    trainer = Trainer(training_type=plugin(), gpus=2)
+    trainer = Trainer(accelerator_strategy=plugin(), gpus=2)
     assert isinstance(trainer.training_type_plugin, plugin)
     assert trainer._device_type == DeviceType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)

@@ -135,7 +135,7 @@ class Trainer(
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        training_type: Optional[Union[str, TrainingTypePlugin]] = None,
+        accelerator_strategy: Optional[Union[str, TrainingTypePlugin]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = "top",
@@ -168,6 +168,9 @@ class Trainer(
 
             accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
                 Can also take in an accelerator object for custom hardware.
+
+            accelerator_strategy: Supports different accelerator strategies with aliases
+                as well custom training type plugins.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -308,8 +311,6 @@ class Trainer(
 
             ipus: How many IPUs to train on.
 
-            training_type: Supports different training strategies with aliases as well custom training type plugins.
-
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
@@ -357,7 +358,7 @@ class Trainer(
             ipus,
             distributed_backend,
             accelerator,
-            training_type,
+            accelerator_strategy,
             gpus,
             gpu_ids,
             num_nodes,
