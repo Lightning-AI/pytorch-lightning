@@ -387,7 +387,7 @@ class CheckpointConnector:
         """
         Attempts to restore the full training and model state from a HPC checkpoint file.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6. Use :meth:`restore` instead.
         """
         rank_zero_deprecation(
