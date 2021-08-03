@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Any
+from typing import Any, Callable
+
 import torch
 
 
@@ -41,20 +42,19 @@ class LightningStreamEvent:
             self.event.wait()
 
 
-class LightningFetcher(object):
-
+class LightningFetcher:
     def __init__(self, datalaoder, inter_batch_parallelism: bool, batch_to_device: Callable, device: torch.device):
         self.datalaoder = datalaoder
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
         self.batch_to_device = batch_to_device
 
-    def __iter__(self) -> 'LightningFetcher':
+    def __iter__(self) -> "LightningFetcher":
         self.iterator = iter(self.datalaoder)
         return self
 
     def apply_stream(self, batch) -> Any:
-            with self.stream.stream_context():
-                return self.batch_to_device(batch)
+        with self.stream.stream_context():
+            return self.batch_to_device(batch)
 
     def __next__(self) -> Any:
         counter = 1
@@ -68,14 +68,13 @@ class LightningFetcher(object):
 
             # yield last and has next
             yield counter, last, False, self.stream
-            
+
             # prepare for next batch
             last = val
             counter += 1
-        
+
         # yield last, no longer has next
         yield counter, self.apply_stream(last), True, self.stream
-
 
     @property
     def wait(self) -> None:

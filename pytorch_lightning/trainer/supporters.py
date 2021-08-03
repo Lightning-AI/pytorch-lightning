@@ -14,9 +14,10 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from functools import partial
 from typing import Any, Callable, ContextManager, Dict, Generator, Optional, Tuple, Union
-from contextlib import contextmanager
+
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset

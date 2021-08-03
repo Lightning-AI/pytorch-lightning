@@ -16,7 +16,6 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from pytorch_lightning.utilities.fetcher import LightningStreamEvent
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
@@ -34,6 +33,7 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetcher import LightningStreamEvent
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -514,7 +514,7 @@ class TrainingBatchLoop(Loop):
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
-            
+
             self.event.wait()
             result = self._training_step(split_batch, batch_idx, opt_idx, hiddens)
 
