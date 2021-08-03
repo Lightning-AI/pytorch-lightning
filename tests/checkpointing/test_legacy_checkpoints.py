@@ -64,6 +64,7 @@ LEGACY_BACK_COMPATIBLE_PL_VERSIONS = (
     "1.3.6",
     "1.3.7",
     "1.3.8",
+    "1.4.0",
 )
 
 
