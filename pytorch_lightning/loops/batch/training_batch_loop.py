@@ -16,7 +16,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from pytorch_lightning.utilities.fetcher import LightningStreamEvent
+from pytorch_lightning.utilities.dataloader_fetcher import LightningStreamEvent
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np

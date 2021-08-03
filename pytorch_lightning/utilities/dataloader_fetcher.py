@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Callable, Any
+import pytorch_lightning as pl
 import torch
 
 
@@ -43,21 +44,23 @@ class LightningStreamEvent:
 
 class LightningFetcher(object):
 
-    def __init__(self, datalaoder, inter_batch_parallelism: bool, batch_to_device: Callable, device: torch.device):
+    def __init__(self, datalaoder, inter_batch_parallelism: bool, batch_to_device: Callable, profiler: 'pl.profiler.base.BaseProfiler', device: torch.device) -> None:
         self.datalaoder = datalaoder
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
+        self.profiler = profiler
         self.batch_to_device = batch_to_device
 
     def __iter__(self) -> 'LightningFetcher':
         self.iterator = iter(self.datalaoder)
-        return self
+        self.counter = 1
+        return self.prefect_function()
 
     def apply_stream(self, batch) -> Any:
-            with self.stream.stream_context():
-                return self.batch_to_device(batch)
+            with self.profiler.profile("get_train_batch"):
+                with self.stream.stream_context():
+                    return self.batch_to_device(batch)
 
-    def __next__(self) -> Any:
-        counter = 1
+    def prefect_function(self) -> Any:
         try:
             last = self.apply_stream(next(self.iterator))
         except StopIteration:
@@ -67,14 +70,14 @@ class LightningFetcher(object):
             val = self.apply_stream(val)
 
             # yield last and has next
-            yield counter, last, False, self.stream
+            yield self.counter, last, False, self.stream
             
             # prepare for next batch
             last = val
-            counter += 1
+            self.counter += 1
         
         # yield last, no longer has next
-        yield counter, self.apply_stream(last), True, self.stream
+        yield self.counter, self.apply_stream(last), True, self.stream
 
 
     @property

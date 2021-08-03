@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     GradClipAlgorithmType,
     LightningEnum,
 )
-from pytorch_lightning.utilities.fetcher import LightningFetcher
+from pytorch_lightning.utilities.dataloader_fetcher import LightningFetcher
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,

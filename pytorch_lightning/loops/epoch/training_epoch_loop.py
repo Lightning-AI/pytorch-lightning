@@ -108,7 +108,7 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        _, batch, is_last, event = next(next(dataloader_iter))
+        _, batch, is_last, event = next(dataloader_iter)
         self.is_last_batch = is_last
 
         # ------------------------------------
