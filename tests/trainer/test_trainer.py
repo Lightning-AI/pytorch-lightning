@@ -1913,3 +1913,90 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     gc.collect()
     memory_3 = torch.cuda.memory_allocated(0)
     assert memory_3 == initial
+
+
+@pytest.mark.parametrize(
+    "trainer_kwargs,expected",
+    [
+        (
+            dict(training_type=None, gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(training_type="dp", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(training_type="ddp", num_nodes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp_cpu", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(training_type="ddp2", gpus=None),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
+        ),
+        (
+            dict(training_type=None, gpus=1),
+            dict(_distrib_type=None, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(training_type="dp", gpus=1),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp", gpus=1),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp_cpu", num_processes=2, gpus=1),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(training_type="ddp2", gpus=1),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
+        ),
+        (
+            dict(training_type=None, gpus=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+        ),
+        (
+            dict(training_type="dp", gpus=2),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp", gpus=2),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
+        ),
+        (
+            dict(training_type="ddp2", gpus=2),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
+        ),
+        (
+            dict(training_type="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(training_type="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+    ],
+)
+def test_trainer_config_training_type(trainer_kwargs, expected, monkeypatch):
+    if trainer_kwargs["gpus"] is not None:
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+    trainer = Trainer(**trainer_kwargs)
+    assert len(expected) == 4
+    for k, v in expected.items():
+        assert getattr(trainer, k) == v, f"Failed {k}: {v}"

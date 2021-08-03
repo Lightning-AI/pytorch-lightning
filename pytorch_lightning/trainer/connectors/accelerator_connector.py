@@ -274,7 +274,9 @@ class AcceleratorConnector:
         elif self._accelerator_type == DeviceType.CPU:
             self.devices = self.num_processes
 
-    def _handle_accelerator_and_distributed_backend(self, distributed_backend, accelerator) -> None:
+    def _handle_accelerator_and_distributed_backend(
+        self, distributed_backend: Optional[str], accelerator: Optional[Union[str, Accelerator]]
+    ) -> None:
         if distributed_backend is not None:
             rank_zero_deprecation(
                 f"`Trainer(distributed_backend={distributed_backend})` has been deprecated and will be removed in v1.5."
