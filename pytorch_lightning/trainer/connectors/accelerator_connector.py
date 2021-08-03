@@ -149,7 +149,7 @@ class AcceleratorConnector:
         self.select_accelerator_type()
 
         if self.training_type is not None:
-            self._set_training_type_plugin(self.training_type)
+            self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -299,7 +299,7 @@ class AcceleratorConnector:
                     f"HINT: Use just `Trainer(training_type={self.training_type})` instead."
                 )
 
-    def _set_training_type_plugin(self, training_type: Union[str, TrainingTypePlugin]) -> None:
+    def _set_training_type_plugin(self) -> None:
         if isinstance(self.training_type, str) and self.training_type in TrainingTypePluginsRegistry:
             self._training_type_plugin = TrainingTypePluginsRegistry.get(self.training_type)
         if isinstance(self.training_type, str):
@@ -315,7 +315,7 @@ class AcceleratorConnector:
                     f"You have passed `Trainer(training_type={self.training_type})`"
                     f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
                 )
-            elif self._is_plugin_training_type(plug):
+            if self._is_plugin_training_type(plug):
                 rank_zero_deprecation(
                     f"Passing {plug} `training_type` to the `plugins` flag in Trainer has been deprecated"
                     f" in v1.5 and will be removed in v1.6. Use `Trainer(training_type={plug})` instead."
@@ -566,7 +566,8 @@ class AcceleratorConnector:
             else None
         )
 
-    def _is_plugin_training_type(self, plugin: Union[str, TrainingTypePlugin]) -> bool:
+    @staticmethod
+    def _is_plugin_training_type(plugin: Union[str, TrainingTypePlugin]) -> bool:
         if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(DistributedType)):
             return True
         return isinstance(plugin, TrainingTypePlugin)
