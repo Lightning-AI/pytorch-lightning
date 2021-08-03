@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from typing import Callable, Iterator, Optional, Union
+
 import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -24,7 +26,12 @@ from pytorch_lightning.utilities.dataloader_fetcher import LightningFetcher
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle", inter_batch_parallelism: bool = False):
+    def __init__(
+        self,
+        trainer: "pl.Trainer",
+        multiple_trainloader_mode: str = "max_size_cycle",
+        inter_batch_parallelism: bool = False,
+    ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
         self.inter_batch_parallelism = inter_batch_parallelism

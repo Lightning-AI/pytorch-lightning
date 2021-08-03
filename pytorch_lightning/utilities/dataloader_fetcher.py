@@ -42,6 +42,11 @@ class LightningStreamEvent:
             self.event.wait()
 
 
+def profiled_iterator(iterator, profiler):
+    with profiler.profile("get_train_batch"):
+        yield next(iterator)
+
+
 class LightningFetcher(object):
 
     def __init__(self, datalaoder, inter_batch_parallelism: bool, batch_to_device: Callable, profiler: 'pl.profiler.base.BaseProfiler', device: torch.device) -> None:
@@ -50,15 +55,14 @@ class LightningFetcher(object):
         self.profiler = profiler
         self.batch_to_device = batch_to_device
 
-    def __iter__(self) -> 'LightningFetcher':
-        self.iterator = iter(self.datalaoder)
+    def __iter__(self) -> "LightningFetcher":
+        self.iterator = profiled_iterator(iter(self.datalaoder), self.profiler)
         self.counter = 1
         return self.prefect_function()
 
     def apply_stream(self, batch) -> Any:
-            with self.profiler.profile("get_train_batch"):
-                with self.stream.stream_context():
-                    return self.batch_to_device(batch)
+            with self.stream.stream_context():
+                return self.batch_to_device(batch)
 
     def prefect_function(self) -> Any:
         try:
@@ -78,7 +82,6 @@ class LightningFetcher(object):
         
         # yield last, no longer has next
         yield self.counter, self.apply_stream(last), True, self.stream
-
 
     @property
     def wait(self) -> None:

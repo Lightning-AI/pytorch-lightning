@@ -336,8 +336,8 @@ class Trainer(
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
             inter_batch_parallelism: The most common approach is to process input batches sequentially.
-                However, setting inter_batch_parallelism to True, enable hidding the next batch transfer latency 
-                to device behind the forward and backward call from the model. 
+                However, setting inter_batch_parallelism to True, enable hidding the next batch transfer latency
+                to device behind the forward and backward call from the model.
 
         """
         super().__init__()
