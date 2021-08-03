@@ -19,7 +19,6 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -43,14 +42,6 @@ def test_v1_5_0_model_checkpoint_save_checkpoint():
         model_ckpt.save_checkpoint(trainer, object())
 
 
-def test_v1_5_0_model_checkpoint_save_function():
-    model_ckpt = ModelCheckpoint()
-    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
-        model_ckpt.save_function = lambda *_, **__: None
-    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
-        _ = model_ckpt.save_function
-
-
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_v1_5_0_wandb_unused_sync_step(_):
     with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
@@ -59,7 +50,7 @@ def test_v1_5_0_wandb_unused_sync_step(_):
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     class OldSignature(Callback):
-        def on_save_checkpoint(self, trainer, pl_module):  # noqa
+        def on_save_checkpoint(self, trainer, pl_module):
             ...
 
     model = BoringModel()
@@ -166,26 +157,6 @@ def test_v1_5_0_running_sanity_check():
         assert not trainer.running_sanity_check
 
 
-def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
-    class OldSignatureModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            assert optimizer_idx == 0
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self):
-            return [optim.SGD(self.parameters(), lr=1e-2), optim.SGD(self.parameters(), lr=1e-2)]
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-
-    with pytest.deprecated_call(match="`training_step` .* `optimizer_idx` .* manual .* will be removed in v1.5"):
-        trainer.fit(model)
-
-
 def test_v1_5_0_model_checkpoint_period(tmpdir):
     with no_warning_call(DeprecationWarning):
         ModelCheckpoint(dirpath=tmpdir)
@@ -200,18 +171,6 @@ def test_v1_5_0_profiler_output_filename(tmpdir, cls):
         profiler = cls(output_filename=filepath)
     assert profiler.dirpath == tmpdir
     assert profiler.filename == "test"
-
-
-def test_v1_5_0_trainer_training_trick_mixin(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-    trainer.fit(model)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.print_nan_gradients()
-
-    dummy_loss = torch.tensor(1.0)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.detect_nan_tensors(dummy_loss)
 
 
 def test_v1_5_0_auto_move_data():
@@ -245,12 +204,6 @@ def test_v1_5_0_lightning_module_write_prediction(tmpdir):
         model = DeprecatedWritePredictionsModel()
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
         trainer.test(model)
-
-
-def test_v1_5_0_trainer_logging_mixin(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.metrics_to_scalars({})
 
 
 def test_v1_5_0_lighting_module_grad_norm(tmpdir):

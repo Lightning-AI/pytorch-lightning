@@ -52,6 +52,12 @@ repos:
         args: [--py36-plus]
         name: Upgrade code
 
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.2.3
+    hooks:
+      - id: yesqa
+        name: Unused noqa
+
   - repo: https://github.com/PyCQA/isort
     rev: 5.9.2
     hooks:
