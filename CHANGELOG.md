@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.4.1] - 2021-08-03
+
+- Fixed `trainer.fit_loop.split_idx` always returning `None` ([#8601](https://github.com/PyTorchLightning/pytorch-lightning/pull/8601))
+- Fixed references for `ResultCollection.extra` ([#8622](https://github.com/PyTorchLightning/pytorch-lightning/pull/8622))
+- Fixed reference issues during epoch end result collection ([#8621](https://github.com/PyTorchLightning/pytorch-lightning/pull/8621))
+- Fixed horovod auto-detection when horovod is not installed and the launcher is `mpirun` ([#8610](https://github.com/PyTorchLightning/pytorch-lightning/pull/8610))
+- Fixed an issue with `training_step` outputs not getting collected correctly for `training_epoch_end` ([#8613](https://github.com/PyTorchLightning/pytorch-lightning/pull/8613))
+- Fixed distributed types support for CPUs ([#8667](https://github.com/PyTorchLightning/pytorch-lightning/pull/8667))
+- Fixed a deadlock issue with DDP and torchelastic ([#8655](https://github.com/PyTorchLightning/pytorch-lightning/pull/8655))
+- Fixed `accelerator=ddp` choice for CPU ([#8645](https://github.com/PyTorchLightning/pytorch-lightning/pull/8645))
+
+
 ## [1.4.0] - 2021-07-27
 
 ### Added
