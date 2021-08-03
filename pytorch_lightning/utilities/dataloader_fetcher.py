@@ -60,7 +60,7 @@ def profiled_iterator(iterator, profiler):
         yield next(iterator)
 
 
-class LightningFetcher(object):
+class LightningFetcher:
 
     """
     This class is used to perform ``pre-fecthing`` for the ``train`` dataloader and apply iter batch parallelism if enabled.
@@ -78,7 +78,7 @@ class LightningFetcher(object):
         datalaoder,
         inter_batch_parallelism: bool,
         batch_to_device: Callable,
-        profiler: 'pl.profiler.base.BaseProfiler',
+        profiler: "pl.profiler.base.BaseProfiler",
         device: torch.device,
         num_prefetch_batch: int = 1,
     ) -> None:
