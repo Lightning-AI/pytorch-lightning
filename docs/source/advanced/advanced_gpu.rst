@@ -530,7 +530,7 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 Collating Single File Checkpoint for DeepSpeed ZeRO Stage 3
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-After training using ZeRO Stage 3, you'll notice that your checkpoints are a directory of sharded model and optimizer states. If you'd like to collate a single file from the checkpoint directory please use `this custom gist <https://gist.github.com/SeanNaren/e0535977df8e165247f7ff9ae445be1b>`__ which handles all the Lightning states additionally when collating the file.
+After training using ZeRO Stage 3, you'll notice that your checkpoints are a directory of sharded model and optimizer states. If you'd like to collate a single file from the checkpoint directory please use the below command, which handles all the Lightning states additionally when collating the file.
 
 .. code-block:: bash
 
@@ -539,7 +539,7 @@ After training using ZeRO Stage 3, you'll notice that your checkpoints are a dir
     # lightning has saved a directory instead of a file
     cd epoch=0-step=0.ckpt/
 
-    python convert_lightning_deepspeed_checkpoint.py . pytorch_model.ckpt
+    python -m pytorch_lightning.utilities.collate_deepspeed_checkpoint . pytorch_model.ckpt
 
 .. warning::
 
