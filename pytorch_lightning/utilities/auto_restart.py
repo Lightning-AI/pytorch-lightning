@@ -148,16 +148,11 @@ class FastForwardSampler(Sampler):
             return gen.get_state()
 
         states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator) or {}
-        states["__global_torch"] = torch.get_rng_state()
-        states["__global_numpy"] = np.random.get_state()
-        states["__global_python"] = python_get_rng_state()
+        states.update(collect_rng_states())
         return states
 
     def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
-        torch.set_rng_state(rng_state_dict.pop("__global_torch"))
-        np.random.set_state(rng_state_dict.pop("__global_numpy"))
-        python_set_rng_state(rng_state_dict.pop("__global_python"))
-
+        set_rng_states(rng_state_dict)
         _set_rng_states_on_obj(self._sampler, rng_state_dict)
 
 
