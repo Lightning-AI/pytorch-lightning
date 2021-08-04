@@ -22,7 +22,9 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
+from pytorch_lightning.loops.base import ExternalLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -510,3 +512,37 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
+
+
+def test_external_loop(tmpdir):
+    @dataclass
+    class CustomLoop(ExternalLoop):
+
+        counter: int = 0
+        stop_counter: int = 5
+
+        def reset(self):
+            pass
+
+        @property
+        def done(self):
+            return self.counter >= self.stop_counter
+
+        def advance(self, *args: Any, **kwargs: Any) -> None:
+            self.trainer.call_hook("custom_hook")
+            self.counter += 1
+
+    class CustomCallback(Callback):
+
+        has_called = False
+
+        def custom_hook(self, trainer, pl_module):
+            self.has_called = True
+
+    loop = CustomLoop()
+    model = BoringModel()
+    cb = CustomCallback()
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=cb)
+    trainer.run_loop(model, loop=loop)
+    cb.has_called = True
+    loop.counter = 5
