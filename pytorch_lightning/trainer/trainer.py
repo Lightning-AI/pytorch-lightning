@@ -29,6 +29,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops.base import ExternalLoop, Loop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -834,6 +835,61 @@ class Trainer(
 
         return result
 
+    def run_loop(
+        self,
+        model: "pl.LightningModule",
+        train_dataloader: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        loop: Union[ExternalLoop, Loop] = None,
+    ):
+
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        # FIXME: hack to not break
+        self.state.fn = TrainerFn.FITTING
+        self.state.status = TrainerStatus.RUNNING
+        self.training = True
+
+        Trainer._log_api_event("run_loop")
+
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(train_dataloader, LightningDataModule):
+            datamodule = train_dataloader
+            train_dataloader = None
+        if train_dataloader is not None and datamodule:
+            raise MisconfigurationException("You cannot pass both `trainer.run_loop(dataloaders=..., datamodule=...)`")
+
+        if loop is None or not isinstance(loop, Loop):
+            raise MisconfigurationException(
+                "You should provide an `ExternalLoop` or `Loop` object as `trainer.run_loop(loop=...)`"
+            )
+
+        model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
+            )
+
+        # links data to the trainer
+        self.data_connector.attach_data(
+            model,
+            train_dataloaders=train_dataloader,
+            val_dataloaders=val_dataloaders,
+            test_dataloaders=test_dataloaders,
+            predict_dataloaders=predict_dataloaders,
+            datamodule=datamodule,
+        )
+
+        self._prepare_run(model)
+
+        loop.trainer = self
+
+        return loop.run()
+
     def _restore_modules_and_callbacks(self) -> None:
         # restore modules after setup
         if self.state.fn == TrainerFn.FITTING:
@@ -851,7 +907,7 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _prepare_run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -882,6 +938,37 @@ class Trainer(
 
         self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+
+        # ----------------------------
+        # INSPECT THE CORE LOOPS
+        # ----------------------------
+        fr"""
+             Lightning internal flow looks like this:
+        {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
+                                |                             ||
+                        create accelerator                    ||
+                                |                             ||
+                         {self._dispatch}                     ||
+                                |                             ||  LIGHTNING
+                  {self.accelerator.start_training}           ||
+                or {self.accelerator.start_evaluating}        ||
+                or {self.accelerator.start_predicting}        ||  FLOW
+                                |                             ||
+                         {self.run_stage}                     ||
+                                |                             ||  DIRECTION
+                        {self._run_train}                     ||
+                     or {self._run_evaluate}                  ||
+                     or {self._run_predict}                   ||
+                                |                             ||
+                             results                          \/
+        This is used to guide readers to the core loops: train, test, predict.
+        {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
+        Search for `start_training` or `start_evaluating` or `start_predicting` in
+        `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
+        """
+
+    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        self._prepare_run(model)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS

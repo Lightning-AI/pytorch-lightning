@@ -13,9 +13,11 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional
 
 from deprecate import void
+from torch.utils.data.dataloader import DataLoader
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
@@ -238,3 +240,50 @@ class Loop(ABC):
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
+
+
+class ExternalLoop(Loop):
+    """This Loop is meant wrap trainer calls"""
+
+    def set_max_epochs(self, max_epochs: int):
+        self.trainer.fit_loop.max_epochs = max_epochs
+
+    def increment_max_epochs(self, max_epochs: int):
+        self.trainer.fit_loop.max_epochs += max_epochs
+
+    def set_max_steps(self, max_steps: int):
+        self.trainer.fit_loop.max_steps = max_steps
+
+    def increment_max_steps(self, max_steps: int):
+        self.trainer.fit_loop.max_steps += max_steps
+
+    def reload_train_dataloader(self, user_function: Optional[Callable] = None) -> DataLoader:
+        self.trainer.train_dataloader = None
+        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+        if user_function:
+            user_function = partial(user_function, stage="train")
+            loaders = self.trainer.train_dataloader.loaders
+            loaders = loaders if isinstance(loaders, DataLoader) else loaders.loaders
+            self.trainer.train_dataloader.loaders = self.trainer.apply_user_function(loaders, user_function)
+        return self.trainer.train_dataloader
+
+    def reload_val_dataloaders(self, user_function: Optional[Callable] = None) -> List[DataLoader]:
+        self.trainer.reset_val_dataloader(self.trainer.lightning_module)
+        if user_function:
+            user_function = partial(user_function, stage="val")
+            self.trainer.val_dataloaders = [
+                self.trainer.apply_user_function(dl, user_function) for dl in self.trainer.val_dataloaders
+            ]
+        return self.trainer.val_dataloaders
+
+    @property
+    def lightning_module(self):
+        return self.trainer.lightning_module
+
+    @property
+    def train_dataloader(self) -> DataLoader:
+        return self.trainer.train_dataloader
+
+    @property
+    def val_dataloaders(self) -> List[DataLoader]:
+        return self.trainer.val_dataloaders
