@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ARG PYTORCH_VERSION=21.07
+
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
-FROM nvcr.io/nvidia/pytorch:21.06-py3
+FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 

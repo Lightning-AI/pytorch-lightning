@@ -46,14 +46,20 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.23.0
+    rev: v2.23.2
     hooks:
       - id: pyupgrade
         args: [--py36-plus]
         name: Upgrade code
 
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.2.3
+    hooks:
+      - id: yesqa
+        name: Unused noqa
+
   - repo: https://github.com/PyCQA/isort
-    rev: 5.9.2
+    rev: 5.9.3
     hooks:
       - id: isort
         name: Format imports
@@ -70,6 +76,16 @@ repos:
       - id: blacken-docs
         args: [ --line-length=120 ]
         additional_dependencies: [ black==21.7b0 ]
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.8
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+          #- mdformat-black
+          - mdformat_frontmatter
+        exclude: CHANGELOG.md
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2

@@ -25,7 +25,7 @@ import time
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from weakref import proxy
 
 import numpy as np
@@ -247,14 +247,12 @@ class ModelCheckpoint(Callback):
         self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval, period)
         self.__validate_init_configuration()
-        self._save_function = None
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer)
-        self._save_function = trainer.save_checkpoint
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
@@ -507,25 +505,9 @@ class ModelCheckpoint(Callback):
         )
         self._period = value
 
-    @property
-    def save_function(self) -> Optional[Callable]:
-        rank_zero_deprecation(
-            "Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `trainer.save_checkpoint` instead."
-        )
-        return self._save_function
-
-    @save_function.setter
-    def save_function(self, value: Optional[Callable]) -> None:
-        rank_zero_deprecation(
-            "Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `trainer.save_checkpoint` instead."
-        )
-        self._save_function = value
-
     def _del_model(self, trainer: "pl.Trainer", filepath: str) -> None:
         if trainer.should_rank_save_checkpoint and self._fs.exists(filepath):
-            self._fs.rm(filepath)
+            self._fs.rm(filepath, recursive=True)
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: "pl.Trainer", filepath: str) -> None:

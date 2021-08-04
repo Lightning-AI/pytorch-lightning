@@ -1154,6 +1154,14 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(accelerator="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
+        (
+            dict(accelerator="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(accelerator="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
     ],
 )
 def test_trainer_config(trainer_kwargs, expected, monkeypatch):
@@ -1742,7 +1750,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1), pytest.param("ddp", 2, marks=RunIf(skip_windows=True))]
+    "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesModel()

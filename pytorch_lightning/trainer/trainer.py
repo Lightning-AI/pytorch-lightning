@@ -27,7 +27,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -62,7 +61,6 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -81,6 +79,7 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -96,7 +95,6 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     DeprecatedTrainerAttributes,
 ):
@@ -498,7 +496,7 @@ class Trainer(
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -553,7 +551,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # noqa TODO: remove with 1.6
+        val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -631,7 +629,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # noqa TODO: remove with 1.6
+        test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
@@ -782,7 +780,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # noqa TODO: remove with 1.6
+        train_dataloader=None,  # TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -911,7 +909,7 @@ class Trainer(
         {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         Search for `start_training` or `start_evaluating` or `start_predicting` in
         `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
-        """  # noqa: W605
+        """
 
         # ----------------------------
         # TRAIN
@@ -1033,7 +1031,7 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             max_depth = ModelSummary.MODES[self.weights_summary]
-            ref_model.summarize(max_depth=max_depth)
+            summarize(ref_model, max_depth=max_depth)
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -1323,7 +1321,7 @@ class Trainer(
             )
 
     def _on_expection(self):
-        if not self.is_global_zero or not _fault_tolerant_enabled():
+        if not _fault_tolerant_enabled():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")

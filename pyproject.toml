@@ -21,7 +21,6 @@ order_by_type = "False"
 
 [tool.black]
 line-length = 120
-skip-magic-trailing-comma = true
 
 
 [tool.mypy]
@@ -65,6 +64,7 @@ module = [
     "pytorch_lightning.trainer.connectors.logger_connector",
     "pytorch_lightning.utilities.argparse",
     "pytorch_lightning.utilities.cli",
+    "pytorch_lightning.utilities.cloud_io",
     "pytorch_lightning.utilities.debugging",
     "pytorch_lightning.utilities.device_dtype_mixin",
     "pytorch_lightning.utilities.device_parser",
