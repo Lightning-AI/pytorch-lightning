@@ -369,7 +369,6 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.plugins import DeepSpeedPlugin
-    from deepspeed.ops.adam import FusedAdam
 
 
     class MyModel(pl.LightningModule):
