@@ -298,7 +298,7 @@ class LightningCLI:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def _add_default_arguments(self, parser: LightningArgumentParser) -> None:
+    def _add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
@@ -307,7 +307,7 @@ class LightningCLI:
             help="Set to an int to run seed_everything with this value before classes instantiation",
         )
 
-    def _add_core_arguments(self, parser: LightningArgumentParser) -> None:
+    def _add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
@@ -318,8 +318,8 @@ class LightningCLI:
 
     def _add_arguments(self, parser: LightningArgumentParser) -> None:
         # default + core + custom arguments
-        self._add_default_arguments(parser)
-        self._add_core_arguments(parser)
+        self._add_default_arguments_to_parser(parser)
+        self._add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
