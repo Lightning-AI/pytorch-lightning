@@ -173,8 +173,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.local_rank == 0:
             time.sleep(2)
 
-        # ensure that spawned processes go through teardown before joining (for more context, see
-        # https://github.com/PyTorchLightning/pytorch-lightning/pull/8217#issuecomment-871261949).
+        # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook(self.lightning_module)
 
     @parameter_validation

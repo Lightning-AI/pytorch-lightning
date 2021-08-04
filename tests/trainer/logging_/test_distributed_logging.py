@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional, Union
 from unittest import mock
 from unittest.mock import Mock
 
+import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from tests.helpers import BoringModel
@@ -136,7 +137,7 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
             return "BufferLogger"
 
         def log_hyperparams(self, *args, **kwargs) -> None:
-            return
+            return None
 
     class LoggerCallsObserver(Callback):
         def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
