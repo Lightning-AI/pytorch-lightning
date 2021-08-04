@@ -282,9 +282,9 @@ class LightningCLI:
 
         subcommand: Optional[str] = self.config["subcommand"] if run else None
         # set the default subcommand value
-        self._get_key = partial(self._get_key, subcommand)
+        self._get = partial(self._get, subcommand)
 
-        seed = self._get_key(self.config, "seed_everything")
+        seed = self._get(self.config, "seed_everything")
         if seed is not None:
             seed_everything(seed, workers=True)
 
@@ -392,10 +392,10 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
         self.config_init = self.parser.instantiate_classes(self.config)
-        self.datamodule = self._get_key(self.config_init, "data")
-        self.model = self._get_key(self.config_init, "model")
-        callbacks = [self._get_key(self.config_init, c) for c in self.parser.callback_keys]
-        self.trainer = self.instantiate_trainer(self._get_key(self.config_init, "trainer"), callbacks)
+        self.datamodule = self._get(self.config_init, "data")
+        self.model = self._get(self.config_init, "model")
+        callbacks = [self._get(self.config_init, c) for c in self.parser.callback_keys]
+        self.trainer = self.instantiate_trainer(self._get(self.config_init, "trainer"), callbacks)
 
     def instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
         """Instantiates the trainer."""
@@ -474,7 +474,7 @@ class LightningCLI:
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
     @staticmethod
-    def _get_key(subcommand: Optional[str], config: Dict, key: Optional[str]) -> Optional[Any]:
+    def _get(subcommand: Optional[str], config: Dict, key: Optional[str]) -> Optional[Any]:
         """Utility to get a config value which might be inside a subcommand."""
         if subcommand is not None:
             if key is None:
