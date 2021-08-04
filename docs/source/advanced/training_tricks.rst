@@ -66,7 +66,7 @@ read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-we
     # Enable Stochastic Weight Averaging
     trainer = Trainer(stochastic_weight_avg=True)
 
-    # alternatively, if you need to set custom parameters
+    # alternatively, if you need to pass custom arguments
     trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
 
 ----------
