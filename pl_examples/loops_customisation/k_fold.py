@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Type
 
 import numpy as np
 from sklearn.model_selection import KFold
@@ -85,8 +85,15 @@ class KFoldLoop(ExternalLoop):
         self.num_folds = num_folds
         self.num_epochs = num_epochs
 
-    def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
-        return super().run(*args, **kwargs)
+    @staticmethod
+    def loop_base_callback() -> Type[Callback]:
+        class BaseKFoldCallback(Callback):
+            @rank_zero_only
+            def on_fold_start(self, trainer, pl_module, counter):
+                """Override with your own logic"""
+                log.info(f"Starting to train on fold {counter}")
+
+        return BaseKFoldCallback
 
     @property
     def done(self) -> bool:
@@ -127,7 +134,10 @@ class KFoldLoop(ExternalLoop):
         self.current_fold = state_dict["current_fold"]
 
 
-class KFoldCallback(Callback):
+class KFoldCallback(KFoldLoop.loop_base_callback()):
+
+    """This callback demonstrates how to implement your own logic."""
+
     @rank_zero_only
     def on_fold_start(self, trainer, pl_module, counter):
         log.info(f"Starting to train on fold {counter}")

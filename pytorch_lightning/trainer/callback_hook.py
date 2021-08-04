@@ -237,6 +237,12 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
+    def user_defined_hook(self, hook_name: str, *args, **kwargs):
+        """Called when a user calls call_hook directly with its own hook name."""
+        for callback in self.callbacks:
+            if hasattr(callback, hook_name):
+                getattr(callback, hook_name)(self, self.lightning_module, *args, **kwargs)
+
     @staticmethod
     def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)

@@ -1316,6 +1316,8 @@ class Trainer(
             if hasattr(self, hook_name):
                 trainer_hook = getattr(self, hook_name)
                 trainer_hook(*args, **kwargs)
+            else:
+                self.user_defined_hook(hook_name, *args, **kwargs)
 
             # next call hook in lightningModule
             output = None
