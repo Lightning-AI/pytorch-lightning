@@ -1154,6 +1154,14 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             dict(accelerator="ddp2", gpus=2),
             dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
+        (
+            dict(accelerator="ddp2", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
+        (
+            dict(accelerator="dp", num_processes=2, gpus=None),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+        ),
     ],
 )
 def test_trainer_config(trainer_kwargs, expected, monkeypatch):
@@ -1224,15 +1232,14 @@ def test_trainer_setup_call(tmpdir, stage):
         def setup(self, stage):
             self.stage = stage
 
-    class TrainerSubclass(Trainer):
-        def setup(self, model, stage):
+    class CurrentCallback(Callback):
+        def setup(self, trainer, model, stage):
             assert model is not None
             self.stage = stage
 
     model = CurrentModel()
-
-    # fit model
-    trainer = TrainerSubclass(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False)
+    callback = CurrentCallback()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, callbacks=[callback])
 
     if stage == "fit":
         trainer.fit(model)
@@ -1241,8 +1248,8 @@ def test_trainer_setup_call(tmpdir, stage):
     else:
         trainer.test(model)
 
-    assert trainer.stage == stage
-    assert trainer.lightning_module.stage == stage
+    assert callback.stage == stage
+    assert model.stage == stage
 
 
 @pytest.mark.parametrize("train_batches, max_steps, log_interval", [(10, 10, 1), (3, 10, 1), (3, 10, 5)])
@@ -1742,7 +1749,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1), pytest.param("ddp", 2, marks=RunIf(skip_windows=True))]
+    "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesModel()

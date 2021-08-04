@@ -217,6 +217,7 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
         pytest.param([-1]),
         pytest.param([None]),
         pytest.param(["0"]),
+        pytest.param([0, 0]),
     ],
 )
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):

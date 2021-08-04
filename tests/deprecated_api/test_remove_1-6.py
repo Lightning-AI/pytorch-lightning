@@ -17,10 +17,10 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -317,4 +317,4 @@ def test_v1_6_0_deprecated_device_dtype_mixin_import():
 
     _soft_unimport_module("pytorch_lightning.utilities.device_dtype_mixin")
     with pytest.deprecated_call(match="will be removed in v1.6"):
-        from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F811 F401
+        from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin  # noqa: F401

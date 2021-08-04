@@ -192,7 +192,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_sum_reduction:
                 self.value += value.mean() * batch_size
         else:
-            self.value = value  # noqa: attribute-defined-outside-init
+            self.value = value
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
@@ -251,13 +251,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        skip = ["update", "compute", "_update_signature"]
+        skip = ["update", "compute", "_update_signature", "_cache"]
         if not self.is_tensor and drop_value:
             # Avoid serializing ResultMetrics which are passed Metrics
             skip.append("value")
         d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d["meta"] = d["meta"].__getstate__()
         d["_class"] = self.__class__.__name__
+        d["_is_synced"] = False  # don't consider the state as synced on reload
         return d
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
@@ -603,6 +604,16 @@ class ResultCollection(dict):
     def cpu(self) -> "ResultCollection":
         """Move all data to CPU."""
         return self.to(device="cpu")
+
+    def sync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor:
+                result_metric.sync()
+
+    def unsync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and result_metric._is_synced:
+                result_metric.unsync()
 
     def __str__(self) -> str:
         # sample output: `ResultCollection(minimize=1.23, {})`
