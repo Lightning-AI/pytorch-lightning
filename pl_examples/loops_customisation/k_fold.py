@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Type
 
 import numpy as np
@@ -79,11 +80,13 @@ class BoringDataModule(LightningDataModule):
         return DataLoader(RandomDataset(32, 64))
 
 
+@dataclass
 class KFoldLoop(ExternalLoop):
-    def __init__(self, num_folds: int, num_epochs: int = 10) -> None:
-        super().__init__()
-        self.num_folds = num_folds
-        self.num_epochs = num_epochs
+
+    num_folds: int
+    num_epochs: int = 10
+    best_model_paths: List[str] = field(default_factory=lambda: [])
+    restarting: bool = False
 
     @staticmethod
     def loop_base_callback() -> Type[Callback]:
@@ -118,6 +121,7 @@ class KFoldLoop(ExternalLoop):
         self.reload_train_dataloader(self.generate_fold)
         self.reload_val_dataloaders(self.generate_fold)
         self.trainer.call_hook("on_fold_start", self.current_fold)
+        self.lightning_module.reset_parameters()
 
     def advance(self):
         return self.trainer.fit(self.lightning_module, train_dataloader=self.train_dataloader)
@@ -125,6 +129,8 @@ class KFoldLoop(ExternalLoop):
     def on_advance_end(self) -> None:
         self.current_fold += 1
         self.increment_max_epochs(self.num_epochs)
+        # stored best weight path for this fold
+        self.best_model_paths.append(self.trainer.checkpoint_callback.best_model_path)
 
     def on_save_checkpoint(self) -> Dict:
         return {"current_fold": self.current_fold}

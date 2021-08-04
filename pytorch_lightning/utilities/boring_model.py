@@ -146,6 +146,9 @@ class BoringModel(LightningModule):
     def predict_dataloader(self):
         return DataLoader(RandomDataset(32, 64))
 
+    def reset_parameters(self):
+        self.layer.reset_parameters()
+
 
 class BoringDataModule(LightningDataModule):
     def __init__(self, data_dir: str = "./"):
