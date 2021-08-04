@@ -199,13 +199,9 @@ class AllGatherGrad(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx: Any,
-        *arg: Any,
-        tensor: torch.Tensor = None,
+        tensor: torch.Tensor,
         group: Optional[torch.distributed.ProcessGroup] = group.WORLD,
-        **kwargs: Any,
     ) -> torch.Tensor:
-        if tensor is None:
-            raise ValueError("`tensor` should be provided.")
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
