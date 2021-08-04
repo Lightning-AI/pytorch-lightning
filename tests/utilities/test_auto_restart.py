@@ -915,7 +915,7 @@ class RandomGeneratorGetItemDataset(Dataset):
         # RandomGeneratorGetItemDataset,
     ],
 )
-@pytest.mark.parametrize("num_workers", [1, 2, 3, 4])  # TODO: 0
+@pytest.mark.parametrize("num_workers", [0, 1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers):
     # set the manual seed initially
     torch.manual_seed(1)
