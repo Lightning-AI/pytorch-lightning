@@ -219,18 +219,13 @@ class CaptureMapDataset(Dataset):
 
 
 def collect_rng_states() -> Dict[str, Any]:
-    states = {"torch": torch.get_rng_state()}
-    # states["__global_numpy"] = list(np.random.get_state())
-    # states["__global_numpy"][1] = states["__global_numpy"][1].astype(np.int32)
-    # states["__global_numpy"] = tuple(states["__global_numpy"])
-    # states["__global_python"] = python_get_rng_state()
-    return states
+    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
 
 
 def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     torch.set_rng_state(rng_state_dict.pop("torch"))
-    # np.random.set_state(rng_state_dict.pop("__global_numpy"))
-    # python_set_rng_state(rng_state_dict.pop("__global_python"))
+    np.random.set_state(rng_state_dict.pop("numpy"))
+    python_set_rng_state(rng_state_dict.pop("python"))
 
 
 class CaptureIterableDataset(IterableDataset):

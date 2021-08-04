@@ -909,8 +909,8 @@ class RandomGeneratorGetItemDataset(Dataset):
     [
         SequentialGetItemDataset,
         RandomTorchGetItemDataset,
-        # RandomNumpyGetItemDataset,
-        # RandomPythonGetItemDataset,
+        RandomNumpyGetItemDataset,
+        RandomPythonGetItemDataset,
         # RandomGeneratorGetItemDataset,
     ],
 )
