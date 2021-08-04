@@ -884,9 +884,13 @@ class Trainer(
             datamodule=datamodule,
         )
 
-        self._prepare_run(model)
-
         loop.trainer = self
+
+        # attach model to the training type plugin
+        self.accelerator.connect(model)
+
+        self.data_connector.prepare_data()
+        self.callback_connector._attach_model_callbacks()
 
         return loop.run()
 
@@ -907,7 +911,7 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _prepare_run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -940,37 +944,6 @@ class Trainer(
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
         self.accelerator.setup(self)
-
-        # ----------------------------
-        # INSPECT THE CORE LOOPS
-        # ----------------------------
-        fr"""
-             Lightning internal flow looks like this:
-        {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
-                                |                             ||
-                        create accelerator                    ||
-                                |                             ||
-                         {self._dispatch}                     ||
-                                |                             ||  LIGHTNING
-                  {self.accelerator.start_training}           ||
-                or {self.accelerator.start_evaluating}        ||
-                or {self.accelerator.start_predicting}        ||  FLOW
-                                |                             ||
-                         {self.run_stage}                     ||
-                                |                             ||  DIRECTION
-                        {self._run_train}                     ||
-                     or {self._run_evaluate}                  ||
-                     or {self._run_predict}                   ||
-                                |                             ||
-                             results                          \/
-        This is used to guide readers to the core loops: train, test, predict.
-        {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
-        Search for `start_training` or `start_evaluating` or `start_predicting` in
-        `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
-        """
-
-    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        self._prepare_run(model)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1140,6 +1113,9 @@ class Trainer(
 
         # reload data when needed
         model = self.lightning_module
+
+        # hook
+        self.data_connector.prepare_data()
 
         self.reset_train_val_dataloaders(model)
 

@@ -4,15 +4,13 @@ from typing import Any, Dict, List, Type
 import numpy as np
 from sklearn.model_selection import KFold
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loops.base import ExternalLoop
 from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.boring_model import BoringModel, RandomDataset
+from pytorch_lightning.utilities.boring_model import BoringDataModule, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 seed_everything(42)
@@ -66,20 +64,6 @@ class SplitDataset(Dataset):
         return len(self.indices) - 1
 
 
-class BoringDataModule(LightningDataModule):
-    def train_dataloader(self):
-        return DataLoader(RandomDataset(32, 64))
-
-    def val_dataloader(self):
-        return DataLoader(RandomDataset(32, 64))
-
-    def test_dataloader(self):
-        return DataLoader(RandomDataset(32, 64))
-
-    def predict_dataloader(self):
-        return DataLoader(RandomDataset(32, 64))
-
-
 @dataclass
 class KFoldLoop(ExternalLoop):
 
@@ -116,6 +100,10 @@ class KFoldLoop(ExternalLoop):
             dataloader_kwargs["dataset"] = SplitDataset(dataset, validation_indices.tolist())
         dataloader_kwargs["sampler"].data_source = dataloader_kwargs["dataset"]
         return dataloader_kwargs
+
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        # temporary hack
+        self.trainer.datamodule.setup("fit")
 
     def on_advance_start(self):
         self.reload_train_dataloader(self.generate_fold)

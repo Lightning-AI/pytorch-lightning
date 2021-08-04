@@ -187,3 +187,17 @@ class BoringDataModule(LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(self.random_predict)
+
+
+class BoringLightningDataModule(LightningDataModule):
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
+
+    def test_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
+
+    def predict_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
