@@ -289,14 +289,14 @@ class LightningCLI:
         self.fit()
         self.after_fit()
 
+    def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
+        """Method that instantiates the argument parser."""
+        return LightningArgumentParser(**kwargs)
+
     def setup_parser(self, **kwargs: Any) -> None:
         """Initialize and setup the parser, and arguments."""
         self.parser = self.init_parser(**kwargs)
         self._add_arguments(self.parser)
-
-    def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
-        """Method that instantiates the argument parser."""
-        return LightningArgumentParser(**kwargs)
 
     def _add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""
