@@ -148,7 +148,7 @@ class KFoldLoop(ExternalLoop):
 
 class KFoldCallback(KFoldLoop.loop_base_callback()):
 
-    """This callback demonstrates how to implement your create callbacks."""
+    """This callback demonstrates how to implement your own callback API."""
 
     @rank_zero_only
     def on_fold_start(self, trainer, pl_module, counter):
