@@ -507,7 +507,7 @@ class ModelCheckpoint(Callback):
 
     def _del_model(self, trainer: "pl.Trainer", filepath: str) -> None:
         if trainer.should_rank_save_checkpoint and self._fs.exists(filepath):
-            self._fs.rm(filepath)
+            self._fs.rm(filepath, recursive=True)
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: "pl.Trainer", filepath: str) -> None:

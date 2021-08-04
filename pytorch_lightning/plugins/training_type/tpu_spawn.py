@@ -111,9 +111,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-    def setup(self, model: Module) -> Module:
+    def setup(self) -> None:
         self.create_mp_queue()
-        return self.model
 
     def create_mp_queue(self):
         self.start_method = "fork"

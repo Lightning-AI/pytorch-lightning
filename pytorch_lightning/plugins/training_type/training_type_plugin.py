@@ -54,7 +54,7 @@ class TrainingTypePlugin(Plugin, ABC):
         which allows the user to access the accelerator environment before setup is complete.
         """
 
-    def setup(self, model: Module) -> None:
+    def setup(self) -> None:
         """Called by the accelerator to finish setup."""
 
     @property
@@ -231,7 +231,9 @@ class TrainingTypePlugin(Plugin, ABC):
         Override to delay setting optimizers and schedulers till after dispatch.
         This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
         However this may break certain precision plugins such as APEX which require optimizers to be set.
-        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+
+        Returns:
+            If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
 

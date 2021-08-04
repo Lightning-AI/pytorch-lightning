@@ -29,8 +29,7 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
-    def setup(self, model):
-        self._model = model
+    def setup(self) -> None:
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
         # the difference to DDP is that we don't call children processes here
