@@ -1,4 +1,3 @@
-import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Callable, Generator, List
@@ -8,7 +7,7 @@ import torch
 import pytorch_lightning as pl
 
 
-@dataclass()
+@dataclass
 class LightningStreamEvent:
 
     """
@@ -19,38 +18,25 @@ class LightningStreamEvent:
     device: torch.device
 
     def __post_init__(self):
-        if self.cuda_inter_batch_parallelism:
-            self.cuda_stream = torch.cuda.Stream()
-            self.events: List[torch.cuda.Event] = []
+        self.cuda_stream = torch.cuda.Stream()
+        self.events: List[torch.cuda.Event] = []
 
     @contextmanager
     def stream_context(self):
-        if self.cuda_inter_batch_parallelism:
-            with torch.cuda.stream(self.cuda_stream):
-                self.start_record()
-                yield
-                self.end_record()
-        else:
+        with torch.cuda.stream(self.cuda_stream):
             self.start_record()
             yield
             self.end_record()
 
-    @property
-    def cuda_inter_batch_parallelism(self) -> bool:
-        return self.device.type == "cuda" and self.inter_batch_parallelism
-
     def start_record(self) -> None:
-        if self.cuda_inter_batch_parallelism:
-            self.events.append(torch.cuda.Event())
+        self.events.append(torch.cuda.Event())
 
     def end_record(self) -> None:
-        if self.cuda_inter_batch_parallelism:
-            self.events[-1].record()
+        self.events[-1].record()
 
     def wait(self) -> None:
-        if self.cuda_inter_batch_parallelism:
-            event = self.events.pop(0)
-            event.wait()
+        event = self.events.pop(0)
+        event.wait()
 
 
 def profiled_iterator(iterator, profiler):
@@ -61,7 +47,8 @@ def profiled_iterator(iterator, profiler):
 class LightningFetcher:
 
     """
-    This class is used to perform ``pre-fecthing`` for the ``train`` dataloader and apply iter batch parallelism if enabled.
+    This class is used to perform ``pre-fecthing`` for the ``train`` dataloader
+    and apply iter batch parallelism if enabled.
 
     batch 0: [HtoD][forward][backward]
     batch 1:                          [HtoD][forward][backward]

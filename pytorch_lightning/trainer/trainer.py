@@ -24,7 +24,7 @@ from weakref import proxy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -337,7 +337,7 @@ class Trainer(
 
             inter_batch_parallelism: The most common approach is to process input batches sequentially.
                 However, setting inter_batch_parallelism to True, enable hidding the next batch transfer latency
-                to device behind the forward and backward call from the model.
+                to device behind the forward and backward call from the model. Only supported on CUDA devices.
 
         """
         super().__init__()
@@ -371,6 +371,9 @@ class Trainer(
             amp_level,
             plugins,
         )
+
+        self._validate_inter_batch_parallelism(inter_batch_parallelism)
+
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
         self.callback_connector = CallbackConnector(self)
@@ -1323,6 +1326,12 @@ class Trainer(
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
+            )
+
+    def _validate_inter_batch_parallelism(self, inter_batch_parallelism: bool) -> None:
+        if inter_batch_parallelism and not isinstance(self.accelerator, GPUAccelerator):
+            raise MisconfigurationException(
+                "You have passed `Trainer(inter_batch_parallelism=True)` but it is only supported on GPUs"
             )
 
     def _on_expection(self):
