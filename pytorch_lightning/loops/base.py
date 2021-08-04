@@ -245,6 +245,26 @@ class Loop(ABC):
 class ExternalLoop(Loop):
     """This Loop is meant wrap trainer calls"""
 
+    @property
+    def trainer(self) -> Optional["pl.Trainer"]:
+        return self._trainer
+
+    @trainer.setter
+    def trainer(self, trainer: "pl.Trainer"):
+        """Connects this loop's trainer and its children"""
+        if not isinstance(trainer, pl.Trainer):
+            raise MisconfigurationException(
+                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
+            )
+        if hasattr(self, "_trainer") and isinstance(self._trainer, pl.Trainer):
+            raise MisconfigurationException(
+                f"Loop {self.__class__.__name__} should be attached to only 1 `Trainer` instance."
+            )
+        self._trainer = trainer
+        for v in self.__dict__.values():
+            if isinstance(v, Loop):
+                v.trainer = trainer
+
     def set_max_epochs(self, max_epochs: int):
         self.trainer.fit_loop.max_epochs = max_epochs
 

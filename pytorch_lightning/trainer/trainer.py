@@ -884,13 +884,13 @@ class Trainer(
             datamodule=datamodule,
         )
 
+        # attach trainer
         loop.trainer = self
 
         # attach model to the training type plugin
         self.accelerator.connect(model)
 
         self.data_connector.prepare_data()
-        self.callback_connector._attach_model_callbacks()
 
         return loop.run()
 
