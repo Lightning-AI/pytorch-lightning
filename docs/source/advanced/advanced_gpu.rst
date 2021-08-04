@@ -136,7 +136,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
         def configure_sharded_model(self):
             # modules are sharded across processes
             # as soon as they are wrapped with ``wrap`` or ``auto_wrap``.
-            # During the forward/backward passes, weights synced across processes
+            # During the forward/backward passes, weights get synced across processes
             # and de-allocated once computation is complete, saving memory.
 
             # Wraps the layer in a Fully Sharded Wrapper automatically
