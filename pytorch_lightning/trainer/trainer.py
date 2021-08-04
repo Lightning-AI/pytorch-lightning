@@ -945,11 +945,7 @@ class Trainer(
 
         # teardown if necessary (similar calls for spawn plugins are excluded as they have
         # been included at the end of `new_process` functions)
-        if self._distrib_type not in (
-            DistributedType.DDP_SPAWN,
-            DistributedType.TPU_SPAWN,
-            DistributedType.DDP_SHARDED_SPAWN,
-        ):
+        if not self._distrib_type.is_interactive_compatible():
             self._call_teardown_hook(model)
 
         if self.state.status != TrainerStatus.INTERRUPTED:
