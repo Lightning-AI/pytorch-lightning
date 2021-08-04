@@ -868,26 +868,21 @@ class SequentialGetItemDataset(Dataset):
         return self.len
 
 
-class RandomTorchGetItemDataset(Dataset):
+class RandomGetItemDataset(Dataset):
+    """A dataset with random elements generated using global rng from torch, numpy and python."""
+
     def __init__(self, length, size):
         self.size = size
         self.len = length
 
     def __getitem__(self, index):
-        return torch.rand(self.size)
+        t = torch.rand(self.size)
+        n = torch.from_numpy(np.random.rand(self.size))
+        p = torch.tensor([python_random.random() for _ in range(self.size)])
+        return t + n + p
 
     def __len__(self):
         return self.len
-
-
-class RandomNumpyGetItemDataset(RandomTorchGetItemDataset):
-    def __getitem__(self, index):
-        return np.random.rand(self.size)
-
-
-class RandomPythonGetItemDataset(RandomTorchGetItemDataset):
-    def __getitem__(self, index):
-        return torch.tensor([python_random.random() for _ in range(self.size)])
 
 
 class RandomGeneratorGetItemDataset(Dataset):
@@ -908,9 +903,7 @@ class RandomGeneratorGetItemDataset(Dataset):
     "dataset_class",
     [
         SequentialGetItemDataset,
-        RandomTorchGetItemDataset,
-        RandomNumpyGetItemDataset,
-        RandomPythonGetItemDataset,
+        RandomGetItemDataset,
         # RandomGeneratorGetItemDataset,
     ],
 )
