@@ -102,7 +102,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#8627](https://github.com/PyTorchLightning/pytorch-lightning/pull/8627))
 
 
-- Fix an issue with logger ouputs not being finalized correctly after prediction runs ([#8333](https://github.com/PyTorchLightning/pytorch-lightning/issues/8333))
+- Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8333](https://github.com/PyTorchLightning/pytorch-lightning/issues/8333))
 
 
 ## [1.4.0] - 2021-07-27
