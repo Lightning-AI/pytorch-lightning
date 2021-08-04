@@ -62,11 +62,7 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently only supported on every epoch.
 
-        SWA can easily be activated directly from the Trainer as follow:
-
-        .. code-block:: python
-
-            Trainer(stochastic_weight_avg=True)
+        See also how to :ref:`enable it directly on the Trainer <advanced/training_tricks:Stochastic Weight Averaging>`
 
         Arguments:
 
