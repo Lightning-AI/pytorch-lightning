@@ -193,7 +193,10 @@ class WandbLogger(LightningLoggerBase):
             if wandb.run is None:
                 self._experiment = wandb.init(**self._wandb_init)
             else:
-                warning_cache.warn("")
+                warning_cache.warn(
+                    "There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse"
+                    " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
+                )
                 self._experiment = wandb.run
 
         # define default x-axis (for latest wandb versions)
