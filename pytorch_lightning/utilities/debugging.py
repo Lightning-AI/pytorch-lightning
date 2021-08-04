@@ -170,7 +170,7 @@ class InternalDebugger:
         debug_dict = {
             "epoch": self.trainer.current_epoch,
             "global_step": self.trainer.global_step,
-            "monitor": cb.monitor,
+            "monitor": cb.monitor if cb is not None else None,
             "rank": self.trainer.global_rank,
             "filepath": filepath,
         }
