@@ -903,7 +903,6 @@ class RandomGeneratorGetItemDataset(Dataset):
         return self.len
 
 
-# TODO: num_workers
 # NOTE: we are not able to restore if we fail during the first N=num_workers batches
 @pytest.mark.parametrize(
     "dataset_class",
@@ -916,15 +915,16 @@ class RandomGeneratorGetItemDataset(Dataset):
     ],
 )
 @pytest.mark.parametrize("num_workers", [0, 1, 2, 3])
-def test_dataset_rng_states_restart(dataset_class, num_workers):
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     # set the manual seed initially
     torch.manual_seed(1)
-    batch_size = 1
 
-    dataset = CaptureMapDataset(dataset_class(8, 8))
+    dataset = CaptureMapDataset(dataset_class(16, 8))
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
+    Trainer._add_sampler_metadata_collate(dataloader)
     dataloader_iter = iter(dataloader)
     patch_dataloader_iterator(dataloader, dataloader_iter)
 
@@ -942,7 +942,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     batch03 = next(dataloader_iter)
 
     # start reloading
-    dataset = CaptureMapDataset(dataset_class(8, 8))
+    dataset = CaptureMapDataset(dataset_class(16, 8))
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
 
@@ -951,6 +951,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers):
     dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
+    Trainer._add_sampler_metadata_collate(dataloader)
     dataloader_iter = iter(dataloader)
     patch_dataloader_iterator(dataloader, dataloader_iter)
 

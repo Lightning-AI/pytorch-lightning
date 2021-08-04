@@ -485,6 +485,7 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
+# TODO: change name of this function and update docs
 def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
     """
     A collate function that adds the state dict of all samplers used in the worker processes.
@@ -499,10 +500,19 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
             "__pl_samplers": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    batch = default_collate(samples)
-    if not isinstance(dataset, CaptureIterableDataset):
-        return batch
-    return {"data": batch, AutoRestartBatchKeys.PL_SAMPLERS: dataset.state_dict()}
+    if isinstance(dataset, CaptureIterableDataset):
+        data = default_collate(samples)
+        metadata = dataset.state_dict()
+
+    elif isinstance(dataset, CaptureMapDataset):
+        samples, states = zip(*samples)
+        data = default_collate(samples)
+        metadata = states[-1]
+    else:
+        return default_collate(samples)
+
+    # TODO: change this key name or make a dataclass
+    return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: metadata}
 
 
 def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
@@ -510,19 +520,21 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
     iterator.state = IteratorState(num_workers=dataloader.num_workers)
 
     def _next_data_wrapper(fn, it, dl):
-        num_samples_fetched = 1
+        num_samples_fetched = 0
 
         @wraps(fn)
         def wrapper():
             nonlocal num_samples_fetched
-            batch, dataset_state = fn()
+            combined_batch = fn()
+            batch, dataset_state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_SAMPLERS]
+            num_samples_fetched += len(batch)
+
             # TODO: handle FF batch_sampler
             sampler_state = dl.sampler.state_dict(num_samples_fetched)
             it.state: IteratorState
             it.state.sampler_states.update(sampler_state)
             it.state.dataset_states.update(dataset_state)
             it.state.latest_worker_id = list(dataset_state.keys())[0]
-            num_samples_fetched += 1
             return batch
 
         return wrapper
