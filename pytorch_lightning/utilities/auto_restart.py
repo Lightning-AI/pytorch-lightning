@@ -190,6 +190,7 @@ class CaptureMapDataset(Dataset):
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
+    # TODO: only return the state from the latest _get_item()
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
