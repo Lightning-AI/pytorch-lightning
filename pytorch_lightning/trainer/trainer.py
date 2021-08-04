@@ -27,7 +27,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -80,6 +79,7 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -1031,7 +1031,7 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             max_depth = ModelSummary.MODES[self.weights_summary]
-            ref_model.summarize(max_depth=max_depth)
+            summarize(ref_model, max_depth=max_depth)
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
