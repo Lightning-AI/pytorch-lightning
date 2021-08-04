@@ -70,22 +70,23 @@ class LightningFetcher:
         self.datalaoder = datalaoder
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
         self.profiler = profiler
+        self.iterator = profiled_iterator(iter(self.datalaoder), self.profiler)
         self.batch_to_device = batch_to_device
+        self.counter = 0
 
         self.num_prefetch_batch = num_prefetch_batch
         if num_prefetch_batch != 1:
             raise NotImplementedError
 
     def __iter__(self) -> Generator:
-        self.iterator = profiled_iterator(iter(self.datalaoder), self.profiler)
         self.counter = 1
-        return self.prefect_function()
+        return self.prefetch_function()
 
     def apply_stream(self, batch) -> Any:
         with self.stream.stream_context():
             return self.batch_to_device(batch)
 
-    def prefect_function(self) -> Any:
+    def prefetch_function(self) -> Any:
         try:
             last = self.apply_stream(next(self.iterator))
         except StopIteration:
