@@ -91,7 +91,6 @@ class KFoldLoop(ExternalLoop):
             @rank_zero_only
             def on_fold_start(self, trainer, pl_module, counter):
                 """Override with your own logic"""
-                log.info(f"Starting to train on fold {counter}")
 
         return BaseKFoldCallback
 
@@ -136,7 +135,7 @@ class KFoldLoop(ExternalLoop):
 
 class KFoldCallback(KFoldLoop.loop_base_callback()):
 
-    """This callback demonstrates how to implement your own logic."""
+    """This callback demonstrates how to implement your create callbacks."""
 
     @rank_zero_only
     def on_fold_start(self, trainer, pl_module, counter):
