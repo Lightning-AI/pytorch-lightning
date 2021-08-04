@@ -14,6 +14,7 @@
 import inspect
 import os
 from argparse import Namespace
+from functools import partial
 from types import MethodType
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
@@ -212,6 +213,7 @@ class LightningCLI:
         parser_kwargs: Optional[Dict[str, Any]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
+        run: bool = True,
     ) -> None:
         """
         Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which are
@@ -259,6 +261,8 @@ class LightningCLI:
             subclass_mode_data: Whether datamodule can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
+            run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
+                method. If set to ``False``, the trainer and model classes will be instantiated only.
         """
         self.model_class = model_class
         self.datamodule_class = datamodule_class
@@ -273,11 +277,14 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
-        self.setup_parser(**parser_kwargs)
+        self.setup_parser(run, **parser_kwargs)
         self.parse_arguments(self.parser)
 
-        subcommand: Optional[str] = self.config["subcommand"]
-        seed = self.config[subcommand].get("seed_everything")
+        subcommand: Optional[str] = self.config["subcommand"] if run else None
+        # set the default subcommand value
+        self._get_key = partial(self._get_key, subcommand)
+
+        seed = self._get_key(self.config, "seed_everything")
         if seed is not None:
             seed_everything(seed, workers=True)
 
@@ -286,20 +293,23 @@ class LightningCLI:
         self.add_configure_optimizers_method_to_model()
 
         if subcommand is not None:
-            self._run_subcommand()
+            self._run_subcommand(subcommand)
 
-    def setup_parser(self, **kwargs: Any) -> None:
+    def setup_parser(self, add_subcommands: bool = True, **kwargs: Any) -> None:
         """Initialize and setup the parser, subcommands, and arguments"""
         self.parser = self.init_parser(**kwargs)
         self._subcommand_method_arguments: Dict[str, List[str]] = {}
-        self._add_subcommands(self.parser)
+        if add_subcommands:
+            self._add_subcommands(self.parser)
+        else:
+            self._add_arguments(self.parser)
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
-        """Method that instantiates the argument parser"""
+        """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def add_default_arguments(self, parser: LightningArgumentParser) -> None:
-        """Adds default arguments to the parser"""
+    def _add_default_arguments(self, parser: LightningArgumentParser) -> None:
+        """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
             type=Optional[int],
@@ -307,8 +317,8 @@ class LightningCLI:
             help="Set to an int to run seed_everything with this value before classes instantiation",
         )
 
-    def add_core_arguments(self, parser: LightningArgumentParser) -> None:
-        """Adds arguments from the core classes to the parser"""
+    def _add_core_arguments(self, parser: LightningArgumentParser) -> None:
+        """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
@@ -318,7 +328,7 @@ class LightningCLI:
 
     @staticmethod
     def subcommands() -> Dict[str, Set[str]]:
-        """Defines the list of available subcommands and the arguments to skip"""
+        """Defines the list of available subcommands and the arguments to skip."""
         return {
             "fit": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
             "validate": {"model", "dataloaders", "val_dataloaders", "datamodule"},
@@ -328,6 +338,7 @@ class LightningCLI:
         }
 
     def _add_subcommands(self, parser: LightningArgumentParser) -> None:
+        """Adds subcommands to the input parser."""
         parser_subcommands = parser.add_subcommands()
         for subcommand in self.subcommands():
             subcommand_parser = self._prepare_subcommand_parser(subcommand)
@@ -337,10 +348,7 @@ class LightningCLI:
 
     def _prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
         parser = self.init_parser()
-        # default + core + custom arguments
-        self.add_default_arguments(parser)
-        self.add_core_arguments(parser)
-        self.add_arguments(parser)
+        self._add_arguments(parser)
         # subcommand arguments
         subcommands = self.subcommands()
         skip = subcommands[subcommand]
@@ -348,6 +356,12 @@ class LightningCLI:
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
         return parser
+
+    def _add_arguments(self, parser: LightningArgumentParser) -> None:
+        # default + core + custom arguments
+        self._add_default_arguments(parser)
+        self._add_core_arguments(parser)
+        self.add_arguments(parser)
 
     def add_arguments(self, parser: LightningArgumentParser) -> None:
         """
@@ -378,22 +392,21 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
         self.config_init = self.parser.instantiate_classes(self.config)
-        config = self.config_init[self.config["subcommand"]]
-        self.datamodule = self.config.get("data")
-        self.model = self.config["model"]
-        callbacks = [self.config_init[c] for c in self.parser.callback_keys]
-        self.trainer = self.instantiate_trainer(config["trainer"], callbacks)
+        self.datamodule = self._get_key(self.config_init, "data")
+        self.model = self._get_key(self.config_init, "model")
+        callbacks = [self._get_key(self.config_init, c) for c in self.parser.callback_keys]
+        self.trainer = self.instantiate_trainer(self._get_key(self.config_init, "trainer"), callbacks)
 
     def instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
         """Instantiates the trainer."""
-        config.setdefault("callbacks", [])
+        config["callbacks"] = config["callbacks"] or []
         config["callbacks"].extend(callbacks)
         if "callbacks" in self.trainer_defaults:
             if isinstance(self.trainer_defaults["callbacks"], list):
                 config["callbacks"].extend(self.trainer_defaults["callbacks"])
             else:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
-        if self.save_config_callback and not self.config["fast_dev_run"]:
+        if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
                 self.parser, self.config, self.save_config_filename, overwrite=self.save_config_overwrite
             )
@@ -460,11 +473,18 @@ class LightningCLI:
 
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
-    def _run_subcommand(self) -> None:
-        """Run the chosen subcommand."""
-        subcommand = self.config["subcommand"]
+    @staticmethod
+    def _get_key(subcommand: Optional[str], config: Dict, key: Optional[str]) -> Optional[Any]:
+        """Utility to get a config value which might be inside a subcommand."""
+        if subcommand is not None:
+            if key is None:
+                return config[subcommand]
+            return config[subcommand].get(key)
+        return config.get(key)
 
-        before_fn = getattr(self, f"before_{subcommand}")
+    def _run_subcommand(self, subcommand: str) -> None:
+        """Run the chosen subcommand."""
+        before_fn = getattr(self, f"before_{subcommand}", None)
         if callable(before_fn):
             before_fn()
 
@@ -473,7 +493,7 @@ class LightningCLI:
         fn_kwargs = self._prepare_subcommand_kwargs(subcommand)
         fn(**fn_kwargs)
 
-        after_fn = getattr(self, f"after_{subcommand}")
+        after_fn = getattr(self, f"after_{subcommand}", None)
         if callable(after_fn):
             after_fn()
 
