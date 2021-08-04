@@ -687,6 +687,24 @@ def create_dataloader():
     return CombinedLoader(loader_dict)
 
 
+# Lightning will wrap the iterator within a prefect function as follow.
+def prefetch_iterator(iterable: Iterable):
+    it = iter(iterable)
+
+    try:
+        # the iterator may be empty from the beginning
+        last = next(it)
+    except StopIteration:
+        return
+
+    for val in it:
+        # yield last and has next
+        yield last, False, it
+        last = val
+    # yield last, no longer has next
+    yield last, True, it
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -700,11 +718,11 @@ def test_combined_dataloader_state_dict_and_reload():
     iter_dataloader = iter(prefetch_iterator(dataloader))
     num_batches_processed = 4
     for idx in range(1, num_batches_processed):
-        _, _, prefected_iterator = next(iter_dataloader)
+        _, _, prefetch_iterator = next(iter_dataloader)
 
-        loader_iters = prefected_iterator._loader_iters
+        loader_iters = prefetch_iterator._loader_iters
 
-        # when deadling with IterativeDataset,
+        # when dealing with IterativeDataset,
         # the sampler state dict will be attached directly onto the iterator to simplify collection.
 
         if idx == 1:
@@ -744,9 +762,9 @@ def test_combined_dataloader_state_dict_and_reload():
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
-    _, _, prefected_iterator = next(iter_dataloader)
+    _, _, prefetch_iterator = next(iter_dataloader)
 
-    loader_iters = prefected_iterator._loader_iters
+    loader_iters = prefetch_iterator._loader_iters
 
     assert loader_iters["a"][0]._sampler_state_dict == [
         {"num_workers": 2, "iter_sampler": {0: dict(current_iteration=6), 1: dict(current_iteration=6)}}
