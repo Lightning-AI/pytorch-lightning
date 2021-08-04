@@ -20,6 +20,7 @@ from copy import deepcopy
 from functools import wraps
 from typing import Optional
 from unittest import mock
+from unittest.mock import ANY
 
 import numpy as np
 import pytest
@@ -810,7 +811,11 @@ def test_dataloader_to_state_dict_and_reload():
     _ = next(iter_dataloader)
 
     state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
-    assert state_dict == {"num_workers": 0, "previous_worker": None, 0: {"current_iteration": 16}}
+    assert state_dict == {
+        "num_workers": 0,
+        "previous_worker": None,
+        0: {"current_iteration": 16, "rng_states": ANY},
+    }
 
     dataloader = create_dataloader()
     dataloader = _dataloader_load_state_dict(dataloader, state_dict)
@@ -818,7 +823,11 @@ def test_dataloader_to_state_dict_and_reload():
     _ = next(iter_dataloader)
 
     state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
-    assert state_dict == {"num_workers": 0, "previous_worker": None, 0: {"current_iteration": 24}}
+    assert state_dict == {
+        "num_workers": 0,
+        "previous_worker": None,
+        0: {"current_iteration": 24, "rng_states": ANY},
+    }
 
 
 @RunIf(min_torch="1.7.0")

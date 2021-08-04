@@ -22,7 +22,6 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tup
 
 import numpy as np
 import torch
-from torch import Tensor
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
@@ -49,7 +48,6 @@ class FastForwardSampler(Sampler):
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
-        self._initial_rng_state = self._get_rng_states()
 
     def __getattr__(self, key: str) -> Any:
         if key in self.__dict__:
@@ -73,7 +71,6 @@ class FastForwardSampler(Sampler):
         if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
             # reload the current state dict
             self._load_non_random_state(self._cached_state_dict)
-            self._set_rng_states(self._cached_state_dict[self.worker_id]["initial_rng_state"])
 
         i = 0
         sampler_iter = iter(self._sampler)
@@ -107,8 +104,6 @@ class FastForwardSampler(Sampler):
             self.worker_id: {
                 "current_iteration": self._compute_current_iteration(num_batches_processed),
                 "rng_states": self._get_rng_states(),
-                "initial_rng_state": self._initial_rng_state,
-                # "torch_rng_state": torch.get_rng_state(),
             }
         }
 
