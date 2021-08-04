@@ -298,7 +298,7 @@ class LightningCLI:
         self.parser = self.init_parser(**kwargs)
         self._add_arguments(self.parser)
 
-    def _add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
+    def add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
@@ -307,7 +307,7 @@ class LightningCLI:
             help="Set to an int to run seed_everything with this value before classes instantiation",
         )
 
-    def _add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
+    def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
@@ -318,13 +318,13 @@ class LightningCLI:
 
     def _add_arguments(self, parser: LightningArgumentParser) -> None:
         # default + core + custom arguments
-        self._add_default_arguments_to_parser(parser)
-        self._add_core_arguments_to_parser(parser)
+        self.add_default_arguments_to_parser(parser)
+        self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """
-        Implement to add extra arguments to the parser or link arguments
+        Implement to add extra arguments to the parser or link arguments.
 
         Args:
             parser: The parser object to which arguments can be added
