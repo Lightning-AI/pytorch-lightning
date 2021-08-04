@@ -1973,8 +1973,8 @@ def test_trainer_inter_batch_parallelism(tmpdir):
             self.non_blocking = non_blocking
 
         def forward(self, indices: torch.Tensor):
-            breakpoint()
             result = self.local_embedding(indices)
+            return result
 
         def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
             torch.cuda._sleep(CYCLES_PER_MS * 1_000)
@@ -1993,16 +1993,20 @@ def test_trainer_inter_batch_parallelism(tmpdir):
 
     model = RecommenderModel(non_blocking=False)
 
-    breakpoint()
-
     t0 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=False, gpus=1)
-    trainer.fit(model, train_dataloader=RandomDataset())
+    trainer.fit(model, train_dataloader=DataLoader(RandomDataset()))
 
     t1 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=True, gpus=1)
-    trainer.fit(model, train_dataloader=RandomDataset())
+    trainer.fit(model, train_dataloader=DataLoader(RandomDataset()))
 
     t2 = time()
 
     assert (t1 - t0) > (t2 - t1)
+
+
+def test_inter_batch_parallelism_fails_on_non_gpus():
+
+    with pytest.raises(MisconfigurationException, match="but it is only supported on GPUs"):
+        Trainer(inter_batch_parallelism=True, accelerator="cpu")

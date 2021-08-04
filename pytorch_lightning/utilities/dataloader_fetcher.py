@@ -60,17 +60,15 @@ class LightningFetcher:
 
     def __init__(
         self,
-        datalaoder,
+        dataloader,
         inter_batch_parallelism: bool,
         batch_to_device: Callable,
         profiler: "pl.profiler.base.BaseProfiler",
         device: torch.device,
         num_prefetch_batch: int = 1,
     ) -> None:
-        self.datalaoder = datalaoder
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
-        self.profiler = profiler
-        self.iterator = profiled_iterator(iter(self.datalaoder), self.profiler)
+        self.iterator = profiled_iterator(iter(dataloader), profiler)
         self.batch_to_device = batch_to_device
         self.counter = 0
 
