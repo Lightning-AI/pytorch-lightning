@@ -375,9 +375,10 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
     class MyModel(pl.LightningModule):
         ...
 
+
     model = MyModel()
     trainer = Trainer(gpus=4, plugins="deepspeed_stage_3", precision=16)
-    trainer.test(ckpt_path='my_saved_deepspeed_checkpoint.ckpt')
+    trainer.test(ckpt_path="my_saved_deepspeed_checkpoint.ckpt")
 
 
 Shard Model Instantly to Reduce Initialization Time/Memory
