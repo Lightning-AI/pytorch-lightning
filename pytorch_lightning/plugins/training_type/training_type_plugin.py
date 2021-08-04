@@ -54,7 +54,7 @@ class TrainingTypePlugin(Plugin, ABC):
         which allows the user to access the accelerator environment before setup is complete.
         """
 
-    def setup(self, model: Module) -> None:
+    def setup(self) -> None:
         """Called by the accelerator to finish setup."""
 
     @property
