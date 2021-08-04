@@ -17,13 +17,19 @@ import os
 import shutil
 import subprocess
 import uuid
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 import torch
 from torch.nn import Module
 
 
-def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
+RECURSIVE_DICT_WITH_TENSORS = Union[Dict[str, torch.Tensor], Dict[Any, Any]]
+
+
+def recursive_detach(
+    in_dict: RECURSIVE_DICT_WITH_TENSORS,
+    to_cpu: bool = False
+) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], Any]]:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
@@ -49,12 +55,12 @@ def recursive_detach(in_dict: dict, to_cpu: bool = False) -> dict:
     return out_dict
 
 
-def is_oom_error(exception):
+def is_oom_error(exception: BaseException) -> bool:
     return is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
-def is_cuda_out_of_memory(exception):
+def is_cuda_out_of_memory(exception: BaseException) -> bool:
     return (
         isinstance(exception, RuntimeError)
         and len(exception.args) == 1
@@ -64,7 +70,7 @@ def is_cuda_out_of_memory(exception):
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
-def is_cudnn_snafu(exception):
+def is_cudnn_snafu(exception: BaseException) -> bool:
     # For/because of https://github.com/pytorch/pytorch/issues/4107
     return (
         isinstance(exception, RuntimeError)
@@ -74,7 +80,7 @@ def is_cudnn_snafu(exception):
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/cpu_memory.py
-def is_out_of_cpu_memory(exception):
+def is_out_of_cpu_memory(exception: BaseException) -> bool:
     return (
         isinstance(exception, RuntimeError)
         and len(exception.args) == 1
@@ -83,7 +89,7 @@ def is_out_of_cpu_memory(exception):
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
-def garbage_collection_cuda():
+def garbage_collection_cuda() -> None:
     """Garbage collection Torch (CUDA) memory."""
     gc.collect()
     try:
@@ -95,7 +101,7 @@ def garbage_collection_cuda():
             raise
 
 
-def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
+def get_memory_profile(mode: str) -> Union[Dict[str, float], Dict[int, float]]:
     """Get a profile of the current memory usage.
 
     Args:
@@ -123,7 +129,7 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     return memory_map
 
 
-def get_gpu_memory_map() -> Dict[str, int]:
+def get_gpu_memory_map() -> Dict[str, float]:
     """
     Get the current gpu usage.
 
