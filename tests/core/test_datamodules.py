@@ -38,6 +38,7 @@ def test_can_prepare_data(local_rank, node_rank):
     model = BoringModel()
     dm = BoringDataModule()
     trainer = Trainer()
+    trainer.model = model
     trainer.datamodule = dm
 
     # 1 no DM
@@ -51,7 +52,7 @@ def test_can_prepare_data(local_rank, node_rank):
     assert trainer.local_rank == 0
     assert trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is not None
 
     # local rank = 1   (False)
@@ -61,7 +62,7 @@ def test_can_prepare_data(local_rank, node_rank):
     assert trainer.local_rank == 1
     assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     # prepare_data_per_node = False (prepare across all nodes)
@@ -73,7 +74,7 @@ def test_can_prepare_data(local_rank, node_rank):
     local_rank.return_value = 0
     assert trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is not None
 
     # global rank = 1   (False)
@@ -83,14 +84,14 @@ def test_can_prepare_data(local_rank, node_rank):
     local_rank.return_value = 0
     assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     node_rank.return_value = 0
     local_rank.return_value = 1
     assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     # 2 dm
