@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Mapping, Union, Optional
+from typing import Any, Dict, Mapping, Optional, Union
 
 import torch
 from torch import Tensor
@@ -15,7 +15,6 @@ if _DEEPSPEED_AVAILABLE:
 
 
 class DeepSpeedCheckpointPlugin(CheckpointPlugin):
-
     def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -23,7 +22,11 @@ class DeepSpeedCheckpointPlugin(CheckpointPlugin):
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
         """
-        if self.training_type_plugin.zero_stage_3 and self.training_type_plugin._multi_device and self.training_type_plugin.is_global_zero:
+        if (
+            self.training_type_plugin.zero_stage_3
+            and self.training_type_plugin._multi_device
+            and self.training_type_plugin.is_global_zero
+        ):
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "

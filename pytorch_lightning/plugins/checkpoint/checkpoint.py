@@ -8,12 +8,11 @@ from pytorch_lightning import LightningModule
 
 
 class CheckpointPlugin(ABC):
-
     def __init__(self):
         self._training_type_plugin = None
 
     @property
-    def training_type_plugin(self) -> 'TrainingTypePlugin':
+    def training_type_plugin(self) -> "TrainingTypePlugin":
         return self._training_type_plugin
 
     @training_type_plugin.setter
