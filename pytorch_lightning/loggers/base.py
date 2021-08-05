@@ -77,7 +77,7 @@ class LightningLoggerBase(ABC):
         Called after model checkpoint callback saves a new checkpoint
 
         Args:
-            model_checkpoint: the model checkpoint callback instance
+            checkpoint_callback: the model checkpoint callback instance
         """
         pass
 
