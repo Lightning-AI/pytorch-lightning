@@ -138,7 +138,6 @@ def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
     trainer.call_hook = Mock(return_value=[LearningRateMonitor(), EarlyStopping()])
-
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
         cb_connector._attach_model_callbacks()
