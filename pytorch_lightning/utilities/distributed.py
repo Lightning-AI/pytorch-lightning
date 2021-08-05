@@ -200,7 +200,7 @@ class AllGatherGrad(torch.autograd.Function):
     def forward(
         ctx: Any,
         tensor: torch.Tensor,
-        group: Optional[torch.distributed.ProcessGroup] = group.WORLD,
+        group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
     ) -> torch.Tensor:
         ctx.group = group
 
