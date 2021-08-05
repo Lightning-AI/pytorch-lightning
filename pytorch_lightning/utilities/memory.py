@@ -135,8 +135,11 @@ def get_gpu_memory_map() -> Dict[str, float]:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
     """
+    nvidia_smi_path = shutil.which("nvidia-smi")
+    if nvidia_smi_path is None:
+        raise FileNotFoundError("nvidia-smi: command not found")
     result = subprocess.run(
-        [shutil.which("nvidia-smi"), "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
+        [nvidia_smi_path, "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
         encoding="utf-8",
         # capture_output=True,          # valid for python version >=3.7
         stdout=subprocess.PIPE,
@@ -148,6 +151,7 @@ def get_gpu_memory_map() -> Dict[str, float]:
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
     gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
+    
 
 
 def get_model_size_mb(model: Module) -> float:
