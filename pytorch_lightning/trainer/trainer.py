@@ -32,7 +32,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import Plugin, DDPSpawnPlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
