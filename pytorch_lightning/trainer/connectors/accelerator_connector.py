@@ -50,6 +50,7 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
     TrainingTypePluginsRegistry,
 )
+from pytorch_lightning.plugins.checkpoint.torch import TorchCheckpointPlugin
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -99,6 +100,7 @@ class AcceleratorConnector:
         precision,
         amp_type,
         amp_level,
+        checkpoint_plugin,
         plugins,
     ):
         # initialization
@@ -134,6 +136,7 @@ class AcceleratorConnector:
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
+        self.checkpoint_plugin = checkpoint_plugin
 
         plugins = plugins if plugins is not None else []
 
@@ -665,6 +668,12 @@ class AcceleratorConnector:
             # transfer ownership of the cluster environment to the training type
             training_type.cluster_environment = self.cluster_environment
             self._cluster_environment = proxy(self.cluster_environment)
+
+        if hasattr(training_type, "checkpoint_plugin"):
+            if getattr(training_type, "checkpoint_plugin") is None:
+                training_type.checkpoint_plugin = TorchCheckpointPlugin()
+            # todo (sean): this probably shouldn't happen here
+            training_type.checkpoint_plugin.training_type_plugin = training_type
 
         if hasattr(training_type, "num_nodes"):
             # set num_nodes for training_type from trainer setting

@@ -26,6 +26,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.checkpoint.deepspeed import DeepSpeedCheckpointPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -114,7 +115,7 @@ class DeepSpeedPlugin(DDPPlugin):
         num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[DeepSpeedCheckpointPlugin] = None,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -276,11 +277,11 @@ class DeepSpeedPlugin(DDPPlugin):
             pin_memory = cpu_offload_use_pin_memory
 
         super().__init__(
-            parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
+            parallel_devices=parallel_devices,
+            num_nodes=num_nodes,
+            cluster_environment=cluster_environment,
+            checkpoint_plugin=DeepSpeedCheckpointPlugin() if checkpoint_plugin is None else checkpoint_plugin
         )
-
-        self.checkpoint_plugin = DeepSpeedPlugin() if checkpoint_plugin is None else checkpoint_plugin
-        self.checkpoint_plugin.training_type_plugin = self
 
         self.config = self._load_config(config)
         if self.config is None:
