@@ -25,9 +25,8 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
+from pytorch_lightning.plugins.checkpoint.torch import TorchCheckpointPlugin
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
@@ -42,6 +41,15 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
+        self._checkpoint_plugin = TorchCheckpointPlugin()
+
+    @property
+    def checkpoint_plugin(self) -> CheckpointPlugin:
+        return self._checkpoint_plugin
+
+    @checkpoint_plugin.setter
+    def checkpoint_plugin(self, plugin) -> None:
+        self._checkpoint_plugin = plugin
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
@@ -144,17 +152,6 @@ class TrainingTypePlugin(Plugin, ABC):
         `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
         return self._results
-
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
-
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        self.lightning_module.load_state_dict(checkpoint["state_dict"])
-
-    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        optimizer_states = checkpoint["optimizer_states"]
-        for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
-            optimizer.load_state_dict(opt_state)
 
     def start_training(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the training loop
@@ -268,30 +265,6 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return current_global_step + 1
 
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        """Returns model state."""
-        model = self.lightning_module
-        return model.state_dict()
-
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-        """
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.on_save(checkpoint)
-        if self.is_global_zero:
-            try:
-                # write the checkpoint dictionary on the file
-                atomic_save(checkpoint, filepath)
-            except AttributeError as err:
-                key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
-                checkpoint.pop(key, None)
-                rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
-                atomic_save(checkpoint, filepath)
-
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         """
@@ -370,3 +343,25 @@ class TrainingTypePlugin(Plugin, ABC):
         Called in the training loop before anything happens for that batch.
         """
         pass
+
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        return self.checkpoint_plugin.load_checkpoint_file(checkpoint_path)
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        self.checkpoint_plugin.load_model_state_dict(checkpoint)
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        self.checkpoint_plugin.load_optimizer_state_dict(checkpoint)
+
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """Returns model state."""
+        return self.checkpoint_plugin.lightning_module_state_dict()
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
+        self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)

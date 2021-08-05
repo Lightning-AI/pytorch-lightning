@@ -2,8 +2,31 @@ from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, Mapping, Union
 
+from torch.nn import Module
+
+from pytorch_lightning import LightningModule
+
 
 class CheckpointPlugin(ABC):
+
+    def __init__(self):
+        self._training_type_plugin = None
+
+    @property
+    def training_type_plugin(self) -> 'TrainingTypePlugin':
+        return self._training_type_plugin
+
+    @training_type_plugin.setter
+    def training_type_plugin(self, plugin) -> None:
+        self._training_type_plugin = plugin
+
+    @property
+    def lightning_module(self) -> LightningModule:
+        return self.training_type_plugin.lightning_module
+
+    @property
+    def model(self) -> Module:
+        return self.training_type_plugin.model
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

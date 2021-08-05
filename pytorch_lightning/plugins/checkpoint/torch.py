@@ -1,14 +1,16 @@
-from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, Mapping, Union
 
+from torch import Tensor
+
 import pytorch_lightning as pl
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 
-class CheckpointPlugin(ABC):
+class TorchCheckpointPlugin(CheckpointPlugin):
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         # dump states as a checkpoint dictionary object
@@ -31,3 +33,8 @@ class CheckpointPlugin(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
+
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """Returns model state."""
+        model = self.lightning_module
+        return model.state_dict()

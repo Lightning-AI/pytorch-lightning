@@ -169,12 +169,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        # Currently it is same as default TrainingTypePlugin, i.e. return
-        # the full state dict for FSDP, in the future, we will provide sharded
-        # state dict.
-        return super().lightning_module_state_dict()
-
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
         # Setup optimizers after the Fully Sharded Model has been made
