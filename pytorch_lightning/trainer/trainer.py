@@ -1078,7 +1078,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
-            self._on_expection()
+            self._on_exception()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1334,7 +1334,7 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_expection(self):
+    def _on_exception(self):
         if not _fault_tolerant_enabled():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
