@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerFn
@@ -52,8 +53,14 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
-        super().__init__(parallel_devices)
+    def __init__(
+        self,
+        parallel_devices: Optional[List[int]] = None,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
+        debug: bool = False,
+        **_: Any
+    ) -> None:
+        super().__init__(parallel_devices=parallel_devices, checkpoint_plugin=checkpoint_plugin)
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0

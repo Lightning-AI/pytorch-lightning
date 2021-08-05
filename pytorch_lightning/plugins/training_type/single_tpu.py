@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pytorch_lightning.core.decorators import parameter_validation
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -29,10 +30,15 @@ if _OMEGACONF_AVAILABLE:
 class SingleTPUPlugin(SingleDevicePlugin):
     """Plugin for training on a single TPU device."""
 
-    def __init__(self, device: int, debug: bool = False):
+    def __init__(
+        self,
+        device: int,
+        debug: bool = False,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
+    ):
 
         device = xm.xla_device(device)
-        super().__init__(device)
+        super().__init__(device=device, checkpoint_plugin=checkpoint_plugin)
 
         self.debug = debug
         self.tpu_local_core_rank = 0

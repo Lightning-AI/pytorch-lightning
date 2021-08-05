@@ -24,6 +24,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -63,13 +64,18 @@ class DDPSpawnPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
         cluster_environment: ClusterEnvironment = None,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Any,
     ):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_plugin=checkpoint_plugin,
+        )
         if num_nodes is not None:
             rank_zero_deprecation(
                 "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "

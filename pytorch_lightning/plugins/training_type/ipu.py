@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage
@@ -67,6 +68,7 @@ class IPUPlugin(ParallelPlugin):
         autoreport_dir: Optional[str] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
         training_opts: Optional["poptorch.Options"] = None,
         inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
@@ -83,7 +85,11 @@ class IPUPlugin(ParallelPlugin):
             inference_opts: Optional ``poptorch.Options`` to override the default
                 created options for validation/testing and predicting.
         """
-        super().__init__(parallel_devices, cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_plugin=checkpoint_plugin,
+        )
         if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
             raise MisconfigurationException(
                 "The IPU Accelerator requires IPU devices to run. "

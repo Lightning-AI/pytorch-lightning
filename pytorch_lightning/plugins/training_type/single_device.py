@@ -15,6 +15,7 @@ from typing import Any, Optional, Union
 
 import torch
 
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
@@ -22,8 +23,12 @@ from pytorch_lightning.utilities import _XLA_AVAILABLE
 class SingleDevicePlugin(TrainingTypePlugin):
     """Plugin that handles communication on a single device."""
 
-    def __init__(self, device: torch.device):
-        super().__init__()
+    def __init__(
+        self,
+        device: torch.device,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
+    ):
+        super().__init__(checkpoint_plugin)
         self.device: torch.device = device
         self.global_rank = 0
         self.local_rank = 0

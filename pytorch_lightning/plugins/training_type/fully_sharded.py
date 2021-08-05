@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Dict, Generator, List, Optional
 
 import torch
-from torch import Tensor
 
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
@@ -41,6 +41,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: ClusterEnvironment = None,
+        checkpoint_plugin: Optional[CheckpointPlugin] = None,
     ):
         """
         Plugin for Fully Sharded Data Parallel provided by FairScale.
@@ -89,7 +90,11 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 (Defautl: True).
         """
 
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_plugin=checkpoint_plugin,
+        )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
         self.flatten_parameters = flatten_parameters
