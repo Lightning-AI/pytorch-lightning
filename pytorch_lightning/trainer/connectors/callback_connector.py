@@ -15,7 +15,6 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
@@ -23,7 +22,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CallbackConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -78,8 +76,7 @@ class CallbackConnector:
             raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
-                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
-                " in callbacks list."
+                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
@@ -90,12 +87,13 @@ class CallbackConnector:
             return
 
         from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv('COLAB_GPU') and refresh_rate is None:
+        if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
         refresh_rate = 1 if refresh_rate is None else refresh_rate
@@ -103,16 +101,13 @@ class CallbackConnector:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
-                'You added multiple progress bar callbacks to the Trainer, but currently only one'
-                ' progress bar is supported.'
+                "You added multiple progress bar callbacks to the Trainer, but currently only one"
+                " progress bar is supported."
             )
-        elif len(progress_bars) == 1:
+        if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(
-                refresh_rate=refresh_rate,
-                process_position=process_position,
-            )
+            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
@@ -136,25 +131,19 @@ class CallbackConnector:
             callback.log = model.log
             callback.log_dict = model.log_dict
 
-    @staticmethod
-    def _attach_model_callbacks(model: 'pl.LightningModule', trainer) -> None:
+    def _attach_model_callbacks(self) -> None:
         """
         Attaches the callbacks defined in the model.
         If a callback returned by the model's configure_callback method has the same type as one or several
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
-
-        Args:
-            model: A model which may or may not define new callbacks in
-                :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
-            trainer: The trainer on which the callbacks get attached/merged.
         """
-        model_callbacks = model.configure_callbacks()
+        model_callbacks = self.trainer.model.configure_callbacks()
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}
-        trainer_callback_types = {type(c) for c in trainer.callbacks}
+        trainer_callback_types = {type(c) for c in self.trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
         if override_types:
             rank_zero_info(
@@ -163,11 +152,11 @@ class CallbackConnector:
                 f" {', '.join(sorted(t.__name__ for t in override_types))}"
             )
         # remove all callbacks with a type that occurs in model callbacks
-        all_callbacks = [c for c in trainer.callbacks if type(c) not in override_types]
+        all_callbacks = [c for c in self.trainer.callbacks if type(c) not in override_types]
         all_callbacks.extend(model_callbacks)
         all_callbacks = CallbackConnector._reorder_callbacks(all_callbacks)
         # TODO: connectors refactor: move callbacks list to connector and do not write Trainer state
-        trainer.callbacks = all_callbacks
+        self.trainer.callbacks = all_callbacks
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:

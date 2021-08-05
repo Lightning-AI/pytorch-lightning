@@ -17,13 +17,9 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import DataLoaderProgress
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.auto_restart import dataloader_load_state_dict, dataloader_to_state_dict
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -34,7 +30,6 @@ class EvaluationLoop(DataLoaderLoop):
     def __init__(self):
         super().__init__()
         self.outputs = []
-        self.progress = DataLoaderProgress()
         self.epoch_loop = EvaluationEpochLoop()
         self._results = ResultCollection(training=False)
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
@@ -66,15 +61,14 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the predictions from all dataloaders"""
         return self.epoch_loop.predictions
 
-    def connect(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        """Connects the loop with necessary arguments like the trainer"""
-        super().connect(trainer, *args, **kwargs)
-        self.epoch_loop.connect(trainer)
+    def connect(self, epoch_loop: EvaluationEpochLoop):
+        """Connect the evaluation epoch loop with this loop."""
+        self.epoch_loop = epoch_loop
 
     @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
-        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.skip
+        return super().done or self.skip
 
     @property
     def skip(self) -> bool:
@@ -84,7 +78,6 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop"""
-        self.iteration_count = 0
         self._max_batches = self.get_max_batches()
         # bookkeeping
         self.outputs = []
@@ -92,13 +85,7 @@ class EvaluationLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
-        if self.restarting:
-            self.iteration_count = self.progress.dataloader_idx
-            self.restarting = False
-        else:
-            self.iteration_count = 0
-            # reset batch / epoch progress tracking
-            self.progress.current.reset()
+        super().reset()
 
     def on_skip(self) -> List:
         return []
@@ -129,10 +116,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.current_dataloader_iter = dataloader_iter
 
         dl_outputs = self.epoch_loop.run(
-            dataloader_iter,
-            self.current_dataloader_idx,
-            dl_max_batches,
-            self.num_dataloaders,
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
 
         # store batch level output per dataloader
@@ -194,14 +178,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary"""
-
-        # should always reload the dataloader when performing calling validate.
-        is_validate = self.trainer.state.fn == TrainerFn.VALIDATING
-        model = self.trainer.lightning_module
         if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
-        elif is_validate or self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
-            self.trainer.reset_val_dataloader(model)
+            self.trainer.reset_test_dataloader()
+        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
+            self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""
@@ -237,10 +217,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer.call_hook("on_validation_end", *args, **kwargs)
-
-        if self.trainer.state.fn != TrainerFn.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
 
         # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
@@ -285,7 +261,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook"""
-        hook_name = ("on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end")
+        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()

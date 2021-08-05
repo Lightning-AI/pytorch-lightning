@@ -60,11 +60,11 @@ class NeptuneLogger(LightningLoggerBase):
         # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
         # We are using an api_key for the anonymous user "neptuner" but you can use your own.
         neptune_logger = NeptuneLogger(
-            api_key='ANONYMOUS',
-            project_name='shared/pytorch-lightning-integration',
-            experiment_name='default',  # Optional,
-            params={'max_epochs': 10},  # Optional,
-            tags=['pytorch-lightning', 'mlp']  # Optional,
+            api_key="ANONYMOUS",
+            project_name="shared/pytorch-lightning-integration",
+            experiment_name="default",  # Optional,
+            params={"max_epochs": 10},  # Optional,
+            tags=["pytorch-lightning", "mlp"],  # Optional,
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -77,10 +77,10 @@ class NeptuneLogger(LightningLoggerBase):
         # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
         neptune_logger = NeptuneLogger(
             offline_mode=True,
-            project_name='USER_NAME/PROJECT_NAME',
-            experiment_name='default',  # Optional,
-            params={'max_epochs': 10},  # Optional,
-            tags=['pytorch-lightning', 'mlp']  # Optional,
+            project_name="USER_NAME/PROJECT_NAME",
+            experiment_name="default",  # Optional,
+            params={"max_epochs": 10},  # Optional,
+            tags=["pytorch-lightning", "mlp"],  # Optional,
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -91,28 +91,24 @@ class NeptuneLogger(LightningLoggerBase):
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # log metrics
-                self.logger.experiment.log_metric('acc_train', ...)
+                self.logger.experiment.log_metric("acc_train", ...)
                 # log images
-                self.logger.experiment.log_image('worse_predictions', ...)
+                self.logger.experiment.log_image("worse_predictions", ...)
                 # log model checkpoint
-                self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
+                self.logger.experiment.log_artifact("model_checkpoint.pt", ...)
                 self.logger.experiment.whatever_neptune_supports(...)
 
             def any_lightning_module_function_or_hook(self):
-                self.logger.experiment.log_metric('acc_train', ...)
-                self.logger.experiment.log_image('worse_predictions', ...)
-                self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
+                self.logger.experiment.log_metric("acc_train", ...)
+                self.logger.experiment.log_image("worse_predictions", ...)
+                self.logger.experiment.log_artifact("model_checkpoint.pt", ...)
                 self.logger.experiment.whatever_neptune_supports(...)
 
     If you want to log objects after the training is finished use ``close_after_fit=False``:
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(
-            ...
-            close_after_fit=False,
-            ...
-        )
+        neptune_logger = NeptuneLogger(..., close_after_fit=False, ...)
         trainer = Trainer(logger=neptune_logger)
         trainer.fit()
 
@@ -123,7 +119,7 @@ class NeptuneLogger(LightningLoggerBase):
         from sklearn.metrics import accuracy_score
 
         accuracy = accuracy_score(y_true, y_pred)
-        neptune_logger.experiment.log_metric('test_accuracy', accuracy)
+        neptune_logger.experiment.log_metric("test_accuracy", accuracy)
 
         # Log charts
         from scikitplot.metrics import plot_confusion_matrix
@@ -131,10 +127,10 @@ class NeptuneLogger(LightningLoggerBase):
 
         fig, ax = plt.subplots(figsize=(16, 12))
         plot_confusion_matrix(y_true, y_pred, ax=ax)
-        neptune_logger.experiment.log_image('confusion_matrix', fig)
+        neptune_logger.experiment.log_image("confusion_matrix", fig)
 
         # Save checkpoints folder
-        neptune_logger.experiment.log_artifact('my/checkpoints')
+        neptune_logger.experiment.log_artifact("my/checkpoints")
 
         # When you are done, stop the experiment
         neptune_logger.experiment.stop()
@@ -178,7 +174,7 @@ class NeptuneLogger(LightningLoggerBase):
             If required Neptune package is not installed on the device.
     """
 
-    LOGGER_JOIN_CHAR = '-'
+    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
@@ -188,13 +184,13 @@ class NeptuneLogger(LightningLoggerBase):
         offline_mode: bool = False,
         experiment_name: Optional[str] = None,
         experiment_id: Optional[str] = None,
-        prefix: str = '',
-        **kwargs
+        prefix: str = "",
+        **kwargs,
     ):
         if neptune is None:
             raise ImportError(
-                'You want to use `neptune` logger which is not installed yet,'
-                ' install it with `pip install neptune-client`.'
+                "You want to use `neptune` logger which is not installed yet,"
+                " install it with `pip install neptune-client`."
             )
         super().__init__()
         self.api_key = api_key
@@ -213,9 +209,9 @@ class NeptuneLogger(LightningLoggerBase):
         state = self.__dict__.copy()
 
         # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
-        state['_experiment'] = None
+        state["_experiment"] = None
         if self.offline_mode:
-            state['experiment_id'] = None
+            state["experiment_id"] = None
 
         return state
 
@@ -244,7 +240,7 @@ class NeptuneLogger(LightningLoggerBase):
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for key, val in params.items():
-            self.experiment.set_property(f'param__{key}', val)
+            self.experiment.set_property(f"param__{key}", val)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
@@ -255,7 +251,7 @@ class NeptuneLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded, currently ignored
         """
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
@@ -277,13 +273,13 @@ class NeptuneLogger(LightningLoggerBase):
     @property
     def name(self) -> str:
         if self.offline_mode:
-            return 'offline-name'
+            return "offline-name"
         return self.experiment.name
 
     @property
     def version(self) -> str:
         if self.offline_mode:
-            return 'offline-id-1234'
+            return "offline-id-1234"
         return self.experiment.id
 
     @rank_zero_only
@@ -376,7 +372,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     def _create_or_get_experiment(self):
         if self.offline_mode:
-            project = neptune.Session(backend=neptune.OfflineBackend()).get_project('dry-run/project')
+            project = neptune.Session(backend=neptune.OfflineBackend()).get_project("dry-run/project")
         else:
             session = neptune.Session.with_default_backend(api_token=self.api_key)
             project = session.get_project(self.project_name)
@@ -386,7 +382,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment_id = exp.id
         else:
             exp = project.get_experiments(id=self.experiment_id)[0]
-            self.experiment_name = exp.get_system_properties()['name']
+            self.experiment_name = exp.get_system_properties()["name"]
             self.params = exp.get_parameters()
             self.properties = exp.get_properties()
             self.tags = exp.get_tags()

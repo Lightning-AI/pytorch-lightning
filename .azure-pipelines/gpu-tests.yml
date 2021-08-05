@@ -9,19 +9,19 @@ trigger:
       - '*'
   branches:
     include:
-      - master
-      - release/*
-      - refs/tags/*
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
 pr:
-  - master
-  - release/*
+  - "master"
+  - "release/*"
 
 jobs:
   - job: pytest
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: 45
+    timeoutInMinutes: "45"
     # how much time to give 'run always even if cancelled tasks' before stopping them
-    cancelTimeoutInMinutes: 2
+    cancelTimeoutInMinutes: "2"
 
     pool: gridai-spot-pool
 
@@ -32,7 +32,7 @@ jobs:
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=256m"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
 
     workspace:
       clean: all
@@ -51,13 +51,13 @@ jobs:
     - bash: |
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale>=0.3.4
-        pip install deepspeed>=0.4.0 -U
+        pip install "deepspeed>=0.4.3, !=0.4.4" # FIXME: bug with 0.4.4
         pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
 
     - bash: |
-        python tests/collect_env_details.py
+        python requirements/collect_env_details.py
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
@@ -73,6 +73,8 @@ jobs:
 
     - bash: |
         bash tests/special_tests.sh
+      env:
+        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: special'
 
     - bash: |
@@ -90,18 +92,15 @@ jobs:
         testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
       condition: succeededOrFailed()
 
-    - task: PublishCodeCoverageResults@1
-      displayName: 'Publish coverage report'
-      inputs:
-        codeCoverageTool: 'cobertura'
-        summaryFileLocation: 'coverage.xml'
-        reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
-        testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
-      condition: succeededOrFailed()
-
-    - bash: |
-        python -m pytest benchmarks -v --maxfail=2 --durations=0
-      displayName: 'Testing: benchmarks'
+    # todo: re-enable after schema check pass, also atm it seems does not have any effect
+    #- task: PublishCodeCoverageResults@2
+    #  displayName: 'Publish coverage report'
+    #  inputs:
+    #    codeCoverageTool: 'Cobertura'
+    #    summaryFileLocation: 'coverage.xml'
+    #    reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
+    #    testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
+    #  condition: succeededOrFailed()
 
     - script: |
         set -e
@@ -112,3 +111,7 @@ jobs:
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'
+
+    - bash: |
+        python -m pytest benchmarks -v --maxfail=2 --durations=0
+      displayName: 'Testing: benchmarks'

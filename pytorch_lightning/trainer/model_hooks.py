@@ -27,9 +27,9 @@ class TrainerModelHooksMixin(ABC):
     Use the utilities from ``pytorch_lightning.utilities.signature_utils`` instead.
     """
 
-    lightning_module: 'pl.LightningModule'
+    lightning_module: "pl.LightningModule"
 
-    def is_function_implemented(self, f_name: str, model: Optional['pl.LightningModule'] = None) -> bool:
+    def is_function_implemented(self, f_name: str, model: Optional["pl.LightningModule"] = None) -> bool:
         rank_zero_deprecation(
             "Internal: TrainerModelHooksMixin.is_function_implemented is deprecated in v1.4"
             " and will be removed in v1.6."

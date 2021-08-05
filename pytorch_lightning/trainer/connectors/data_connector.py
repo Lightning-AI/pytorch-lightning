@@ -23,7 +23,6 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 
 
 class DataConnector:
-
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
@@ -67,18 +66,18 @@ class DataConnector:
         )
         return profiled_dl
 
-    def prepare_data(self, model):
+    def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
             if self.trainer.datamodule is not None:
                 self.trainer.datamodule.prepare_data()
-            model.prepare_data()
+            self.trainer.lightning_module.prepare_data()
             self.trainer._is_data_prepared = True
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
-        if self.trainer.datamodule is not None and is_overridden('prepare_data', self.trainer.datamodule):
+        if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
             should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
         if self.trainer.prepare_data_per_node:
@@ -87,12 +86,12 @@ class DataConnector:
 
     def attach_data(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional['pl.LightningDataModule'] = None
+        datamodule: Optional["pl.LightningDataModule"] = None,
     ) -> None:
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(
@@ -108,7 +107,7 @@ class DataConnector:
 
     def attach_dataloaders(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
@@ -117,32 +116,36 @@ class DataConnector:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloaders is not None:
+            self.trainer.train_dataloader = None
             model.train_dataloader = _PatchDataLoader(train_dataloaders)
 
         if val_dataloaders is not None:
+            self.trainer.val_dataloaders = None
             model.val_dataloader = _PatchDataLoader(val_dataloaders)
 
         if test_dataloaders is not None:
+            self.trainer.test_dataloaders = None
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
         if predict_dataloaders is not None:
+            self.trainer.predict_dataloaders = None
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
     def attach_datamodule(
-        self, model: 'pl.LightningModule', datamodule: Optional['pl.LightningDataModule'] = None
+        self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule is None:
             return
 
         # Override loader hooks
-        dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
+        dl_methods = ("train_dataloader", "val_dataloader", "test_dataloader", "predict_dataloader")
         for method in dl_methods:
             if is_overridden(method, datamodule):
                 setattr(model, method, getattr(datamodule, method))
 
         # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
         for hook in batch_transfer_hooks:
             if is_overridden(hook, datamodule):
                 setattr(model, hook, getattr(datamodule, hook))

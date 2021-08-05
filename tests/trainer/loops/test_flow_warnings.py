@@ -18,7 +18,6 @@ from tests.helpers.boring_model import BoringModel
 
 
 class TestModel(BoringModel):
-
     def training_step(self, batch, batch_idx):
         acc = self.step(batch[0])
         return acc
@@ -45,4 +44,4 @@ def test_no_depre_without_epoch_end(tmpdir):
         trainer.fit(model)
 
         for msg in w:
-            assert 'should not return anything ' not in str(msg)
+            assert "should not return anything " not in str(msg)

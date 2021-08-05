@@ -55,11 +55,11 @@ def test_gcs_model_checkpoint_contents(tmpdir):
 
     trainer.fit(model)
 
-    assert checkpoint_callback.best_model_path == os.path.join(dir_path, 'epoch=1-step=19.ckpt')
-    assert checkpoint_callback.last_model_path == os.path.join(dir_path, 'last.ckpt')
+    assert checkpoint_callback.best_model_path == os.path.join(dir_path, "epoch=1-step=19.ckpt")
+    assert checkpoint_callback.last_model_path == os.path.join(dir_path, "last.ckpt")
 
-    expected = [f'epoch={i}-step={j}.ckpt' for i, j in zip(range(epochs), [9, 19])]
-    expected.append('last.ckpt')
+    expected = [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [9, 19])]
+    expected.append("last.ckpt")
 
     gcs_ckpt_paths = [os.path.basename(path) for path in gcs_fs.listdir(dir_path, detail=False)]
     assert gcs_ckpt_paths == expected

@@ -21,7 +21,6 @@ Move the model architecture and forward pass to your :doc:`lightning module <../
 .. testcode::
 
     class LitModel(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.layer_1 = nn.Linear(28 * 28, 128)
@@ -43,7 +42,6 @@ Move your optimizers to the :func:`~pytorch_lightning.core.LightningModule.confi
 .. testcode::
 
     class LitModel(LightningModule):
-
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
@@ -58,7 +56,6 @@ This should go into the :func:`~pytorch_lightning.core.LightningModule.training_
 .. testcode::
 
     class LitModel(LightningModule):
-
         def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
@@ -75,7 +72,6 @@ To add an (optional) validation loop add logic to the
 .. testcode::
 
     class LitModel(LightningModule):
-
         def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
@@ -94,7 +90,6 @@ To add an (optional) test loop add logic to the
 .. testcode::
 
     class LitModel(LightningModule):
-
         def test_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
