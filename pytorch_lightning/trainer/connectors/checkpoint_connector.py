@@ -186,7 +186,7 @@ class CheckpointConnector:
             )
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
-    def restore_loops(self) -> None:
+    def restore_loops(self, restore_external_loop: bool = False) -> None:
         """
         Restores the loop progress from the pre-loaded checkpoint.
         Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
@@ -225,6 +225,11 @@ class CheckpointConnector:
             self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
             self.trainer.test_loop.load_state_dict(state_dict["test_loop"])
             self.trainer.predict_loop.load_state_dict(state_dict["predict_loop"])
+
+            if restore_external_loop:
+                external_loop = getattr(self.trainer, "external_loop", None)
+                if external_loop:
+                    self.trainer.external_loop.load_state_dict(state_dict["external_loop"])
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
@@ -471,9 +476,13 @@ class CheckpointConnector:
         return state_dict
 
     def _get_loops_state_dict(self) -> Dict[str, Any]:
-        return {
+        state_dict = {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),
             "test_loop": self.trainer.test_loop.state_dict(),
             "predict_loop": self.trainer.predict_loop.state_dict(),
         }
+        external_loop = getattr(self.trainer, "external_loop", None)
+        if external_loop:
+            state_dict.update({"external_loop": external_loop.state_dict()})
+        return state_dict

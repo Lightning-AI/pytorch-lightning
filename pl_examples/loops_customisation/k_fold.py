@@ -17,79 +17,132 @@ WARNING: Loop customization is in `pre-alpha release` and the API is likely to c
 Please, open issues with your own particular requests, so the Lightning Team can progressively converge to a great API.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
-import numpy as np
 from sklearn.model_selection import KFold
-from torch.utils.data import Dataset
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, Subset
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.loops.base import ExternalLoop
 from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.boring_model import BoringDataModule, BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.boring_model import BoringModel, RandomDataset
 
 seed_everything(42)
 
 
-class SplitDataset(Dataset):
-    """SplitDataset is used to create Dataset Subset using indices.
-    Args:
-        dataset: A dataset to be splitted
-        indices: List of indices to expose from the dataset
-        use_duplicated_indices: Whether to allow duplicated indices.
-    Example::
-        split_ds = SplitDataset(dataset, indices=[10, 14, 25])
-        split_ds = SplitDataset(dataset, indices=[10, 10, 10, 14, 25], use_duplicated_indices=True)
-    """
+class BaseDataModule(LightningDataModule):
+    def __init__(self):
+        super().__init__()
+        self.non_picklable = None
+        self.checkpoint_state: Optional[str] = None
 
-    _INTERNAL_KEYS = ("dataset", "indices", "data")
+        self._train_dataset: Optional[Dataset] = None
+        self._val_dataset: Optional[Dataset] = None
+        self._test_dataset: Optional[Dataset] = None
+        self._predict_dataset: Optional[Dataset] = None
 
-    def __init__(self, dataset: Any, indices: List[int] = None, use_duplicated_indices: bool = False) -> None:
-        if indices is None:
-            indices = []
-        if not isinstance(indices, list):
-            raise MisconfigurationException("indices should be a list")
+        self._processed_train_dataset: Optional[Dataset] = None
+        self._processed_val_dataset: Optional[Dataset] = None
+        self._processed_test_dataset: Optional[Dataset] = None
+        self._processed_predict_dataset: Optional[Dataset] = None
 
-        if use_duplicated_indices:
-            indices = list(indices)
-        else:
-            indices = list(np.unique(indices))
+    @property
+    def train_dataset(self):
+        return self._train_dataset
 
-        if np.max(indices) >= len(dataset) or np.min(indices) < 0:
-            raise MisconfigurationException(f"`indices` should be within [0, {len(dataset) -1}].")
+    @property
+    def val_dataset(self):
+        return self._val_dataset
 
-        self.dataset = dataset
-        self.indices = indices
+    @property
+    def test_dataset(self):
+        return self._test_dataset
 
-    def __getattr__(self, key: str):
-        if key not in self._INTERNAL_KEYS:
-            return self.dataset.__getattribute__(key)
-        raise AttributeError
+    @property
+    def predict_dataset(self):
+        return self._predict_dataset
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name in self._INTERNAL_KEYS:
-            self.__dict__[name] = value
-        else:
-            setattr(self.dataset, name, value)
+    @property
+    def processed_train_dataset(self):
+        return self._processed_train_dataset or self.train_dataset
 
-    def __getitem__(self, index: int) -> Any:
-        return self.dataset[self.indices[index]]
+    @property
+    def processed_val_dataset(self):
+        return self._processed_val_dataset or self.val_dataset
 
-    def __len__(self) -> int:
-        return len(self.indices) - 1
+    @property
+    def processed_test_dataset(self):
+        return self._processed_test_dataset or self.test_dataset
+
+    @property
+    def processed_predict_dataset(self):
+        return self._processed_predict_dataset or self.predict_dataset
+
+    @processed_train_dataset.setter
+    def processed_train_dataset(self, processed_train_dataset):
+        self._processed_train_dataset = processed_train_dataset
+
+    @processed_val_dataset.setter
+    def processed_val_dataset(self, processed_val_dataset):
+        self._processed_val_dataset = processed_val_dataset
+
+    @processed_val_dataset.setter
+    def processed_val_dataset(self, processed_val_dataset):
+        self._processed_val_dataset = processed_val_dataset
+
+    @processed_test_dataset.setter
+    def processed_test_dataset(self, processed_test_dataset):
+        self._processed_test_dataset = processed_test_dataset
+
+    def train_dataloader(self):
+        return DataLoader(self.processed_train_dataset)
+
+    def val_dataloader(self):
+        return DataLoader(self.processed_val_dataset)
+
+    def test_dataloader(self):
+        return DataLoader(self.processed_test_dataset)
+
+    def predict_dataloader(self):
+        return DataLoader(self.processed_predict_dataset)
 
 
-@dataclass
+class BoringDataModule(BaseDataModule):
+    def prepare_data(self):
+        self.random_full = RandomDataset(32, 64 * 4)
+
+    def setup(self, stage: Optional[str] = None):
+        if stage == "fit" or stage is None:
+            self._train_dataset = Subset(self.random_full, indices=range(64))
+            self.dims = self._train_dataset[0].shape
+
+        if stage in ("fit", "validate") or stage is None:
+            self._val_dataset = Subset(self.random_full, indices=range(64, 64 * 2))
+
+        if stage == "test" or stage is None:
+            self._test_dataset = Subset(self.random_full, indices=range(64 * 2, 64 * 3))
+            self.dims = getattr(self, "dims", self._test_dataset[0].shape)
+
+        if stage == "predict" or stage is None:
+            self._predict_dataset = Subset(self.random_full, indices=range(64 * 3, 64 * 4))
+            self.dims = getattr(self, "dims", self._predict_dataset[0].shape)
+
+
 class KFoldLoop(ExternalLoop):
-
-    num_folds: int
-    num_epochs: int = 10
-    best_model_paths: List[str] = field(default_factory=lambda: [])
-    restarting: bool = False
+    def __init__(
+        self,
+        num_folds: int,
+        num_epochs: int = 10,
+        best_model_paths: List[str] = [],
+        restarting: bool = False,
+    ):
+        self.num_folds = num_folds
+        self.num_epochs = num_epochs
+        self.best_model_paths = best_model_paths
+        self.restarting = restarting
 
     @staticmethod
     def loop_base_callback() -> Type[Callback]:
@@ -109,29 +162,30 @@ class KFoldLoop(ExternalLoop):
             self.current_fold = 0
             self.set_max_epochs(self.num_epochs)
 
-    def generate_fold(self, dataloader_kwargs: Dict[str, Any], stage: str):
-        dataset = dataloader_kwargs["dataset"]
-        kfold = KFold(self.num_folds, random_state=42, shuffle=True)
-        train_indices, validation_indices = list(kfold.split(range(len(dataset))))[self.current_fold]
-        if stage == "train":
-            dataloader_kwargs["dataset"] = SplitDataset(dataset, train_indices.tolist())
-        else:
-            dataloader_kwargs["dataset"] = SplitDataset(dataset, validation_indices.tolist())
-        dataloader_kwargs["sampler"].data_source = dataloader_kwargs["dataset"]
-        return dataloader_kwargs
-
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # temporary hack
         self.trainer.datamodule.setup("fit")
 
+    def process_dataset(self, stage: str, dataset: Dataset):
+        kfold = KFold(self.num_folds, random_state=42, shuffle=True)
+        train_indices, validation_indices = list(kfold.split(range(len(dataset))))[self.current_fold]
+        indices = train_indices if stage == "train" else validation_indices
+        return Subset(dataset, indices.tolist())
+
     def on_advance_start(self):
-        self.reload_train_dataloader(self.generate_fold)
-        self.reload_val_dataloaders(self.generate_fold)
+        self.trainer.datamodule.processed_train_dataset = self.process_dataset(
+            "train", self.trainer.datamodule.train_dataset
+        )
+        self.trainer.datamodule.processed_val_dataset = self.process_dataset("val", self.trainer.datamodule.val_dataset)
         self.trainer.call_hook("on_fold_start", self.current_fold)
-        self.lightning_module.reset_parameters()
+        self.trainer.lightning_module.reset_parameters()
 
     def advance(self):
-        return self.trainer.fit(self.lightning_module, train_dataloader=self.train_dataloader)
+        return self.trainer.fit(
+            self.trainer.lightning_module,
+            train_dataloader=self.trainer.train_dataloader,
+            val_dataloaders=self.trainer.val_dataloaders,
+        )
 
     def on_advance_end(self) -> None:
         self.current_fold += 1
@@ -159,4 +213,4 @@ loop = KFoldLoop(5)
 model = BoringModel()
 datamodule = BoringDataModule()
 trainer = Trainer(callbacks=KFoldCallback())
-trainer.run_loop(model, datamodule=datamodule, loop=loop)
+trainer.run_loop(model, datamodule=datamodule, external_loop=loop)

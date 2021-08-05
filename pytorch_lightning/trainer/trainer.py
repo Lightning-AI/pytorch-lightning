@@ -29,7 +29,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
-from pytorch_lightning.loops.base import ExternalLoop, Loop
+from pytorch_lightning.loops.base import ExternalLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -844,7 +844,7 @@ class Trainer(
         test_dataloaders: Optional[EVAL_DATALOADERS] = None,
         predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        loop: Union[ExternalLoop, Loop] = None,
+        external_loop: ExternalLoop = None,
     ):
 
         # --------------------
@@ -864,9 +864,9 @@ class Trainer(
         if train_dataloader is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.run_loop(dataloaders=..., datamodule=...)`")
 
-        if loop is None or not isinstance(loop, Loop):
+        if external_loop is None or not isinstance(external_loop, ExternalLoop):
             raise MisconfigurationException(
-                "You should provide an `ExternalLoop` or `Loop` object as `trainer.run_loop(loop=...)`"
+                "You should provide an `ExternalLoop` object as `trainer.run_loop(loop=...)`"
             )
 
         model = model or self.lightning_module
@@ -886,16 +886,19 @@ class Trainer(
         )
 
         # connect loop and trainer
-        loop.trainer = self
-        self.loop = loop
+        external_loop.trainer = self
+        self.external_loop = external_loop
 
         # attach model to the training type plugin
         self.accelerator.connect(model)
         self.data_connector.prepare_data()
 
-        results = loop.run()
+        self.checkpoint_connector.resume_start()
+        self.checkpoint_connector.restore_loops(restore_external_loop=True)
 
-        del self.loop
+        results = external_loop.run()
+
+        del self.external_loop
         return results
 
     def _restore_modules_and_callbacks(self) -> None:

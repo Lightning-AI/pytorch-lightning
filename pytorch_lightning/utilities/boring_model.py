@@ -176,17 +176,33 @@ class BoringDataModule(LightningDataModule):
             self.random_predict = Subset(self.random_full, indices=range(64 * 3, 64 * 4))
             self.dims = getattr(self, "dims", self.random_predict[0].shape)
 
+    @property
+    def train_dataset(self):
+        return self.random_train
+
+    @property
+    def val_dataset(self):
+        return self.random_val
+
+    @property
+    def test_dataset(self):
+        return self.random_test
+
+    @property
+    def predict_dataset(self):
+        return self.random_predict
+
     def train_dataloader(self):
-        return DataLoader(self.random_train)
+        return DataLoader(self.train_dataset)
 
     def val_dataloader(self):
-        return DataLoader(self.random_val)
+        return DataLoader(self.val_dataset)
 
     def test_dataloader(self):
-        return DataLoader(self.random_test)
+        return DataLoader(self.test_dataset)
 
     def predict_dataloader(self):
-        return DataLoader(self.random_predict)
+        return DataLoader(self.predict_dataset)
 
 
 class BoringLightningDataModule(LightningDataModule):

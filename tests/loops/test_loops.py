@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import suppress
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
@@ -22,10 +23,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.loops.base import ExternalLoop
 from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -514,15 +517,22 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_external_loop(tmpdir):
-    @dataclass
-    class CustomLoop(ExternalLoop):
+    class TestException(Exception):
+        pass
 
-        counter: int = 0
-        stop_counter: int = 5
+    class CustomLoop(ExternalLoop):
+        def __init__(self):
+            super().__init__()
+            self.counter: int = 0
+            self.stop_counter: int = 5
+            self.has_restarted: bool = False
 
         def reset(self):
-            pass
+            if self.restarting:
+                self.has_restarted = True
 
         @property
         def done(self):
@@ -531,6 +541,17 @@ def test_external_loop(tmpdir):
         def advance(self, *args: Any, **kwargs: Any) -> None:
             self.trainer.call_hook("custom_hook")
             self.counter += 1
+            self.reload_train_dataloader()
+            self.trainer.fit(self.lightning_module, train_dataloader=self.train_dataloader)
+
+            if self.counter == 3:
+                raise TestException
+
+        def on_save_checkpoint(self) -> Dict:
+            return {"counter": self.counter}
+
+        def on_load_checkpoint(self, state_dict: Dict) -> None:
+            self.counter = state_dict["counter"]
 
     class CustomCallback(Callback):
 
@@ -542,7 +563,21 @@ def test_external_loop(tmpdir):
     loop = CustomLoop()
     model = BoringModel()
     cb = CustomCallback()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=cb)
-    trainer.run_loop(model, loop=loop)
+    cb2 = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, limit_val_batches=0, callbacks=[cb, cb2]
+    )
+    trainer = Trainer(**trainer_kwargs)
+
+    with suppress(TestException):
+        trainer.run_loop(model, external_loop=loop)
+
+    loop = CustomLoop()
+    model = BoringModel()
+    cb = CustomCallback()
+    trainer_kwargs["resume_from_checkpoint"] = cb2.last_model_path
+    trainer = Trainer(**trainer_kwargs)
+    trainer.run_loop(model, external_loop=loop)
     cb.has_called = True
     loop.counter = 5
+    assert loop.has_restarted
