@@ -192,6 +192,9 @@ class KFoldLoop(ExternalLoop):
         self.increment_max_epochs(self.num_epochs)
         # stored best weight path for this fold
         self.best_model_paths.append(self.trainer.checkpoint_callback.best_model_path)
+        # bug: Should be reset
+        self.trainer.train_dataloader = None
+        self.trainer.val_dataloaders = None
 
     def on_save_checkpoint(self) -> Dict:
         return {"current_fold": self.current_fold}

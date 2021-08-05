@@ -541,8 +541,7 @@ def test_external_loop(tmpdir):
         def advance(self, *args: Any, **kwargs: Any) -> None:
             self.trainer.call_hook("custom_hook")
             self.counter += 1
-            self.reload_train_dataloader()
-            self.trainer.fit(self.lightning_module, train_dataloader=self.train_dataloader)
+            self.trainer.fit(self.trainer.lightning_module, train_dataloader=self.trainer.train_dataloader)
 
             if self.counter == 3:
                 raise TestException
