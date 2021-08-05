@@ -151,7 +151,6 @@ def get_gpu_memory_map() -> Dict[str, float]:
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
     gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
-    
 
 
 def get_model_size_mb(model: Module) -> float:
