@@ -164,25 +164,18 @@ class StochasticWeightAveraging(Callback):
             # move average model to request device.
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
-            optimizers = trainer.optimizers
+            optimizer = trainer.optimizers[0]
+            if self._swa_lrs is None:
+                self._swa_lrs = [param_group["lr"] for param_group in optimizer.param_groups]
+            if isinstance(self._swa_lrs, float):
+                self._swa_lrs = [self._swa_lrs] * len(optimizer.param_groups)
 
-            for param_group in optimizers[0].param_groups:
-                if self._swa_lrs is None:
-                    initial_lr = param_group["lr"]
-
-                elif isinstance(self._swa_lrs, float):
-                    initial_lr = self._swa_lrs
-
-                else:
-                    initial_lr = self._swa_lrs[0]
-
-                param_group["initial_lr"] = initial_lr
-
-            self._swa_lrs = initial_lr
+            for lr, group in zip(self._swa_lrs, optimizer.param_groups):
+                group["initial_lr"] = lr
 
             self._swa_scheduler = SWALR(
-                optimizers[0],
-                swa_lr=initial_lr,
+                optimizer,
+                swa_lr=self._swa_lrs,
                 anneal_epochs=self._annealing_epochs,
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
