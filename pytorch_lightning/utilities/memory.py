@@ -22,13 +22,11 @@ from typing import Any, Dict, Union
 import torch
 from torch.nn import Module
 
-
 RECURSIVE_DICT_WITH_TENSORS = Union[Dict[str, torch.Tensor], Dict[Any, Any]]
 
 
 def recursive_detach(
-    in_dict: RECURSIVE_DICT_WITH_TENSORS,
-    to_cpu: bool = False
+    in_dict: RECURSIVE_DICT_WITH_TENSORS, to_cpu: bool = False
 ) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], Any]]:
     """Detach all tensors in `in_dict`.
 
