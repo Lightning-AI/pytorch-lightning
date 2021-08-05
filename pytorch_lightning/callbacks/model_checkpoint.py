@@ -353,18 +353,12 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer", unused: Optional["pl.LightningModule"] = None) -> None:
+    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """
         Performs the main logic around saving a checkpoint. This method runs on all ranks.
         It is the responsibility of `trainer.save_checkpoint` to correctly handle the behaviour in distributed training,
         i.e., saving only on rank 0 for data parallel use cases.
         """
-        if unused is not None:
-            rank_zero_deprecation(
-                "`ModelCheckpoint.save_checkpoint` signature has changed in v1.3. The `pl_module` parameter"
-                " has been removed. Support for the old signature will be removed in v1.5"
-            )
-
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 

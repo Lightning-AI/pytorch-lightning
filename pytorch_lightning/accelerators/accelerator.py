@@ -75,15 +75,14 @@ class Accelerator:
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
         Args:
             trainer: the trainer instance
-            model: the LightningModule
         """
-        self.setup_training_type_plugin(model)
+        self.setup_training_type_plugin()
         if not self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -334,9 +333,9 @@ class Accelerator:
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, model: "pl.LightningModule") -> None:
+    def setup_training_type_plugin(self) -> None:
         """Attaches the training type plugin to the accelerator."""
-        self.training_type_plugin.setup(model)
+        self.training_type_plugin.setup()
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator"""
@@ -460,7 +459,7 @@ class Accelerator:
         rank_zero_warn(
             "Accelerator method `connect_training_type_plugin` was deprecated in v1.3. It will be removed in v1.5."
         )
-        self.setup_training_type_plugin(model)
+        self.setup_training_type_plugin()
 
     # todo: remove in v1.5
     def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
