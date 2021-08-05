@@ -50,71 +50,71 @@ class BaseDataModule(LightningDataModule):
         self._processed_predict_dataset: Optional[Dataset] = None
 
     @property
-    def train_dataset(self):
+    def train_dataset(self) -> Optional[Dataset]:
         return self._train_dataset
 
     @property
-    def val_dataset(self):
+    def val_dataset(self) -> Optional[Dataset]:
         return self._val_dataset
 
     @property
-    def test_dataset(self):
+    def test_dataset(self) -> Optional[Dataset]:
         return self._test_dataset
 
     @property
-    def predict_dataset(self):
+    def predict_dataset(self) -> Optional[Dataset]:
         return self._predict_dataset
 
     @property
-    def processed_train_dataset(self):
+    def processed_train_dataset(self) -> Optional[Dataset]:
         return self._processed_train_dataset or self.train_dataset
 
     @property
-    def processed_val_dataset(self):
+    def processed_val_dataset(self) -> Optional[Dataset]:
         return self._processed_val_dataset or self.val_dataset
 
     @property
-    def processed_test_dataset(self):
+    def processed_test_dataset(self) -> Optional[Dataset]:
         return self._processed_test_dataset or self.test_dataset
 
     @property
-    def processed_predict_dataset(self):
+    def processed_predict_dataset(self) -> Optional[Dataset]:
         return self._processed_predict_dataset or self.predict_dataset
 
     @processed_train_dataset.setter
-    def processed_train_dataset(self, processed_train_dataset):
+    def processed_train_dataset(self, processed_train_dataset) -> None:
         self._processed_train_dataset = processed_train_dataset
 
     @processed_val_dataset.setter
-    def processed_val_dataset(self, processed_val_dataset):
+    def processed_val_dataset(self, processed_val_dataset) -> None:
         self._processed_val_dataset = processed_val_dataset
 
     @processed_val_dataset.setter
-    def processed_val_dataset(self, processed_val_dataset):
+    def processed_val_dataset(self, processed_val_dataset) -> None:
         self._processed_val_dataset = processed_val_dataset
 
     @processed_test_dataset.setter
-    def processed_test_dataset(self, processed_test_dataset):
+    def processed_test_dataset(self, processed_test_dataset) -> None:
         self._processed_test_dataset = processed_test_dataset
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(self.processed_train_dataset)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(self.processed_val_dataset)
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(self.processed_test_dataset)
 
-    def predict_dataloader(self):
+    def predict_dataloader(self) -> DataLoader:
         return DataLoader(self.processed_predict_dataset)
 
 
 class BoringDataModule(BaseDataModule):
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         self.random_full = RandomDataset(32, 64 * 4)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
         if stage == "fit" or stage is None:
             self._train_dataset = Subset(self.random_full, indices=range(64))
             self.dims = self._train_dataset[0].shape
@@ -166,13 +166,13 @@ class KFoldLoop(ExternalLoop):
         # temporary hack
         self.trainer.datamodule.setup("fit")
 
-    def process_dataset(self, stage: str, dataset: Dataset):
+    def process_dataset(self, stage: str, dataset: Dataset) -> Subset:
         kfold = KFold(self.num_folds, random_state=42, shuffle=True)
         train_indices, validation_indices = list(kfold.split(range(len(dataset))))[self.current_fold]
         indices = train_indices if stage == "train" else validation_indices
         return Subset(dataset, indices.tolist())
 
-    def on_advance_start(self):
+    def on_advance_start(self) -> None:
         self.trainer.datamodule.processed_train_dataset = self.process_dataset(
             "train", self.trainer.datamodule.train_dataset
         )
@@ -180,7 +180,7 @@ class KFoldLoop(ExternalLoop):
         self.trainer.call_hook("on_fold_start", self.current_fold)
         self.trainer.lightning_module.reset_parameters()
 
-    def advance(self):
+    def advance(self) -> Any:
         return self.trainer.fit(
             self.trainer.lightning_module,
             train_dataloader=self.trainer.train_dataloader,
@@ -208,7 +208,7 @@ class KFoldCallback(KFoldLoop.loop_base_callback()):
     """This callback demonstrates how to implement your own callback API."""
 
     @rank_zero_only
-    def on_fold_start(self, trainer, pl_module, counter):
+    def on_fold_start(self, trainer, pl_module, counter) -> None:
         log.info(f"Starting to train on fold {counter}")
 
 
