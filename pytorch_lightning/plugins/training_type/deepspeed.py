@@ -280,7 +280,7 @@ class DeepSpeedPlugin(DDPPlugin):
             parallel_devices=parallel_devices,
             num_nodes=num_nodes,
             cluster_environment=cluster_environment,
-            checkpoint_plugin=DeepSpeedCheckpointPlugin() if checkpoint_plugin is None else checkpoint_plugin
+            checkpoint_plugin=DeepSpeedCheckpointPlugin() if checkpoint_plugin is None else checkpoint_plugin,
         )
 
         self.config = self._load_config(config)

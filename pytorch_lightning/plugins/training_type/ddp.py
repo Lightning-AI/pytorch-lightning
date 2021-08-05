@@ -84,7 +84,11 @@ class DDPPlugin(ParallelPlugin):
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment, checkpoint_plugin=checkpoint_plugin)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_plugin=checkpoint_plugin,
+        )
         self.interactive_ddp_procs = []
         if num_nodes is not None:
             rank_zero_deprecation(
