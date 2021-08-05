@@ -18,9 +18,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CPUAccelerator(Accelerator):
-    """ Accelerator for CPU devices. """
+    """Accelerator for CPU devices."""
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:
             MisconfigurationException:
@@ -36,4 +36,4 @@ class CPUAccelerator(Accelerator):
         if "cpu" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead.")
 
-        return super().setup(trainer, model)
+        return super().setup(trainer)

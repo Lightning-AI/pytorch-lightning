@@ -16,7 +16,6 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -29,7 +28,6 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
-
     def __init__(
         self,
         cpu_offload: bool = False,
@@ -91,10 +89,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 (Defautl: True).
         """
 
-        super().__init__(
-            parallel_devices=parallel_devices,
-            cluster_environment=cluster_environment,
-        )
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
         self.flatten_parameters = flatten_parameters
@@ -142,9 +137,11 @@ class DDPFullyShardedPlugin(DDPPlugin):
         ):
             yield
 
-    def connect(self, model: Module) -> None:
-        super().connect(model)
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+    def setup_environment(self) -> None:
+        super().setup_environment()
+        model_call_configure_sharded_model_hook = getattr(
+            self.lightning_module, "call_configure_sharded_model_hook", False
+        )
         if not model_call_configure_sharded_model_hook:
             # if model has not called configure sharded model, we reset
             # the training type plugin's call_configure_sharded_model_hook
@@ -199,9 +196,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
-            "fsdp",
-            cls,
-            description="Fully sharded training with checkpointing the full state dict.",
+            "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

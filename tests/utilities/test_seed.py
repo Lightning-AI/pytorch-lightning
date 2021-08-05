@@ -34,7 +34,7 @@ def test_correct_seed_with_environment_variable():
 
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
-@mock.patch.object(seed_utils, attribute='_select_seed_randomly', new=lambda *_: 123)
+@mock.patch.object(seed_utils, attribute="_select_seed_randomly", new=lambda *_: 123)
 def test_invalid_seed():
     """
     Ensure that we still fix the seed even if an invalid seed is given
@@ -45,7 +45,7 @@ def test_invalid_seed():
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-@mock.patch.object(seed_utils, attribute='_select_seed_randomly', new=lambda *_: 123)
+@mock.patch.object(seed_utils, attribute="_select_seed_randomly", new=lambda *_: 123)
 @pytest.mark.parametrize("seed", (10e9, -10e9))
 def test_out_of_bounds_seed(seed):
     """
@@ -57,7 +57,7 @@ def test_out_of_bounds_seed(seed):
 
 
 def test_reset_seed_no_op():
-    """ Test that the reset_seed function is a no-op when seed_everything() was not used. """
+    """Test that the reset_seed function is a no-op when seed_everything() was not used."""
     assert "PL_GLOBAL_SEED" not in os.environ
     seed_before = torch.initial_seed()
     seed_utils.reset_seed()
@@ -66,7 +66,7 @@ def test_reset_seed_no_op():
 
 
 def test_reset_seed_everything():
-    """ Test that we can reset the seed to the initial value set by seed_everything() """
+    """Test that we can reset the seed to the initial value set by seed_everything()"""
     assert "PL_GLOBAL_SEED" not in os.environ
     seed_utils.seed_everything(123)
     assert os.environ["PL_GLOBAL_SEED"] == "123"

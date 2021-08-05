@@ -17,11 +17,11 @@ from typing import List, Optional, Union
 
 
 class LightningEnum(str, Enum):
-    """ Type of any enumerator with allowed comparison to string invariant to cases. """
+    """Type of any enumerator with allowed comparison to string invariant to cases."""
 
     @classmethod
-    def from_str(cls, value: str) -> Optional['LightningEnum']:
-        statuses = [status for status in dir(cls) if not status.startswith('_')]
+    def from_str(cls, value: str) -> Optional["LightningEnum"]:
+        statuses = [status for status in dir(cls) if not status.startswith("_")]
         for st in statuses:
             if st.lower() == value.lower():
                 return getattr(cls, st)
@@ -40,18 +40,19 @@ class LightningEnum(str, Enum):
 class AMPType(LightningEnum):
     """Type of Automatic Mixed Precission used for training.
 
-    >>> # you can math the type with string
+    >>> # you can match the type with string
     >>> AMPType.APEX == 'apex'
     True
     """
-    APEX = 'apex'
-    NATIVE = 'native'
+
+    APEX = "apex"
+    NATIVE = "native"
 
 
 class DistributedType(LightningEnum):
-    """ Define type of ditributed computing.
+    """Define type of ditributed computing.
 
-    >>> # you can math the type with string
+    >>> # you can match the type with string
     >>> DistributedType.DDP == 'ddp'
     True
     >>> # which is case invariant
@@ -60,57 +61,63 @@ class DistributedType(LightningEnum):
     """
 
     @staticmethod
-    def interactive_compatible_types() -> List['DistributedType']:
+    def interactive_compatible_types() -> List["DistributedType"]:
         """Returns a list containing interactive compatible DistributeTypes"""
         return [
-            DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN, DistributedType.TPU_SPAWN
+            DistributedType.DP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.DDP_SHARDED_SPAWN,
+            DistributedType.TPU_SPAWN,
         ]
 
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible"""
         return self in DistributedType.interactive_compatible_types()
 
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    TPU_SPAWN = 'tpu_spawn'
-    DEEPSPEED = 'deepspeed'
-    HOROVOD = 'horovod'
-    DDP_SHARDED = 'ddp_sharded'
-    DDP_SHARDED_SPAWN = 'ddp_sharded_spawn'
+    DP = "dp"
+    DDP = "ddp"
+    DDP2 = "ddp2"
+    DDP_CPU = "ddp_cpu"
+    DDP_SPAWN = "ddp_spawn"
+    TPU_SPAWN = "tpu_spawn"
+    DEEPSPEED = "deepspeed"
+    HOROVOD = "horovod"
+    DDP_SHARDED = "ddp_sharded"
+    DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
 
 class DeviceType(LightningEnum):
-    """ Define Device type byt its nature - acceleatrors.
+    """Define Device type by its nature - acceleatrors.
 
     >>> DeviceType.CPU == DeviceType.from_str('cpu')
     True
-    >>> # you can math the type with string
+    >>> # you can match the type with string
     >>> DeviceType.GPU == 'GPU'
     True
     >>> # which is case invariant
     >>> DeviceType.TPU in ('tpu', 'CPU')
     True
     """
-    CPU = 'CPU'
-    GPU = 'GPU'
-    IPU = 'IPU'
-    TPU = 'TPU'
+
+    CPU = "CPU"
+    GPU = "GPU"
+    IPU = "IPU"
+    TPU = "TPU"
 
 
 class GradClipAlgorithmType(LightningEnum):
-    """ Define gradient_clip_algorithm types - training-tricks.
+    """Define gradient_clip_algorithm types - training-tricks.
     NORM type means "clipping gradients by norm". This computed over all model parameters together.
-    VALUE tpye means "clipping gradients by value". This will clip the gradient value for each parameter.
+    VALUE type means "clipping gradients by value". This will clip the gradient value for each parameter.
 
     References:
-        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm
-        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value
+        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_
+        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_
     """
-    VALUE = 'value'
-    NORM = 'norm'
+
+    VALUE = "value"
+    NORM = "norm"
 
 
 class AutoRestartBatchKeys(LightningEnum):

@@ -15,6 +15,7 @@ env:
 jobs:
   tpu-cleanup:
     name: TPU cleaning
+    if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
 
     steps:
