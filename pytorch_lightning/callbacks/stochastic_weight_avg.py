@@ -70,7 +70,11 @@ class StochasticWeightAveraging(Callback):
                 the ``swa_epoch_start``-th epoch. If provided as float between 0 and 1,
                 the procedure will start from ``int(swa_epoch_start * max_epochs)`` epoch
 
-            swa_lrs: the learning rate value for all param groups together or separately for each group.
+            swa_lrs: The SWA learning rate to use:
+
+                - ``None``. Use the current learning rate of the optimizer at the time the SWA procedure starts.
+                - ``float``. Use this value for all parameter groups of the optimizer.
+                - ``List[float]``. A list values for each parameter group of the optimizer.
 
             annealing_epochs: number of epochs in the annealing phase (default: 10)
 
