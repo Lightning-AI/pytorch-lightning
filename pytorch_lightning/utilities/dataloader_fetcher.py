@@ -39,15 +39,20 @@ class LightningStreamEvent:
         event.wait()
 
 
-def profiled_iterator(iterator, profiler):
-    with profiler.profile("get_train_batch"):
-        yield next(iterator)
+def profiled_iterator(iterable, profiler):
+    iterator = iter(iterable)
+    while True:
+        try:
+            with profiler.profile("get_train_batch"):
+                yield next(iterator)
+        except StopIteration:
+            return
 
 
 class LightningFetcher:
 
     """
-    This class is used to perform ``pre-fecthing`` for the ``train`` dataloader
+    This class is used to perform ``pre-fetching`` for the ``train`` dataloader
     and apply iter batch parallelism if enabled.
 
     batch 0: [HtoD][forward][backward]
@@ -68,7 +73,7 @@ class LightningFetcher:
         num_prefetch_batch: int = 1,
     ) -> None:
         self.stream = LightningStreamEvent(inter_batch_parallelism, device)
-        self.iterator = profiled_iterator(iter(dataloader), profiler)
+        self.iterator = profiled_iterator(dataloader, profiler)
         self.batch_to_device = batch_to_device
         self.counter = 0
 
