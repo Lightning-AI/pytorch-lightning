@@ -221,7 +221,7 @@ class AllGatherGrad(torch.autograd.Function):
 
 
 def all_gather_ddp_if_available(
-    tensor: torch.Tensor, group: Optional[torch.distributed.ProcessGroup] = None, sync_grads: bool = False
+    tensor: torch.Tensor, group: Optional['torch.distributed.ProcessGroup'] = None, sync_grads: bool = False
 ) -> torch.Tensor:
     """
     Function to gather a tensor from several distributed processes
