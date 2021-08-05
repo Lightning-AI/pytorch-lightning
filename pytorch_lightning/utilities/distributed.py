@@ -244,7 +244,7 @@ def all_gather_ddp_if_available(
 
 
 def register_ddp_comm_hook(
-    model: Type[DistributedDataParallel],
+    model: DistributedDataParallel,
     ddp_comm_state: Optional[object] = None,
     ddp_comm_hook: Optional[Callable] = None,
     ddp_comm_wrapper: Optional[Callable] = None,
