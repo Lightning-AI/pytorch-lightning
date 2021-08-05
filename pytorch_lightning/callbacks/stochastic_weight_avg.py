@@ -16,7 +16,7 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 from copy import deepcopy
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 from torch import nn
@@ -35,7 +35,7 @@ class StochasticWeightAveraging(Callback):
     def __init__(
         self,
         swa_epoch_start: Union[int, float] = 0.8,
-        swa_lrs: Optional[Union[float, list]] = None,
+        swa_lrs: Optional[Union[float, List[float]]] = None,
         annealing_epochs: int = 10,
         annealing_strategy: str = "cos",
         avg_fn: Optional[_AVG_FN] = None,
