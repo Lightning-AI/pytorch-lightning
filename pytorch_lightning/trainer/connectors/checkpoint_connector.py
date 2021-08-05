@@ -272,7 +272,7 @@ class CheckpointConnector:
             scheduler["scheduler"].load_state_dict(lrs_state)
 
     def restore_loops(self) -> None:
-        """ Calls hooks on the loops to give it a chance to restore its state from the checkpoint. """
+        """Calls hooks on the loops to give it a chance to restore its state from the checkpoint."""
         if not self._loaded_checkpoint:
             return
 
