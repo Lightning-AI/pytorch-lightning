@@ -136,7 +136,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _is_single_process_single_device(self):
         return True
 
-    def setup(self, model):
+    def setup(self) -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         # pass in a state q
         smp = mp.get_context("spawn")
@@ -202,6 +202,9 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
+
+        # ensure that spawned processes go through teardown before joining
+        trainer._call_teardown_hook()
 
     def post_dispatch(self):
         # restore main state with best weights
