@@ -17,7 +17,6 @@ from typing import Optional
 
 @dataclass
 class BaseProgress:
-
     def state_dict(self) -> dict:
         return asdict(self)
 

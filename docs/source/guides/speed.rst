@@ -76,10 +76,13 @@ Prefer DDP over DP
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
-When using DDP set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-By default we have set ``find_unused_parameters`` to True for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+When using DDP plugins, set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default we have set ``find_unused_parameters`` to True for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
 This by default comes with a performance hit, and can be disabled in most cases.
+
+.. tip::
+    It applies to all DDP plugins that support ``find_unused_parameters`` as input.
 
 .. code-block:: python
 
@@ -88,6 +91,15 @@ This by default comes with a performance hit, and can be disabled in most cases.
     trainer = pl.Trainer(
         gpus=2,
         plugins=DDPPlugin(find_unused_parameters=False),
+    )
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPSpawnPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        plugins=DDPSpawnPlugin(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters
@@ -304,18 +316,10 @@ If you don't want to check 100% of the training/validation/test set set these fl
 .. testcode::
 
     # DEFAULT
-    trainer = Trainer(
-        limit_train_batches=1.0,
-        limit_val_batches=1.0,
-        limit_test_batches=1.0
-    )
+    trainer = Trainer(limit_train_batches=1.0, limit_val_batches=1.0, limit_test_batches=1.0)
 
     # check 10%, 20%, 30% only, respectively for training, validation and test set
-    trainer = Trainer(
-        limit_train_batches=0.1,
-        limit_val_batches=0.2,
-        limit_test_batches=0.3
-    )
+    trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.2, limit_test_batches=0.3)
 
 If you also pass ``shuffle=True`` to the dataloader, a different random subset of your dataset will be used for each epoch; otherwise the same subset will be used for all epochs.
 
@@ -383,7 +387,6 @@ Here is an example for advanced use-case:
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
     class SimpleGAN(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -403,8 +406,7 @@ Here is an example for advanced use-case:
             # Sync and clear gradients
             # at the end of accumulation or
             # at the end of an epoch.
-            is_last_batch_to_accumulate = \
-                (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
+            is_last_batch_to_accumulate = (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
 
             g_X = self.sample_G(batch_size)
 
@@ -418,7 +420,7 @@ Here is an example for advanced use-case:
                 d_z = self.D(g_X.detach())
                 errD_fake = self.criterion(d_z, fake_label)
 
-                errD = (errD_real + errD_fake)
+                errD = errD_real + errD_fake
 
                 self.manual_backward(errD)
                 if is_last_batch_to_accumulate:
@@ -437,7 +439,7 @@ Here is an example for advanced use-case:
                     g_opt.step()
                     g_opt.zero_grad()
 
-            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
+            self.log_dict({"g_loss": errG, "d_loss": errD}, prog_bar=True)
 
 -----
 
@@ -448,12 +450,11 @@ Set Grads to None
 In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
 
 For a more detailed explanation of pros / cons of this technique,
-read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.
 
 .. testcode::
 
     class Model(LightningModule):
-
         def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
             optimizer.zero_grad(set_to_none=True)
 

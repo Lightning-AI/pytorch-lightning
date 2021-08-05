@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DDP2Plugin(DDPPlugin):
-    """ DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+    """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
     @property
     def global_rank(self) -> int:
@@ -29,8 +29,7 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
-    def setup(self, model):
-        self._model = model
+    def setup(self) -> None:
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
         # the difference to DDP is that we don't call children processes here

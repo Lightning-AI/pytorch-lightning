@@ -30,57 +30,57 @@ from tests.helpers.runif import RunIf
 from tests.models.test_hooks import get_members
 
 
-def test_fx_validator():
-    funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
+def test_fx_validator(tmpdir):
+    funcs_name = sorted(get_members(Callback))
 
     callbacks_func = [
-        'on_before_backward',
-        'on_after_backward',
-        'on_before_optimizer_step',
-        'on_batch_end',
-        'on_batch_start',
-        'on_before_accelerator_backend_setup',
-        'on_before_zero_grad',
-        'on_epoch_end',
-        'on_epoch_start',
-        'on_fit_end',
-        'on_configure_sharded_model',
-        'on_fit_start',
-        'on_init_end',
-        'on_init_start',
-        'on_keyboard_interrupt',
-        'on_load_checkpoint',
-        'on_pretrain_routine_end',
-        'on_pretrain_routine_start',
-        'on_sanity_check_end',
-        'on_sanity_check_start',
-        'on_save_checkpoint',
-        'on_test_batch_end',
-        'on_test_batch_start',
-        'on_test_end',
-        'on_test_epoch_end',
-        'on_test_epoch_start',
-        'on_test_start',
-        'on_train_batch_end',
-        'on_train_batch_start',
-        'on_train_end',
-        'on_train_epoch_end',
-        'on_train_epoch_start',
-        'on_train_start',
-        'on_validation_batch_end',
-        'on_validation_batch_start',
-        'on_validation_end',
-        'on_validation_epoch_end',
-        'on_validation_epoch_start',
-        'on_validation_start',
+        "on_before_backward",
+        "on_after_backward",
+        "on_before_optimizer_step",
+        "on_batch_end",
+        "on_batch_start",
+        "on_before_accelerator_backend_setup",
+        "on_before_zero_grad",
+        "on_epoch_end",
+        "on_epoch_start",
+        "on_fit_end",
+        "on_configure_sharded_model",
+        "on_fit_start",
+        "on_init_end",
+        "on_init_start",
+        "on_keyboard_interrupt",
+        "on_load_checkpoint",
+        "on_pretrain_routine_end",
+        "on_pretrain_routine_start",
+        "on_sanity_check_end",
+        "on_sanity_check_start",
+        "on_save_checkpoint",
+        "on_test_batch_end",
+        "on_test_batch_start",
+        "on_test_end",
+        "on_test_epoch_end",
+        "on_test_epoch_start",
+        "on_test_start",
+        "on_train_batch_end",
+        "on_train_batch_start",
+        "on_train_end",
+        "on_train_epoch_end",
+        "on_train_epoch_start",
+        "on_train_start",
+        "on_validation_batch_end",
+        "on_validation_batch_start",
+        "on_validation_end",
+        "on_validation_epoch_end",
+        "on_validation_epoch_start",
+        "on_validation_start",
         "on_predict_batch_end",
         "on_predict_batch_start",
         "on_predict_end",
         "on_predict_epoch_end",
         "on_predict_epoch_start",
         "on_predict_start",
-        'setup',
-        'teardown',
+        "setup",
+        "teardown",
     ]
 
     not_supported = [
@@ -110,10 +110,9 @@ def test_fx_validator():
         "teardown",
     ]
 
-    assert funcs_name == sorted(callbacks_func), (
-        "Detected new callback function. Need to add its logging"
-        " permission to FxValidator and update this test"
-    )
+    assert funcs_name == sorted(
+        callbacks_func
+    ), "Detected new callback function. Need to add its logging permission to FxValidator and update this test"
 
     validator = FxValidator()
 
@@ -126,11 +125,17 @@ def test_fx_validator():
         on_epoch = True
         # creating allowed condition
         allowed = (
-            is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
+            is_stage
+            or "batch" in func_name
+            or "epoch" in func_name
+            or "grad" in func_name
+            or "backward" in func_name
             or "optimizer_step" in func_name
         )
         allowed = (
-            allowed and "pretrain" not in func_name and "predict" not in func_name
+            allowed
+            and "pretrain" not in func_name
+            and "predict" not in func_name
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
@@ -148,19 +153,17 @@ def test_fx_validator():
 
 
 class HookedCallback(Callback):
-
     def __init__(self, not_supported):
-
         def call(hook, trainer, model=None, *_, **__):
             lightning_module = trainer.lightning_module or model
             if lightning_module is None:
                 # `on_init_{start,end}` do not have the `LightningModule` available
-                assert hook in ('on_init_start', 'on_init_end')
+                assert hook in ("on_init_start", "on_init_end")
                 return
 
             if hook in not_supported:
                 with pytest.raises(MisconfigurationException, match=not_supported[hook]):
-                    lightning_module.log('anything', 1)
+                    lightning_module.log("anything", 1)
             else:
                 lightning_module.log(hook, 1)
 
@@ -169,20 +172,21 @@ class HookedCallback(Callback):
 
 
 class HookedModel(BoringModel):
-
     def __init__(self, not_supported):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
-        pl_module_hooks.difference_update({
-            'log',
-            'log_dict',
-            # the following are problematic as they do have `self._current_fx_name` defined some times but
-            # not others depending on where they were called. So we cannot reliably `self.log` in them
-            'on_before_batch_transfer',
-            'transfer_batch_to_device',
-            'on_after_batch_transfer',
-            'get_progress_bar_dict',
-        })
+        pl_module_hooks.difference_update(
+            {
+                "log",
+                "log_dict",
+                # the following are problematic as they do have `self._current_fx_name` defined some times but
+                # not others depending on where they were called. So we cannot reliably `self.log` in them
+                "on_before_batch_transfer",
+                "transfer_batch_to_device",
+                "on_after_batch_transfer",
+                "get_progress_bar_dict",
+            }
+        )
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -192,7 +196,7 @@ class HookedModel(BoringModel):
 
             if hook in not_supported:
                 with pytest.raises(MisconfigurationException, match=not_supported[hook]):
-                    self.log('anything', 1)
+                    self.log("anything", 1)
             else:
                 self.log(hook, 1)
             return out
@@ -205,28 +209,28 @@ class HookedModel(BoringModel):
 def test_fx_validator_integration(tmpdir):
     """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors"""
     not_supported = {
-        'on_before_accelerator_backend_setup': "You can't",
-        'setup': "You can't",
-        'configure_sharded_model': "You can't",
-        'on_configure_sharded_model': "You can't",
-        'configure_optimizers': "You can't",
-        'on_fit_start': "You can't",
-        'on_pretrain_routine_start': "You can't",
-        'on_pretrain_routine_end': "You can't",
-        'on_train_dataloader': "You can't",
-        'train_dataloader': "You can't",
-        'on_val_dataloader': "You can't",
-        'val_dataloader': "You can't",
-        'on_validation_end': "You can't",
-        'on_train_end': "You can't",
-        'on_fit_end': "You can't",
-        'teardown': "You can't",
-        'on_sanity_check_start': "You can't",
-        'on_sanity_check_end': "You can't",
-        'prepare_data': "You can't",
-        'configure_callbacks': "You can't",
-        'on_validation_model_eval': "You can't",
-        'summarize': 'not managed by the `Trainer',
+        "on_before_accelerator_backend_setup": "You can't",
+        "setup": "You can't",
+        "configure_sharded_model": "You can't",
+        "on_configure_sharded_model": "You can't",
+        "configure_optimizers": "You can't",
+        "on_fit_start": "You can't",
+        "on_pretrain_routine_start": "You can't",
+        "on_pretrain_routine_end": "You can't",
+        "on_train_dataloader": "You can't",
+        "train_dataloader": "You can't",
+        "on_val_dataloader": "You can't",
+        "val_dataloader": "You can't",
+        "on_validation_end": "You can't",
+        "on_train_end": "You can't",
+        "on_fit_end": "You can't",
+        "teardown": "You can't",
+        "on_sanity_check_start": "You can't",
+        "on_sanity_check_end": "You can't",
+        "prepare_data": "You can't",
+        "configure_callbacks": "You can't",
+        "on_validation_model_eval": "You can't",
+        "summarize": "not managed by the `Trainer",
     }
     model = HookedModel(not_supported)
     callback = HookedCallback(not_supported)
@@ -241,28 +245,33 @@ def test_fx_validator_integration(tmpdir):
     )
     trainer.fit(model)
 
-    not_supported.update({
-        'on_before_accelerator_backend_setup': "You can't",  # `lightning_module` ref is now present from the `fit` call
-        'on_test_dataloader': "You can't",
-        'test_dataloader': "You can't",
-        'on_test_model_eval': "You can't",
-        'on_test_end': "You can't",
-    })
+    not_supported.update(
+        {
+            # `lightning_module` ref is now present from the `fit` call
+            "on_before_accelerator_backend_setup": "You can't",
+            "on_test_dataloader": "You can't",
+            "test_dataloader": "You can't",
+            "on_test_model_eval": "You can't",
+            "on_test_end": "You can't",
+        }
+    )
     trainer.test(model, verbose=False)
 
     not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
-    not_supported.update({
-        'on_predict_dataloader': "ResultCollection` is not registered yet",
-        'predict_dataloader': "ResultCollection` is not registered yet",
-        'on_predict_model_eval': "ResultCollection` is not registered yet",
-        'on_predict_start': "ResultCollection` is not registered yet",
-        'on_predict_epoch_start': "ResultCollection` is not registered yet",
-        'on_predict_batch_start': "ResultCollection` is not registered yet",
-        'predict_step': "ResultCollection` is not registered yet",
-        'on_predict_batch_end': "ResultCollection` is not registered yet",
-        'on_predict_epoch_end': "ResultCollection` is not registered yet",
-        'on_predict_end': "ResultCollection` is not registered yet",
-    })
+    not_supported.update(
+        {
+            "on_predict_dataloader": "ResultCollection` is not registered yet",
+            "predict_dataloader": "ResultCollection` is not registered yet",
+            "on_predict_model_eval": "ResultCollection` is not registered yet",
+            "on_predict_start": "ResultCollection` is not registered yet",
+            "on_predict_epoch_start": "ResultCollection` is not registered yet",
+            "on_predict_batch_start": "ResultCollection` is not registered yet",
+            "predict_step": "ResultCollection` is not registered yet",
+            "on_predict_batch_end": "ResultCollection` is not registered yet",
+            "on_predict_epoch_end": "ResultCollection` is not registered yet",
+            "on_predict_end": "ResultCollection` is not registered yet",
+        }
+    )
     trainer.predict(model)
 
 
@@ -272,7 +281,6 @@ def test_epoch_results_cache_dp(tmpdir):
     root_device = torch.device("cuda", 0)
 
     class TestModel(BoringModel):
-
         def training_step(self, *args, **kwargs):
             result = super().training_step(*args, **kwargs)
             self.log("train_loss_epoch", result["loss"], on_step=False, on_epoch=True)
@@ -315,22 +323,16 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="dp",
-        gpus=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
+        default_root_dir=tmpdir, accelerator="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
     )
     trainer.fit(model)
-    trainer.test(model, ckpt_path=None)
+    trainer.test(model)
 
 
 def test_can_return_tensor_with_more_than_one_element(tmpdir):
     """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
 
     class TestModel(BoringModel):
-
         def validation_step(self, batch, *args, **kwargs):
             return {"val": torch.tensor([0, 1])}
 
@@ -356,10 +358,9 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
-    """ Test that logging a metric with a reserved name to the progress bar raises a warning. """
+    """Test that logging a metric with a reserved name to the progress bar raises a warning."""
 
     class TestModel(BoringModel):
-
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
             self.log("loss", output["loss"], prog_bar=True)
@@ -373,10 +374,9 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
-    """ test that auto_add_dataloader_idx argument works """
+    """test that auto_add_dataloader_idx argument works"""
 
     class TestModel(BoringModel):
-
         def val_dataloader(self):
             dl = super().val_dataloader()
             return [dl, dl]
@@ -400,18 +400,17 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
     # Check that the correct keys exist
     if add_dataloader_idx:
-        assert 'val_loss/dataloader_idx_0' in logged
-        assert 'val_loss/dataloader_idx_1' in logged
+        assert "val_loss/dataloader_idx_0" in logged
+        assert "val_loss/dataloader_idx_1" in logged
     else:
-        assert 'val_loss_custom_naming_0' in logged
-        assert 'val_loss_custom_naming_1' in logged
+        assert "val_loss_custom_naming_0" in logged
+        assert "val_loss_custom_naming_1" in logged
 
 
 def test_metrics_reset(tmpdir):
     """Tests that metrics are reset correctly after the end of the train/val/test epoch."""
 
     class TestModel(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.layer = torch.nn.Linear(32, 1)
@@ -425,8 +424,8 @@ def test_metrics_reset(tmpdir):
 
         def setup(self, stage):
             fn = stage
-            if fn == 'fit':
-                for stage in ('train', 'validate'):
+            if fn == "fit":
+                for stage in ("train", "validate"):
                     acc, ap = self._create_metrics()
                     self.add_module(f"acc_{fn}_{stage}", acc)
                     self.add_module(f"ap_{fn}_{stage}", ap)
@@ -507,14 +506,14 @@ def test_metrics_reset(tmpdir):
     )
 
     trainer.fit(model)
-    _assert_called(model, 'fit', 'train')
-    _assert_called(model, 'fit', 'validate')
+    _assert_called(model, "fit", "train")
+    _assert_called(model, "fit", "validate")
 
     trainer.validate(model)
-    _assert_called(model, 'validate', 'validate')
+    _assert_called(model, "validate", "validate")
 
     trainer.test(model)
-    _assert_called(model, 'test', 'test')
+    _assert_called(model, "test", "test")
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
@@ -555,68 +554,66 @@ def test_result_collection_on_tensor_with_mean_reduction():
     batch_metrics = result_collection.metrics(True)
     max_ = max(values)
     assert batch_metrics[MetricSource.PBAR] == {
-        'loss_on_step_on_epoch_prog_bar_step': max_,
-        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
-        'loss_on_step_prog_bar': max_,
-        'loss_on_step_prog_bar_logger': max_,
+        "loss_on_step_on_epoch_prog_bar_step": max_,
+        "loss_on_step_on_epoch_prog_bar_logger_step": max_,
+        "loss_on_step_prog_bar": max_,
+        "loss_on_step_prog_bar_logger": max_,
     }
     assert batch_metrics[MetricSource.LOG] == {
-        'loss_on_step_on_epoch_logger_step': max_,
-        'loss_on_step_logger': max_,
-        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
-        'loss_on_step_prog_bar_logger': max_,
+        "loss_on_step_on_epoch_logger_step": max_,
+        "loss_on_step_logger": max_,
+        "loss_on_step_on_epoch_prog_bar_logger_step": max_,
+        "loss_on_step_prog_bar_logger": max_,
     }
     assert batch_metrics[MetricSource.CALLBACK] == {
-        'loss_on_step': max_,
-        'loss_on_step_logger': max_,
-        'loss_on_step_on_epoch': max_,
-        'loss_on_step_on_epoch_logger': max_,
-        'loss_on_step_on_epoch_logger_step': max_,
-        'loss_on_step_on_epoch_prog_bar': max_,
-        'loss_on_step_on_epoch_prog_bar_logger': max_,
-        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
-        'loss_on_step_on_epoch_prog_bar_step': max_,
-        'loss_on_step_on_epoch_step': max_,
-        'loss_on_step_prog_bar': max_,
-        'loss_on_step_prog_bar_logger': max_,
+        "loss_on_step": max_,
+        "loss_on_step_logger": max_,
+        "loss_on_step_on_epoch": max_,
+        "loss_on_step_on_epoch_logger": max_,
+        "loss_on_step_on_epoch_logger_step": max_,
+        "loss_on_step_on_epoch_prog_bar": max_,
+        "loss_on_step_on_epoch_prog_bar_logger": max_,
+        "loss_on_step_on_epoch_prog_bar_logger_step": max_,
+        "loss_on_step_on_epoch_prog_bar_step": max_,
+        "loss_on_step_on_epoch_step": max_,
+        "loss_on_step_prog_bar": max_,
+        "loss_on_step_prog_bar_logger": max_,
     }
 
     epoch_metrics = result_collection.metrics(False)
     mean = total_value / total_batches
     assert epoch_metrics[MetricSource.PBAR] == {
-        'loss_on_epoch_prog_bar': mean,
-        'loss_on_epoch_prog_bar_logger': mean,
-        'loss_on_step_on_epoch_prog_bar_epoch': mean,
-        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean,
+        "loss_on_epoch_prog_bar": mean,
+        "loss_on_epoch_prog_bar_logger": mean,
+        "loss_on_step_on_epoch_prog_bar_epoch": mean,
+        "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
     assert epoch_metrics[MetricSource.LOG] == {
-        'loss_on_epoch_logger': mean,
-        'loss_on_epoch_prog_bar_logger': mean,
-        'loss_on_step_on_epoch_logger_epoch': mean,
-        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
+        "loss_on_epoch_logger": mean,
+        "loss_on_epoch_prog_bar_logger": mean,
+        "loss_on_step_on_epoch_logger_epoch": mean,
+        "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
     assert epoch_metrics[MetricSource.CALLBACK] == {
-        'loss_on_epoch': mean,
-        'loss_on_epoch_logger': mean,
-        'loss_on_epoch_prog_bar': mean,
-        'loss_on_epoch_prog_bar_logger': mean,
-        'loss_on_step_on_epoch': mean,
-        'loss_on_step_on_epoch_epoch': mean,
-        'loss_on_step_on_epoch_logger': mean,
-        'loss_on_step_on_epoch_logger_epoch': mean,
-        'loss_on_step_on_epoch_prog_bar': mean,
-        'loss_on_step_on_epoch_prog_bar_epoch': mean,
-        'loss_on_step_on_epoch_prog_bar_logger': mean,
-        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
+        "loss_on_epoch": mean,
+        "loss_on_epoch_logger": mean,
+        "loss_on_epoch_prog_bar": mean,
+        "loss_on_epoch_prog_bar_logger": mean,
+        "loss_on_step_on_epoch": mean,
+        "loss_on_step_on_epoch_epoch": mean,
+        "loss_on_step_on_epoch_logger": mean,
+        "loss_on_step_on_epoch_logger_epoch": mean,
+        "loss_on_step_on_epoch_prog_bar": mean,
+        "loss_on_step_on_epoch_prog_bar_epoch": mean,
+        "loss_on_step_on_epoch_prog_bar_logger": mean,
+        "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
 
 
 def test_logged_metrics_has_logged_epoch_value(tmpdir):
-
     class TestModel(BoringModel):
-
         def training_step(self, batch, batch_idx):
-            self.log('epoch', -batch_idx, logger=True)
+            self.log("epoch", -batch_idx, logger=True)
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
@@ -624,4 +621,4 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir):
     trainer.fit(model)
 
     # should not get overridden if logged manually
-    assert trainer.logged_metrics == {'epoch': -1}
+    assert trainer.logged_metrics == {"epoch": -1}

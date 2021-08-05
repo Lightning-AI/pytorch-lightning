@@ -137,8 +137,8 @@ class DDPPlugin(ParallelPlugin):
     @property
     def task_idx(self) -> Optional[int]:
         rank_zero_deprecation(
-            f'`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use '
-            f'`{self.__class__.__name__}.local_rank` instead.'
+            f"`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use "
+            f"`{self.__class__.__name__}.local_rank` instead."
         )
         return self._task_idx
 
@@ -178,9 +178,6 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # create a temporary directory used to synchronize processes on deadlock.
-        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -228,7 +225,7 @@ class DDPPlugin(ParallelPlugin):
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
-                    command += [f'hydra.run.dir={os_cwd}', f'hydra.job.name=train_ddp_process_{local_rank}']
+                    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
@@ -276,8 +273,10 @@ class DDPPlugin(ParallelPlugin):
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
         # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-        if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
+        if (
+            _TORCH_GREATER_EQUAL_1_7
+            and not self.lightning_module.automatic_optimization
+            and not self._ddp_kwargs.get("find_unused_parameters", False)
         ):
             rank_zero_warn(
                 "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
@@ -301,9 +300,7 @@ class DDPPlugin(ParallelPlugin):
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
+            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
 
@@ -404,14 +401,24 @@ class DDPPlugin(ParallelPlugin):
             "ddp_find_unused_parameters_false",
             cls,
             description="DDP Plugin with `find_unused_parameters` as False",
-            find_unused_parameters=False
+            find_unused_parameters=False,
         )
 
     def _share_information_to_prevent_deadlock(self):
         self._share_pids()
 
-        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+        # there should be a unique sync_dir per nodes.
+        if self.local_rank == 0:
+            # create a temporary directory used to synchronize processes on deadlock.
+            self._sync_dir = tempfile.mkdtemp()
+
+        sync_dirs = []
+        global_node_rank_zero = 0
+        for _ in range(self.num_nodes):
+            sync_dirs.append(self.broadcast(self._sync_dir, global_node_rank_zero))
+            global_node_rank_zero += self.world_size // self.num_nodes
+
+        self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
         """
@@ -436,11 +443,11 @@ class DDPPlugin(ParallelPlugin):
 
         # return if all processes wrote a file in the `sync_dir`.
         # todo (tchaton) Add support for non-shared file-system which will fail.
-        if len(os.listdir(sync_dir)) == self.world_size:
+        if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
         for pid in self._pids:
             if pid != os.getpid():
                 os.kill(pid, signal.SIGKILL)
-            shutil.rmtree(sync_dir)
-            raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+        shutil.rmtree(sync_dir)
+        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")

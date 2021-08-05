@@ -31,7 +31,7 @@ if _HOROVOD_AVAILABLE:
 
 
 class HorovodPlugin(ParallelPlugin):
-    """ Plugin for Horovod distributed training integration."""
+    """Plugin for Horovod distributed training integration."""
 
     def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
@@ -58,8 +58,7 @@ class HorovodPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def setup(self, model):
-        self._model = model
+    def setup(self) -> None:
         self.model_to_device()
 
     def pre_dispatch(self):
@@ -155,10 +154,7 @@ class HorovodPlugin(ParallelPlugin):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if group is not None:
-            raise ValueError(
-                "Horovod does not support allreduce using a subcommunicator at this time. "
-                "Unset `group`."
-            )
+            raise ValueError("Horovod does not support allreduce using a subcommunicator at this time. Unset `group`.")
 
         if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average
@@ -172,16 +168,10 @@ class HorovodPlugin(ParallelPlugin):
         return hvd.allreduce(tensor, op=reduce_op)
 
     def all_gather(
-        self,
-        result: Union[torch.Tensor],
-        group: Optional[Any] = dist_group.WORLD,
-        sync_grads: bool = False
+        self, result: Union[torch.Tensor], group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
     ) -> torch.Tensor:
         if group is not None and group != dist_group.WORLD:
-            raise ValueError(
-                "Horovod does not support allgather using a subcommunicator at this time. "
-                "Unset `group`."
-            )
+            raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
 
         if len(result.shape) == 0:
             # Convert scalars to single dimension tensors
@@ -199,13 +189,15 @@ class HorovodPlugin(ParallelPlugin):
             optimizer.synchronize()
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
-        """ Wraps optimizers to perform gradient aggregation via allreduce. """
+        """Wraps optimizers to perform gradient aggregation via allreduce."""
         return [
             hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
-            if "horovod" not in str(opt.__class__) else opt for opt in optimizers
+            if "horovod" not in str(opt.__class__)
+            else opt
+            for opt in optimizers
         ]
 
     @staticmethod
     def _filter_named_parameters(model: nn.Module, optimizer: Optimizer) -> List[Tuple[str, nn.Parameter]]:
-        opt_params = set(p for group in optimizer.param_groups for p in group.get("params", []))
+        opt_params = {p for group in optimizer.param_groups for p in group.get("params", [])}
         return [(name, p) for name, p in model.named_parameters() if p in opt_params]

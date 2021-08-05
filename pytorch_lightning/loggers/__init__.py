@@ -17,12 +17,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
-__all__ = [
-    'LightningLoggerBase',
-    'LoggerCollection',
-    'TensorBoardLogger',
-    'CSVLogger',
-]
+__all__ = ["LightningLoggerBase", "LoggerCollection", "TensorBoardLogger", "CSVLogger"]
 
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE, CometLogger  # noqa: F401
 from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # noqa: F401
@@ -31,18 +26,18 @@ from pytorch_lightning.loggers.test_tube import _TESTTUBE_AVAILABLE, TestTubeLog
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE, WandbLogger  # noqa: F401
 
 if _COMET_AVAILABLE:
-    __all__.append('CometLogger')
+    __all__.append("CometLogger")
     # needed to prevent ImportError and duplicated logs.
     environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
 if _MLFLOW_AVAILABLE:
-    __all__.append('MLFlowLogger')
+    __all__.append("MLFlowLogger")
 
 if _NEPTUNE_AVAILABLE:
-    __all__.append('NeptuneLogger')
+    __all__.append("NeptuneLogger")
 
 if _TESTTUBE_AVAILABLE:
-    __all__.append('TestTubeLogger')
+    __all__.append("TestTubeLogger")
 
 if _WANDB_AVAILABLE:
-    __all__.append('WandbLogger')
+    __all__.append("WandbLogger")

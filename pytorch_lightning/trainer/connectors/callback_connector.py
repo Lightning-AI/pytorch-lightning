@@ -22,7 +22,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CallbackConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -77,8 +76,7 @@ class CallbackConnector:
             raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
-                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
-                " in callbacks list."
+                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
@@ -89,12 +87,13 @@ class CallbackConnector:
             return
 
         from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+
         existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv('COLAB_GPU') and refresh_rate is None:
+        if os.getenv("COLAB_GPU") and refresh_rate is None:
             # smaller refresh rate on colab causes crashes, choose a higher value
             refresh_rate = 20
         refresh_rate = 1 if refresh_rate is None else refresh_rate
@@ -102,16 +101,13 @@ class CallbackConnector:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
-                'You added multiple progress bar callbacks to the Trainer, but currently only one'
-                ' progress bar is supported.'
+                "You added multiple progress bar callbacks to the Trainer, but currently only one"
+                " progress bar is supported."
             )
         if len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(
-                refresh_rate=refresh_rate,
-                process_position=process_position,
-            )
+            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
@@ -143,7 +139,7 @@ class CallbackConnector:
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
         """
-        model_callbacks = self.trainer.call_hook('configure_callbacks')
+        model_callbacks = self.trainer.call_hook("configure_callbacks")
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}

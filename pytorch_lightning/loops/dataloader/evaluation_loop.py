@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -108,10 +107,7 @@ class EvaluationLoop(DataLoaderLoop):
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(
-            dataloader_iter,
-            self.current_dataloader_idx,
-            dl_max_batches,
-            self.num_dataloaders,
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
 
         # store batch level output per dataloader
@@ -189,9 +185,9 @@ class EvaluationLoop(DataLoaderLoop):
     def on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode"""
         if self.trainer.testing:
-            self.trainer.call_hook('on_test_model_eval')
+            self.trainer.call_hook("on_test_model_eval")
         else:
-            self.trainer.call_hook('on_validation_model_eval')
+            self.trainer.call_hook("on_validation_model_eval")
 
     def on_evaluation_model_train(self) -> None:
         """Sets model to train mode"""
@@ -207,10 +203,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer.call_hook("on_validation_end", *args, **kwargs)
-
-        if self.trainer.state.fn != TrainerFn.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
 
         # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
@@ -255,7 +247,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook"""
-        hook_name = ("on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end")
+        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()

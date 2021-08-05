@@ -19,7 +19,6 @@ CSV logger for basic experiment logging that does not require opening ports
 
 """
 import csv
-import io
 import logging
 import os
 from argparse import Namespace
@@ -35,7 +34,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 log = logging.getLogger(__name__)
 
 
-class ExperimentWriter(object):
+class ExperimentWriter:
     r"""
     Experiment writer for CSVLogger.
 
@@ -46,8 +45,8 @@ class ExperimentWriter(object):
         log_dir: Directory for the experiment logs
     """
 
-    NAME_HPARAMS_FILE = 'hparams.yaml'
-    NAME_METRICS_FILE = 'metrics.csv'
+    NAME_HPARAMS_FILE = "hparams.yaml"
+    NAME_METRICS_FILE = "metrics.csv"
 
     def __init__(self, log_dir: str) -> None:
         self.hparams = {}
@@ -79,7 +78,7 @@ class ExperimentWriter(object):
             step = len(self.metrics)
 
         metrics = {k: _handle_value(v) for k, v in metrics_dict.items()}
-        metrics['step'] = step
+        metrics["step"] = step
         self.metrics.append(metrics)
 
     def save(self) -> None:
@@ -95,7 +94,7 @@ class ExperimentWriter(object):
             last_m.update(m)
         metrics_keys = list(last_m.keys())
 
-        with io.open(self.metrics_file_path, 'w', newline='') as f:
+        with open(self.metrics_file_path, "w", newline="") as f:
             self.writer = csv.DictWriter(f, fieldnames=metrics_keys)
             self.writer.writeheader()
             self.writer.writerows(self.metrics)
@@ -121,18 +120,18 @@ class CSVLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
     """
 
-    LOGGER_JOIN_CHAR = '-'
+    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
         save_dir: str,
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
-        prefix: str = '',
+        prefix: str = "",
     ):
         super().__init__()
         self._save_dir = save_dir
-        self._name = name or ''
+        self._name = name or ""
         self._version = version
         self._prefix = prefix
         self._experiment = None
@@ -217,7 +216,7 @@ class CSVLogger(LightningLoggerBase):
         root_dir = os.path.join(self._save_dir, self.name)
 
         if not os.path.isdir(root_dir):
-            log.warning('Missing logger folder: %s', root_dir)
+            log.warning("Missing logger folder: %s", root_dir)
             return 0
 
         existing_versions = []

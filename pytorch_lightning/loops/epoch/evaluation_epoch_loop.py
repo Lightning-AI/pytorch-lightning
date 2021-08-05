@@ -60,11 +60,7 @@ class EvaluationEpochLoop(Loop):
             self.batch_progress.current.reset()
 
     def on_run_start(
-        self,
-        dataloader_iter: Iterator,
-        dataloader_idx: int,
-        dl_max_batches: int,
-        num_dataloaders: int,
+        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary
 
@@ -79,11 +75,7 @@ class EvaluationEpochLoop(Loop):
         self._num_dataloaders = num_dataloaders
 
     def advance(
-        self,
-        dataloader_iter: Iterator,
-        dataloader_idx: int,
-        dl_max_batches: int,
-        num_dataloaders: int,
+        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
@@ -191,11 +183,7 @@ class EvaluationEpochLoop(Loop):
             self.trainer.call_hook("on_validation_batch_start", batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(
-        self,
-        output: Optional[STEP_OUTPUT],
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
+        self, output: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
 
@@ -252,16 +240,10 @@ class EvaluationEpochLoop(Loop):
         return step_kwargs
 
     def _track_output_for_epoch_end(
-        self,
-        outputs: List[Union[ResultCollection, Dict, Tensor]],
-        output: Optional[Union[ResultCollection, Dict, Tensor]],
-    ) -> List[Union[ResultCollection, Dict, Tensor]]:
+        self, outputs: List[STEP_OUTPUT], output: Optional[STEP_OUTPUT]
+    ) -> List[STEP_OUTPUT]:
         if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.trainer.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
+            if isinstance(output, dict):
                 output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
             elif isinstance(output, Tensor) and output.is_cuda and self.trainer.move_metrics_to_cpu:
                 output = output.cpu()

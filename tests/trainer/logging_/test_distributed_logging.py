@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Any, Dict, Optional, Union
 from unittest import mock
 from unittest.mock import Mock
 
+import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers.base import LightningLoggerBase
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
-
     def on_pretrain_routine_end(self) -> None:
-        with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
-            self.trainer.logger_connector.log_metrics({'a': 2})
+        with mock.patch("pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics") as m:
+            self.trainer.logger_connector.log_metrics({"a": 2})
             logged_times = m.call_count
             expected = int(self.trainer.is_global_zero)
-            msg = f'actual logger called from non-global zero, logged_times: {logged_times}, expected: {expected}'
+            msg = f"actual logger called from non-global zero, logged_times: {logged_times}, expected: {expected}"
             assert logged_times == expected, msg
 
 
@@ -39,7 +41,7 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        accelerator='ddp_cpu',
+        accelerator="ddp_cpu",
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -58,7 +60,7 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        accelerator='ddp_spawn',
+        accelerator="ddp_spawn",
         gpus=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -76,7 +78,6 @@ def test_first_logger_call_in_subprocess(tmpdir):
     """
 
     class LoggerCallsObserver(Callback):
-
         def on_fit_start(self, trainer, pl_module):
             # this hook is executed directly before Trainer.pre_dispatch
             # logger should not write any logs until this point
@@ -100,6 +101,71 @@ def test_first_logger_call_in_subprocess(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         logger=logger,
-        callbacks=[LoggerCallsObserver()]
+        callbacks=[LoggerCallsObserver()],
     )
     trainer.fit(model)
+
+
+def test_logger_after_fit_predict_test_calls(tmpdir):
+    """
+    Make sure logger outputs are finalized after fit, prediction, and test calls.
+    """
+
+    class BufferLogger(LightningLoggerBase):
+        def __init__(self):
+            super().__init__()
+            self.buffer = {}
+            self.logs = {}
+
+        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+            self.buffer.update(metrics)
+
+        def finalize(self, status: str) -> None:
+            self.logs.update(self.buffer)
+            self.buffer = {}
+
+        @property
+        def experiment(self) -> Any:
+            return None
+
+        @property
+        def version(self) -> Union[int, str]:
+            return 1
+
+        @property
+        def name(self) -> str:
+            return "BufferLogger"
+
+        def log_hyperparams(self, *args, **kwargs) -> None:
+            return None
+
+    class LoggerCallsObserver(Callback):
+        def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+            trainer.logger.log_metrics({"fit": 1})
+
+        def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+            trainer.logger.log_metrics({"validate": 1})
+
+        def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+            trainer.logger.log_metrics({"predict": 1})
+
+        def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+            trainer.logger.log_metrics({"test": 1})
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        logger=BufferLogger(),
+        callbacks=[LoggerCallsObserver()],
+    )
+
+    assert not trainer.logger.logs
+    trainer.fit(model)
+    assert trainer.logger.logs == {"fit": 1, "validate": 1}
+    trainer.test(model)
+    assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1}
+    trainer.predict(model)
+    assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1, "predict": 1}

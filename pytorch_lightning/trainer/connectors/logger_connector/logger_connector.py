@@ -17,19 +17,17 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import DeviceType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
 class LoggerConnector:
-
-    def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results = []
@@ -157,8 +155,7 @@ class LoggerConnector:
         for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
             # remove callback metrics that don't belong to this dataloader
             callback_metrics = {
-                k: v
-                for k, v in metrics.items() if "dataloader_idx" not in k or f"dataloader_idx_{dl_idx}" in k
+                k: v for k, v in metrics.items() if "dataloader_idx" not in k or f"dataloader_idx_{dl_idx}" in k
             }
             if has_been_initialized:
                 self.eval_loop_results[dl_idx].update(callback_metrics)
@@ -177,17 +174,21 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state.fn != TrainerFn.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
+            self.trainer.state.fn != TrainerFn.FITTING
+            and self.trainer.evaluating
+            and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
         ):
-            print('-' * 80)
+            print("-" * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS')
-                pprint({
-                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    for k, v in results.items()
-                })
-                print('-' * 80)
+                print(f"DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS")
+                pprint(
+                    {
+                        k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
+                        for k, v in results.items()
+                    }
+                )
+                print("-" * 80)
 
         results = self.eval_loop_results
         # clear mem
@@ -224,7 +225,7 @@ class LoggerConnector:
 
     def _log_gpus_metrics(self):
         for key, mem in self.gpus_metrics.items():
-            gpu_id = int(key.split('/')[0].split(':')[1])
+            gpu_id = int(key.split("/")[0].split(":")[1])
             if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
@@ -239,9 +240,9 @@ class LoggerConnector:
         self._epoch_end_reached = False
 
     def epoch_end_reached(self):
-        self.trainer.logger_connector._epoch_end_reached = True
-        self.trainer.logger_connector._batch_idx = None
-        self.trainer.logger_connector._split_idx = None
+        self._epoch_end_reached = True
+        self._batch_idx = None
+        self._split_idx = None
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached

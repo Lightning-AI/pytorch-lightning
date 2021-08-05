@@ -22,22 +22,22 @@ Lightning uses TensorBoard by default.
 
     from pytorch_lightning import loggers as pl_loggers
 
-    tb_logger = pl_loggers.TensorBoardLogger('logs/')
+    tb_logger = pl_loggers.TensorBoardLogger("logs/")
     trainer = Trainer(logger=tb_logger)
 
 Choose from any of the others such as MLflow, Comet, Neptune, WandB, ...
 
 .. testcode::
 
-    comet_logger = pl_loggers.CometLogger(save_dir='logs/')
+    comet_logger = pl_loggers.CometLogger(save_dir="logs/")
     trainer = Trainer(logger=comet_logger)
 
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
 
 .. testcode::
 
-    tb_logger = pl_loggers.TensorBoardLogger('logs/')
-    comet_logger = pl_loggers.CometLogger(save_dir='logs/')
+    tb_logger = pl_loggers.TensorBoardLogger("logs/")
+    comet_logger = pl_loggers.CometLogger(save_dir="logs/")
     trainer = Trainer(logger=[tb_logger, comet_logger])
 
 .. note::
@@ -66,11 +66,12 @@ except functions with `batch_start` in their names.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('my_metric', x)
+        self.log("my_metric", x)
+
 
     # or a dict
     def training_step(self, batch, batch_idx):
-        self.log('performance', {'acc': acc, 'recall': recall})
+        self.log("performance", {"acc": acc, "recall": recall})
 
 Depending on where log is called from, Lightning auto-determines the correct logging mode for you. \
 But of course you can override the default behavior by manually setting the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` parameters.
@@ -78,7 +79,7 @@ But of course you can override the default behavior by manually setting the :fun
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("my_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
 The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
@@ -110,7 +111,7 @@ If you want to log anything that is not a scalar, like histograms, text, images,
 
 .. code-block:: python
 
-    def training_step(...):
+    def training_step(self):
         ...
         # the logger you used (in this case tensorboard)
         tensorboard = self.logger.experiment
@@ -142,11 +143,11 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
     from pytorch_lightning.loggers import LightningLoggerBase
     from pytorch_lightning.loggers.base import rank_zero_experiment
 
-    class MyLogger(LightningLoggerBase):
 
+    class MyLogger(LightningLoggerBase):
         @property
         def name(self):
-            return 'MyLogger'
+            return "MyLogger"
 
         @property
         @rank_zero_experiment
@@ -157,7 +158,7 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
         @property
         def version(self):
             # Return the experiment version, int or str.
-            return '0.1'
+            return "0.1"
 
         @rank_zero_only
         def log_hyperparams(self, params):
@@ -236,7 +237,7 @@ method, setting `prog_bar=True`.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('my_loss', loss, prog_bar=True)
+        self.log("my_loss", loss, prog_bar=True)
 
 
 Modifying the progress bar
@@ -292,7 +293,7 @@ When Lightning creates a checkpoint, it stores a key "hyper_parameters" with the
 .. code-block:: python
 
     lightning_checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
-    hyperparams = lightning_checkpoint['hyper_parameters']
+    hyperparams = lightning_checkpoint["hyper_parameters"]
 
 Some loggers also allow logging the hyperparams used in the experiment. For instance,
 when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will show
@@ -307,9 +308,11 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
         def validation_step(self, batch, batch_idx):
             self.log("hp_metric", some_scalar)
 
+
         # Using custom or multiple metrics (default_hp_metric=False)
         def on_train_start(self):
             self.logger.log_hyperparams(self.hparams, {"hp/metric_1": 0, "hp/metric_2": 0})
+
 
         def validation_step(self, batch, batch_idx):
             self.log("hp/metric_1", some_scalar_1)
@@ -329,7 +332,8 @@ For example, TestTubeLogger does this with a flag:
 .. code-block:: python
 
     from pytorch_lightning.loggers import TestTubeLogger
-    logger = TestTubeLogger('.', create_git_tag=True)
+
+    logger = TestTubeLogger(".", create_git_tag=True)
 
 ----------
 

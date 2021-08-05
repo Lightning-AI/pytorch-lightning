@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
-    """ Plugin that handles communication on a single device. """
+    """Plugin that handles communication on a single device."""
 
     def __init__(self, device: torch.device):
         super().__init__()
@@ -53,7 +53,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return tensor
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes"""
         return tensor
 
     @property
@@ -63,9 +63,8 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def model_to_device(self) -> None:
         self._model.to(self.root_device)
 
-    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self) -> None:
         self.model_to_device()
-        return self.model
 
     @property
     def is_global_zero(self) -> bool:
