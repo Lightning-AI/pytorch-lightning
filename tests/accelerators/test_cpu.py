@@ -9,6 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.plugins.checkpoint.torch import TorchCheckpointPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -201,7 +202,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
-    plugin = TestPlugin(torch.device("cpu"))
+    plugin = TestPlugin(torch.device("cpu"), checkpoint_plugin=TorchCheckpointPlugin())
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
 
     assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
