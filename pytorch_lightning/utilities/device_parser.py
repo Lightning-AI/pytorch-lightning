@@ -72,11 +72,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or isinstance(gpus, int) and gpus == 0:
-        return None
-
-    if _compare_version("pytorch_lightning", operator.ge, "1.5") and isinstance(gpus, str) and gpus.strip() == "0":
-        # TODO: in v1.5 combine this with the above if statement
+    if gpus is None or isinstance(gpus, int) and gpus == 0 or str(gpus).strip() == "0":
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -134,16 +130,7 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         return -1
     if "," in s:
         return [int(x.strip()) for x in s.split(",") if len(x) > 0]
-    num_gpus = int(s.strip())
-    if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-        rank_zero_deprecation(
-            f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-            " In the current version of Lightning, this will select"
-            f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-            f" {list(range(num_gpus))} (same as gpus={s} (int))."
-        )
-        return [num_gpus]
-    return num_gpus
+    return int(s.strip())
 
 
 def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:

@@ -204,25 +204,6 @@ def test_v1_5_0_lighting_module_grad_norm(tmpdir):
         model.grad_norm(2)
 
 
-@pytest.mark.xfail(
-    condition=_compare_version("pytorch_lightning", operator.ge, "1.5"), reason="parsing of string will change in v1.5"
-)
-@mock.patch("torch.cuda.device_count", return_value=4)
-def test_v1_5_0_trainer_gpus_str_parsing(*_):
-    # TODO: when removing this, make sure docs in docs/advanced/multi-gpu.rst reflect the new
-    #   behavior regarding GPU selection. Ping @awaelchli if unsure.
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
-        Trainer(gpus="3", accelerator="ddp_spawn")
-
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
-        gpus = device_parser.parse_gpu_ids("3")
-        assert gpus == [3]
-
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='0' .* will change."):
-        gpus = device_parser.parse_gpu_ids("0")
-        assert gpus == [0]
-
-
 def test_v1_5_0_datamodule_setter():
     model = BoringModel()
     datamodule = BoringDataModule()
