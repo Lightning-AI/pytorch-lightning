@@ -414,7 +414,7 @@ class LightningModule(
             raise MisconfigurationException(
                 "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
                 " yet. This is most likely because you are trying to log in a `predict` hook,"
-                " but it doesn't support logging."
+                " but it doesn't support logging"
             )
         if self._current_fx_name is None:
             raise MisconfigurationException(
