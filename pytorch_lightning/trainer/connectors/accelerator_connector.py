@@ -100,7 +100,6 @@ class AcceleratorConnector:
         precision,
         amp_type,
         amp_level,
-        checkpoint_plugin,
         plugins,
     ):
         # initialization
@@ -136,7 +135,6 @@ class AcceleratorConnector:
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
-        self.checkpoint_plugin = checkpoint_plugin
 
         plugins = plugins if plugins is not None else []
 
