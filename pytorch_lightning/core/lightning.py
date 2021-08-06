@@ -407,7 +407,7 @@ class LightningModule(
         if self.trainer is None:
             raise MisconfigurationException(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
-                " This is most likely because you logging before the model is passed to the `Trainer`"
+                " This is most likely because the model hasn't been passed to the `Trainer`"
             )
         results = self.trainer._results
         if results is None:
