@@ -27,7 +27,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
-from pytorch_lightning.plugins.checkpoint.deepspeed import DeepSpeedCheckpointPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
@@ -276,11 +275,13 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_parameters = cpu_offload_params
             pin_memory = cpu_offload_use_pin_memory
 
+        if checkpoint_plugin is not None:
+            raise MisconfigurationException("DeepSpeed currently does not support passing a custom checkpoint plugin.")
+
         super().__init__(
             parallel_devices=parallel_devices,
             num_nodes=num_nodes,
             cluster_environment=cluster_environment,
-            checkpoint_plugin=DeepSpeedCheckpointPlugin() if checkpoint_plugin is None else checkpoint_plugin,
         )
 
         self.config = self._load_config(config)
@@ -675,8 +676,49 @@ class DeepSpeedPlugin(DDPPlugin):
         return self.model
 
     @property
-    def multi_device(self) -> bool:
+    def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
+
+    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: The checkpoint state dictionary
+            filepath: write-target file's path
+        """
+        if self.zero_stage_3 and self._multi_device and self.is_global_zero:
+            # todo (sean): Add link to docs once docs are merged.
+            warning_cache.warn(
+                "When saving the DeepSpeed Stage 3 checkpoint, "
+                "each worker will save a shard of the checkpoint within a directory. "
+                "If a single file is required after training, see <TODO> for instructions."
+            )
+        # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
+        # dump states as a checkpoint dictionary object
+        _exclude_keys = ["state_dict", "optimizer_states", "lr_schedulers"]
+        checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
+        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
+
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+        if self.load_full_weights and self.zero_stage_3:
+            # Broadcast to ensure we load from the rank 0 checkpoint
+            # This doesn't have to be the case when using deepspeed sharded checkpointing
+            checkpoint_path = self.broadcast(checkpoint_path)
+            return super().load_checkpoint_file(checkpoint_path)
+
+        # Rely on deepspeed to load the checkpoint and necessary information
+        from pytorch_lightning.trainer.states import TrainerFn
+
+        is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+        _, client_state = self.deepspeed_engine.load_checkpoint(
+            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
+        )
+        if client_state is None:
+            raise MisconfigurationException(
+                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
+                "or a single checkpoint file with `Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))`."
+            )
+        return client_state
 
     @property
     def lightning_restore_optimizer_and_schedulers(self) -> bool:
@@ -688,6 +730,62 @@ class DeepSpeedPlugin(DDPPlugin):
                 "provide a path to the originally saved DeepSpeed checkpoint."
             )
         return False
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
+        if self.load_full_weights and self.zero_stage_3:
+            self.model_to_device()
+            self._restore_zero_state(checkpoint)
+
+    def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
+        """
+        Overrides the normal load_state_dict behaviour in PyTorch to ensure
+        we gather parameters that may be sharded across processes before loading
+        the state dictionary when using ZeRO stage 3.
+        This is then automatically synced across processes.
+
+        Args:
+            ckpt: The ckpt file.
+        """
+
+        def load(module: torch.nn.Module, prefix=""):
+
+            missing_keys = []
+            unexpected_keys = []
+            error_msgs = []
+            state_dict = ckpt["state_dict"]
+
+            # copy state_dict so _load_from_state_dict can modify it
+            metadata = getattr(state_dict, "_metadata", None)
+            state_dict = state_dict.copy()
+            if metadata is not None:
+                state_dict._metadata = metadata
+
+            local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
+            # because zero3 puts placeholders in model params, this context
+            # manager gathers (unpartitions) the params of the current layer, then loads from
+            # the state dict and then re-partitions them again
+            with deepspeed.zero.GatheredParameters(list(module.parameters(recurse=False)), modifier_rank=0):
+                if self.is_global_zero:
+                    module._load_from_state_dict(
+                        state_dict=state_dict,
+                        prefix=prefix,
+                        local_metadata=local_metadata,
+                        strict=True,
+                        missing_keys=missing_keys,
+                        unexpected_keys=unexpected_keys,
+                        error_msgs=error_msgs,
+                    )
+
+            for name, child in module._modules.items():
+                if child is not None:
+                    load(child, prefix + name + ".")
+
+        load(self.lightning_module, prefix="")
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
+        pass
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
@@ -727,15 +825,3 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
-
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        self.checkpoint_plugin.load_model_state_dict(checkpoint)
-
-    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
-        return self.checkpoint_plugin.save_checkpoint(checkpoint)
-
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
-        return self.checkpoint_plugin.load_checkpoint_file(checkpoint_path)
-
-    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        return self.checkpoint_plugin.load_optimizer_state_dict(checkpoint)

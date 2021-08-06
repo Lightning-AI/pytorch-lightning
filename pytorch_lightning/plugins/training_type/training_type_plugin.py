@@ -152,6 +152,17 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return self._results
 
+    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        return self.checkpoint_plugin.load_checkpoint_file(checkpoint_path)
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        optimizer_states = checkpoint["optimizer_states"]
+        for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
+            optimizer.load_state_dict(opt_state)
+
     def start_training(self, trainer: "pl.Trainer") -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
@@ -264,6 +275,20 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return current_global_step + 1
 
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """Returns model state."""
+        model = self.lightning_module
+        return model.state_dict()
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
+        return self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)
+
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         """
@@ -342,25 +367,3 @@ class TrainingTypePlugin(Plugin, ABC):
         Called in the training loop before anything happens for that batch.
         """
         pass
-
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        return self.checkpoint_plugin.load_checkpoint_file(checkpoint_path)
-
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        self.checkpoint_plugin.load_model_state_dict(checkpoint)
-
-    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        self.checkpoint_plugin.load_optimizer_state_dict(checkpoint)
-
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        """Returns model state."""
-        return self.checkpoint_plugin.lightning_module_state_dict()
-
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-        """
-        self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)

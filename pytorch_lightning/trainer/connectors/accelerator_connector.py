@@ -669,11 +669,8 @@ class AcceleratorConnector:
             training_type.cluster_environment = self.cluster_environment
             self._cluster_environment = proxy(self.cluster_environment)
 
-        if hasattr(training_type, "checkpoint_plugin"):
-            if getattr(training_type, "checkpoint_plugin") is None:
-                training_type.checkpoint_plugin = TorchCheckpointPlugin()
-            # todo (sean): this probably shouldn't happen here
-            training_type.checkpoint_plugin.training_type_plugin = training_type
+        if hasattr(training_type, "checkpoint_plugin") and getattr(training_type, "checkpoint_plugin") is None:
+            training_type.checkpoint_plugin = TorchCheckpointPlugin()
 
         if hasattr(training_type, "num_nodes"):
             # set num_nodes for training_type from trainer setting
