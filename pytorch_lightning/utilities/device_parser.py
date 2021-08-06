@@ -168,11 +168,13 @@ def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ..
     return list(range(gpus))
 
 
-def _get_all_available_gpus() -> List[int]:
+def _get_all_available_gpus() -> Optional[List[int]]:
     """
     Returns:
          a list of all available gpus
     """
+    if not torch.cuda.is_available():
+        return None
     return list(range(torch.cuda.device_count()))
 
 
