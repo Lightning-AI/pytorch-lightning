@@ -111,5 +111,5 @@ def test_get_sparse_model_size():
 
     model = BoringSparseModel()
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NotImplementedError, match="sparse tensors is not implemented"):
         get_model_size(model)
