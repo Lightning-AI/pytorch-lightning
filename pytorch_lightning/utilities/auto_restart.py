@@ -344,9 +344,9 @@ def _dataloader_to_state_dict(
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = _find_fast_forward_samplers(dataloader)
         if fast_forward_sampler is not None:
-            for sampler_k, sampler_v in (
-                fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed).items()
-            ):
+            for sampler_k, sampler_v in fast_forward_sampler.state_dict(
+                num_batches_processed=num_batches_processed
+            ).items():
                 out[sampler_k] = sampler_v
     return out
 
