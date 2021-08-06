@@ -15,6 +15,12 @@ import inspect
 from typing import Callable
 
 
-def is_param_in_hook_signature(hook_fx: Callable, param: str) -> bool:
+def is_param_in_hook_signature(hook_fx: Callable, param: str, explicit: bool = False) -> bool:
+    """
+    Args:
+        hook_fx: the hook callable
+        param: the name of the parameter to check
+        explicit: whether the parameter has to be explicitly declared
+    """
     hook_params = list(inspect.signature(hook_fx).parameters)
-    return "args" in hook_params or param in hook_params
+    return param in hook_params or (not explicit and "args" in hook_params)

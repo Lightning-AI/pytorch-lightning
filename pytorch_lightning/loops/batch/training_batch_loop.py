@@ -16,7 +16,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -27,13 +27,15 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.batch_loop_common import (
+    check_finite,
+    check_training_step_output,
+    process_training_step_output,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -253,32 +255,7 @@ class TrainingBatchLoop(Loop):
 
         # check if loss or model weights are nan
         if self.trainer.terminate_on_nan:
-            self._check_finite(opt_closure_result.loss)
-
-    def _check_training_step_output(self, training_step_output: STEP_OUTPUT) -> None:
-        """Sanity checks that training produced a valid output and optimizer step has already been called in manual
-        optimization.
-
-        Args:
-            training_step_output: the output of the training step (before wrapping in an AttributeDict)
-
-        """
-        if isinstance(training_step_output, Tensor) and not self.trainer.lightning_module.automatic_optimization:
-            if training_step_output.grad_fn is None:
-                # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
-                raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
-        elif self.trainer.lightning_module.automatic_optimization:
-            if not any(
-                (
-                    isinstance(training_step_output, Tensor),
-                    (isinstance(training_step_output, Mapping) and "loss" in training_step_output),
-                    training_step_output is None,
-                )
-            ):
-                raise MisconfigurationException(
-                    "In automatic optimization, `training_step` must either return a Tensor, "
-                    "a dict with key 'loss' or None (where the step will be skipped)."
-                )
+            check_finite(self.trainer, opt_closure_result.loss)
 
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
@@ -308,9 +285,9 @@ class TrainingBatchLoop(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            self._check_training_step_output(training_step_output)
+            check_training_step_output(self.trainer, training_step_output)
 
-            training_step_output = self._process_training_step_output(training_step_output)
+            training_step_output, self._hiddens = process_training_step_output(self.trainer, training_step_output)
             if training_step_output is None:
                 return
 
@@ -322,45 +299,6 @@ class TrainingBatchLoop(Loop):
             # the loss will get scaled for amp. avoid any modifications to it
             loss = closure_loss.detach().clone()
         return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
-
-    def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
-        """Adds the :param:`training_step_output` to the trainer's results
-
-        Args:
-            training_step_output: the output of the training step (before wrapping into an AttributeDict)
-
-        Returns:
-            the updated results if the training_step's output was not None else None
-        """
-        if training_step_output is None:
-            return None
-
-        results = self.trainer._results
-
-        loss = None
-        hiddens = None
-
-        # handle dict return
-        if isinstance(training_step_output, dict):
-            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
-            loss = training_step_output.get("loss")
-            hiddens = training_step_output.get("hiddens")
-            # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-            hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
-            # use the setter instead of `dict.update` because it calls `detach` on the tensor items
-            results.extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
-
-        # handle scalar return
-        elif isinstance(training_step_output, Tensor):
-            loss = training_step_output
-
-        # map to results under the hood
-        results.minimize = loss
-        self._hiddens = hiddens
-
-        if self.trainer.move_metrics_to_cpu:
-            results.cpu()
-        return results
 
     def _optimizer_step(
         self, optimizer: torch.optim.Optimizer, opt_idx: int, batch_idx: int, train_step_and_backward_closure: Callable
@@ -531,7 +469,7 @@ class TrainingBatchLoop(Loop):
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
-                        self._check_finite(result.loss)
+                        check_finite(self.trainer, result.loss)
 
                 else:
                     self._warning_cache.warn(
@@ -539,17 +477,6 @@ class TrainingBatchLoop(Loop):
                     )
 
         return result
-
-    def _check_finite(self, loss: Tensor) -> None:
-        """Checks fotr finite parameters and loss values.
-
-        Args:
-            loss: the loss value to check to be finite
-        """
-        if not torch.isfinite(loss).all():
-            raise ValueError(f"The loss returned in `training_step` is {loss}.")
-        model = self.trainer.lightning_module
-        detect_nan_parameters(model)
 
     def backward(
         self, result: STEP_OUTPUT, optimizer: Optional[torch.optim.Optimizer], *args: Any, **kwargs: Any

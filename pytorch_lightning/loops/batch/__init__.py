@@ -12,4 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pytorch_lightning.loops.batch.flexible_optimization_flow import FlexibleOptimizationFlow  # noqa: F401
 from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop  # noqa: F401

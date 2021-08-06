@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import FlexibleOptimizationFlow, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -81,6 +81,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 log = logging.getLogger(__name__)
@@ -846,10 +847,23 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
+    def _maybe_switch_to_flexible_optimization_flow(self, model: "pl.LightningModule") -> None:
+        training_step_fx = getattr(model, "training_step")
+        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+            log.warning(
+                "Using `FlexibleOptimizationFlow` since `training_step` has argument `dataloader_iter`. "
+                "Note that this is an experimental feature and its behavior may subject to change."
+            )
+            batch_loop = FlexibleOptimizationFlow(self, model)
+            self.fit_loop.epoch_loop.connect(batch_loop)
+
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
+
+        if self.training:
+            self._maybe_switch_to_flexible_optimization_flow(model)
 
         self.config_validator.verify_loop_configurations(model)
 
