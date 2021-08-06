@@ -1,9 +1,10 @@
+import pytest
 import torch
 
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 
-from pytorch_lightning.utilities.data import extract_batch_size, has_iterable_dataset
+from pytorch_lightning.utilities.data import extract_batch_size, has_iterable_dataset, has_len
 
 
 def test_extract_batch_size():
@@ -40,3 +41,20 @@ def test_has_iterable_dataset():
             return self
 
     assert not has_iterable_dataset(DataLoader(MockDataset()))
+
+
+def test_has_len():
+    class MockDatasetWithLen(Dataset):
+        def __len__(self):
+            return 1
+
+    assert has_len(DataLoader(MockDatasetWithLen()))
+
+    class MockDatasetWithZeroLen(Dataset):
+        def __len__(self):
+            return 0
+
+    with pytest.raises(ValueError):
+        assert has_len(DataLoader(MockDatasetWithZeroLen()))
+
+    assert not has_len(DataLoader(IterableDataset()))
