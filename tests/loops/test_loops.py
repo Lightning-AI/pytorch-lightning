@@ -24,7 +24,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

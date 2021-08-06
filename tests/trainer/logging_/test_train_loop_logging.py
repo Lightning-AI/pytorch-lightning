@@ -26,8 +26,9 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDictDataset
+from tests.helpers.datasets import RandomDictDataset
 from tests.helpers.runif import RunIf
 
 

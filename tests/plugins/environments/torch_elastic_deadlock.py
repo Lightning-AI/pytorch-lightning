@@ -4,8 +4,8 @@ from contextlib import suppress
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from tests.helpers.boring_model import BoringModel
 
 if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
 

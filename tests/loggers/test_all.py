@@ -32,7 +32,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation

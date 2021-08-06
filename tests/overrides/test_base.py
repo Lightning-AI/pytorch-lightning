@@ -20,7 +20,7 @@ from pytorch_lightning.overrides.base import (
     _LightningPrecisionModuleWrapperBase,
     unwrap_lightning_module,
 )
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 
 
 @pytest.mark.parametrize("wrapper_class", [_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase])

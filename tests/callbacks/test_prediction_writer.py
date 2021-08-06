@@ -16,8 +16,8 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
 
 
 def test_prediction_writer(tmpdir):

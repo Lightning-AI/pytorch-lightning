@@ -31,8 +31,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
+from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize

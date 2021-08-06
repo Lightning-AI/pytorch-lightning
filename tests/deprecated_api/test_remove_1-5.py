@@ -27,9 +27,9 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.utilities.debug_examples import BoringDataModule, BoringModel
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 

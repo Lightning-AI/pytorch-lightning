@@ -18,7 +18,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
-from tests.helpers.boring_model import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

@@ -23,7 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities import rank_zero_only
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 
 
 def test_logger_collection():

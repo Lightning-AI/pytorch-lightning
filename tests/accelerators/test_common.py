@@ -17,8 +17,8 @@ import torch
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.accelerators.test_dp import CustomClassificationModelDP
-from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 

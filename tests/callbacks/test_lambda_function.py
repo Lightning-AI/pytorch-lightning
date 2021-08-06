@@ -16,7 +16,7 @@ from functools import partial
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
-from tests.helpers.boring_model import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 
 
 def test_lambda_call(tmpdir):

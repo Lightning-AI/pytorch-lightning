@@ -18,7 +18,7 @@ from unittest.mock import Mock
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers.base import LightningLoggerBase
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

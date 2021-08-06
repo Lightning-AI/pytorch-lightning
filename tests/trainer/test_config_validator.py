@@ -15,8 +15,8 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
 
 
 def test_wrong_train_setting(tmpdir):

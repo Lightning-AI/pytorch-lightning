@@ -17,7 +17,7 @@ import torch.nn as nn
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

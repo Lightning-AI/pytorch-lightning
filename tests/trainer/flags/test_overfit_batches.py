@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
 
 
 def test_overfit_multiple_val_loaders(tmpdir):

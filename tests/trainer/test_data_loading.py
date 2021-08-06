@@ -19,9 +19,9 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
-from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.mark.skipif(

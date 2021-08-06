@@ -25,7 +25,7 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 from pytorch_lightning import LightningModule  # noqa: E402
 from pytorch_lightning import Trainer  # noqa: E402
-from tests.helpers.boring_model import BoringModel  # noqa: E402
+from pytorch_lightning.utilities.debug_examples import BoringModel  # noqa: E402
 
 
 # TODO(Borda): When multi-node tests are re-enabled (.github/workflows/ci_test-mnodes.yml)

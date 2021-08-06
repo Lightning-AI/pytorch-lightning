@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 from tests.helpers.utils import reset_seed
 
 

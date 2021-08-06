@@ -22,9 +22,9 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.debug_examples import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 

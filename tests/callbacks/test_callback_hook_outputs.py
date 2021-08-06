@@ -14,7 +14,7 @@
 import pytest
 
 from pytorch_lightning import Callback, Trainer
-from tests.helpers.boring_model import BoringModel
+from pytorch_lightning.utilities.debug_examples import BoringModel
 
 
 @pytest.mark.parametrize("single_cb", [False, True])

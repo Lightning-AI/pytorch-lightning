@@ -25,8 +25,9 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
+from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
+from tests.helpers.datasets import RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 
