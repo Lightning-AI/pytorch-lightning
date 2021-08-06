@@ -693,6 +693,6 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
 def test_lightning_cli_disabled_run(run):
     with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
         cli = LightningCLI(BoringModel, run=run)
-    fit_mock.assert_called() if run else fit_mock.assert_not_called()
+    fit_mock.call_count == run
     assert isinstance(cli.trainer, Trainer)
     assert isinstance(cli.model, LightningModule)
