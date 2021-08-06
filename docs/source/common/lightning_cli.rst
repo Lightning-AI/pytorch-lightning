@@ -270,7 +270,7 @@ setting is given through :code:`parser_kwargs`. More parameters are supported. F
 Instantiation only mode
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The CLI is designed to start fitting without minimal code changes. On class instantiation, the CLI will automatically
+The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically
 call ``trainer.fit(...)`` internally so you don't have to do it. To avoid this, you can set the following argument:
 
 .. testcode::
