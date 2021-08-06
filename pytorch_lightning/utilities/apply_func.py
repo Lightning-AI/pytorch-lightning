@@ -134,7 +134,7 @@ def apply_to_collection(
                 *args,
                 wrong_dtype=wrong_dtype,
                 include_none=include_none,
-                **kwargs
+                **kwargs,
             )
             if include_none or v is not None:
                 out_dict[field] = v
