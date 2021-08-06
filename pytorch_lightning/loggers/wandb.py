@@ -136,7 +136,7 @@ class WandbLogger(LightningLoggerBase):
             )
 
         if sync_step is not None:
-            warning_cache.deprecation(
+            rank_zero_deprecation(
                 "`WandbLogger(sync_step=(True|False))` is deprecated in v1.2.1 and will be removed in v1.5."
                 " Metrics are now logged separately and automatically synchronized."
             )
@@ -192,7 +192,7 @@ class WandbLogger(LightningLoggerBase):
             if wandb.run is None:
                 self._experiment = wandb.init(**self._wandb_init)
             else:
-                warning_cache.warn(
+                rank_zero_warn(
                     "There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse"
                     " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
                 )
