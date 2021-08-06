@@ -29,9 +29,8 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import rank_zero_warn, rank_zero_deprecation
 
-warning_cache = WarningCache()
 
 _WANDB_AVAILABLE = _module_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
@@ -130,7 +129,7 @@ class WandbLogger(LightningLoggerBase):
             )
 
         if log_model and not _WANDB_GREATER_EQUAL_0_10_22:
-            warning_cache.warn(
+            rank_zero_warn(
                 f"Providing log_model={log_model} requires wandb version >= 0.10.22"
                 " for logging associated model metadata.\n"
                 "Hint: Upgrade with `pip install --ugrade wandb`."
