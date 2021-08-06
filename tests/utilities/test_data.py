@@ -1,15 +1,9 @@
 import pytest
 import torch
-
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 
-from pytorch_lightning.utilities.data import (
-    extract_batch_size,
-    has_iterable_dataset,
-    has_len,
-    get_len,
-)
+from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len
 
 
 def test_extract_batch_size():
