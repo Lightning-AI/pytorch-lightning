@@ -332,19 +332,22 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
 
 def _dataloader_to_state_dict(
     dataloader: DataLoader, iterator: Iterator, num_batches_processed: int = None
-) -> Dict[str, Any]:
+) -> Dict[Union[int, str], Union[Dict[str, int], Optional[int]]]:
     """
     Convert a dataloader to its associated state dict
     """
-    out = {}
+    out: Dict[Union[int, str], Union[Dict[str, int], Optional[int]]] = {}
     if iterator is not None:
-        out.update(_find_current_worker(iterator))
+        for iterator_k, iterator_v in _find_current_worker(iterator).items():
+            out[iterator_k] = iterator_v
 
     if not isinstance(dataloader.dataset, CaptureIterableDataset):
         fast_forward_sampler = _find_fast_forward_samplers(dataloader)
         if fast_forward_sampler is not None:
-            for k, v in fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed).items():
-                out[k] = v
+            for sampler_k, sampler_v in (
+                fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed).items()
+            ):
+                out[sampler_k] = sampler_v
     return out
 
 
