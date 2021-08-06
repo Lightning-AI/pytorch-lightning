@@ -4,7 +4,12 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 
-from pytorch_lightning.utilities.data import extract_batch_size, has_iterable_dataset, has_len
+from pytorch_lightning.utilities.data import (
+    extract_batch_size,
+    has_iterable_dataset,
+    has_len,
+    get_len,
+)
 
 
 def test_extract_batch_size():
@@ -58,3 +63,16 @@ def test_has_len():
         assert has_len(DataLoader(MockDatasetWithZeroLen()))
 
     assert not has_len(DataLoader(IterableDataset()))
+
+
+def test_get_len():
+    class MockDatasetWithLen(Dataset):
+        def __len__(self):
+            return 1
+
+    assert get_len(DataLoader(MockDatasetWithLen())) == 1
+
+    value = get_len(DataLoader(IterableDataset()))
+
+    assert isinstance(value, float)
+    assert value == float("inf")
