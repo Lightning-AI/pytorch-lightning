@@ -34,3 +34,6 @@ if not os.path.isdir(_TEMP_PATH):
     os.mkdir(_TEMP_PATH)
 
 logging.basicConfig(level=logging.ERROR)
+
+# Use our MNIST implementation on tests to avoid the torchvision dependency
+os.environ.setdefault("PL_USE_MOCKED_MNIST", "1")

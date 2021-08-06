@@ -14,30 +14,21 @@
 import os
 import platform
 from typing import Optional
-from urllib.error import HTTPError
 from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
 from pl_examples import _DATASETS_PATH
 from pytorch_lightning import LightningDataModule
+from pytorch_lightning.utilities.debug_examples import MNIST as PL_MNIST
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
-if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms as transform_lib
-
-_TORCHVISION_MNIST_AVAILABLE = not bool(os.getenv("PL_USE_MOCKED_MNIST", False))
-if _TORCHVISION_MNIST_AVAILABLE:
-    try:
-        from torchvision.datasets import MNIST
-
-        MNIST(_DATASETS_PATH, download=True)
-    except HTTPError as e:
-        print(f"Error {e} downloading `torchvision.datasets.MNIST`")
-        _TORCHVISION_MNIST_AVAILABLE = False
-if not _TORCHVISION_MNIST_AVAILABLE:
-    print("`torchvision.datasets.MNIST` not available. Using our hosted version")
-    from tests.helpers.datasets import MNIST
+# check whether we are in CI. Users running this should get the `torchvision` implementation
+_USE_MOCKED_MNIST = bool(os.getenv("PL_USE_MOCKED_MNIST", False))
+if not _USE_MOCKED_MNIST and PL_MNIST._torchvision_available(_DATASETS_PATH, should_raise=False):
+    from torchvision.datasets import MNIST
+else:
+    MNIST = PL_MNIST
 
 
 class MNISTDataModule(LightningDataModule):
@@ -148,11 +139,12 @@ class MNISTDataModule(LightningDataModule):
     def default_transforms(self):
         if not _TORCHVISION_AVAILABLE:
             return None
+        from torchvision import transforms
+
         if self.normalize:
-            mnist_transforms = transform_lib.Compose(
-                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
+            mnist_transforms = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=(0.5,), std=(0.5,))]
             )
         else:
-            mnist_transforms = transform_lib.ToTensor()
-
+            mnist_transforms = transforms.ToTensor()
         return mnist_transforms
