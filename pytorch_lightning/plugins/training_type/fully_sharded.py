@@ -16,7 +16,7 @@ from typing import Dict, Generator, List, Optional
 
 import torch
 
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
@@ -41,7 +41,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: ClusterEnvironment = None,
-        checkpoint_plugin: Optional[CheckpointPlugin] = None,
+        checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
     ):
         """
         Plugin for Fully Sharded Data Parallel provided by FairScale.

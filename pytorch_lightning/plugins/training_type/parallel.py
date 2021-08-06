@@ -21,7 +21,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
@@ -35,7 +35,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[CheckpointPlugin] = None,
+        checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
     ):
         super().__init__(checkpoint_plugin)
         self.parallel_devices = parallel_devices

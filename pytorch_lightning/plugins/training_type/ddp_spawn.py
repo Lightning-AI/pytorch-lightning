@@ -24,7 +24,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -64,7 +64,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
         cluster_environment: ClusterEnvironment = None,
-        checkpoint_plugin: Optional[CheckpointPlugin] = None,
+        checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,

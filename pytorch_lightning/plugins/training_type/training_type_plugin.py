@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
@@ -36,14 +36,14 @@ class TrainingTypePlugin(Plugin, ABC):
     Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
     """
 
-    def __init__(self, checkpoint_plugin: Optional[CheckpointPlugin] = None) -> None:
+    def __init__(self, checkpoint_plugin: Optional[CheckpointIOPlugin] = None) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
         self._checkpoint_plugin = checkpoint_plugin
 
     @property
-    def checkpoint_plugin(self) -> CheckpointPlugin:
+    def checkpoint_plugin(self) -> CheckpointIOPlugin:
         return self._checkpoint_plugin
 
     @checkpoint_plugin.setter

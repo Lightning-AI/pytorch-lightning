@@ -2,13 +2,13 @@ from pathlib import Path
 from typing import Any, Dict, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointPlugin
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 
-class TorchCheckpointPlugin(CheckpointPlugin):
+class TorchCheckpointIOPlugin(CheckpointIOPlugin):
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         # dump states as a checkpoint dictionary object
         try:

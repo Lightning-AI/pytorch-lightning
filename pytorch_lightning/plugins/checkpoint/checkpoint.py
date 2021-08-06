@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, Union
 
 
-class CheckpointPlugin(ABC):
+class CheckpointIOPlugin(ABC):
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
