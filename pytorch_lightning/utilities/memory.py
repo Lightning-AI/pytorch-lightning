@@ -134,6 +134,10 @@ def get_gpu_memory_map() -> Dict[str, float]:
     Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
+
+    Raises:
+        FileNotFoundError:
+            If nvidia-smi installation not found
     """
     nvidia_smi_path = shutil.which("nvidia-smi")
     if nvidia_smi_path is None:
