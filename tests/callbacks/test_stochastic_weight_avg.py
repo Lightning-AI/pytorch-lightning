@@ -185,7 +185,7 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=1.5, swa_lrs=0.1)
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException, match="positive float or a list of positive float"):
+    with pytest.raises(MisconfigurationException, match="positive float, or a list of positive floats"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
 
