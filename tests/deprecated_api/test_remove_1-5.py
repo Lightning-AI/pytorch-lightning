@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
-import operator
 import os
 from typing import Any, Dict
 from unittest import mock
@@ -26,8 +25,6 @@ from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf

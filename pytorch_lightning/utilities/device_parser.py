@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
 
 
 def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
