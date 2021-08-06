@@ -84,10 +84,8 @@ def test_attach_model_callbacks():
     """Test that the callbacks defined in the model and through Trainer get merged correctly."""
 
     def assert_composition(trainer_callbacks, model_callbacks, expected):
-        model = Mock()
-        model.configure_callbacks.return_value = model_callbacks
         trainer = Trainer(checkpoint_callback=False, progress_bar_refresh_rate=0, callbacks=trainer_callbacks)
-        trainer.model = model
+        trainer.call_hook = Mock(return_value=model_callbacks)
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
         assert trainer.callbacks == expected
