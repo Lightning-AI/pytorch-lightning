@@ -50,7 +50,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
 
     if seed is None:
         global_seed = os.environ.get("PL_GLOBAL_SEED")
-        if isinstance(global_seed, str):
+        if isinstance(global_seed, str) and all(char.isdigit() for char in global_seed):
             seed = int(global_seed)
         else:
             rank_zero_warn(f"No correct seed found, seed set to {seed}")
