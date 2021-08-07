@@ -55,7 +55,6 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         else:
             rank_zero_warn(f"No correct seed found, seed set to {seed}")
             seed = _select_seed_randomly(max_seed_value, max_seed_value)
-    seed = int(seed)
 
     if not (min_seed_value <= seed <= max_seed_value):
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
