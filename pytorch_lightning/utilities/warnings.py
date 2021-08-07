@@ -14,7 +14,7 @@
 """Warning-related utilities"""
 import warnings
 from functools import partial
-from typing import Any, Sequence, Tuple, Type, Union
+from typing import Any, Type, Union
 
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
