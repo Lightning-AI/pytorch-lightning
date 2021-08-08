@@ -1891,7 +1891,10 @@ class LightningModule(
 
         if "example_outputs" not in kwargs:
             self.eval()
-            kwargs["example_outputs"] = self(input_sample)
+            if isinstance(input_sample, Tuple):
+                kwargs["example_outputs"] = self(*input_sample)
+            else:
+                kwargs["example_outputs"] = self(input_sample)
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
