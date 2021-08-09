@@ -452,10 +452,11 @@ class TrainingBatchLoop(Loop):
             batch: the current batch to split
         """
         splits = [batch]
-        if self.trainer.truncated_bptt_steps is not None:
+        tbptt_steps = self._truncated_bptt_steps()
+        if tbptt_steps > 0:
             model_ref = self.trainer.lightning_module
             with self.trainer.profiler.profile("tbptt_split_batch"):
-                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
+                splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
         return splits
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
