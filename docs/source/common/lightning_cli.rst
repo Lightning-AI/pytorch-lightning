@@ -4,12 +4,13 @@
     import torch
     from unittest import mock
     from typing import List
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.core.datamodule import LightningDataModule
+    from pytorch_lightning import LightningModule, LightningDataModule, Trainer
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    original_fit = LightningCLI.fit
-    LightningCLI.fit = lambda self: None
+    cli_fit = LightningCLI.fit
+    LightningCLI.fit = lambda *_, **__: None
+    trainer_fit = Trainer.fit
+    Trainer.fit = lambda *_, **__: None
 
 
     class MyModel(LightningModule):
@@ -47,7 +48,8 @@
 
 .. testcleanup:: *
 
-    LightningCLI.fit = original_fit
+    LightningCLI.fit = cli_fit
+    Trainer.fit = trainer_fit
     mock_argv.stop()
 
 
