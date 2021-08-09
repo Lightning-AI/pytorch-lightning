@@ -1953,7 +1953,7 @@ def get_cycles_per_ms() -> float:
 
 
 @RunIf(min_gpus=1)
-def test_trainer_inter_batch_parallelism(tmpdir):
+def test_trainer_num_prefetch_batches(tmpdir):
 
     CYCLES_PER_MS = int(get_cycles_per_ms())
 
@@ -2001,16 +2001,16 @@ def test_trainer_inter_batch_parallelism(tmpdir):
             pass  # todo skip?
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset())
+            return DataLoader(RandomDataset(), batch_size=4)
 
     model = RecommenderModel(non_blocking=False)
 
     t0 = time()
-    trainer = Trainer(max_epochs=2, inter_batch_parallelism=False, gpus=1)
+    trainer = Trainer(max_epochs=2, gpus=1)
     trainer.fit(model)
 
     t1 = time()
-    trainer = Trainer(max_epochs=2, inter_batch_parallelism=True, gpus=1)
+    trainer = Trainer(max_epochs=2, num_prefetch_batches=4, gpus=1)
     trainer.fit(model)
 
     t2 = time()
@@ -2018,7 +2018,7 @@ def test_trainer_inter_batch_parallelism(tmpdir):
     assert (t1 - t0) > (t2 - t1)
 
 
-def test_inter_batch_parallelism_fails_on_non_gpus():
+def test_num_prefetch_batches_fails_on_non_gpus():
 
     with pytest.raises(MisconfigurationException, match="but it is only supported on GPUs"):
-        Trainer(inter_batch_parallelism=True, accelerator="cpu")
+        Trainer(num_prefetch_batches=True, accelerator="cpu")
