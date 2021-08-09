@@ -27,7 +27,7 @@ class DataConnector:
         self,
         trainer: "pl.Trainer",
         multiple_trainloader_mode: str = "max_size_cycle",
-        num_prefetch_batches: int = 0,
+        num_prefetch_batches: int = 1,
     ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode

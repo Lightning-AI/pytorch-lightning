@@ -159,7 +159,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
-        num_prefetch_batches: int = 0,
+        num_prefetch_batches: int = 1,
     ):
         r"""
         Customize every aspect of training via flags
@@ -1329,7 +1329,7 @@ class Trainer(
             )
 
     def _validate_num_prefetch_batches(self, num_prefetch_batches: int) -> None:
-        if num_prefetch_batches > 0 and not isinstance(self.accelerator, GPUAccelerator):
+        if num_prefetch_batches > 1 and not isinstance(self.accelerator, GPUAccelerator):
             raise MisconfigurationException(
                 f"You have passed `Trainer(num_prefetch_batches={num_prefetch_batches})`"
                 " but it is only supported on GPUs"

@@ -510,7 +510,6 @@ class TrainingBatchLoop(Loop):
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
-
             result = self._training_step(split_batch, batch_idx, opt_idx, hiddens)
 
             if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:

@@ -47,7 +47,7 @@ class LightningFetcher:
         dataloader,
         batch_to_device: Callable,
         profiler: "pl.profiler.base.BaseProfiler",
-        num_prefetch_batches: int = 0,
+        num_prefetch_batches: int = 1,
     ) -> None:
         self.iterator = profiled_iterator(dataloader, profiler)
         self.batch_to_device = batch_to_device

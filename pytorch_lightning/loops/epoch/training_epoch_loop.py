@@ -38,7 +38,6 @@ class TrainingEpochLoop(loops.Loop):
         super().__init__()
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
-
         self.global_step: int = 0
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
