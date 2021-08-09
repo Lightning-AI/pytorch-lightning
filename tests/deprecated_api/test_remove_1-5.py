@@ -22,19 +22,12 @@ import torch
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.decorators import auto_move_data
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities.debug_examples import BoringDataModule, BoringModel
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
-
-
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_v1_5_0_wandb_unused_sync_step(_):
-    with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
-        WandbLogger(sync_step=True)
 
 
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
