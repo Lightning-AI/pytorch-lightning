@@ -1,6 +1,7 @@
 .. testsetup:: *
 
-    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.callbacks import StochasticWeightAveraging
 
 .. _training_tricks:
 
@@ -57,14 +58,17 @@ This can be used with both non-trained and trained models. The SWA procedure smo
 it harder to end up in a local minimum during optimization.
 
 For a more detailed explanation of SWA and how it works,
-read `this <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ post by the PyTorch team.
+read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
 
-.. seealso:: :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging` (Callback)
+.. seealso:: The :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging` callback
 
 .. testcode::
 
-    # Enable Stochastic Weight Averaging
+    # Enable Stochastic Weight Averaging - uses the class defaults
     trainer = Trainer(stochastic_weight_avg=True)
+
+    # alternatively, if you need to pass custom arguments
+    trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
 
 ----------
 
