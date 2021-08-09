@@ -291,7 +291,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         # dump states as a checkpoint dictionary object
         checkpoint = self.on_save(checkpoint)
-        if self.is_global_zero:
+        if self.should_rank_save_checkpoint:
             return self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)
 
     @contextlib.contextmanager
