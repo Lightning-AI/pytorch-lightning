@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
 
@@ -108,7 +108,7 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        _, batch, is_last, event = next(dataloader_iter)
+        _, batch, is_last = next(dataloader_iter)
         self.is_last_batch = is_last
 
         # ------------------------------------
@@ -117,7 +117,7 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx, event)
+            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx)
 
         self.batch_progress.increment_processed()
 

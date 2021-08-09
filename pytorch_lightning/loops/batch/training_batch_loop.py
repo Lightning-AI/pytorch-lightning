@@ -32,7 +32,6 @@ from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.dataloader_fetcher import LightningStreamEvent
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -48,7 +47,6 @@ class TrainingBatchLoop(Loop):
         super().__init__()
         self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
-        self.event: Optional[LightningStreamEvent] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
@@ -75,7 +73,7 @@ class TrainingBatchLoop(Loop):
     def connect(self, **kwargs: "Loop") -> None:
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
-    def run(self, batch: Any, batch_idx: int, dataloader_idx: int, event: LightningStreamEvent) -> AttributeDict:
+    def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
 
         Args:
@@ -97,8 +95,6 @@ class TrainingBatchLoop(Loop):
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
             return AttributeDict(signal=-1)
-
-        self.event = event
 
         self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
@@ -515,7 +511,6 @@ class TrainingBatchLoop(Loop):
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
 
-            self.event.wait()
             result = self._training_step(split_batch, batch_idx, opt_idx, hiddens)
 
             if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
