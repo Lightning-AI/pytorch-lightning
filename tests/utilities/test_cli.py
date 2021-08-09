@@ -366,9 +366,9 @@ def test_lightning_cli_save_config_cases(tmpdir):
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
 
     config = dict(
-        model=dict(class_path="pytorch_lightning.utilities.debug_examples.BoringModel"),
+        model=dict(class_path="pytorch_lightning.utilities.debugging_examples.BoringModel"),
         data=dict(
-            class_path="pytorch_lightning.utilities.debug_examples.BoringDataModule",
+            class_path="pytorch_lightning.utilities.debugging_examples.BoringDataModule",
             init_args=dict(data_dir=str(tmpdir)),
         ),
         trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None),
@@ -417,7 +417,7 @@ def test_lightning_cli_help():
         if param not in skip_params:
             assert f"--trainer.{param}" in out.getvalue()
 
-    cli_args = ["any.py", "--data.help=pytorch_lightning.utilities.debug_examples.BoringDataModule"]
+    cli_args = ["any.py", "--data.help=pytorch_lightning.utilities.debugging_examples.BoringDataModule"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
@@ -430,8 +430,8 @@ def test_lightning_cli_print_config():
     cli_args = [
         "any.py",
         "--seed_everything=1234",
-        "--model=pytorch_lightning.utilities.debug_examples.BoringModel",
-        "--data=pytorch_lightning.utilities.debug_examples.BoringDataModule",
+        "--model=pytorch_lightning.utilities.debugging_examples.BoringModel",
+        "--data=pytorch_lightning.utilities.debugging_examples.BoringDataModule",
         "--print_config",
     ]
 
@@ -441,8 +441,8 @@ def test_lightning_cli_print_config():
 
     outval = yaml.safe_load(out.getvalue())
     assert outval["seed_everything"] == 1234
-    assert outval["model"]["class_path"] == "pytorch_lightning.utilities.debug_examples.BoringModel"
-    assert outval["data"]["class_path"] == "pytorch_lightning.utilities.debug_examples.BoringDataModule"
+    assert outval["model"]["class_path"] == "pytorch_lightning.utilities.debugging_examples.BoringModel"
+    assert outval["data"]["class_path"] == "pytorch_lightning.utilities.debugging_examples.BoringDataModule"
 
 
 def test_lightning_cli_submodules(tmpdir):
@@ -455,9 +455,9 @@ def test_lightning_cli_submodules(tmpdir):
     config = """model:
         main_param: 2
         submodule1:
-            class_path: pytorch_lightning.utilities.debug_examples.BoringModel
+            class_path: pytorch_lightning.utilities.debugging_examples.BoringModel
         submodule2:
-            class_path: pytorch_lightning.utilities.debug_examples.BoringModel
+            class_path: pytorch_lightning.utilities.debugging_examples.BoringModel
     """
     config_path = tmpdir / "config.yaml"
     with open(config_path, "w") as f:
