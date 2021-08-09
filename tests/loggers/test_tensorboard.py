@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import operator
 import os
 from argparse import Namespace
 from unittest import mock
@@ -24,9 +25,11 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities.imports import _compare_version
 from tests.helpers import BoringModel
 
 
+@pytest.mark.skipif(_compare_version("tensorboard", operator.ge, "2.5.0"), reason="don't know")
 def test_tensorboard_hparams_reload(tmpdir):
     class CustomModel(BoringModel):
         def __init__(self, b1=0.5, b2=0.999):
