@@ -29,7 +29,7 @@ from tests.helpers import BoringModel
 
 
 @pytest.mark.skipif(
-    _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.5.0"
+    _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.6.0"
 )
 def test_tensorboard_hparams_reload(tmpdir):
     from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
