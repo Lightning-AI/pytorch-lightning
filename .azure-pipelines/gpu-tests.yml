@@ -53,8 +53,6 @@ jobs:
         pip install fairscale>=0.3.4
         pip install "deepspeed>=0.4.3, !=0.4.4" # FIXME: bug with 0.4.4
         pip install . --requirement requirements/devel.txt
-        pip uninstall protobuf
-        pip install --no-binary=protobuf protobuf
         pip list
       displayName: 'Install dependencies'
 
