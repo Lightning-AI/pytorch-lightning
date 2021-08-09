@@ -26,9 +26,9 @@ def test_extract_batch_size():
 
 
 def test_has_iterable_dataset():
-    assert has_iterable_dataset(DataLoader(RandomIterableDataset(1,1)))
+    assert has_iterable_dataset(DataLoader(RandomIterableDataset(1, 1)))
 
-    assert not has_iterable_dataset(DataLoader(RandomDataset(1,1)))
+    assert not has_iterable_dataset(DataLoader(RandomDataset(1, 1)))
 
     class MockDatasetWithoutIterableDataset(Dataset):
         def __iter__(self):
@@ -39,18 +39,18 @@ def test_has_iterable_dataset():
 
 
 def test_has_len():
-    assert has_len(DataLoader(RandomDataset(1,1)))
+    assert has_len(DataLoader(RandomDataset(1, 1)))
 
     with pytest.raises(ValueError, match="`Dataloader` returned 0 length."):
-        assert has_len(DataLoader(RandomDataset(0,0)))
+        assert has_len(DataLoader(RandomDataset(0, 0)))
 
-    assert not has_len(DataLoader(RandomIterableDataset(1,1)))
+    assert not has_len(DataLoader(RandomIterableDataset(1, 1)))
 
 
 def test_get_len():
-    assert get_len(DataLoader(RandomDataset(1,1))) == 1
+    assert get_len(DataLoader(RandomDataset(1, 1))) == 1
 
-    value = get_len(DataLoader(RandomIterableDataset(1,1)))
+    value = get_len(DataLoader(RandomIterableDataset(1, 1)))
 
     assert isinstance(value, float)
     assert value == float("inf")
