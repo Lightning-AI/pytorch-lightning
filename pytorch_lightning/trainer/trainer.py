@@ -851,7 +851,30 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: "pl.LightningModule") -> ...:
+        try:
+            return self._run_impl(model)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+                # same treatment as below
+                self.accelerator.on_train_end()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            # give accelerators a chance to finish
+            self.accelerator.on_train_end()
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
+
+    def _run_impl(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -1058,29 +1081,8 @@ class Trainer(
 
         self.reset_train_val_dataloaders(model)
 
-        try:
-            # reset trainer on this loop and all child loops in case user connected a custom loop
-            self.fit_loop.trainer = self
-            self.fit_loop.run()
-        except KeyboardInterrupt:
-            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.on_train_end()
-        except BaseException:
-            self.state.status = TrainerStatus.INTERRUPTED
-            if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
-                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-            # give accelerators a chance to finish
-            self.accelerator.on_train_end()
-            self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
-            raise
+        self.fit_loop.trainer = self
+        self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
