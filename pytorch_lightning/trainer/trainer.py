@@ -159,7 +159,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
-        inter_batch_parallelism: bool = False,
+        num_prefetch_batches: int = 0,
     ):
         r"""
         Customize every aspect of training via flags
@@ -335,8 +335,8 @@ class Trainer(
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
-            inter_batch_parallelism: The most common approach is to process input batches sequentially.
-                However, setting inter_batch_parallelism to True, enable hidding the next batch transfer latency
+            num_prefetch_batches: The most common approach is to process input batches sequentially.
+                However, setting num_prefetch_batches, enables hiding the next n batches transfer latency
                 to device behind the forward and backward call from the model. Only supported on CUDA devices.
 
         """
@@ -349,7 +349,7 @@ class Trainer(
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self, multiple_trainloader_mode, inter_batch_parallelism)
+        self.data_connector = DataConnector(self, multiple_trainloader_mode, num_prefetch_batches)
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
@@ -372,7 +372,7 @@ class Trainer(
             plugins,
         )
 
-        self._validate_inter_batch_parallelism(inter_batch_parallelism)
+        self._validate_num_prefetch_batches(num_prefetch_batches)
 
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
@@ -1328,10 +1328,11 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _validate_inter_batch_parallelism(self, inter_batch_parallelism: bool) -> None:
-        if inter_batch_parallelism and not isinstance(self.accelerator, GPUAccelerator):
+    def _validate_num_prefetch_batches(self, num_prefetch_batches: int) -> None:
+        if num_prefetch_batches > 0 and not isinstance(self.accelerator, GPUAccelerator):
             raise MisconfigurationException(
-                "You have passed `Trainer(inter_batch_parallelism=True)` but it is only supported on GPUs"
+                f"You have passed `Trainer(num_prefetch_batches={num_prefetch_batches})`"
+                " but it is only supported on GPUs"
             )
 
     def _on_expection(self):

@@ -27,11 +27,11 @@ class DataConnector:
         self,
         trainer: "pl.Trainer",
         multiple_trainloader_mode: str = "max_size_cycle",
-        inter_batch_parallelism: bool = False,
+        num_prefetch_batches: int = 0,
     ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.inter_batch_parallelism = inter_batch_parallelism
+        self.num_prefetch_batches = num_prefetch_batches
 
     def on_trainer_init(
         self,
@@ -69,10 +69,9 @@ class DataConnector:
     def get_profiled_train_dataloader(self, train_dataloader) -> Iterator:
         fetcher = LightningFetcher(
             train_dataloader,
-            self.inter_batch_parallelism,
             self.trainer.accelerator.batch_to_device,
             self.trainer.profiler,
-            self.trainer.accelerator.root_device,
+            self.num_prefetch_batches,
         )
         return iter(fetcher)
 

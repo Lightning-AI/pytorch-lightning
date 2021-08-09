@@ -1,42 +1,21 @@
-from contextlib import contextmanager
-from dataclasses import dataclass
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Any, Callable, Generator, List
 
 import torch
 
 import pytorch_lightning as pl
-
-
-@dataclass
-class LightningStreamEvent:
-
-    """
-    This class is used to capture the device stream and report its associated event
-    """
-
-    inter_batch_parallelism: bool
-    device: torch.device
-
-    def __post_init__(self):
-        self.cuda_stream = torch.cuda.Stream()
-        self.events: List[torch.cuda.Event] = []
-
-    @contextmanager
-    def stream_context(self):
-        with torch.cuda.stream(self.cuda_stream):
-            self.start_record()
-            yield
-            self.end_record()
-
-    def start_record(self) -> None:
-        self.events.append(torch.cuda.Event())
-
-    def end_record(self) -> None:
-        self.events[-1].record()
-
-    def wait(self) -> None:
-        event = self.events.pop(0)
-        event.wait()
 
 
 def profiled_iterator(iterable, profiler):
@@ -53,7 +32,7 @@ class LightningFetcher:
 
     """
     This class is used to perform ``pre-fetching`` for the ``train`` dataloader
-    and apply iter batch parallelism if enabled.
+    and apply inter batch parallelism if enabled.
 
     batch 0: [HtoD][forward][backward]
     batch 1:                          [HtoD][forward][backward]
@@ -66,48 +45,58 @@ class LightningFetcher:
     def __init__(
         self,
         dataloader,
-        inter_batch_parallelism: bool,
         batch_to_device: Callable,
         profiler: "pl.profiler.base.BaseProfiler",
-        device: torch.device,
-        num_prefetch_batch: int = 1,
+        num_prefetch_batches: int = 0,
     ) -> None:
-        self.stream = LightningStreamEvent(inter_batch_parallelism, device)
         self.iterator = profiled_iterator(dataloader, profiler)
         self.batch_to_device = batch_to_device
-        self.counter = 0
-
-        self.num_prefetch_batch = num_prefetch_batch
-        if num_prefetch_batch != 1:
-            raise NotImplementedError
+        self.batches: List = []
+        self.events: List = []
+        self.counter: int = 0
+        self.num_prefetch_batches = num_prefetch_batches
 
     def __iter__(self) -> Generator:
         self.counter = 1
         return self.prefetch_function()
 
-    def apply_stream(self, batch) -> Any:
-        with self.stream.stream_context():
-            return self.batch_to_device(batch)
+    def add_event(self, event) -> None:
+        self.events.append(event)
+
+    def add_batch(self, batch) -> None:
+        self.batches.append(batch)
+
+    def start_record(self, event) -> None:
+        event.record()
+
+    def fetch_batch(self):
+        return self.batches.pop(0)
+
+    def wait(self) -> None:
+        event = self.events.pop(0)
+        event.wait()
 
     def prefetch_function(self) -> Any:
-        try:
-            last = self.apply_stream(next(self.iterator))
-        except StopIteration:
-            return
+        cuda_stream = torch.cuda.Stream()
 
-        for val in self.iterator:
-            val = self.apply_stream(val)
+        done = False
+        while not done:
 
+            for _ in range(self.num_prefetch_batches + 1):
+                if not done:
+                    with torch.cuda.stream(cuda_stream):
+                        batch_event = torch.cuda.Event()
+                        self.add_event(batch_event)
+                        try:
+                            batch = next(self.iterator)
+                            batch = self.batch_to_device(batch)
+                            self.add_batch(batch)
+                            self.start_record(batch_event)
+                        except StopIteration:
+                            done = True
+
+            self.wait()
+            batch = self.fetch_batch()
             # yield last and has next
-            yield self.counter, last, False, self.stream
-
-            # prepare for next batch
-            last = val
+            yield self.counter, batch, False
             self.counter += 1
-
-        # yield last, no longer has next
-        yield self.counter, self.apply_stream(last), True, self.stream
-
-    @property
-    def wait(self) -> None:
-        self.stream.wait()
