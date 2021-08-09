@@ -113,7 +113,6 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
-        sync_step: Optional[bool] = None,
         **kwargs,
     ):
         if wandb is None:
@@ -134,12 +133,6 @@ class WandbLogger(LightningLoggerBase):
                 f"Providing log_model={log_model} requires wandb version >= 0.10.22"
                 " for logging associated model metadata.\n"
                 "Hint: Upgrade with `pip install --ugrade wandb`."
-            )
-
-        if sync_step is not None:
-            warning_cache.deprecation(
-                "`WandbLogger(sync_step=(True|False))` is deprecated in v1.2.1 and will be removed in v1.5."
-                " Metrics are now logged separately and automatically synchronized."
             )
 
         super().__init__()

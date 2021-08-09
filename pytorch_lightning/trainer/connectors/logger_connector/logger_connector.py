@@ -102,9 +102,8 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        if self.trainer.is_global_zero:
-            self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-            self.trainer.logger.save()
+        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+        self.trainer.logger.save()
 
         self._logged_metrics.update(scalar_metrics)
 
