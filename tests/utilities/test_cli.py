@@ -33,6 +33,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import instantiate_class, LightningArgumentParser, LightningCLI, SaveConfigCallback
+from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -689,13 +690,12 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
+@CALLBACK_REGISTRIES
+class CustomCallback(Callback):
+    pass
+
+
 def test_registries(tmpdir):
-
-    from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES
-
-    @CALLBACK_REGISTRIES
-    class CustomCallback(Callback):
-        pass
 
     assert CALLBACK_REGISTRIES.available_objects() == [
         "BackboneFinetuning",
