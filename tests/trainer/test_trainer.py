@@ -1965,6 +1965,9 @@ def test_trainer_inter_batch_parallelism(tmpdir):
         def __getitem__(self, index):
             return torch.randint(EMB_DIM, [BATCH_SIZE])
 
+        def __len__(self):
+            return 16
+
     class RecommenderModel(BoringModel):
         def __init__(self, non_blocking: bool):
             super().__init__()
@@ -1991,15 +1994,24 @@ def test_trainer_inter_batch_parallelism(tmpdir):
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
+        def val_dataloader(self):
+            pass  # todo skip ?
+
+        def test_dataloader(self):
+            pass  # todo skip?
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset())
+
     model = RecommenderModel(non_blocking=False)
 
     t0 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=False, gpus=1)
-    trainer.fit(model, train_dataloader=DataLoader(RandomDataset()))
+    trainer.fit(model)
 
     t1 = time()
     trainer = Trainer(max_epochs=2, inter_batch_parallelism=True, gpus=1)
-    trainer.fit(model, train_dataloader=DataLoader(RandomDataset()))
+    trainer.fit(model)
 
     t2 = time()
 
