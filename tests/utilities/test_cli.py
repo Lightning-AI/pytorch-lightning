@@ -402,17 +402,18 @@ def test_lightning_cli_help():
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
+    out = out.getvalue()
 
-    assert "--print_config" in out.getvalue()
-    assert "--config" in out.getvalue()
-    assert "--seed_everything" in out.getvalue()
-    assert "--model.help" in out.getvalue()
-    assert "--data.help" in out.getvalue()
+    assert "--print_config" in out
+    assert "--config" in out
+    assert "--seed_everything" in out
+    assert "--model.help" in out
+    assert "--data.help" in out
 
     skip_params = {"self"}
     for param in inspect.signature(Trainer.__init__).parameters.keys():
         if param not in skip_params:
-            assert f"--trainer.{param}" in out.getvalue()
+            assert f"--trainer.{param}" in out
 
     cli_args = ["any.py", "--data.help=tests.helpers.BoringDataModule"]
     out = StringIO()
@@ -423,7 +424,6 @@ def test_lightning_cli_help():
 
 
 def test_lightning_cli_print_config():
-
     cli_args = [
         "any.py",
         "--seed_everything=1234",
