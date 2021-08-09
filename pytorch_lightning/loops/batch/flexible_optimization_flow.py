@@ -43,7 +43,7 @@ class FlexibleOptimizationFlow:
 
     The `training_step` is allowed to fetch multiple batches during one training iteration. The
     framework provides minimum amount of automation with regards to model optimization (hence the
-    "flexible" in the name). The flexbilility allows for ease of experimentation with inter-batch
+    "flexible" in the name). The flexibility allows for ease of experimentation with inter-batch
     parallelism techniques.
 
     This flow doesn't support `automatic_optimization` and `tbptt`. An error will be thrown if the
