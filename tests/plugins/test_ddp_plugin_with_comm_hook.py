@@ -16,7 +16,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:

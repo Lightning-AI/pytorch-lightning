@@ -30,7 +30,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.advanced_models import BasicGAN
 from tests.helpers.runif import RunIf
 

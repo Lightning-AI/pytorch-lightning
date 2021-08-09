@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

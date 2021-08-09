@@ -25,7 +25,7 @@ from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _IPU_AVAILABLE
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf

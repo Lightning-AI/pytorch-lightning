@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import instantiate_class, LightningArgumentParser, LightningCLI, SaveConfigCallback
-from pytorch_lightning.utilities.debug_examples import BoringDataModule, BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringDataModule, BoringModel
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers.runif import RunIf
 

@@ -21,7 +21,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities.debug_examples import BoringDataModule, BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

@@ -20,7 +20,7 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnShardedPlugin
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

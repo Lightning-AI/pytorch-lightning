@@ -41,7 +41,7 @@ from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate

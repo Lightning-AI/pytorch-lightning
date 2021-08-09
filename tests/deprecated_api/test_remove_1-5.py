@@ -14,7 +14,6 @@
 """Test deprecated functionality which will be removed in v1.5.0"""
 import os
 from typing import Any, Dict
-from unittest import mock
 
 import pytest
 import torch
@@ -24,7 +23,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.utilities.debug_examples import BoringDataModule, BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringDataModule, BoringModel
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call

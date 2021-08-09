@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, random_split
 
 from pl_examples import _DATASETS_PATH
 from pytorch_lightning import LightningDataModule
-from pytorch_lightning.utilities.debug_examples import MNIST as PL_MNIST
+from pytorch_lightning.utilities.debugging_examples import MNIST as PL_MNIST
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 # check whether we are in CI. Users running this should get the `torchvision` implementation

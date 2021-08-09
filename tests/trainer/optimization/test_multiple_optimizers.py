@@ -18,7 +18,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 
 
 class MultiOptModel(BoringModel):

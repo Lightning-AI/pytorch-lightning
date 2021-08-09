@@ -23,7 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.accelerators import ddp_model
 from tests.helpers.runif import RunIf
 from tests.utilities.distributed import call_training_script

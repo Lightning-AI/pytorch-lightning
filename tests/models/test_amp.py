@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 

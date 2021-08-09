@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DoublePrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

@@ -22,7 +22,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities import memory
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf

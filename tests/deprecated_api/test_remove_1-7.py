@@ -15,7 +15,7 @@
 
 import pytest
 
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.deprecated_api import _soft_unimport_module
 
 

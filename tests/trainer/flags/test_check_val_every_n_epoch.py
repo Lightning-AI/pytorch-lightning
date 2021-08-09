@@ -14,7 +14,7 @@
 import pytest
 
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 
 
 @pytest.mark.parametrize(

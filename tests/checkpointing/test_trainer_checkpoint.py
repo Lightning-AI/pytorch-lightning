@@ -19,7 +19,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 
 
 def test_finetuning_with_resume_from_checkpoint(tmpdir):

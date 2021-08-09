@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

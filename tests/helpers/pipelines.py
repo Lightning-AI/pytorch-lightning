@@ -16,7 +16,7 @@ from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import DistributedType
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 

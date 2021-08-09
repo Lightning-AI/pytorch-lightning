@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     FastForwardSampler,
 )
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled

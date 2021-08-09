@@ -17,7 +17,7 @@ from typing import Optional, Sequence
 import torch
 from torch.utils.data import Dataset, IterableDataset
 
-from pytorch_lightning.utilities.debug_examples import MNIST
+from pytorch_lightning.utilities.debugging_examples import MNIST
 
 
 class TrialMNIST(MNIST):

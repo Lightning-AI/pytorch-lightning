@@ -27,7 +27,7 @@ from pytorch_lightning.overrides.data_parallel import (
     unsqueeze_scalar_tensor,
 )
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.debug_examples import BoringModel, RandomDataset
+from pytorch_lightning.utilities.debugging_examples import BoringModel, RandomDataset
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):

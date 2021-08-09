@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import call, Mock
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 
 
 def test_callbacks_configured_in_model(tmpdir):

@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning.core.decorators import auto_move_data
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 

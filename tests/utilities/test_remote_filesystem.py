@@ -19,7 +19,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.debug_examples import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 
 GCS_BUCKET_PATH = os.getenv("GCS_BUCKET_PATH", None)
 _GCS_BUCKET_PATH_AVAILABLE = GCS_BUCKET_PATH is not None
