@@ -166,13 +166,15 @@ class KFoldLoop(ExternalLoop):
         self.trainer.datamodule.setup("fit")
 
     def on_advance_start(self) -> None:
-        # re-create a new trainer
+        # more reproducible as re-creating a different trainer.
         self.create_trainer(max_epochs=np.random.randint(10))
+        # reload dataset for the current fold
         dm = self.trainer.datamodule
-
         dm.processed_train_dataset = self.process_dataset("train", dm.train_dataset)
         dm.processed_val_dataset = self.process_dataset("val", dm.val_dataset)
+        # call user hook
         self.trainer.call_hook("on_fold_start", self.current_fold)
+        # reset model parameters
         self.trainer.lightning_module.reset_parameters()
 
     def advance(self) -> Any:
@@ -183,9 +185,6 @@ class KFoldLoop(ExternalLoop):
         self.current_fold += 1
         # stored best weight path for this fold
         self.best_model_paths.append(self.trainer.checkpoint_callback.best_model_path)
-        # bug: Should be reset
-        self.trainer.train_dataloader = None
-        self.trainer.val_dataloaders = None
 
     # utilities for creating a hold
     def process_dataset(self, stage: str, dataset: Dataset) -> Subset:
