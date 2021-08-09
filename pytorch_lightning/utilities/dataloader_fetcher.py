@@ -66,7 +66,8 @@ class LightningFetcher:
     def add_batch(self, batch) -> None:
         self.batches.append(batch)
 
-    def start_record(self, event) -> None:
+    @staticmethod
+    def start_record(event) -> None:
         event.record()
 
     def fetch_batch(self):
