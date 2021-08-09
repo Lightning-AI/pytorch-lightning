@@ -14,7 +14,6 @@
 """Test deprecated functionality which will be removed in v1.5.0"""
 import os
 from typing import Any, Dict
-from unittest import mock
 
 import pytest
 import torch
