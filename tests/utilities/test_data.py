@@ -30,12 +30,12 @@ def test_has_iterable_dataset():
 
     assert not has_iterable_dataset(DataLoader(RandomDataset(1, 1)))
 
-    class MockDatasetWithoutIterableDataset(Dataset):
+    class MockDatasetWithoutIterableDataset(RandomDataset):
         def __iter__(self):
             yield 1
             return self
 
-    assert not has_iterable_dataset(DataLoader(MockDatasetWithoutIterableDataset()))
+    assert not has_iterable_dataset(DataLoader(MockDatasetWithoutIterableDataset(1, 1)))
 
 
 def test_has_len():
