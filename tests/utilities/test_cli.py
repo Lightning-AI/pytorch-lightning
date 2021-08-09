@@ -687,3 +687,60 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.optim1, torch.optim.Adam)
     assert isinstance(cli.model.optim2, torch.optim.SGD)
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
+
+
+def test_registries(tmpdir):
+
+    from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES
+
+    @CALLBACK_REGISTRIES
+    class CustomCallback(Callback):
+        pass
+
+    assert CALLBACK_REGISTRIES.available_objects() == [
+        "BackboneFinetuning",
+        "BaseFinetuning",
+        "BasePredictionWriter",
+        "Callback",
+        "EarlyStopping",
+        "GPUStatsMonitor",
+        "GradientAccumulationScheduler",
+        "LambdaCallback",
+        "LearningRateMonitor",
+        "ModelCheckpoint",
+        "ModelPruning",
+        "ProgressBar",
+        "ProgressBarBase",
+        "QuantizationAwareTraining",
+        "StochasticWeightAveraging",
+        "Timer",
+        "XLAStatsMonitor",
+        "CustomCallback",
+    ]
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            pass
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+
+    cli_args = [
+        f"--trainer.default_root_dir={tmpdir}",
+        "--trainer.max_epochs=1",
+        "--optimizer=Adam",
+        "--optimizer.lr=0.0001",
+        "--trainer.callbacks=LearningRateMonitor",
+        "--trainer.callbacks.logging_interval=epoch",
+        "--trainer.callbacks.log_momentum=True",
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=loss",
+        "--lr_scheduler=StepLR",
+        "--lr_scheduler.step_size=50",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = MyLightningCLI(TestModel)
+
+    assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
