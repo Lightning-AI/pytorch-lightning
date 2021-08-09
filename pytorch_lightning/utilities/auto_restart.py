@@ -147,7 +147,7 @@ class CaptureIterableDataset(IterableDataset):
     def state_dict(self) -> Optional[Dict[str, Any]]:
         if isinstance(self.samplers, dict):
             return {k: v.state_dict() for k, v in self.samplers.items()}
-        return None
+        return {}
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self._state_dict = deepcopy(state_dict)
