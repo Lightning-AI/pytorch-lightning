@@ -19,14 +19,15 @@ Please, open issues with your own particular requests, so the Lightning Team can
 
 from typing import Any, Dict, List, Optional, Type
 
+import numpy as np
 from sklearn.model_selection import KFold
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, Subset
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning import LightningDataModule, seed_everything, Trainer
+from pytorch_lightning import LightningDataModule, seed_everything
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.loops.base import ExternalLoop
+from pytorch_lightning.loops.external_loop import ExternalLoop
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.boring_model import BoringModel, RandomDataset
 
@@ -135,12 +136,11 @@ class KFoldLoop(ExternalLoop):
     def __init__(
         self,
         num_folds: int,
-        num_epochs: int = 10,
         best_model_paths: List[str] = [],
         restarting: bool = False,
     ):
+        super().__init__()
         self.num_folds = num_folds
-        self.num_epochs = num_epochs
         self.best_model_paths = best_model_paths
         self.restarting = restarting
 
@@ -160,41 +160,39 @@ class KFoldLoop(ExternalLoop):
     def reset(self) -> None:
         if not self.restarting:
             self.current_fold = 0
-            self.set_max_epochs(self.num_epochs)
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # temporary hack
         self.trainer.datamodule.setup("fit")
 
-    def process_dataset(self, stage: str, dataset: Dataset) -> Subset:
-        kfold = KFold(self.num_folds, random_state=42, shuffle=True)
-        train_indices, validation_indices = list(kfold.split(range(len(dataset))))[self.current_fold]
-        indices = train_indices if stage == "train" else validation_indices
-        return Subset(dataset, indices.tolist())
-
     def on_advance_start(self) -> None:
-        self.trainer.datamodule.processed_train_dataset = self.process_dataset(
-            "train", self.trainer.datamodule.train_dataset
-        )
-        self.trainer.datamodule.processed_val_dataset = self.process_dataset("val", self.trainer.datamodule.val_dataset)
+        # re-create a new trainer
+        self.create_trainer(max_epochs=np.random.randint(10))
+        dm = self.trainer.datamodule
+
+        dm.processed_train_dataset = self.process_dataset("train", dm.train_dataset)
+        dm.processed_val_dataset = self.process_dataset("val", dm.val_dataset)
         self.trainer.call_hook("on_fold_start", self.current_fold)
         self.trainer.lightning_module.reset_parameters()
 
     def advance(self) -> Any:
-        return self.trainer.fit(
-            self.trainer.lightning_module,
-            train_dataloader=self.trainer.train_dataloader,
-            val_dataloaders=self.trainer.val_dataloaders,
-        )
+        # dataloaders will be automatically reloaded
+        return self.trainer.fit(self.trainer.lightning_module, datamodule=self.trainer.datamodule)
 
     def on_advance_end(self) -> None:
         self.current_fold += 1
-        self.increment_max_epochs(self.num_epochs)
         # stored best weight path for this fold
         self.best_model_paths.append(self.trainer.checkpoint_callback.best_model_path)
         # bug: Should be reset
         self.trainer.train_dataloader = None
         self.trainer.val_dataloaders = None
+
+    # utilities for creating a hold
+    def process_dataset(self, stage: str, dataset: Dataset) -> Subset:
+        kfold = KFold(self.num_folds, random_state=42, shuffle=True)
+        train_indices, validation_indices = list(kfold.split(range(len(dataset))))[self.current_fold]
+        indices = train_indices if stage == "train" else validation_indices
+        return Subset(dataset, indices.tolist())
 
     def on_save_checkpoint(self) -> Dict:
         return {"current_fold": self.current_fold}
@@ -215,5 +213,5 @@ class KFoldCallback(KFoldLoop.loop_base_callback()):
 loop = KFoldLoop(5)
 model = BoringModel()
 datamodule = BoringDataModule()
-trainer = Trainer(callbacks=KFoldCallback())
-trainer.run_loop(model, datamodule=datamodule, external_loop=loop)
+loop.connect_trainer(max_epochs=10, callbacks=KFoldCallback())
+loop.run(model, datamodule=datamodule)

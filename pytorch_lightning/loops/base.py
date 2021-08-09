@@ -241,23 +241,3 @@ class Loop(ABC):
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
-
-
-class ExternalLoop(Loop):
-    """This Loop is meant wrap trainer calls"""
-
-    def __init__(self):
-        super().__init__()
-        warning_cache.warn("The ExternalLoop API is a `pre-alpha release` and breaking API changes are expected.")
-
-    def set_max_epochs(self, max_epochs: int):
-        self.trainer.fit_loop.max_epochs = max_epochs
-
-    def increment_max_epochs(self, max_epochs: int):
-        self.trainer.fit_loop.max_epochs += max_epochs
-
-    def set_max_steps(self, max_steps: int):
-        self.trainer.fit_loop.max_steps = max_steps
-
-    def increment_max_steps(self, max_steps: int):
-        self.trainer.fit_loop.max_steps += max_steps

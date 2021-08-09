@@ -26,7 +26,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
-from pytorch_lightning.loops.base import ExternalLoop
+from pytorch_lightning.loops.external_loop import ExternalLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
@@ -566,17 +566,17 @@ def test_external_loop(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, limit_val_batches=0, callbacks=[cb, cb2]
     )
-    trainer = Trainer(**trainer_kwargs)
+    loop.connect_trainer(**trainer_kwargs)
 
     with suppress(TestException):
-        trainer.run_loop(model, external_loop=loop)
+        loop.run(model)
 
     loop = CustomLoop()
     model = BoringModel()
     cb = CustomCallback()
     trainer_kwargs["resume_from_checkpoint"] = cb2.last_model_path
-    trainer = Trainer(**trainer_kwargs)
-    trainer.run_loop(model, external_loop=loop)
+    loop.connect_trainer(**trainer_kwargs)
+    loop.run(model)
     cb.has_called = True
     loop.counter = 5
     assert loop.has_restarted
