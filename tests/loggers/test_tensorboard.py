@@ -21,7 +21,6 @@ import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -31,6 +30,8 @@ from tests.helpers import BoringModel
 
 @pytest.mark.skipif(_compare_version("tensorboard", operator.ge, "2.5.0"), reason="don't know")
 def test_tensorboard_hparams_reload(tmpdir):
+    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
     class CustomModel(BoringModel):
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
