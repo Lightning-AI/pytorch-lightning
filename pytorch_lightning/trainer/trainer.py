@@ -1099,7 +1099,7 @@ class Trainer(
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
-        for i, result in enumerate(eval_loop_results):
+        for result in eval_loop_results:
             if isinstance(result, dict):
                 for k, v in result.items():
                     if isinstance(v, torch.Tensor):
@@ -1266,8 +1266,8 @@ class Trainer(
 
         return output
 
+    @staticmethod
     def _parse_devices(
-        self,
         gpus: Optional[Union[List[int], str, int]],
         auto_select_gpus: bool,
         tpu_cores: Optional[Union[List[int], str, int]],
