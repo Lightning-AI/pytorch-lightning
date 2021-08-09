@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins import TorchCheckpointIOPlugin
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
@@ -39,15 +40,16 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self, checkpoint_plugin: Optional[CheckpointIOPlugin] = None) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
+        checkpoint_plugin = checkpoint_plugin if checkpoint_plugin is not None else TorchCheckpointIOPlugin()
+        self._checkpoint_plugin: CheckpointIOPlugin = checkpoint_plugin
         self._call_configure_sharded_model_hook = True
-        self._checkpoint_plugin = checkpoint_plugin
 
     @property
     def checkpoint_plugin(self) -> CheckpointIOPlugin:
         return self._checkpoint_plugin
 
     @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin) -> None:
+    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
         self._checkpoint_plugin = plugin
 
     def connect(self, model: Module) -> None:

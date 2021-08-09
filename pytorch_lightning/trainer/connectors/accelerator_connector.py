@@ -50,7 +50,6 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
     TrainingTypePluginsRegistry,
 )
-from pytorch_lightning.plugins.checkpoint.torch import TorchCheckpointIOPlugin
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -666,9 +665,6 @@ class AcceleratorConnector:
             # transfer ownership of the cluster environment to the training type
             training_type.cluster_environment = self.cluster_environment
             self._cluster_environment = proxy(self.cluster_environment)
-
-        if hasattr(training_type, "checkpoint_plugin") and getattr(training_type, "checkpoint_plugin") is None:
-            training_type.checkpoint_plugin = TorchCheckpointIOPlugin()
 
         if hasattr(training_type, "num_nodes"):
             # set num_nodes for training_type from trainer setting

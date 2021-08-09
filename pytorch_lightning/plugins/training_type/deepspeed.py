@@ -114,7 +114,6 @@ class DeepSpeedPlugin(DDPPlugin):
         num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -274,9 +273,6 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_optimizer = cpu_offload
             offload_parameters = cpu_offload_params
             pin_memory = cpu_offload_use_pin_memory
-
-        if checkpoint_plugin is not None:
-            raise MisconfigurationException("DeepSpeed currently does not support passing a custom checkpoint plugin.")
 
         super().__init__(
             parallel_devices=parallel_devices,
@@ -825,3 +821,11 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
+
+    @property
+    def checkpoint_plugin(self) -> CheckpointIOPlugin:
+        return self._checkpoint_plugin
+
+    @checkpoint_plugin.setter
+    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
+        raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
