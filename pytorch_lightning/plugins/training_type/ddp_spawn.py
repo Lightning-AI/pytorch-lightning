@@ -260,10 +260,10 @@ class DDPSpawnPlugin(ParallelPlugin):
         if trainer_fn != TrainerFn.FITTING:
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with DistributedDataParallel")
             return
+        self.pre_configure_ddp()
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
-        self.pre_configure_ddp()
         self._register_ddp_hooks()
 
     def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:

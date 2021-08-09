@@ -158,7 +158,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an issue with `training_step` outputs not getting collected correctly for `training_epoch_end` ([#8613](https://github.com/PyTorchLightning/pytorch-lightning/pull/8613))
-- Fixed avoid wrapping LightningModule in *DataParallel overrides when not fitting ([#6977]https://github.com/PyTorchLightning/pytorch-lightning/issues/6977)
 
 
 - Fixed save/load/resume from checkpoint for DeepSpeed Plugin (
@@ -171,6 +170,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8333](https://github.com/PyTorchLightning/pytorch-lightning/issues/8333))
+
+- Fixed avoid wrapping LightningModule in *DataParallel overrides when not fitting ([#6977]https://github.com/PyTorchLightning/pytorch-lightning/issues/6977). Specifically,
+    - Update `configure_ddp` function in `DDPPlugin`, `DDPSpawnPlugin`, `DDPShardedPlugin` and `DDPSpawnShardedPlugin` by checking the state of LightningModule and avoiding wrapping LihgningModule as *DataParallel when the state is not `TrainerFn.FITTING`.
+    - Update `validation_step` function in `DDPPlugin` and `DDPSpawnPlugin` to use LightningModule's `validation_step` function if `self.model` is not `DistributedDataParallel` instance.
+    - Update `test_step` and `prediction_step` functions in  `DDPPlugin` and `DDPSpawnPlugin` to use  LightningModule's `*_step` functions directly.
 
 
 - Fixed `StochasticWeightAveraging` with a list of learning rates not applying them to each param group ([#8747](https://github.com/PyTorchLightning/pytorch-lightning/issues/8747))
