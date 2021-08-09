@@ -53,14 +53,8 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
-    def __init__(
-        self,
-        parallel_devices: Optional[List[int]] = None,
-        checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
-        debug: bool = False,
-        **_: Any
-    ) -> None:
-        super().__init__(parallel_devices=parallel_devices, checkpoint_plugin=checkpoint_plugin)
+    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
+        super().__init__(parallel_devices=parallel_devices)
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -352,3 +346,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
+
+    @property
+    def checkpoint_plugin(self) -> CheckpointIOPlugin:
+        return self._checkpoint_plugin
+
+    @checkpoint_plugin.setter
+    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
+        raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")

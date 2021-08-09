@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -34,11 +35,10 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self,
         device: int,
         debug: bool = False,
-        checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
     ):
 
         device = xm.xla_device(device)
-        super().__init__(device=device, checkpoint_plugin=checkpoint_plugin)
+        super().__init__(device=device)
 
         self.debug = debug
         self.tpu_local_core_rank = 0
@@ -80,3 +80,11 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def teardown(self) -> None:
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
+
+    @property
+    def checkpoint_plugin(self) -> CheckpointIOPlugin:
+        return self._checkpoint_plugin
+
+    @checkpoint_plugin.setter
+    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
+        raise MisconfigurationException("TPU Plugin currently does not support custom checkpoint plugins.")
