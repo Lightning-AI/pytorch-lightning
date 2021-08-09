@@ -95,3 +95,73 @@ def test_tbptt_cpu_model(tmpdir, n_hidden_states, property_on_module):
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training model with `{n_hidden_states}` hidden state failed with {trainer.state}"
+
+
+def test_tbptt_log(tmpdir):
+    truncated_bptt_steps = 2
+    N, T, F = 32, 15, 1  # batches x timesteps (sequence size) x features
+    batch_size = 10
+    assert T % truncated_bptt_steps != 0, "Should test leftover time steps"
+
+    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+        def __init__(self):
+            self.x_seq = torch.randn(N, T, F)
+            self.y_seq = torch.randn(N, T, F)
+
+        def __getitem__(self, index):
+            return self.x_seq[index], self.y_seq[index]
+
+        def __len__(self):
+            return N
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.test_hidden = None
+            self.layer = torch.nn.LSTM(input_size=F, hidden_size=T, batch_first=True)
+            self.truncated_bptt_steps = truncated_bptt_steps
+
+        def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
+            if hiddens is not None:
+                assert hiddens.grad_fn is None
+            split_idx = self.trainer.fit_loop.split_idx
+            self.test_hidden = torch.tensor(split_idx, requires_grad=True, dtype=torch.float).pow(2)
+
+            x, y = batch
+            if self.trainer.fit_loop.epoch_loop.batch_loop.done:
+                # last split idx, not aligned
+                assert x.shape[1] == T % truncated_bptt_steps
+                assert y.shape[1] == T % truncated_bptt_steps
+            else:
+                assert x.shape[1] == truncated_bptt_steps
+                assert y.shape[1] == truncated_bptt_steps
+
+            pred, _ = self(x)
+            loss = torch.nn.functional.mse_loss(pred, y)
+
+            self.log("a", loss, on_epoch=True)
+
+            return {"loss": loss, "hiddens": self.test_hidden}
+
+        def on_train_batch_start(self, *args, **kwargs) -> None:
+            self.test_hidden = None
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(dataset=MockSeq2SeqDataset(), batch_size=batch_size)
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_val_batches=0,
+        max_epochs=2,
+        log_every_n_steps=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.fit_loop.batch_idx == N // batch_size
+    assert trainer.fit_loop.split_idx == T // truncated_bptt_steps
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
