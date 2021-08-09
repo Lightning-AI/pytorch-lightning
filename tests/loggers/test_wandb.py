@@ -75,8 +75,8 @@ def test_wandb_logger_init(wandb):
     )
 
     # watch a model
-    logger.watch("model", "log", 10)
-    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10)
+    logger.watch("model", "log", 10, False)
+    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id

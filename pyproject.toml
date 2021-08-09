@@ -65,8 +65,12 @@ module = [
     "pytorch_lightning.utilities.argparse",
     "pytorch_lightning.utilities.cli",
     "pytorch_lightning.utilities.cloud_io",
+    "pytorch_lightning.utilities.debugging",
     "pytorch_lightning.utilities.device_dtype_mixin",
     "pytorch_lightning.utilities.device_parser",
+    "pytorch_lightning.utilities.distributed",
+    "pytorch_lightning.utilities.memory",
     "pytorch_lightning.utilities.parsing",
+    "pytorch_lightning.utilities.xla_device",
 ]
 ignore_errors = "False"

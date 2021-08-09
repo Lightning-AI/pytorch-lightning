@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -166,11 +165,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary"""
-        model = self.trainer.lightning_module
         if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
+            self.trainer.reset_test_dataloader()
         elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
-            self.trainer.reset_val_dataloader(model)
+            self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""
@@ -206,10 +204,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer.call_hook("on_validation_end", *args, **kwargs)
-
-        if self.trainer.state.fn != TrainerFn.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
 
         # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
