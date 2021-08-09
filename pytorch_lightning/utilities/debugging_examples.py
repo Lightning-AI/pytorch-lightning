@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Classes meant to be imported and use in examples and test.
+Debugging helpers meant to be used ONLY in the ``pl_examples`` and ``tests`` directories.
 
-Production usage is discouraged.
+Production usage is discouraged. No backwards-compatibility guarantees.
 """
 import logging
 import os
