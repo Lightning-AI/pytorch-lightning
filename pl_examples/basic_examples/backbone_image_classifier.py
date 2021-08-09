@@ -76,26 +76,26 @@ class LitClassifier(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("train_loss", loss, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("valid_loss", loss, on_step=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("test_loss", loss)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, y = batch
-        return self.backbone(x)
+        return self(x)
 
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()

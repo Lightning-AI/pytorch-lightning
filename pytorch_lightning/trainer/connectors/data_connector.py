@@ -75,13 +75,13 @@ class DataConnector:
         )
         return iter(fetcher)
 
-    def prepare_data(self, model):
+    def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
             if self.trainer.datamodule is not None:
                 self.trainer.datamodule.prepare_data()
-            model.prepare_data()
+            self.trainer.lightning_module.prepare_data()
             self.trainer._is_data_prepared = True
 
     def can_prepare_data(self):
