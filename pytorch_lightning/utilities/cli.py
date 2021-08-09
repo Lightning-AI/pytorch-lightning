@@ -372,7 +372,7 @@ class LightningCLI:
                     init_args[arg_path.split(".")[-1]] = value
                 else:
                     class_name = v.split("=")[-1]
-                    optim_cls = OPTIMIZER_REGISTRIES.get(class_name)
+                    optim_cls = OPTIMIZER_REGISTRIES[class_name]
                     optimizer_arg["class_path"] = optim_cls.__module__ + "." + class_name
             optimizer_arg["init_args"] = init_args
             argv = [v for v in sys.argv if not v.startswith("--optimizer")] + [
@@ -411,7 +411,7 @@ class LightningCLI:
                 for callback_arg in callback_args:
                     if "--trainer.callbacks=" in callback_arg:
                         class_name = callback_arg.split("=")[-1]
-                        callback_cls = CALLBACK_REGISTRIES.get(class_name)
+                        callback_cls = CALLBACK_REGISTRIES[class_name]
                         callbacks_argv["class_path"] = callback_cls.__module__ + "." + class_name
                     else:
                         arg_path, value = callback_arg.split("=")
@@ -442,13 +442,12 @@ class LightningCLI:
                     init_args[arg_path.split(".")[-1]] = value
                 else:
                     class_name = v.split("=")[-1]
-                    optim_cls = SCHEDULER_REGISTRIES.get(class_name)
+                    optim_cls = SCHEDULER_REGISTRIES[class_name]
                     lr_scheduler_arg["class_path"] = optim_cls.__module__ + "." + class_name
             lr_scheduler_arg["init_args"] = init_args
             argv = [v for v in sys.argv if not v.startswith("--lr_scheduler")] + [
                 f"--lr_scheduler={json.dumps(lr_scheduler_arg)}"
             ]
-            breakpoint()
             with mock.patch("sys.argv", argv):
                 yield
         else:

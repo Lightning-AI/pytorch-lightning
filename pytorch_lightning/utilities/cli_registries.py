@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from collections import UserDict
-from typing import Any, Callable, List, Optional, Type
+from typing import Callable, List, Optional, Type
 
 import torch
 
@@ -56,19 +56,6 @@ class Registry(UserDict):
             obj_cls = getattr(module, obj_name)
             if inspect.isclass(obj_cls) and issubclass(obj_cls, base_cls):
                 self(cls=obj_cls)
-
-    def get(self, name: Optional[str], default: Optional[Any] = None) -> Any:
-        """
-        Calls the registered plugin with the required parameters
-        and returns the plugin object
-
-        Args:
-            name (str): the name
-        """
-        if name in self:
-            return self[name]
-        else:
-            raise KeyError
 
     def remove(self, name: str) -> None:
         """Removes the registered plugin by name"""
