@@ -33,7 +33,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import instantiate_class, LightningArgumentParser, LightningCLI, SaveConfigCallback
-from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES
+from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES, OPTIMIZER_REGISTRIES
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -695,6 +695,11 @@ class CustomCallback(Callback):
     pass
 
 
+@OPTIMIZER_REGISTRIES
+class MyAdamVariant(torch.optim.Adam):
+    pass
+
+
 def test_registries(tmpdir):
 
     assert CALLBACK_REGISTRIES.available_objects() == [
@@ -729,7 +734,7 @@ def test_registries(tmpdir):
     cli_args = [
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
-        "--optimizer=Adam",
+        "--optimizer=MyAdamVariant",
         "--optimizer.lr=0.0001",
         "--trainer.callbacks=LearningRateMonitor",
         "--trainer.callbacks.logging_interval=epoch",
