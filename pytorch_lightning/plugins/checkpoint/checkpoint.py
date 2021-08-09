@@ -14,11 +14,11 @@ class CheckpointIOPlugin(ABC):
         """
 
     @abstractmethod
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint_file(self, path: Union[str, Path]) -> Dict[str, Any]:
         """
         Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
         Args:
-            checkpoint_path: Path to checkpoint
+            path: Path to checkpoint
 
         Returns: The loaded checkpoint.
         """

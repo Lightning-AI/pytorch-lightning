@@ -9,7 +9,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 
 class TorchCheckpointIOPlugin(CheckpointIOPlugin):
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], path: Union[str, Path]) -> None:
         try:
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
@@ -19,5 +19,5 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
             rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
             atomic_save(checkpoint, path)
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        return pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
+    def load_checkpoint_file(self, path: Union[str, Path]) -> Dict[str, Any]:
+        return pl_load(path, map_location=(lambda storage, loc: storage))
