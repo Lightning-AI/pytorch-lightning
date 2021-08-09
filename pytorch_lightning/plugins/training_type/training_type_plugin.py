@@ -289,7 +289,10 @@ class TrainingTypePlugin(Plugin, ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        return self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)
+        # dump states as a checkpoint dictionary object
+        checkpoint = self.on_save(checkpoint)
+        if self.is_global_zero:
+            return self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
