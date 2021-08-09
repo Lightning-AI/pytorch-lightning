@@ -4,6 +4,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len
+from tests.helpers.boring_model import RandomDataset, RandomIterableDataset
 
 
 def test_extract_batch_size():
@@ -25,48 +26,31 @@ def test_extract_batch_size():
 
 
 def test_has_iterable_dataset():
-    class MockIterableDataset(IterableDataset):
+    assert has_iterable_dataset(DataLoader(RandomIterableDataset(1,1)))
+
+    assert not has_iterable_dataset(DataLoader(RandomDataset(1,1)))
+
+    class MockDatasetWithoutIterableDataset(Dataset):
         def __iter__(self):
             yield 1
             return self
 
-    assert has_iterable_dataset(DataLoader(MockIterableDataset()))
-
-    assert not has_iterable_dataset(DataLoader(Dataset()))
-
-    class MockDataset(Dataset):
-        def __iter__(self):
-            yield 1
-            return self
-
-    assert not has_iterable_dataset(DataLoader(MockDataset()))
+    assert not has_iterable_dataset(DataLoader(MockDatasetWithoutIterableDataset()))
 
 
 def test_has_len():
-    class MockDatasetWithLen(Dataset):
-        def __len__(self):
-            return 1
+    assert has_len(DataLoader(RandomDataset(1,1)))
 
-    assert has_len(DataLoader(MockDatasetWithLen()))
+    with pytest.raises(ValueError, match="`Dataloader` returned 0 length."):
+        assert has_len(DataLoader(RandomDataset(0,0)))
 
-    class MockDatasetWithZeroLen(Dataset):
-        def __len__(self):
-            return 0
-
-    with pytest.raises(ValueError):
-        assert has_len(DataLoader(MockDatasetWithZeroLen()))
-
-    assert not has_len(DataLoader(IterableDataset()))
+    assert not has_len(DataLoader(RandomIterableDataset(1,1)))
 
 
 def test_get_len():
-    class MockDatasetWithLen(Dataset):
-        def __len__(self):
-            return 1
+    assert get_len(DataLoader(RandomDataset(1,1))) == 1
 
-    assert get_len(DataLoader(MockDatasetWithLen())) == 1
-
-    value = get_len(DataLoader(IterableDataset()))
+    value = get_len(DataLoader(RandomIterableDataset(1,1)))
 
     assert isinstance(value, float)
     assert value == float("inf")
