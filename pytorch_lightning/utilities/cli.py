@@ -16,23 +16,20 @@ import os
 import re
 import sys
 from argparse import Namespace
+from collections import UserDict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
-from types import MethodType
+from types import MethodType, ModuleType
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 from unittest import mock
 
+import torch
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, warnings
-from pytorch_lightning.utilities.cli_registries import (
-    CALLBACK_REGISTRIES,
-    OPTIMIZER_REGISTRIES,
-    Registry,
-    SCHEDULER_REGISTRIES,
-)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -44,6 +41,60 @@ if _JSONARGPARSE_AVAILABLE:
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
+
+
+class Registry(UserDict):
+    def __call__(
+        self,
+        cls: Optional[Type] = None,
+        key: Optional[str] = None,
+        override: bool = False,
+    ) -> Callable:
+        """
+        Registers a class mapped to a name.
+
+        Args:
+            cls: the class to be mapped.
+            key : the name that identifies the provided class.
+        """
+        if key is None:
+            key = cls.__name__
+        elif not isinstance(key, str):
+            raise TypeError(f"`key` must be a str, found {key}")
+
+        if key in self and not override:
+            raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
+
+        def do_register(key, cls) -> Callable:
+            self[key] = cls
+            return cls
+
+        do_register(key, cls)
+
+        return do_register
+
+    def register_package(self, module: ModuleType, base_cls: Type) -> None:
+        """This function is an utility to register all classes from a module."""
+        for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
+            if issubclass(cls, base_cls) and cls != base_cls:
+                self(cls=cls)
+
+    def available_objects(self) -> List:
+        """Returns a list of registered objects"""
+        return list(self.keys())
+
+    def __str__(self) -> str:
+        return "Registered objects: {}".format(", ".join(self.keys()))
+
+
+CALLBACK_REGISTRIES = Registry()
+CALLBACK_REGISTRIES.register_package(pl.callbacks, pl.callbacks.Callback)
+
+OPTIMIZER_REGISTRIES = Registry()
+OPTIMIZER_REGISTRIES.register_package(torch.optim, torch.optim.Optimizer)
+
+SCHEDULER_REGISTRIES = Registry()
+SCHEDULER_REGISTRIES.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
 
 
 @dataclass
@@ -520,6 +571,7 @@ class LightningCLI:
     def add_configure_optimizers_method_to_model(self) -> None:
         """
         Adds to the model an automatically generated ``configure_optimizers`` method.
+
         If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC',
         then a `configure_optimizers` method is automatically implemented in the model class.
         """
