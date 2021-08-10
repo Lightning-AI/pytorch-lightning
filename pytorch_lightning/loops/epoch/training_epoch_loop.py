@@ -229,6 +229,10 @@ class TrainingEpochLoop(loops.Loop):
 
         self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
+        self.batch_progress.current.reset()
+        self.scheduler_progress.current.reset()
+        self.batch_loop.optim_progress.reset_on_epoch()
+
         epoch_output = self._epoch_output
         # free memory
         self._epoch_output = None
