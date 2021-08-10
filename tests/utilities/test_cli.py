@@ -663,9 +663,9 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(torch.optim.Adam, nested_key="optim1", link_to="model.optim1")
-            parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
-            parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR, link_to="model.scheduler")
+            parser.add_optimizer_args(self.optimizer_registered, nested_key="optim1", link_to="model.optim1")
+            parser.add_optimizer_args(torch.optim.SGD, nested_key="optim2", link_to="model.optim2")
+            parser.add_lr_scheduler_args(self.lr_scheduler_registered, link_to="model.scheduler")
 
     class TestModel(BoringModel):
         def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
@@ -677,9 +677,11 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     cli_args = [
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
-        "--optim2.class_path=torch.optim.SGD",
-        "--optim2.init_args.lr=0.01",
-        "--lr_scheduler.gamma=0.2",
+        "--optim1=Adam",
+        "--optim1.weight_decay=0.001",
+        "--optim2.lr=0.005",
+        "--lr_scheduler=ExponentialLR",
+        "--lr_scheduler.gamma=0.1",
     ]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):

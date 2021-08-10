@@ -379,11 +379,13 @@ class LightningCLI:
         if any(
             True for v in sys.argv for optim_name in OPTIMIZER_REGISTRIES.keys() if f"--optimizer={optim_name}" in v
         ):
-            self.parser.add_optimizer_args(self.optimizer_registered)
+            if "optimizer" not in self.parser.groups:
+                self.parser.add_optimizer_args(self.optimizer_registered)
 
-        if any(True for v in sys.argv for sch_name in SCHEDULER_REGISTRIES.keys() if f"-lr_scheduler={sch_name}" in v):
+        if any(True for v in sys.argv for sch_name in SCHEDULER_REGISTRIES.keys() if f"--lr_scheduler={sch_name}" in v):
             lr_schdulers = tuple(v for v in SCHEDULER_REGISTRIES.values())
-            self.parser.add_lr_scheduler_args(lr_schdulers)
+            if "lr_scheduler" not in self.parser.groups:
+                self.parser.add_lr_scheduler_args(lr_schdulers)
 
         for key, (class_type, link_to) in self.parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
@@ -471,10 +473,12 @@ class LightningCLI:
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
-        with self.prepare_from_registry(OPTIMIZER_REGISTRIES), self.prepare_from_registry(
-            SCHEDULER_REGISTRIES
-        ), self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRIES):
+        # fmt: off
+        with self.prepare_from_registry(OPTIMIZER_REGISTRIES), \
+             self.prepare_from_registry(SCHEDULER_REGISTRIES), \
+             self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRIES):
             self.config = parser.parse_args()
+        # fmt: on
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
