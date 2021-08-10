@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, List
+from typing import Any, Callable, Generator, List, Tuple
 
 import torch
 
@@ -50,6 +50,7 @@ class LightningFetcher:
         num_prefetch_batches: int = 1,
     ) -> None:
         self.iterator = profiled_iterator(dataloader, profiler)
+        self.profiler = profiler
         self.batch_to_device = batch_to_device
         self.batches: List = []
         self.events: List = []
@@ -58,7 +59,9 @@ class LightningFetcher:
 
     def __iter__(self) -> Generator:
         self.counter = 1
-        return self.prefetch_function()
+        if self.num_prefetch_batches == 1:
+            return self.prefetch_single_batch_iterator()
+        return self.prefetch_iterator()
 
     def add_event(self, event) -> None:
         self.events.append(event)
@@ -77,7 +80,7 @@ class LightningFetcher:
         event = self.events.pop(0)
         event.wait()
 
-    def prefetch_function(self) -> Any:
+    def prefetch_iterator(self) -> Any:
         cuda_stream = torch.cuda.Stream()
 
         done = False
@@ -90,7 +93,8 @@ class LightningFetcher:
                         self.add_event(batch_event)
                         try:
                             batch = next(self.iterator)
-                            batch = self.batch_to_device(batch)
+                            with self.profiler.profile("training_batch_to_device"):
+                                batch = self.batch_to_device(batch)
                             self.add_batch(batch)
                             self.start_record(batch_event)
                         except StopIteration:
@@ -101,3 +105,30 @@ class LightningFetcher:
             # yield last and has next
             yield self.counter, batch, done
             self.counter += 1
+
+    def prefetch_single_batch_iterator(self) -> Generator[Tuple[Any, bool], None, None]:
+        """
+        Returns an iterator that pre-fetches and caches the next item.
+        The values are passed through from the given iterable with an added boolean indicating if this is the last item.
+        See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
+        """
+
+        try:
+            # the iterator may be empty from the beginning
+            last = next(self.iterator)
+        except StopIteration:
+            return
+
+        counter = 1
+
+        for val in self.iterator:
+            # yield last and has next
+            with self.profiler.profile("training_batch_to_device"):
+                last = self.batch_to_device(last)
+            yield counter, last, False
+            last = val
+            counter += 1
+        # yield last, no longer has next
+        with self.profiler.profile("training_batch_to_device"):
+            last = self.batch_to_device(last)
+        yield counter, last, True
