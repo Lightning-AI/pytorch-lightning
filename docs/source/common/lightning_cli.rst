@@ -312,6 +312,45 @@ Similar to the callbacks, any arguments in :class:`~pytorch_lightning.trainer.tr
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class can be configured
 the same way using :code:`class_path` and :code:`init_args`.
 
+Alternatively, the user can provide the list of callbacks directly from the command line.
+
+.. code-block:: bash
+
+    $  python ... --trainer.callbacks=[{"class_path": pytorch_lightning.callbacks.EarlyStopping, "init_args": "patience": "5"}, ...].
+
+Lightning optionally simplifies the user command line where only the :class:`~pytorch_lightning.callbacks.Callback` name is required.
+The argument's order matters and the user needs to pass the arguments in the following way.
+This is supported only for PyTorch Lightning built-in :class:`~pytorch_lightning.callbacks.Callback`.
+
+.. code-block:: bash
+
+    $  python ... --trainer.callbacks={CALLBACK_NAME_1} --trainer.{CALLBACK_1_ARGS_1}=... --trainer.{CALLBACK_1_ARGS_2}=... --trainer.callbacks={CALLBACK_N} --trainer.{CALLBACK_N_ARGS_1}=...
+
+Here is an example:
+
+.. code-block:: bash
+
+    $  python ... --trainer.callbacks=EarlyStopping --trainer.patience=5 --trainer.callbacks=LearningRateMonitor
+
+However, a user can register its own callbacks as follow.
+
+.. code-block:: python
+
+    from pytorch_lightning.utilities.cli import CALLBACK_REGISTRIES
+    from pytorch_lightning.callbacks import Callback
+
+
+    @CALLBACK_REGISTRIES
+    class CustomCallback(Callback):
+        pass
+
+
+    cli = LightningCLI(...)
+
+.. code-block:: bash
+
+    $  python ... --trainer.callbacks=CustomCallback ...
+
 
 Multiple models and/or datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -683,6 +722,12 @@ And the same through command line:
 
     $ python train.py --optimizer.class_path=torch.optim.Adam --optimizer.init_args.lr=0.01
 
+Optionally, the command line can be simplified for PyTorch build-in `optimizers` and `schedulers`:
+
+.. code-block:: bash
+
+    $ python train.py --optimizer=Adam --optimizer.lr=0.01
+
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
 example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
 
@@ -716,6 +761,22 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
 
 
     cli = MyLightningCLI(MyModel)
+
+For code simplification, the LightningCLI provides properties with already registered PyTorch built-in `optimizers` and `schedulers`.
+
+.. code-block::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(
+                self.registered_optimizers,
+                link_to="model.optimizer_init",
+            )
+            parser.add_lr_scheduler_args(
+                self.registered_lr_schedulers,
+                link_to="model.lr_scheduler_init",
+            )
+
 
 For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
 a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including

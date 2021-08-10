@@ -382,11 +382,11 @@ class LightningCLI:
             self.after_fit()
 
     @property
-    def optimizer_registered(self) -> Tuple[Type[Optimizer]]:
+    def registered_optimizers(self) -> Tuple[Type[Optimizer]]:
         return tuple(OPTIMIZER_REGISTRIES.values())
 
     @property
-    def lr_scheduler_registered(self) -> Tuple[LRSchedulerType]:
+    def registered_lr_schedulers(self) -> Tuple[LRSchedulerType]:
         return tuple(SCHEDULER_REGISTRIES.values())
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
@@ -439,7 +439,7 @@ class LightningCLI:
             if re.match(fr"^--optimizer[^\S+=]*?{optim_name}?", v)
         ):
             if "optimizer" not in self.parser.groups:
-                self.parser.add_optimizer_args(self.optimizer_registered)
+                self.parser.add_optimizer_args(self.registered_optimizers)
 
         if any(
             True

@@ -667,48 +667,18 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
     assert cli.trainer.lr_schedulers[0]["scheduler"].step_size == 50
 
 
-def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(torch.optim.Adam, nested_key="optim1", link_to="model.optim1")
-            parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
-            parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR, link_to="model.scheduler")
-
-    class TestModel(BoringModel):
-        def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
-            super().__init__()
-            self.optim1 = instantiate_class(self.parameters(), optim1)
-            self.optim2 = instantiate_class(self.parameters(), optim2)
-            self.scheduler = instantiate_class(self.optim1, scheduler)
-
-    cli_args = [
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.max_epochs=1",
-        "--optim2.class_path=torch.optim.SGD",
-        "--optim2.init_args.lr=0.01",
-        "--lr_scheduler.gamma=0.2",
-    ]
-
-    with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(TestModel)
-
-    assert isinstance(cli.model.optim1, torch.optim.Adam)
-    assert isinstance(cli.model.optim2, torch.optim.SGD)
-    assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
-
-
 @pytest.mark.parametrize("use_registries", [False, True])
-def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to_2(use_registries, tmpdir):
+def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, tmpdir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
-                self.optimizer_registered if use_registries else torch.optim.Adam,
+                self.registered_optimizers if use_registries else torch.optim.Adam,
                 nested_key="optim1",
                 link_to="model.optim1",
             )
             parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
             parser.add_lr_scheduler_args(
-                self.lr_scheduler_registered if use_registries else torch.optim.lr_scheduler.ExponentialLR,
+                self.registered_lr_schedulers if use_registries else torch.optim.lr_scheduler.ExponentialLR,
                 link_to="model.scheduler",
             )
 
@@ -747,6 +717,11 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to_2(use_registries
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
+@CALLBACK_REGISTRIES
+class CustomCallback(Callback):
+    pass
+
+
 def test_registries(tmpdir):
 
     assert CALLBACK_REGISTRIES.available_objects() == [
@@ -766,6 +741,7 @@ def test_registries(tmpdir):
         "StochasticWeightAveraging",
         "Timer",
         "XLAStatsMonitor",
+        "CustomCallback",
     ]
 
     assert OPTIMIZER_REGISTRIES.available_objects() == [
