@@ -832,7 +832,7 @@ def test_registries_resolution(tmpdir):
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
     assert len(cli.trainer.callbacks) == 4
 
-    
+
 @pytest.mark.parametrize("run", (False, True))
 def test_lightning_cli_disabled_run(run):
     with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
