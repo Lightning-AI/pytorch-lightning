@@ -371,9 +371,11 @@ def test_lightning_cli_save_config_cases(tmpdir):
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = dict(
         subcommand="fit",
-        model=dict(class_path="tests.helpers.BoringModel"),
-        data=dict(class_path="tests.helpers.BoringDataModule", init_args=dict(data_dir=str(tmpdir))),
-        trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None),
+        fit=dict(
+            model=dict(class_path="tests.helpers.BoringModel"),
+            data=dict(class_path="tests.helpers.BoringDataModule", init_args=dict(data_dir=str(tmpdir))),
+            trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None),
+        ),
     )
     config_path = tmpdir / "config.yaml"
     with open(config_path, "w") as f:
