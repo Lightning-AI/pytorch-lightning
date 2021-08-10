@@ -816,3 +816,20 @@ def test_lightning_cli_disabled_run(run):
     fit_mock.call_count == run
     assert isinstance(cli.trainer, Trainer)
     assert isinstance(cli.model, LightningModule)
+
+
+@pytest.mark.skipif(True, reason="typing from json-argparse is failing.")
+def test_custom_callbacks(tmpdir):
+    class TestModel(BoringModel):
+        def on_fit_start(self):
+            callbacks = [c for c in self.trainer.callbacks if isinstance(c, CustomCallback)]
+            assert len(callbacks) == 1
+
+    with mock.patch("sys.argv", ["any.py"]):
+        LightningCLI(
+            TestModel,
+            trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True, callbacks=CustomCallback()),
+        )
+
+    with mock.patch("sys.argv", ["any.py", "--trainer.callbacks=[{'class_path': tests.utilities.CustomCallback}]"]):
+        LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))

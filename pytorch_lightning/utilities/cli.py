@@ -71,7 +71,7 @@ class Registry(UserDict):
 
         do_register(key, cls)
 
-        return do_register
+        return cls
 
     def register_package(self, module: ModuleType, base_cls: Type) -> None:
         """This function is an utility to register all classes from a module."""
