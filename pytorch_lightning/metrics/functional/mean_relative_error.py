@@ -13,12 +13,16 @@
 # limitations under the License.
 
 import torch
-from torchmetrics.functional.regression.mean_relative_error import mean_relative_error as _mean_relative_error
+
+try:  # legacy code
+    from torchmetrics.functional.regression.mean_relative_error import mean_relative_error as _mape
+except ImportError:
+    from torchmetrics.functional.regression import mean_absolute_percentage_error as _mape
 
 from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
-@deprecated_metrics(target=_mean_relative_error)
+@deprecated_metrics(target=_mape)
 def mean_relative_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     .. deprecated::
