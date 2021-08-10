@@ -1762,16 +1762,17 @@ def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes)
 
 class TrainerStagesErrorsModel(BoringModel):
     def on_train_start(self) -> None:
-        raise BaseException('Error during train')
+        raise BaseException("Error during train")
 
     def on_validation_start(self) -> None:
-        raise BaseException('Error during validation')
+        raise BaseException("Error during validation")
 
     def on_test_start(self) -> None:
-        raise BaseException('Error during test')
+        raise BaseException("Error during test")
 
     def on_predict_start(self) -> None:
-        raise BaseException('Error during predict')
+        raise BaseException("Error during predict")
+
 
 @pytest.mark.parametrize(
     "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
