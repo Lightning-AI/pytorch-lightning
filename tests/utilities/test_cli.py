@@ -810,7 +810,7 @@ def test_lightning_cli_custom_subcommand():
     assert "The y (type: float, default: 1.0)" in out
 
 
-def test_lightning_cli_disabled_run():
+def test_lightning_cli_run():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, run=False)
     assert cli.trainer.global_step == 0

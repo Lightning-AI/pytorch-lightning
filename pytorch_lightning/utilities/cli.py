@@ -355,19 +355,24 @@ class LightningCLI:
     def _add_subcommands(self, parser: LightningArgumentParser) -> None:
         """Adds subcommands to the input parser."""
         parser_subcommands = parser.add_subcommands()
+        # the user might have passed a builder function
+        trainer_class = (
+            self.trainer_class if inspect.isclass(self.trainer_class) else class_from_function(self.trainer_class)
+        )
+
         for subcommand in self.subcommands():
-            subcommand_parser = self._prepare_subcommand_parser(subcommand)
-            fn = getattr(self.trainer_class, subcommand)
+            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand)
+            fn = getattr(trainer_class, subcommand)
             description = _get_short_description(fn)
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
-    def _prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
+    def _prepare_subcommand_parser(self, klass: Type, subcommand: str) -> LightningArgumentParser:
         parser = self.init_parser()
         self._add_arguments(parser)
         # subcommand arguments
         subcommands = self.subcommands()
         skip = subcommands[subcommand]
-        added = parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
+        added = parser.add_method_arguments(klass, subcommand, skip=skip)
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
         return parser
