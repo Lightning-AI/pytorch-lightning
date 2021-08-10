@@ -37,9 +37,9 @@ from pytorch_lightning.utilities.cli import (
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
+    LR_SCHEDULER_REGISTRIES,
     OPTIMIZER_REGISTRIES,
     SaveConfigCallback,
-    SCHEDULER_REGISTRIES,
 )
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
@@ -758,7 +758,7 @@ def test_registries(tmpdir):
         "SparseAdam",
     ]
 
-    assert SCHEDULER_REGISTRIES.available_objects() == [
+    assert LR_SCHEDULER_REGISTRIES.available_objects() == [
         "CosineAnnealingLR",
         "CosineAnnealingWarmRestarts",
         "CyclicLR",

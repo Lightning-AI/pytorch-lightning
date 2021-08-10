@@ -762,6 +762,14 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
 
     cli = MyLightningCLI(MyModel)
 
+
+For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
+a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including
+:code:`class_path` and :code:`init_args` entries. The function
+:func:`~pytorch_lightning.utilities.cli.instantiate_class` takes care of importing the class defined in
+:code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
+:code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
+
 For code simplification, the LightningCLI provides properties with already registered PyTorch built-in `optimizers` and `schedulers`.
 
 .. code-block::
@@ -777,13 +785,27 @@ For code simplification, the LightningCLI provides properties with already regis
                 link_to="model.lr_scheduler_init",
             )
 
+However, a user can register its own optimizers or schedulers as follow.
 
-For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
-a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including
-:code:`class_path` and :code:`init_args` entries. The function
-:func:`~pytorch_lightning.utilities.cli.instantiate_class` takes care of importing the class defined in
-:code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
-:code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
+.. code-block:: python
+
+    import torch
+    from pytorch_lightning.utilities.cli import OPTIMIZER_REGISTRIES, LR_SCHEDULER_REGISTRIES
+    from pytorch_lightning.callbacks import Callback
+
+
+    @CALLBACK_REGISTRIES
+    class CustomAdam(torch.optim.Adam):
+        pass
+
+
+    @LR_SCHEDULER_REGISTRIES
+    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
+        pass
+
+
+    cli = LightningCLI(...)
+
 
 
 Notes related to reproducibility
