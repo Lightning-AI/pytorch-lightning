@@ -36,23 +36,23 @@ log = logging.getLogger(__name__)
 
 class FlexibleOptimizationFlow:
     """
-    The flow for performing a training iteration when `training_step` needs access to the
-    dataloader. It is selected when the signature of `training_step` contains `dataloader_iter`:
+    The flow for performing a training iteration when ``training_step`` needs access to the
+    dataloader. It is selected when the signature of ``training_step`` contains ``dataloader_iter``:
 
-      def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
+        def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
 
-    The `training_step` is allowed to fetch multiple batches during one training iteration. The
+    The ``training_step`` is allowed to fetch multiple batches during one training iteration. The
     framework provides minimum amount of automation with regards to model optimization (hence the
     "flexible" in the name). The flexibility allows for ease of experimentation with inter-batch
     parallelism techniques.
 
-    This flow doesn't support `automatic_optimization` and `tbptt`. An error will be thrown if the
-    `LightningModule` or the `Trainer` is configured to use these features.
+    This flow doesn't support ``automatic_optimization`` and ``tbptt``. An error will be thrown if
+    the ``LightningModule`` or the ``Trainer`` is configured to use these features.
 
-    The `training_step` is responsible for reporting whether it has reached the last batch by
-    including an `is_last` field in the result dict. Failing to do so will result in an error.
+    The ``training_step`` is responsible for reporting whether it has reached the last batch by
+    including an ``is_last`` field in the result dict. Failing to do so will result in an error.
 
-    The `training_step` should only optimize the model with one batch for the sake of API and
+    The ``training_step`` should only optimize the model with one batch for the sake of API and
     reporting consistency (TODO: consider removing this limitation).
 
     Args:
