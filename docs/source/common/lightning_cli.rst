@@ -4,12 +4,13 @@
     import torch
     from unittest import mock
     from typing import List
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.core.datamodule import LightningDataModule
+    from pytorch_lightning import LightningModule, LightningDataModule, Trainer
     from pytorch_lightning.utilities.cli import LightningCLI
 
-    original_fit = LightningCLI.fit
-    LightningCLI.fit = lambda self: None
+    cli_fit = LightningCLI.fit
+    LightningCLI.fit = lambda *_, **__: None
+    trainer_fit = Trainer.fit
+    Trainer.fit = lambda *_, **__: None
 
 
     class MyModel(LightningModule):
@@ -47,7 +48,8 @@
 
 .. testcleanup:: *
 
-    LightningCLI.fit = original_fit
+    LightningCLI.fit = cli_fit
+    Trainer.fit = trainer_fit
     mock_argv.stop()
 
 
@@ -260,15 +262,28 @@ file. Loading a defaults file :code:`my_cli_defaults.yaml` in the current workin
 
 .. testcode::
 
-    cli = LightningCLI(
-        MyModel,
-        MyDataModule,
-        parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]},
-    )
+    cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]})
 
 To load a file in the user's home directory would be just changing to :code:`~/.my_cli_defaults.yaml`. Note that this
 setting is given through :code:`parser_kwargs`. More parameters are supported. For details see the `ArgumentParser API
 <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_ documentation.
+
+
+Instantiation only mode
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically
+call ``trainer.fit(...)`` internally so you don't have to do it. To avoid this, you can set the following argument:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, run=False)  # True by default
+    # you'll have to call fit yourself:
+    cli.trainer.fit(cli.model)
+
+
+This can be useful to implement custom logic without having to subclass the CLI, but still using the CLI's instantiation
+and argument parsing capabilities.
 
 
 Trainer Callbacks and arguments with class type
