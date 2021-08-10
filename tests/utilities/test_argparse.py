@@ -210,6 +210,7 @@ def test_add_argparse_args_no_argument_group():
 def test_gpus_allowed_type():
     assert _gpus_allowed_type("1,2") == "1,2"
     assert _gpus_allowed_type("1") == 1
+    assert _gpus_allowed_type("None") is None
 
 
 def test_int_or_float_type():

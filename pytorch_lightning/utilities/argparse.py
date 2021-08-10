@@ -285,8 +285,10 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     return parsed
 
 
-def _gpus_allowed_type(x: str) -> Union[int, str]:
-    if "," in x:
+def _gpus_allowed_type(x: str) -> Union[int, str, None]:
+    if x.lower() == "none":
+        return None
+    elif "," in x:
         return str(x)
     return int(x)
 
