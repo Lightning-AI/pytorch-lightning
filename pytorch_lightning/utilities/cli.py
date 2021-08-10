@@ -335,7 +335,7 @@ class LightningCLI:
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """
-        Implement to add extra arguments to the parser or link arguments
+        Implement to add extra arguments to the parser or link arguments.
 
         Args:
             parser: The parser object to which arguments can be added
