@@ -498,6 +498,36 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         train_dataloader=None,  # TODO: remove with 1.6
     ) -> None:
+        try:
+            self._fit_impl(model, train_dataloaders, val_dataloaders, datamodule, train_dataloader)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+                # same treatment as below
+                self.accelerator.teardown()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            # give accelerators a chance to finish
+            self.accelerator.teardown()
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
+
+    def _fit_impl(
+        self,
+        model: "pl.LightningModule",
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        train_dataloader=None,  # TODO: remove with 1.6
+    ) -> None:
         r"""
         Runs the full optimization routine.
 
@@ -553,6 +583,28 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
+        try:
+            return self._validate_impl(model, dataloaders, ckpt_path, verbose, datamodule, val_dataloaders)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+                # same treatment as below
+                self.accelerator.teardown()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            # give accelerators a chance to finish
+            self.accelerator.teardown()
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
+
         r"""
         Perform one evaluation epoch over the validation set.
 
@@ -623,6 +675,37 @@ class Trainer(
         return results
 
     def test(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+        test_dataloaders=None,  # TODO: remove with 1.6
+    ) -> _EVALUATE_OUTPUT:
+        try:
+            return self._test_impl(model, dataloaders, ckpt_path, verbose, datamodule, test_dataloaders)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+                # same treatment as below
+                self.accelerator.teardown()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            # give accelerators a chance to finish
+            self.accelerator.teardown()
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
+
+    def _test_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
@@ -709,6 +792,27 @@ class Trainer(
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
+        try:
+            return self._predict_impl(model, dataloaders, datamodule, return_predictions, ckpt_path)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+                # same treatment as below
+                self.accelerator.teardown()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            # give accelerators a chance to finish
+            self.accelerator.teardown()
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
         r"""
         Run inference on your data.
         This will call the model forward function to compute predictions. Useful to perform distributed
@@ -851,30 +955,7 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _run(self, model: "pl.LightningModule") -> ...:
-        try:
-            return self._run_impl(model)
-        except KeyboardInterrupt:
-            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.on_train_end()
-        except BaseException:
-            self.state.status = TrainerStatus.INTERRUPTED
-            if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
-                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-            # give accelerators a chance to finish
-            self.accelerator.on_train_end()
-            self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
-            raise
-
-    def _run_impl(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
