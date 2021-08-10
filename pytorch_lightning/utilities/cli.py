@@ -22,7 +22,6 @@ from types import MethodType
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 from unittest import mock
 
-import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
@@ -64,7 +63,8 @@ class ClassInfo:
         class_init["class_path"] = self.cls.__module__ + "." + self.cls.__name__
         init_args = {}
         for init_arg in self.class_init_args:
-            arg_path, value = init_arg.split("=")
+            separator = "=" if "=" in init_arg else " "
+            arg_path, value = init_arg.split(separator)
             init_args[arg_path.split(".")[-1]] = value
         class_init["init_args"] = init_args
         return class_init
@@ -327,11 +327,11 @@ class LightningCLI:
 
     @property
     def optimizer_registered(self) -> Tuple[Type[Optimizer]]:
-        return tuple(o for o in OPTIMIZER_REGISTRIES.values())
+        return tuple(OPTIMIZER_REGISTRIES.values())
 
     @property
-    def lr_scheduler_registered(self) -> Tuple[Type[torch.optim.lr_scheduler._LRScheduler]]:
-        return tuple(o for o in SCHEDULER_REGISTRIES.values())
+    def lr_scheduler_registered(self) -> Tuple[LRSchedulerType]:
+        return tuple(SCHEDULER_REGISTRIES.values())
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
@@ -377,12 +377,20 @@ class LightningCLI:
     def link_optimizers_and_lr_schedulers(self) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
         if any(
-            True for v in sys.argv for optim_name in OPTIMIZER_REGISTRIES.keys() if f"--optimizer={optim_name}" in v
+            True
+            for v in sys.argv
+            for optim_name in OPTIMIZER_REGISTRIES
+            if f"--optimizer={optim_name}" in v or f"--optimizer {optim_name}" in v
         ):
             if "optimizer" not in self.parser.groups:
                 self.parser.add_optimizer_args(self.optimizer_registered)
 
-        if any(True for v in sys.argv for sch_name in SCHEDULER_REGISTRIES.keys() if f"--lr_scheduler={sch_name}" in v):
+        if any(
+            True
+            for v in sys.argv
+            for sch_name in SCHEDULER_REGISTRIES
+            if f"--lr_scheduler={sch_name}" in v or f"--lr_scheduler {sch_name}" in v
+        ):
             lr_schdulers = tuple(v for v in SCHEDULER_REGISTRIES.values())
             if "lr_scheduler" not in self.parser.groups:
                 self.parser.add_lr_scheduler_args(lr_schdulers)
@@ -406,8 +414,9 @@ class LightningCLI:
         map_user_key_to_info = {}
         for registered_name, registered_cls in registry.items():
             for v in sys.argv:
-                if f"={registered_name}" in v:
-                    key = v.split("=")[0]
+                separator = "=" if "=" in v else " "
+                if f"{separator}{registered_name}" in v:
+                    key = v.split(separator)[0]
                     map_user_key_to_info[key] = ClassInfo(class_arg=v, cls=registered_cls)
 
         if len(map_user_key_to_info) > 0:
