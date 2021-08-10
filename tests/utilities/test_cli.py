@@ -785,9 +785,7 @@ def test_registries(tmpdir):
 
 
 def test_registries_resolution(tmpdir):
-    """
-    This test validates registries are used when simplified command line are being used.
-    """
+    """This test validates registries are used when simplified command line are being used."""
 
     class TestModel(BoringModel):
         def __init__(self):
