@@ -99,5 +99,5 @@ class LightningFetcher:
             self.wait()
             batch = self.fetch_batch()
             # yield last and has next
-            yield self.counter, batch, False
+            yield self.counter, batch, done
             self.counter += 1
