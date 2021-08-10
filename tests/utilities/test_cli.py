@@ -768,3 +768,12 @@ def test_subcommands():
             # if this fails, it's because the parameter has been removed from the associated `Trainer` function
             # and the `LightningCLI` subcommand exclusion list needs to be updated
             assert e in parameters
+
+
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_disabled_run(run):
+    with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
+        cli = LightningCLI(BoringModel, run=run)
+    fit_mock.call_count == run
+    assert isinstance(cli.trainer, Trainer)
+    assert isinstance(cli.model, LightningModule)
