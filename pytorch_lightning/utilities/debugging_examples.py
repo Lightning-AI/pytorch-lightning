@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class RandomDataset(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
 

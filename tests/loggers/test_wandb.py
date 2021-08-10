@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.debugging_examples import BoringModel
@@ -51,8 +52,13 @@ def test_wandb_logger_init(wandb):
     wandb.init.reset_mock()
     wandb.run = wandb.init()
     logger = WandbLogger()
+
     # verify default resume value
     assert logger._wandb_init["resume"] == "allow"
+
+    _ = logger.experiment
+    assert any("There is a wandb run already in progress" in w for w in pytorch_lightning.loggers.wandb.warning_cache)
+
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({"acc": 1.0, "trainer/global_step": 3})
