@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import os
+import re
 import sys
 from argparse import Namespace
 from contextlib import contextmanager
@@ -380,7 +381,7 @@ class LightningCLI:
             True
             for v in sys.argv
             for optim_name in OPTIMIZER_REGISTRIES
-            if f"--optimizer={optim_name}" in v or f"--optimizer {optim_name}" in v
+            if re.match(fr"^--optimizer[^\S+=]*?{optim_name}?", v)
         ):
             if "optimizer" not in self.parser.groups:
                 self.parser.add_optimizer_args(self.optimizer_registered)
@@ -389,7 +390,7 @@ class LightningCLI:
             True
             for v in sys.argv
             for sch_name in SCHEDULER_REGISTRIES
-            if f"--lr_scheduler={sch_name}" in v or f"--lr_scheduler {sch_name}" in v
+            if re.match(fr"^--lr_scheduler[^\S+=]*{sch_name}?", v)
         ):
             lr_schdulers = tuple(v for v in SCHEDULER_REGISTRIES.values())
             if "lr_scheduler" not in self.parser.groups:

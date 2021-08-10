@@ -741,7 +741,7 @@ def test_registries(tmpdir):
         "--trainer.callbacks=ModelCheckpoint",
         "--trainer.callbacks.monitor=loss",
         f"--trainer.callbacks={json.dumps(callbacks)}",
-        "--lr_scheduler=StepLR",
+        "--lr_scheduler StepLR",
         "--lr_scheduler.step_size=50",
     ]
 
