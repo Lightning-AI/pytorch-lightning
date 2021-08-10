@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 def check_finite(trainer_ref: "pl.Trainer", loss: torch.Tensor) -> None:
-    """Checks fotr finite parameters and loss values.
+    """Checks for finite parameters and loss values.
 
     Args:
         trainer_ref: a reference to the trainer
