@@ -53,11 +53,10 @@ def info_cuda():
 
 def info_packages():
     return {
-        "numpy": numpy.__version__,
+        "PyTorch": torch.__version__,
         "pyTorch_version": torch.__version__,
         "pyTorch_debug": torch.version.debug,
         "pytorch-lightning": pytorch_lightning.__version__,
-        "tqdm": tqdm.__version__,
     }
 
 
