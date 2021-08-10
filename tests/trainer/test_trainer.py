@@ -1760,35 +1760,6 @@ def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes)
     trainer.predict(model, model.val_dataloader())
 
 
-class TrainerStagesErrorsModel(BoringModel):
-    def on_train_start(self) -> None:
-        raise BaseException('Error during train')
-
-    def on_validation_start(self) -> None:
-        raise BaseException('Error during validation')
-
-    def on_test_start(self) -> None:
-        raise BaseException('Error during test')
-
-    def on_predict_start(self) -> None:
-        raise BaseException('Error during predict')
-
-@pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
-)
-def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
-    model = TrainerStagesErrorsModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(BaseException, match=r"Error during train"):
-        trainer.fit(model)
-    with pytest.raises(BaseException, match=r"Error during validation"):
-        trainer.validate(model)
-    with pytest.raises(BaseException, match=r"Error during test"):
-        trainer.test(model)
-    with pytest.raises(BaseException, match=r"Error during predict"):
-        trainer.predict(model, model.val_dataloader())
-
-
 class TestDummyModelForCheckpoint(BoringModel):
     def validation_step(self, batch, batch_idx):
         output = self.layer(batch)
