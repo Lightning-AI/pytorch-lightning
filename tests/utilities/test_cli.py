@@ -594,11 +594,12 @@ def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, trainer_kwargs):
 def test_cli_config_overwrite(tmpdir):
     trainer_defaults = {"default_root_dir": str(tmpdir), "logger": False, "max_steps": 1, "max_epochs": 1}
 
-    with mock.patch("sys.argv", ["any.py"]):
+    argv = ["any.py", "fit"]
+    with mock.patch("sys.argv", argv):
         LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
-    with mock.patch("sys.argv", ["any.py"]), pytest.raises(RuntimeError, match="Aborting to avoid overwriting"):
+    with mock.patch("sys.argv", argv), pytest.raises(RuntimeError, match="Aborting to avoid overwriting"):
         LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
-    with mock.patch("sys.argv", ["any.py"]):
+    with mock.patch("sys.argv", argv):
         LightningCLI(BoringModel, save_config_overwrite=True, trainer_defaults=trainer_defaults)
 
 
@@ -697,7 +698,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
-@pytest.mark.parametrize("fn", [None] + [fn.value for fn in TrainerFn])
+@pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
     class TestCLI(LightningCLI):
         def __init__(self, *args, **kwargs):
@@ -749,16 +750,12 @@ def test_lightning_cli_trainer_fn(fn):
         def after_tune(self):
             self.called.append("after_tune")
 
-    argv = ["any.py"]
-    if fn is not None:
-        argv.append(fn)
-
-    with mock.patch("sys.argv", argv):
+    with mock.patch("sys.argv", ["any.py", fn]):
         cli = TestCLI(BoringModel)
-    assert cli.called == [] if fn is None else [f"before_{fn}", fn, f"after_{fn}"]
+    assert cli.called == [f"before_{fn}", fn, f"after_{fn}"]
 
 
-def test_subcommands():
+def test_lightning_cli_subcommands():
     subcommands = LightningCLI.subcommands()
     trainer = Trainer()
     for subcommand, exclude in subcommands.items():
@@ -770,10 +767,53 @@ def test_subcommands():
             assert e in parameters
 
 
-@pytest.mark.parametrize("run", (False, True))
-def test_lightning_cli_disabled_run(run):
-    with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
-        cli = LightningCLI(BoringModel, run=run)
-    fit_mock.call_count == run
+def test_lightning_cli_custom_subcommand():
+    class TestTrainer(Trainer):
+        def foo(self, model: LightningModule, x: int, y: float = 1.0):
+            """
+            Sample extra function.
+
+            Args:
+                model: A model
+                x: The x
+                y: The y
+            """
+
+    class TestCLI(LightningCLI):
+        @staticmethod
+        def subcommands():
+            subcommands = LightningCLI.subcommands()
+            subcommands["foo"] = {"model"}
+            return subcommands
+
+    out = StringIO()
+    with mock.patch("sys.argv", ["any.py", "-h"]), redirect_stdout(out), pytest.raises(SystemExit):
+        TestCLI(BoringModel, trainer_class=TestTrainer)
+    out = out.getvalue()
+    assert "Sample extra function." in out
+    assert "{fit,validate,test,predict,tune,foo}" in out
+
+    out = StringIO()
+    with mock.patch("sys.argv", ["any.py", "foo", "-h"]), redirect_stdout(out), pytest.raises(SystemExit):
+        TestCLI(BoringModel, trainer_class=TestTrainer)
+    out = out.getvalue()
+    assert "A model" not in out
+    assert "Sample extra function:" in out
+    assert "--x X" in out
+    assert "The x (required, type: int)" in out
+    assert "--y Y" in out
+    assert "The y (type: float, default: 1.0)" in out
+
+
+def test_lightning_cli_disabled_run():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, run=False)
+    assert cli.trainer.global_step == 0
+    assert isinstance(cli.trainer, Trainer)
+    assert isinstance(cli.model, LightningModule)
+
+    with mock.patch("sys.argv", ["any.py", "fit"]):
+        cli = LightningCLI(BoringModel, trainer_defaults={"max_steps": 1, "max_epochs": 1})
+    assert cli.trainer.global_step == 1
     assert isinstance(cli.trainer, Trainer)
     assert isinstance(cli.model, LightningModule)
