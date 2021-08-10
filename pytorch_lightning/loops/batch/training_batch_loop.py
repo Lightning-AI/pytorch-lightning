@@ -654,4 +654,4 @@ class TrainingBatchLoop(Loop):
 
     def _truncated_bptt_steps(self) -> int:
         """Returns the number of tbptt steps"""
-        return self.trainer.lightning_module.truncated_bptt_steps > 0
+        return self.trainer.lightning_module.truncated_bptt_steps or 0
