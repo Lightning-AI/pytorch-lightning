@@ -18,7 +18,7 @@ class CustomCheckpointPlugin(CheckpointIOPlugin):
         self.save_checkpoint_called = True
         torch.save(checkpoint, path)
 
-    def load_checkpoint_file(self, path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint(self, path: Union[str, Path]) -> Dict[str, Any]:
         self.load_checkpoint_file_called = True
         return torch.load(path)
 
@@ -31,9 +31,9 @@ class CustomTorchCheckpointIOPlugin(TorchCheckpointIOPlugin):
         self.save_checkpoint_called = True
         super().save_checkpoint(checkpoint, path)
 
-    def load_checkpoint_file(self, path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint(self, path: Union[str, Path]) -> Dict[str, Any]:
         self.load_checkpoint_file_called = True
-        return super().load_checkpoint_file(path)
+        return super().load_checkpoint(path)
 
 
 @pytest.mark.parametrize("checkpoint_plugin", [CustomTorchCheckpointIOPlugin(), CustomCheckpointPlugin()])
