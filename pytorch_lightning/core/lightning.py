@@ -37,7 +37,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -114,6 +114,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+
+        self._register_sharded_tensor_state_dict_hooks_if_available()
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
@@ -1974,3 +1976,13 @@ class LightningModule(
             state.pop("test_dataloader", None)
             state.pop("predict_dataloader", None)
         return state
+
+    def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
+        """ """
+        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+            return
+
+        from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+
+        self._register_state_dict_hook(state_dict_hook)
+        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
