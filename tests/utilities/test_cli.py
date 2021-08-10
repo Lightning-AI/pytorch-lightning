@@ -27,13 +27,14 @@ import pytest
 import torch
 import yaml
 from packaging import version
+from torch import nn
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import instantiate_class, LightningArgumentParser, LightningCLI, SaveConfigCallback
-from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES, OPTIMIZER_REGISTRIES
+from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -690,16 +691,6 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
-@CALLBACK_REGISTRIES
-class CustomCallback(Callback):
-    pass
-
-
-@OPTIMIZER_REGISTRIES
-class MyAdamVariant(torch.optim.Adam):
-    pass
-
-
 def test_registries(tmpdir):
 
     assert CALLBACK_REGISTRIES.available_objects() == [
@@ -720,32 +711,90 @@ def test_registries(tmpdir):
         "StochasticWeightAveraging",
         "Timer",
         "XLAStatsMonitor",
-        "CustomCallback",
     ]
-
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            pass
 
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
 
+    callbacks = [
+        dict(
+            class_path="pytorch_lightning.callbacks.Callback",
+            init_args=dict(),
+        ),
+        dict(
+            class_path="pytorch_lightning.callbacks.Callback",
+            init_args=dict(),
+        ),
+    ]
+
     cli_args = [
         f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.max_epochs=1",
-        "--optimizer=MyAdamVariant",
+        "--trainer.fast_dev_run=True",
+        "--trainer.progress_bar_refresh_rate=0",
+        "--optimizer=Adam",
         "--optimizer.lr=0.0001",
         "--trainer.callbacks=LearningRateMonitor",
         "--trainer.callbacks.logging_interval=epoch",
         "--trainer.callbacks.log_momentum=True",
         "--trainer.callbacks=ModelCheckpoint",
         "--trainer.callbacks.monitor=loss",
+        f"--trainer.callbacks={json.dumps(callbacks)}",
         "--lr_scheduler=StepLR",
         "--lr_scheduler.step_size=50",
     ]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(TestModel)
+        cli = LightningCLI(TestModel)
 
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
+    assert len(cli.trainer.callbacks) == 4
+
+
+@pytest.mark.parametrize("use_scheduler", [False, True])
+def test_configure_optimizers(use_scheduler, tmpdir):
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(self.optimizer_registered, nested_key="optim1")
+            parser.add_optimizer_args(self.optimizer_registered, nested_key="optim2")
+            if use_scheduler:
+                parser.add_lr_scheduler_args(self.lr_scheduler_registered)
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 2))
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self, optim1: dict = None, optim2: dict = None, lr_scheduler: dict = None):
+            optim1 = instantiate_class(self.layer[:2].parameters(), optim1)
+            optim2 = instantiate_class(self.layer[2:].parameters(), optim2)
+            if lr_scheduler:
+                scheduler = instantiate_class(optim1, lr_scheduler)
+                return [optim1, optim2], [scheduler]
+            return [optim1, optim2]
+
+        training_epoch_end = None
+
+    cli_args = [
+        f"--trainer.default_root_dir={tmpdir}",
+        "--trainer.max_epochs=1",
+        "--optim1.lr=0.01",
+        "--optim1=Adam",
+        "--optim2={'class_path': 'torch.optim.SGD', 'init_args': {'lr': '0.01'}}",
+    ]
+    if use_scheduler:
+        lr_scheduler_arg = dict(class_path="torch.optim.lr_scheduler.StepLR", init_args=dict(step_size=50))
+        cli_args += [
+            f"--lr_scheduler={json.dumps(lr_scheduler_arg)}",
+        ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = MyLightningCLI(TestModel)
+
+    assert isinstance(cli.model.optimizers(use_pl_optimizer=False)[0], torch.optim.Adam)
+    assert isinstance(cli.model.optimizers(use_pl_optimizer=False)[1], torch.optim.SGD)
+    if use_scheduler:
+        assert isinstance(cli.model.lr_schedulers(), torch.optim.lr_scheduler.StepLR)
