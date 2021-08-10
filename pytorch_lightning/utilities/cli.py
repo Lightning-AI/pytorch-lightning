@@ -97,6 +97,10 @@ LR_SCHEDULER_REGISTRY = Registry()
 LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
 
 
+MODEL_REGISTRY = Registry()
+DATAMODULE_REGISTRY = Registry()
+
+
 @dataclass
 class ClassInfo:
     """This class is an helper to easily build the mocked command line"""
@@ -285,7 +289,7 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: Union[Type[LightningModule], Callable[..., LightningModule]],
+        model_class: Optional[Union[Type[LightningModule], Callable[..., LightningModule]]] = None,
         datamodule_class: Optional[Union[Type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = "config.yaml",
@@ -363,6 +367,7 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
+        self.validate_model_datamodule()
         self.setup_parser(**parser_kwargs)
         self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
@@ -397,6 +402,42 @@ class LightningCLI:
         """Initialize and setup the parser, and arguments."""
         self.parser = self.init_parser(**kwargs)
         self._add_arguments(self.parser)
+
+    def validate_model_datamodule(self) -> None:
+        def find_matching_class(token: str, registry: Registry) -> Tuple[bool, str, str]:
+            found_class_name = None
+            found_separator = None
+            token_in = False
+            for v in sys.argv:
+                separator = "=" if "=" in v else " "
+                for class_name in registry:
+                    if token in v:
+                        token_in = True
+                    if f"--{token}{separator}{class_name}" in v:
+                        found_class_name = class_name
+                        found_separator = separator
+            return token_in, found_class_name, found_separator
+
+        def create_msg(token: str, registry: Registry) -> str:
+            msg = f"The LightningCLI expects you to provide the following argument format: --{token}=MODEL_CLASS. \n"
+            msg += "The current options are: \n"
+            for class_name in registry.available_objects():
+                msg += f"    - {class_name} \n"
+            return msg
+
+        def sanetize_args(token: str, registry: Registry, should_raise: bool = False) -> None:
+            token_in, found_class_name, found_separator = find_matching_class(token, registry)
+            if token_in or should_raise:
+                if not found_class_name:
+                    raise MisconfigurationException(create_msg(token, registry))
+                setattr(self, f"{token}_class", registry[found_class_name])
+                sys.argv = [v for v in sys.argv if v != f"--{token}{found_separator}{found_class_name}"]
+
+        if not self.model_class:
+            sanetize_args("model", MODEL_REGISTRY, should_raise=True)
+
+        if not self.datamodule_class:
+            sanetize_args("datamodule", DATAMODULE_REGISTRY)
 
     def add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""

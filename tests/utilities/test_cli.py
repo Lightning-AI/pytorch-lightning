@@ -35,13 +35,16 @@ from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
     CALLBACK_REGISTRY,
+    DATAMODULE_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
     LR_SCHEDULER_REGISTRY,
+    MODEL_REGISTRY,
     OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -867,3 +870,42 @@ def test_custom_callbacks(tmpdir):
 
     with mock.patch("sys.argv", ["any.py", f"--trainer.callbacks=[{callback}]"]):
         LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+
+
+def test_custom_model_datamodule(tmpdir):
+    """
+    Test that registered callbacks can be used with LightningCLI.
+    """
+    MODEL_REGISTRY(cls=BoringModel)
+
+    @MODEL_REGISTRY
+    class TestModel(BoringModel):
+        pass
+
+    @MODEL_REGISTRY
+    class TestModel1(TestModel):
+        pass
+
+    @DATAMODULE_REGISTRY
+    class CustomDataModule(BoringDataModule):
+        pass
+
+    with pytest.raises(
+        MisconfigurationException,
+        match="The LightningCLI expects you to provide the following argument format: --model=MODEL_CLASS.",
+    ):
+        with mock.patch("sys.argv", ["any.py"]):
+            LightningCLI(trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+
+    with mock.patch("sys.argv", ["any.py", "--model=TestModel"]):
+        cli = LightningCLI(trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+        assert isinstance(cli.model, TestModel)
+
+    with mock.patch("sys.argv", ["any.py", "--model=TestModel1"]):
+        cli = LightningCLI(trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+        assert isinstance(cli.model, TestModel1)
+
+    with mock.patch("sys.argv", ["any.py", "--model=BoringModel", "--datamodule CustomDataModule"]):
+        cli = LightningCLI(trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+        assert isinstance(cli.model, BoringModel)
+        assert isinstance(cli.datamodule, CustomDataModule)
