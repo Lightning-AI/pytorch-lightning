@@ -722,7 +722,7 @@ And the same through command line:
 
     $ python train.py --optimizer.class_path=torch.optim.Adam --optimizer.init_args.lr=0.01
 
-Optionally, the command line can be simplified for PyTorch build-in `optimizers` and `schedulers`:
+Optionally, the command line can be simplified for PyTorch built-in `optimizers` and `schedulers`:
 
 .. code-block:: bash
 
@@ -785,7 +785,7 @@ For code simplification, the LightningCLI provides properties with already regis
                 link_to="model.lr_scheduler_init",
             )
 
-However, a user can register its own optimizers or schedulers as follow.
+However, a user can register its own optimizers or schedulers as follows.
 
 .. code-block:: python
 
