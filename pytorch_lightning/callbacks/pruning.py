@@ -89,19 +89,18 @@ class ModelPruning(Callback):
 
         .. code-block:: python
 
-            parameters_to_prune = [
-                (model.mlp_1, "weight"),
-                (model.mlp_2, "weight")
-            ]
+            parameters_to_prune = [(model.mlp_1, "weight"), (model.mlp_2, "weight")]
 
-            trainer = Trainer(callbacks=[
-                ModelPruning(
-                    pruning_fn='l1_unstructured',
-                    parameters_to_prune=parameters_to_prune,
-                    amount=0.01,
-                    use_global_unstructured=True,
-                )
-            ])
+            trainer = Trainer(
+                callbacks=[
+                    ModelPruning(
+                        pruning_fn="l1_unstructured",
+                        parameters_to_prune=parameters_to_prune,
+                        amount=0.01,
+                        use_global_unstructured=True,
+                    )
+                ]
+            )
 
         When ``parameters_to_prune`` is ``None``, ``parameters_to_prune`` will contain all parameters from the model.
         The user can override ``filter_parameters_to_prune`` to filter any ``nn.Module`` to be pruned.
