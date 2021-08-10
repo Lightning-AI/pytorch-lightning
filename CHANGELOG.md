@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [1.4.2] - 2021-08-10
+
+- Fixed recursive call for `apply_to_collection(include_none=False)` ([#8719](https://github.com/PyTorchLightning/pytorch-lightning/pull/8719))
+- Fixed truncated backprop through time enablement when set as a property on the LightningModule and not the Trainer ([#8804](https://github.com/PyTorchLightning/pytorch-lightning/pull/8804/))
+- Fixed comments and exception message for metrics_to_scalars ([#8782](https://github.com/PyTorchLightning/pytorch-lightning/pull/8782/))
+- Fixed typo error in LightningLoggerBase.after_save_checkpoint docstring ([#8737](https://github.com/PyTorchLightning/pytorch-lightning/pull/8737/))
+
 
 ## [1.4.1] - 2021-08-03
 
@@ -15,13 +22,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed distributed types support for CPUs ([#8667](https://github.com/PyTorchLightning/pytorch-lightning/pull/8667))
 - Fixed a deadlock issue with DDP and torchelastic ([#8655](https://github.com/PyTorchLightning/pytorch-lightning/pull/8655))
 - Fixed `accelerator=ddp` choice for CPU ([#8645](https://github.com/PyTorchLightning/pytorch-lightning/pull/8645))
-
-
-- Fixed recursive call for `apply_to_collection(include_none=False)` ([#8719](https://github.com/PyTorchLightning/pytorch-lightning/pull/8719))
-
-
-
-- Fixed truncated backprop through time enablement when set as a property on the LightningModule and not the Trainer ([#8804](https://github.com/PyTorchLightning/pytorch-lightning/pull/8804/))
 
 
 ## [1.4.0] - 2021-07-27
