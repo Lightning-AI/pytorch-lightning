@@ -16,11 +16,7 @@ from typing import Callable, Union
 
 import pytest
 import torch
-try:
-    from torchmetrics.functional import mean_absolute_percentage_error as mape
-except ImportError:
-    # legacy versions
-    from torchmetrics.functional import mean_relative_error as mape
+from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
