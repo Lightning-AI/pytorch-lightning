@@ -12,25 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-import json
 import os
 import sys
 from argparse import Namespace
 from contextlib import contextmanager
+from dataclasses import dataclass, field
 from functools import partial
 from types import MethodType
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 from unittest import mock
 
 import torch
-from attr import dataclass
 from torch.optim import Optimizer
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, warnings
-from pytorch_lightning.utilities.cli_registries import CALLBACK_REGISTRIES, OPTIMIZER_REGISTRIES, SCHEDULER_REGISTRIES
+from pytorch_lightning.utilities.cli_registries import (
+    CALLBACK_REGISTRIES,
+    OPTIMIZER_REGISTRIES,
+    Registry,
+    SCHEDULER_REGISTRIES,
+)
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
 
 if _JSONARGPARSE_AVAILABLE:
@@ -39,6 +44,30 @@ if _JSONARGPARSE_AVAILABLE:
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
+
+
+@dataclass
+class ClassInfo:
+    """This class is an helper to easily build the mocked command line"""
+
+    class_arg: str
+    cls: str
+    class_init_args: List[str] = field(default_factory=lambda: [])
+
+    def add_class_init_args(self, args: Dict[str, str]) -> None:
+        if args != self.class_arg:
+            self.class_init_args.append(args)
+
+    @property
+    def class_init(self) -> Dict[str, str]:
+        class_init = {}
+        class_init["class_path"] = self.cls.__module__ + "." + self.cls.__name__
+        init_args = {}
+        for init_arg in self.class_init_args:
+            arg_path, value = init_arg.split("=")
+            init_args[arg_path.split(".")[-1]] = value
+        class_init["init_args"] = init_args
+        return class_init
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -366,138 +395,75 @@ class LightningCLI:
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     @contextmanager
-    def prepare_optimizers(self):
+    def prepare_from_registry(self, registry: Registry):
         """
-        This context manager is used to simplify optimizer instantiation for Lightning users.
+        This context manager is used to simplify unique class instantiation.
         """
 
-        @dataclass
-        class OptimizerInfo:
-            optimizer_cls_arg: str
-            optim_cls: str
-            optimizer_init_args: List = []
-
-            def add_optimizer_init_args(self, args: Dict[str, str]) -> None:
-                if args != self.optimizer_cls_arg:
-                    self.optimizer_init_args.append(args)
-
-            @property
-            def optimizer_init(self) -> Dict[str, str]:
-                optimizer_init = {}
-                optimizer_init["class_path"] = self.optim_cls.__module__ + "." + self.optim_cls.__name__
-                init_args = {}
-                for init_arg in self.optimizer_init_args:
-                    arg_path, value = init_arg.split("=")
-                    init_args[arg_path.split(".")[-1]] = value
-                optimizer_init["init_args"] = init_args
-                return optimizer_init
-
-        map_arg_path = {}
-        for optim_name, optim_cls in OPTIMIZER_REGISTRIES.items():
+        # find if the users is using shortcut command line.
+        map_user_key_to_info = {}
+        for registered_name, registered_cls in registry.items():
             for v in sys.argv:
-                if f"={optim_name}" in v:
+                if f"={registered_name}" in v:
                     key = v.split("=")[0]
-                    map_arg_path[key] = OptimizerInfo(optimizer_cls_arg=v, optim_cls=optim_cls)
-        argv = []
-        for v in sys.argv:
-            skip = False
-            for key in map_arg_path:
-                if key in v:
-                    skip = True
-                    map_arg_path[key].add_optimizer_init_args(v)
-            if not skip:
-                argv.append(v)
+                    map_user_key_to_info[key] = ClassInfo(class_arg=v, cls=registered_cls)
 
-        if len(map_arg_path) > 0:
-            argv += [
-                f"{optimizer_key}={optimizer_args.optimizer_init}"
-                for optimizer_key, optimizer_args in map_arg_path.items()
-            ]
+        if len(map_user_key_to_info) > 0:
+            # for each shortcut command line, add its init arguments and skip them from `sys.argv`.
+            argv = []
+            for v in sys.argv:
+                skip = False
+                for key in map_user_key_to_info:
+                    if key in v:
+                        skip = True
+                        map_user_key_to_info[key].add_class_init_args(v)
+                if not skip:
+                    argv.append(v)
+
+            # re-create the global command line and mock `sys.argv`.
+            argv += [f"{user_key}={info.class_init}" for user_key, info in map_user_key_to_info.items()]
             with mock.patch("sys.argv", argv):
                 yield
         else:
             yield
 
     @contextmanager
-    def prepare_callbacks(self):
+    def prepare_class_list_from_registry(self, pattern: str, registry: Registry):
         """
-        This context manager is used to simplify callbacks instantiation for Lightning users.
+        This context manager is used to simplify instantiation of a list of class.
         """
-        all_callbacks_args = [
-            v for v in sys.argv if v.startswith("--trainer.callbacks") and not v.startswith("--trainer.callbacks=[")
-        ]
-        simple_callbacks_args = [
-            v for v in sys.argv if v.startswith("--trainer.callbacks=") and not v.startswith("--trainer.callbacks=[")
-        ]
-        class_path_callbacks = [
-            v for v in sys.argv if v.startswith("--trainer.callbacks=") and v.startswith("--trainer.callbacks=[")
-        ]
-        num_callbacks = len(simple_callbacks_args)
-        should_replace = len(all_callbacks_args) > 0 and not all("class_path" in v for v in all_callbacks_args)
+        argv = [v for v in sys.argv if pattern not in v]
+        all_matched_args = [v for v in sys.argv if pattern in v]
+        all_simplified_args = [v for v in all_matched_args if f"{pattern}" in v and f"{pattern}=[" not in v]
+        all_cls_simplified_args = [v for v in all_simplified_args if f"{pattern}=" in v]
+        all_non_simplified_args = [v for v in all_matched_args if f"{pattern}=" in v and f"{pattern}=[" in v]
+
+        num_simplified_cls = len(all_simplified_args)
+        should_replace = num_simplified_cls > 0 and not all("class_path" in v for v in all_matched_args)
+
         if should_replace:
-            if len(class_path_callbacks) > 1:
-                raise MisconfigurationException("When provided callbacks as list, please group them under 1 argument.")
+            # verify the user is properly ordering arguments.
+            assert all_cls_simplified_args[0] == all_simplified_args[0]
+            if len(all_non_simplified_args) > 1:
+                raise MisconfigurationException(f"When provided {pattern} as list, please group them under 1 argument.")
+
             # group arguments per callbacks
-            map_callback_args = {idx: [] for idx in range(num_callbacks)}
-            counter = -1
-            for v in all_callbacks_args:
-                if "--trainer.callbacks=" in v:
-                    counter += 1
-                map_callback_args[counter].append(v)
-            # re-compose the grouped command line
-            callback_out = []
-            for callback_idx in range(num_callbacks):
-                callback_args = map_callback_args[callback_idx]
-                callbacks_argv = {}
-                init_args = {}
-                for callback_arg in callback_args:
-                    if "--trainer.callbacks=" in callback_arg:
-                        class_name = callback_arg.split("=")[-1]
-                        callback_cls = CALLBACK_REGISTRIES[class_name]
-                        callbacks_argv["class_path"] = callback_cls.__module__ + "." + class_name
-                    else:
-                        arg_path, value = callback_arg.split("=")
-                        init_args[arg_path.split(".")[-1]] = value
-                callbacks_argv["init_args"] = init_args
-                callback_out.append(callbacks_argv)
+            infos = []
+            for class_arg in all_cls_simplified_args:
+                class_name = class_arg.split("=")[1]
+                registered_cls = registry[class_name]
+                infos.append(ClassInfo(class_arg=class_arg, cls=registered_cls))
 
+            for v in all_simplified_args:
+                if v in all_cls_simplified_args:
+                    current_info = infos[all_cls_simplified_args.index(v)]
+                current_info.add_class_init_args(v)
+
+            class_args = [info.class_init for info in infos]
             # add other callback arguments.
-            callback_out.extend(eval(class_path_callbacks[0].split("=")[-1]))
+            class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
 
-            # compose the command line
-            argv = [v for v in sys.argv if not v.startswith("--trainer.callbacks")] + [
-                f"--trainer.callbacks={json.dumps(callback_out)}"
-            ]
-            with mock.patch("sys.argv", argv):
-                yield
-        else:
-            yield
-
-    @contextmanager
-    def prepare_schedulers(self):
-        """
-        This context manager is used to simplify schedulers instantiation for Lightning users.
-        """
-        lr_scheduler_args = [v for v in sys.argv if v.startswith("--lr_scheduler")]
-        lr_scheduler_class_args = [v for v in sys.argv if v.startswith("--lr_scheduler=")]
-        should_replace = len(lr_scheduler_class_args) > 0 and not any(
-            "class_path" in v for v in lr_scheduler_class_args
-        )
-        if should_replace:
-            lr_scheduler_arg = {}
-            init_args = {}
-            for v in lr_scheduler_args:
-                if "lr_scheduler." in v:
-                    arg_path, value = v.split("=")
-                    init_args[arg_path.split(".")[-1]] = value
-                else:
-                    class_name = v.split("=")[-1]
-                    optim_cls = SCHEDULER_REGISTRIES[class_name]
-                    lr_scheduler_arg["class_path"] = optim_cls.__module__ + "." + class_name
-            lr_scheduler_arg["init_args"] = init_args
-            argv = [v for v in sys.argv if not v.startswith("--lr_scheduler")] + [
-                f"--lr_scheduler={json.dumps(lr_scheduler_arg)}"
-            ]
+            argv += [f"{pattern}={class_args}"]
             with mock.patch("sys.argv", argv):
                 yield
         else:
@@ -505,7 +471,9 @@ class LightningCLI:
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
-        with self.prepare_optimizers(), self.prepare_callbacks(), self.prepare_schedulers():
+        with self.prepare_from_registry(OPTIMIZER_REGISTRIES), self.prepare_from_registry(
+            SCHEDULER_REGISTRIES
+        ), self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRIES):
             self.config = parser.parse_args()
 
     def before_instantiate_classes(self) -> None:
@@ -538,7 +506,6 @@ class LightningCLI:
     def add_configure_optimizers_method_to_model(self) -> None:
         """
         Adds to the model an automatically generated ``configure_optimizers`` method.
-
         If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC',
         then a `configure_optimizers` method is automatically implemented in the model class.
         """
@@ -558,48 +525,38 @@ class LightningCLI:
         if len(optimizers) == 0:
             return
 
-        optimizer_inits = {}
-        for optimizer in optimizers:
-            optimizer_class = self.parser.optimizers_and_lr_schedulers[optimizer][0]
-            optimizer_init = self.config_init.get(optimizer, {})
-            if not isinstance(optimizer_class, tuple):
-                optimizer_init = _global_add_class_path(optimizer_class, optimizer_init)
-            optimizer_inits[optimizer] = optimizer_init
-
-        lr_scheduler_inits = {}
-        lr_scheduler_init = None
-        if lr_schedulers:
-            for scheduler in lr_schedulers:
-                lr_scheduler_class = self.parser.optimizers_and_lr_schedulers[scheduler][0]
-                lr_scheduler_init = self.config_init.get(scheduler, {})
-                if not isinstance(lr_scheduler_class, tuple):
-                    lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
-                lr_scheduler_inits[scheduler] = lr_scheduler_init
-
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
-            configure_optimizers_params = inspect.signature(self.model.configure_optimizers).parameters
-            if len(configure_optimizers_params) > 1:
-                expected_params = set(optimizers + lr_schedulers)
-                if expected_params.difference(configure_optimizers_params):
-                    raise MisconfigurationException(
-                        f"The model ``configure_optimizers`` should expose optional arguments: {expected_params}"
-                    )
-                configure_optimizers = partial(self.model.configure_optimizers, **optimizer_inits, **lr_scheduler_inits)
-                configure_optimizers.__code__ = self.model.configure_optimizers.__code__
-                self.model.configure_optimizers = configure_optimizers
+            raise MisconfigurationException(
+                f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
+                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}. In this case the user "
+                "is expected to link the argument groups and implement `configure_optimizers`, see "
+                "https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_cli.html"
+                "#optimizers-and-learning-rate-schedulers"
+            )
 
-        else:
+        if is_overridden("configure_optimizers", self.model):
             warnings._warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
             )
 
-            configure_optimizers = partial(
-                self.configure_optimizers, optimizer_init=optimizer_init, lr_scheduler_init=lr_scheduler_init
-            )
-            configure_optimizers.__code__ = self.model.configure_optimizers.__code__
+        optimizer_class = self.parser.optimizers_and_lr_schedulers[optimizers[0]][0]
+        optimizer_init = self.config_init.get(optimizers[0], {})
+        if not isinstance(optimizer_class, tuple):
+            optimizer_init = _global_add_class_path(optimizer_class, optimizer_init)
+        lr_scheduler_init = None
+        if lr_schedulers:
+            lr_scheduler_class = self.parser.optimizers_and_lr_schedulers[lr_schedulers[0]][0]
+            lr_scheduler_init = self.config_init.get(lr_schedulers[0], {})
+            if not isinstance(lr_scheduler_class, tuple):
+                lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
-            self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
+        configure_optimizers = partial(
+            self.configure_optimizers, optimizer_init=optimizer_init, lr_scheduler_init=lr_scheduler_init
+        )
+        configure_optimizers.__code__ = self.model.configure_optimizers.__code__
+
+        self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
     @staticmethod
     def configure_optimizers(

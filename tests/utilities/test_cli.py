@@ -27,7 +27,6 @@ import pytest
 import torch
 import yaml
 from packaging import version
-from torch import nn
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -749,52 +748,3 @@ def test_registries(tmpdir):
 
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
     assert len(cli.trainer.callbacks) == 4
-
-
-@pytest.mark.parametrize("use_scheduler", [False, True])
-def test_configure_optimizers(use_scheduler, tmpdir):
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(self.optimizer_registered, nested_key="optim1")
-            parser.add_optimizer_args(self.optimizer_registered, nested_key="optim2")
-            if use_scheduler:
-                parser.add_lr_scheduler_args(self.lr_scheduler_registered)
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 32), nn.Linear(32, 2))
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self, optim1: dict = None, optim2: dict = None, lr_scheduler: dict = None):
-            optim1 = instantiate_class(self.layer[:2].parameters(), optim1)
-            optim2 = instantiate_class(self.layer[2:].parameters(), optim2)
-            if lr_scheduler:
-                scheduler = instantiate_class(optim1, lr_scheduler)
-                return [optim1, optim2], [scheduler]
-            return [optim1, optim2]
-
-        training_epoch_end = None
-
-    cli_args = [
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.max_epochs=1",
-        "--optim1.lr=0.01",
-        "--optim1=Adam",
-        "--optim2={'class_path': 'torch.optim.SGD', 'init_args': {'lr': '0.01'}}",
-    ]
-    if use_scheduler:
-        lr_scheduler_arg = dict(class_path="torch.optim.lr_scheduler.StepLR", init_args=dict(step_size=50))
-        cli_args += [
-            f"--lr_scheduler={json.dumps(lr_scheduler_arg)}",
-        ]
-
-    with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(TestModel)
-
-    assert isinstance(cli.model.optimizers(use_pl_optimizer=False)[0], torch.optim.Adam)
-    assert isinstance(cli.model.optimizers(use_pl_optimizer=False)[1], torch.optim.SGD)
-    if use_scheduler:
-        assert isinstance(cli.model.lr_schedulers(), torch.optim.lr_scheduler.StepLR)
