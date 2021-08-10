@@ -21,9 +21,7 @@ import os
 import platform
 import sys
 
-import numpy
 import torch
-import tqdm
 
 sys.path += [os.path.abspath(".."), os.path.abspath(".")]
 import pytorch_lightning  # noqa: E402
