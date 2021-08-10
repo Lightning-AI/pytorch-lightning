@@ -19,6 +19,7 @@ import pickle
 import sys
 from argparse import Namespace
 from contextlib import redirect_stdout
+from importlib.util import module_from_spec, spec_from_file_location
 from io import StringIO
 from typing import List, Optional, Union
 from unittest import mock
@@ -33,12 +34,12 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
-    CALLBACK_REGISTRIES,
+    CALLBACK_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
-    LR_SCHEDULER_REGISTRIES,
-    OPTIMIZER_REGISTRIES,
+    LR_SCHEDULER_REGISTRY,
+    OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
@@ -717,14 +718,24 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
-@CALLBACK_REGISTRIES
+@CALLBACK_REGISTRY
 class CustomCallback(Callback):
+    pass
+
+
+@OPTIMIZER_REGISTRY
+class CustomAdam(torch.optim.Adam):
+    pass
+
+
+@LR_SCHEDULER_REGISTRY
+class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
     pass
 
 
 def test_registries(tmpdir):
 
-    assert CALLBACK_REGISTRIES.available_objects() == [
+    assert CALLBACK_REGISTRY.available_objects() == [
         "BackboneFinetuning",
         "BaseFinetuning",
         "BasePredictionWriter",
@@ -744,7 +755,7 @@ def test_registries(tmpdir):
         "CustomCallback",
     ]
 
-    assert OPTIMIZER_REGISTRIES.available_objects() == [
+    assert OPTIMIZER_REGISTRY.available_objects() == [
         "ASGD",
         "Adadelta",
         "Adagrad",
@@ -756,9 +767,10 @@ def test_registries(tmpdir):
         "Rprop",
         "SGD",
         "SparseAdam",
+        "CustomAdam",
     ]
 
-    assert LR_SCHEDULER_REGISTRIES.available_objects() == [
+    assert LR_SCHEDULER_REGISTRY.available_objects() == [
         "CosineAnnealingLR",
         "CosineAnnealingWarmRestarts",
         "CyclicLR",
@@ -768,6 +780,7 @@ def test_registries(tmpdir):
         "MultiplicativeLR",
         "OneCycleLR",
         "StepLR",
+        "CustomCosineAnnealingLR",
     ]
 
 
@@ -788,7 +801,7 @@ def test_registries_resolution(tmpdir):
 
     cli_args = [
         f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.fast_dev_run=True",
+        "--trainer.fast_dev_run=1",
         "--trainer.progress_bar_refresh_rate=0",
         "--optimizer Adam",
         "--optimizer.lr 0.0001",
@@ -831,5 +844,20 @@ def test_custom_callbacks(tmpdir):
             trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True, callbacks=CustomCallback()),
         )
 
-    with mock.patch("sys.argv", ["any.py", "--trainer.callbacks=[{'class_path': tests.utilities.CustomCallback}]"]):
+    code = """from pytorch_lightning.callbacks import Callback\nfrom pytorch_lightning.utilities.cli import CALLBACK_REGISTRY\n\nclass TestCallback(Callback):\n\tpass\n\nCALLBACK_REGISTRY(cls=TestCallback)"""  # noqa E501
+
+    f = open(tmpdir / "test.py", "w")
+    f.write(code)
+    f.close()
+
+    spec = spec_from_file_location("test", f.name)
+    mod = module_from_spec(spec)
+    sys.modules["test"] = mod
+    spec.loader.exec_module(mod)
+    callback_cls = getattr(mod, "TestCallback")
+    assert issubclass(callback_cls, Callback)
+
+    callback = {"class_path": f"{tmpdir}.test.CustomCallback"}
+
+    with mock.patch("sys.argv", ["any.py", f"--trainer.callbacks=[{callback}]"]):
         LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))

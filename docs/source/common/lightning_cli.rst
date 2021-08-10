@@ -336,11 +336,11 @@ However, a user can register its own callbacks as follow.
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.cli import CALLBACK_REGISTRIES
+    from pytorch_lightning.utilities.cli import CALLBACK_REGISTRY
     from pytorch_lightning.callbacks import Callback
 
 
-    @CALLBACK_REGISTRIES
+    @CALLBACK_REGISTRY
     class CustomCallback(Callback):
         pass
 
@@ -790,16 +790,16 @@ However, a user can register its own optimizers or schedulers as follow.
 .. code-block:: python
 
     import torch
-    from pytorch_lightning.utilities.cli import OPTIMIZER_REGISTRIES, LR_SCHEDULER_REGISTRIES
+    from pytorch_lightning.utilities.cli import OPTIMIZER_REGISTRY, LR_SCHEDULER_REGISTRY
     from pytorch_lightning.callbacks import Callback
 
 
-    @CALLBACK_REGISTRIES
+    @OPTIMIZER_REGISTRY
     class CustomAdam(torch.optim.Adam):
         pass
 
 
-    @LR_SCHEDULER_REGISTRIES
+    @LR_SCHEDULER_REGISTRY
     class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
         pass
 

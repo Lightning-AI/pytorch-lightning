@@ -87,14 +87,14 @@ class Registry(UserDict):
         return "Registered objects: {}".format(", ".join(self.keys()))
 
 
-CALLBACK_REGISTRIES = Registry()
-CALLBACK_REGISTRIES.register_package(pl.callbacks, pl.callbacks.Callback)
+CALLBACK_REGISTRY = Registry()
+CALLBACK_REGISTRY.register_package(pl.callbacks, pl.callbacks.Callback)
 
-OPTIMIZER_REGISTRIES = Registry()
-OPTIMIZER_REGISTRIES.register_package(torch.optim, torch.optim.Optimizer)
+OPTIMIZER_REGISTRY = Registry()
+OPTIMIZER_REGISTRY.register_package(torch.optim, torch.optim.Optimizer)
 
-LR_SCHEDULER_REGISTRIES = Registry()
-LR_SCHEDULER_REGISTRIES.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
+LR_SCHEDULER_REGISTRY = Registry()
+LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
 
 
 @dataclass
@@ -383,11 +383,11 @@ class LightningCLI:
 
     @property
     def registered_optimizers(self) -> Tuple[Type[Optimizer]]:
-        return tuple(OPTIMIZER_REGISTRIES.values())
+        return tuple(OPTIMIZER_REGISTRY.values())
 
     @property
     def registered_lr_schedulers(self) -> Tuple[LRSchedulerType]:
-        return tuple(LR_SCHEDULER_REGISTRIES.values())
+        return tuple(LR_SCHEDULER_REGISTRY.values())
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
@@ -435,7 +435,7 @@ class LightningCLI:
         if any(
             True
             for v in sys.argv
-            for optim_name in OPTIMIZER_REGISTRIES
+            for optim_name in OPTIMIZER_REGISTRY
             if re.match(fr"^--optimizer[^\S+=]*?{optim_name}?", v)
         ):
             if "optimizer" not in self.parser.groups:
@@ -444,10 +444,10 @@ class LightningCLI:
         if any(
             True
             for v in sys.argv
-            for sch_name in LR_SCHEDULER_REGISTRIES
+            for sch_name in LR_SCHEDULER_REGISTRY
             if re.match(fr"^--lr_scheduler[^\S+=]*{sch_name}?", v)
         ):
-            lr_schdulers = tuple(v for v in LR_SCHEDULER_REGISTRIES.values())
+            lr_schdulers = tuple(v for v in LR_SCHEDULER_REGISTRY.values())
             if "lr_scheduler" not in self.parser.groups:
                 self.parser.add_lr_scheduler_args(lr_schdulers)
 
@@ -539,9 +539,9 @@ class LightningCLI:
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
         # fmt: off
-        with self.prepare_from_registry(OPTIMIZER_REGISTRIES), \
-             self.prepare_from_registry(LR_SCHEDULER_REGISTRIES), \
-             self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRIES):
+        with self.prepare_from_registry(OPTIMIZER_REGISTRY), \
+             self.prepare_from_registry(LR_SCHEDULER_REGISTRY), \
+             self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
             self.config = parser.parse_args()
         # fmt: on
 
