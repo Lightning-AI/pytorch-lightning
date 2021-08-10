@@ -833,6 +833,10 @@ def test_lightning_cli_disabled_run(run):
 
 @pytest.mark.skipif(True, reason="typing from json-argparse is failing.")
 def test_custom_callbacks(tmpdir):
+    """
+    Test that registered callbacks can be used with LightningCLI.
+    """
+
     class TestModel(BoringModel):
         def on_fit_start(self):
             callbacks = [c for c in self.trainer.callbacks if isinstance(c, CustomCallback)]
