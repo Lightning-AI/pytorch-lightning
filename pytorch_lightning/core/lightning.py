@@ -1804,9 +1804,8 @@ class LightningModule(
         if avg_training_loss is not None:
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
-        module_tbptt_enabled = self.truncated_bptt_steps > 0
-        trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
-        if module_tbptt_enabled or trainer_tbptt_enabled:
+        tbptt_enabled = self.truncated_bptt_steps > 0
+        if tbptt_enabled:
             tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:

@@ -140,7 +140,6 @@ class Trainer(
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
-        truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
@@ -309,9 +308,6 @@ class Trainer(
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
-            truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
-                Please use :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` instead.
-
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
 
@@ -438,7 +434,6 @@ class Trainer(
             gradient_clip_algorithm,
             track_grad_norm,
             accumulate_grad_batches,
-            truncated_bptt_steps,
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
