@@ -20,14 +20,10 @@ from typing import Iterator, List, Optional, Tuple
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.loops.utilities import check_finite, check_training_step_output, process_training_step_output
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
-from pytorch_lightning.utilities.batch_loop_common import (
-    check_finite,
-    check_training_step_output,
-    process_training_step_output,
-)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 

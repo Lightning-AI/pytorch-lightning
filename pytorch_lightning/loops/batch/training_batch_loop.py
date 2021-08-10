@@ -26,15 +26,11 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.utilities import check_finite, check_training_step_output, process_training_step_output
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
-from pytorch_lightning.utilities.batch_loop_common import (
-    check_finite,
-    check_training_step_output,
-    process_training_step_output,
-)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
