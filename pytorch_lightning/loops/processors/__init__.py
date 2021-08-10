@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loops.batch.training_batch_loop import TrainingBatchLoop  # noqa: F401
+from pytorch_lightning.loops.processors.iterator_batch_processor import IteratorBatchProcessor  # noqa: F401

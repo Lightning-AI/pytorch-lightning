@@ -34,20 +34,19 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 log = logging.getLogger(__name__)
 
 
-class FlexibleOptimizationFlow:
+class IteratorBatchProcessor:
     """
-    The flow for performing a training iteration when ``training_step`` needs access to the
+    The processor for performing a training iteration when ``training_step`` needs access to the
     dataloader. It is selected when the signature of ``training_step`` contains ``dataloader_iter``:
 
         def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
 
     The ``training_step`` is allowed to fetch multiple batches during one training iteration. The
-    framework provides minimum amount of automation with regards to model optimization (hence the
-    "flexible" in the name). The flexibility allows for ease of experimentation with inter-batch
-    parallelism techniques.
+    framework provides minimum amount of automation with regards to model optimization. The
+    flexibility allows for ease of experimentation with inter-batch parallelism techniques.
 
-    This flow doesn't support ``automatic_optimization`` and ``tbptt``. An error will be thrown if
-    the ``LightningModule`` or the ``Trainer`` is configured to use these features.
+    This processor doesn't support ``automatic_optimization`` and ``tbptt``. An error will be thrown
+    if the ``LightningModule`` or the ``Trainer`` is configured to use these features.
 
     The ``training_step`` is responsible for reporting whether it has reached the last batch by
     including an ``is_last`` field in the result dict. Failing to do so will result in an error.
@@ -89,7 +88,7 @@ class FlexibleOptimizationFlow:
 
         self.trainer_ref = trainer_ref
 
-        # The following field is not used by the flow since it doesn't support automatic
+        # The following field is not used by the processor since it doesn't support automatic
         # optimization and tbptt. Initializing them regardless since they are currently expected by
         # `FitLoop` or `TrainingEpochLoop`.
         # TODO: come up with an abstraction for "batch processors" so they can be better decoupled

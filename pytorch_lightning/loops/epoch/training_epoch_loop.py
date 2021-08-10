@@ -16,7 +16,8 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
-from pytorch_lightning.loops.batch import FlexibleOptimizationFlow, TrainingBatchLoop
+from pytorch_lightning.loops.batch import TrainingBatchLoop
+from pytorch_lightning.loops.processors import IteratorBatchProcessor
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -27,7 +28,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 # TODO: currently, the batch processor is only a loop when tbptt is enabled.
 # As we introduce more specialized batch processors, we may want to choose a
 # more suitable abstraction for them.
-BATCH_LOOP_TYPE = Optional[Tuple[TrainingBatchLoop, FlexibleOptimizationFlow]]
+BATCH_LOOP_TYPE = Optional[Tuple[TrainingBatchLoop, IteratorBatchProcessor]]
 
 
 class TrainingEpochLoop(loops.Loop):
@@ -115,7 +116,7 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        if isinstance(self.batch_loop, FlexibleOptimizationFlow):
+        if isinstance(self.batch_loop, IteratorBatchProcessor):
             # By contract, when taking `dataloader_iter` as an argument,
             # `training_step` is responsible for reporting `is_last` in the
             # result dict, which is used to determine the stop condition for
@@ -158,7 +159,7 @@ class TrainingEpochLoop(loops.Loop):
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
-        if not isinstance(self.batch_loop, FlexibleOptimizationFlow):
+        if not isinstance(self.batch_loop, IteratorBatchProcessor):
             self.trainer.call_hook(
                 "on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, self._dataloader_idx
             )
