@@ -40,6 +40,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added simplification for handling optimizers, schedulers and callbacks with `LightningCLI` ([#8815](https://github.com/PyTorchLightning/pytorch-lightning/pull/8815))
 
 
+- Added `OPTIMIZER_REGISTRY`, `LR_SCHEDULER_REGISTRY`, `CALLBACK_REGISTRY` used by `LightningCLI` ([#8815](https://github.com/PyTorchLightning/pytorch-lightning/pull/8815))
+
+
+- Added `MODEL_REGISTRY`, `DATAMODULE_REGISTRY` used by `LightningCLI` to auto-populate the arguments ([#8844](https://github.com/PyTorchLightning/pytorch-lightning/pull/8844))
+
+
 ### Changed
 
 - Parsing of the `gpus` Trainer argument has changed: `gpus="n"` (str) no longer selects the GPU index n and instead selects the first n devices. ([#8770](https://github.com/PyTorchLightning/pytorch-lightning/pull/8770))
