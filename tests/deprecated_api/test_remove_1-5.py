@@ -13,7 +13,6 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
 import os
-from unittest import mock
 
 import pytest
 import torch
