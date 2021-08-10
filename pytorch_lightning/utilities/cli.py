@@ -278,6 +278,7 @@ class LightningCLI:
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
         self.setup_parser(run, **parser_kwargs)
+        self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
 
         subcommand: Optional[str] = self.config["subcommand"] if run else None
@@ -295,8 +296,12 @@ class LightningCLI:
         if subcommand is not None:
             self._run_subcommand(subcommand)
 
-    def setup_parser(self, add_subcommands: bool = True, **kwargs: Any) -> None:
-        """Initialize and setup the parser, subcommands, and arguments"""
+    def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
+        """Method that instantiates the argument parser."""
+        return LightningArgumentParser(**kwargs)
+
+    def setup_parser(self, add_subcommands: bool, **kwargs: Any) -> None:
+        """Initialize and setup the parser, subcommands, and arguments."""
         self.parser = self.init_parser(**kwargs)
         self._subcommand_method_arguments: Dict[str, List[str]] = {}
         if add_subcommands:
@@ -304,11 +309,7 @@ class LightningCLI:
         else:
             self._add_arguments(self.parser)
 
-    def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
-        """Method that instantiates the argument parser."""
-        return LightningArgumentParser(**kwargs)
-
-    def _add_default_arguments(self, parser: LightningArgumentParser) -> None:
+    def add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
@@ -317,7 +318,7 @@ class LightningCLI:
             help="Set to an int to run seed_everything with this value before classes instantiation",
         )
 
-    def _add_core_arguments(self, parser: LightningArgumentParser) -> None:
+    def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
@@ -325,6 +326,20 @@ class LightningCLI:
         parser.add_lightning_class_args(self.model_class, "model", subclass_mode=self.subclass_mode_model)
         if self.datamodule_class is not None:
             parser.add_lightning_class_args(self.datamodule_class, "data", subclass_mode=self.subclass_mode_data)
+
+    def _add_arguments(self, parser: LightningArgumentParser) -> None:
+        # default + core + custom arguments
+        self.add_default_arguments_to_parser(parser)
+        self.add_core_arguments_to_parser(parser)
+        self.add_arguments_to_parser(parser)
+
+    def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
+        """
+        Implement to add extra arguments to the parser or link arguments
+
+        Args:
+            parser: The parser object to which arguments can be added
+        """
 
     @staticmethod
     def subcommands() -> Dict[str, Set[str]]:
@@ -357,20 +372,6 @@ class LightningCLI:
         self._subcommand_method_arguments[subcommand] = added
         return parser
 
-    def _add_arguments(self, parser: LightningArgumentParser) -> None:
-        # default + core + custom arguments
-        self._add_default_arguments(parser)
-        self._add_core_arguments(parser)
-        self.add_arguments(parser)
-
-    def add_arguments(self, parser: LightningArgumentParser) -> None:
-        """
-        Implement to add extra arguments to the parser or link arguments
-
-        Args:
-            parser: The parser object to which arguments can be added
-        """
-
     def link_optimizers_and_lr_schedulers(self) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
         for key, (class_type, link_to) in self.parser.optimizers_and_lr_schedulers.items():
@@ -383,11 +384,11 @@ class LightningCLI:
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
-        """Parses command line arguments and stores it in ``self.config``"""
+        """Parses command line arguments and stores it in ``self.config``."""
         self.config = parser.parse_args()
 
     def before_instantiate_classes(self) -> None:
-        """Implement to run some code before instantiating the classes"""
+        """Implement to run some code before instantiating the classes."""
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""

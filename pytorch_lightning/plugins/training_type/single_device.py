@@ -63,9 +63,8 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def model_to_device(self) -> None:
         self._model.to(self.root_device)
 
-    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self) -> None:
         self.model_to_device()
-        return self.model
 
     @property
     def is_global_zero(self) -> bool:

@@ -32,7 +32,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import Plugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -710,9 +710,9 @@ class Trainer(
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
-
-        Separates from fit to make sure you never run on your predictions set until you want to.
-        This will call the model forward function to compute predictions.
+        Run inference on your data.
+        This will call the model forward function to compute predictions. Useful to perform distributed
+        and batched predictions. Logging is disabled in the predict hooks.
 
         Args:
             model: The model to predict with.
@@ -861,9 +861,12 @@ class Trainer(
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
 
+        # attach model to the training type plugin
+        self.accelerator.connect(model)
+
         # hook
-        self.data_connector.prepare_data(model)
-        self.callback_connector._attach_model_callbacks(model, self)
+        self.data_connector.prepare_data()
+        self.callback_connector._attach_model_callbacks()
 
         if self._ckpt_path and not self.accelerator.restore_checkpoint_after_pre_dispatch:
             self._load_checkpoint_weights()
@@ -871,17 +874,16 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator.connect(model)
+        self.call_hook("on_before_accelerator_backend_setup")
         self.accelerator.setup_environment()
-        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
         if not self.accelerator.restore_checkpoint_after_pre_dispatch:
             self._restore_modules_and_callbacks()
 
-        self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
-        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+        self._call_configure_sharded_model()  # allow user to setup in model sharded environment
+        self.accelerator.setup(self)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -942,8 +944,10 @@ class Trainer(
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_end")
 
-        # teardown
-        self._call_teardown_hook(model)
+        # teardown if necessary (similar calls for spawn plugins are excluded as they have
+        # been included at the end of `new_process` functions)
+        if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -1073,7 +1077,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
-            self._on_expection()
+            self._on_exception()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1094,7 +1098,7 @@ class Trainer(
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
-        for i, result in enumerate(eval_loop_results):
+        for result in eval_loop_results:
             if isinstance(result, dict):
                 for k, v in result.items():
                     if isinstance(v, torch.Tensor):
@@ -1178,44 +1182,53 @@ class Trainer(
             )
         return ckpt_path
 
-    def _call_setup_hook(self, model: "pl.LightningModule") -> None:
+    def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
         self.accelerator.barrier("pre_setup")
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
-        self.setup(model, stage=fn)
-        model.setup(stage=fn)
+        self.setup(stage=fn)
+        self.lightning_module.setup(stage=fn)
 
         self.accelerator.barrier("post_setup")
 
-    def _call_configure_sharded_model(self, model: "pl.LightningModule") -> None:
+    def _call_configure_sharded_model(self) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
 
         # used on the model if the user re-create a trainer with resume_from_checkpoint
+        model = self.lightning_module
         model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
                 model.configure_sharded_model()
-                self.configure_sharded_model(model)
+                self.on_configure_sharded_model()
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
-    def _call_teardown_hook(self, model: "pl.LightningModule") -> None:
+    def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-        self.profiler.teardown(stage=fn)
-        self.teardown(stage=fn)
-        model.teardown(stage=fn)
 
-        model._current_fx_name = None
-        model._current_dataloader_idx = None
+        self.teardown(stage=fn)
+        self.lightning_module.teardown(stage=fn)
+
+        self.lightning_module._current_fx_name = None
+        self.lightning_module._current_dataloader_idx = None
         # these could have become stale if metrics are defined in `setup`
-        model._metric_attributes = None
+        self.lightning_module._metric_attributes = None
+
+        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
+        # It might be related to xla tensors blocked when moving the cpu kill loggers.
+        if self.logger is not None:
+            self.logger.finalize("success")
+
+        # summarize profile results
+        self.profiler.describe()
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         if self.lightning_module:
@@ -1252,8 +1265,8 @@ class Trainer(
 
         return output
 
+    @staticmethod
     def _parse_devices(
-        self,
         gpus: Optional[Union[List[int], str, int]],
         auto_select_gpus: bool,
         tpu_cores: Optional[Union[List[int], str, int]],
@@ -1320,7 +1333,7 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_expection(self):
+    def _on_exception(self):
         if not _fault_tolerant_enabled():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.

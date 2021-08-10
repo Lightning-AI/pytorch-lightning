@@ -36,7 +36,7 @@ sphinx:
 # Optionally build your docs in additional formats such as PDF and ePub
 formats:
   - htmlzip
-  - pdf
+  #- pdf
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
