@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Dict, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 class TorchCheckpointIOPlugin(CheckpointIOPlugin):
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Mapping] = None
+        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
     ) -> None:
         try:
             # write the checkpoint dictionary on the file
