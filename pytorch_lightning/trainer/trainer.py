@@ -851,8 +851,8 @@ class Trainer(
         training_step_fx = getattr(model, "training_step")
         if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
             log.warning(
-                "Using `FlexibleOptimizationFlow` since `training_step` has argument `dataloader_iter`. "
-                "Note that this is an experimental feature and its behavior may subject to change."
+                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+                "this signature is experimental and the behavior may subject to change."
             )
             batch_loop = FlexibleOptimizationFlow(self, model)
             self.fit_loop.epoch_loop.connect(batch_loop)

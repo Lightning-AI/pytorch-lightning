@@ -63,21 +63,28 @@ class FlexibleOptimizationFlow:
     def __init__(self, trainer_ref: "pl.Trainer", model_ref: "pl.LightningModule") -> None:
         if is_overridden("on_train_batch_start", model_ref):
             raise MisconfigurationException(
-                "The model hook `on_train_batch_start` is not compatible with FlexibleOptimizationFlow."
+                "The model hook `on_train_batch_start` is not compatible with "
+                "taking a `dataloader_iter` argument in your `training_step`."
             )
         if is_overridden("on_train_batch_end", model_ref):
             raise MisconfigurationException(
-                "The model hook `on_train_batch_end` is not compatible with FlexibleOptimizationFlow."
+                "The model hook `on_train_batch_end` is not compatible with "
+                "taking a `dataloader_iter` argument in your `training_step`."
             )
         if is_overridden("tbptt_split_batch", model_ref):
             raise MisconfigurationException(
-                "The model hook `tbptt_split_batch` is not compatible with FlexibleOptimizationFlow."
+                "The model hook `tbptt_split_batch` is not compatible with "
+                "taking a `dataloader_iter` argument in your `training_step`."
             )
         if model_ref.automatic_optimization:
-            raise MisconfigurationException("`automatic_optimization` is not support by FlexibleOptimizationFlow.")
+            raise MisconfigurationException(
+                "`automatic_optimization` is not compatible with "
+                "taking a `dataloader_iter` argument in your `training_step`."
+            )
         if trainer_ref.accumulate_grad_batches != 1:
             raise MisconfigurationException(
-                "`accumulate_grad_batches` can only be 1 when using FlexibleOptimizationFlow."
+                "`accumulate_grad_batches` can only be 1 when your "
+                "`training_step` takes `dataloader_iter` as an argument."
             )
 
         self.trainer_ref = trainer_ref
@@ -140,8 +147,8 @@ class FlexibleOptimizationFlow:
 
             if training_step_output is None or "is_last" not in training_step_output:
                 raise MisconfigurationException(
-                    "When using `FlexibleOptimizationFlow`, `training_step` must return a dict containing `is_last` "
-                    "which indicated whether there are more batches to be processed."
+                    "When `training_step` takes `dataloader_iter` as an argument, the result dict must "
+                    "contain a `is_last` field to indicate whether there are more batches to be processed."
                 )
             is_last = training_step_output["is_last"]
             training_step_output, _ = process_training_step_output(self.trainer_ref, training_step_output)

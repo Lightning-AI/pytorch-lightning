@@ -116,7 +116,7 @@ class TrainingEpochLoop(loops.Loop):
             StopIteration: When the epoch is canceled by the user returning -1
         """
         if isinstance(self.batch_loop, FlexibleOptimizationFlow):
-            # By contract, when using `FlexibleOptimizationFlow`,
+            # By contract, when taking `dataloader_iter` as an argument,
             # `training_step` is responsible for reporting `is_last` in the
             # result dict, which is used to determine the stop condition for
             # the epoch. So as long as `advance` is invoked, it's correct to
