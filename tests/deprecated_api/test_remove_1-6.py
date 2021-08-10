@@ -17,10 +17,10 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_summary import ModelSummary
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringDataModule, BoringModel
 

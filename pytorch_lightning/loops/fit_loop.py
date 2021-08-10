@@ -225,15 +225,6 @@ class FitLoop(Loop):
         # hook
         self.trainer.call_hook("on_train_end")
 
-        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
-        # It might be related to xla tensors blocked when moving the cpu
-        # kill loggers
-        if self.trainer.logger is not None:
-            self.trainer.logger.finalize("success")
-
-        # summarize profile results
-        self.trainer.profiler.describe()
-
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
