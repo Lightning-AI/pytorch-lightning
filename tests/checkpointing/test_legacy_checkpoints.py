@@ -22,50 +22,12 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping
-from tests import _PATH_LEGACY
+from tests import _PATH_LEGACY, _PROJECT_ROOT
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
 CHECKPOINT_EXTENSION = ".ckpt"
-LEGACY_BACK_COMPATIBLE_PL_VERSIONS = (
-    "1.0.0",
-    "1.0.1",
-    "1.0.2",
-    "1.0.3",
-    "1.0.4",
-    "1.0.5",
-    "1.0.6",
-    "1.0.7",
-    "1.0.8",
-    "1.1.0",
-    "1.1.1",
-    "1.1.2",
-    "1.1.3",
-    "1.1.4",
-    "1.1.5",
-    "1.1.6",
-    "1.1.7",
-    "1.1.8",
-    "1.2.0",
-    "1.2.1",
-    "1.2.2",
-    "1.2.3",
-    "1.2.4",
-    "1.2.5",
-    "1.2.6",
-    "1.2.7",
-    "1.2.8",
-    "1.2.10",
-    "1.3.0",
-    "1.3.1",
-    "1.3.2",
-    "1.3.3",
-    "1.3.4",
-    "1.3.5",
-    "1.3.6",
-    "1.3.7",
-    "1.3.8",
-    "1.4.0",
-)
+with open(os.path.join(_PROJECT_ROOT, "legacy", "back-compatible-versions.txt")) as fp:
+    LEGACY_BACK_COMPATIBLE_PL_VERSIONS = [ln.strip() for ln in fp.readlines()]
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
