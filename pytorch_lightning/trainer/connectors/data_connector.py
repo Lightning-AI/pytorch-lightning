@@ -15,7 +15,7 @@
 from typing import Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.supporters import PrefetchIterator, CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader, PrefetchIterator
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
