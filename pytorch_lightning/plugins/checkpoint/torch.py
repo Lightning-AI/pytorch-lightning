@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
+from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin, TLoadStorageOptions, TSaveStorageOptions
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 class TorchCheckpointIOPlugin(CheckpointIOPlugin):
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
+        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[TSaveStorageOptions] = None
     ) -> None:
         try:
             # write the checkpoint dictionary on the file
@@ -22,6 +22,6 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
             atomic_save(checkpoint, path)
 
     def load_checkpoint(
-        self, path: Union[str, Path], map_location: Optional[Callable] = lambda storage, loc: storage
+        self, path: Union[str, Path], map_location: Optional[TLoadStorageOptions] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
         return pl_load(path, map_location=map_location)
