@@ -528,7 +528,8 @@ class LightningCLI:
 
             class_args = [info.class_init for info in infos]
             # add other callback arguments.
-            class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
+            if len(all_non_simplified_args) > 0:
+                class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
 
             argv += [f"{pattern}={class_args}"]
             with mock.patch("sys.argv", argv):

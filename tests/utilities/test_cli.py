@@ -786,22 +786,13 @@ def test_registries(tmpdir):
     ]
 
 
-def test_registries_resolution(tmpdir):
+@pytest.mark.parametrize("use_class_path_callbacks", [False, True])
+def test_registries_resolution(use_class_path_callbacks, tmpdir):
     """This test validates registries are used when simplified command line are being used."""
 
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-
-    callbacks = [
-        dict(
-            class_path="pytorch_lightning.callbacks.Callback",
-        ),
-        dict(
-            class_path="pytorch_lightning.callbacks.Callback",
-            init_args=dict(),
-        ),
-    ]
 
     cli_args = [
         f"--trainer.default_root_dir={tmpdir}",
@@ -816,17 +807,34 @@ def test_registries_resolution(tmpdir):
         "--trainer.callbacks.log_momentum=True",
         "--trainer.callbacks=ModelCheckpoint",
         "--trainer.callbacks.monitor=loss",
-        f"--trainer.callbacks={json.dumps(callbacks)}",
         "--lr_scheduler",
         "StepLR",
         "--lr_scheduler.step_size=50",
     ]
 
+    expected_callbacks = 2
+
+    if use_class_path_callbacks:
+
+        callbacks = [
+            dict(
+                class_path="pytorch_lightning.callbacks.Callback",
+            ),
+            dict(
+                class_path="pytorch_lightning.callbacks.Callback",
+                init_args=dict(),
+            ),
+        ]
+
+        cli_args += [f"--trainer.callbacks={json.dumps(callbacks)}"]
+
+        expected_callbacks = 4
+
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = LightningCLI(TestModel)
+        cli = LightningCLI(BoringModel)
 
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.callbacks) == 4
+    assert len(cli.trainer.callbacks) == expected_callbacks
 
 
 @pytest.mark.parametrize("run", (False, True))
