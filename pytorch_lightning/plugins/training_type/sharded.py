@@ -41,13 +41,13 @@ class DDPShardedPlugin(DDPPlugin):
         if trainer_fn != TrainerFn.FITTING:
             rank_zero_debug(f"In {trainer_fn} stage: Skipping wrapping the model with ShardedDataParallel")
             return
+        self._wrap_optimizers()
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model),
             sharded_optimizer=self.lightning_module.trainer.optimizers,
             # For multi-node training, enabling bucketing will improve performance.
             reduce_buffer_size=self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0,
         )
-        self._wrap_optimizers()
         setattr(self._model, "require_backward_grad_sync", False)
 
     def _reinit_optimizers_with_oss(self):
