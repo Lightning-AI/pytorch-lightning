@@ -350,7 +350,7 @@ class TrainingEpochLoop(loops.Loop):
         """Increments global step according to grads progress"""
         if not self._should_accumulate():
             self.global_step = self.trainer.accelerator.update_global_step(
-                self.total_batch_idx, self.trainer.global_step
+                self.batch_progress.current.ready, self.trainer.global_step
             )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
