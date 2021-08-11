@@ -126,7 +126,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 log_gpu_memory=None,
                 distributed_backend=None,
                 weights_save_path=None,
-                truncated_bptt_steps=None,
                 resume_from_checkpoint=None,
                 profiler=None,
             ),
