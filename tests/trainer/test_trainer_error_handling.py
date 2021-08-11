@@ -16,7 +16,7 @@ import pytest
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities.exceptions import DummyException
+from tests.helpers.utils import DummyException
 
 
 class TrainerStagesErrorsModel(BoringModel):

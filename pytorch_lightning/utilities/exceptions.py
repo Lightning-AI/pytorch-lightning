@@ -23,8 +23,3 @@ class DeadlockDetectedException(Exception):
     """
     Exception used when a deadlock has been detected and processes are being killed
     """
-
-class DummyException(Exception):
-    """
-    Dummy Exception used for testing purposes
-    """

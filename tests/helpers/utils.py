@@ -131,3 +131,9 @@ def no_warning_call(warning_type, match: Optional[str] = None):
             # no warning raised
             return
         raise AssertionError(f"`{warning_type}` was raised: {w}")
+
+
+class DummyException(Exception):
+    """
+    Dummy Exception used for testing purposes
+    """
