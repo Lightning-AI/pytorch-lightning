@@ -256,9 +256,17 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return True
 
-    @property
-    def accumulate_grad_batches(self) -> Optional[int]:
-        return None
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        """
+        Provide a hook to count optimizer step calls.
+
+        Args:
+            total_batch_idx: Total number of batches seen for training
+            current_global_step: Current number of optimizer step calls
+
+        Returns: New optimizer step calls
+        """
+        return current_global_step + 1
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""

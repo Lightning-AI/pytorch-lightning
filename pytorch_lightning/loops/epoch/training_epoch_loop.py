@@ -246,11 +246,9 @@ class TrainingEpochLoop(loops.Loop):
         with torch.no_grad():
             self.val_loop.run()
 
-    def _accumulated_batches_reached(self, accumulate_grad_batches: Optional[int] = None) -> bool:
+    def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""
-        if accumulate_grad_batches is None:
-            accumulate_grad_batches = self.trainer.accumulate_grad_batches
-        return self.batch_progress.current.ready % accumulate_grad_batches == 0
+        return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
         """Checks if we are in the last batch or if there are more batches to follow.
@@ -260,11 +258,11 @@ class TrainingEpochLoop(loops.Loop):
         """
         return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
 
-    def _should_accumulate(self, accumulate_grad_batches: Optional[int] = None) -> bool:
+    def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
-        accumulation_done = self._accumulated_batches_reached(accumulate_grad_batches=accumulate_grad_batches)
+        accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
-        return not accumulation_done and not is_final_batch
+        return not (accumulation_done or is_final_batch)
 
     def _track_epoch_end_reduce_metrics(
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
@@ -350,13 +348,10 @@ class TrainingEpochLoop(loops.Loop):
 
     def _increment_accumulated_grad_global_step(self) -> None:
         """Increments global step according to grads progress"""
-        accumulate_grad_batches = self.trainer.accumulate_grad_batches
-        if self.trainer.accelerator.accumulate_grad_batches is not None:
-            # some training type plugins handle gradient accumulation internally
-            accumulate_grad_batches = self.trainer.accelerator.accumulate_grad_batches
-
-        if not self._should_accumulate(accumulate_grad_batches=accumulate_grad_batches):
-            self.global_step += 1
+        if not self._should_accumulate():
+            self.global_step = self.trainer.accelerator.update_global_step(
+                self.total_batch_idx, self.trainer.global_step
+            )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""

@@ -220,26 +220,34 @@ class IPUPlugin(ParallelPlugin):
 
     @property
     def accumulate_grad_batches(self) -> int:
+        """
+        Tracks lazily the set accumulate_grad_batches in the trainer.
+        The IPUPlugin replaces the original accumulate_grad_batches.
+        """
+        if self._original_accumulate_grad_batches is None:
+            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+            if not isinstance(self._original_accumulate_grad_batches, int):
+                raise MisconfigurationException(
+                    "IPUs currently only support accumulate_grad_batches being an integer value. "
+                    f"Received {self.accumulate_grad_batches}"
+                )
         return self._original_accumulate_grad_batches
 
-    def _handle_gradient_accumulation_steps(self) -> None:
+    def _handle_gradient_accumulation_steps(self):
         """
-        Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient accumulation
-        has been set.
-
-        ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
+        This functions overrides the trainer.accumulation_scheduler to generate
+        ``accumulate_grad_batches=1``.
+        Therefore, ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation.
         """
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(accumulate_grad_batches, int):
-            raise MisconfigurationException(
-                "IPUs currently only support `Trainer.accumulate_grad_batches` being an integer."
-                f" Received {accumulate_grad_batches}"
-            )
-        # save the original value which will be used to update the global step progress
-        self._original_accumulate_grad_batches = accumulate_grad_batches
-        if accumulate_grad_batches > 1:
-            # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
+        if self.accumulate_grad_batches > 1:
             self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        if self.accumulate_grad_batches > 1:
+            if total_batch_idx % self.accumulate_grad_batches == 0:
+                current_global_step += 1
+            return current_global_step
+        return super().update_global_step(total_batch_idx, current_global_step)
 
     @property
     def _n_replicate(self):
