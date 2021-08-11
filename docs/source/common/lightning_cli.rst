@@ -312,12 +312,6 @@ Similar to the callbacks, any arguments in :class:`~pytorch_lightning.trainer.tr
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class can be configured
 the same way using :code:`class_path` and :code:`init_args`.
 
-Alternatively, the user can provide the list of callbacks directly from the command line.
-
-.. code-block:: bash
-
-    $  python ... --trainer.callbacks=[{"class_path": pytorch_lightning.callbacks.EarlyStopping, "init_args": "patience": "5"}, ...].
-
 Lightning optionally simplifies the user command line so that only the :class:`~pytorch_lightning.callbacks.Callback` name is required.
 The argument's order matters and the user needs to pass the arguments in the following way.
 This is supported only for PyTorch Lightning built-in :class:`~pytorch_lightning.callbacks.Callback`.
@@ -342,7 +336,7 @@ However, a user can register their own callbacks as follows.
 
     @CALLBACK_REGISTRY
     class CustomCallback(Callback):
-        pass
+        ...
 
 
     cli = LightningCLI(...)

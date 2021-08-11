@@ -15,7 +15,6 @@ import inspect
 import os
 import sys
 from argparse import Namespace
-from collections import UserDict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
@@ -42,19 +41,19 @@ else:
     ArgumentParser = object
 
 
-class Registry(UserDict):
+class _Registry(dict):
     def __call__(
         self,
         cls: Optional[Type] = None,
         key: Optional[str] = None,
         override: bool = False,
-    ) -> Callable:
+    ) -> "Optional[Type]":
         """
         Registers a class mapped to a name.
 
         Args:
             cls: the class to be mapped.
-            key : the name that identifies the provided class.
+            key: the name that identifies the provided class.
         """
         if key is None:
             key = cls.__name__
@@ -64,12 +63,7 @@ class Registry(UserDict):
         if key in self and not override:
             raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
 
-        def do_register(key, cls) -> Callable:
-            self[key] = cls
-            return cls
-
-        do_register(key, cls)
-
+        self[key] = cls
         return cls
 
     def register_package(self, module: ModuleType, base_cls: Type) -> None:
@@ -78,40 +72,40 @@ class Registry(UserDict):
             if issubclass(cls, base_cls) and cls != base_cls:
                 self(cls=cls)
 
-    def available_objects(self) -> List:
+    def available_objects(self) -> List[str]:
         """Returns a list of registered objects"""
         return list(self.keys())
 
     def __str__(self) -> str:
-        return "Registered objects: {}".format(", ".join(self.keys()))
+        objects = ", ".join(self.keys())
+        return f"Registered objects: {objects}"
 
 
-CALLBACK_REGISTRY = Registry()
+CALLBACK_REGISTRY = _Registry()
 CALLBACK_REGISTRY.register_package(pl.callbacks, pl.callbacks.Callback)
 
-OPTIMIZER_REGISTRY = Registry()
+OPTIMIZER_REGISTRY = _Registry()
 OPTIMIZER_REGISTRY.register_package(torch.optim, torch.optim.Optimizer)
 
-LR_SCHEDULER_REGISTRY = Registry()
+LR_SCHEDULER_REGISTRY = _Registry()
 LR_SCHEDULER_REGISTRY.register_package(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
 
 
 @dataclass
-class ClassInfo:
+class _ClassInfo:
     """This class is an helper to easily build the mocked command line"""
 
     class_arg: str
-    cls: str
+    cls: Type
     class_init_args: List[str] = field(default_factory=lambda: [])
 
-    def add_class_init_args(self, args: Dict[str, str]) -> None:
+    def add_class_init_args(self, args: str) -> None:
         if args != self.class_arg:
             self.class_init_args.append(args)
 
     @property
     def class_init(self) -> Dict[str, str]:
-        class_init = {}
-        class_init["class_path"] = self.cls.__module__ + "." + self.cls.__name__
+        class_init = {"class_path": self.cls.__module__ + "." + self.cls.__name__}
         init_args = {}
         for init_arg in self.class_init_args:
             arg_path, value = init_arg.split("=")
@@ -361,7 +355,7 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
-        self.sanetize_argv()
+        self.sanitize_argv()
         self.setup_parser(**parser_kwargs)
         self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
@@ -392,17 +386,18 @@ class LightningCLI:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def sanetize_argv(self) -> None:
+    def sanitize_argv(self) -> None:
         args = [idx for idx, v in enumerate(sys.argv) if v.startswith("--")]
-        if len(args) > 0:
-            start_index = args[0]
-            argv = []
-            for v in sys.argv[start_index:]:
-                if v.startswith("--"):
-                    argv.append(v)
-                else:
-                    argv[-1] += "=" + v
-            sys.argv = sys.argv[:start_index] + argv
+        if not args:
+            return
+        start_index = args[0]
+        argv = []
+        for v in sys.argv[start_index:]:
+            if v.startswith("-"):
+                argv.append(v)
+            else:
+                argv[-1] += "=" + v
+        sys.argv = sys.argv[:start_index] + argv
 
     def setup_parser(self, **kwargs: Any) -> None:
         """Initialize and setup the parser, and arguments."""
@@ -462,7 +457,7 @@ class LightningCLI:
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     @contextmanager
-    def prepare_from_registry(self, registry: Registry):
+    def prepare_from_registry(self, registry: _Registry):
         """
         This context manager is used to simplify unique class instantiation.
         """
@@ -473,7 +468,7 @@ class LightningCLI:
             for v in sys.argv:
                 if f"={registered_name}" in v:
                     key = v.split("=")[0]
-                    map_user_key_to_info[key] = ClassInfo(class_arg=v, cls=registered_cls)
+                    map_user_key_to_info[key] = _ClassInfo(class_arg=v, cls=registered_cls)
 
         if len(map_user_key_to_info) > 0:
             # for each shortcut command line, add its init arguments and skip them from `sys.argv`.
@@ -495,7 +490,7 @@ class LightningCLI:
             yield
 
     @contextmanager
-    def prepare_class_list_from_registry(self, pattern: str, registry: Registry):
+    def prepare_class_list_from_registry(self, pattern: str, registry: _Registry):
         """
         This context manager is used to simplify instantiation of a list of class.
         """
@@ -519,7 +514,7 @@ class LightningCLI:
             for class_arg in all_cls_simplified_args:
                 class_name = class_arg.split("=")[1]
                 registered_cls = registry[class_name]
-                infos.append(ClassInfo(class_arg=class_arg, cls=registered_cls))
+                infos.append(_ClassInfo(class_arg=class_arg, cls=registered_cls))
 
             for v in all_simplified_args:
                 if v in all_cls_simplified_args:
