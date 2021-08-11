@@ -94,7 +94,6 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
-        self._original_accumulate_grad_batches = None
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
@@ -140,7 +139,7 @@ class IPUPlugin(ParallelPlugin):
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
-        gradient_accumulation = self.accumulate_grad_batches if training else 1
+        gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
 
         if os.environ.get("PL_GLOBAL_SEED"):
@@ -218,36 +217,22 @@ class IPUPlugin(ParallelPlugin):
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
-    @property
-    def accumulate_grad_batches(self) -> int:
-        """
-        Tracks lazily the set accumulate_grad_batches in the trainer.
-        The IPUPlugin replaces the original accumulate_grad_batches.
-        """
-        if self._original_accumulate_grad_batches is None:
-            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-            if not isinstance(self._original_accumulate_grad_batches, int):
-                raise MisconfigurationException(
-                    "IPUs currently only support accumulate_grad_batches being an integer value. "
-                    f"Received {self.accumulate_grad_batches}"
-                )
-        return self._original_accumulate_grad_batches
-
     def _handle_gradient_accumulation_steps(self):
         """
-        This functions overrides the trainer.accumulation_scheduler to generate
-        ``accumulate_grad_batches=1``.
-        Therefore, ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation.
-        """
-        if self.accumulate_grad_batches > 1:
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+        Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient accumulation
+        has been set.
 
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        if self.accumulate_grad_batches > 1:
-            if total_batch_idx % self.accumulate_grad_batches == 0:
-                current_global_step += 1
-            return current_global_step
-        return super().update_global_step(total_batch_idx, current_global_step)
+        ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
+        """
+        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+        if not isinstance(accumulate_grad_batches, int):
+            raise MisconfigurationException(
+                "IPUs currently only support `Trainer.accumulate_grad_batches` being an integer. "
+                f"Received {accumulate_grad_batches}"
+            )
+        if accumulate_grad_batches > 1:
+            # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
+            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
 
     @property
     def _n_replicate(self):

@@ -177,12 +177,7 @@ class TrainingEpochLoop(loops.Loop):
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
         self.total_batch_idx += 1
-
-        # progress global step according to grads progress
-        self._increment_accumulated_grad_global_step()
-
-        if self.done:
-            raise StopIteration
+        self.trainer.global_step += 1
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
@@ -345,13 +340,6 @@ class TrainingEpochLoop(loops.Loop):
             update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
-
-    def _increment_accumulated_grad_global_step(self) -> None:
-        """Increments global step according to grads progress"""
-        if not self._should_accumulate():
-            self.global_step = self.trainer.accelerator.update_global_step(
-                self.total_batch_idx, self.trainer.global_step
-            )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""
