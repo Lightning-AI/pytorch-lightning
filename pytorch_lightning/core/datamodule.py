@@ -82,6 +82,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             rank_zero_deprecation(
                 "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
             )
+        if dims is not None:
+            rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms

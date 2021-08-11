@@ -15,6 +15,7 @@
 
 import pytest
 
+from pytorch_lightning import LightningDataModule
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -57,6 +58,12 @@ def test_v1_7_0_datamodule_transform_properties(tmpdir):
         dm.val_transforms = "b"
     with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
         dm.test_transforms = "c"
+    with pytest.deprecated_call(match=r"DataModule property `train_transforms` was deprecated in v1.5"):
+        _ = LightningDataModule(train_transforms="a")
+    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
+        _ = LightningDataModule(val_transforms="b")
+    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
+        _ = LightningDataModule(test_transforms="c")
 
 
 def test_v1_7_0_datamodule_size_property(tmpdir):
@@ -69,3 +76,5 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = dm.dims
+    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
+        _ = LightningDataModule(dims=(1, 1, 1))
