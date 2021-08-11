@@ -21,16 +21,17 @@ from tests.helpers.utils import DummyException
 
 class TrainerStagesErrorsModel(BoringModel):
     def on_train_start(self) -> None:
-        raise DummyException('Error during train')
+        raise DummyException("Error during train")
 
     def on_validation_start(self) -> None:
-        raise DummyException('Error during validation')
+        raise DummyException("Error during validation")
 
     def on_test_start(self) -> None:
-        raise DummyException('Error during test')
+        raise DummyException("Error during test")
 
     def on_predict_start(self) -> None:
-        raise DummyException('Error during predict')
+        raise DummyException("Error during predict")
+
 
 @pytest.mark.parametrize(
     "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]

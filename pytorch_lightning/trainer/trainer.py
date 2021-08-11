@@ -494,25 +494,24 @@ class Trainer(
         try:
             return trainer_fn(*args, **kwargs)
         except KeyboardInterrupt:
-                rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-                # user could press Ctrl+c many times... only shutdown once
-                if not self.interrupted:
-                    self.state.status = TrainerStatus.INTERRUPTED
-                    self.on_keyboard_interrupt()
-                    # same treatment as below
-                    self.accelerator.teardown()
-        except BaseException:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
-                if distributed_available() and self.world_size > 1:
-                    # try syncing remaing processes, kill otherwise
-                    self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-                # give accelerators a chance to finish
+                self.on_keyboard_interrupt()
+                # same treatment as below
                 self.accelerator.teardown()
-                self._on_exception()
-                # reset bookkeeping
-                self.state.stage = None
-                raise
-
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            # give accelerators a chance to finish
+            self.accelerator.teardown()
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
 
     def fit(
         self,
@@ -522,7 +521,9 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         train_dataloader=None,  # TODO: remove with 1.6
     ) -> None:
-        self._call_and_handle_interrupt(self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, train_dataloader)
+        self._call_and_handle_interrupt(
+            self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, train_dataloader
+        )
 
     def _fit_impl(
         self,
@@ -587,8 +588,9 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         val_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
-        return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule, val_dataloaders)
-
+        return self._call_and_handle_interrupt(
+            self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule, val_dataloaders
+        )
 
     def _validate_impl(
         self,
@@ -677,7 +679,9 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
-        return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule, test_dataloaders)
+        return self._call_and_handle_interrupt(
+            self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule, test_dataloaders
+        )
 
     def _test_impl(
         self,
@@ -766,7 +770,9 @@ class Trainer(
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
-        return self._call_and_handle_interrupt(self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path)
+        return self._call_and_handle_interrupt(
+            self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
+        )
 
     def _predict_impl(
         self,
