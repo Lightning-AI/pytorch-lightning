@@ -20,7 +20,6 @@ from torch import optim
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -79,7 +78,7 @@ def test_reducelronplateau_with_no_monitor_raises(tmpdir):
     """
     Test exception when a ReduceLROnPlateau is used with no monitor
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: ([optimizer], [optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -93,7 +92,7 @@ def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
     """
     Test exception when lr_scheduler dict has a ReduceLROnPlateau with no monitor
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
         "optimizer": optimizer,
@@ -380,7 +379,7 @@ def test_lr_scheduler_strict(tmpdir):
     """
     Test "strict" support in lr_scheduler dict
     """
-    model = EvalModelTemplate()
+    model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
