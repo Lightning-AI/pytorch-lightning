@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _cycle_to_next_worker_and_reset,
     _find_current_worker,
     CaptureIterableDataset,
+    patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
@@ -586,8 +587,15 @@ class CombinedLoaderIterator:
         Returns
             a collections of iterators
         """
+
+        def _create_and_patch(loader: Iterable):
+            iterator = iter(loader)
+            if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
+                patch_dataloader_iterator(loader, iterator)
+            return iterator
+
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
-        return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(loaders, Iterable, _create_and_patch, wrong_dtype=(Sequence, Mapping))
 
 
 def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
@@ -612,13 +620,13 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
     return compute_func(new_data)
 
 
-def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, None]:
+def prefetch_iterator(dataloader: DataLoader) -> Generator[Tuple[Any, bool], None, None]:
     """
     Returns an iterator that pre-fetches and caches the next item.
     The values are passed through from the given iterable with an added boolean indicating if this is the last item.
     See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
     """
-    it = iter(iterable)
+    it = iter(dataloader)
 
     try:
         # the iterator may be empty from the beginning

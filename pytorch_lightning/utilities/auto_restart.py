@@ -55,6 +55,7 @@ class FastForwardSampler(Sampler):
         return getattr(self._sampler, key, None)
 
     def setup(self, dataloader_batch_size: Optional[int] = None) -> None:
+        # TODO: ask @tchaton about this docstring
         """
         Setup the ``FastForwardSampler``.
         This is required only when the provided dataset subclassed :class:`torch.utils.data.Dataset`.
@@ -67,6 +68,8 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
+        self._current_iteration = 0
+        print("iter called", self._current_iteration)
         # the `state dict` was cached as workers were unavailable before.
         if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
             # reload the current state dict
@@ -75,6 +78,7 @@ class FastForwardSampler(Sampler):
         i = 0
         sampler_iter = iter(self._sampler)
         while i < self._current_iteration:
+            print("fast forward", i, self._current_iteration)
             next(sampler_iter)
             i += 1
 
@@ -82,6 +86,7 @@ class FastForwardSampler(Sampler):
         if self._cached_state_dict is not None:
             rng_state = self._cached_state_dict[self.worker_id]["rng_states"]
             self._set_rng_states(rng_state)
+            self._cached_state_dict = None
 
         # recreate iterator to be sure loading is reflected there as well
         while True:
@@ -148,7 +153,7 @@ class FastForwardSampler(Sampler):
 
     def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
         set_rng_states(rng_state_dict)
-        _set_rng_states_on_obj(self._sampler, rng_state_dict)
+        # _set_rng_states_on_obj(self._sampler, rng_state_dict)
 
 
 def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
@@ -198,10 +203,13 @@ class CaptureMapDataset(Dataset):
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
         state_dict = deepcopy(state_dict)
 
-        # remap states to worker ids starting at 0
-        next_worker_id = latest_worker_id + 1
-        old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
-        state_dict = {new_id: state_dict[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state_dict}
+        if num_workers > 0:
+            # remap states to worker ids starting at 0
+            next_worker_id = latest_worker_id + 1
+            old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+            state_dict = {
+                new_id: state_dict[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state_dict
+            }
         self._cached_state_dict = state_dict
 
     def _state_dict(self):
@@ -213,9 +221,9 @@ def collect_rng_states() -> Dict[str, Any]:
 
 
 def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    torch.set_rng_state(rng_state_dict.pop("torch"))
-    np.random.set_state(rng_state_dict.pop("numpy"))
-    python_set_rng_state(rng_state_dict.pop("python"))
+    torch.set_rng_state(rng_state_dict.get("torch"))
+    np.random.set_state(rng_state_dict.get("numpy"))
+    python_set_rng_state(rng_state_dict.get("python"))
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -505,17 +513,18 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
     iterator.state = IteratorState(num_workers=dataloader.num_workers)
 
     def _next_data_wrapper(fn, it, dl):
-        num_samples_fetched = 0
+        num_batches_fetched = 0
 
         @wraps(fn)
         def wrapper():
-            nonlocal num_samples_fetched
+            nonlocal num_batches_fetched
             combined_batch = fn()
             batch, dataset_state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_SAMPLERS]
-            num_samples_fetched += len(batch)
+            num_batches_fetched += 1
 
-            # TODO: handle FF batch_sampler
-            sampler_state = dl.sampler.state_dict(num_samples_fetched)
+            ff_sampler = _find_fast_forward_samplers(dl)
+            sampler_state = ff_sampler.state_dict(num_batches_fetched, going_crazy=True)
+
             it.state: IteratorState
             it.state.sampler_states.update(sampler_state)
             it.state.dataset_states.update(dataset_state)

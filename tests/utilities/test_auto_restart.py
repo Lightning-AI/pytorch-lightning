@@ -33,7 +33,7 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer, LightningModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
@@ -926,6 +926,7 @@ class RandomGeneratorGetItemDataset(Dataset):
 
 
 # NOTE: we are not able to restore if we fail during the first N=num_workers batches
+# TODO: test with batch sampler
 @pytest.mark.parametrize(
     "dataset_class",
     [
@@ -943,6 +944,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataset = CaptureMapDataset(dataset_class(16, 8))
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
+    ff_sampler.setup(batch_size)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     Trainer._add_sampler_metadata_collate(dataloader)
     dataloader_iter = iter(dataloader)
@@ -965,6 +967,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataset = CaptureMapDataset(dataset_class(16, 8))
     random_sampler = RandomSampler(dataset, generator=torch.Generator())
     ff_sampler = FastForwardSampler(random_sampler)
+    ff_sampler.setup(batch_size)
 
     # load the state dict saved at (A)
     ff_sampler.load_state_dict(state.sampler_states)
@@ -981,3 +984,73 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
 
     assert torch.equal(batch02, batch10)
     assert torch.equal(batch03, batch11)
+
+
+class CustomException(Exception):
+    pass
+
+
+class TestDataset(Dataset):
+    def __init__(self, length, *_):
+        self.len = length
+
+    def __getitem__(self, index):
+        return torch.tensor([index]).float()
+
+    def __len__(self):
+        return self.len
+
+
+class TestModel(LightningModule):
+    def __init__(self, fail=False):
+        super().__init__()
+        self.layer = torch.nn.Linear(1, 2)
+        self.seen_batches = []
+        self.fail = fail
+
+    def training_step(self, batch, batch_idx):
+        if self.global_step == 4 and self.fail:
+            raise CustomException()
+        self.seen_batches.append(batch)
+        loss = self.layer(batch).sum()
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+
+def _run_training(trainer_kwargs, fail=False):
+    train_data = DataLoader(TestDataset(64), batch_size=2)
+    model = TestModel(fail=fail)
+    trainer = Trainer(**trainer_kwargs)
+    try:
+        trainer.fit(model, train_dataloaders=train_data)
+    except CustomException:
+        trainer.save_checkpoint(os.path.join(trainer.default_root_dir, "auto.ckpt"))
+    finally:
+        return model.seen_batches
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_adrian(tmpdir):
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        limit_train_batches=3,
+        max_epochs=3,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    seed_everything(1)
+    all_batches = _run_training(trainer_kwargs, fail=False)
+
+    seed_everything(1)
+    incomplete_batches = _run_training(trainer_kwargs, fail=True)
+
+    seed_everything(1)
+    trainer_kwargs.update(resume_from_checkpoint=os.path.join(tmpdir, "auto.ckpt"))
+    resumed_batches = _run_training(trainer_kwargs, fail=False)
+
+    assert len(all_batches) == 3 * 3
+    assert len(incomplete_batches) == 4
+    assert len(resumed_batches) == 9 - 4
+    assert torch.allclose(torch.cat(all_batches), torch.cat(incomplete_batches + resumed_batches))

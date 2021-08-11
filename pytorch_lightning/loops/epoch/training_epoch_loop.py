@@ -50,6 +50,7 @@ class TrainingEpochLoop(loops.Loop):
 
         self._results = ResultCollection(training=True)
         self._dataloader_idx: Optional[int] = None
+        self._dataloader_iter: Optional[Iterator] = None
         self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
@@ -91,12 +92,20 @@ class TrainingEpochLoop(loops.Loop):
             self.scheduler_progress.current.reset()
             self.batch_loop.optim_progress.reset_on_epoch()
 
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+    def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
+        self._dataloader_iter = dataloader_iter
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
+
+        if self.restarting:
+            state = self._dataloader_iter_state
+            self.trainer.train_dataloader.loaders.sampler.load_state_dict(state.sampler_states)
+            self.trainer.train_dataloader.dataset.datasets.load_state_dict(
+                state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=0
+            )
 
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -229,6 +238,10 @@ class TrainingEpochLoop(loops.Loop):
 
         self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
+        self.batch_progress.current.reset()
+        self.scheduler_progress.current.reset()
+        self.batch_loop.optim_progress.reset_on_epoch()
+
         epoch_output = self._epoch_output
         # free memory
         self._epoch_output = None
@@ -238,6 +251,17 @@ class TrainingEpochLoop(loops.Loop):
         self._results.cpu()
         self.batch_loop.teardown()
         self.val_loop.teardown()
+
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        combined_iterator = self.trainer.train_dataloader._iterator
+        if combined_iterator is not None:
+            # TODO: when is this None (the second time)?
+            state_dict["dataloader_iter"] = combined_iterator._loader_iters.state
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        self._dataloader_iter_state = state_dict.get("dataloader_iter")
 
     def _run_validation(self):
         # reload dataloaders
