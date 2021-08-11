@@ -205,11 +205,6 @@ def test_v1_5_0_datamodule_setter():
     assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
 
 
-def test_v1_5_0_trainer_tbptt_steps(tmpdir):
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        _ = Trainer(truncated_bptt_steps=1)
-
-
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize(
     "params", [dict(cpu_offload=True), dict(cpu_offload_params=True), dict(cpu_offload_use_pin_memory=True)]

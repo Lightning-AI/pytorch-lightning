@@ -126,7 +126,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 log_gpu_memory=None,
                 distributed_backend=None,
                 weights_save_path=None,
-                truncated_bptt_steps=None,
                 resume_from_checkpoint=None,
                 profiler=None,
             ),
@@ -690,3 +689,12 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.optim1, torch.optim.Adam)
     assert isinstance(cli.model.optim2, torch.optim.SGD)
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
+
+
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_disabled_run(run):
+    with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
+        cli = LightningCLI(BoringModel, run=run)
+    fit_mock.call_count == run
+    assert isinstance(cli.trainer, Trainer)
+    assert isinstance(cli.model, LightningModule)

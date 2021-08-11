@@ -211,6 +211,7 @@ class LightningCLI:
         parser_kwargs: Optional[Dict[str, Any]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
+        run: bool = True,
     ) -> None:
         """
         Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which are
@@ -258,6 +259,8 @@ class LightningCLI:
             subclass_mode_data: Whether datamodule can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
+            run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
+                method. If set to ``False``, the trainer and model classes will be instantiated only.
         """
         self.model_class = model_class
         self.datamodule_class = datamodule_class
@@ -284,10 +287,11 @@ class LightningCLI:
         self.instantiate_classes()
         self.add_configure_optimizers_method_to_model()
 
-        self.prepare_fit_kwargs()
-        self.before_fit()
-        self.fit()
-        self.after_fit()
+        if run:
+            self.prepare_fit_kwargs()
+            self.before_fit()
+            self.fit()
+            self.after_fit()
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
