@@ -162,9 +162,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         .. deprecated:: v1.5
             Will be removed in v1.7.0.
         """
-        rank_zero_deprecation(
-            "DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7."
-        )
+        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         return self._dims
 
     @dims.setter
@@ -183,9 +181,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         if dim is not None:
             return self.dims[dim]
 
-        rank_zero_deprecation(
-            "DataModule property `size` was deprecated in v1.5 and will be removed in v1.7."
-        )
+        rank_zero_deprecation("DataModule property `size` was deprecated in v1.5 and will be removed in v1.7.")
         return self.dims
 
     @property
