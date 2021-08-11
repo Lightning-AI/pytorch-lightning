@@ -68,4 +68,4 @@ def test_v1_7_0_datamodule_size_property(tmpdir):
 def test_v1_7_0_datamodule_dims_property(tmpdir):
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
-        dm.dims
+        _ = dm.dims
