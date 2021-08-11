@@ -98,6 +98,7 @@ class _ClassInfo:
     class_arg: str
     cls: Type
     class_init_args: List[str] = field(default_factory=lambda: [])
+    class_arg_idx: Optional[int] = None
 
     def add_class_init_args(self, args: str) -> None:
         if args != self.class_arg:
@@ -511,14 +512,15 @@ class LightningCLI:
 
             # group arguments per callbacks
             infos = []
-            for class_arg in all_cls_simplified_args:
-                class_name = class_arg.split("=")[1]
-                registered_cls = registry[class_name]
-                infos.append(_ClassInfo(class_arg=class_arg, cls=registered_cls))
+            for class_arg_idx, class_arg in enumerate(all_simplified_args):
+                if class_arg in all_cls_simplified_args:
+                    class_name = class_arg.split("=")[1]
+                    registered_cls = registry[class_name]
+                    infos.append(_ClassInfo(class_arg=class_arg, cls=registered_cls, class_arg_idx=class_arg_idx))
 
-            for v in all_simplified_args:
+            for idx, v in enumerate(all_simplified_args):
                 if v in all_cls_simplified_args:
-                    current_info = infos[all_cls_simplified_args.index(v)]
+                    current_info = [info for info in infos if idx == info.class_arg_idx][0]
                 current_info.add_class_init_args(v)
 
             class_args = [info.class_init for info in infos]
