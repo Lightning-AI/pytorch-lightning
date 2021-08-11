@@ -14,7 +14,6 @@
 """Test deprecated functionality which will be removed in v1.5.0"""
 import os
 from typing import Any, Dict
-from unittest import mock
 
 import pytest
 import torch
@@ -204,11 +203,6 @@ def test_v1_5_0_datamodule_setter():
     warning_cache.clear()
     _ = model.datamodule
     assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
-
-
-def test_v1_5_0_trainer_tbptt_steps(tmpdir):
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        _ = Trainer(truncated_bptt_steps=1)
 
 
 @RunIf(deepspeed=True)

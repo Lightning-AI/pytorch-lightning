@@ -32,7 +32,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import Plugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -76,7 +76,6 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -141,7 +140,6 @@ class Trainer(
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
-        truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
@@ -310,9 +308,6 @@ class Trainer(
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
-            truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
-                Please use :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` instead.
-
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
 
@@ -439,7 +434,6 @@ class Trainer(
             gradient_clip_algorithm,
             track_grad_norm,
             accumulate_grad_batches,
-            truncated_bptt_steps,
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
@@ -633,8 +627,8 @@ class Trainer(
         test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
-        Perform one evaluation epoch over the test set. It's separated from
-        fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the test set.
+        It's separated from fit to make sure you never run on your test set until you want to.
 
         Args:
             model: The model to test.
@@ -711,9 +705,9 @@ class Trainer(
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
-
-        Separates from fit to make sure you never run on your predictions set until you want to.
-        This will call the model forward function to compute predictions.
+        Run inference on your data.
+        This will call the model forward function to compute predictions. Useful to perform distributed
+        and batched predictions. Logging is disabled in the predict hooks.
 
         Args:
             model: The model to predict with.
@@ -947,7 +941,7 @@ class Trainer(
 
         # teardown if necessary (similar calls for spawn plugins are excluded as they have
         # been included at the end of `new_process` functions)
-        if self._distrib_type not in DistributedType.interactive_compatible_types():
+        if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
             self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
@@ -1078,7 +1072,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
-            self._on_expection()
+            self._on_exception()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1334,7 +1328,7 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_expection(self):
+    def _on_exception(self):
         if not _fault_tolerant_enabled():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
