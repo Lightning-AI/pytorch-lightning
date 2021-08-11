@@ -71,11 +71,17 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     def __init__(self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
         super().__init__()
         if train_transforms is not None:
-            rank_zero_deprecation("DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7.")
+            rank_zero_deprecation(
+                "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
+            )
         if val_transforms is not None:
-            rank_zero_deprecation("DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7.")
+            rank_zero_deprecation(
+                "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
+            )
         if test_transforms is not None:
-            rank_zero_deprecation("DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7.")
+            rank_zero_deprecation(
+                "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
+            )
         self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
@@ -173,9 +179,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @dims.setter
     def dims(self, d):
-        rank_zero_deprecation(
-            "DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7."
-        )
+        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         self._dims = d
 
     def size(self, dim=None) -> Union[Tuple, int]:
