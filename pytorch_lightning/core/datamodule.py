@@ -179,9 +179,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @dims.setter
     def dims(self, d):
-        rank_zero_deprecation(
-            "DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7."
-        )
+        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
         self._dims = d
 
     def size(self, dim=None) -> Union[Tuple, int]:

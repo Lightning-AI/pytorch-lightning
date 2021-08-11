@@ -16,7 +16,7 @@
 import pytest
 
 from tests.deprecated_api import _soft_unimport_module
-from tests.helpers import BoringModel, BoringDataModule
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 
 
