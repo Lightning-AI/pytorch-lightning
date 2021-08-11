@@ -408,6 +408,7 @@ def test_lr_scheduler_strict(tmpdir):
 @pytest.mark.parametrize("complete_epoch", [True, False])
 @mock.patch("torch.optim.lr_scheduler.ReduceLROnPlateau.step")
 def test_lr_scheduler_strict_incomplete_epoch(step_mock, tmpdir, complete_epoch):
+    """Tests that plateau scheduler does not attempt to step in an incomplete epoch (stopped early)."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
