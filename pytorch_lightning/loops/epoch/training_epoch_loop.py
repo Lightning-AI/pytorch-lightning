@@ -177,7 +177,10 @@ class TrainingEpochLoop(loops.Loop):
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
         self.total_batch_idx += 1
-        self.global_step += 1
+
+        # increment the global step according to the gradient accumulation progress
+        if not self._should_accumulate():
+            self.global_step += 1
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
