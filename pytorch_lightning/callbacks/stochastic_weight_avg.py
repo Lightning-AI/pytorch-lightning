@@ -16,7 +16,7 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 from copy import deepcopy
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 from torch import nn
@@ -35,7 +35,7 @@ class StochasticWeightAveraging(Callback):
     def __init__(
         self,
         swa_epoch_start: Union[int, float] = 0.8,
-        swa_lrs: Optional[Union[float, list]] = None,
+        swa_lrs: Optional[Union[float, List[float]]] = None,
         annealing_epochs: int = 10,
         annealing_strategy: str = "cos",
         avg_fn: Optional[_AVG_FN] = None,
@@ -62,11 +62,7 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently only supported on every epoch.
 
-        SWA can easily be activated directly from the Trainer as follow:
-
-        .. code-block:: python
-
-            Trainer(stochastic_weight_avg=True)
+        See also how to :ref:`enable it directly on the Trainer <advanced/training_tricks:Stochastic Weight Averaging>`
 
         Arguments:
 
@@ -74,7 +70,11 @@ class StochasticWeightAveraging(Callback):
                 the ``swa_epoch_start``-th epoch. If provided as float between 0 and 1,
                 the procedure will start from ``int(swa_epoch_start * max_epochs)`` epoch
 
-            swa_lrs: the learning rate value for all param groups together or separately for each group.
+            swa_lrs: The SWA learning rate to use:
+
+                - ``None``. Use the current learning rate of the optimizer at the time the SWA procedure starts.
+                - ``float``. Use this value for all parameter groups of the optimizer.
+                - ``List[float]``. A list values for each parameter group of the optimizer.
 
             annealing_epochs: number of epochs in the annealing phase (default: 10)
 
@@ -105,7 +105,9 @@ class StochasticWeightAveraging(Callback):
         wrong_float = isinstance(swa_lrs, float) and swa_lrs <= 0
         wrong_list = isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
         if swa_lrs is not None and (wrong_type or wrong_float or wrong_list):
-            raise MisconfigurationException("The `swa_lrs` should be a positive float or a list of positive float.")
+            raise MisconfigurationException(
+                "The `swa_lrs` should be `None`, a positive float, or a list of positive floats"
+            )
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):
             raise MisconfigurationException("The `avg_fn` should be callable.")
