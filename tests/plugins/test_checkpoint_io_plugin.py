@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
-from unittest import mock
 
 import pytest
 import torch
@@ -17,6 +16,7 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.plugins.checkpoint.checkpoint import TLoadStorageOptions, TSaveStorageOptions
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class CustomCheckpointPlugin(CheckpointIOPlugin):
@@ -75,8 +75,7 @@ def test_checkpoint_plugin_called(tmpdir, checkpoint_plugin):
     assert checkpoint_plugin.load_checkpoint_file_called
 
 
-@mock.patch("pytorch_lightning.utilities._DEEPSPEED_AVAILABLE", return_value=True)
-@pytest.mark.parametrize("plugin", [DeepSpeedPlugin(), TPUSpawnPlugin()])
-def test_no_checkpoint_io_plugin_support(mock_deepspeed, plugin):
+@pytest.mark.parametrize("plugin_cls", [pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)), TPUSpawnPlugin])
+def test_no_checkpoint_io_plugin_support(plugin_cls):
     with pytest.raises(MisconfigurationException, match="currently does not support custom checkpoint plugins"):
-        plugin.checkpoint_plugin = CustomTorchCheckpointIOPlugin()
+        plugin_cls().checkpoint_plugin = CustomTorchCheckpointIOPlugin()
