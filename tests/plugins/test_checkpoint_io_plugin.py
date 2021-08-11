@@ -1,12 +1,21 @@
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Callable, Dict, Optional, Union
+from unittest import mock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import CheckpointIOPlugin, SingleDevicePlugin, TorchCheckpointIOPlugin
+from pytorch_lightning.plugins import (
+    CheckpointIOPlugin,
+    DeepSpeedPlugin,
+    SingleDevicePlugin,
+    TorchCheckpointIOPlugin,
+    TPUSpawnPlugin,
+)
+from pytorch_lightning.plugins.checkpoint.checkpoint import TLoadStorageOptions, TSaveStorageOptions
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
@@ -14,11 +23,15 @@ class CustomCheckpointPlugin(CheckpointIOPlugin):
     save_checkpoint_called: bool = False
     load_checkpoint_file_called: bool = False
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: Union[str, Path]) -> None:
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[TSaveStorageOptions] = None
+    ) -> None:
         self.save_checkpoint_called = True
         torch.save(checkpoint, path)
 
-    def load_checkpoint(self, path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint(
+        self, path: Union[str, Path], storage_options: Optional[TLoadStorageOptions] = None
+    ) -> Dict[str, Any]:
         self.load_checkpoint_file_called = True
         return torch.load(path)
 
@@ -27,11 +40,15 @@ class CustomTorchCheckpointIOPlugin(TorchCheckpointIOPlugin):
     save_checkpoint_called: bool = False
     load_checkpoint_file_called: bool = False
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: Union[str, Path]) -> None:
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
+    ) -> None:
         self.save_checkpoint_called = True
         super().save_checkpoint(checkpoint, path)
 
-    def load_checkpoint(self, path: Union[str, Path]) -> Dict[str, Any]:
+    def load_checkpoint(
+        self, path: Union[str, Path], map_location: Optional[Callable] = lambda storage, loc: storage
+    ) -> Dict[str, Any]:
         self.load_checkpoint_file_called = True
         return super().load_checkpoint(path)
 
@@ -56,3 +73,10 @@ def test_checkpoint_plugin_called(tmpdir, checkpoint_plugin):
     assert checkpoint_plugin.save_checkpoint_called
     trainer.test(model, ckpt_path=ck.last_model_path)
     assert checkpoint_plugin.load_checkpoint_file_called
+
+
+@mock.patch("pytorch_lightning.utilities._DEEPSPEED_AVAILABLE", return_value=True)
+@pytest.mark.parametrize("plugin", [DeepSpeedPlugin(), TPUSpawnPlugin()])
+def test_no_checkpoint_io_plugin_support(mock_deepspeed, plugin):
+    with pytest.raises(MisconfigurationException, match="currently does not support custom checkpoint plugins"):
+        plugin.checkpoint_plugin = CustomTorchCheckpointIOPlugin()
