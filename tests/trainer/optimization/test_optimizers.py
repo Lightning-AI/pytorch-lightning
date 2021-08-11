@@ -405,6 +405,33 @@ def test_lr_scheduler_strict(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.parametrize("complete_epoch", [True, False])
+@mock.patch("torch.optim.lr_scheduler.ReduceLROnPlateau.step")
+def test_lr_scheduler_strict_incomplete_epoch(step_mock, tmpdir, complete_epoch):
+    model = BoringModel()
+    optimizer = optim.Adam(model.parameters())
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    max_epochs = 1 if complete_epoch else None
+    max_steps = None if complete_epoch else 1
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
+
+    model.configure_optimizers = lambda: {
+        "optimizer": optimizer,
+        "lr_scheduler": {"scheduler": scheduler, "monitor": "giraffe", "strict": True},
+    }
+
+    if complete_epoch:
+        with pytest.raises(
+            MisconfigurationException,
+            match=r"ReduceLROnPlateau conditioned on metric .* which is not available\. Available metrics are:",
+        ):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
+
+    assert step_mock.call_count == 0
+
+
 def test_unknown_configure_optimizers_raises(tmpdir):
     """
     Test exception with an unsupported configure_optimizers return
