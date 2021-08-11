@@ -32,7 +32,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import Plugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -632,8 +632,8 @@ class Trainer(
         test_dataloaders=None,  # TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
-        Perform one evaluation epoch over the test set. It's separated from
-        fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the test set.
+        It's separated from fit to make sure you never run on your test set until you want to.
 
         Args:
             model: The model to test.
@@ -710,9 +710,9 @@ class Trainer(
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
-
-        Separates from fit to make sure you never run on your predictions set until you want to.
-        This will call the model forward function to compute predictions.
+        Run inference on your data.
+        This will call the model forward function to compute predictions. Useful to perform distributed
+        and batched predictions. Logging is disabled in the predict hooks.
 
         Args:
             model: The model to predict with.
@@ -944,8 +944,10 @@ class Trainer(
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_end")
 
-        # teardown
-        self._call_teardown_hook()
+        # teardown if necessary (similar calls for spawn plugins are excluded as they have
+        # been included at the end of `new_process` functions)
+        if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -1075,7 +1077,7 @@ class Trainer(
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
-            self._on_expection()
+            self._on_exception()
             # reset bookkeeping
             self.state.stage = None
             raise
@@ -1096,7 +1098,7 @@ class Trainer(
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
-        for i, result in enumerate(eval_loop_results):
+        for result in eval_loop_results:
             if isinstance(result, dict):
                 for k, v in result.items():
                     if isinstance(v, torch.Tensor):
@@ -1211,7 +1213,7 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-        self.profiler.teardown(stage=fn)
+
         self.teardown(stage=fn)
         self.lightning_module.teardown(stage=fn)
 
@@ -1219,6 +1221,14 @@ class Trainer(
         self.lightning_module._current_dataloader_idx = None
         # these could have become stale if metrics are defined in `setup`
         self.lightning_module._metric_attributes = None
+
+        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
+        # It might be related to xla tensors blocked when moving the cpu kill loggers.
+        if self.logger is not None:
+            self.logger.finalize("success")
+
+        # summarize profile results
+        self.profiler.describe()
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         if self.lightning_module:
@@ -1255,8 +1265,8 @@ class Trainer(
 
         return output
 
+    @staticmethod
     def _parse_devices(
-        self,
         gpus: Optional[Union[List[int], str, int]],
         auto_select_gpus: bool,
         tpu_cores: Optional[Union[List[int], str, int]],
@@ -1323,7 +1333,7 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_expection(self):
+    def _on_exception(self):
         if not _fault_tolerant_enabled():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.

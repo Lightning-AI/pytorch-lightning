@@ -203,6 +203,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
+        # ensure that spawned processes go through teardown before joining
+        trainer._call_teardown_hook()
+
     def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
