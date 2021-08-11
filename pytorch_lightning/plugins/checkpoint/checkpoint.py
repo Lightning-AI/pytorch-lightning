@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Optional, TypeVar, Union
 
-TSaveStorageOptions = TypeVar("S")
-TLoadStorageOptions = TypeVar("T")
+TSaveStorageOptions = TypeVar("TSaveStorageOptions")
+TLoadStorageOptions = TypeVar("TLoadStorageOptions")
 
 
 class CheckpointIOPlugin(ABC):
