@@ -19,9 +19,7 @@ from deprecate import void
 from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -34,7 +32,6 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.predictions: Optional[PredictionCollection] = None
         self.dataloader: Optional[Iterator] = None
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
@@ -51,7 +48,6 @@ class EvaluationEpochLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
-        self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self._dl_max_batches = None
         self._num_dataloaders = None
         self.outputs = []
@@ -113,7 +109,7 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_processed()
 
         # hook + store predictions
-        self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
+        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
         self.batch_progress.increment_completed()
 
@@ -197,25 +193,6 @@ class EvaluationEpochLoop(Loop):
         self.trainer.call_hook(hook_name, output, batch, batch_idx, dataloader_idx)
 
         self.trainer.logger_connector.on_batch_end()
-
-        # store predicitons if do_write_predictions and track eval loss history
-        self.store_predictions(output, batch_idx, dataloader_idx)
-
-    def store_predictions(self, output: Optional[STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
-        """Stores the predictions in the prediction collection (only if running in test mode)
-
-        Args:
-            output: the outputs of the current step
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
-        """
-        # Add step predictions to prediction collection to write later
-        if output is not None and self.predictions is not None:
-            if isinstance(output, ResultCollection) and self.trainer.testing:
-                self.predictions.add(output.pop("predictions", None))
-
-        # track debug metrics
-        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Union[Any, int]]:
         """Helper function to build the arguments for the current step
