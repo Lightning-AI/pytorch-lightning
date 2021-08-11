@@ -23,7 +23,6 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
@@ -191,9 +190,9 @@ class IPUPlugin(ParallelPlugin):
             dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader
 
-    def _convert_to_poptorch_loader(self, dataloader: DataLoader, opts: "poptorch.Options") -> poptorch.DataLoader:
-        # TODO: mode?
-        dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, None)
+    def _convert_to_poptorch_loader(self, dataloader: DataLoader, opts: "poptorch.Options") -> "poptorch.DataLoader":
+        # use full path to avoid circular imports
+        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, None)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
         dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
