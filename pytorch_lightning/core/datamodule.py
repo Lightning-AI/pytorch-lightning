@@ -95,40 +95,76 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     def train_transforms(self):
         """
         Optional transforms (or collection of transforms) you can apply to train dataset
+
+        .. deprecated:: v1.5
+            Will be removed in v1.7.0.
         """
+
+        rank_zero_deprecation(
+            "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
+        )
         return self._train_transforms
 
     @train_transforms.setter
     def train_transforms(self, t):
+        rank_zero_deprecation(
+            "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
+        )
         self._train_transforms = t
 
     @property
     def val_transforms(self):
         """
         Optional transforms (or collection of transforms) you can apply to validation dataset
+
+        .. deprecated:: v1.5
+            Will be removed in v1.7.0.
         """
+
+        rank_zero_deprecation(
+            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
+        )
         return self._val_transforms
 
     @val_transforms.setter
     def val_transforms(self, t):
+        rank_zero_deprecation(
+            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
+        )
         self._val_transforms = t
 
     @property
     def test_transforms(self):
         """
         Optional transforms (or collection of transforms) you can apply to test dataset
+
+        .. deprecated:: v1.5
+            Will be removed in v1.7.0.
         """
+
+        rank_zero_deprecation(
+            "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
+        )
         return self._test_transforms
 
     @test_transforms.setter
     def test_transforms(self, t):
+        rank_zero_deprecation(
+            "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
+        )
         self._test_transforms = t
 
     @property
     def dims(self):
         """
         A tuple describing the shape of your data. Extra functionality exposed in ``size``.
+
+        .. deprecated:: v1.5
+            Will be removed in v1.7.0.
         """
+        rank_zero_deprecation(
+            "DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7."
+        )
         return self._dims
 
     @dims.setter
@@ -139,11 +175,17 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         """
         Return the dimension of each input either as a tuple or list of tuples. You can index this
         just as you would with a torch tensor.
+
+        .. deprecated:: v1.5
+            Will be removed in v1.7.0.
         """
 
         if dim is not None:
             return self.dims[dim]
 
+        rank_zero_deprecation(
+            "DataModule property `size` was deprecated in v1.5 and will be removed in v1.7."
+        )
         return self.dims
 
     @property
