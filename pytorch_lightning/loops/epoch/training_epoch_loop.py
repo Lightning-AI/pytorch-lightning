@@ -179,7 +179,8 @@ class TrainingEpochLoop(loops.Loop):
         self.total_batch_idx += 1
 
         # progress global step according to grads progress
-        self._increment_accumulated_grad_global_step()
+        if not self._should_accumulate(accumulate_grad_batches=self.trainer.accelerator.accumulate_grad_batches):
+            self.global_step += 1
 
         if self.done:
             raise StopIteration
@@ -347,16 +348,6 @@ class TrainingEpochLoop(loops.Loop):
             update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
         )
-
-    def _increment_accumulated_grad_global_step(self) -> None:
-        """Increments global step according to grads progress"""
-        accumulate_grad_batches = self.trainer.accumulate_grad_batches
-        if self.trainer.accelerator.accumulate_grad_batches is not None:
-            # some training type plugins handle gradient accumulation internally
-            accumulate_grad_batches = self.trainer.accelerator.accumulate_grad_batches
-
-        if not self._should_accumulate(accumulate_grad_batches=accumulate_grad_batches):
-            self.global_step += 1
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""
