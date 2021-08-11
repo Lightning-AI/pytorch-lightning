@@ -318,7 +318,7 @@ Alternatively, the user can provide the list of callbacks directly from the comm
 
     $  python ... --trainer.callbacks=[{"class_path": pytorch_lightning.callbacks.EarlyStopping, "init_args": "patience": "5"}, ...].
 
-Lightning optionally simplifies the user command line where only the :class:`~pytorch_lightning.callbacks.Callback` name is required.
+Lightning optionally simplifies the user command line so that only the :class:`~pytorch_lightning.callbacks.Callback` name is required.
 The argument's order matters and the user needs to pass the arguments in the following way.
 This is supported only for PyTorch Lightning built-in :class:`~pytorch_lightning.callbacks.Callback`.
 
@@ -332,7 +332,7 @@ Here is an example:
 
     $  python ... --trainer.callbacks=EarlyStopping --trainer.patience=5 --trainer.callbacks=LearningRateMonitor
 
-However, a user can register its own callbacks as follow.
+However, a user can register their own callbacks as follows.
 
 .. code-block:: python
 
@@ -770,7 +770,7 @@ a single class or a tuple of classes, the value given to :code:`optimizer_init` 
 :code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
 :code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
 
-For code simplification, the LightningCLI provides properties with already registered PyTorch built-in `optimizers` and `schedulers`.
+For code simplification, the LightningCLI provides properties with PyTorch's built-in `optimizers` and `schedulers` already registered.
 
 .. code-block::
 
@@ -785,7 +785,7 @@ For code simplification, the LightningCLI provides properties with already regis
                 link_to="model.lr_scheduler_init",
             )
 
-However, a user can register its own optimizers or schedulers as follows.
+However, a user can register their own optimizers or schedulers as follows.
 
 .. code-block:: python
 
