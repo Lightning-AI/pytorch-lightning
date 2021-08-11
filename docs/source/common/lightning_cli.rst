@@ -324,7 +324,7 @@ This is supported only for PyTorch Lightning built-in :class:`~pytorch_lightning
 
 .. code-block:: bash
 
-    $  python ... --trainer.callbacks={CALLBACK_NAME_1} --trainer.callbacks.{CALLBACK_1_ARGS_1}=... --trainer.{CALLBACK_1_ARGS_2}=... --trainer.callbacks={CALLBACK_N} --trainer.callbacks.{CALLBACK_N_ARGS_1}=...
+    $  python ... --trainer.callbacks={CALLBACK_NAME_1} --trainer.callbacks.{CALLBACK_1_ARGS_1}=... --trainer.callbacks.{CALLBACK_1_ARGS_2}=... --trainer.callbacks={CALLBACK_N} --trainer.callbacks.{CALLBACK_N_ARGS_1}=...
 
 Here is an example:
 
