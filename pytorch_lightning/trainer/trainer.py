@@ -18,7 +18,7 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, Callable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
