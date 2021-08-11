@@ -111,9 +111,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-    def setup(self, model: Module) -> Module:
+    def setup(self) -> None:
         self.create_mp_queue()
-        return self.model
 
     def create_mp_queue(self):
         self.start_method = "fork"
@@ -172,6 +171,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         if self.local_rank == 0:
             time.sleep(2)
+
+        # ensure that spawned processes go through teardown before joining
+        trainer._call_teardown_hook()
 
     @parameter_validation
     def model_to_device(self) -> None:

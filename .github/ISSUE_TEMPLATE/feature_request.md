@@ -4,7 +4,6 @@ about: Suggest an idea for this project
 title: ''
 labels: enhancement, help wanted
 assignees: ''
-
 ---
 
 ## 🚀 Feature
@@ -27,7 +26,7 @@ assignees: ''
 
 <!-- Add any other context or screenshots about the feature request here. -->
 
----
+______________________________________________________________________
 
 #### If you enjoy Lightning, check out our other projects! ⚡
 
