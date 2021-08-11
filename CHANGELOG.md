@@ -171,16 +171,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8333](https://github.com/PyTorchLightning/pytorch-lightning/issues/8333))
 
-- Fixed avoid wrapping LightningModule in *DataParallel overrides when not fitting ([#6977]https://github.com/PyTorchLightning/pytorch-lightning/issues/6977). Specifically,
-    - Update `configure_ddp` function in `DDPPlugin`, `DDPSpawnPlugin`, `DDPShardedPlugin` and `DDPSpawnShardedPlugin` by checking the state of LightningModule and avoiding wrapping LihgningModule as *DataParallel when the state is not `TrainerFn.FITTING`.
-    - Update `validation_step` function in `DDPPlugin` and `DDPSpawnPlugin` to use LightningModule's `validation_step` function if `self.model` is not `DistributedDataParallel` instance.
-    - Update `test_step` and `prediction_step` functions in  `DDPPlugin` and `DDPSpawnPlugin` to use  LightningModule's `*_step` functions directly.
-
 
 - Fixed `StochasticWeightAveraging` with a list of learning rates not applying them to each param group ([#8747](https://github.com/PyTorchLightning/pytorch-lightning/issues/8747))
 
 
 - Fixed truncated backprop through time enablement when set as a property on the LightningModule and not the Trainer ([#8804](https://github.com/PyTorchLightning/pytorch-lightning/pull/8804/))
+
+- Fixed avoid wrapping LightningModule with data-parallel when not fitting in `DDPPlugin`, `DDPSpawnPlugin`, `DDPShardedPlugin`, `DDPSpawnShardedPlugin` ([#6977]https://github.com/PyTorchLightning/pytorch-lightning/issues/6977).
 
 
 - Fixed plateau scheduler stepping on incomplete epoch ([#8861](https://github.com/PyTorchLightning/pytorch-lightning/pull/8861))
