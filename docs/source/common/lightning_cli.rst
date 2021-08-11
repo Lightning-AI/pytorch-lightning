@@ -324,13 +324,13 @@ This is supported only for PyTorch Lightning built-in :class:`~pytorch_lightning
 
 .. code-block:: bash
 
-    $  python ... --trainer.callbacks={CALLBACK_NAME_1} --trainer.{CALLBACK_1_ARGS_1}=... --trainer.{CALLBACK_1_ARGS_2}=... --trainer.callbacks={CALLBACK_N} --trainer.{CALLBACK_N_ARGS_1}=...
+    $  python ... --trainer.callbacks={CALLBACK_NAME_1} --trainer.callbacks.{CALLBACK_1_ARGS_1}=... --trainer.{CALLBACK_1_ARGS_2}=... --trainer.callbacks={CALLBACK_N} --trainer.callbacks.{CALLBACK_N_ARGS_1}=...
 
 Here is an example:
 
 .. code-block:: bash
 
-    $  python ... --trainer.callbacks=EarlyStopping --trainer.patience=5 --trainer.callbacks=LearningRateMonitor
+    $  python ... --trainer.callbacks=EarlyStopping --trainer.callbacks.patience=5 --trainer.callbacks=LearningRateMonitor
 
 However, a user can register their own callbacks as follows.
 
