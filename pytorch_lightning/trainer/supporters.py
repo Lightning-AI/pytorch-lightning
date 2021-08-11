@@ -361,6 +361,7 @@ class CombinedLoader:
             raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.loaders = loaders
+        self.prefetcher = None
 
         datasets = apply_to_collection(
             self.loaders, Iterable, getattr, "dataset", None, wrong_dtype=(Sequence, Mapping)
@@ -484,7 +485,7 @@ class CombinedLoader:
             return {}
 
         _BaseDataLoaderIter.__getstate__ = __getstate__patch__
-        iterator = CombinedLoaderIterator(self.loaders)
+        iterator = CombinedLoaderIterator(self.loaders, self.prefetcher)
         # handle fault tolerant restart logic.
         self.on_restart(iterator)
         self._iterator = iterator
@@ -516,12 +517,13 @@ class CombinedLoaderIterator:
     Custom Iterator returning data from multple loaders, and allows sampling in parallel
     """
 
-    def __init__(self, loaders: Any):
+    def __init__(self, loaders: Any, prefetcher):
         """
         Args:
             loaders: the loaders to sample from. Can be all kind of collection
         """
         self.loaders = loaders
+        self.prefetcher = prefetcher
         self._loader_iters = None
 
     @property
@@ -530,7 +532,7 @@ class CombinedLoaderIterator:
         Get the `_loader_iters` and create one if it is None.
         """
         if self._loader_iters is None:
-            self._loader_iters = self.create_loader_iters(self.loaders)
+            self._loader_iters = self.create_loader_iters(self.loaders, self.prefetcher)
 
         return self._loader_iters
 
@@ -576,7 +578,8 @@ class CombinedLoaderIterator:
 
     @staticmethod
     def create_loader_iters(
-        loaders: Union[Any, Iterator, Sequence, Mapping]
+        loaders: Union[Any, Iterator, Sequence, Mapping],
+        prefetcher,
     ) -> Union[Any, Iterator, Sequence, Mapping]:
         """
         Create and return a collection of iterators from loaders.
@@ -591,7 +594,7 @@ class CombinedLoaderIterator:
         def _create_and_patch(loader: Iterable):
             iterator = iter(loader)
             if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
-                patch_dataloader_iterator(loader, iterator)
+                patch_dataloader_iterator(loader, iterator, prefetcher)
             return iterator
 
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
@@ -620,23 +623,52 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
     return compute_func(new_data)
 
 
-def prefetch_iterator(dataloader: DataLoader) -> Generator[Tuple[Any, bool], None, None]:
-    """
-    Returns an iterator that pre-fetches and caches the next item.
+class PrefetchIterator:
+    """Returns an iterator that pre-fetches and caches the next item.
+
     The values are passed through from the given iterable with an added boolean indicating if this is the last item.
     See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
     """
-    it = iter(dataloader)
 
-    try:
-        # the iterator may be empty from the beginning
-        last = next(it)
-    except StopIteration:
-        return
+    def __init__(self, iterable: Iterable):
+        super().__init__()
+        self.iterable = iterable
+        self.fetched = 0
+        self.states = []
 
-    for val in it:
-        # yield last and has next
-        yield last, False
-        last = val
-    # yield last, no longer has next
-    yield last, True
+    def __iter__(self) -> Generator[Tuple[Any, bool], None, None]:
+        it = iter(self.iterable)
+
+        try:
+            # the iterator may be empty from the beginning
+            last = next(it)
+        except StopIteration:
+            return
+
+        for val in it:
+            self.fetched += 1
+            # yield last and has next
+            yield last, False
+            last = val
+
+        self.fetched += 1
+        # yield last, no longer has next
+        yield last, True
+
+
+# def prefetch_iterator(dataloader: DataLoader) -> Generator[Tuple[Any, bool], None, None]:
+#
+#     it = iter(dataloader)
+#
+#     try:
+#         # the iterator may be empty from the beginning
+#         last = next(it)
+#     except StopIteration:
+#         return
+#
+#     for val in it:
+#         # yield last and has next
+#         yield last, False
+#         last = val
+#     # yield last, no longer has next
+#     yield last, True

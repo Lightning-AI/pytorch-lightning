@@ -34,7 +34,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
-from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader, PrefetchIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _dataloader_load_state_dict,
@@ -948,20 +948,22 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     Trainer._add_sampler_metadata_collate(dataloader)
     dataloader_iter = iter(dataloader)
-    patch_dataloader_iterator(dataloader, dataloader_iter)
+    prefetcher = PrefetchIterator(dataloader_iter)
+    patch_dataloader_iterator(dataloader, dataloader_iter, prefetcher)
+    prefetch_iter = iter(prefetcher)
 
     # fetch 4 batches
-    _ = next(dataloader_iter)
-    _ = next(dataloader_iter)
-    _ = next(dataloader_iter)
-    _ = next(dataloader_iter)
+    _ = next(prefetch_iter)
+    _ = next(prefetch_iter)
+    _ = next(prefetch_iter)
+    _ = next(prefetch_iter)
 
     # (A) capture the state after fetching 4 batches
-    state: IteratorState = deepcopy(dataloader_iter.state)
+    state: IteratorState = deepcopy(prefetcher.states[-2])
 
     # (B) simulate 2 additional batches
-    batch02 = next(dataloader_iter)
-    batch03 = next(dataloader_iter)
+    batch02, _ = next(prefetch_iter)
+    batch03, _ = next(prefetch_iter)
 
     # start reloading
     dataset = CaptureMapDataset(dataset_class(16, 8))
@@ -976,11 +978,12 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     Trainer._add_sampler_metadata_collate(dataloader)
     dataloader_iter = iter(dataloader)
-    patch_dataloader_iterator(dataloader, dataloader_iter)
-
+    prefetcher = PrefetchIterator(dataloader_iter)
+    patch_dataloader_iterator(dataloader, dataloader_iter, prefetcher)
+    prefetch_iter = iter(prefetcher)
     # fetch 2 random batches, these should match exactly the batches seen at (B)
-    batch10 = next(dataloader_iter)
-    batch11 = next(dataloader_iter)
+    batch10, _ = next(prefetch_iter)
+    batch11, _ = next(prefetch_iter)
 
     assert torch.equal(batch02, batch10)
     assert torch.equal(batch03, batch11)
@@ -1010,6 +1013,7 @@ class TestModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         if self.global_step == 4 and self.fail:
+            print("custom exception on ", batch_idx)
             raise CustomException()
         self.seen_batches.append(batch)
         loss = self.layer(batch).sum()
@@ -1020,7 +1024,7 @@ class TestModel(LightningModule):
 
 
 def _run_training(trainer_kwargs, fail=False):
-    train_data = DataLoader(TestDataset(64), batch_size=2)
+    train_data = DataLoader(TestDataset(6), batch_size=2)
     model = TestModel(fail=fail)
     trainer = Trainer(**trainer_kwargs)
     try:
@@ -1035,22 +1039,27 @@ def _run_training(trainer_kwargs, fail=False):
 def test_adrian(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
-        limit_train_batches=3,
         max_epochs=3,
         weights_summary=None,
         progress_bar_refresh_rate=0,
     )
     seed_everything(1)
     all_batches = _run_training(trainer_kwargs, fail=False)
+    print(torch.stack(all_batches))
 
     seed_everything(1)
-    incomplete_batches = _run_training(trainer_kwargs, fail=True)
+    complete_batches = _run_training(trainer_kwargs, fail=True)
+    print(torch.stack(complete_batches))
 
+    print("resume")
     seed_everything(1)
     trainer_kwargs.update(resume_from_checkpoint=os.path.join(tmpdir, "auto.ckpt"))
+    # x = torch.load(os.path.join(tmpdir, "auto.ckpt"))
+    # x[]
     resumed_batches = _run_training(trainer_kwargs, fail=False)
+    print(torch.stack(resumed_batches))
 
     assert len(all_batches) == 3 * 3
-    assert len(incomplete_batches) == 4
-    assert len(resumed_batches) == 9 - 4
-    assert torch.allclose(torch.cat(all_batches), torch.cat(incomplete_batches + resumed_batches))
+    assert len(complete_batches) == 3 + 1
+    # assert len(resumed_batches) == 2
+    assert torch.allclose(torch.cat(all_batches), torch.cat(complete_batches + resumed_batches))

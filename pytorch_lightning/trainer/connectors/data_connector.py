@@ -15,7 +15,7 @@
 from typing import Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.supporters import prefetch_iterator
+from pytorch_lightning.trainer.supporters import PrefetchIterator, CombinedLoader
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -61,9 +61,10 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader):
-        profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(prefetch_iterator(train_dataloader)), "get_train_batch"
-        )
+        prefetcher = PrefetchIterator(train_dataloader)
+        assert isinstance(train_dataloader, CombinedLoader)
+        train_dataloader.prefetcher = prefetcher
+        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher), "get_train_batch")
         return profiled_dl
 
     def prepare_data(self) -> None:

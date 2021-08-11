@@ -25,6 +25,7 @@ import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
+# from pytorch_lightning.trainer.supporters import PrefetchIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, recursively_traverse_for_dtype
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -508,12 +509,13 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: metadata}
 
 
-def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
+def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher):
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
-    iterator.state = IteratorState(num_workers=dataloader.num_workers)
+    # iterator.state = IteratorState(num_workers=dataloader.num_workers)
 
     def _next_data_wrapper(fn, it, dl):
         num_batches_fetched = 0
+        state = IteratorState(num_workers=dataloader.num_workers)
 
         @wraps(fn)
         def wrapper():
@@ -524,11 +526,13 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
 
             ff_sampler = _find_fast_forward_samplers(dl)
             sampler_state = ff_sampler.state_dict(num_batches_fetched)
+            print("ss", num_batches_fetched)
 
-            it.state: IteratorState
-            it.state.sampler_states.update(sampler_state)
-            it.state.dataset_states.update(dataset_state)
-            it.state.latest_worker_id = list(dataset_state.keys())[0]
+            state.sampler_states.update(sampler_state)
+            state.dataset_states.update(dataset_state)
+            state.latest_worker_id = list(dataset_state.keys())[0]
+
+            prefetcher.states.append(deepcopy(state))
             return batch
 
         return wrapper

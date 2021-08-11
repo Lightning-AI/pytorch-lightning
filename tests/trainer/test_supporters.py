@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.supporters import (
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
-    prefetch_iterator,
+    PrefetchIterator,
     TensorRunningAccum,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -80,7 +80,7 @@ def test_none_length_cycle_iterator():
 
 
 def test_prefetch_iterator():
-    """Test the prefetch_iterator with PyTorch IterableDataset."""
+    """Test the PrefetchIterator with PyTorch IterableDataset."""
 
     class IterDataset(IterableDataset):
         def __iter__(self):
@@ -89,7 +89,7 @@ def test_prefetch_iterator():
             yield 3
 
     dataset = IterDataset()
-    iterator = prefetch_iterator(dataset)
+    iterator = PrefetchIterator(dataset)
     assert list(iterator) == [(1, False), (2, False), (3, True)]
 
     class EmptyIterDataset(IterableDataset):
@@ -97,7 +97,7 @@ def test_prefetch_iterator():
             return iter([])
 
     dataset = EmptyIterDataset()
-    iterator = prefetch_iterator(dataset)
+    iterator = PrefetchIterator(dataset)
     assert list(iterator) == []
 
 
