@@ -3,7 +3,8 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len
-from tests.helpers.boring_model import RandomDataset, RandomIterableDataset
+from pytorch_lightning.utilities.debugging_examples import RandomDataset
+from tests.helpers.datasets import RandomIterableDataset
 
 
 def test_extract_batch_size():

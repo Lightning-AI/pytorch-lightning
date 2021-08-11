@@ -16,7 +16,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 
 
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
