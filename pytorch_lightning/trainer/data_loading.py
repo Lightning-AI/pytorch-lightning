@@ -19,7 +19,7 @@ from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
@@ -151,7 +151,9 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     @staticmethod
-    def _resolve_batch_sampler(dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
+    def _resolve_batch_sampler(
+        dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    ) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
@@ -182,7 +184,10 @@ class TrainerDataLoadingMixin(ABC):
 
         return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
-    def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+    @staticmethod
+    def _get_dataloader_init_kwargs(
+        dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    ) -> Dict[str, Any]:
         if not isinstance(dataloader, DataLoader):
             raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
@@ -201,7 +206,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(self._resolve_batch_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(TrainerDataLoadingMixin._resolve_batch_sampler(dataloader, sampler, mode=mode))
 
         required_args = {
             p.name
@@ -248,6 +253,11 @@ class TrainerDataLoadingMixin(ABC):
             del dl_kwargs["sampler"]
             del dl_kwargs["batch_sampler"]
 
+        return dl_kwargs
+
+    @staticmethod
+    def replace_sampler(dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+        dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)
         return dataloader

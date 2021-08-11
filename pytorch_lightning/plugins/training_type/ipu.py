@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import json
 import os
 from typing import Any, Iterable, List, Optional, Union
@@ -24,6 +23,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
@@ -191,31 +191,12 @@ class IPUPlugin(ParallelPlugin):
             dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
         return dataloader
 
-    def _convert_to_poptorch_loader(
-        self, dataloader: Union[Iterable, DataLoader], opts: "poptorch.Options"
-    ) -> Union[Iterable, DataLoader]:
-        skip_keys = ("sampler", "batch_sampler", "dataset_kind")
-
-        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
-
-        params = set(inspect.signature(dataloader.__init__).parameters)
-        contains_dataset = True
-
-        if type(dataloader) is not DataLoader:
-            contains_dataset = "dataset" in params
-            params.update(inspect.signature(DataLoader.__init__).parameters)
-
-        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
-
-        multiprocessing_context = dataloader.multiprocessing_context
-        dl_args["multiprocessing_context"] = multiprocessing_context
-        if not contains_dataset:
-            dl_args.pop("dataset")
+    def _convert_to_poptorch_loader(self, dataloader: DataLoader, opts: "poptorch.Options") -> poptorch.DataLoader:
+        # TODO: mode?
+        dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, None)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
-        dl_args["drop_last"] = True
-
-        dataloader = poptorch.DataLoader(**dl_args, options=opts)
-        dataloader.multiprocessing_context = multiprocessing_context
+        dl_kwargs["drop_last"] = True
+        dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
         return dataloader
 
     @property
