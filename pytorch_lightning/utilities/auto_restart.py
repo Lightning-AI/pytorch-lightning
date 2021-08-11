@@ -523,7 +523,7 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator):
             num_batches_fetched += 1
 
             ff_sampler = _find_fast_forward_samplers(dl)
-            sampler_state = ff_sampler.state_dict(num_batches_fetched, going_crazy=True)
+            sampler_state = ff_sampler.state_dict(num_batches_fetched)
 
             it.state: IteratorState
             it.state.sampler_states.update(sampler_state)
