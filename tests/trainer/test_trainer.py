@@ -1875,7 +1875,12 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         def on_epoch_start(self, trainer, *_):
             assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
 
-    initial = torch.cuda.memory_allocated(0)
+    def current_memory():
+        # before measuring the memory force release any leftover allocations, including CUDA tensors
+        gc.collect()
+        return torch.cuda.memory_allocated(0)
+
+    initial = current_memory()
 
     model = TestModel()
     trainer_kwargs = dict(
@@ -1893,22 +1898,13 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_1 = torch.cuda.memory_allocated(0)
-    assert memory_1 == initial
+    assert current_memory() <= initial
 
     deepcopy(trainer)
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_2 == initial
+    assert current_memory() <= initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_3 = torch.cuda.memory_allocated(0)
-    assert memory_3 == initial
+    assert current_memory() <= initial
