@@ -45,7 +45,7 @@ from tests.helpers.runif import RunIf
 
 def test_model_checkpoint_state_id():
     early_stopping = ModelCheckpoint(monitor="val_loss")
-    assert early_stopping.state_id == "ModelCheckpoint[monitor=val_loss]"
+    assert early_stopping.state_id == "ModelCheckpoint[monitor=val_loss, mode=min]"
 
 
 class LogInTwoMethods(BoringModel):
@@ -153,7 +153,7 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks"][f"ModelCheckpoint[monitor={monitor}]"]
+        mc_specific_data = chk["callbacks"][f"ModelCheckpoint[monitor={monitor}, mode=min]"]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -1102,7 +1102,7 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"]["ModelCheckpoint[monitor=foo]"] for ckpt in ckpts]
+    ckpts = [ckpt["callbacks"]["ModelCheckpoint[monitor=foo, mode=min]"] for ckpt in ckpts]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
 
 
