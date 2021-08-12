@@ -131,6 +131,11 @@ class FitLoop(Loop):
         Returns True if trainer.should_stop was set (e.g. by early stopping)
         or if the maximum number of steps or epochs is reached.
         """
+        if self.max_epochs < 0 and self.max_steps is None:
+            # If max_epochs is negative and self.max_steps isn't specified,
+            # disable automatic stopping
+            return False
+
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
         stop_epochs = self.max_epochs is not None and self.current_epoch >= self.max_epochs
