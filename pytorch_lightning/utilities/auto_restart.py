@@ -189,7 +189,7 @@ class CollectionIteratorState:
 
     @property
     def sampler_states(self) -> Dict:
-        return {k: self.state[k].sampler_states[k] for k in self.state.keys()}
+        return {0: self.state[k].sampler_states[0] for k in self.state.keys()}
 
     @property
     def dataset_states(self) -> Dict:
