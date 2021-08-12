@@ -491,6 +491,29 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
+    # if max_steps is positive and max_epochs is negative, use max_steps
+    trainer_kwargs["max_epochs"] = -1
+    trainer_kwargs["max_steps"] = 3 * 2 * num_train_samples
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.global_step == 3 * 2 * num_train_samples
+
+    # if max_steps is 0 and max_epochs is negative, use max_steps
+    trainer_kwargs["max_epochs"] = -5
+    trainer_kwargs["max_steps"] = 0
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.global_step == 0
+
+    # allow specifying max_epochs < 0 and max_steps = None
+    trainer_kwargs["max_epochs"] = -100
+    trainer_kwargs["max_steps"] = None
+    trainer = Trainer(**trainer_kwargs)
+
 
 def test_trainer_min_steps_and_epochs(tmpdir):
     """Verify model trains according to specified min steps"""

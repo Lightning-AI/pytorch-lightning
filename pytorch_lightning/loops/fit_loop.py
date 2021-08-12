@@ -132,8 +132,7 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         if self.max_epochs < 0 and self.max_steps is None:
-            # If max_epochs is negative and self.max_steps isn't specified,
-            # disable automatic stopping
+            # If max_epochs is negative and max_steps is not defined, disable automatic stopping
             return False
 
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
