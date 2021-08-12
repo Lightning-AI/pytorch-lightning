@@ -101,12 +101,12 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
 
     ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
     state0 = ckpt["callbacks"]["StatefulCallback0"]
-    state1 = ckpt["callbacks"]["StatefulCallback1[unique=one]"]
-    state2 = ckpt["callbacks"]["StatefulCallback1[unique=two]"]
+    state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
+    state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]
     assert "content0" in state0 and state0["content0"] == 0
     assert "content1" in state1 and state1["content1"] == "one"
     assert "content1" in state2 and state2["content1"] == "two"
-    assert "ModelCheckpoint[monitor=None, mode=min]" in ckpt["callbacks"]
+    assert "ModelCheckpoint{'monitor': None, 'mode': 'min'}" in ckpt["callbacks"]
 
 
 def test_attach_model_callbacks():
