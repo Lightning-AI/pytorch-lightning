@@ -78,7 +78,7 @@ class ProgressBarBase(Callback):
                 self.enable = False
 
             def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-                super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)  # important :-)
+                super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)  # important
                 percent = (self.train_batch_idx / self.total_train_batches) * 100
                 sys.stdout.flush()
                 sys.stdout.write(f'{percent:.01f} percent complete \r')
