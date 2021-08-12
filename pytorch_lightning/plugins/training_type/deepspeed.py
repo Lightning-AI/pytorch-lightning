@@ -687,7 +687,9 @@ class DeepSpeedPlugin(DDPPlugin):
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
-                "If a single file is required after training, see <TODO> for instructions."
+                "If a single file is required after training, "
+                "see https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#"
+                "deepspeed-zero-stage-3-single-file for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
         # dump states as a checkpoint dictionary object

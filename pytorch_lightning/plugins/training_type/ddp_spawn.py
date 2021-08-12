@@ -63,7 +63,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_plugin: Optional[CheckpointIOPlugin] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
