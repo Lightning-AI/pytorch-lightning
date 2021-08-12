@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from tests.helpers.runif import RunIf
 
 
 def get_cycles_per_ms() -> float:
@@ -55,7 +56,7 @@ def get_cycles_per_ms() -> float:
     return mean(vals[2 : num - 2])
 
 
-_CYCLES_PER_MS = int(get_cycles_per_ms())
+_CYCLES_PER_MS = int(get_cycles_per_ms()) if torch.cuda.is_available() else 0
 _BATCH_SIZE = 128
 _EMB_SZ = 100
 _EMB_DIM = 64
@@ -166,6 +167,7 @@ class AsyncToyDLRMModel(ToyDLRMModel):
         return {"is_last": is_last}
 
 
+@RunIf(min_gpus=1)
 def test_inter_batch_parallelism(tmpdir):
     """
     Verify the speedup of a simple inter-batch parallelization use case enabled
