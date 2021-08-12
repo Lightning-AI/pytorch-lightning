@@ -22,6 +22,6 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
             atomic_save(checkpoint, path)
 
     def load_checkpoint(
-        self, path: Union[str, Path], map_location: Optional[Callable] = lambda storage, loc: storage
+        self, path: Union[str, Path], storage_options: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
-        return pl_load(path, map_location=map_location)
+        return pl_load(path, map_location=storage_options)
