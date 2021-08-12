@@ -32,14 +32,14 @@ class GPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         torch.cuda.set_device(self.root_device)
 
-    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not GPU.
         """
         self.set_nvidia_flags(trainer.local_rank)
-        return super().setup(trainer, model)
+        return super().setup(trainer)
 
     def on_train_start(self) -> None:
         # clear cache before training

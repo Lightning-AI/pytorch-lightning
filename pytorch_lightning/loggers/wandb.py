@@ -111,7 +111,6 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
-        sync_step: Optional[bool] = None,
         **kwargs,
     ):
         if wandb is None:
@@ -132,12 +131,6 @@ class WandbLogger(LightningLoggerBase):
                 f"Providing log_model={log_model} requires wandb version >= 0.10.22"
                 " for logging associated model metadata.\n"
                 "Hint: Upgrade with `pip install --ugrade wandb`."
-            )
-
-        if sync_step is not None:
-            rank_zero_deprecation(
-                "`WandbLogger(sync_step=(True|False))` is deprecated in v1.2.1 and will be removed in v1.5."
-                " Metrics are now logged separately and automatically synchronized."
             )
 
         super().__init__()
@@ -204,8 +197,8 @@ class WandbLogger(LightningLoggerBase):
 
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100):
-        self.experiment.watch(model, log=log, log_freq=log_freq)
+    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):
+        self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:

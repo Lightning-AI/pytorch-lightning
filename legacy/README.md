@@ -14,6 +14,6 @@ unzip -o checkpoints.zip
 To back populate collection with past version you can use following bash:
 
 ```bash
-bash generate_checkpoints.sh 1.0.2 1.0.3 1.0.4
+bash generate_checkpoints.sh "1.3.7" "1.3.8"
 zip -r checkpoints.zip checkpoints/
 ```
