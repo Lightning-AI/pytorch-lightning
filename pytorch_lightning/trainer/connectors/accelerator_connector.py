@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
+    CheckpointIOPlugin,
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedPlugin,
@@ -134,6 +135,7 @@ class AcceleratorConnector:
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
+        self._checkpoint_plugin: Optional[CheckpointIOPlugin] = None
 
         plugins = plugins if plugins is not None else []
 
@@ -274,6 +276,7 @@ class AcceleratorConnector:
     def handle_given_plugins(self) -> None:
 
         training_type = None
+        checkpoint = None
         precision = None
         cluster_environment = None
 
@@ -310,7 +313,14 @@ class AcceleratorConnector:
                         "You can only specify one precision and one training type plugin."
                         f" Found more than 1 precision plugin: {type(plug).__name__}"
                     )
-
+            elif isinstance(plug, CheckpointIOPlugin):
+                if checkpoint is None:
+                    checkpoint = plug
+                else:
+                    raise MisconfigurationException(
+                        "You can only specify one checkpoint plugin and one training type plugin."
+                        f" Found more than 1 checkpoint plugin: {type(plug).__name__}"
+                    )
             elif isinstance(plug, ClusterEnvironment):
                 if cluster_environment is None:
                     cluster_environment = plug
@@ -325,6 +335,7 @@ class AcceleratorConnector:
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
+        self._checkpoint_plugin = checkpoint
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
@@ -341,6 +352,9 @@ class AcceleratorConnector:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        # attach checkpoint plugin to the training type plugin
+        if self._checkpoint_plugin is not None:
+            self._training_type_plugin.checkpoint_plugin = self._checkpoint_plugin
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin

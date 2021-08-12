@@ -74,6 +74,23 @@ def test_checkpoint_plugin_called(tmpdir, checkpoint_plugin):
     trainer.test(model, ckpt_path=ck.last_model_path)
     assert checkpoint_plugin.load_checkpoint_file_called
 
+    checkpoint_plugin.save_checkpoint_called = False
+    checkpoint_plugin.load_checkpoint_file_called = False
+    ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
+    model = BoringModel()
+    device = torch.device("cpu")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[SingleDevicePlugin(device), checkpoint_plugin],
+        callbacks=ck,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    assert checkpoint_plugin.save_checkpoint_called
+    trainer.test(model, ckpt_path=ck.last_model_path)
+    assert checkpoint_plugin.load_checkpoint_file_called
+
 
 @pytest.mark.parametrize("plugin_cls", [pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)), TPUSpawnPlugin])
 def test_no_checkpoint_io_plugin_support(plugin_cls):
