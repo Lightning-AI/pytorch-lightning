@@ -16,6 +16,7 @@ import os
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
+from typing import Any, Callable, Union
 
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
@@ -26,7 +27,7 @@ if _XLA_AVAILABLE:
 TPU_CHECK_TIMEOUT = 60
 
 
-def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
+def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
     try:
         queue.put(func(*args, **kwargs))
     # todo: specify the possible exception
@@ -35,10 +36,10 @@ def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
         queue.put(None)
 
 
-def pl_multi_process(func):
+def pl_multi_process(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        queue = Queue()
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Any]:
+        queue: Queue = Queue()
         proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
         proc.join(TPU_CHECK_TIMEOUT)

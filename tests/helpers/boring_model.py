@@ -20,7 +20,7 @@ from pytorch_lightning import LightningDataModule, LightningModule
 
 
 class RandomDictDataset(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -34,7 +34,7 @@ class RandomDictDataset(Dataset):
 
 
 class RandomDataset(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size: int, length: int):
         self.len = length
         self.data = torch.randn(length, size)
 

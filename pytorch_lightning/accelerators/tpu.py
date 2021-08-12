@@ -32,7 +32,7 @@ if _XLA_AVAILABLE:
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
 
-    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:
             MisconfigurationException:
@@ -45,7 +45,7 @@ class TPUAccelerator(Accelerator):
 
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
-        return super().setup(trainer, model)
+        return super().setup(trainer)
 
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
