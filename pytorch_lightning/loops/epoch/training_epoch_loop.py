@@ -41,7 +41,6 @@ class TrainingEpochLoop(loops.Loop):
         self.global_step: int = 0
         # the total batch index across all epochs
         self.total_batch_idx: int = 0
-        self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
 
@@ -67,7 +66,7 @@ class TrainingEpochLoop(loops.Loop):
         the last batch is reached or the trainer signals to stop (e.g. by early stopping).
         """
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
-        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached()
 
     def connect(
         self, batch_loop: Optional[TrainingBatchLoop] = None, val_loop: Optional["loops.EvaluationLoop"] = None
@@ -80,7 +79,6 @@ class TrainingEpochLoop(loops.Loop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
-        self.is_last_batch = False
         self._dataloader_idx = 0
 
         # track epoch output
@@ -107,8 +105,7 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        _, (batch, is_last) = next(dataloader_iter)
-        self.is_last_batch = is_last
+        _, (batch, _) = next(dataloader_iter)
 
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
@@ -130,7 +127,7 @@ class TrainingEpochLoop(loops.Loop):
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
-        if self._num_training_batches_reached(is_last):
+        if self._num_training_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
@@ -162,7 +159,7 @@ class TrainingEpochLoop(loops.Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.batch_idx, self.is_last_batch)
+        should_check_val = self._should_check_val_fx(self.batch_idx)
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -250,13 +247,9 @@ class TrainingEpochLoop(loops.Loop):
         """Determine if accumulation will be finished by the end of the current batch."""
         return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
-        """Checks if we are in the last batch or if there are more batches to follow.
-
-        Args:
-            is_last_batch: Whether the current batch is the last one
-        """
-        return self.batch_progress.current.ready == self.trainer.num_training_batches or is_last_batch
+    def _num_training_batches_reached(self) -> bool:
+        """Checks if we are in the last batch or if there are more batches to follow."""
+        return self.batch_progress.current.ready == self.trainer.num_training_batches
 
     def _should_accumulate(self) -> bool:
         """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
@@ -353,7 +346,7 @@ class TrainingEpochLoop(loops.Loop):
                 self.total_batch_idx, self.trainer.global_step
             )
 
-    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
+    def _should_check_val_fx(self, batch_idx: int) -> bool:
         """Decide if we should run validation."""
         if not self.trainer.enable_validation:
             return False
@@ -362,6 +355,7 @@ class TrainingEpochLoop(loops.Loop):
         if not is_val_check_epoch:
             return False
 
+        is_last_batch = self._num_training_batches_reached()
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         if is_last_batch and is_infinite_dataset:

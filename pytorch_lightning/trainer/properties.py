@@ -545,7 +545,7 @@ class TrainerProperties(ABC):
 
     @property
     def is_last_batch(self) -> bool:
-        return self.fit_loop.epoch_loop.is_last_batch
+        return self.fit_loop.epoch_loop._num_training_batches_reached()
 
     @property
     def fit_loop(self) -> FitLoop:

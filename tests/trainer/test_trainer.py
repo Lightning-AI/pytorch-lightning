@@ -242,9 +242,8 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
         def on_train_batch_end(self, outputs, batch, batch_idx, *_):
             end_state_dict = self.state_dict()
-            is_last_batch = (batch_idx + 1) == self.trainer.num_training_batches
 
-            if is_last_batch or self.opt_step_called:
+            if self.trainer.is_last_batch or self.opt_step_called:
                 assert self.check(self.start_state_dict, end_state_dict, equal=False)
             else:
                 assert self.check(self.start_state_dict, end_state_dict)
