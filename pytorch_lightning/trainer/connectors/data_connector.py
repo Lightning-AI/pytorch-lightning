@@ -26,6 +26,7 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
+        self.prefetcher: Optional[LightningFetcher]
 
     def on_trainer_init(
         self,
@@ -61,11 +62,11 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader):
-        prefetcher = LightningFetcher()
-        prefetcher.setup(train_dataloader)
+        self.prefetcher = LightningFetcher()
+        self.prefetcher.setup(train_dataloader)
+        prefecter_iter = iter(self.prefetcher)
         assert isinstance(train_dataloader, CombinedLoader)
-        train_dataloader.prefetcher = prefetcher
-        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher), "get_train_batch")
+        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefecter_iter), "get_train_batch")
         return profiled_dl
 
     def prepare_data(self) -> None:

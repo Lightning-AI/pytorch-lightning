@@ -927,7 +927,7 @@ class RandomGeneratorGetItemDataset(Dataset):
 # NOTE: we are not able to restore if we fail during the first N=num_workers batches
 # TODO: test with batch sampler
 # TODO: test with `RandomGeneratorGetItemDataset`
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 70 sec and should be skipped in Azure CI")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
@@ -1026,6 +1026,25 @@ class TestDataset(Dataset):
         return self.len
 
 
+class TestIterableDataset(IterableDataset):
+    def __init__(self, length, *_):
+        self.len = length
+        self.counter = 0
+
+    def __iter__(self) -> "TestIterableDataset":
+        self.counter = 0
+        return self
+
+    def __next__(self):
+        data = torch.tensor([self.counter]).float()
+        self.counter += 1
+
+        if self.counter >= self.len:
+            raise StopIteration
+
+        return data
+
+
 class TestModel(LightningModule):
     def __init__(self, fail=False):
         super().__init__()
@@ -1038,7 +1057,7 @@ class TestModel(LightningModule):
             print("custom exception on ", batch_idx)
             raise CustomException()
         self.seen_batches.append(batch)
-        loss = self.layer(batch).sum()
+        loss = sum(self.layer(b).sum() for b in batch)
         return loss
 
     def configure_optimizers(self):
@@ -1046,19 +1065,22 @@ class TestModel(LightningModule):
 
 
 def _run_training(trainer_kwargs, fail=False):
-    train_data = DataLoader(TestDataset(6), batch_size=2)
+    train_dataloader = [DataLoader(TestDataset(6), batch_size=2), DataLoader(TestIterableDataset(6), batch_size=2)]
     model = TestModel(fail=fail)
     trainer = Trainer(**trainer_kwargs)
     try:
-        trainer.fit(model, train_dataloaders=train_data)
+        trainer.fit(model, train_dataloader=train_dataloader)
     except CustomException:
         trainer.save_checkpoint(os.path.join(trainer.default_root_dir, "auto.ckpt"))
-    finally:
-        return model.seen_batches
+    except BaseException as e:
+        raise e
+    return model.seen_batches
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 70 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_adrian(tmpdir):
+@RunIf(min_torch="1.7.0")
+def test_dataset_rng_states_restart_with_lightning(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=3,

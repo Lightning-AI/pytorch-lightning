@@ -254,11 +254,9 @@ class TrainingEpochLoop(loops.Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        combined_iterator = self.trainer.train_dataloader._iterator
-        prefetcher = self.trainer.train_dataloader.prefetcher
-        if combined_iterator is not None:
-            # TODO: when is this None (the second time)?
-            state_dict["dataloader_iter"] = prefetcher.states[-2]  # combined_iterator._loader_iters.state
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
+            self.batch_progress.current.ready
+        )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:

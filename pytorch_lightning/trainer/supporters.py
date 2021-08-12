@@ -29,6 +29,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_sampler_metadata_collate,
     _cycle_to_next_worker_and_reset,
     _find_current_worker,
+    _find_fast_forward_samplers,
     CaptureIterableDataset,
     CollectionIteratorState,
     IteratorState,
@@ -365,7 +366,6 @@ class CombinedLoader:
             raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.loaders = loaders
-        self.prefetcher = None
 
         datasets = apply_to_collection(
             self.loaders, Iterable, getattr, "dataset", None, wrong_dtype=(Sequence, Mapping)
@@ -383,15 +383,23 @@ class CombinedLoader:
 
     @staticmethod
     def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], num_batches_processed: int) -> Dict:
+        if isinstance(dataloader, CycleIterator):
+            iterator = dataloader._loader_iter
+            dataloader = dataloader.loader
+
+        return DataLoaderDict()
+
         # find next worker if multiple workers were used
         state = _find_current_worker(iterator)
         if isinstance(dataloader.dataset, CaptureIterableDataset):
             # the sampler state dict are extracted in `CombinedLoaderIterator`
             if iterator is not None and getattr(iterator, "_sampler_state_dict", None) is not None:
-                state.update(iterator._sampler_state_dict[0])
+                breakpoint()
+                state.update(iterator.state)
         else:
             # fetch directly from fast forward sampler
-            state.update(dataloader.fast_forward_sampler.state_dict(num_batches_processed))
+            _find_fast_forward_samplers(dataloader)
+            state.update(dataloader.state_dict(num_batches_processed))
         return DataLoaderDict(state)
 
     def state_dict(self, num_batches_processed: int) -> Dict:
@@ -489,7 +497,7 @@ class CombinedLoader:
             return {}
 
         _BaseDataLoaderIter.__getstate__ = __getstate__patch__
-        iterator = CombinedLoaderIterator(self.loaders, self.prefetcher)
+        iterator = CombinedLoaderIterator(self.loaders)
         # handle fault tolerant restart logic.
         self.on_restart(iterator)
         self._iterator = iterator
@@ -521,13 +529,12 @@ class CombinedLoaderIterator:
     Custom Iterator returning data from multple loaders, and allows sampling in parallel
     """
 
-    def __init__(self, loaders: Any, prefetcher):
+    def __init__(self, loaders: Any):
         """
         Args:
             loaders: the loaders to sample from. Can be all kind of collection
         """
         self.loaders = loaders
-        self.prefetcher = prefetcher
         self._loader_iters = None
 
     @property
@@ -536,7 +543,7 @@ class CombinedLoaderIterator:
         Get the `_loader_iters` and create one if it is None.
         """
         if self._loader_iters is None:
-            self._loader_iters = self.create_loader_iters(self.loaders, self.prefetcher)
+            self._loader_iters = self.create_loader_iters(self.loaders)
 
         return self._loader_iters
 
@@ -582,8 +589,7 @@ class CombinedLoaderIterator:
 
     @staticmethod
     def create_loader_iters(
-        loaders: Union[Any, Iterator, Sequence, Mapping],
-        prefetcher,
+        loaders: Union[Any, Iterator, Sequence, Mapping]
     ) -> Union[Any, Iterator, Sequence, Mapping]:
         """
         Create and return a collection of iterators from loaders.
@@ -647,7 +653,7 @@ class AbstractFetcher(ABC):
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        if not isinstance(dataloader, DataLoader):
+        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
             raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
         self.dataloader = dataloader
         if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
@@ -670,9 +676,12 @@ class AbstractFetcher(ABC):
     def store_dataloader_iter_state(self, dataloader_iter: Iterator, dataloader_iter_state: IteratorState) -> None:
         if getattr(dataloader_iter, "cache_states", None) is None:
             dataloader_iter.cache_states = []
+
         if getattr(dataloader_iter, "state", None) is None:
             dataloader_iter.state = CollectionIteratorState()
+
         dataloader_iter.cache_states.append(dataloader_iter_state)
+
         if self.fetched >= self.prefetch_batches:
             state = dataloader_iter.cache_states.pop(0)
             dataloader_iter.state.update(state)
@@ -692,7 +701,7 @@ class AbstractFetcher(ABC):
         if not self._has_setup:
             raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
         if isinstance(self.dataloader, CombinedLoader):
-            loader_iters = self.dataloader.loader_iters
+            loader_iters = self.dataloader_iter.loader_iters
         else:
             loader_iters = [self.dataloader_iter]
         return loader_iters
@@ -726,33 +735,11 @@ class LightningFetcher(AbstractFetcher):
     This class is used to control batch fetching flow.
     """
 
-    def _consume_prefetched_batches(self) -> Generator:
-        self.done = True
-        while self.batches:
-            if not self.batches:
-                self.done = True
-            elif len(self.batches) == 1:
-                yield self.batches.pop(0), True
-                self.done = True
-            else:
-                yield self.batches.pop(0), False
-
-    def prefetching(self, prefetch_batches: int) -> Generator:
-        for _ in range(prefetch_batches):
-            try:
-                batch = next(self.dataloader_iter)
-                self.fetched += 1
-                self.add_batch(batch)
-            except StopIteration:
-                self.has_raised = True
-                yield from self._consume_prefetched_batches()
-                break
-
     def fetching_function(self) -> Generator:
         self.done = False
         self.has_raised = False
         while not self.done:
-            yield from self.prefetching(self.prefetch_batches)
+            yield from self._prefetching(self.prefetch_batches)
 
             if not self.has_raised:
                 for batch in self.dataloader_iter:
@@ -765,3 +752,25 @@ class LightningFetcher(AbstractFetcher):
                 if self.prefetch_batches > 0:
                     yield from self._consume_prefetched_batches()
                 self.done = True
+
+    def _consume_prefetched_batches(self) -> Generator:
+        self.done = True
+        while self.batches:
+            if not self.batches:
+                self.done = True
+            elif len(self.batches) == 1:
+                yield self.batches.pop(0), True
+                self.done = True
+            else:
+                yield self.batches.pop(0), False
+
+    def _prefetching(self, prefetch_batches: int) -> Generator:
+        for _ in range(prefetch_batches):
+            try:
+                batch = next(self.dataloader_iter)
+                self.fetched += 1
+                self.add_batch(batch)
+            except StopIteration:
+                self.has_raised = True
+                yield from self._consume_prefetched_batches()
+                break
