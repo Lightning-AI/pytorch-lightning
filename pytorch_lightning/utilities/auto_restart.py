@@ -15,7 +15,7 @@
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import wraps
+from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
@@ -180,9 +180,20 @@ class IteratorState:
 @dataclass
 class CollectionIteratorState:
     state: Dict[int, IteratorState] = field(default_factory=lambda: {})
+    lastest_worker_id: int = 0
 
     def update(self, new_state: IteratorState) -> None:
-        self.state[new_state.worker_id] = new_state
+        lastest_worker_id = new_state.worker_id
+        self.state[lastest_worker_id] = new_state
+        self.lastest_worker_id = lastest_worker_id
+
+    @property
+    def sampler_states(self) -> Dict:
+        return {k: self.state[k].sampler_states[k] for k in self.state.keys()}
+
+    @property
+    def dataset_states(self) -> Dict:
+        return {k: self.state[k].dataset_states[k] for k in self.state.keys()}
 
 
 class CaptureMapDataset(Dataset):
@@ -546,3 +557,12 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefet
         return wrapper
 
     iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader)
+
+
+def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
+    """
+    Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
+    """
+    dataloader.collate_fn = partial(
+        _sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+    )

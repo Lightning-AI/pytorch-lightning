@@ -100,7 +100,6 @@ def test_prefetch_iterator():
                 if iterator.done:
                     assert iterator.fetched == 3
                 else:
-                    print(prefetch_batches, iterator.fetched, (idx + prefetch_batches))
                     assert iterator.fetched == (idx + prefetch_batches)
                 generated.append(data)
             return generated

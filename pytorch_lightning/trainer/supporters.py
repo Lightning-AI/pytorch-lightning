@@ -26,6 +26,7 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
+    _add_sampler_metadata_collate,
     _cycle_to_next_worker_and_reset,
     _find_current_worker,
     CaptureIterableDataset,
@@ -649,6 +650,8 @@ class AbstractFetcher(ABC):
         if not isinstance(dataloader, DataLoader):
             raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
         self.dataloader = dataloader
+        if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
+            _add_sampler_metadata_collate(dataloader)
         self._has_setup = True
 
     def add_batch(self, batch) -> None:
@@ -699,7 +702,7 @@ class AbstractFetcher(ABC):
         def collect_state(iterator: Iterator):
             return iterator.state
 
-        return apply_to_collection(self.loader_iters, (Iterator), collect_state)
+        return apply_to_collection(self.loader_iters, Iterator, collect_state)
 
     def __iter__(self) -> Generator[Tuple[Any, bool], None, None]:
         if self.dataloader is None:
