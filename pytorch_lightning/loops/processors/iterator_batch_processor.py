@@ -51,38 +51,38 @@ class IteratorBatchProcessor:
     reporting consistency (TODO: consider removing this limitation).
 
     Args:
-        trainer_ref: a reference to the trainer
-        model_ref: a reference to the lightning module (for config validation purposes only)
+        trainer: a reference to the trainer
+        model: a reference to the lightning module (for config validation purposes only)
     """
 
-    def __init__(self, trainer_ref: "pl.Trainer", model_ref: "pl.LightningModule") -> None:
-        if is_overridden("on_train_batch_start", model_ref):
+    def __init__(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+        if is_overridden("on_train_batch_start", model):
             raise MisconfigurationException(
                 "The model hook `on_train_batch_start` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        if is_overridden("on_train_batch_end", model_ref):
+        if is_overridden("on_train_batch_end", model):
             raise MisconfigurationException(
                 "The model hook `on_train_batch_end` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        if is_overridden("tbptt_split_batch", model_ref):
+        if is_overridden("tbptt_split_batch", model):
             raise MisconfigurationException(
                 "The model hook `tbptt_split_batch` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        if model_ref.automatic_optimization:
+        if model.automatic_optimization:
             raise MisconfigurationException(
                 "`automatic_optimization` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        if trainer_ref.accumulate_grad_batches != 1:
+        if trainer.accumulate_grad_batches != 1:
             raise MisconfigurationException(
                 "`accumulate_grad_batches` can only be 1 when your "
                 "`training_step` takes `dataloader_iter` as an argument."
             )
 
-        self.trainer_ref = trainer_ref
+        self.trainer = trainer
 
         # The following field is not used by the processor since it doesn't support automatic
         # optimization and tbptt. Initializing them regardless since they are currently expected by
@@ -99,7 +99,7 @@ class IteratorBatchProcessor:
         """
         Returns the number of active optimizers.
         """
-        return len(self.trainer_ref.optimizers)
+        return len(self.trainer.optimizers)
 
     def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, torch.optim.Optimizer]]:
         """
@@ -108,7 +108,7 @@ class IteratorBatchProcessor:
         Returns:
             A list of tuples (opt_idx, optimizer) of currently active optimizers.
         """
-        return list(enumerate(self.trainer_ref.optimizers))
+        return list(enumerate(self.trainer.optimizers))
 
     def run(self, dataloader_iter: Iterator) -> Optional[AttributeDict]:
         """
@@ -119,26 +119,26 @@ class IteratorBatchProcessor:
             lambda batch_idx, batch_with_is_last: batch_with_is_last[0], dataloader_iter
         )
 
-        self.trainer_ref.logger_connector.on_batch_start()
-        response = self.trainer_ref.call_hook("on_batch_start")
+        self.trainer.logger_connector.on_batch_start()
+        response = self.trainer.call_hook("on_batch_start")
         if response == -1:
             return AttributeDict(signal=-1)
 
-        self.trainer_ref.fit_loop.epoch_loop.batch_progress.increment_started()
+        self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
         # give the PL module a result for logging
-        model_ref = self.trainer_ref.lightning_module
+        model = self.trainer.lightning_module
 
-        with self.trainer_ref.profiler.profile("model_forward"):
+        with self.trainer.profiler.profile("model_forward"):
             # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
-            with self.trainer_ref.profiler.profile("training_step"):
+            model._current_fx_name = "training_step"
+            with self.trainer.profiler.profile("training_step"):
                 step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
-                training_step_output = self.trainer_ref.accelerator.training_step(step_kwargs)
-                self.trainer_ref.accelerator.post_training_step()
+                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
+                self.trainer.accelerator.post_training_step()
 
-            training_step_output = self.trainer_ref.call_hook("training_step_end", training_step_output)
-            check_training_step_output(self.trainer_ref, training_step_output)
+            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            check_training_step_output(self.trainer.lightning_module, training_step_output)
 
             if training_step_output is None or "is_last" not in training_step_output:
                 raise MisconfigurationException(
@@ -146,12 +146,12 @@ class IteratorBatchProcessor:
                     "contain a `is_last` field to indicate whether there are more batches to be processed."
                 )
             is_last = training_step_output["is_last"]
-            training_step_output, _ = process_training_step_output(self.trainer_ref, training_step_output)
+            training_step_output, _ = process_training_step_output(self.trainer, training_step_output)
 
-            if self.trainer_ref.terminate_on_nan:
-                check_finite(self.trainer_ref, training_step_output.minimize)
+            if self.trainer.terminate_on_nan:
+                check_finite(self.trainer.lightning_module, training_step_output.minimize)
 
-        batch_outputs = [[] for _ in range(len(self.trainer_ref.optimizers))]
+        batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
         batch_outputs[0].append(copy(training_step_output))
         return AttributeDict(signal=0, training_step_output=batch_outputs, is_last=is_last)

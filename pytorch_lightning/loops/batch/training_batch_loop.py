@@ -251,7 +251,7 @@ class TrainingBatchLoop(Loop):
 
         # check if loss or model weights are nan
         if self.trainer.terminate_on_nan:
-            check_finite(self.trainer, opt_closure_result.loss)
+            check_finite(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
@@ -281,7 +281,7 @@ class TrainingBatchLoop(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            check_training_step_output(self.trainer, training_step_output)
+            check_training_step_output(self.trainer.lightning_module, training_step_output)
 
             training_step_output, self._hiddens = process_training_step_output(self.trainer, training_step_output)
             if training_step_output is None:
@@ -465,7 +465,7 @@ class TrainingBatchLoop(Loop):
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
-                        check_finite(self.trainer, result.loss)
+                        check_finite(self.trainer.lightning_module, result.loss)
 
                 else:
                     self._warning_cache.warn(
