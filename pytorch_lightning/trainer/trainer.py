@@ -862,10 +862,10 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
+        self.config_validator.verify_loop_configurations(model)
+
         if self.training:
             self._maybe_switch_to_iterator_batch_processor(model)
-
-        self.config_validator.verify_loop_configurations(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
