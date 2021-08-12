@@ -70,9 +70,6 @@ def test_ddp_cpu(accelerator):
     trainer.predict(model, dataloaders=model.predict_dataloader())
 
 
-# @pytest.mark.skip(
-#     reason="Not a critical test, skip till drone CI performance improves."
-# )
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
 def test_sharded_cpu(accelerator):
