@@ -39,6 +39,7 @@ class TrainingEpochLoop(loops.Loop):
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
         self.global_step: int = 0
+        # manually tracking which is the last batch is necessary for iterable dataset support
         self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
