@@ -375,39 +375,12 @@ def test_multiple_optimizers_callbacks(tmpdir):
     trainer.fit(model)
 
 
-def test_lr_scheduler_strict(tmpdir):
+@pytest.mark.parametrize("complete_epoch", [True, False])
+@mock.patch("torch.optim.lr_scheduler.ReduceLROnPlateau.step")
+def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     """
     Test "strict" support in lr_scheduler dict
     """
-    model = BoringModel()
-    optimizer = optim.Adam(model.parameters())
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
-    model.configure_optimizers = lambda: {
-        "optimizer": optimizer,
-        "lr_scheduler": {"scheduler": scheduler, "monitor": "giraffe", "strict": True},
-    }
-    with pytest.raises(
-        MisconfigurationException,
-        match=r"ReduceLROnPlateau conditioned on metric .* which is not available\. Available metrics are:",
-    ):
-        trainer.fit(model)
-
-    model.configure_optimizers = lambda: {
-        "optimizer": optimizer,
-        "lr_scheduler": {"scheduler": scheduler, "monitor": "giraffe", "strict": False},
-    }
-    with pytest.warns(
-        RuntimeWarning, match=r"ReduceLROnPlateau conditioned on metric .* which is not available but strict"
-    ):
-        trainer.fit(model)
-
-
-@pytest.mark.parametrize("complete_epoch", [True, False])
-@mock.patch("torch.optim.lr_scheduler.ReduceLROnPlateau.step")
-def test_lr_scheduler_strict_incomplete_epoch(step_mock, tmpdir, complete_epoch):
-    """Tests that plateau scheduler does not attempt to step in an incomplete epoch (stopped early)."""
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -429,7 +402,20 @@ def test_lr_scheduler_strict_incomplete_epoch(step_mock, tmpdir, complete_epoch)
     else:
         trainer.fit(model)
 
-    assert step_mock.call_count == 0
+    step_mock.assert_not_called()
+
+    model.configure_optimizers = lambda: {
+        "optimizer": optimizer,
+        "lr_scheduler": {"scheduler": scheduler, "monitor": "giraffe", "strict": False},
+    }
+
+    if complete_epoch:
+        with pytest.warns(
+            RuntimeWarning, match=r"ReduceLROnPlateau conditioned on metric .* which is not available but strict"
+        ):
+            trainer.fit(model)
+
+    step_mock.assert_not_called()
 
 
 def test_unknown_configure_optimizers_raises(tmpdir):
