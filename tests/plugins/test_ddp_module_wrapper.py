@@ -55,7 +55,7 @@ class BoringModelSharded(BoringModel):
 @pytest.mark.parametrize(
     ["accelerator"],
     [
-        ("ddp",),
+        ("ddp_cpu",),
         ("ddp_spawn",),
     ],
 )
@@ -66,8 +66,13 @@ def test_ddp_cpu(accelerator):
     model = BoringModelDDP()
 
     trainer.fit(model)
+    trainer.test(model, dataloaders=model.test_dataloader())
+    trainer.predict(model, dataloaders=model.predict_dataloader())
 
 
+# @pytest.mark.skip(
+#     reason="Not a critical test, skip till drone CI performance improves."
+# )
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(["accelerator"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
 def test_sharded_cpu(accelerator):
@@ -77,3 +82,7 @@ def test_sharded_cpu(accelerator):
     model = BoringModelSharded()
 
     trainer.fit(model)
+
+    trainer.test(model, dataloaders=model.test_dataloader())
+
+    trainer.predict(model, dataloaders=model.predict_dataloader())
