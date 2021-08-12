@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.supporters import (
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
-    PrefetchIterator,
+    LightningFetcher,
     TensorRunningAccum,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -80,7 +80,7 @@ def test_none_length_cycle_iterator():
 
 
 def test_prefetch_iterator():
-    """Test the PrefetchIterator with PyTorch IterableDataset."""
+    """Test the LightningFetcher with PyTorch IterableDataset."""
 
     class IterDataset(IterableDataset):
         def __iter__(self):
@@ -88,16 +88,35 @@ def test_prefetch_iterator():
             yield 2
             yield 3
 
-    dataset = IterDataset()
-    iterator = PrefetchIterator(dataset)
-    assert list(iterator) == [(1, False), (2, False), (3, True)]
+    for prefetch_batches in range(1, 5):
+        dataloader = DataLoader(IterDataset())
+        iterator = LightningFetcher(prefetch_batches=prefetch_batches)
+        iterator.setup(dataloader)
+        expected = [(1, False), (2, False), (3, True)]
+
+        def generate():
+            generated = []
+            for idx, data in enumerate(iterator, 1):
+                if iterator.done:
+                    assert iterator.fetched == 3
+                else:
+                    print(prefetch_batches, iterator.fetched, (idx + prefetch_batches))
+                    assert iterator.fetched == (idx + prefetch_batches)
+                generated.append(data)
+            return generated
+
+        assert generate() == expected
+        # validate reset works properly.
+        assert generate() == expected
+        assert iterator.fetched == 3
 
     class EmptyIterDataset(IterableDataset):
         def __iter__(self):
             return iter([])
 
-    dataset = EmptyIterDataset()
-    iterator = PrefetchIterator(dataset)
+    dataloader = DataLoader(EmptyIterDataset())
+    iterator = LightningFetcher()
+    iterator.setup(dataloader)
     assert list(iterator) == []
 
 

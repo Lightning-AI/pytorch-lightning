@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import os
+from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -28,6 +29,8 @@ from pytorch_lightning.utilities.auto_restart import (
     _cycle_to_next_worker_and_reset,
     _find_current_worker,
     CaptureIterableDataset,
+    CollectionIteratorState,
+    IteratorState,
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -591,14 +594,11 @@ class CombinedLoaderIterator:
             a collections of iterators
         """
 
-        def _create_and_patch(loader: Iterable):
-            iterator = iter(loader)
-            if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
-                patch_dataloader_iterator(loader, iterator, prefetcher)
-            return iterator
+        def _iter_fn(loader: Iterable):
+            return iter(loader)
 
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
-        return apply_to_collection(loaders, Iterable, _create_and_patch, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(loaders, Iterable, _iter_fn, wrong_dtype=(Sequence, Mapping))
 
 
 def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
@@ -623,52 +623,142 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
     return compute_func(new_data)
 
 
-class PrefetchIterator:
-    """Returns an iterator that pre-fetches and caches the next item.
+class AbstractFetcher(ABC):
 
-    The values are passed through from the given iterable with an added boolean indicating if this is the last item.
-    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
+    """
+    This class is used to control batch fetching flow.
     """
 
-    def __init__(self, iterable: Iterable):
-        super().__init__()
-        self.iterable = iterable
-        self.fetched = 0
-        self.states = []
+    @abstractmethod
+    def fetching_function(self) -> Generator:
+        pass
+
+    def __init__(
+        self,
+        prefetch_batches: int = 1,
+    ) -> None:
+        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 1):
+            raise MisconfigurationException("`prefetch_batches` should at least be 1.")
+
+        self.prefetch_batches = prefetch_batches
+        self.dataloader: Optional[Iterable]
+        self._has_setup: bool = False
+        self.reset()
+
+    def setup(self, dataloader: DataLoader, **kwargs) -> None:
+        if not isinstance(dataloader, DataLoader):
+            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        self.dataloader = dataloader
+        self._has_setup = True
+
+    def add_batch(self, batch) -> None:
+        self.batches.append(batch)
+
+    def fetch_batch(self) -> Any:
+        return self.batches.pop(0)
+
+    def _apply_patch(self):
+        def _apply_patch_fn(loader: DataLoader, iterator: Iterator):
+            if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
+                patch_dataloader_iterator(loader, iterator, self)
+
+        apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
+
+    def store_dataloader_iter_state(self, dataloader_iter: Iterator, dataloader_iter_state: IteratorState) -> None:
+        if getattr(dataloader_iter, "cache_states", None) is None:
+            dataloader_iter.cache_states = []
+        if getattr(dataloader_iter, "state", None) is None:
+            dataloader_iter.state = CollectionIteratorState()
+        dataloader_iter.cache_states.append(dataloader_iter_state)
+        if self.fetched >= self.prefetch_batches:
+            state = dataloader_iter.cache_states.pop(0)
+            dataloader_iter.state.update(state)
+
+    @property
+    def loaders(self) -> List[DataLoader]:
+        if not self._has_setup:
+            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        if isinstance(self.dataloader, CombinedLoader):
+            loaders = self.dataloader.loaders
+        else:
+            loaders = [self.dataloader]
+        return loaders
+
+    @property
+    def loader_iters(self) -> List[Iterator]:
+        if not self._has_setup:
+            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        if isinstance(self.dataloader, CombinedLoader):
+            loader_iters = self.dataloader.loader_iters
+        else:
+            loader_iters = [self.dataloader_iter]
+        return loader_iters
+
+    @property
+    def state(self) -> Any:
+        def collect_state(iterator: Iterator):
+            return iterator.state
+
+        return apply_to_collection(self.loader_iters, (Iterator), collect_state)
 
     def __iter__(self) -> Generator[Tuple[Any, bool], None, None]:
-        it = iter(self.iterable)
+        if self.dataloader is None:
+            raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
+        self.reset()
+        self.dataloader_iter = iter(self.dataloader)
+        self._apply_patch()
+        return self.fetching_function()
 
-        try:
-            # the iterator may be empty from the beginning
-            last = next(it)
-        except StopIteration:
-            return
-
-        for val in it:
-            self.fetched += 1
-            # yield last and has next
-            yield last, False
-            last = val
-
-        self.fetched += 1
-        # yield last, no longer has next
-        yield last, True
+    def reset(self) -> None:
+        self.batches: List = []
+        self.dataloader: Optional[Iterable]
+        self.fetched: int = 0
+        self.done: bool = False
+        self.has_raised: bool = False
 
 
-# def prefetch_iterator(dataloader: DataLoader) -> Generator[Tuple[Any, bool], None, None]:
-#
-#     it = iter(dataloader)
-#
-#     try:
-#         # the iterator may be empty from the beginning
-#         last = next(it)
-#     except StopIteration:
-#         return
-#
-#     for val in it:
-#         # yield last and has next
-#         yield last, False
-#         last = val
-#     # yield last, no longer has next
-#     yield last, True
+class LightningFetcher(AbstractFetcher):
+
+    """
+    This class is used to control batch fetching flow.
+    """
+
+    def _consume_prefetched_batches(self) -> Generator:
+        self.done = True
+        while self.batches:
+            if not self.batches:
+                self.done = True
+            elif len(self.batches) == 1:
+                yield self.batches.pop(0), True
+                self.done = True
+            else:
+                yield self.batches.pop(0), False
+
+    def prefetching(self, prefetch_batches: int) -> Generator:
+        for _ in range(prefetch_batches):
+            try:
+                batch = next(self.dataloader_iter)
+                self.fetched += 1
+                self.add_batch(batch)
+            except StopIteration:
+                self.has_raised = True
+                yield from self._consume_prefetched_batches()
+                break
+
+    def fetching_function(self) -> Generator:
+        self.done = False
+        self.has_raised = False
+        while not self.done:
+            yield from self.prefetching(self.prefetch_batches)
+
+            if not self.has_raised:
+                for batch in self.dataloader_iter:
+                    yield_batch = self.fetch_batch()
+                    self.add_batch(batch)
+                    self.fetched += 1
+                    # yield last and has next
+                    yield yield_batch, False
+
+                if self.prefetch_batches > 0:
+                    yield from self._consume_prefetched_batches()
+                self.done = True

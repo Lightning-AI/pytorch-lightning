@@ -172,8 +172,17 @@ def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
 class IteratorState:
     dataset_states: Dict[int, Any] = field(default_factory=dict)
     sampler_states: Dict[int, Any] = field(default_factory=dict)
-    latest_worker_id: int = 0
+    worker_id: int = 0
     num_workers: int = 0
+    num_batches_fetched: int = 0
+
+
+@dataclass
+class CollectionIteratorState:
+    state: Dict[int, IteratorState] = field(default_factory=lambda: {})
+
+    def update(self, new_state: IteratorState) -> None:
+        self.state[new_state.worker_id] = new_state
 
 
 class CaptureMapDataset(Dataset):
@@ -511,28 +520,27 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 
 def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher):
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
-    # iterator.state = IteratorState(num_workers=dataloader.num_workers)
 
     def _next_data_wrapper(fn, it, dl):
         num_batches_fetched = 0
-        state = IteratorState(num_workers=dataloader.num_workers)
 
         @wraps(fn)
         def wrapper():
             nonlocal num_batches_fetched
+            nonlocal it
             combined_batch = fn()
             batch, dataset_state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_SAMPLERS]
             num_batches_fetched += 1
 
             ff_sampler = _find_fast_forward_samplers(dl)
             sampler_state = ff_sampler.state_dict(num_batches_fetched)
-            print("ss", num_batches_fetched)
 
+            state = IteratorState(num_workers=dataloader.num_workers)
             state.sampler_states.update(sampler_state)
             state.dataset_states.update(dataset_state)
-            state.latest_worker_id = list(dataset_state.keys())[0]
-
-            prefetcher.states.append(deepcopy(state))
+            state.worker_id = list(dataset_state.keys())[0]
+            state.num_batches_fetched = num_batches_fetched
+            prefetcher.store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper

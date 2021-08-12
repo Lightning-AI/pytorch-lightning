@@ -16,9 +16,7 @@ import os
 import random
 import random as python_random
 from collections.abc import Iterable
-from copy import deepcopy
-from functools import wraps
-from typing import Optional
+from typing import List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -34,16 +32,15 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
-from pytorch_lightning.trainer.supporters import CombinedLoader, PrefetchIterator
+from pytorch_lightning.trainer.supporters import CombinedLoader, LightningFetcher
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
     CaptureIterableDataset,
     CaptureMapDataset,
+    CollectionIteratorState,
     FastForwardSampler,
-    IteratorState,
-    patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -931,35 +928,56 @@ class RandomGeneratorGetItemDataset(Dataset):
     "dataset_class",
     [
         SequentialGetItemDataset,
-        RandomGetItemDataset,
+        # RandomGetItemDataset,
         # RandomGeneratorGetItemDataset,
     ],
 )
-@pytest.mark.parametrize("num_workers", [0, 1, 2, 3])
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("batch_size", [1])
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+# @pytest.mark.parametrize("num_workers", [0])
+# @pytest.mark.parametrize("batch_size", [1])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     # set the manual seed initially
-    torch.manual_seed(1)
 
-    dataset = CaptureMapDataset(dataset_class(16, 8))
-    random_sampler = RandomSampler(dataset, generator=torch.Generator())
+    def create_dataset_sampler():
+        torch.manual_seed(1)
+        dataset = CaptureMapDataset(dataset_class(16, 8))
+        random_sampler = RandomSampler(dataset, generator=torch.Generator())
+        return dataset, random_sampler
+
+    dataset, random_sampler = create_dataset_sampler()
+    _, random_sampler_1 = create_dataset_sampler()
+
+    indices = list(random_sampler_1)
+    assert indices == [6, 15, 9, 0, 13, 10, 5, 12, 11, 2, 7, 4, 1, 14, 8, 3]
+
     ff_sampler = FastForwardSampler(random_sampler)
     ff_sampler.setup(batch_size)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     Trainer._add_sampler_metadata_collate(dataloader)
-    dataloader_iter = iter(dataloader)
-    prefetcher = PrefetchIterator(dataloader_iter)
-    patch_dataloader_iterator(dataloader, dataloader_iter, prefetcher)
-    prefetch_iter = iter(prefetcher)
+    fetcher = LightningFetcher()
+    fetcher.setup(dataloader)
+    prefetch_iter = iter(fetcher)
+
+    def fetch(fetcher, prefetch_iter, num_batches_fetched, indices):
+        batch = next(prefetch_iter)
+        assert batch[0][0] == indices[num_batches_fetched - 1]
+        # (A) capture the state after fetching 4 batches
+        state: List[CollectionIteratorState] = fetcher.state
+        assert len(state) == 1
+        assert isinstance(state[0], CollectionIteratorState)
+        assert len(state[0].state) == max(num_workers, 1)
+        assert len(fetcher.dataloader_iter.cache_states) == 1
+        if num_workers == 0:
+            assert state[0].state[0].num_batches_fetched == num_batches_fetched
+        return state
 
     # fetch 4 batches
-    _ = next(prefetch_iter)
-    _ = next(prefetch_iter)
-    _ = next(prefetch_iter)
-    _ = next(prefetch_iter)
-
-    # (A) capture the state after fetching 4 batches
-    state: IteratorState = deepcopy(prefetcher.states[-2])
+    fetch(fetcher, prefetch_iter, 1, indices)
+    fetch(fetcher, prefetch_iter, 2, indices)
+    fetch(fetcher, prefetch_iter, 3, indices)
+    state = fetch(fetcher, prefetch_iter, 4, indices)
 
     # (B) simulate 2 additional batches
     batch02, _ = next(prefetch_iter)
@@ -972,14 +990,14 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     ff_sampler.setup(batch_size)
 
     # load the state dict saved at (A)
+    breakpoint()
     ff_sampler.load_state_dict(state.sampler_states)
     dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     Trainer._add_sampler_metadata_collate(dataloader)
-    dataloader_iter = iter(dataloader)
-    prefetcher = PrefetchIterator(dataloader_iter)
-    patch_dataloader_iterator(dataloader, dataloader_iter, prefetcher)
+    prefetcher = LightningFetcher()
+    prefetcher.setup(dataloader)
     prefetch_iter = iter(prefetcher)
     # fetch 2 random batches, these should match exactly the batches seen at (B)
     batch10, _ = next(prefetch_iter)
