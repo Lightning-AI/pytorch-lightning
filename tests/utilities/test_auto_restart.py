@@ -16,8 +16,9 @@ import os
 import random
 import random as python_random
 from collections.abc import Iterable
+from contextlib import suppress
 from copy import deepcopy
-from typing import List, Optional
+from typing import Generator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -1029,20 +1030,12 @@ class TestDataset(Dataset):
 class TestIterableDataset(IterableDataset):
     def __init__(self, length, *_):
         self.len = length
-        self.counter = 0
+        self.sampler = SequentialSampler(range(self.len))
 
-    def __iter__(self) -> "TestIterableDataset":
-        self.counter = 0
-        return self
-
-    def __next__(self):
-        data = torch.tensor([self.counter]).float()
-        self.counter += 1
-
-        if self.counter >= self.len:
-            raise StopIteration
-
-        return data
+    def __iter__(self) -> Generator:
+        self.sampler_iter = iter(self.sampler)
+        for indice in self.sampler_iter:
+            yield torch.tensor([indice]).float()
 
 
 class TestModel(LightningModule):
@@ -1053,6 +1046,7 @@ class TestModel(LightningModule):
         self.fail = fail
 
     def training_step(self, batch, batch_idx):
+        print(batch_idx)
         if self.global_step == 4 and self.fail:
             print("custom exception on ", batch_idx)
             raise CustomException()
@@ -1068,12 +1062,8 @@ def _run_training(trainer_kwargs, fail=False):
     train_dataloader = [DataLoader(TestDataset(6), batch_size=2), DataLoader(TestIterableDataset(6), batch_size=2)]
     model = TestModel(fail=fail)
     trainer = Trainer(**trainer_kwargs)
-    try:
+    with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader)
-    except CustomException:
-        trainer.save_checkpoint(os.path.join(trainer.default_root_dir, "auto.ckpt"))
-    except BaseException as e:
-        raise e
     return model.seen_batches
 
 
@@ -1089,17 +1079,25 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
     )
     seed_everything(1)
     all_batches = _run_training(trainer_kwargs, fail=False)
-    print(torch.stack(all_batches))
+    map_all_batches = torch.stack([v[0] for v in all_batches])
+    iterable_all_batches = torch.stack([v[1] for v in all_batches])
+
+    assert map_all_batches.shape == torch.Size([9, 2, 1])
+    assert torch.equal(map_all_batches, iterable_all_batches)
 
     seed_everything(1)
     complete_batches = _run_training(trainer_kwargs, fail=True)
-    print(torch.stack(complete_batches))
+    map_complete_batches = torch.stack([v[0] for v in complete_batches])
+    iterable_complete_batches = torch.stack([v[1] for v in complete_batches])
+
+    assert map_complete_batches.shape == torch.Size([3 + 1, 2, 1])
+    assert torch.equal(map_complete_batches, iterable_complete_batches)
 
     print("resume")
     seed_everything(1)
-    trainer_kwargs.update(resume_from_checkpoint=os.path.join(tmpdir, "auto.ckpt"))
-    # x = torch.load(os.path.join(tmpdir, "auto.ckpt"))
-    # x[]
+    assert os.path.exists(os.path.join(tmpdir, ".pl_auto_save.ckpt"))
+    trainer_kwargs.update(resume_from_checkpoint=os.path.join(tmpdir, ".pl_auto_save.ckpt"))
+
     resumed_batches = _run_training(trainer_kwargs, fail=False)
     print(torch.stack(resumed_batches))
 

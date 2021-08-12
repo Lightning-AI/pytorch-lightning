@@ -41,11 +41,13 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
+    def __init__(
+        self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None, current_iteration: Optional[int] = 0
+    ) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
-        self._current_iteration = 0
+        self._current_iteration = current_iteration
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -170,30 +172,42 @@ def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
 
 @dataclass
 class IteratorState:
-    dataset_states: Dict[int, Any] = field(default_factory=dict)
-    sampler_states: Dict[int, Any] = field(default_factory=dict)
+    dataset_state: Dict[int, Any] = field(default_factory=dict)
+    sampler_state: Dict[int, Any] = field(default_factory=dict)
     worker_id: int = 0
     num_workers: int = 0
     num_batches_fetched: int = 0
+    name: Optional[str] = None
 
 
 @dataclass
 class CollectionIteratorState:
-    state: Dict[int, IteratorState] = field(default_factory=lambda: {})
+    state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(
+        default_factory=lambda: {}
+    )
     lastest_worker_id: int = 0
+    represent_map_dataset: Optional[bool] = None
 
-    def update(self, new_state: IteratorState) -> None:
+    def update(self, iter_name: Optional[str], new_state: IteratorState) -> None:
+        self.represent_map_dataset = iter_name is None
+        if self.represent_map_dataset:
+            state = self.state
+        else:
+            if iter_name not in self.state:
+                self.state[iter_name] = {}
+            state = self.state[iter_name]
+
         lastest_worker_id = new_state.worker_id
-        self.state[lastest_worker_id] = new_state
+        state[lastest_worker_id] = new_state
         self.lastest_worker_id = lastest_worker_id
 
     @property
     def sampler_states(self) -> Dict:
-        return {0: self.state[k].sampler_states[0] for k in self.state.keys()}
+        return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
 
     @property
     def dataset_states(self) -> Dict:
-        return {k: self.state[k].dataset_states[k] for k in self.state.keys()}
+        return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
 
 
 class CaptureMapDataset(Dataset):
@@ -259,8 +273,9 @@ class CaptureIterableDataset(IterableDataset):
     def __init__(self, dataset: IterableDataset) -> None:
         super().__init__()
         self.dataset = deepcopy(dataset)
-        self._state_dict: Optional[Dict[int, Any]] = None
         self.samplers: Optional[Dict[str, FastForwardSampler]] = None
+        self._state_dict: Optional[Dict[int, Any]] = None
+        self._has_wrapped: bool = False
 
     @property
     def sampler(self) -> Sampler:
@@ -272,7 +287,7 @@ class CaptureIterableDataset(IterableDataset):
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self._state_dict = deepcopy(state_dict)
 
-    def _wrap_generator_samplers(self) -> None:
+    def _wrap_generator_samplers(self, current_iteration: int = 0) -> None:
         self.samplers = {}
 
         # access wrapped dataset attributes
@@ -306,7 +321,9 @@ class CaptureIterableDataset(IterableDataset):
             if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a `FastForwardSampler`
-                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
+                sampler = FastForwardSampler(
+                    generator, attr_name=generator_attr_name, current_iteration=current_iteration
+                )
 
                 # if `CaptureIterableDataset` was available, the sampler should reload its own state.
                 if self._state_dict is not None:
@@ -327,11 +344,20 @@ class CaptureIterableDataset(IterableDataset):
         self.iter_data = iter(self.dataset)
 
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
-        self._wrap_generator_samplers()
+        if not isinstance(self.iter_data, Generator):
+            self._wrap_generator_samplers(current_iteration=0)
         return self
 
     def __next__(self) -> Dict[str, Any]:
-        return next(self.iter_data)
+        # fetch at least 1 batch if user are using a generator
+        data = next(self.iter_data)
+
+        if isinstance(self.iter_data, Generator) and not self._has_wrapped:
+            # fetch at least 1 batch if user are using a generator
+            # wrap any generator associated to a Sampler into a `FastForwardSampler`.
+            self._wrap_generator_samplers(current_iteration=1)
+            self._has_wrapped = True
+        return data
 
     @staticmethod
     def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
@@ -539,18 +565,36 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefet
         def wrapper():
             nonlocal num_batches_fetched
             nonlocal it
+            nonlocal dl
+
+            dataset = dl.dataset
             combined_batch = fn()
-            batch, dataset_state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_SAMPLERS]
+
+            batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_SAMPLERS]
             num_batches_fetched += 1
 
-            ff_sampler = _find_fast_forward_samplers(dl)
-            sampler_state = ff_sampler.state_dict(num_batches_fetched)
-
-            state = IteratorState(num_workers=dataloader.num_workers)
-            state.sampler_states.update(sampler_state)
-            state.dataset_states.update(dataset_state)
-            state.worker_id = list(dataset_state.keys())[0]
-            state.num_batches_fetched = num_batches_fetched
+            if isinstance(dataset, CaptureIterableDataset):
+                state = [
+                    IteratorState(
+                        num_workers=dataloader.num_workers,
+                        sampler_state=iterator_state,
+                        num_batches_fetched=num_batches_fetched,
+                        worker_id=list(iterator_state.keys())[0],
+                        name=sampler_iter_name,
+                    )
+                    for sampler_iter_name, iterator_state in state.items()
+                ]
+            elif isinstance(dataset, CaptureMapDataset):
+                ff_sampler = _find_fast_forward_samplers(dl)
+                state = [
+                    IteratorState(
+                        num_workers=dataloader.num_workers,
+                        sampler_state=ff_sampler.state_dict(num_batches_fetched),
+                        dataset_state=state,
+                        worker_id=list(state.keys())[0],
+                        num_batches_fetched=num_batches_fetched,
+                    )
+                ]
             prefetcher.store_dataloader_iter_state(it, state)
             return batch
 

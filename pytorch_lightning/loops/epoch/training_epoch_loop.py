@@ -100,13 +100,6 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
-        if self.restarting:
-            state = self._dataloader_iter_state
-            self.trainer.train_dataloader.loaders.sampler.load_state_dict(state.sampler_states)
-            self.trainer.train_dataloader.dataset.datasets.load_state_dict(
-                state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=0
-            )
-
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         """Runs a single training batch.
 
@@ -251,16 +244,6 @@ class TrainingEpochLoop(loops.Loop):
         self._results.cpu()
         self.batch_loop.teardown()
         self.val_loop.teardown()
-
-    def on_save_checkpoint(self) -> Dict:
-        state_dict = super().on_save_checkpoint()
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-            self.batch_progress.current.ready
-        )
-        return state_dict
-
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
-        self._dataloader_iter_state = state_dict.get("dataloader_iter")
 
     def _run_validation(self):
         # reload dataloaders
