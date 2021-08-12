@@ -255,14 +255,14 @@ class TrainerCallbackHookMixin(ABC):
         if callback_states is None:
             return
 
-        current_callbacks_type = {type(cb) for cb in self.callbacks}
+        current_callbacks_type = {cb.state_id for cb in self.callbacks}
         saved_callbacks_type = set(callback_states.keys())
         difference = saved_callbacks_type.difference(current_callbacks_type)
         if difference:
             rank_zero_warn(
-                "Be aware that when using ``resume_from_checkpoint``, "
-                "callbacks used to create the checkpoint need to be provided. "
-                f"Please, add the following callbacks: {list(difference)}. ",
+                "Be aware that when using ``resume_from_checkpoint``,"
+                " callbacks used to create the checkpoint need to be provided."
+                f" Please, add the following callbacks: {list(difference)}.",
                 UserWarning,
             )
 
