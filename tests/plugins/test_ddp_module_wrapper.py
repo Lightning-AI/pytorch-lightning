@@ -82,7 +82,5 @@ def test_sharded_cpu(accelerator):
     model = BoringModelSharded()
 
     trainer.fit(model)
-
     trainer.test(model, dataloaders=model.test_dataloader())
-
     trainer.predict(model, dataloaders=model.predict_dataloader())
