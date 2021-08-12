@@ -12,54 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
-import operator
 import os
 from typing import Any, Dict
-from unittest import mock
 
 import pytest
 import torch
-from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.decorators import auto_move_data
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 
 
-def test_v1_5_0_model_checkpoint_save_checkpoint():
-    model_ckpt = ModelCheckpoint()
-    trainer = Trainer()
-    trainer.save_checkpoint = lambda *_, **__: None
-    with pytest.deprecated_call(match="ModelCheckpoint.save_checkpoint` signature has changed"):
-        model_ckpt.save_checkpoint(trainer, object())
-
-
-def test_v1_5_0_model_checkpoint_save_function():
-    model_ckpt = ModelCheckpoint()
-    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
-        model_ckpt.save_function = lambda *_, **__: None
-    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
-        _ = model_ckpt.save_function
-
-
-@mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_v1_5_0_wandb_unused_sync_step(_):
-    with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
-        WandbLogger(sync_step=True)
-
-
 def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     class OldSignature(Callback):
-        def on_save_checkpoint(self, trainer, pl_module):  # noqa
+        def on_save_checkpoint(self, trainer, pl_module):
             ...
 
     model = BoringModel()
@@ -166,26 +138,6 @@ def test_v1_5_0_running_sanity_check():
         assert not trainer.running_sanity_check
 
 
-def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
-    class OldSignatureModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            assert optimizer_idx == 0
-            return super().training_step(batch, batch_idx)
-
-        def configure_optimizers(self):
-            return [optim.SGD(self.parameters(), lr=1e-2), optim.SGD(self.parameters(), lr=1e-2)]
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-
-    with pytest.deprecated_call(match="`training_step` .* `optimizer_idx` .* manual .* will be removed in v1.5"):
-        trainer.fit(model)
-
-
 def test_v1_5_0_model_checkpoint_period(tmpdir):
     with no_warning_call(DeprecationWarning):
         ModelCheckpoint(dirpath=tmpdir)
@@ -200,18 +152,6 @@ def test_v1_5_0_profiler_output_filename(tmpdir, cls):
         profiler = cls(output_filename=filepath)
     assert profiler.dirpath == tmpdir
     assert profiler.filename == "test"
-
-
-def test_v1_5_0_trainer_training_trick_mixin(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-    trainer.fit(model)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.print_nan_gradients()
-
-    dummy_loss = torch.tensor(1.0)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.detect_nan_tensors(dummy_loss)
 
 
 def test_v1_5_0_auto_move_data():
@@ -247,35 +187,10 @@ def test_v1_5_0_lightning_module_write_prediction(tmpdir):
         trainer.test(model)
 
 
-def test_v1_5_0_trainer_logging_mixin(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.metrics_to_scalars({})
-
-
 def test_v1_5_0_lighting_module_grad_norm(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         model.grad_norm(2)
-
-
-@pytest.mark.xfail(
-    condition=_compare_version("pytorch_lightning", operator.ge, "1.5"), reason="parsing of string will change in v1.5"
-)
-@mock.patch("torch.cuda.device_count", return_value=4)
-def test_v1_5_0_trainer_gpus_str_parsing(*_):
-    # TODO: when removing this, make sure docs in docs/advanced/multi-gpu.rst reflect the new
-    #   behavior regarding GPU selection. Ping @awaelchli if unsure.
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
-        Trainer(gpus="3", accelerator="ddp_spawn")
-
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
-        gpus = device_parser.parse_gpu_ids("3")
-        assert gpus == [3]
-
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='0' .* will change."):
-        gpus = device_parser.parse_gpu_ids("0")
-        assert gpus == [0]
 
 
 def test_v1_5_0_datamodule_setter():
@@ -288,11 +203,6 @@ def test_v1_5_0_datamodule_setter():
     warning_cache.clear()
     _ = model.datamodule
     assert any("The `LightningModule.datamodule`" in w for w in warning_cache)
-
-
-def test_v1_5_0_trainer_tbptt_steps(tmpdir):
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        _ = Trainer(truncated_bptt_steps=1)
 
 
 @RunIf(deepspeed=True)

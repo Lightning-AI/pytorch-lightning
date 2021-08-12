@@ -16,7 +16,6 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -138,9 +137,11 @@ class DDPFullyShardedPlugin(DDPPlugin):
         ):
             yield
 
-    def connect(self, model: Module) -> None:
-        super().connect(model)
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+    def setup_environment(self) -> None:
+        super().setup_environment()
+        model_call_configure_sharded_model_hook = getattr(
+            self.lightning_module, "call_configure_sharded_model_hook", False
+        )
         if not model_call_configure_sharded_model_hook:
             # if model has not called configure sharded model, we reset
             # the training type plugin's call_configure_sharded_model_hook

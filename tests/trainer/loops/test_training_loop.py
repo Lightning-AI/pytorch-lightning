@@ -163,3 +163,30 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)
+
+
+def test_prepare_outputs(tmpdir):
+    """
+    Test that the `extra` field of the saved `ResultCollection` objects for
+    `training_epoch_end` doesn't get accidentally modified by reference.
+    """
+
+    class TestModel(BoringModel):
+        on_train_batch_end_called = 0
+
+        def on_train_batch_end(self, outputs, *args, **kwargs):
+            epoch_outputs = self.trainer.fit_loop.epoch_loop._epoch_output
+            epoch_outputs = epoch_outputs[0]  # 1 optimizer
+            assert len(epoch_outputs) == self.on_train_batch_end_called
+            # `extra` should be empty for all `ResultCollection` objects
+            assert all(not out.extra for out in epoch_outputs)
+            self.on_train_batch_end_called += 1
+
+        def training_epoch_end(self, outputs) -> None:
+            # override so epoch outputs get stored
+            pass
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer.fit(model)
+    assert model.on_train_batch_end_called == 2

@@ -175,7 +175,7 @@ def test_swa_warns(tmpdir, caplog):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
-    assert "Swapping scheduler" in caplog.text
+    assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
 
 
 def test_swa_raises():
@@ -185,7 +185,7 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=1.5, swa_lrs=0.1)
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException, match="positive float or a list of positive float"):
+    with pytest.raises(MisconfigurationException, match="positive float, or a list of positive floats"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
 
