@@ -356,7 +356,7 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
-        self.sanitize_argv()
+        self._sanitize_argv()
         self.setup_parser(**parser_kwargs)
         self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
@@ -387,8 +387,9 @@ class LightningCLI:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def sanitize_argv(self) -> None:
-        args = [idx for idx, v in enumerate(sys.argv) if v.startswith("--")]
+    def _sanitize_argv(self) -> None:
+        """This function is used to replace space within `sys.argv` with its equal sign counter-part."""
+        args = [idx for idx, v in enumerate(sys.argv) if v.startswith("-")]
         if not args:
             return
         start_index = args[0]
@@ -458,7 +459,7 @@ class LightningCLI:
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     @contextmanager
-    def prepare_from_registry(self, registry: _Registry):
+    def _prepare_from_registry(self, registry: _Registry):
         """
         This context manager is used to simplify unique class instantiation.
         """
@@ -491,7 +492,7 @@ class LightningCLI:
             yield
 
     @contextmanager
-    def prepare_class_list_from_registry(self, pattern: str, registry: _Registry):
+    def _prepare_class_list_from_registry(self, pattern: str, registry: _Registry):
         """
         This context manager is used to simplify instantiation of a list of class.
         """
@@ -537,9 +538,9 @@ class LightningCLI:
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
         # fmt: off
-        with self.prepare_from_registry(OPTIMIZER_REGISTRY), \
-             self.prepare_from_registry(LR_SCHEDULER_REGISTRY), \
-             self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
+        with self._prepare_from_registry(OPTIMIZER_REGISTRY), \
+             self._prepare_from_registry(LR_SCHEDULER_REGISTRY), \
+             self._prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
             self.config = parser.parse_args()
         # fmt: on
 

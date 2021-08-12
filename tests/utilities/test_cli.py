@@ -890,9 +890,9 @@ def test_argv_modifiers():
 
         def parse_arguments(self, parser: LightningArgumentParser) -> None:
             # fmt: off
-            with self.prepare_from_registry(OPTIMIZER_REGISTRY), \
-                 self.prepare_from_registry(LR_SCHEDULER_REGISTRY), \
-                 self.prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
+            with self._prepare_from_registry(OPTIMIZER_REGISTRY), \
+                 self._prepare_from_registry(LR_SCHEDULER_REGISTRY), \
+                 self._prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
                 assert sys.argv == self.expected
                 self.config = parser.parse_args()
             # fmt: on
