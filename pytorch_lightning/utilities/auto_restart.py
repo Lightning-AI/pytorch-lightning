@@ -573,7 +573,7 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 
 
 def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0):
-    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
+    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset)), dataloader.dataset
 
     def _next_data_wrapper(fn, it, dl, num_batches_fetched):
         @wraps(fn)

@@ -458,28 +458,6 @@ class CombinedLoader:
             return
 
         # this happen inside the workers if any were specificied.
-        """
-        def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
-            breakpoint()
-            if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # provide the `state_dict` to the `CaptureIterableDataset`
-                # as it is responsible for passing down the state to associated `FastForwardSampler`
-                dataloader.dataset.load_state_dict(state_dict)
-            else:
-                # for `Mapping-based` dataset, the `fast_forward_sampler` was attached
-                # on the dataloader for simplicity
-                dataloader.fast_forward_sampler.load_state_dict(state_dict)
-
-            # cycle back the iterator to the failed worker if multiple workers were provided
-            iterator = _cycle_to_next_worker_and_reset(dataloader, state_dict)
-
-            if isinstance(dataloader.dataset, CaptureIterableDataset):
-                # remove keys related to iterator
-                state_dict = {k: v for k, v in state_dict.items() if k not in ("num_worker", "previous_worker")}
-                # need to re-attach the state dict into the iterator for future collection.
-                iterator._sampler_state_dict = [state_dict]
-            return iterator
-        """
 
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
             if isinstance(dataloader, CycleIterator):
@@ -521,7 +499,9 @@ class CombinedLoader:
                 iterator._loader_iter.state = CollectionIteratorState.load_state_dict(state_dict)
                 return iterator
             else:
-                raise NotImplementedError
+                raise MisconfigurationException(
+                    "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
+                )
 
         # apply the `create_loader_iters` on the collection of `DataLoader / Iterator`.
         # each `Iterator` was created from the `DataLoader`.

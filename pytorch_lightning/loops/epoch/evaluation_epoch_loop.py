@@ -90,7 +90,7 @@ class EvaluationEpochLoop(Loop):
         """
         void(dl_max_batches, num_dataloaders)
 
-        batch_idx, batch = next(dataloader_iter)
+        batch_idx, (batch, is_last) = next(dataloader_iter)
 
         if batch is None:
             raise StopIteration

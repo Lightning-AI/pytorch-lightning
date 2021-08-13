@@ -20,7 +20,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
-from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.trainer.supporters import CombinedDataset, CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
@@ -245,10 +245,12 @@ class TrainerDataLoadingMixin(ABC):
             if isinstance(dl_kwargs["dataset"], IterableDataset):
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
                 dl_kwargs["sampler"] = None
-            elif isinstance(
-                dl_kwargs["dataset"], (Dataset, CombinedDataset)
-            ):  # TODO: combined dataset check needed here???
+            elif len(dl_kwargs["dataset"]):  # TODO: combined dataset check needed here???
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
+            else:
+                raise MisconfigurationException(
+                    "This shouldn't happen, please open an issue on Lightning Github repository."
+                )
 
         if isinstance(dl_kwargs["dataset"], IterableDataset):
             del dl_kwargs["sampler"]

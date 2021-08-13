@@ -759,7 +759,7 @@ def test_combined_dataloader_state_dict_and_reload():
     assert state_dict == expected
 
     dataloader = create_dataloader()
-    apply_to_collection(dataloader, DataLoader, Trainer._add_sampler_metadata_collate)
+    apply_to_collection(dataloader, DataLoader, _add_sampler_metadata_collate)
     dataloader.load_state_dict(state_dict)
 
     iter_dataloader = iter(prefetch_iterator(dataloader))
@@ -834,7 +834,7 @@ def test_dataloader_to_state_dict_and_reload():
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """
-    this test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
+    This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled.
     """
 
     class CustomBatchSampler(BatchSampler):
@@ -861,7 +861,15 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
             }
 
         def training_step(self, batch, batch_idx):
-            pass
+            assert batch == {
+                "a": [ANY, ANY, ANY],
+                "b": ANY,
+            }
+
+        def validation_step(self, batch, batch_idx):
+            assert isinstance(batch, torch.Tensor)
+
+        validation_epoch_end = None
 
     class Check(Callback):
         def on_train_batch_start(self, trainer, *_) -> None:
@@ -869,12 +877,16 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
             if use_fault_tolerant == "1":
                 assert isinstance(loaders["a"][0].loader.dataset, CaptureIterableDataset)
                 assert isinstance(loaders["a"][1].loader.sampler, FastForwardSampler)
+                assert isinstance(loaders["a"][1].loader.dataset, CaptureMapDataset)
                 assert isinstance(loaders["a"][2].loader.batch_sampler, FastForwardSampler)
+                assert isinstance(loaders["a"][2].loader.dataset, CaptureMapDataset)
                 assert isinstance(loaders["b"].loader.dataset, CaptureIterableDataset)
             else:
                 assert isinstance(loaders["a"][0].loader.dataset, RangeIterableDataset)
                 assert isinstance(loaders["a"][1].loader.sampler, SequentialSampler)
+                assert not isinstance(loaders["a"][1].loader.dataset, CaptureMapDataset)
                 assert isinstance(loaders["a"][2].loader.batch_sampler, CustomBatchSampler)
+                assert not isinstance(loaders["a"][2].loader.dataset, CaptureMapDataset)
                 assert isinstance(loaders["b"].loader.dataset, RangeIterableDataset)
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}):
