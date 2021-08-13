@@ -14,13 +14,22 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
+from copy import deepcopy
+from functools import partial
 from typing import Any, Generator, List, Optional, Tuple
 
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.auto_restart import (
+    _add_sampler_metadata_collate,
+    CollectionIteratorState,
+    IteratorState,
+    patch_dataloader_iterator,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 
 
 class AbstractFetcher(ABC):
@@ -49,6 +58,8 @@ class AbstractFetcher(ABC):
         if not isinstance(dataloader, (DataLoader, CombinedLoader)):
             raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
         self.dataloader = dataloader
+        if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
+            _add_sampler_metadata_collate(dataloader)
         self._has_setup = True
 
     def add_batch(self, batch) -> None:
@@ -56,6 +67,42 @@ class AbstractFetcher(ABC):
 
     def fetch_batch(self) -> Any:
         return self.batches.pop(0)
+
+    def _apply_patch(self):
+        def _apply_patch_fn(loader: DataLoader, iterator: Iterator):
+            if isinstance(loader, CycleIterator):
+                loader = loader.loader
+                # cycle_iterator = iterator
+                iterator = iterator._loader_iter
+
+            if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
+                loader._lightning_fetcher = self
+                patch_dataloader_iterator(loader, iterator, self)
+
+        apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
+
+    def _store_dataloader_iter_state(
+        self, dataloader_iter: Iterator, dataloader_iter_states: List[IteratorState]
+    ) -> None:
+        if getattr(dataloader_iter, "cache_states", None) is None:
+            dataloader_iter.cache_states = {}
+
+        if getattr(dataloader_iter, "state", None) is None:
+            dataloader_iter.state = CollectionIteratorState()
+
+        for iter_state in dataloader_iter_states:
+            iter_name = iter_state.name
+            if iter_name not in dataloader_iter.cache_states:
+                dataloader_iter.cache_states[iter_name] = []
+            dataloader_iter.cache_states[iter_name].append(iter_state)
+
+        if self.fetched >= self.prefetch_batches:
+            for iter_state in dataloader_iter_states:
+                if len(dataloader_iter.state):
+                    dataloader_iter.previous_state = deepcopy(dataloader_iter.state)
+                iter_name = iter_state.name
+                state = dataloader_iter.cache_states[iter_name].pop(0)
+                dataloader_iter.state.update(iter_name, state)
 
     @property
     def loaders(self) -> List[DataLoader]:
@@ -89,6 +136,7 @@ class AbstractFetcher(ABC):
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
         self.dataloader_iter = iter(self.dataloader)
+        self._apply_patch()
         return self.fetching_function()
 
     def reset(self) -> None:
