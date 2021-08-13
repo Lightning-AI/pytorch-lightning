@@ -334,9 +334,9 @@ class ModelCheckpoint(Callback):
             rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
-        trainer.train_loop.global_step -= 1
+        trainer.fit_loop.global_step -= 1
         self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.train_loop.global_step += 1
+        trainer.fit_loop.global_step += 1
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
