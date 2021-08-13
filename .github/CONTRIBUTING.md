@@ -195,7 +195,7 @@ python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
 
-Additionally, for testing back compatibility with legacy versions of Pytorch Lightning, you also have to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
+Additionally, for testing back compatibility with legacy versions of Pytorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
 
 ```bash
 cd legacy
