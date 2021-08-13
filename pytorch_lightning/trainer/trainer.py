@@ -536,6 +536,8 @@ class Trainer(
 
         self._run(model)
 
+        self.data_connector.detach_data(model)
+
         assert self.state.stopped
         self.training = False
 
@@ -611,6 +613,8 @@ class Trainer(
 
         # run validate
         results = self._run(model)
+
+        self.data_connector.detach_data(model)
 
         assert self.state.stopped
         self.validating = False
@@ -691,6 +695,8 @@ class Trainer(
         # run test
         results = self._run(model)
 
+        self.data_connector.detach_data(model)
+
         assert self.state.stopped
         self.testing = False
 
@@ -762,6 +768,8 @@ class Trainer(
 
         results = self._run(model)
 
+        self.data_connector.detach_data(model)
+
         assert self.state.stopped
         self.predicting = False
 
@@ -823,6 +831,8 @@ class Trainer(
         )
 
         result = self.tuner._tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs)
+
+        self.data_connector.detach_data(model)
 
         assert self.state.stopped
         self.tuning = False
