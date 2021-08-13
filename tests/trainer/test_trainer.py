@@ -874,10 +874,10 @@ def test_trainer_interrupted_flag(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "precision,gpus",
-    [pytest.param(32, 0), pytest.param(16, 1, marks=RunIf(min_gpus=1, amp_native=True))],
+    "precision",
+    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
 )
-def test_gradient_clipping_by_norm(tmpdir, precision, gpus):
+def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm"""
     tutils.reset_seed()
 
@@ -886,7 +886,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision, gpus):
         default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
-        gpus=gpus,
+        gpus=int(torch.cuda.is_available()),
         precision=precision,
         gradient_clip_algorithm="norm",
         gradient_clip_val=1.0,
@@ -907,10 +907,10 @@ def test_gradient_clipping_by_norm(tmpdir, precision, gpus):
 
 
 @pytest.mark.parametrize(
-    "precision,gpus",
-    [pytest.param(32, 0), pytest.param(16, 1, marks=RunIf(min_gpus=1, amp_native=True))],
+    "precision",
+    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
 )
-def test_gradient_clipping_by_value(tmpdir, precision, gpus):
+def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value"""
     tutils.reset_seed()
 
@@ -921,7 +921,7 @@ def test_gradient_clipping_by_value(tmpdir, precision, gpus):
         max_steps=1,
         max_epochs=1,
         precision=precision,
-        gpus=gpus,
+        gpus=int(torch.cuda.is_available()),
         gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
         default_root_dir=tmpdir,
