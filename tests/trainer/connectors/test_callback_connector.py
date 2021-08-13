@@ -107,7 +107,8 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     assert "content1" in state1 and state1["content1"] == "one"
     assert "content1" in state2 and state2["content1"] == "two"
     assert (
-        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         in ckpt["callbacks"]
     )
 
