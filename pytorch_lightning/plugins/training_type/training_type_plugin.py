@@ -37,20 +37,20 @@ class TrainingTypePlugin(Plugin, ABC):
     Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
     """
 
-    def __init__(self, checkpoint_plugin: Optional[CheckpointIO] = None) -> None:
+    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
-        checkpoint_plugin = checkpoint_plugin if checkpoint_plugin is not None else TorchCheckpointIO()
-        self._checkpoint_plugin = checkpoint_plugin
+        checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
+        self._checkpoint_io = checkpoint_io
         self._call_configure_sharded_model_hook = True
 
     @property
-    def checkpoint_plugin(self) -> CheckpointIO:
-        return self._checkpoint_plugin
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
 
-    @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin: CheckpointIO) -> None:
-        self._checkpoint_plugin = plugin
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        self._checkpoint_io = plugin
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
@@ -155,7 +155,7 @@ class TrainingTypePlugin(Plugin, ABC):
         return self._results
 
     def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-        return self.checkpoint_plugin.load_checkpoint(checkpoint_path)
+        return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
@@ -292,7 +292,7 @@ class TrainingTypePlugin(Plugin, ABC):
         # dump states as a checkpoint dictionary object
         checkpoint = self.on_save(checkpoint)
         if self.should_rank_save_checkpoint:
-            return self.checkpoint_plugin.save_checkpoint(checkpoint, filepath)
+            return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:

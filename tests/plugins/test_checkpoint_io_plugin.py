@@ -52,7 +52,7 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        plugins=SingleDevicePlugin(device, checkpoint_plugin=checkpoint_plugin),
+        plugins=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=1,
     )
@@ -83,4 +83,4 @@ def test_checkpoint_plugin_called(tmpdir):
 @pytest.mark.parametrize("plugin_cls", [pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)), TPUSpawnPlugin])
 def test_no_checkpoint_io_plugin_support(plugin_cls):
     with pytest.raises(MisconfigurationException, match="currently does not support custom checkpoint plugins"):
-        plugin_cls().checkpoint_plugin = CustomCheckpointIO()
+        plugin_cls().checkpoint_io = CustomCheckpointIO()

@@ -35,9 +35,9 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        super().__init__(checkpoint_plugin)
+        super().__init__(checkpoint_io)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
 

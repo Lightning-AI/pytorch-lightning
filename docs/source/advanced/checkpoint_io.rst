@@ -42,7 +42,7 @@ that is managed by the ``TrainingTypePlugin``.
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDevicePlugin(device, checkpoint_plugin=checkpoint_plugin),
+        plugins=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)

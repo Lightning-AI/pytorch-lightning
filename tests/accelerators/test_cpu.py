@@ -202,7 +202,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
-    plugin = TestPlugin(torch.device("cpu"), checkpoint_plugin=TorchCheckpointIO())
+    plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO())
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
 
     assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch

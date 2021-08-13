@@ -68,7 +68,7 @@ class IPUPlugin(ParallelPlugin):
         autoreport_dir: Optional[str] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         training_opts: Optional["poptorch.Options"] = None,
         inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
@@ -88,7 +88,7 @@ class IPUPlugin(ParallelPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_plugin=checkpoint_plugin,
+            checkpoint_io=checkpoint_io,
         )
         if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
             raise MisconfigurationException(

@@ -82,9 +82,9 @@ class SingleTPUPlugin(SingleDevicePlugin):
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @property
-    def checkpoint_plugin(self) -> CheckpointIO:
-        return self._checkpoint_plugin
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
 
-    @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin: CheckpointIO) -> None:
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Plugin currently does not support custom checkpoint plugins.")

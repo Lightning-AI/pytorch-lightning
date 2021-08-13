@@ -26,9 +26,9 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(
         self,
         device: torch.device,
-        checkpoint_plugin: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        super().__init__(checkpoint_plugin)
+        super().__init__(checkpoint_io)
         self.device: torch.device = device
         self.global_rank = 0
         self.local_rank = 0

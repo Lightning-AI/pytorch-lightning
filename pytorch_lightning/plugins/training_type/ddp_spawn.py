@@ -64,7 +64,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
@@ -74,7 +74,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_plugin=checkpoint_plugin,
+            checkpoint_io=checkpoint_io,
         )
         if num_nodes is not None:
             rank_zero_deprecation(

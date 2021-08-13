@@ -348,9 +348,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
 
     @property
-    def checkpoint_plugin(self) -> CheckpointIO:
-        return self._checkpoint_plugin
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
 
-    @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin: CheckpointIO) -> None:
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")

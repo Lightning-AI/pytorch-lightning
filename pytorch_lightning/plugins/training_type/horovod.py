@@ -37,11 +37,9 @@ class HorovodPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_plugin: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
-        super().__init__(
-            parallel_devices=parallel_devices, cluster_environment=None, checkpoint_plugin=checkpoint_plugin
-        )
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
         rank_zero_only.rank = self.global_rank
 
     @property

@@ -41,7 +41,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_plugin: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
         """
         Plugin for Fully Sharded Data Parallel provided by FairScale.
@@ -93,7 +93,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_plugin=checkpoint_plugin,
+            checkpoint_io=checkpoint_io,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
