@@ -43,7 +43,7 @@ class TorchCheckpointIO(CheckpointIO):
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
         """
-        Loads checkpoint using torch.load, with additional handling for fsspec remote loading of files.
+        Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 
         Args:
             path: Path to checkpoint

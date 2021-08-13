@@ -18,7 +18,7 @@ that is managed by the ``TrainingTypePlugin``.
     from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin
 
 
-    class CustomCheckpointPlugin(CheckpointIO):
+    class CustomCheckpointIO(CheckpointIO):
         def save_checkpoint(
             self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
         ) -> None:
@@ -28,12 +28,12 @@ that is managed by the ``TrainingTypePlugin``.
             ...
 
 
-    checkpoint_plugin = CustomCheckpointPlugin()
+    custom_checkpoint_io = CustomCheckpointIO()
 
     # Pass into the Trainer object
     model = MyModel()
     trainer = Trainer(
-        plugins=[checkpoint_plugin],
+        plugins=[custom_checkpoint_io],
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
@@ -42,7 +42,7 @@ that is managed by the ``TrainingTypePlugin``.
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
+        plugins=SingleDevicePlugin(device, checkpoint_io=custom_checkpoint_io),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
