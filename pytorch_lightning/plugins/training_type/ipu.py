@@ -105,7 +105,9 @@ class IPUPlugin(ParallelPlugin):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
     def setup(self) -> None:
-        # FIXME: undo patching on teardown
+        # patch the dataloader creation function with the custom `poptorch.DataLoader`.
+        # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
+        # to use the simpler solution before adding abstractions to override the `DataLoader` class
         self.lightning_module.trainer.replace_sampler = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
@@ -244,6 +246,9 @@ class IPUPlugin(ParallelPlugin):
         return self.poptorch_models[RunningStage.PREDICTING](*args, **kwargs)
 
     def teardown(self) -> None:
+        # undo dataloader patching
+        # FIXME: add reference test
+        self.lightning_module.trainer.replace_sampler = pl.trainer.trainer.TrainerDataLoadingMixin.replace_sampler
         for model in self.poptorch_models.values():
             model.destroy()
 
