@@ -1862,7 +1862,13 @@ def test_ddp_terminate_when_deadlock_is_detected_oom(tmpdir):
 
     class TestModel(BoringModel):
         def train_dataloader(self):
-            return DataLoader(RandomDataset(500, 1000), num_workers=32, batch_size=32)
+            # Try to force the following error:
+            # ERROR: Unexpected bus error encountered in worker.
+            # This might be caused by insufficient shared memory (shm).
+            # RuntimeError: DataLoader worker (pid 6990) is killed by signal: Bus error.
+            # It is possible that dataloader's workers are out of shared memory.
+            # Please try to raise your shared memory limit.    
+            return DataLoader(RandomDataset(500000, 1000000), num_workers=320, batch_size=64)
 
     model = TestModel()
 
