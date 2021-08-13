@@ -732,7 +732,7 @@ class AbstractFetcher(ABC):
 
         apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
 
-    def store_dataloader_iter_state(
+    def _store_dataloader_iter_state(
         self, dataloader_iter: Iterator, dataloader_iter_states: List[IteratorState]
     ) -> None:
         if getattr(dataloader_iter, "cache_states", None) is None:
@@ -747,7 +747,7 @@ class AbstractFetcher(ABC):
                 dataloader_iter.cache_states[iter_name] = []
             dataloader_iter.cache_states[iter_name].append(iter_state)
 
-        if self.fetched >= self.prefetch_batches:
+        if self.fetched > self.prefetch_batches:
             for iter_state in dataloader_iter_states:
                 iter_name = iter_state.name
                 state = dataloader_iter.cache_states[iter_name].pop(0)

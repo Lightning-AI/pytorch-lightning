@@ -353,7 +353,6 @@ class CaptureIterableDataset(IterableDataset):
                 # replace generator with the generator from the `FastForwardSampler`.
                 dataset_dict[generator_attr_name] = iter(sampler)
 
-    def reset_on_epoch(self) -> None:
         self._state_dict = None
 
     def __iter__(self) -> Iterator:
@@ -610,7 +609,7 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefet
                         num_batches_fetched=num_batches_fetched,
                     )
                 ]
-            prefetcher.store_dataloader_iter_state(it, state)
+            prefetcher._store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper
