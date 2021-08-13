@@ -875,7 +875,7 @@ def test_trainer_interrupted_flag(tmpdir):
 
 @pytest.mark.parametrize(
     "precision,gpus",
-    [pytest.param(32, 0), pytest.param(16, 1, marks=RunIf(min_gpus=1, amp_native=True))],
+    [(32, 0), pytest.param(16, 1, marks=RunIf(min_gpus=1, amp_native=True))],
 )
 def test_gradient_clipping_by_norm(tmpdir, precision, gpus):
     """Test gradient clipping by norm"""
@@ -908,7 +908,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision, gpus):
 
 @pytest.mark.parametrize(
     "precision,gpus",
-    [pytest.param(32, 0), pytest.param(16, 1, marks=RunIf(min_gpus=1, amp_native=True))],
+    [(32, 0), pytest.param(16, 1, marks=RunIf(min_gpus=1, amp_native=True))],
 )
 def test_gradient_clipping_by_value(tmpdir, precision, gpus):
     """Test gradient clipping by value"""
