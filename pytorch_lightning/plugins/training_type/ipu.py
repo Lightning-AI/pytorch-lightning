@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -24,7 +24,6 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -105,6 +104,10 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
+    def setup(self) -> None:
+        # FIXME: undo patching on teardown
+        self.lightning_module.trainer.replace_sampler = self._convert_to_poptorch_loader
+
     def pre_dispatch(self) -> None:
         precision = self.lightning_module.trainer.precision
         model = LightningIPUModule(self.lightning_module, precision)
@@ -162,39 +165,15 @@ class IPUPlugin(ParallelPlugin):
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
-    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self._process_dataloader(dataloader, is_training=True)
-
-    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self._process_dataloader(dataloader, is_training=False)
-
-    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self._process_dataloader(dataloader, is_training=False)
-
-    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        return self._process_dataloader(dataloader, is_training=False)
-
-    def _process_dataloader(
-        self, dataloader: Union[Iterable, DataLoader], is_training: bool
-    ) -> Union[Iterable, DataLoader]:
-        if isinstance(dataloader, CombinedLoader):
-            dataloader.loaders = apply_to_collection(
-                dataloader.loaders, DataLoader, self._process_dataloader, is_training
-            )
-            return dataloader
-        if isinstance(dataloader, list):
-            dataloader = apply_to_collection(dataloader, DataLoader, self._process_dataloader, is_training)
-            return dataloader
-        if not isinstance(dataloader, poptorch.DataLoader):
-            opts = self.training_opts if is_training else self.inference_opts
-            dataloader = self._convert_to_poptorch_loader(dataloader=dataloader, opts=opts)
-        return dataloader
-
-    def _convert_to_poptorch_loader(self, dataloader: DataLoader, opts: "poptorch.Options") -> "poptorch.DataLoader":
+    def _convert_to_poptorch_loader(
+        self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
+    ) -> "poptorch.DataLoader":
         # use full path to avoid circular imports
-        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, None)
+        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
+
+        opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
         dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
         return dataloader
 

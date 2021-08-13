@@ -155,7 +155,6 @@ class TrainerDataLoadingMixin(ABC):
         dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
     ) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
-        print(batch_sampler, type(batch_sampler))
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
         if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
@@ -313,9 +312,6 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
 
-        # allow accelerator to modify dataloader
-        self.train_dataloader = self.accelerator.on_reset_train_dataloader(self.train_dataloader)
-
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float("inf")
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
@@ -420,10 +416,6 @@ class TrainerDataLoadingMixin(ABC):
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
-
-        # allow accelerator to modify dataloader
-        hook_name = f"on_reset_{mode}_dataloader"
-        dataloaders = getattr(self.accelerator, hook_name)(dataloaders)
 
         loader_num_batches = []
 
