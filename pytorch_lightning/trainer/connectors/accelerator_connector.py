@@ -302,24 +302,24 @@ class AcceleratorConnector:
 
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 training type plugin: {type(plug).__name__}"
+                        "You can only specify one training type plugin."
+                        f" Available: {type(training_type).__name__}, given: {type(plug).__name__}"
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
                     precision = plug
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 precision plugin: {type(plug).__name__}"
+                        "You can only specify one precision plugin."
+                        f" Available: {type(precision).__name__}, given: {type(plug).__name__}"
                     )
             elif isinstance(plug, CheckpointIOPlugin):
                 if checkpoint is None:
                     checkpoint = plug
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one checkpoint plugin and one training type plugin."
-                        f" Found more than 1 checkpoint plugin: {type(plug).__name__}"
+                        "You can only specify one checkpoint plugin."
+                        f" Available: {type(checkpoint).__name__}, given: {type(plug).__name__}"
                     )
             elif isinstance(plug, ClusterEnvironment):
                 if cluster_environment is None:

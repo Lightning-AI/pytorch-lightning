@@ -23,8 +23,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 class TorchCheckpointIOPlugin(CheckpointIOPlugin):
     """
-    CheckpointIOPlugin that utilizes ``torch.save``/``torch.load`` to save and load checkpoints,
-    common for most use cases.
+    CheckpointIOPlugin that utilizes :func:`torch.save` and :func:`torch.load`
+     to save and load checkpoints respectively, common for most use cases.
     """
 
     def save_checkpoint(

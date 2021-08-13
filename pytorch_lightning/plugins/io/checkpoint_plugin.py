@@ -21,14 +21,14 @@ class CheckpointIOPlugin(ABC):
     Interface to save/load checkpoints as they are saved through the ``TrainingTypePlugin``.
 
     Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIOPlugin`` but may
-    require particular handling depending the plugin.
+    require particular handling depending on the plugin.
 
     In addition, you can pass a custom ``CheckpointIOPlugin`` by extending this class and passing it
     to the Trainer, i.e ``Trainer(plugins=[MyCustomCheckpointIOPlugin()])``.
 
     .. note::
 
-        For some plugins it is not possible to use a custom checkpoint plugin as checkpointing logic is not
+        For some plugins, it is not possible to use a custom checkpoint plugin as checkpointing logic is not
         modifiable.
 
     """
