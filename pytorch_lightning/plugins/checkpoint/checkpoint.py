@@ -49,6 +49,7 @@ class CheckpointIOPlugin(ABC):
     def load_checkpoint(self, path: Union[str, Path], storage_options: Optional[Any] = None) -> Dict[str, Any]:
         """
         Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
+
         Args:
             path: Path to checkpoint
             storage_options: Optional parameters when loading the model/training states.

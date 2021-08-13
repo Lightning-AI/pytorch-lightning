@@ -21,7 +21,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import CheckpointIOPlugin, DeepSpeedPlugin, SingleDevicePlugin, TPUSpawnPlugin
-from pytorch_lightning.plugins.checkpoint.checkpoint import TLoadStorageOptions, TSaveStorageOptions
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -32,14 +31,12 @@ class CustomCheckpointPlugin(CheckpointIOPlugin):
     load_checkpoint_file_called: bool = False
 
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[TSaveStorageOptions] = None
+        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
     ) -> None:
         self.save_checkpoint_called = True
         torch.save(checkpoint, path)
 
-    def load_checkpoint(
-        self, path: Union[str, Path], storage_options: Optional[TLoadStorageOptions] = None
-    ) -> Dict[str, Any]:
+    def load_checkpoint(self, path: Union[str, Path], storage_options: Optional[Any] = None) -> Dict[str, Any]:
         self.load_checkpoint_file_called = True
         return torch.load(path)
 

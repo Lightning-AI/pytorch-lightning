@@ -127,6 +127,18 @@ Cluster Environments
     KubeflowEnvironment
     SLURMEnvironment
 
+Checkpoint IO Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.checkpoint
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIOPlugin
+    TorchCheckpointIOPlugin
 
 Profiler API
 ------------

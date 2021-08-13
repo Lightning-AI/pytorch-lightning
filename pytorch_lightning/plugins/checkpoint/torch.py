@@ -22,6 +22,11 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 
 class TorchCheckpointIOPlugin(CheckpointIOPlugin):
+    """
+    CheckpointIOPlugin that utilizes ``torch.save``/``torch.load`` to save and load checkpoints,
+    common for most use cases.
+    """
+
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
     ) -> None:
@@ -37,6 +42,16 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
             atomic_save(checkpoint, path)
 
     def load_checkpoint(
-        self, path: Union[str, Path], storage_options: Optional[Callable] = lambda storage, loc: storage
+        self, path: Union[str, Path], map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
-        return pl_load(path, map_location=storage_options)
+        """
+        Loads checkpoint using torch.load, with additional handling for fsspec remote loading of files.
+
+        Args:
+            path: Path to checkpoint
+            map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
+            locations.
+
+        Returns: The loaded checkpoint.
+        """
+        return pl_load(path, map_location=map_location)
