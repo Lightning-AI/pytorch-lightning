@@ -108,7 +108,7 @@ class EvaluationEpochLoop(Loop):
 
         self.batch_progress.increment_processed()
 
-        # hook + store predictions
+        # track loss history
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
         self.batch_progress.increment_completed()
