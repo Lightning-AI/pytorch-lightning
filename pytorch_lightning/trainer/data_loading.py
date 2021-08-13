@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -30,7 +31,11 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _sampler_metadata_collate
+from pytorch_lightning.utilities.auto_restart import (
+    _sampler_metadata_collate,
+    CaptureIterableDataset,
+    FastForwardSampler,
+)
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -114,22 +119,21 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
-        # don't do anything if it's not a dataloader
-        is_dataloader = isinstance(dataloader, DataLoader)
-        # don't manipulate iterable datasets
-        is_iterable_ds = has_iterable_dataset(dataloader)
-
         if isinstance(dataloader, CombinedLoader):
+            # apply `auto_add_sampler` on all the collection of loaders
             dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
             return dataloader
 
-        if not is_dataloader or is_iterable_ds:
+        # don't do anything if it's not a dataloader
+        if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        need_dist_sampler = self.accelerator_connector.is_distributed and not isinstance(
-            dataloader.sampler, DistributedSampler
-        )
-        if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
+        if (
+            self.accelerator_connector.replace_sampler_ddp
+            and self.accelerator_connector.is_distributed
+            and not isinstance(dataloader.sampler, DistributedSampler)
+            and not has_iterable_dataset(dataloader)
+        ):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced "
@@ -137,10 +141,12 @@ class TrainerDataLoadingMixin(ABC):
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp`=False if you want to use your custom sampler."
                 )
-
-            # replace with distributed sampler
             sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
-            dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
+        else:
+            # use current sampler
+            sampler = dataloader.sampler
+
+        dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
 
         return dataloader
 
@@ -157,6 +163,11 @@ class TrainerDataLoadingMixin(ABC):
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+            if _fault_tolerant_enabled():
+                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
+
             return {
                 "sampler": None,
                 "shuffle": False,
@@ -164,6 +175,11 @@ class TrainerDataLoadingMixin(ABC):
                 "batch_size": 1,
                 "drop_last": False,
             }
+
+        if _fault_tolerant_enabled():
+            fast_forward_sampler = sampler = FastForwardSampler(sampler)
+            fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
+
         return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
     def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
@@ -223,6 +239,15 @@ class TrainerDataLoadingMixin(ABC):
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
 
+        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+        if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
+            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+            dl_kwargs["sampler"] = None
+
+        if isinstance(dl_kwargs["dataset"], IterableDataset):
+            del dl_kwargs["sampler"]
+            del dl_kwargs["batch_sampler"]
+
         dl_cls = type(dataloader)
         dataloader = dl_cls(**dl_kwargs)
         return dataloader
@@ -237,14 +262,14 @@ class TrainerDataLoadingMixin(ABC):
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
-    def reset_train_dataloader(self, model: "pl.LightningModule") -> None:
+    def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the train dataloader and initialises required variables
         (number of batches, when to validate, etc.).
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if calling this outside of the trainer scope.
         """
-        self.train_dataloader = self.request_dataloader(model, "train")
+        self.train_dataloader = self.request_dataloader("train", model=model)
 
         if self.overfit_batches > 0:
             if hasattr(self.train_dataloader, "sampler") and isinstance(self.train_dataloader.sampler, RandomSampler):
@@ -326,20 +351,20 @@ class TrainerDataLoadingMixin(ABC):
             )
 
     def _reset_eval_dataloader(
-        self, model: "pl.LightningModule", mode: str
+        self, mode: str, model: Optional["pl.LightningModule"] = None
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
-            model: The current `LightningModule`
             mode: Either `'val'`, `'test'` or `'predict'`
+            model: The `LightningModule` if calling this outside of the trainer scope.
 
         Returns:
             Tuple (num_batches, dataloaders)
         """
         # always get the loaders first so we can count how many there are
         loader_name = f"{mode}_dataloader"
-        dataloaders = self.request_dataloader(model, mode)
+        dataloaders = self.request_dataloader(mode, model=model)
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
@@ -348,7 +373,7 @@ class TrainerDataLoadingMixin(ABC):
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
-            train_dataloader = self.request_dataloader(model, "train")
+            train_dataloader = self.request_dataloader("train", model=model)
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
@@ -425,52 +450,59 @@ class TrainerDataLoadingMixin(ABC):
 
         return loader_num_batches, dataloaders
 
-    def reset_val_dataloader(self, model: "pl.LightningModule") -> None:
+    def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if called outside of the trainer scope.
         """
-        has_loader = is_overridden("val_dataloader", model)
-        has_step = is_overridden("validation_step", model)
+        pl_module = self.lightning_module or model
+        has_loader = is_overridden("val_dataloader", pl_module)
+        has_step = is_overridden("validation_step", pl_module)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, "val")
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader("val", model=pl_module)
 
-    def reset_test_dataloader(self, model) -> None:
+    def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if called outside of the trainer scope.
         """
-        has_loader = is_overridden("test_dataloader", model)
-        has_step = is_overridden("test_step", model)
+        pl_module = self.lightning_module or model
+        has_loader = is_overridden("test_dataloader", pl_module)
+        has_step = is_overridden("test_step", pl_module)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, "test")
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader("test", model=pl_module)
 
-    def reset_predict_dataloader(self, model) -> None:
+    def reset_predict_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the predict dataloader and determines the number of batches.
 
         Args:
-            model: The current `LightningModule`
+            model: The `LightningModule` if called outside of the trainer scope.
         """
-        has_loader = is_overridden("predict_dataloader", model)
+        pl_module = self.lightning_module or model
+        has_loader = is_overridden("predict_dataloader", pl_module)
         if has_loader:
-            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, "predict")
+            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader("predict", model=pl_module)
 
-    def reset_train_val_dataloaders(self, model) -> None:
+    def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
         """
         Resets train and val dataloaders if none are attached to the trainer.
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
+
+        Args:
+            model: The `LightningModule` if called outside of the trainer scope.
         """
         if self.train_dataloader is None:
-            self.reset_train_dataloader(model)
-
+            self.reset_train_dataloader(model=model)
         if self.val_dataloaders is None:
-            self.reset_val_dataloader(model)
+            self.reset_val_dataloader(model=model)
 
-    def request_dataloader(self, model: "pl.LightningModule", stage: str) -> Union[DataLoader, List[DataLoader]]:
+    def request_dataloader(
+        self, stage: str, model: Optional["pl.LightningModule"] = None
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Handles downloading data in the GPU or TPU case.
 
         Returns:

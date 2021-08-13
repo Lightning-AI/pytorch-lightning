@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+from typing import Any, Dict, Union
 from unittest.mock import Mock
 
 import pytest
@@ -15,12 +18,11 @@ from tests.helpers.boring_model import BoringModel
 def test_unsupported_precision_plugins():
     """Test error messages are raised for unsupported precision plugins with CPU."""
     trainer = Mock()
-    model = Mock()
     accelerator = CPUAccelerator(
         training_type_plugin=SingleDevicePlugin(torch.device("cpu")), precision_plugin=MixedPrecisionPlugin()
     )
     with pytest.raises(MisconfigurationException, match=r"AMP \+ CPU is not supported"):
-        accelerator.setup(trainer=trainer, model=model)
+        accelerator.setup(trainer=trainer)
 
 
 @pytest.mark.parametrize("delay_dispatch", [True, False])
@@ -158,3 +160,57 @@ def test_plugin_on_reset_dataloader_hooks(tmpdir):
     assert plugin.val_count == 1
     assert plugin.test_count == 1
     assert plugin.predict_count == 1
+
+
+def test_restore_checkpoint_after_pre_dispatch_default():
+    """
+    Assert default for restore_checkpoint_after_pre_dispatch is False.
+    """
+    plugin = SingleDevicePlugin(torch.device("cpu"))
+    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
+    assert not accelerator.restore_checkpoint_after_pre_dispatch
+    assert not plugin.restore_checkpoint_after_pre_dispatch
+
+
+@pytest.mark.parametrize("restore_after_pre_dispatch", [True, False])
+def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatch):
+    """
+    Test to ensure that if restore_checkpoint_after_pre_dispatch is True, then we only load the state after
+    pre-dispatch is called.
+    """
+
+    class TestPlugin(SingleDevicePlugin):
+        predispatched_called = False
+
+        def pre_dispatch(self) -> None:
+            super().pre_dispatch()
+            self.predispatched_called = True
+
+        @property
+        def restore_checkpoint_after_pre_dispatch(self) -> bool:
+            return restore_after_pre_dispatch
+
+        def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+            assert self.predispatched_called == restore_after_pre_dispatch
+            return super().load_checkpoint_file(checkpoint_path)
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model)
+
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer.save_checkpoint(checkpoint_path)
+
+    plugin = TestPlugin(torch.device("cpu"))
+    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
+
+    assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+    assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
+    )
+    trainer.fit(model)
+    for func in (trainer.test, trainer.validate, trainer.predict):
+        accelerator.training_type_plugin.predispatched_called = False
+        func(model, ckpt_path=checkpoint_path)

@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager
+from copy import copy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
@@ -145,12 +146,12 @@ class TrainingBatchLoop(Loop):
 
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(result.result_collection)
+                    self.batch_outputs[opt_idx].append(copy(result.result_collection))
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(result.result_collection)
+                self.batch_outputs[0].append(copy(result.result_collection))
 
     def teardown(self) -> None:
         # release memory
@@ -356,15 +357,16 @@ class TrainingBatchLoop(Loop):
 
         loss = None
         hiddens = None
-        results.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
-            loss = training_step_output.pop("loss", None)
-            hiddens = training_step_output.pop("hiddens", None)
+            # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
+            loss = training_step_output.get("loss")
+            hiddens = training_step_output.get("hiddens")
             # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
             hiddens = apply_to_collection(hiddens, Tensor, lambda t: t.detach())
-            results.extra = training_step_output
+            # use the setter instead of `dict.update` because it calls `detach` on the tensor items
+            results.extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
 
         # handle scalar return
         elif isinstance(training_step_output, Tensor):
@@ -467,11 +469,13 @@ class TrainingBatchLoop(Loop):
         Args:
             batch: the current batch to split
         """
-        splits = [batch]
-        if self.trainer.truncated_bptt_steps is not None:
-            model_ref = self.trainer.lightning_module
-            with self.trainer.profiler.profile("tbptt_split_batch"):
-                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
+        tbptt_steps = self.trainer.lightning_module.truncated_bptt_steps
+        if tbptt_steps == 0:
+            return [batch]
+
+        model_ref = self.trainer.lightning_module
+        with self.trainer.profiler.profile("tbptt_split_batch"):
+            splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
         return splits
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
@@ -620,19 +624,7 @@ class TrainingBatchLoop(Loop):
                 )
 
         # pass hiddens if using tbptt
-        if self._truncated_bptt_enabled():
+        if self.trainer.lightning_module.truncated_bptt_steps > 0:
             step_kwargs["hiddens"] = hiddens
 
         return step_kwargs
-
-    def _truncated_bptt_enabled(self) -> bool:
-        """Temporary tbptt utilities until this flag is fully migrated to the lightning module."""
-        return self._truncated_bptt_steps() > 0
-
-    def _truncated_bptt_steps(self) -> int:
-        """Returns the number of tbptt steps"""
-        lightning_module = self.trainer.lightning_module
-        # Give precedence to the LightningModule as the Trainer flag will be removed in v1.5
-        if lightning_module.truncated_bptt_steps > 0:
-            return lightning_module.truncated_bptt_steps
-        return self.trainer.truncated_bptt_steps or 0

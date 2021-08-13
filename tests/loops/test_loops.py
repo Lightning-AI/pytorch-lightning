@@ -497,6 +497,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        "epoch_loop.val_loop._results": ANY,
+        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 

@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
 
 
 def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
@@ -57,7 +55,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
-            A list of ints or a string containing list of comma separated integers
+            A list of unique ints or a string containing list of comma separated unique integers
             indicates specific GPUs to use.
             An int 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
@@ -72,11 +70,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or isinstance(gpus, int) and gpus == 0:
-        return None
-
-    if _compare_version("pytorch_lightning", operator.ge, "1.5") and isinstance(gpus, str) and gpus.strip() == "0":
-        # TODO: in v1.5 combine this with the above if statement
+    if gpus is None or isinstance(gpus, int) and gpus == 0 or str(gpus).strip() == "0":
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -88,6 +82,10 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
+
+    # Check that gpus are unique. Duplicate gpus are not supported by the backend.
+    _check_unique(gpus)
+
     return _sanitize_gpu_ids(gpus)
 
 
@@ -130,16 +128,7 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         return -1
     if "," in s:
         return [int(x.strip()) for x in s.split(",") if len(x) > 0]
-    num_gpus = int(s.strip())
-    if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-        rank_zero_deprecation(
-            f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-            " In the current version of Lightning, this will select"
-            f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-            f" {list(range(num_gpus))} (same as gpus={s} (int))."
-        )
-        return [num_gpus]
-    return num_gpus
+    return int(s.strip())
 
 
 def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
@@ -186,6 +175,21 @@ def _get_all_available_gpus() -> List[int]:
          a list of all available gpus
     """
     return list(range(torch.cuda.device_count()))
+
+
+def _check_unique(device_ids: List[int]) -> None:
+    """
+    Checks that the device_ids are unique.
+
+    Args:
+        device_ids: list of ints corresponding to gpus indices
+
+    Raises:
+        MisconfigurationException:
+            If ``device_ids`` of GPUs aren't unique
+    """
+    if len(device_ids) != len(set(device_ids)):
+        raise MisconfigurationException("Device ID's (GPU) must be unique.")
 
 
 def _check_data_type(device_ids: Any) -> None:
