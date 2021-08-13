@@ -767,7 +767,18 @@ a single class or a tuple of classes, the value given to :code:`optimizer_init` 
 :code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
 :code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
 
+Built in schedulers & optimizers and registering your own
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 For code simplification, the LightningCLI provides properties with PyTorch's built-in `optimizers` and `schedulers` already registered.
+
+Only the optimizer or scheduler name needs to be passed along its arguments.
+
+.. code-block:: bash
+
+    $ python train.py --optimizer=Adam --optimizer.lr=0.01 --lr_scheduler=CosineAnnealingLR
+
+If you model requires multiple optimizers, the LightningCLI provides already registered optimizers and schedulers under the properties `registered_optimizers` and `registered_lr_schedulers`
 
 .. code-block::
 
@@ -775,14 +786,20 @@ For code simplification, the LightningCLI provides properties with PyTorch's bui
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
                 self.registered_optimizers,
+                nested="gen_optimizer",
                 link_to="model.optimizer_init",
             )
-            parser.add_lr_scheduler_args(
-                self.registered_lr_schedulers,
-                link_to="model.lr_scheduler_init",
+            parser.add_optimizer_args(
+                self.registered_optimizers,
+                nested="gen_discriminator",
+                link_to="model.optimizer_init",
             )
 
-However, a user can register their own optimizers or schedulers as follows.
+.. code-block:: bash
+
+    $ python train.py --gen_optimizer=Adam --optimizer.lr=0.01 -gen_discriminator=Adam --optimizer.lr=0.0001
+
+Furthermore, a user can register their own optimizers or schedulers as follows.
 
 .. code-block:: python
 
@@ -802,7 +819,6 @@ However, a user can register their own optimizers or schedulers as follows.
 
 
     cli = LightningCLI(...)
-
 
 
 Notes related to reproducibility
