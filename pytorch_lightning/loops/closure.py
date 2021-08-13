@@ -26,12 +26,8 @@ from pytorch_lightning.utilities.warnings import WarningCache
 @dataclass
 class ClosureResult:
     closure_loss: Optional[Tensor]
+    loss: Optional[Tensor]
     result_collection: Optional[ResultCollection]
-
-    @property
-    def loss(self) -> Optional[Tensor]:
-        if self.closure_loss is not None:
-            return self.closure_loss.detach().clone()
 
 
 class Closure(ABC):

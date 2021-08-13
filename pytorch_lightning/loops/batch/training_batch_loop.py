@@ -336,10 +336,13 @@ class TrainingBatchLoop(Loop):
                 return
 
         closure_loss = None
+        loss = None
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
-        return AttributeDict(closure_loss=closure_loss, result_collection=result_collection)
+            # the loss will get scaled for amp. avoid any modifications to it
+            loss = closure_loss.detach().clone()
+        return AttributeDict(closure_loss=closure_loss, loss=loss, result_collection=result_collection)
 
     def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
         """Adds the :param:`training_step_output` to the trainer's results
