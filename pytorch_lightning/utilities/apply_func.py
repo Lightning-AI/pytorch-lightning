@@ -66,13 +66,19 @@ def _is_dataclass_instance(obj):
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
-def _remove_empty_collection(coll: Collection):
-    if bool(coll):
-        return coll
+def _remove_empty_collection(collection: Collection):
+    if bool(collection):
+        return collection
     return None
 
 
 def recursively_traverse_for_dtype(obj, func, dtype):
+
+    """
+    This function is used to introspect an object attributes recursively looking a specific dtype.
+    For each instance found, a function would be applied and the result will be stored
+    in the attribute path to find back this object.
+    """
 
     if isinstance(obj, dtype):
         return func(obj)

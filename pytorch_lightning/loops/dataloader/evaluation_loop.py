@@ -104,6 +104,8 @@ class EvaluationLoop(DataLoaderLoop):
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
+
+        # prepare the fetcher
         prefecther = LightningFetcher()
         prefecther.setup(dataloader)
         dataloader_iter = enumerate(prefecther)

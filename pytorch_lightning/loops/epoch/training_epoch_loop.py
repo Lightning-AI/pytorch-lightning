@@ -62,10 +62,6 @@ class TrainingEpochLoop(loops.Loop):
         return self.batch_progress.current.ready - 1
 
     @property
-    def batch_idx_completed(self) -> int:
-        return self.batch_progress.current.completed
-
-    @property
     def done(self) -> bool:
         """Returns whether the training should be stopped.
         The criteria are that the number of steps reached the max steps,

@@ -245,7 +245,7 @@ class TrainerDataLoadingMixin(ABC):
             if isinstance(dl_kwargs["dataset"], IterableDataset):
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
                 dl_kwargs["sampler"] = None
-            elif len(dl_kwargs["dataset"]):  # TODO: combined dataset check needed here???
+            elif len(dl_kwargs["dataset"]):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
             else:
                 raise MisconfigurationException(
