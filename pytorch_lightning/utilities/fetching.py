@@ -37,10 +37,10 @@ class AbstractDataFetcher(ABC):
         self,
         prefetch_batches: int = 1,
     ) -> None:
-        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 1):
+        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 0):
             raise MisconfigurationException("`prefetch_batches` should at least be 1.")
 
-        self.prefetch_batches = prefetch_batches
+        self.prefetch_batches = prefetch_batches + 1
 
         self.dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
