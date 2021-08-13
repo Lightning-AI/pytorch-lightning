@@ -1054,16 +1054,14 @@ class TestIterableDataset(IterableDataset):
 
 
 class TestModel(LightningModule):
-    def __init__(self, fail=False):
+    def __init__(self, failure_type: int = 0):
         super().__init__()
         self.layer = torch.nn.Linear(1, 2)
         self.seen_batches = []
-        self.fail = fail
+        self.failure_type = failure_type
 
     def training_step(self, batch, batch_idx):
-        print(batch_idx)
-        if self.global_step == 4 and self.fail:
-            print("custom exception on ", batch_idx)
+        if (self.global_step == 4 and self.failure_type == 1) or (self.global_step == 7 and self.failure_type == 2):
             raise CustomException()
         self.seen_batches.append(batch)
         loss = sum(self.layer(b).sum() for b in batch)
@@ -1073,9 +1071,9 @@ class TestModel(LightningModule):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
-def _run_training(trainer_kwargs, fail=False):
+def _run_training(trainer_kwargs, failure_type: int = 0):
     train_dataloader = [DataLoader(TestDataset(6), batch_size=2), DataLoader(TestIterableDataset(6), batch_size=2)]
-    model = TestModel(fail=fail)
+    model = TestModel(failure_type=failure_type)
     trainer = Trainer(**trainer_kwargs)
     with suppress(CustomException):
         trainer.fit(model, train_dataloader=train_dataloader)
@@ -1094,7 +1092,7 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
         progress_bar_refresh_rate=0,
     )
     seed_everything(1)
-    all_batches = _run_training(trainer_kwargs, fail=False)
+    all_batches = _run_training(trainer_kwargs)
     map_all_batches = torch.stack([v[0] for v in all_batches])
     iterable_all_batches = torch.stack([v[1] for v in all_batches])
 
@@ -1106,7 +1104,7 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
     )
 
     seed_everything(1)
-    complete_batches = _run_training(trainer_kwargs, fail=True)
+    complete_batches = _run_training(trainer_kwargs, failure_type=1)
     map_complete_batches = torch.stack([v[0] for v in complete_batches])
     iterable_complete_batches = torch.stack([v[1] for v in complete_batches])
 
@@ -1129,10 +1127,34 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
     assert dataloader_state_dict[0]["state"][0]["sampler_state"][0]["current_iteration"] == 2 * 1
     assert dataloader_state_dict[1]["state"]["sampler_iter"][0]["sampler_state"][0]["current_iteration"] == 2 * 1
 
-    resumed_batches = _run_training(trainer_kwargs, fail=False)
+    resumed_batches = _run_training(trainer_kwargs, failure_type=2)
+    map_resumed_batches = torch.stack([v[0] for v in resumed_batches])
+    iterable_resumed_batches = torch.stack([v[1] for v in resumed_batches])
+
+    assert map_resumed_batches.shape == torch.Size([2, 2, 1])
+    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([2.0, 3.0, 4.0, 5.0]))
+    assert torch.equal(map_resumed_batches, iterable_resumed_batches)
+
+    seed_everything(1)
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
+    trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
+
+    checkpoint_2 = torch.load(checkpoint_path)
+    assert checkpoint != checkpoint_2
+
+    dataloader_state_dict = checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"]
+    assert dataloader_state_dict[0]["represent_map_dataset"]
+    assert not dataloader_state_dict[1]["represent_map_dataset"]
+    assert dataloader_state_dict[0]["state"][0]["num_batches_fetched"] == 1
+    assert dataloader_state_dict[1]["state"]["sampler_iter"][0]["num_batches_fetched"] == 1
+    assert dataloader_state_dict[0]["state"][0]["sampler_state"][0]["current_iteration"] == 2 * 1
+    assert dataloader_state_dict[1]["state"]["sampler_iter"][0]["sampler_state"][0]["current_iteration"] == 2 * 1
+
+    resumed_batches = _run_training(trainer_kwargs)
     map_resumed_batches = torch.stack([v[0] for v in resumed_batches])
     iterable_resumed_batches = torch.stack([v[1] for v in resumed_batches])
 
     assert map_resumed_batches.shape == torch.Size([9 - (3 + 1), 2, 1])
-    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([2.0, 3.0, 4.0, 5.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]))
+    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0]))
     assert torch.equal(map_resumed_batches, iterable_resumed_batches)
