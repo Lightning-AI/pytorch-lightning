@@ -39,7 +39,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Loop customization:
     * Added LightningClosure ([#8642](https://github.com/PyTorchLightning/pytorch-lightning/pull/8642))
-    
+
 
 ### Changed
 
