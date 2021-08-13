@@ -203,7 +203,7 @@ wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
 unzip -o checkpoints.zip
 ```
 
-Note: These checkpoints are generated to set baselines for maintaining back compatibility with legacy versions of Pytorch Lightning, Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
+Note: These checkpoints are generated to set baselines for maintaining back-compatibility with legacy versions of Pytorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
 
 You can run the full test-case in your terminal via this make script:
 
