@@ -14,8 +14,9 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -170,12 +171,29 @@ class PredictionCollection:
                 torch.save(outputs, fp)
 
 
+@dataclass
+class SharedCycleIteratorState:
+
+    mode: str = "max_size_cycle"
+    dataloaders: List[DataLoader] = field(default_factory=lambda: [])
+    has_finished: Dict[int, bool] = field(default_factory=lambda: {})
+
+    def reset(self) -> None:
+        for dataloader in self.dataloaders:
+            self.has_finished[id(dataloader)] = False
+
+    @property
+    def done(self) -> bool:
+        decision_fn = all if self.mode == "max_size_cycle" else any
+        return decision_fn(self.has_finished.values())
+
+
 class CycleIterator:
     """
     Iterator for restarting a dataloader if it runs out of samples
     """
 
-    def __init__(self, loader: Any, length: Optional[int] = None):
+    def __init__(self, loader: Any, length: Optional[int] = None, state: SharedCycleIteratorState = None):
         """
         Args:
             loader: the loader to restart for cyclic (and optionally infinite) sampling
@@ -184,6 +202,10 @@ class CycleIterator:
         """
         if length is None:
             length = float("inf")
+
+        self.state = state
+        if state:
+            state.dataloaders.append(loader)
 
         self.length = length
         self.loader = loader
@@ -205,22 +227,30 @@ class CycleIterator:
         """
         Fetches the next batch from internal dataloader and restarts
         it if necessary
-
         Returns:
             Any: the resulting batch
-
         Raises:
             StopIteration: if more then :attr:`length` batches have been returned
         """
         # Note: if self.length is `inf`, then the iterator will never stop
-        if self.counter >= self.__len__():
+        if self.counter >= self.__len__() or (self.state is not None and self.state.done):
             raise StopIteration
 
         try:
             return next(self._loader_iter)
 
         except StopIteration:
+
+            if self.state is not None:
+                # inform the shared state this loader has completed
+                self.state.has_finished[id(self.loader)] = True
+
+                # check if iteration should be stopped.
+                if self.state.done:
+                    raise StopIteration
+
             self._loader_iter = iter(self.loader)
+
             return next(self._loader_iter)
 
         finally:
@@ -468,9 +498,13 @@ class CombinedLoader:
 
         # multiple loaders
         if isinstance(self.loaders, (Sequence, Mapping)):
+            state = SharedCycleIteratorState()
+
             self.loaders = apply_to_collection(
-                self.loaders, Iterable, CycleIterator, length=length, wrong_dtype=(Sequence, Mapping)
+                self.loaders, Iterable, CycleIterator, length=length, state=state, wrong_dtype=(Sequence, Mapping)
             )
+
+            state.reset()
 
     def __iter__(self) -> Any:
         """
