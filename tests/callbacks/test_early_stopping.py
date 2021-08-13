@@ -132,7 +132,6 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
-        val_check_interval=1.0,
         num_sanity_val_steps=0,
         max_epochs=10,
         progress_bar_refresh_rate=0,
