@@ -1312,8 +1312,7 @@ class Trainer(
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer"
-                " `Trainer(gpus=1)` or script `--gpus=1`."
+                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`."
             )
 
         if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
