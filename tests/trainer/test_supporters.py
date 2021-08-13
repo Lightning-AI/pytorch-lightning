@@ -246,12 +246,17 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
 
     combined_loader = CombinedLoader(loaders, mode)
 
+    has_break = False
+
     for idx, item in enumerate(combined_loader):
         assert isinstance(item, Sequence)
         assert len(item) == 2 if use_multiple_dataloaders else 1
+        if not use_multiple_dataloaders and idx == 4:
+            has_break = True
+            break
 
     if mode == "max_size_cycle":
-        assert combined_loader.loaders[0].state.done
+        assert combined_loader.loaders[0].state.done == (not has_break)
     expected = (10 if mode == "max_size_cycle" else 5) if use_multiple_dataloaders else 5
     assert (expected - 1) == idx, (mode, use_multiple_dataloaders)
 

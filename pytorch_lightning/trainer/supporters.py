@@ -177,13 +177,19 @@ class SharedCycleIteratorState:
     mode: str = "max_size_cycle"
     dataloaders: List[DataLoader] = field(default_factory=lambda: [])
     has_finished: Dict[int, bool] = field(default_factory=lambda: {})
+    has_reset: bool = False
 
     def reset(self) -> None:
         for dataloader in self.dataloaders:
             self.has_finished[id(dataloader)] = False
+        self.has_reset = True
 
     @property
     def done(self) -> bool:
+        if not self.has_reset:
+            raise MisconfigurationException("Please, call reset once all dataloaders have been added.")
+        if len(self.dataloaders) == 1:
+            return False
         decision_fn = all if self.mode == "max_size_cycle" else any
         return decision_fn(self.has_finished.values())
 
@@ -203,9 +209,14 @@ class CycleIterator:
         if length is None:
             length = float("inf")
 
-        self.state = state
-        if state:
+        if not state:
+            state = SharedCycleIteratorState()
             state.dataloaders.append(loader)
+            state.reset()
+        else:
+            state.dataloaders.append(loader)
+
+        self.state = state
 
         self.length = length
         self.loader = loader
@@ -233,7 +244,7 @@ class CycleIterator:
             StopIteration: if more then :attr:`length` batches have been returned
         """
         # Note: if self.length is `inf`, then the iterator will never stop
-        if self.counter >= self.__len__() or (self.state is not None and self.state.done):
+        if self.counter >= self.__len__() or self.state.done:
             raise StopIteration
 
         try:
@@ -241,16 +252,14 @@ class CycleIterator:
 
         except StopIteration:
 
-            if self.state is not None:
-                # inform the shared state this loader has completed
-                self.state.has_finished[id(self.loader)] = True
+            # inform the shared state this loader has completed
+            self.state.has_finished[id(self.loader)] = True
 
-                # check if iteration should be stopped.
-                if self.state.done:
-                    raise StopIteration
+            # check if iteration should be stopped.
+            if self.state.done:
+                raise StopIteration
 
             self._loader_iter = iter(self.loader)
-
             return next(self._loader_iter)
 
         finally:
