@@ -47,7 +47,7 @@ def test_model_checkpoint_state_id():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     assert (
         early_stopping.state_id
-        == "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+        == "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': None}"
     )
 
 
@@ -157,7 +157,7 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
         mc_specific_data = chk["callbacks"][
-            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}}"
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -270,7 +270,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         assert chk["global_step"] == expected_global_step
 
         mc_specific_data = chk["callbacks"][
-            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}}"
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': False}}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -870,7 +870,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
 
-    ckpt_id = "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+    ckpt_id = "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}"
     assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
@@ -1111,7 +1111,7 @@ def test_current_score(tmpdir):
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
     ckpts = [
         ckpt["callbacks"][
-            "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+            "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
         for ckpt in ckpts
     ]
