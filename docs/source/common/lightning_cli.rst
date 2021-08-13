@@ -326,7 +326,10 @@ Here is an example:
 
     $  python ... --trainer.callbacks=EarlyStopping --trainer.callbacks.patience=5 --trainer.callbacks=LearningRateMonitor
 
-However, a user can register their own callbacks as follows.
+Register your callbacks
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Lightning provides registries for you to add your own callbacks and benefit from the command line simplification as described above:
 
 .. code-block:: python
 
