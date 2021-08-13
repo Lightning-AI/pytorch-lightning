@@ -228,6 +228,9 @@ class CollectionIteratorState:
             }
         return cls(**state_dict)
 
+    def __len__(self) -> int:
+        return len(self.state)
+
 
 class CaptureMapDataset(Dataset):
     def __init__(self, dataset: Dataset) -> None:
@@ -353,6 +356,9 @@ class CaptureIterableDataset(IterableDataset):
                 # replace generator with the generator from the `FastForwardSampler`.
                 dataset_dict[generator_attr_name] = iter(sampler)
 
+        self.reset_on_epoch()
+
+    def reset_on_epoch(self):
         self._state_dict = None
 
     def __iter__(self) -> Iterator:

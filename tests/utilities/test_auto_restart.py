@@ -34,8 +34,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
-from pytorch_lightning.trainer.supporters import CombinedLoader, LightningFetcher
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.supporters import LightningFetcher
 from pytorch_lightning.utilities.auto_restart import (
     _add_sampler_metadata_collate,
     _dataloader_load_state_dict,
@@ -668,130 +667,6 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
-def create_dataloader():
-    dataset = range(50)
-    num_workers = 2
-    batch_size = 8
-    sampler = FastForwardSampler(SequentialSampler(dataset))
-    sampler.setup(batch_size)
-
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size)
-    dataloader.fast_forward_sampler = sampler
-
-    loader_dict = {
-        "a": [DataLoader(create_iterable_dataset(3, num_workers), num_workers=num_workers, batch_size=3), dataloader],
-        "b": DataLoader(
-            create_iterable_dataset(2, num_workers=1, attr_name="custom_sampler"), num_workers=0, batch_size=2
-        ),
-    }
-    apply_to_collection(loader_dict, DataLoader, _add_sampler_metadata_collate)
-    return CombinedLoader(loader_dict)
-
-
-# Lightning will wrap the iterator within a prefect function as follow.
-def prefetch_iterator(iterable: Iterable):
-    it = iter(iterable)
-
-    try:
-        # the iterator may be empty from the beginning
-        last = next(it)
-    except StopIteration:
-        return
-
-    for val in it:
-        # yield last and has next
-        yield last, False, it
-        last = val
-    # yield last, no longer has next
-    yield last, True, it
-
-
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
-def test_combined_dataloader_state_dict_and_reload():
-    """
-    This test makes sure the CombinedLoader used in the condition of Lightning properly
-    capture its children DataLoader states.
-    """
-    dataloader = create_dataloader()
-
-    iter_dataloader = iter(prefetch_iterator(dataloader))
-    num_batches_processed = 4
-    for idx in range(1, num_batches_processed):
-        _, _, prefetched_iterator = next(iter_dataloader)
-
-        loader_iters = prefetched_iterator._loader_iters
-
-        # when dealing with IterativeDataset,
-        # the sampler state dict will be attached directly onto the iterator to simplify collection.
-
-        if idx == 1:
-            assert loader_iters["a"][0]._sampler_state_dict == [{"iter_sampler": {0: {"current_iteration": 3}}}]
-            assert loader_iters["a"][1]._sampler_state_dict == []
-            assert loader_iters["b"]._sampler_state_dict == [{"custom_sampler": {0: {"current_iteration": 2}}}]
-        elif idx == 2:
-            assert loader_iters["a"][0]._sampler_state_dict == [
-                {"iter_sampler": {0: dict(current_iteration=3), 1: dict(current_iteration=3)}}
-            ]
-            assert loader_iters["a"][1]._sampler_state_dict == []
-            assert loader_iters["b"]._sampler_state_dict == [{"custom_sampler": {0: {"current_iteration": 4}}}]
-        else:
-            assert loader_iters["a"][0]._sampler_state_dict == [
-                {"iter_sampler": {0: dict(current_iteration=6), 1: dict(current_iteration=3)}}
-            ]
-            assert loader_iters["a"][1]._sampler_state_dict == []
-            assert loader_iters["b"]._sampler_state_dict == [{"custom_sampler": {0: {"current_iteration": 6}}}]
-
-    state_dict = dataloader.state_dict(num_batches_processed=3)
-
-    expected = {
-        "b": {"num_workers": 0, "previous_worker": None, "custom_sampler": {0: dict(current_iteration=6)}},
-        "a": [
-            {
-                "num_workers": 2,
-                "previous_worker": 1,
-                "iter_sampler": {0: dict(current_iteration=6), 1: dict(current_iteration=3)},
-            },
-            {"num_workers": 0, "previous_worker": None, 0: dict(current_iteration=24)},
-        ],
-    }
-    assert state_dict == expected
-
-    dataloader = create_dataloader()
-    apply_to_collection(dataloader, DataLoader, _add_sampler_metadata_collate)
-    dataloader.load_state_dict(state_dict)
-
-    iter_dataloader = iter(prefetch_iterator(dataloader))
-    _, _, prefetched_iterator = next(iter_dataloader)
-
-    loader_iters = prefetch_iterator._loader_iters
-
-    assert loader_iters["a"][0]._sampler_state_dict == [
-        {"num_workers": 2, "iter_sampler": {0: dict(current_iteration=6), 1: dict(current_iteration=6)}}
-    ]
-    assert loader_iters["a"][1]._sampler_state_dict == []
-    assert loader_iters["b"]._sampler_state_dict == [
-        {"num_workers": 0, "custom_sampler": {0: dict(current_iteration=8)}}
-    ]
-
-    state_dict = dataloader.state_dict(num_batches_processed=4)
-
-    expected = {
-        "a": [
-            {
-                "num_workers": 2,
-                "previous_worker": 0,
-                "iter_sampler": {0: dict(current_iteration=6), 1: dict(current_iteration=6)},
-            },
-            {"num_workers": 0, "previous_worker": None, 0: dict(current_iteration=32)},
-        ],
-        "b": {"num_workers": 0, "previous_worker": None, "custom_sampler": {0: dict(current_iteration=8)}},
-    }
-
-    assert state_dict == expected
-
-
 def test_dataloader_to_state_dict_and_reload():
     """
     Note: Those utilities are used only with DataLoader wrapping a ``mapping`` based dataset.
@@ -940,7 +815,7 @@ class RandomGeneratorGetItemDataset(Dataset):
 # NOTE: we are not able to restore if we fail during the first N=num_workers batches
 # TODO: test with batch sampler
 # TODO: test with `RandomGeneratorGetItemDataset`
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 15 sec and should be skipped in Azure CI")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 50 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
@@ -951,8 +826,8 @@ class RandomGeneratorGetItemDataset(Dataset):
         # RandomGeneratorGetItemDataset,
     ],
 )
-@pytest.mark.parametrize("num_workers", [2])
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("batch_size", [1])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     # set the manual seed initially
 
@@ -1061,6 +936,7 @@ class TestModel(LightningModule):
         self.failure_type = failure_type
 
     def training_step(self, batch, batch_idx):
+        assert isinstance(batch, list)
         if (self.global_step == 4 and self.failure_type == 1) or (self.global_step == 8 and self.failure_type == 2):
             raise CustomException()
         self.seen_batches.append(batch)

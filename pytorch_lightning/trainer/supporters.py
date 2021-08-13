@@ -15,6 +15,7 @@
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from functools import partial
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
@@ -208,6 +209,8 @@ class CycleIterator:
         if length is None:
             length = float("inf")
 
+        state.dataloaders.append(loader)
+
         self.length = length
         self.loader = loader
         self._loader_iter = None
@@ -222,6 +225,7 @@ class CycleIterator:
             CycleIterator: self
         """
         self.counter = 0
+        self.state.reset()
         self._loader_iter = iter(self.loader)
         return self
 
@@ -238,25 +242,24 @@ class CycleIterator:
         """
         # Note: if self.length is `inf`, then the iterator will never stop
         if self.counter >= self.__len__() or self.state.done:
-            self.state.reset()
             raise StopIteration
 
         try:
             return next(self._loader_iter)
 
         except StopIteration:
+            # inform the shared state this loader has completed
             self.state.has_finished[id(self.loader)] = True
 
+            # check if iteration should be stopped.
             if self.state.done:
-                self.state.reset()
                 raise StopIteration
 
             self._loader_iter = iter(self.loader)
 
-            # This is used to make sure the data are properly wrapped up
-            reset_patcher_fn = getattr(self.loader, "_reset_patcher_fn", None)
-            if reset_patcher_fn:
-                reset_patcher_fn(self._loader_iter)
+            fetcher = getattr(self.loader, "_lightning_fetcher", None)
+            if fetcher:
+                patch_dataloader_iterator(self.loader, self._loader_iter, fetcher)
 
             return next(self._loader_iter)
 
@@ -413,45 +416,35 @@ class CombinedLoader:
         self._iterator = None  # assigned in __iter__
 
     @staticmethod
-    def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], num_batches_processed: int) -> Dict:
+    def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], has_completed: int) -> Dict:
         if isinstance(dataloader, CycleIterator):
             iterator = dataloader._loader_iter
-        state = getattr(iterator, "state", None)
+        state = getattr(iterator, "state", None) if has_completed else getattr(iterator, "previous_state", None)
         if state:
-            return DataLoaderDict(**asdict(iterator.state))
+            return DataLoaderDict(**asdict(state))
         return DataLoaderDict()
 
-    def state_dict(self, num_batches_processed: int) -> Dict:
+    def state_dict(self, has_completed: bool = True) -> Dict:
         """
         The state dict includes all states from wrapped dataloaders and their samplers through the
         ``CaptureIterableDataset`` and fast-forward samplers.
 
-        Args:
-            num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
-                may have already prefetched more batches by the time a state dict is requested.
         """
         if not _fault_tolerant_enabled():
             return DataLoaderDict()
 
-        state_dict_fn = partial(self._state_dict_fn, num_batches_processed=num_batches_processed)
-
-        return apply_to_collections(self.loaders, self._iterator.loader_iters, (Iterator, DataLoader), state_dict_fn)
+        return apply_to_collections(
+            self.loaders,
+            self._iterator.loader_iters,
+            (Iterator, DataLoader),
+            partial(self._state_dict_fn, has_completed=has_completed),
+        )
 
     def load_state_dict(self, state_dict):
         # store the samplers state.
         # They would be reloaded once the `CombinedIterator` as been created
         # and the workers are created.
         self._loaders_iter_state_dict = state_dict
-
-        """
-        def mock_reset_fn(self, *_, **__):
-            pass
-
-        # mock reset call, so we can rotate the `_worker_queue_idx_cycle` to failed worker
-        # and get the first batch from it
-        _MultiProcessingDataLoaderIter._original_reset = _MultiProcessingDataLoaderIter._reset
-        _MultiProcessingDataLoaderIter._reset = mock_reset_fn
-        """
 
     def on_restart(self, iterator: Iterator):
         if not self._loaders_iter_state_dict:
@@ -536,17 +529,9 @@ class CombinedLoader:
 
             # the state is used to communicate between dataloaders while fetching data.
             state = SharedCycleIteratorState(mode="max_size_cycle")
-
-            def create_cycle_iterator(loader: Iterable) -> "CycleIterator":
-                nonlocal state
-                nonlocal length
-                state.dataloaders.append(loader)
-                return CycleIterator(loader, length=length, state=state)
-
             self.loaders = apply_to_collection(
-                self.loaders, Iterable, create_cycle_iterator, wrong_dtype=(Sequence, Mapping)
+                self.loaders, Iterable, CycleIterator, state, length, wrong_dtype=(Sequence, Mapping)
             )
-
             state.reset()
 
     def __iter__(self) -> Any:
@@ -561,6 +546,7 @@ class CombinedLoader:
 
         _BaseDataLoaderIter.__getstate__ = __getstate__patch__
         iterator = CombinedLoaderIterator(self.loaders)
+
         # handle fault tolerant restart logic.
         self.on_restart(iterator)
         self._iterator = iterator
@@ -649,11 +635,8 @@ class CombinedLoaderIterator:
             a collections of iterators
         """
 
-        def _iter_fn(loader: Iterable):
-            return iter(loader)
-
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
-        return apply_to_collection(loaders, Iterable, _iter_fn, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
 
 
 def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
@@ -722,13 +705,8 @@ class AbstractFetcher(ABC):
                 iterator = iterator._loader_iter
 
             if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
-                # Other component can call iter on the dataloader and unfornatunaly we need to pro
-                def _reset_patcher_fn(iterator: Iterator, loader: DataLoader, fetcher: "AbstractFetcher"):
-                    patch_dataloader_iterator(loader, iterator, fetcher)
-
-                partial(_reset_patcher_fn, loader=loader, fetcher=self)
-                loader._reset_patcher_fn = partial(_reset_patcher_fn, loader=loader, fetcher=self)
-                loader._reset_patcher_fn(iterator)
+                loader._lightning_fetcher = self
+                patch_dataloader_iterator(loader, iterator, self)
 
         apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
 
@@ -747,8 +725,10 @@ class AbstractFetcher(ABC):
                 dataloader_iter.cache_states[iter_name] = []
             dataloader_iter.cache_states[iter_name].append(iter_state)
 
-        if self.fetched > self.prefetch_batches:
+        if self.fetched >= self.prefetch_batches:
             for iter_state in dataloader_iter_states:
+                if len(dataloader_iter.state):
+                    dataloader_iter.previous_state = deepcopy(dataloader_iter.state)
                 iter_name = iter_state.name
                 state = dataloader_iter.cache_states[iter_name].pop(0)
                 dataloader_iter.state.update(iter_name, state)
@@ -784,21 +764,6 @@ class AbstractFetcher(ABC):
         if self.dataloader is None:
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
-
-        # TODO: Should we patch this way or using `self._apply_patch`?
-        """
-        def _patch_iter(dataloader: DataLoader, fetcher: 'LightningFetcher') -> Any:
-            iterator = dataloader.__orig_iter__()
-            patch_dataloader_iterator(dataloader, iterator, fetcher)
-            return iterator
-
-        _patch_iter_fn = partial(_patch_iter, fetcher=self)
-
-        if not hasattr(DataLoader, "__orig_iter__"):
-            setattr(DataLoader, "__orig_iter__", DataLoader.__iter__)
-            setattr(DataLoader, "__iter__", lambda self: _patch_iter_fn(self))
-        """
-
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         return self.fetching_function()

@@ -76,6 +76,10 @@ class FitLoop(Loop):
         return self.epoch_loop.batch_idx_completed
 
     @property
+    def has_completed_batch(self) -> bool:
+        return self.batch_idx == self.batch_idx_completed
+
+    @property
     def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt"""
         return self.epoch_loop.batch_loop.split_idx
@@ -241,7 +245,7 @@ class FitLoop(Loop):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(self.batch_idx_completed)
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(False)
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
