@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class AbstractFetcher(ABC):
+class AbstractDataFetcher(ABC):
 
     """
     This class is used to control batch fetching flow.
@@ -35,21 +35,30 @@ class AbstractFetcher(ABC):
 
     def __init__(
         self,
-        prefetch_batches: int = 1,
+        prefetch_batches: int = 0,
     ) -> None:
-        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 1):
+        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 0):
             raise MisconfigurationException("`prefetch_batches` should at least be 1.")
 
-        self.prefetch_batches = prefetch_batches
-        self.dataloader: Optional[Iterable]
-        self._has_setup: bool = False
+        # the default behaviour is 1
+        self.prefetch_batches = prefetch_batches + 1
+
+        self.dataloader: Optional[Iterable] = None
+        self.dataloader_iter: Optional[Iterator] = None
+
+        self.batches: List
+        self.fetched: int
+        self.done: bool
+        self.has_raised: bool
+
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
         if not isinstance(dataloader, (DataLoader, CombinedLoader)):
-            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+            raise MisconfigurationException(
+                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
+            )
         self.dataloader = dataloader
-        self._has_setup = True
 
     def add_batch(self, batch) -> None:
         self.batches.append(batch)
@@ -59,18 +68,28 @@ class AbstractFetcher(ABC):
 
     @property
     def loaders(self) -> List[DataLoader]:
-        if not self._has_setup:
-            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        if not self.dataloader:
+            raise MisconfigurationException(
+                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
+            )
         if isinstance(self.dataloader, CombinedLoader):
             loaders = self.dataloader.loaders
+        elif isinstance(self.dataloader, (tuple, list)):
+            loaders = self.dataloader
         else:
             loaders = [self.dataloader]
         return loaders
 
     @property
     def loader_iters(self) -> List[Iterator]:
-        if not self._has_setup:
-            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        if not self.dataloader:
+            raise MisconfigurationException(
+                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
+            )
+
+        if not self.dataloader_iter:
+            raise MisconfigurationException("The dataloader_iter isn't available outside the __iter__ context.")
+
         if isinstance(self.dataloader, CombinedLoader):
             loader_iters = self.dataloader_iter.loader_iters
         else:
@@ -93,13 +112,12 @@ class AbstractFetcher(ABC):
 
     def reset(self) -> None:
         self.batches: List = []
-        self.dataloader: Optional[Iterable]
         self.fetched: int = 0
         self.done: bool = False
         self.has_raised: bool = False
 
 
-class LightningFetcher(AbstractFetcher):
+class LightningFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.
