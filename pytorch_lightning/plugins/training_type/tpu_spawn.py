@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerFn
@@ -348,9 +348,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
 
     @property
-    def checkpoint_plugin(self) -> CheckpointIOPlugin:
+    def checkpoint_plugin(self) -> CheckpointIO:
         return self._checkpoint_plugin
 
     @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
+    def checkpoint_plugin(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")

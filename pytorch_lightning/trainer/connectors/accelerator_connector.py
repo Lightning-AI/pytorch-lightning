@@ -26,7 +26,7 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
-    CheckpointIOPlugin,
+    CheckpointIO,
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedPlugin,
@@ -135,7 +135,7 @@ class AcceleratorConnector:
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
-        self._checkpoint_plugin: Optional[CheckpointIOPlugin] = None
+        self._checkpoint_plugin: Optional[CheckpointIO] = None
 
         plugins = plugins if plugins is not None else []
 
@@ -313,7 +313,7 @@ class AcceleratorConnector:
                         "You can only specify one precision plugin."
                         f" Available: {type(precision).__name__}, given: {type(plug).__name__}"
                     )
-            elif isinstance(plug, CheckpointIOPlugin):
+            elif isinstance(plug, CheckpointIO):
                 if checkpoint is None:
                     checkpoint = plug
                 else:

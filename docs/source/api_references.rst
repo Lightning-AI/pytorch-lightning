@@ -137,8 +137,8 @@ Checkpoint IO Plugins
     :nosignatures:
     :template: classtemplate.rst
 
-    CheckpointIOPlugin
-    TorchCheckpointIOPlugin
+    CheckpointIO
+    TorchCheckpointIO
 
 Profiler API
 ------------

@@ -1,6 +1,6 @@
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
-from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     call_training_type_register_plugins,
     TrainingTypePluginsRegistry,
@@ -31,8 +31,8 @@ from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
 __all__ = [
-    "CheckpointIOPlugin",
-    "TorchCheckpointIOPlugin",
+    "CheckpointIO",
+    "TorchCheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",

@@ -24,9 +24,9 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.plugins import TorchCheckpointIOPlugin
+from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
@@ -37,19 +37,19 @@ class TrainingTypePlugin(Plugin, ABC):
     Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
     """
 
-    def __init__(self, checkpoint_plugin: Optional[CheckpointIOPlugin] = None) -> None:
+    def __init__(self, checkpoint_plugin: Optional[CheckpointIO] = None) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
-        checkpoint_plugin = checkpoint_plugin if checkpoint_plugin is not None else TorchCheckpointIOPlugin()
+        checkpoint_plugin = checkpoint_plugin if checkpoint_plugin is not None else TorchCheckpointIO()
         self._checkpoint_plugin = checkpoint_plugin
         self._call_configure_sharded_model_hook = True
 
     @property
-    def checkpoint_plugin(self) -> CheckpointIOPlugin:
+    def checkpoint_plugin(self) -> CheckpointIO:
         return self._checkpoint_plugin
 
     @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
+    def checkpoint_plugin(self, plugin: CheckpointIO) -> None:
         self._checkpoint_plugin = plugin
 
     def connect(self, model: Module) -> None:

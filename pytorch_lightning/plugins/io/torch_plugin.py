@@ -14,16 +14,16 @@
 from typing import Any, Callable, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.types import _PATH
 
 
-class TorchCheckpointIOPlugin(CheckpointIOPlugin):
+class TorchCheckpointIO(CheckpointIO):
     """
-    CheckpointIOPlugin that utilizes :func:`torch.save` and :func:`torch.load`
+    CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load`
      to save and load checkpoints respectively, common for most use cases.
     """
 

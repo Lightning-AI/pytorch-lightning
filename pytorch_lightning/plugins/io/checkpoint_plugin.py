@@ -17,15 +17,15 @@ from typing import Any, Dict, Optional
 from pytorch_lightning.utilities.types import _PATH
 
 
-class CheckpointIOPlugin(ABC):
+class CheckpointIO(ABC):
     """
     Interface to save/load checkpoints as they are saved through the ``TrainingTypePlugin``.
 
-    Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIOPlugin`` but may
+    Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIO`` but may
     require particular handling depending on the plugin.
 
-    In addition, you can pass a custom ``CheckpointIOPlugin`` by extending this class and passing it
-    to the Trainer, i.e ``Trainer(plugins=[MyCustomCheckpointIOPlugin()])``.
+    In addition, you can pass a custom ``CheckpointIO`` by extending this class and passing it
+    to the Trainer, i.e ``Trainer(plugins=[MyCustomCheckpointIO()])``.
 
     .. note::
 

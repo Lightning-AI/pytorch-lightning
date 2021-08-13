@@ -19,14 +19,14 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import CheckpointIOPlugin, DeepSpeedPlugin, SingleDevicePlugin, TPUSpawnPlugin
+from pytorch_lightning.plugins import CheckpointIO, DeepSpeedPlugin, SingleDevicePlugin, TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PATH
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class CustomCheckpointPlugin(CheckpointIOPlugin):
+class CustomCheckpointIO(CheckpointIO):
     save_checkpoint_called: bool = False
     load_checkpoint_file_called: bool = False
 
@@ -43,8 +43,8 @@ def test_checkpoint_plugin_called(tmpdir):
     """
     Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading.
     """
-    checkpoint_plugin = CustomCheckpointPlugin()
-    checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointPlugin)
+    checkpoint_plugin = CustomCheckpointIO()
+    checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)
 
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
@@ -83,4 +83,4 @@ def test_checkpoint_plugin_called(tmpdir):
 @pytest.mark.parametrize("plugin_cls", [pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)), TPUSpawnPlugin])
 def test_no_checkpoint_io_plugin_support(plugin_cls):
     with pytest.raises(MisconfigurationException, match="currently does not support custom checkpoint plugins"):
-        plugin_cls().checkpoint_plugin = CustomCheckpointPlugin()
+        plugin_cls().checkpoint_plugin = CustomCheckpointIO()

@@ -27,7 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
@@ -825,9 +825,9 @@ class DeepSpeedPlugin(DDPPlugin):
         )
 
     @property
-    def checkpoint_plugin(self) -> CheckpointIOPlugin:
+    def checkpoint_plugin(self) -> CheckpointIO:
         return self._checkpoint_plugin
 
     @checkpoint_plugin.setter
-    def checkpoint_plugin(self, plugin: CheckpointIOPlugin) -> None:
+    def checkpoint_plugin(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
