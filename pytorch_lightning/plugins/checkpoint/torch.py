@@ -29,6 +29,8 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
         except AttributeError as err:
+            # todo (sean): is this try catch necessary still?
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/431
             key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
             checkpoint.pop(key, None)
             rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
