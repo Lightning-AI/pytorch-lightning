@@ -129,7 +129,7 @@ class LightningFetcher(AbstractFetcher):
             else:
                 yield self.batches.pop(0), False
 
-    def _prefetching(self, prefetch_batches: int) -> Generator:
+    def _prefetching(self, prefetch_batches: int) -> None:
         for _ in range(prefetch_batches):
             try:
                 batch = next(self.dataloader_iter)
