@@ -250,7 +250,13 @@ class ModelCheckpoint(Callback):
 
     @property
     def state_id(self) -> str:
-        return self._generate_state_id(monitor=self.monitor, mode=self.mode)
+        return self._generate_state_id(
+            monitor=self.monitor,
+            mode=self.mode,
+            every_n_train_steps=self._every_n_train_steps,
+            every_n_epochs=self._every_n_epochs,
+            train_time_interval=self._train_time_interval,
+        )
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """

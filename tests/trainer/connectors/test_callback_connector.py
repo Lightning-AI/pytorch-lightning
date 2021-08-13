@@ -106,7 +106,10 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     assert "content0" in state0 and state0["content0"] == 0
     assert "content1" in state1 and state1["content1"] == "one"
     assert "content1" in state2 and state2["content1"] == "two"
-    assert "ModelCheckpoint{'monitor': None, 'mode': 'min'}" in ckpt["callbacks"]
+    assert (
+        "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+        in ckpt["callbacks"]
+    )
 
 
 def test_attach_model_callbacks():

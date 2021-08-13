@@ -45,7 +45,10 @@ from tests.helpers.runif import RunIf
 
 def test_model_checkpoint_state_id():
     early_stopping = ModelCheckpoint(monitor="val_loss")
-    assert early_stopping.state_id == "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min'}"
+    assert (
+        early_stopping.state_id
+        == "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+    )
 
 
 class LogInTwoMethods(BoringModel):
@@ -153,7 +156,9 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks"][f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min'}}"]
+        mc_specific_data = chk["callbacks"][
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}}"
+        ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -264,7 +269,9 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk["callbacks"][f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min'}}"]
+        mc_specific_data = chk["callbacks"][
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}}"
+        ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -863,7 +870,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
 
-    ckpt_id = "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min'}"
+    ckpt_id = "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
     assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
@@ -1102,7 +1109,12 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"]["ModelCheckpoint{'monitor': 'foo', 'mode': 'min'}"] for ckpt in ckpts]
+    ckpts = [
+        ckpt["callbacks"][
+            "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"
+        ]
+        for ckpt in ckpts
+    ]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
 
 
