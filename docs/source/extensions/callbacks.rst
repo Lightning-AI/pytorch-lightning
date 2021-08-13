@@ -113,6 +113,8 @@ Lightning has a few built-in callbacks.
 
 ----------
 
+.. _Persisting Callback State:
+
 Persisting State
 ----------------
 

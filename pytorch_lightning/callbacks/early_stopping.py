@@ -75,6 +75,13 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
+
+    .. tip:: Saving and restoring multiple early stopping callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode*
+
+        Read more: :ref:`Persisting Callback State`
     """
     mode_dict = {"min": torch.lt, "max": torch.gt}
 

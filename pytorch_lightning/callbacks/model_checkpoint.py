@@ -194,6 +194,12 @@ class ModelCheckpoint(Callback):
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
+    .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
+
+        Read more: :ref:`Persisting Callback State`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
