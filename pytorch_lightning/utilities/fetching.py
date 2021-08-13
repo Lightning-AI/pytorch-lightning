@@ -109,7 +109,7 @@ class LightningFetcher(AbstractFetcher):
         self.done = False
         self.has_raised = False
         while not self.done:
-            yield from self._prefetching(self.prefetch_batches)
+            self._prefetching(self.prefetch_batches)
 
             if not self.has_raised:
                 for batch in self.dataloader_iter:
@@ -119,18 +119,13 @@ class LightningFetcher(AbstractFetcher):
                     # yield last and has next
                     yield yield_batch, False
 
-                if self.prefetch_batches > 0:
-                    yield from self._consume_prefetched_batches()
-                self.done = True
+            yield from self._consume_prefetched_batches()
 
     def _consume_prefetched_batches(self) -> Generator:
         self.done = True
         while self.batches:
-            if not self.batches:
-                self.done = True
-            elif len(self.batches) == 1:
+            if len(self.batches) == 1:
                 yield self.batches.pop(0), True
-                self.done = True
             else:
                 yield self.batches.pop(0), False
 
@@ -142,5 +137,4 @@ class LightningFetcher(AbstractFetcher):
                 self.add_batch(batch)
             except StopIteration:
                 self.has_raised = True
-                yield from self._consume_prefetched_batches()
                 break
