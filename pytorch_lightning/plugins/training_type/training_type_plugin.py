@@ -41,7 +41,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_plugin = checkpoint_plugin if checkpoint_plugin is not None else TorchCheckpointIOPlugin()
-        self._checkpoint_plugin: CheckpointIOPlugin = checkpoint_plugin
+        self._checkpoint_plugin = checkpoint_plugin
         self._call_configure_sharded_model_hook = True
 
     @property
