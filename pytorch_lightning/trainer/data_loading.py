@@ -111,7 +111,7 @@ class TrainerDataLoadingMixin(ABC):
                 f"The dataloader, {name}, does not have many workers which may be a bottleneck."
                 " Consider increasing the value of the `num_workers` argument`"
                 f" (try {num_cpus} which is the number of cpus on this machine)"
-                f" in the `DataLoader` init to improve performance."
+                " in the `DataLoader` init to improve performance."
             )
 
     def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
@@ -347,7 +347,7 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-                f" you want to see logs for the training epoch."
+                " you want to see logs for the training epoch."
             )
 
     def _reset_eval_dataloader(

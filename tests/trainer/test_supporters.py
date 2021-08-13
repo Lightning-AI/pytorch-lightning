@@ -20,7 +20,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import Sampler
+from torch.utils.data.sampler import Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
@@ -59,6 +59,7 @@ def test_tensor_running_accum_reset():
 
 def test_cycle_iterator():
     """Test the cycling function of `CycleIterator`"""
+
     iterator = CycleIterator(range(100), 1000)
     assert len(iterator) == 1000
     for idx, item in enumerate(iterator):
@@ -214,6 +215,83 @@ def test_combined_loader_sequence_min_size():
         assert len(item) == 2
 
     assert idx == len(combined_loader) - 1
+
+
+class TestIterableDataset(IterableDataset):
+    def __init__(self, size: int = 10):
+        self.size = size
+
+    def __iter__(self):
+        self.sampler = SequentialSampler(range(self.size))
+        self.sampler_iter = iter(self.sampler)
+        return self
+
+    def __next__(self):
+        return next(self.sampler_iter)
+
+
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle"])
+@pytest.mark.parametrize("use_multiple_dataloaders", [False, True])
+def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloaders):
+    """Test `CombinedLoader` of mode 'min_size' given sequence loaders"""
+    if use_multiple_dataloaders:
+        loaders = [
+            torch.utils.data.DataLoader(TestIterableDataset(10), batch_size=2),
+            torch.utils.data.DataLoader(TestIterableDataset(20), batch_size=2),
+        ]
+    else:
+        loaders = [
+            torch.utils.data.DataLoader(TestIterableDataset(10), batch_size=2),
+        ]
+
+    combined_loader = CombinedLoader(loaders, mode)
+
+    has_break = False
+
+    for idx, item in enumerate(combined_loader):
+        assert isinstance(item, Sequence)
+        assert len(item) == 2 if use_multiple_dataloaders else 1
+        if not use_multiple_dataloaders and idx == 4:
+            has_break = True
+            break
+
+    if mode == "max_size_cycle":
+        assert combined_loader.loaders[0].state.done == (not has_break)
+    expected = (10 if mode == "max_size_cycle" else 5) if use_multiple_dataloaders else 5
+    assert (expected - 1) == idx, (mode, use_multiple_dataloaders)
+
+
+@pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
+def test_combined_loader_sequence_with_map_and_iterable(lengths):
+    class MyIterableDataset(IterableDataset):
+        def __init__(self, size: int = 10):
+            self.size = size
+
+        def __iter__(self):
+            self.sampler = SequentialSampler(range(self.size))
+            self.iter_sampler = iter(self.sampler)
+            return self
+
+        def __next__(self):
+            return next(self.iter_sampler)
+
+    class MyMapDataset(Dataset):
+        def __init__(self, size: int = 10):
+            self.size = size
+
+        def __getitem__(self, index):
+            return index
+
+        def __len__(self):
+            return self.size
+
+    x, y = lengths
+    loaders = [DataLoader(MyIterableDataset(x)), DataLoader(MyMapDataset(y))]
+    dataloader = CombinedLoader(loaders, mode="max_size_cycle")
+    counter = 0
+    for _ in dataloader:
+        counter += 1
+    assert counter == max(x, y)
 
 
 def test_combined_loader_sequence_max_size_cycle():

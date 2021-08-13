@@ -142,8 +142,7 @@ class CometLogger(LightningLoggerBase):
     ):
         if comet_ml is None:
             raise ImportError(
-                "You want to use `comet_ml` logger which is not installed yet,"
-                " install it with `pip install comet-ml`."
+                "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
             )
         super().__init__()
         self._experiment = None
