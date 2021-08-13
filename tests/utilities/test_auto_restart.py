@@ -1061,7 +1061,7 @@ class TestModel(LightningModule):
         self.failure_type = failure_type
 
     def training_step(self, batch, batch_idx):
-        if (self.global_step == 4 and self.failure_type == 1) or (self.global_step == 7 and self.failure_type == 2):
+        if (self.global_step == 4 and self.failure_type == 1) or (self.global_step == 8 and self.failure_type == 2):
             raise CustomException()
         self.seen_batches.append(batch)
         loss = sum(self.layer(b).sum() for b in batch)
@@ -1080,7 +1080,6 @@ def _run_training(trainer_kwargs, failure_type: int = 0):
     return model.seen_batches
 
 
-# TODO: Implement a double failure.
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 70 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -1131,8 +1130,8 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
     map_resumed_batches = torch.stack([v[0] for v in resumed_batches])
     iterable_resumed_batches = torch.stack([v[1] for v in resumed_batches])
 
-    assert map_resumed_batches.shape == torch.Size([2, 2, 1])
-    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([2.0, 3.0, 4.0, 5.0]))
+    assert map_resumed_batches.shape == torch.Size([3, 2, 1])
+    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([2.0, 3.0, 4.0, 5.0, 0.0, 1.0]))
     assert torch.equal(map_resumed_batches, iterable_resumed_batches)
 
     seed_everything(1)
@@ -1143,7 +1142,7 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
     checkpoint_2 = torch.load(checkpoint_path)
     assert checkpoint != checkpoint_2
 
-    dataloader_state_dict = checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"]
+    dataloader_state_dict = checkpoint_2["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"]
     assert dataloader_state_dict[0]["represent_map_dataset"]
     assert not dataloader_state_dict[1]["represent_map_dataset"]
     assert dataloader_state_dict[0]["state"][0]["num_batches_fetched"] == 1
@@ -1155,6 +1154,6 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
     map_resumed_batches = torch.stack([v[0] for v in resumed_batches])
     iterable_resumed_batches = torch.stack([v[1] for v in resumed_batches])
 
-    assert map_resumed_batches.shape == torch.Size([9 - (3 + 1), 2, 1])
-    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0]))
+    assert map_resumed_batches.shape == torch.Size([2, 2, 1])
+    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([2.0, 3.0, 4.0, 5.0]))
     assert torch.equal(map_resumed_batches, iterable_resumed_batches)
