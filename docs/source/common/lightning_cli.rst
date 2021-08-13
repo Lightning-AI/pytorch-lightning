@@ -820,6 +820,10 @@ Furthermore, a user can register their own optimizers or schedulers as follows.
 
     cli = LightningCLI(...)
 
+.. code-block:: bash
+
+    $ python train.py --optimizer=CustomAdam --optimizer.lr=0.01 --lr_scheduler=CustomCosineAnnealingLR
+
 
 Notes related to reproducibility
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
