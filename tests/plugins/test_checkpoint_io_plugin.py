@@ -1,18 +1,26 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
+from unittest.mock import MagicMock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import (
-    CheckpointIOPlugin,
-    DeepSpeedPlugin,
-    SingleDevicePlugin,
-    TorchCheckpointIOPlugin,
-    TPUSpawnPlugin,
-)
+from pytorch_lightning.plugins import CheckpointIOPlugin, DeepSpeedPlugin, SingleDevicePlugin, TPUSpawnPlugin
 from pytorch_lightning.plugins.checkpoint.checkpoint import TLoadStorageOptions, TSaveStorageOptions
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -36,28 +44,12 @@ class CustomCheckpointPlugin(CheckpointIOPlugin):
         return torch.load(path)
 
 
-class CustomTorchCheckpointIOPlugin(TorchCheckpointIOPlugin):
-    save_checkpoint_called: bool = False
-    load_checkpoint_file_called: bool = False
-
-    def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
-    ) -> None:
-        self.save_checkpoint_called = True
-        super().save_checkpoint(checkpoint, path)
-
-    def load_checkpoint(
-        self, path: Union[str, Path], map_location: Optional[Callable] = lambda storage, loc: storage
-    ) -> Dict[str, Any]:
-        self.load_checkpoint_file_called = True
-        return super().load_checkpoint(path)
-
-
-@pytest.mark.parametrize("checkpoint_plugin", [CustomTorchCheckpointIOPlugin(), CustomCheckpointPlugin()])
-def test_checkpoint_plugin_called(tmpdir, checkpoint_plugin):
+def test_checkpoint_plugin_called(tmpdir):
     """
     Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading.
     """
+    checkpoint_plugin = CustomCheckpointPlugin()
+    checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointPlugin)
 
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
@@ -70,12 +62,11 @@ def test_checkpoint_plugin_called(tmpdir, checkpoint_plugin):
         max_epochs=1,
     )
     trainer.fit(model)
-    assert checkpoint_plugin.save_checkpoint_called
+    assert checkpoint_plugin.save_checkpoint.call_count == 3
     trainer.test(model, ckpt_path=ck.last_model_path)
-    assert checkpoint_plugin.load_checkpoint_file_called
+    checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
 
-    checkpoint_plugin.save_checkpoint_called = False
-    checkpoint_plugin.load_checkpoint_file_called = False
+    checkpoint_plugin.reset_mock()
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = BoringModel()
@@ -87,12 +78,14 @@ def test_checkpoint_plugin_called(tmpdir, checkpoint_plugin):
         max_epochs=1,
     )
     trainer.fit(model)
-    assert checkpoint_plugin.save_checkpoint_called
+    assert checkpoint_plugin.save_checkpoint.call_count == 3
+
     trainer.test(model, ckpt_path=ck.last_model_path)
-    assert checkpoint_plugin.load_checkpoint_file_called
+    checkpoint_plugin.load_checkpoint.assert_called_once()
+    checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
 
 
 @pytest.mark.parametrize("plugin_cls", [pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)), TPUSpawnPlugin])
 def test_no_checkpoint_io_plugin_support(plugin_cls):
     with pytest.raises(MisconfigurationException, match="currently does not support custom checkpoint plugins"):
-        plugin_cls().checkpoint_plugin = CustomTorchCheckpointIOPlugin()
+        plugin_cls().checkpoint_plugin = CustomCheckpointPlugin()
