@@ -234,6 +234,7 @@ class TrainingBatchLoop(Loop):
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
 
+            # the loss will get scaled for amp. avoid any modifications to it
             loss_val = loss.detach().clone()
 
             # when in dev debugging track the losses
@@ -338,7 +339,6 @@ class TrainingBatchLoop(Loop):
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
-            # the loss will get scaled for amp. avoid any modifications to it
         return AttributeDict(closure_loss=closure_loss, result_collection=result_collection)
 
     def _process_training_step_output(self, training_step_output: STEP_OUTPUT) -> Optional[ResultCollection]:
