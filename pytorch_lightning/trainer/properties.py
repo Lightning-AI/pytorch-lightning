@@ -306,8 +306,8 @@ class TrainerProperties(ABC):
             rank_zero_warn(
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
                 f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
-                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
-                f" in `LightingModule`.",
+                " If this is undesired, change the name or override `get_progress_bar_dict()`"
+                " in `LightingModule`.",
                 UserWarning,
             )
         return {**standard_metrics, **pbar_metrics}

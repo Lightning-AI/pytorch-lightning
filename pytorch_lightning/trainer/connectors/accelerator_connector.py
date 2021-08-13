@@ -582,8 +582,7 @@ class AcceleratorConnector:
                     )
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP,"
-                        " please using native AMP for 16-bit precision."
+                        "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
                     )
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
