@@ -31,6 +31,7 @@ class TrainerCallbackHookMixin(ABC):
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
     lightning_module: "pl.LightningModule"
+    data_connector: "pl.trainer.connectors.DataConnector"
 
     def on_before_accelerator_backend_setup(self) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
@@ -51,6 +52,8 @@ class TrainerCallbackHookMixin(ABC):
         """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage=stage)
+
+        self.data_connector.detach_data(self.lightning_module)
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""
