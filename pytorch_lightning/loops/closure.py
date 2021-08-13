@@ -25,6 +25,14 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 @dataclass
 class ClosureResult:
+    """A container to hold the result of a :class:`Closure` call.
+
+    Attributes:
+        closure_loss: The loss with a graph attached.
+        loss: A detached copy of the closure loss.
+        result_collection: A collection of results returned by the closure.
+    """
+
     closure_loss: Optional[Tensor]
     loss: Optional[Tensor]
     result_collection: Optional[ResultCollection]
