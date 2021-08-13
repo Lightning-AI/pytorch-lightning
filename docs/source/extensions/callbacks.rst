@@ -163,10 +163,10 @@ A Lightning checkpoint from this Trainer with the two stateful callbacks will in
 .. code-block:: python
 
     {
-        "state_dict": ...
+        "state_dict": ...,
         "callbacks": {
-            "Counter[what=batches]": {"batches": 32, "epochs": 0},
-            "Counter[what=epochs]": {"batches": 0, "epochs": 2},
+            "Counter{'what': 'batches'}": {"batches": 32, "epochs": 0},
+            "Counter{'what': 'epochs'}": {"batches": 0, "epochs": 2},
             ...
         }
     }
