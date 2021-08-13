@@ -422,7 +422,7 @@ def test_multiple_early_stopping_callbacks(
 def test_check_on_train_epoch_end_with_val_check_interval(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            self.log("foo", batch_idx)
+            self.log("foo", 1)
             return super().validation_step(batch, batch_idx)
 
     model = TestModel()
