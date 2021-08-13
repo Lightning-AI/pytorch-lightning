@@ -256,6 +256,39 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
     assert (expected - 1) == idx, (mode, use_multiple_dataloaders)
 
 
+@pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
+def test_combined_loader_sequence_with_map_and_iterable(lengths):
+    class MyIterableDataset(IterableDataset):
+        def __init__(self, size: int = 10):
+            self.size = size
+
+        def __iter__(self):
+            self.sampler = SequentialSampler(range(self.size))
+            self.iter_sampler = iter(self.sampler)
+            return self
+
+        def __next__(self):
+            return next(self.iter_sampler)
+
+    class MyMapDataset(Dataset):
+        def __init__(self, size: int = 10):
+            self.size = size
+
+        def __getitem__(self, index):
+            return index
+
+        def __len__(self):
+            return self.size
+
+    x, y = lengths
+    loaders = [DataLoader(MyIterableDataset(x)), DataLoader(MyMapDataset(y))]
+    dataloader = CombinedLoader(loaders, mode="max_size_cycle")
+    counter = 0
+    for _ in dataloader:
+        counter += 1
+    assert counter == max(x, y)
+
+
 def test_combined_loader_sequence_max_size_cycle():
     """Test `CombinedLoader` of mode 'max_size_cycle' given sequence loaders"""
     loaders = [
