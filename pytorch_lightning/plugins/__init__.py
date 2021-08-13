@@ -1,6 +1,6 @@
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
-from pytorch_lightning.plugins.checkpoint.torch import TorchCheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIOPlugin
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     call_training_type_register_plugins,
     TrainingTypePluginsRegistry,

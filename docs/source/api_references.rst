@@ -130,7 +130,7 @@ Cluster Environments
 Checkpoint IO Plugins
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: pytorch_lightning.plugins.checkpoint
+.. currentmodule:: pytorch_lightning.plugins.io
 
 .. autosummary::
     :toctree: api

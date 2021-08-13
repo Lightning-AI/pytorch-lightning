@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load

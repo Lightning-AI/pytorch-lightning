@@ -16,8 +16,8 @@ from typing import Dict, Generator, List, Optional
 
 import torch
 
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

@@ -15,7 +15,7 @@ from typing import Any, Optional, Union
 
 import torch
 
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 

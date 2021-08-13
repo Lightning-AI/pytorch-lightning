@@ -9,7 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.plugins import SingleDevicePlugin
-from pytorch_lightning.plugins.checkpoint.torch import TorchCheckpointIOPlugin
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIOPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

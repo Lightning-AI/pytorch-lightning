@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available

@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIOPlugin
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")

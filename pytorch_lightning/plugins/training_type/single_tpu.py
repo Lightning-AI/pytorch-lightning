@@ -15,7 +15,7 @@ import os
 from typing import Any, Dict
 
 from pytorch_lightning.core.decorators import parameter_validation
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection

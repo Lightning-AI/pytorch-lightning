@@ -26,8 +26,8 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.plugins.checkpoint.checkpoint import CheckpointIOPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
