@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,6 +21,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import CheckpointIOPlugin, DeepSpeedPlugin, SingleDevicePlugin, TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _PATH
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -30,13 +30,11 @@ class CustomCheckpointPlugin(CheckpointIOPlugin):
     save_checkpoint_called: bool = False
     load_checkpoint_file_called: bool = False
 
-    def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         self.save_checkpoint_called = True
         torch.save(checkpoint, path)
 
-    def load_checkpoint(self, path: Union[str, Path], storage_options: Optional[Any] = None) -> Dict[str, Any]:
+    def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
         self.load_checkpoint_file_called = True
         return torch.load(path)
 

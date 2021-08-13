@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIOPlugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.types import _PATH
 
 
 class TorchCheckpointIOPlugin(CheckpointIOPlugin):
@@ -27,9 +27,7 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
      to save and load checkpoints respectively, common for most use cases.
     """
 
-    def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         try:
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
@@ -42,7 +40,7 @@ class TorchCheckpointIOPlugin(CheckpointIOPlugin):
             atomic_save(checkpoint, path)
 
     def load_checkpoint(
-        self, path: Union[str, Path], map_location: Optional[Callable] = lambda storage, loc: storage
+        self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
         """
         Loads checkpoint using torch.load, with additional handling for fsspec remote loading of files.

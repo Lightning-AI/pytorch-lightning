@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
+
+from pytorch_lightning.utilities.types import _PATH
 
 
 class CheckpointIOPlugin(ABC):
@@ -34,9 +35,7 @@ class CheckpointIOPlugin(ABC):
     """
 
     @abstractmethod
-    def save_checkpoint(
-        self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -46,7 +45,7 @@ class CheckpointIOPlugin(ABC):
         """
 
     @abstractmethod
-    def load_checkpoint(self, path: Union[str, Path], storage_options: Optional[Any] = None) -> Dict[str, Any]:
+    def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
         """
         Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
