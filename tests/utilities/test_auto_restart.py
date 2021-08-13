@@ -18,7 +18,7 @@ import random as python_random
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
-from typing import Generator, List, Optional
+from typing import List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -1032,10 +1032,13 @@ class TestIterableDataset(IterableDataset):
         self.len = length
         self.sampler = SequentialSampler(range(self.len))
 
-    def __iter__(self) -> Generator:
+    def __iter__(self) -> "TestIterableDataset":
         self.sampler_iter = iter(self.sampler)
-        for indice in self.sampler_iter:
-            yield torch.tensor([indice]).float()
+        return self
+
+    def __next__(self):
+        indice = next(self.sampler_iter)
+        return torch.tensor([indice]).float()
 
 
 class TestModel(LightningModule):
@@ -1084,6 +1087,10 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
 
     assert map_all_batches.shape == torch.Size([9, 2, 1])
     assert torch.equal(map_all_batches, iterable_all_batches)
+    assert torch.equal(
+        map_all_batches.flatten(),
+        torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]),
+    )
 
     seed_everything(1)
     complete_batches = _run_training(trainer_kwargs, fail=True)
@@ -1092,16 +1099,27 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir):
 
     assert map_complete_batches.shape == torch.Size([3 + 1, 2, 1])
     assert torch.equal(map_complete_batches, iterable_complete_batches)
+    assert torch.equal(map_complete_batches.flatten(), torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 1.0]))
 
-    print("resume")
     seed_everything(1)
-    assert os.path.exists(os.path.join(tmpdir, ".pl_auto_save.ckpt"))
-    trainer_kwargs.update(resume_from_checkpoint=os.path.join(tmpdir, ".pl_auto_save.ckpt"))
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
+    trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
+
+    checkpoint = torch.load(checkpoint_path)
+
+    dataloader_state_dict = checkpoint["loops"]["fit_loop"]["state_dict"]["dataloader_state_dict"]
+    assert dataloader_state_dict[0]["represent_map_dataset"]
+    assert not dataloader_state_dict[1]["represent_map_dataset"]
+    assert dataloader_state_dict[0]["state"][0]["num_batches_fetched"] == 2
+    assert dataloader_state_dict[1]["state"]["sampler_iter"][0]["num_batches_fetched"] == 2
+    assert dataloader_state_dict[0]["state"][0]["sampler_state"][0]["current_iteration"] == 2 * 2
+    assert dataloader_state_dict[1]["state"]["sampler_iter"][0]["sampler_state"][0]["current_iteration"] == 2 * 2
 
     resumed_batches = _run_training(trainer_kwargs, fail=False)
-    print(torch.stack(resumed_batches))
+    map_resumed_batches = torch.stack([v[0] for v in resumed_batches])
+    iterable_resumed_batches = torch.stack([v[1] for v in resumed_batches])
 
-    assert len(all_batches) == 3 * 3
-    assert len(complete_batches) == 3 + 1
-    # assert len(resumed_batches) == 2
-    assert torch.allclose(torch.cat(all_batches), torch.cat(complete_batches + resumed_batches))
+    assert map_resumed_batches.shape == torch.Size([9 - (3 + 1), 2, 1])
+    assert torch.equal(map_resumed_batches, iterable_resumed_batches)
+    assert torch.equal(map_resumed_batches.flatten(), torch.tensor([2.0, 3.0, 4.0, 5.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]))

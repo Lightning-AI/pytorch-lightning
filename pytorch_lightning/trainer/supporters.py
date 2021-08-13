@@ -28,8 +28,9 @@ from torch.utils.data.dataset import IterableDataset
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _add_sampler_metadata_collate,
-    _cycle_to_next_worker_and_reset,
+    _find_fast_forward_samplers,
     CaptureIterableDataset,
+    CaptureMapDataset,
     CollectionIteratorState,
     IteratorState,
     patch_dataloader_iterator,
@@ -457,7 +458,7 @@ class CombinedLoader:
             return
 
         # this happen inside the workers if any were specificied.
-
+        """
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
             breakpoint()
             if isinstance(dataloader.dataset, CaptureIterableDataset):
@@ -478,12 +479,61 @@ class CombinedLoader:
                 # need to re-attach the state dict into the iterator for future collection.
                 iterator._sampler_state_dict = [state_dict]
             return iterator
+        """
+
+        def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
+            if isinstance(dataloader, CycleIterator):
+                cycle_dataloader = dataloader
+                dataloader = cycle_dataloader.loader
+                dataset = dataloader.dataset
+
+                # We reload the states before creating the workers.
+                if isinstance(dataset, CaptureMapDataset):
+                    iterator_state = state_dict["state"][0]
+
+                    if not isinstance(iterator_state, IteratorState):
+                        iterator_state = IteratorState.load_state_dict(iterator_state)
+
+                    # reload sampler state
+                    ff_sampler = _find_fast_forward_samplers(dataloader)
+                    ff_sampler.load_state_dict(iterator_state.sampler_state)
+                    # reload dataset state
+                    dataset.load_state_dict(
+                        iterator_state.dataset_state,
+                        latest_worker_id=state_dict["lastest_worker_id"],
+                        num_workers=iterator_state.num_workers,
+                    )
+
+                elif isinstance(dataset, CaptureIterableDataset):
+                    dataset_dict = {
+                        sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()
+                    }
+                    dataset.load_state_dict(dataset_dict)
+
+                else:
+                    raise MisconfigurationException(
+                        "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
+                    )
+
+                # We finally spawned the workers if any.
+                iterator = iter(cycle_dataloader)
+                # restore caching state
+                iterator._loader_iter.state = CollectionIteratorState.load_state_dict(state_dict)
+                return iterator
+            else:
+                raise NotImplementedError
 
         # apply the `create_loader_iters` on the collection of `DataLoader / Iterator`.
         # each `Iterator` was created from the `DataLoader`.
         iterator._loader_iters = apply_to_collections(
-            self.loaders, self._loaders_iter_state_dict, (DataLoader, DataLoaderDict), create_loader_iters
+            self.loaders,
+            self._loaders_iter_state_dict,
+            (Iterable, DataLoaderDict),
+            create_loader_iters,
+            wrong_dtype=(Sequence, Mapping),
         )
+
+        self._loaders_iter_state_dict = None
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
@@ -504,6 +554,7 @@ class CombinedLoader:
         # multiple loaders
         if isinstance(self.loaders, (Sequence, Mapping)):
 
+            # the state is used to communicate between dataloaders while fetching data.
             state = SharedCycleIteratorState(mode="max_size_cycle")
 
             def create_cycle_iterator(loader: Iterable) -> "CycleIterator":

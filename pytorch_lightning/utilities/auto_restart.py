@@ -106,7 +106,7 @@ class FastForwardSampler(Sampler):
     def __len__(self) -> int:
         return len(self._sampler)
 
-    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
+    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
         """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {
             self.worker_id: {
@@ -170,7 +170,7 @@ def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
             attr.set_state(v)
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True)
 class IteratorState:
     dataset_state: Dict[int, Any] = field(default_factory=dict)
     sampler_state: Dict[int, Any] = field(default_factory=dict)
@@ -178,6 +178,10 @@ class IteratorState:
     num_workers: int = 0
     num_batches_fetched: int = 0
     name: Optional[str] = None
+
+    @classmethod
+    def load_state_dict(cls, state_dict) -> "IteratorState":
+        return cls(**state_dict)
 
 
 @dataclass
@@ -208,6 +212,21 @@ class CollectionIteratorState:
     @property
     def dataset_states(self) -> Dict:
         return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
+
+    @classmethod
+    def load_state_dict(cls, state_dict) -> "CollectionIteratorState":
+        if state_dict["represent_map_dataset"]:
+            state_dict["state"] = {
+                worker_id: IteratorState.load_state_dict(state) for worker_id, state in state_dict["state"].items()
+            }
+        else:
+            state_dict["state"] = {
+                sampler_name: {
+                    worker_id: IteratorState.load_state_dict(state) for worker_id, state in worker_state.items()
+                }
+                for sampler_name, worker_state in state_dict["state"].items()
+            }
+        return cls(**state_dict)
 
 
 class CaptureMapDataset(Dataset):
@@ -328,7 +347,6 @@ class CaptureIterableDataset(IterableDataset):
                 # if `CaptureIterableDataset` was available, the sampler should reload its own state.
                 if self._state_dict is not None:
                     sampler.load_state_dict(self._state_dict[generator_attr_name])
-
                 # store the samplers
                 self.samplers[generator_attr_name] = sampler
 
@@ -346,18 +364,17 @@ class CaptureIterableDataset(IterableDataset):
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
         if not isinstance(self.iter_data, Generator):
             self._wrap_generator_samplers(current_iteration=0)
+        else:
+            raise MisconfigurationException(
+                "PyTorch Lightning Fault Tolerant doesn't support __iter__ returning a generator. "
+                "Please, use the `__next__` function to fetch the next batch and use a sampler for "
+                "doing your iterations."
+            )
+
         return self
 
     def __next__(self) -> Dict[str, Any]:
-        # fetch at least 1 batch if user are using a generator
-        data = next(self.iter_data)
-
-        if isinstance(self.iter_data, Generator) and not self._has_wrapped:
-            # fetch at least 1 batch if user are using a generator
-            # wrap any generator associated to a Sampler into a `FastForwardSampler`.
-            self._wrap_generator_samplers(current_iteration=1)
-            self._has_wrapped = True
-        return data
+        return next(self.iter_data)
 
     @staticmethod
     def store_samplers_state_dict(iterator: Iterator, sampler_state_dict: List) -> None:
@@ -555,12 +572,10 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: metadata}
 
 
-def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher):
+def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0):
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
-    def _next_data_wrapper(fn, it, dl):
-        num_batches_fetched = 0
-
+    def _next_data_wrapper(fn, it, dl, num_batches_fetched):
         @wraps(fn)
         def wrapper():
             nonlocal num_batches_fetched
@@ -600,7 +615,7 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefet
 
         return wrapper
 
-    iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader)
+    iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader, num_batches_fetched)
 
 
 def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
