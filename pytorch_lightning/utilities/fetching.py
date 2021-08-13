@@ -1,0 +1,146 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from abc import ABC, abstractmethod
+from collections.abc import Iterable, Iterator
+from typing import Any, Generator, List, Optional, Tuple
+
+from torch.utils.data.dataloader import DataLoader
+
+from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+class AbstractFetcher(ABC):
+
+    """
+    This class is used to control batch fetching flow.
+    """
+
+    @abstractmethod
+    def fetching_function(self) -> Generator:
+        pass
+
+    def __init__(
+        self,
+        prefetch_batches: int = 1,
+    ) -> None:
+        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 1):
+            raise MisconfigurationException("`prefetch_batches` should at least be 1.")
+
+        self.prefetch_batches = prefetch_batches
+        self.dataloader: Optional[Iterable]
+        self._has_setup: bool = False
+        self.reset()
+
+    def setup(self, dataloader: DataLoader, **kwargs) -> None:
+        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
+            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        self.dataloader = dataloader
+        self._has_setup = True
+
+    def add_batch(self, batch) -> None:
+        self.batches.append(batch)
+
+    def fetch_batch(self) -> Any:
+        return self.batches.pop(0)
+
+    @property
+    def loaders(self) -> List[DataLoader]:
+        if not self._has_setup:
+            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        if isinstance(self.dataloader, CombinedLoader):
+            loaders = self.dataloader.loaders
+        else:
+            loaders = [self.dataloader]
+        return loaders
+
+    @property
+    def loader_iters(self) -> List[Iterator]:
+        if not self._has_setup:
+            raise MisconfigurationException("The Fetcher should be setup with a ``dataloader``.")
+        if isinstance(self.dataloader, CombinedLoader):
+            loader_iters = self.dataloader_iter.loader_iters
+        else:
+            loader_iters = [self.dataloader_iter]
+        return loader_iters
+
+    @property
+    def state(self) -> Any:
+        def collect_state(iterator: Iterator):
+            return iterator.state
+
+        return apply_to_collection(self.loader_iters, Iterator, collect_state)
+
+    def __iter__(self) -> Generator[Tuple[Any, bool], None, None]:
+        if self.dataloader is None:
+            raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
+        self.reset()
+        self.dataloader_iter = iter(self.dataloader)
+        return self.fetching_function()
+
+    def reset(self) -> None:
+        self.batches: List = []
+        self.dataloader: Optional[Iterable]
+        self.fetched: int = 0
+        self.done: bool = False
+        self.has_raised: bool = False
+
+
+class LightningFetcher(AbstractFetcher):
+
+    """
+    This class is used to control batch fetching flow.
+    """
+
+    def fetching_function(self) -> Generator:
+        self.done = False
+        self.has_raised = False
+        while not self.done:
+            yield from self._prefetching(self.prefetch_batches)
+
+            if not self.has_raised:
+                for batch in self.dataloader_iter:
+                    yield_batch = self.fetch_batch()
+                    self.add_batch(batch)
+                    self.fetched += 1
+                    # yield last and has next
+                    yield yield_batch, False
+
+                if self.prefetch_batches > 0:
+                    yield from self._consume_prefetched_batches()
+                self.done = True
+
+    def _consume_prefetched_batches(self) -> Generator:
+        self.done = True
+        while self.batches:
+            if not self.batches:
+                self.done = True
+            elif len(self.batches) == 1:
+                yield self.batches.pop(0), True
+                self.done = True
+            else:
+                yield self.batches.pop(0), False
+
+    def _prefetching(self, prefetch_batches: int) -> Generator:
+        for _ in range(prefetch_batches):
+            try:
+                batch = next(self.dataloader_iter)
+                self.fetched += 1
+                self.add_batch(batch)
+            except StopIteration:
+                self.has_raised = True
+                yield from self._consume_prefetched_batches()
+                break
