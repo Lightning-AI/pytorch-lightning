@@ -88,7 +88,8 @@ class _Metadata:
     @reduce_fx.setter
     def reduce_fx(self, reduce_fx: Union[str, Callable]) -> None:
         error = (
-            "Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported."
+            "Only `self.log(..., reduce_fx={'min','max','mean','sum'})`"
+            " or `self.log(..., reduce_fx=Callable)` are currently supported."
             " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
             f" Found: {reduce_fx}"
         )
@@ -100,6 +101,8 @@ class _Metadata:
             if reduce_fx not in ("min", "max", "mean", "sum"):
                 raise MisconfigurationException(error)
             self._reduce_fx = getattr(torch, reduce_fx)
+        elif isinstance(reduce_fx, Callable):
+            self._reduce_fx = reduce_fx
         elif self.is_custom_reduction:
             raise MisconfigurationException(error)
 
