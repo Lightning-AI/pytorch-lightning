@@ -20,8 +20,7 @@ from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize("n_hidden_states", (1, 2))
-@pytest.mark.parametrize("property_on_module", (False, True))
-def test_tbptt_cpu_model(tmpdir, n_hidden_states, property_on_module):
+def test_tbptt_cpu_model(tmpdir, n_hidden_states):
     """Test truncated back propagation through time works."""
     truncated_bptt_steps = 2
     sequence_size = 30
@@ -44,8 +43,7 @@ def test_tbptt_cpu_model(tmpdir, n_hidden_states, property_on_module):
             self.batch_size = batch_size
             self.layer = torch.nn.Linear(in_features, out_features)
             self.n_hidden_states = n_hidden_states
-            if property_on_module:
-                self.truncated_bptt_steps = truncated_bptt_steps
+            self.truncated_bptt_steps = truncated_bptt_steps
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
@@ -83,13 +81,10 @@ def test_tbptt_cpu_model(tmpdir, n_hidden_states, property_on_module):
     )
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
-    trainer_tbptt_steps = None if property_on_module else truncated_bptt_steps
-
     # fit model
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        truncated_bptt_steps=trainer_tbptt_steps,
         limit_val_batches=0,
         weights_summary=None,
     )

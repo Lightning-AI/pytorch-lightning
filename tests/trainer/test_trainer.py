@@ -873,41 +873,45 @@ def test_trainer_interrupted_flag(tmpdir):
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
 
 
-def test_gradient_clipping(tmpdir):
-    """
-    Test gradient clipping
-    """
+@pytest.mark.parametrize(
+    "precision",
+    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+)
+def test_gradient_clipping_by_norm(tmpdir, precision):
+    """Test gradient clipping by norm"""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = EvalModelTemplate()  # TODO: when precision=16, BoringModel produces NaN, but EvalModelTemplate not
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        max_epochs=1,
+        gpus=int(torch.cuda.is_available()),
+        precision=precision,
+        gradient_clip_algorithm="norm",
+        gradient_clip_val=1.0,
+    )
 
-    trainer = Trainer(max_steps=1, max_epochs=1, gradient_clip_val=1.0, default_root_dir=tmpdir)
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
 
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
-
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
+    def backward(*args, **kwargs):
         # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_backward(*args, **kwargs)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    # for the test
-    model.prev_called_batch_idx = 0
-
+    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
     trainer.fit(model)
 
 
-def test_gradient_clipping_by_value(tmpdir):
-    """
-    Test gradient clipping by value
-    """
+@pytest.mark.parametrize(
+    "precision",
+    [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],
+)
+def test_gradient_clipping_by_value(tmpdir, precision):
+    """Test gradient clipping by value"""
     tutils.reset_seed()
 
     model = BoringModel()
@@ -916,105 +920,27 @@ def test_gradient_clipping_by_value(tmpdir):
     trainer = Trainer(
         max_steps=1,
         max_epochs=1,
+        precision=precision,
+        gpus=int(torch.cuda.is_available()),
         gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm="value",
         default_root_dir=tmpdir,
     )
 
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
+    old_backward = trainer.fit_loop.epoch_loop.batch_loop.backward
 
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
+    def backward(*args, **kwargs):
         # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_backward(*args, **kwargs)
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
         assert (
             abs(grad_max.item() - grad_clip_val) < 1e-11
         ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-
         return ret_val
 
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    # for the test
-    model.prev_called_batch_idx = 0
-
-    trainer.fit(model)
-
-
-@RunIf(min_gpus=1, amp_native=True)
-def test_gradient_clipping_fp16(tmpdir):
-    """
-    Test gradient clipping with fp16
-    """
-    tutils.reset_seed()
-
-    model = EvalModelTemplate()
-
-    trainer = Trainer(max_steps=1, max_epochs=1, precision=16, gpus=1, gradient_clip_val=1.0, default_root_dir=tmpdir)
-
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
-
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
-        # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
-        parameters = model.parameters()
-        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-        assert (grad_norm - 1.0).abs() < 0.01, f"Gradient norm != 1.0: {grad_norm}"
-
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    model.prev_called_batch_idx = 0
-
-    trainer.fit(model)
-
-
-@RunIf(min_gpus=1, amp_native=True)
-def test_gradient_clipping_by_value_fp16(tmpdir):
-    """
-    Test gradient clipping by value with fp16
-    """
-    tutils.reset_seed()
-
-    model = BoringModel()
-    grad_clip_val = 1e-10
-    trainer = Trainer(
-        max_steps=1,
-        max_epochs=1,
-        precision=16,
-        gpus=1,
-        gradient_clip_val=grad_clip_val,
-        gradient_clip_algorithm="value",
-        default_root_dir=tmpdir,
-    )
-
-    old_training_step_and_backward = trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward
-
-    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
-        # test that gradient is clipped correctly
-        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
-        parameters = model.parameters()
-        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
-        grad_max = torch.max(torch.stack(grad_max_list))
-        assert (
-            abs(grad_max.item() - grad_clip_val) < 1e-11
-        ), f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
-
-        return ret_val
-
-    trainer.fit_loop.epoch_loop.batch_loop.training_step_and_backward = training_step_and_backward
-    model.prev_called_batch_idx = 0
-
+    trainer.fit_loop.epoch_loop.batch_loop.backward = backward
     trainer.fit(model)
 
 
@@ -1875,7 +1801,12 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
         def on_epoch_start(self, trainer, *_):
             assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
 
-    initial = torch.cuda.memory_allocated(0)
+    def current_memory():
+        # before measuring the memory force release any leftover allocations, including CUDA tensors
+        gc.collect()
+        return torch.cuda.memory_allocated(0)
+
+    initial = current_memory()
 
     model = TestModel()
     trainer_kwargs = dict(
@@ -1893,22 +1824,13 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_1 = torch.cuda.memory_allocated(0)
-    assert memory_1 == initial
+    assert current_memory() <= initial
 
     deepcopy(trainer)
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_2 = torch.cuda.memory_allocated(0)
-    assert memory_2 == initial
+    assert current_memory() <= initial
 
     trainer_2 = Trainer(**trainer_kwargs)
     trainer_2.fit(model)
 
-    # before measuring the memory force release any leftover allocations, including CUDA tensors
-    gc.collect()
-    memory_3 = torch.cuda.memory_allocated(0)
-    assert memory_3 == initial
+    assert current_memory() <= initial

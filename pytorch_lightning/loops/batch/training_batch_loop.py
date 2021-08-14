@@ -451,7 +451,7 @@ class TrainingBatchLoop(Loop):
         Args:
             batch: the current batch to split
         """
-        tbptt_steps = self._truncated_bptt_steps()
+        tbptt_steps = self.trainer.lightning_module.truncated_bptt_steps
         if tbptt_steps == 0:
             return [batch]
 
@@ -643,19 +643,7 @@ class TrainingBatchLoop(Loop):
                 )
 
         # pass hiddens if using tbptt
-        if self._truncated_bptt_enabled():
+        if self.trainer.lightning_module.truncated_bptt_steps > 0:
             step_kwargs["hiddens"] = hiddens
 
         return step_kwargs
-
-    def _truncated_bptt_enabled(self) -> bool:
-        """Temporary tbptt utilities until this flag is fully migrated to the lightning module."""
-        return self._truncated_bptt_steps() > 0
-
-    def _truncated_bptt_steps(self) -> int:
-        """Returns the number of tbptt steps"""
-        lightning_module = self.trainer.lightning_module
-        # Give precedence to the LightningModule as the Trainer flag will be removed in v1.5
-        if lightning_module.truncated_bptt_steps > 0:
-            return lightning_module.truncated_bptt_steps
-        return self.trainer.truncated_bptt_steps or 0

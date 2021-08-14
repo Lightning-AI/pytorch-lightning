@@ -728,7 +728,7 @@ Other cool features
 Once you define and train your first Lightning model, you might want to try other cool features like
 
 - :doc:`Automatic early stopping <../common/early_stopping>`
-- :ref:`Automatic truncated-back-propagation-through-time <common/trainer:truncated_bptt_steps>`
+- :ref:`Automatic truncated-back-propagation-through-time <common/lightning_module:truncated_bptt_steps>`
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
 - :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
