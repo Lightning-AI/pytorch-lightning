@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
-from torch import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
@@ -30,7 +28,6 @@ from pytorch_lightning.utilities.auto_restart import (
     _find_current_worker,
     CaptureIterableDataset,
 )
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
@@ -111,64 +108,6 @@ class TensorRunningAccum:
             if self.rotated:
                 return getattr(self.memory, how)()
             return getattr(self.memory[: self.current_idx], how)()
-
-
-class PredictionCollection:
-    def __init__(self, global_rank: int, world_size: int):
-        self.global_rank = global_rank
-        self.world_size = world_size
-        self.predictions = {}
-        self.num_predictions = 0
-
-    def _add_prediction(self, name, values, filename):
-        if filename not in self.predictions:
-            self.predictions[filename] = {name: values}
-        elif name not in self.predictions[filename]:
-            self.predictions[filename][name] = values
-        elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values))
-        elif isinstance(values, list):
-            self.predictions[filename][name].extend(values)
-
-    def add(self, predictions):
-
-        if predictions is None:
-            return
-
-        for filename, pred_dict in predictions.items():
-            for feature_name, values in pred_dict.items():
-                self._add_prediction(feature_name, values, filename)
-
-    def to_disk(self) -> None:
-        """Write predictions to file(s)."""
-        for filepath, predictions in self.predictions.items():
-            fs = get_filesystem(filepath)
-            # normalize local filepaths only
-            if fs.protocol == "file":
-                filepath = os.path.realpath(filepath)
-            if self.world_size > 1:
-                stem, extension = os.path.splitext(filepath)
-                filepath = f"{stem}_rank_{self.global_rank}{extension}"
-            dirpath = os.path.split(filepath)[0]
-            fs.mkdirs(dirpath, exist_ok=True)
-
-            # Convert any tensor values to list
-            predictions = {k: v if not isinstance(v, Tensor) else v.tolist() for k, v in predictions.items()}
-
-            # Check if all features for this file add up to same length
-            feature_lens = {k: len(v) for k, v in predictions.items()}
-            if len(set(feature_lens.values())) != 1:
-                raise ValueError("Mismatching feature column lengths found in stored EvalResult predictions.")
-
-            # Switch predictions so each entry has its own dict
-            outputs = []
-            for values in zip(*predictions.values()):
-                output_element = dict(zip(predictions.keys(), values))
-                outputs.append(output_element)
-
-            # Write predictions for current file to disk
-            with fs.open(filepath, "wb") as fp:
-                torch.save(outputs, fp)
 
 
 @dataclass
