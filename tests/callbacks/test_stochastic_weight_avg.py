@@ -210,8 +210,8 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
     )
     trainer.fit(model)
     if use_callbacks or stochastic_weight_avg:
-        assert len([cb for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]) == 1
-        assert trainer.callbacks[0]._swa_lrs == (1e-3 if use_callbacks else 0.1)
+        assert sum(1 for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)) == 1
+        assert trainer.callbacks[0]._swa_lrs == [1e-3 if use_callbacks else 0.1]
     else:
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
 
@@ -237,3 +237,39 @@ def test_swa_deepcopy(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 2)))
     assert swa.on_before_accelerator_backend_setup_called
+
+
+def test_swa_multiple_lrs(tmpdir):
+    swa_lrs = [0.123, 0.321]
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super(BoringModel, self).__init__()
+            self.layer1 = torch.nn.Linear(32, 32)
+            self.layer2 = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            x = self.layer1(x)
+            x = self.layer2(x)
+            return x
+
+        def configure_optimizers(self):
+            params = [{"params": self.layer1.parameters(), "lr": 0.1}, {"params": self.layer2.parameters(), "lr": 0.2}]
+            return torch.optim.Adam(params)
+
+        def on_train_epoch_start(self):
+            optimizer = trainer.optimizers[0]
+            assert [pg["lr"] for pg in optimizer.param_groups] == [0.1, 0.2]
+            assert [pg["initial_lr"] for pg in optimizer.param_groups] == swa_lrs
+            assert [pg["swa_lr"] for pg in optimizer.param_groups] == swa_lrs
+            self.on_train_epoch_start_called = True
+
+    model = TestModel()
+    swa_callback = StochasticWeightAveraging(swa_lrs=swa_lrs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=swa_callback,
+        fast_dev_run=1,
+    )
+    trainer.fit(model)
+    assert model.on_train_epoch_start_called
