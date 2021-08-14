@@ -1,3 +1,4 @@
+
 trigger:
   tags:
     include:
@@ -72,17 +73,12 @@ jobs:
         python -c "import poptorch; print(poptorch.__version__)"
       displayName: "Check poptorch installation"
 
-    - bash: |
-        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-        unzip -o legacy/checkpoints.zip -d legacy/
-        ls -l legacy/checkpoints/
-      displayName: 'Get legacy checkpoints'
 
     - bash: |
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
         export POPTORCH_WAIT_FOR_IPU=1
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        pytest tests/accelerators/test_ipu.py -v --disable-warnings
       env:
         MKL_THREADING_LAYER: "GNU"
       displayName: 'Testing: standard'
