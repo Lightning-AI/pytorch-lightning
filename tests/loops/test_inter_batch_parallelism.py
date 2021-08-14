@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests.helpers.runif import RunIf
 
 
-def get_cycles_per_ms() -> float:
+def count_cycles_per_ms() -> float:
     """
     Measure and return approximate number of cycles per millisecond for torch.cuda._sleep
 
@@ -56,7 +56,7 @@ def get_cycles_per_ms() -> float:
     return mean(vals[2 : num - 2])
 
 
-_CYCLES_PER_MS = int(get_cycles_per_ms()) if torch.cuda.is_available() else 0
+_CYCLES_PER_MS = int(count_cycles_per_ms()) if torch.cuda.is_available() else 0
 _BATCH_SIZE = 128
 _EMB_SZ = 100
 _EMB_DIM = 64
