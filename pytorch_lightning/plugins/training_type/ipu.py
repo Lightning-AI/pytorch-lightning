@@ -253,7 +253,6 @@ class IPUPlugin(ParallelPlugin):
 
     def teardown(self) -> None:
         # undo dataloader patching
-        # FIXME: add reference test
         self.lightning_module.trainer.replace_sampler = pl.trainer.trainer.TrainerDataLoadingMixin.replace_sampler
         for model in self.poptorch_models.values():
             model.destroy()
