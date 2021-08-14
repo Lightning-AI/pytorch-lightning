@@ -109,7 +109,7 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_processed()
 
         # track loss history
-        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
+        self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
 
@@ -193,6 +193,9 @@ class EvaluationEpochLoop(Loop):
         self.trainer.call_hook(hook_name, output, batch, batch_idx, dataloader_idx)
 
         self.trainer.logger_connector.on_batch_end()
+
+        # track debug metrics
+        self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Union[Any, int]]:
         """Helper function to build the arguments for the current step
