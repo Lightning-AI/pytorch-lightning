@@ -18,6 +18,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import DummyException
 
+from torch.multiprocessing.spawn import ProcessRaisedException
 
 class TrainerStagesErrorsModel(BoringModel):
     def on_train_start(self) -> None:
@@ -34,7 +35,7 @@ class TrainerStagesErrorsModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1), pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
+    "accelerator,num_processes", [(None, 1)]
 )
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesErrorsModel()
@@ -46,4 +47,19 @@ def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     with pytest.raises(DummyException, match=r"Error during test"):
         trainer.test(model)
     with pytest.raises(DummyException, match=r"Error during predict"):
+        trainer.predict(model, model.val_dataloader())
+
+@pytest.mark.parametrize(
+    "accelerator,num_processes", [pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
+)
+def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesErrorsModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    with pytest.raises(ProcessRaisedException, match=r"Error during train"):
+        trainer.fit(model)
+    with pytest.raises(ProcessRaisedException, match=r"Error during validation"):
+        trainer.validate(model)
+    with pytest.raises(ProcessRaisedException, match=r"Error during test"):
+        trainer.test(model)
+    with pytest.raises(ProcessRaisedException, match=r"Error during predict"):
         trainer.predict(model, model.val_dataloader())
