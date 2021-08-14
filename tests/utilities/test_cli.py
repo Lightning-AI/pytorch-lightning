@@ -36,6 +36,7 @@ from pytorch_lightning.utilities.cli import instantiate_class, LightningArgument
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import DummyException
 
 torchvision_version = version.parse("0")
 if _TORCHVISION_AVAILABLE:
@@ -550,7 +551,7 @@ def test_lightning_cli_link_arguments(tmpdir):
 
 class EarlyExitTestModel(BoringModel):
     def on_fit_start(self):
-        raise KeyboardInterrupt()
+        raise DummyException()
 
 
 @pytest.mark.parametrize("logger", (False, True))
@@ -563,7 +564,7 @@ class EarlyExitTestModel(BoringModel):
     ),
 )
 def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, trainer_kwargs):
-    with mock.patch("sys.argv", ["any.py"]), pytest.raises(KeyboardInterrupt):
+    with mock.patch("sys.argv", ["any.py"]), pytest.raises(DummyException):
         LightningCLI(
             EarlyExitTestModel,
             trainer_defaults={
