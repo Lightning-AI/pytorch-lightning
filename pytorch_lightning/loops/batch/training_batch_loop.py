@@ -26,7 +26,11 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.utilities import check_finite, check_training_step_output, process_training_step_output
+from pytorch_lightning.loops.utilities import (
+    _check_training_step_output,
+    _process_training_step_output,
+    check_finite_loss,
+)
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -251,7 +255,7 @@ class TrainingBatchLoop(Loop):
 
         # check if loss or model weights are nan
         if self.trainer.terminate_on_nan:
-            check_finite(self.trainer.lightning_module, opt_closure_result.loss)
+            check_finite_loss(self.trainer.lightning_module, opt_closure_result.loss)
 
     def _training_step(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
@@ -281,9 +285,9 @@ class TrainingBatchLoop(Loop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            check_training_step_output(self.trainer.lightning_module, training_step_output)
+            _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
-            training_step_output, self._hiddens = process_training_step_output(self.trainer, training_step_output)
+            training_step_output, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
             if training_step_output is None:
                 return
 
@@ -465,7 +469,7 @@ class TrainingBatchLoop(Loop):
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
-                        check_finite(self.trainer.lightning_module, result.loss)
+                        check_finite_loss(self.trainer.lightning_module, result.loss)
 
                 else:
                     self._warning_cache.warn(

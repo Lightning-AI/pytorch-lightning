@@ -20,7 +20,11 @@ from typing import Iterator, List, Optional, Tuple
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.utilities import check_finite, check_training_step_output, process_training_step_output
+from pytorch_lightning.loops.utilities import (
+    _check_training_step_output,
+    _process_training_step_output,
+    check_finite_loss,
+)
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
@@ -138,7 +142,7 @@ class IteratorBatchProcessor:
                 self.trainer.accelerator.post_training_step()
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-            check_training_step_output(self.trainer.lightning_module, training_step_output)
+            _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
             if training_step_output is None or "is_last" not in training_step_output:
                 raise MisconfigurationException(
@@ -146,10 +150,10 @@ class IteratorBatchProcessor:
                     "contain a `is_last` field to indicate whether there are more batches to be processed."
                 )
             is_last = training_step_output["is_last"]
-            training_step_output, _ = process_training_step_output(self.trainer, training_step_output)
+            training_step_output, _ = _process_training_step_output(self.trainer, training_step_output)
 
             if self.trainer.terminate_on_nan:
-                check_finite(self.trainer.lightning_module, training_step_output.minimize)
+                check_finite_loss(self.trainer.lightning_module, training_step_output.minimize)
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 

@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-def check_finite(model: "pl.LightningModule", loss: torch.Tensor) -> None:
+def check_finite_loss(model: "pl.LightningModule", loss: torch.Tensor) -> None:
     """Checks for finite parameters and loss values.
 
     Args:
@@ -36,7 +36,7 @@ def check_finite(model: "pl.LightningModule", loss: torch.Tensor) -> None:
     detect_nan_parameters(model)
 
 
-def check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
+def _check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
     """Sanity checks that training produced a valid output and optimizer step has already been called in manual
     optimization.
 
@@ -62,7 +62,7 @@ def check_training_step_output(model: "pl.LightningModule", training_step_output
             )
 
 
-def process_training_step_output(
+def _process_training_step_output(
     trainer: "pl.Trainer", training_step_output: STEP_OUTPUT
 ) -> Tuple[Optional[ResultCollection], Optional[torch.Tensor]]:
     """Adds the :param:`training_step_output` to the trainer's results
