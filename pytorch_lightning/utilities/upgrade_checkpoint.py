@@ -48,8 +48,9 @@ def upgrade_checkpoint(filepath):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Upgrade an old checkpoint to the current schema. \
-        This will also save a backup of the original file."
+        description=(
+            "Upgrade an old checkpoint to the current schema. This will also save a backup of the original file."
+        )
     )
     parser.add_argument("--file", help="filepath for a checkpoint to upgrade")
 
