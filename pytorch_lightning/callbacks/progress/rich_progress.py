@@ -54,7 +54,18 @@ class CustomTimeColumn(ProgressColumn):
         remaining = task.time_remaining
         elapsed_delta = "-:--:--" if elapsed is None else str(timedelta(seconds=int(elapsed)))
         remaining_delta = "-:--:--" if remaining is None else str(timedelta(seconds=int(remaining)))
-        return Text.from_markup(f"[progress.elapsed]{elapsed_delta} / [progress.remaining]{remaining_delta}")
+        return Text.from_markup(f"[progress.elapsed]{elapsed_delta} < [progress.remaining]{remaining_delta}")
+
+
+class BatchesProcessedColumn(ProgressColumn):
+    def render(self, task) -> Text:
+        return Text.from_markup(f"[magenta] {int(task.completed)}/{task.total}")
+
+
+class ProcessingSpeedColumn(ProgressColumn):
+    def render(self, task) -> Text:
+        task_speed = f"{task.speed:>.2f}" if task.speed is not None else "0.00"
+        return Text.from_markup(f"[progress.data.speed] {task_speed}it/s")
 
 
 class RichProgressBar(ProgressBarBase):
@@ -96,9 +107,12 @@ class RichProgressBar(ProgressBarBase):
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            BatchesProcessedColumn(),
+            "[",
             CustomTimeColumn(),
+            ProcessingSpeedColumn(),
             MetricsTextColumn(trainer),
+            "]",
             console=self.console,
         ).__enter__()
 
