@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
+
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _RICH_AVAILABLE:
     from rich.console import Console
-    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+    from rich.progress import BarColumn, Progress, ProgressColumn, SpinnerColumn, TextColumn
     from rich.text import Text
 
 
@@ -40,6 +42,19 @@ class MetricsTextColumn(TextColumn):
         if self.highlighter:
             self.highlighter.highlight(text)
         return text
+
+
+class CustomTimeColumn(ProgressColumn):
+
+    # Only refresh twice a second to prevent jitter
+    max_refresh = 0.5
+
+    def render(self, task) -> Text:
+        elapsed = task.finished_time if task.finished else task.elapsed
+        remaining = task.time_remaining
+        elapsed_delta = "-:--:--" if elapsed is None else str(timedelta(seconds=int(elapsed)))
+        remaining_delta = "-:--:--" if remaining is None else str(timedelta(seconds=int(remaining)))
+        return Text.from_markup(f"[progress.elapsed]{elapsed_delta} / [progress.remaining]{remaining_delta}")
 
 
 class RichProgressBar(ProgressBarBase):
@@ -77,13 +92,12 @@ class RichProgressBar(ProgressBarBase):
         self._enabled = True
 
     def setup(self, trainer, pl_module, stage):
-        print("hello")
         self.progress = Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeElapsedColumn(),
+            CustomTimeColumn(),
             MetricsTextColumn(trainer),
             console=self.console,
         ).__enter__()
@@ -97,10 +111,10 @@ class RichProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
 
-        total_batches = total_train_batches + total_val_batches
+        # total_batches = total_train_batches + total_val_batches
         self.main_progress_bar = self.progress.add_task(
             f"[red][Epoch {trainer.current_epoch}]",
-            total=total_batches,
+            total=total_train_batches,
         )
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
