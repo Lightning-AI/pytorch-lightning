@@ -22,7 +22,7 @@ if _RICH_AVAILABLE:
     from rich.progress import BarColumn, Progress, ProgressColumn, SpinnerColumn, TextColumn
     from rich.text import Text
 else:
-    ProgressColumn, TextColumn = None, None
+    ProgressColumn, TextColumn, Text = None, None, None
 
 
 class CustomTimeColumn(ProgressColumn):
@@ -49,13 +49,13 @@ class ProcessingSpeedColumn(ProgressColumn):
         return Text.from_markup(f"[progress.data.speed] {task_speed}it/s")
 
 
-class MetricsTextColumn(TextColumn):
+class MetricsTextColumn(ProgressColumn):
     """A column containing text."""
 
     def __init__(self, trainer, stage):
         self._trainer = trainer
         self._stage = stage
-        super().__init__("")
+        super().__init__()
 
     def render(self, task) -> Text:
         _text = ""
@@ -64,12 +64,7 @@ class MetricsTextColumn(TextColumn):
         if "red" in f"{task.description}" or "yellow" in f"{task.description}":
             for k, v in self._trainer.progress_bar_dict.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
-        if self.markup:
-            text = Text.from_markup(_text, style=self.style, justify=self.justify)
-        else:
-            text = Text(_text, style=self.style, justify=self.justify)
-        if self.highlighter:
-            self.highlighter.highlight(text)
+        text = Text.from_markup(_text, style=None, justify="left")
         return text
 
 
