@@ -23,27 +23,6 @@ if _RICH_AVAILABLE:
     from rich.text import Text
 
 
-class MetricsTextColumn(TextColumn):
-    """A column containing text."""
-
-    def __init__(self, trainer):
-        self._trainer = trainer
-        super().__init__("")
-
-    def render(self, task) -> Text:
-        _text = ""
-        if "red" in f"{task.description}":
-            for k, v in self._trainer.progress_bar_dict.items():
-                _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
-        if self.markup:
-            text = Text.from_markup(_text, style=self.style, justify=self.justify)
-        else:
-            text = Text(_text, style=self.style, justify=self.justify)
-        if self.highlighter:
-            self.highlighter.highlight(text)
-        return text
-
-
 class CustomTimeColumn(ProgressColumn):
 
     # Only refresh twice a second to prevent jitter
@@ -68,12 +47,35 @@ class ProcessingSpeedColumn(ProgressColumn):
         return Text.from_markup(f"[progress.data.speed] {task_speed}it/s")
 
 
+class MetricsTextColumn(TextColumn):
+    """A column containing text."""
+
+    def __init__(self, trainer, stage):
+        self._trainer = trainer
+        self._stage = stage
+        super().__init__("")
+
+    def render(self, task) -> Text:
+        _text = ""
+        if self._stage == "test":
+            return ""
+        if "red" in f"{task.description}" or "yellow" in f"{task.description}":
+            for k, v in self._trainer.progress_bar_dict.items():
+                _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
+        if self.markup:
+            text = Text.from_markup(_text, style=self.style, justify=self.justify)
+        else:
+            text = Text(_text, style=self.style, justify=self.justify)
+        if self.highlighter:
+            self.highlighter.highlight(text)
+        return text
+
+
 class RichProgressBar(ProgressBarBase):
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1):
         if not _RICH_AVAILABLE:
             raise MisconfigurationException("Rich progress bar is not available")
         self._refresh_rate = refresh_rate
-        self._process_position = process_position
         self._enabled = True
         self.main_progress_bar = None
         self.val_progress_bar = None
@@ -83,10 +85,6 @@ class RichProgressBar(ProgressBarBase):
     @property
     def refresh_rate(self) -> int:
         return self._refresh_rate
-
-    @property
-    def process_position(self) -> int:
-        return self._process_position
 
     @property
     def is_enabled(self) -> bool:
@@ -111,7 +109,7 @@ class RichProgressBar(ProgressBarBase):
             "[",
             CustomTimeColumn(),
             ProcessingSpeedColumn(),
-            MetricsTextColumn(trainer),
+            MetricsTextColumn(trainer, stage),
             "]",
             console=self.console,
         ).__enter__()
@@ -125,10 +123,23 @@ class RichProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
 
-        # total_batches = total_train_batches + total_val_batches
+        total_batches = total_train_batches + total_val_batches
         self.main_progress_bar = self.progress.add_task(
             f"[red][Epoch {trainer.current_epoch}]",
-            total=total_train_batches,
+            total=total_batches,
+        )
+        if total_val_batches > 0:
+            self.val_progress_bar = self.progress.add_task(
+                "[yellow][Validation]",
+                total=total_val_batches,
+            )
+
+    def on_test_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
+        total_test_batches = self.total_test_batches
+        self.test_progress_bar = self.progress.add_task(
+            "[red][Testing]",
+            total=total_test_batches,
         )
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -137,6 +148,21 @@ class RichProgressBar(ProgressBarBase):
             if getattr(self, "progress", None) is not None:
                 self.progress.update(self.main_progress_bar, advance=1.0)
                 self.progress.track(trainer.progress_bar_dict)
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self.val_progress_bar and self._should_update(
+            self.val_batch_idx, self.total_train_batches + self.total_val_batches
+        ):
+            if getattr(self, "progress", None) is not None:
+                # self.progress.update(self.main_progress_bar, advance=1.)
+                self.progress.update(self.val_progress_bar, advance=1.0)
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.test_batch_idx, self.total_test_batches):
+            if getattr(self, "progress", None) is not None:
+                self.progress.update(self.test_progress_bar, advance=1.0)
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
