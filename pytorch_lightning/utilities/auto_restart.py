@@ -72,7 +72,6 @@ class FastForwardSampler(Sampler):
 
     def __iter__(self) -> Iterator[Any]:
         self._current_iteration = 0
-        print("iter called", self._current_iteration)
         # the `state dict` was cached as workers were unavailable before.
         if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
             # reload the current state dict
@@ -81,7 +80,6 @@ class FastForwardSampler(Sampler):
         i = 0
         sampler_iter = iter(self._sampler)
         while i < self._current_iteration:
-            print("fast forward", i, self._current_iteration)
             next(sampler_iter)
             i += 1
 
