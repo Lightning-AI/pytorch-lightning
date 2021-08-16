@@ -32,7 +32,8 @@ RUN \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
-        mv pytorch-lightning-*/ pytorch-lightning ; \
+        mv pytorch-lightning-*/* pytorch-lightning ; \
+        rm -rf pytorch-lightning-* ; \
         rm *.zip ; \
     fi && \
 # save the examples
