@@ -41,13 +41,11 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(
-        self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None, current_iteration: Optional[int] = 0
-    ) -> None:
+    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
-        self._current_iteration = current_iteration
+        self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -184,6 +182,10 @@ class IteratorState:
 
 @dataclass
 class CollectionIteratorState:
+    """
+    This class is used to hold the current iterator state and lives on the iterator.
+    """
+
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(
         default_factory=lambda: {}
     )
@@ -231,6 +233,11 @@ class CollectionIteratorState:
 
 
 class CaptureMapDataset(Dataset):
+
+    """
+    This class is used to capture the state from the map-based state dataset.
+    """
+
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
         self._cached_state_dict = None
