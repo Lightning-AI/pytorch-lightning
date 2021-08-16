@@ -55,6 +55,7 @@ PyTorch Lightning Documentation
    advanced/multi_gpu
    advanced/advanced_gpu
    common/weights_loading
+   advanced/checkpoint_io
    common/optimizers
    advanced/profiler
    advanced/sequences

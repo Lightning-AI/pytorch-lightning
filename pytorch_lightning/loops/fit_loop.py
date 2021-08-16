@@ -63,12 +63,12 @@ class FitLoop(Loop):
 
     @property
     def total_batch_idx(self) -> int:
-        """Returns the total number of batches already run (across all epochs)"""
+        """Returns the current batch index (across epochs)"""
         return self.epoch_loop.total_batch_idx
 
     @property
     def batch_idx(self) -> int:
-        """Returns the number of batches already run within this epoch"""
+        """Returns the current batch index (within this epoch)"""
         return self.epoch_loop.batch_idx
 
     @property

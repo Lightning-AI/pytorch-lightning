@@ -127,7 +127,6 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             self.data_dir = data_dir
             self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-            # self.dims is returned when you call dm.size()
             # Setting default dims here because we know them.
             # Could optionally be assigned dynamically in dm.setup()
             self.dims = (1, 28, 28)
@@ -206,7 +205,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
-- apply transforms (defined explicitly in your datamodule or assigned in init)
+- apply transforms (defined explicitly in your datamodule)
 - etc...
 
 .. code-block:: python
