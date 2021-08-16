@@ -861,8 +861,8 @@ class Trainer(
         # ----------------------------
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.connect(model)
-        self.accelerator.setup_environment()
-        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self.accelerator.setup_environment(self)
+        self._call_setup_model_hook(model)
 
         # restore modules after setup
         self.checkpoint_connector.restore_datamodule()
@@ -1160,16 +1160,18 @@ class Trainer(
         self.checkpoint_connector.restore_model_weights(ckpt_path)
         return ckpt_path
 
-    def _call_setup_hook(self, model: "pl.LightningModule") -> None:
+    def _call_setup_model_hook(self, model: "pl.LightningModule") -> None:
         fn = self.state.fn._setup_fn
-
         self.accelerator.barrier("pre_setup")
-
-        if self.datamodule is not None:
-            self.datamodule.setup(stage=fn)
         self.setup(model, stage=fn)
         model.setup(stage=fn)
+        self.accelerator.barrier("post_setup")
 
+    def _call_setup_datamodule_hook(self) -> None:
+        fn = self.state.fn._setup_fn
+        self.accelerator.barrier("pre_setup")
+        if self.datamodule is not None:
+            self.datamodule.setup(stage=fn)
         self.accelerator.barrier("post_setup")
 
     def _call_configure_sharded_model(self, model: "pl.LightningModule") -> None:

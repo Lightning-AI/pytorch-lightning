@@ -155,7 +155,7 @@ class DDPPlugin(ParallelPlugin):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self) -> None:
+    def setup_environment(self, trainer: 'pl.Trainer') -> None:
         # start the other scripts
         if not self.cluster_environment.creates_children():
             self._call_children_scripts()
@@ -163,7 +163,7 @@ class DDPPlugin(ParallelPlugin):
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
 
-        self.setup_distributed()
+        self.setup_distributed(trainer)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
@@ -237,7 +237,7 @@ class DDPPlugin(ParallelPlugin):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-    def setup_distributed(self):
+    def setup_distributed(self, trainer: 'pl.Trainer') -> None:
         reset_seed()
 
         # determine which process we are and world size
@@ -254,6 +254,8 @@ class DDPPlugin(ParallelPlugin):
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
+
+        trainer._call_setup_datamodule_hook()
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:

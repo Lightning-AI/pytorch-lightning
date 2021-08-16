@@ -335,8 +335,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 config = json.load(f)
         return config
 
-    def setup_distributed(self):
-        super().setup_distributed()
+    def setup_distributed(self, trainer: 'pl.Trainer') -> None:
+        super().setup_distributed(trainer)
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
@@ -368,6 +368,8 @@ class DeepSpeedPlugin(DDPPlugin):
     def pre_dispatch(self):
         self.init_deepspeed()
         self.barrier()
+        # share ddp pids to all processes
+        self._share_information_to_prevent_deadlock()
 
     def init_deepspeed(self):
         self._handle_gradient_accumulation_steps()

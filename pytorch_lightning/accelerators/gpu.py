@@ -26,8 +26,8 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """Accelerator for GPU devices."""
 
-    def setup_environment(self) -> None:
-        super().setup_environment()
+    def setup_environment(self, trainer: 'pl.Trainer') -> None:
+        super().setup_environment(trainer)
         if "cuda" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
         torch.cuda.set_device(self.root_device)

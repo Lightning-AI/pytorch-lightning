@@ -180,6 +180,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         # where to store ip_table
         self.init_ddp_connection(self.global_rank, self.world_size)
 
+        # prepare datamodule on all ranks
+        trainer._call_setup_datamodule_hook()
+
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
         # self.trainer.call_setup_hook(self.model)
