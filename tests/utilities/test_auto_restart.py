@@ -919,7 +919,7 @@ class TestIterableDataset(IterableDataset):
         self.len = length
         self.sampler = SequentialSampler(range(self.len))
 
-    def __iter__(self) -> "TestIterableDataset":
+    def __iter__(self):
         self.sampler_iter = iter(self.sampler)
         return self
 
