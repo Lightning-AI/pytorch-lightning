@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -28,7 +28,6 @@ class TrainingTricksConnector:
         gradient_clip_algorithm: str,
         track_grad_norm: Union[int, float, str],
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]],
-        truncated_bptt_steps: Optional[int],
         terminate_on_nan: bool,
     ):
 
@@ -48,13 +47,6 @@ class TrainingTricksConnector:
         # accumulated grads
         self.trainer.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
-
-        if truncated_bptt_steps is not None and truncated_bptt_steps > 0:
-            rank_zero_deprecation(
-                "Trainer.truncated_bptt_steps is deprecated in v1.3 and will be removed in v1.5."
-                " Set truncated_bptt_steps directly on the LightningModule instead."
-            )
-        self.trainer.truncated_bptt_steps = truncated_bptt_steps
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
         if isinstance(accumulate_grad_batches, dict):

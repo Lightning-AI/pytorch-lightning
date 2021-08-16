@@ -303,9 +303,7 @@ class CheckpointConnector:
         except AttributeError as err:
             if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-            rank_zero_warn(
-                "warning, `hyper_parameters` dropped from checkpoint." f" An attribute is not picklable {err}"
-            )
+            rank_zero_warn(f"warning, `hyper_parameters` dropped from checkpoint. An attribute is not picklable {err}")
             atomic_save(checkpoint, filepath)
 
         return filepath

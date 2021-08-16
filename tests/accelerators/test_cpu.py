@@ -9,6 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -53,115 +54,6 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
     trainer.fit(model)
 
 
-def test_accelerator_on_reset_dataloader_hooks(tmpdir):
-    """
-    Ensure data-loader hooks are called using an Accelerator.
-    """
-
-    class CustomAccelerator(CPUAccelerator):
-        train_count: int = 0
-        val_count: int = 0
-        test_count: int = 0
-        predict_count: int = 0
-
-        def on_reset_train_dataloader(self, dataloader):
-            self.train_count += 1
-            assert self.lightning_module.trainer.training
-            return super().on_reset_train_dataloader(dataloader)
-
-        def on_reset_val_dataloader(self, dataloader):
-            self.val_count += 1
-            assert self.lightning_module.trainer.training or self.lightning_module.trainer.validating
-            return super().on_reset_val_dataloader(dataloader)
-
-        def on_reset_test_dataloader(self, dataloader):
-            self.test_count += 1
-            assert self.lightning_module.trainer.testing
-            return super().on_reset_test_dataloader(dataloader)
-
-        def on_reset_predict_dataloader(self, dataloader):
-            self.predict_count += 1
-            assert self.lightning_module.trainer.predicting
-            return super().on_reset_predict_dataloader(dataloader)
-
-    model = BoringModel()
-    accelerator = CustomAccelerator(PrecisionPlugin(), SingleDevicePlugin(device=torch.device("cpu")))
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator)
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model, dataloaders=model.test_dataloader())
-    # assert that all loader hooks were called
-    assert accelerator.train_count == 1
-    assert accelerator.val_count == 1  # only called once during the entire session
-    assert accelerator.test_count == 1
-    assert accelerator.predict_count == 1
-
-    accelerator = CustomAccelerator(PrecisionPlugin(), SingleDevicePlugin(device=torch.device("cpu")))
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
-    # assert val/test/predict loader hooks were called
-    assert accelerator.val_count == 1
-    assert accelerator.test_count == 1
-    assert accelerator.predict_count == 1
-
-
-def test_plugin_on_reset_dataloader_hooks(tmpdir):
-    """
-    Ensure data-loader hooks are called using a Plugin.
-    """
-
-    class CustomPlugin(SingleDevicePlugin):
-        train_count: int = 0
-        val_count: int = 0
-        test_count: int = 0
-        predict_count: int = 0
-
-        def on_reset_train_dataloader(self, dataloader):
-            self.train_count += 1
-            assert self.lightning_module.trainer.training
-            return super().on_reset_train_dataloader(dataloader)
-
-        def on_reset_val_dataloader(self, dataloader):
-            self.val_count += 1
-            assert self.lightning_module.trainer.training or self.lightning_module.trainer.validating
-            return super().on_reset_val_dataloader(dataloader)
-
-        def on_reset_test_dataloader(self, dataloader):
-            self.test_count += 1
-            assert self.lightning_module.trainer.testing
-            return super().on_reset_test_dataloader(dataloader)
-
-        def on_reset_predict_dataloader(self, dataloader):
-            self.predict_count += 1
-            assert self.lightning_module.trainer.predicting
-            return super().on_reset_predict_dataloader(dataloader)
-
-    plugin = CustomPlugin(device=torch.device("cpu"))
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model, dataloaders=model.test_dataloader())
-    # assert that all loader hooks were called
-    assert plugin.train_count == 1
-    assert plugin.val_count == 1  # only called once during the entire session
-    assert plugin.test_count == 1
-    assert plugin.predict_count == 1
-    plugin = CustomPlugin(device=torch.device("cpu"))
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=plugin)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
-    # assert val/test/predict loader hooks were called
-    assert plugin.val_count == 1
-    assert plugin.test_count == 1
-    assert plugin.predict_count == 1
-
-
 def test_restore_checkpoint_after_pre_dispatch_default():
     """
     Assert default for restore_checkpoint_after_pre_dispatch is False.
@@ -201,7 +93,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
-    plugin = TestPlugin(torch.device("cpu"))
+    plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO())
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
 
     assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch

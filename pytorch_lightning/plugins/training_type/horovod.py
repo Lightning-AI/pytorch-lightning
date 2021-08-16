@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -33,8 +34,12 @@ if _HOROVOD_AVAILABLE:
 class HorovodPlugin(ParallelPlugin):
     """Plugin for Horovod distributed training integration."""
 
-    def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+    ):
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=None, checkpoint_io=checkpoint_io)
         rank_zero_only.rank = self.global_rank
 
     @property
