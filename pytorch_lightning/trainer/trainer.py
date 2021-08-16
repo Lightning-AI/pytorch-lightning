@@ -1191,6 +1191,9 @@ class Trainer(
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
         self.profiler.teardown(stage=fn)
+
+        self.data_connector.detach_data(self.lightning_module)
+
         self.teardown(stage=fn)
         model.teardown(stage=fn)
 
