@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -77,3 +78,29 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
+
+
+class BoringModelDDP(BoringModel):
+    def on_train_start(self) -> None:
+        """Check if trainer module is wrapped as DistributedDataParallel during training stage."""
+        assert isinstance(self.trainer.model, DistributedDataParallel)
+
+    def on_test_start(self) -> None:
+        """Check if trainer module remains as LightningModule during test stage."""
+        assert isinstance(self.trainer.model, LightningModule)
+
+    def on_predict_start(self) -> None:
+        """Check if trainer module remains as LightningModule during prediction stage."""
+        assert isinstance(self.trainer.model, LightningModule)
+
+
+@RunIf(skip_windows=True)
+def test_ddp_module_wrapper():
+    """Tests with ddp spawn plugin."""
+    trainer = Trainer(num_processes=2, accelerator="ddp_spawn", fast_dev_run=True)
+
+    model = BoringModelDDP()
+
+    trainer.fit(model)
+    trainer.test(model, dataloaders=model.test_dataloader())
+    trainer.predict(model, dataloaders=model.predict_dataloader())

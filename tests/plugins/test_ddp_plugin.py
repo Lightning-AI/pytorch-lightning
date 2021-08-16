@@ -16,7 +16,7 @@ from unittest import mock
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -69,3 +69,29 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, gpus=gpus, accelerator="ddp")
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
+
+
+class BoringModelDDP(BoringModel):
+    def on_train_start(self) -> None:
+        """Check if trainer module is wrapped as DistributedDataParallel during training stage."""
+        assert isinstance(self.trainer.model, DistributedDataParallel)
+
+    def on_test_start(self) -> None:
+        """Check if trainer module remains as LightningModule during test stage."""
+        assert isinstance(self.trainer.model, LightningModule)
+
+    def on_predict_start(self) -> None:
+        """Check if trainer module remains as LightningModule during prediction stage."""
+        assert isinstance(self.trainer.model, LightningModule)
+
+
+@RunIf(skip_windows=True)
+def test_ddp_module_wrapper():
+    """Tests with ddp plugin."""
+    trainer = Trainer(num_processes=2, accelerator="ddp_cpu", fast_dev_run=True)
+
+    model = BoringModelDDP()
+
+    trainer.fit(model)
+    trainer.test(model, dataloaders=model.test_dataloader())
+    trainer.predict(model, dataloaders=model.predict_dataloader())
