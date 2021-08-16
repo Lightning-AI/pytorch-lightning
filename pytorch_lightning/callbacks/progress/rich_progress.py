@@ -77,6 +77,7 @@ class RichProgressBar(ProgressBarBase):
     def __init__(self, refresh_rate: int = 1):
         if not _RICH_AVAILABLE:
             raise MisconfigurationException("Rich progress bar is not available")
+        super().__init__()
         self._refresh_rate = refresh_rate
         self._enabled = True
         self._total_val_batches = 0
@@ -157,23 +158,20 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
-            if getattr(self, "progress", None) is not None:
-                self.progress.update(self.main_progress_bar, advance=1.0)
+            self.progress.update(self.main_progress_bar, advance=1.0)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self.val_progress_bar and self._should_update(
             self.val_batch_idx, self.total_train_batches + self.total_val_batches
         ):
-            if getattr(self, "progress", None) is not None:
-                self.progress.update(self.main_progress_bar, advance=1.0)
-                self.progress.update(self.val_progress_bar, advance=1.0)
+            self.progress.update(self.main_progress_bar, advance=1.0)
+            self.progress.update(self.val_progress_bar, advance=1.0)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.test_batch_idx, self.total_test_batches):
-            if getattr(self, "progress", None) is not None:
-                self.progress.update(self.test_progress_bar, advance=1.0)
+            self.progress.update(self.test_progress_bar, advance=1.0)
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
