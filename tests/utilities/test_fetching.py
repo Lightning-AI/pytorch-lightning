@@ -17,12 +17,12 @@ from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import LightningFetcher
+from pytorch_lightning.utilities.fetching import LightningDataFetcher
 
 
 @pytest.mark.parametrize("use_combined_loader", [False, True])
 def test_prefetch_iterator(use_combined_loader):
-    """Test the LightningFetcher with PyTorch IterableDataset."""
+    """Test the LightningDataFetcher with PyTorch IterableDataset."""
 
     class IterDataset(IterableDataset):
         def __iter__(self):
@@ -41,7 +41,7 @@ def test_prefetch_iterator(use_combined_loader):
         else:
             loader = DataLoader(IterDataset())
             expected = [(1, False), (2, False), (3, True)]
-        iterator = LightningFetcher(prefetch_batches=prefetch_batches)
+        iterator = LightningDataFetcher(prefetch_batches=prefetch_batches)
         prefetch_batches += 1
         assert iterator.prefetch_batches == prefetch_batches
         iterator.setup(loader)
@@ -66,20 +66,20 @@ def test_prefetch_iterator(use_combined_loader):
             return iter([])
 
     dataloader = DataLoader(EmptyIterDataset())
-    iterator = LightningFetcher()
+    iterator = LightningDataFetcher()
     iterator.setup(dataloader)
     assert list(iterator) == []
 
 
 def test_misconfiguration_error():
 
-    fetcher = LightningFetcher()
+    fetcher = LightningDataFetcher()
     with pytest.raises(
         MisconfigurationException, match="The `DataFetcher` should be setup with an instance of a PyTorch"
     ):
         fetcher.setup(range(10))
 
-    fetcher = LightningFetcher()
+    fetcher = LightningDataFetcher()
     with pytest.raises(
         MisconfigurationException, match="The dataloader_iter isn't available outside the __iter__ context."
     ):

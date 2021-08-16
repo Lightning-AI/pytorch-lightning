@@ -113,10 +113,9 @@ class AbstractDataFetcher(ABC):
         self.batches: List = []
         self.fetched: int = 0
         self.done: bool = False
-        self.has_raised: bool = False
 
 
-class LightningFetcher(AbstractDataFetcher):
+class LightningDataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.
@@ -124,17 +123,15 @@ class LightningFetcher(AbstractDataFetcher):
 
     def fetching_function(self) -> Generator:
         self.done = False
-        self.has_raised = False
         while not self.done:
             self._prefetching(self.prefetch_batches)
 
-            if not self.has_raised:
-                for batch in self.dataloader_iter:
-                    yield_batch = self.fetch_batch()
-                    self.add_batch(batch)
-                    self.fetched += 1
-                    # yield last and has next
-                    yield yield_batch, False
+            for batch in self.dataloader_iter:
+                yield_batch = self.fetch_batch()
+                self.add_batch(batch)
+                self.fetched += 1
+                # yield last and has next
+                yield yield_batch, False
 
             yield from self._consume_prefetched_batches()
 
@@ -153,5 +150,4 @@ class LightningFetcher(AbstractDataFetcher):
                 self.fetched += 1
                 self.add_batch(batch)
             except StopIteration:
-                self.has_raised = True
                 break
