@@ -454,47 +454,52 @@ class CombinedLoader:
 
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
             if isinstance(dataloader, CycleIterator):
-                cycle_dataloader = dataloader
-                dataloader = cycle_dataloader.loader
-                dataset = dataloader.dataset
+                dataloader_to_iter_on = dataloader
+                dataloader = dataloader_to_iter_on.loader
+            else:
+                dataloader_to_iter_on = dataloader
 
-                # We reload the states before creating the workers.
-                if isinstance(dataset, CaptureMapDataset):
-                    iterator_state = state_dict["state"][0]
+            dataset = dataloader.dataset
 
-                    if not isinstance(iterator_state, IteratorState):
-                        iterator_state = IteratorState.load_state_dict(iterator_state)
+            # We reload the states before creating the workers.
+            if isinstance(dataset, CaptureMapDataset):
+                iterator_state = state_dict["state"][0]
 
-                    # reload sampler state
-                    ff_sampler = _find_fast_forward_samplers(dataloader)
-                    ff_sampler.load_state_dict(iterator_state.sampler_state)
-                    # reload dataset state
-                    dataset.load_state_dict(
-                        iterator_state.dataset_state,
-                        latest_worker_id=state_dict["lastest_worker_id"],
-                        num_workers=iterator_state.num_workers,
-                    )
+                if not isinstance(iterator_state, IteratorState):
+                    iterator_state = IteratorState.load_state_dict(iterator_state)
 
-                elif isinstance(dataset, CaptureIterableDataset):
-                    dataset_dict = {
-                        sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()
-                    }
-                    dataset.load_state_dict(dataset_dict)
+                # reload sampler state
+                ff_sampler = _find_fast_forward_samplers(dataloader)
+                ff_sampler.load_state_dict(iterator_state.sampler_state)
+                # reload dataset state
+                dataset.load_state_dict(
+                    iterator_state.dataset_state,
+                    latest_worker_id=state_dict["lastest_worker_id"],
+                    num_workers=iterator_state.num_workers,
+                )
 
-                else:
-                    raise MisconfigurationException(
-                        "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
-                    )
+            elif isinstance(dataset, CaptureIterableDataset):
+                dataset_dict = {
+                    sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()
+                }
+                dataset.load_state_dict(dataset_dict)
 
-                # We finally spawned the workers if any.
-                iterator = iter(cycle_dataloader)
-                # restore caching state
-                iterator._loader_iter.state = CollectionIteratorState.load_state_dict(state_dict)
-                return iterator
             else:
                 raise MisconfigurationException(
                     "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
                 )
+
+            # We finally spawned the workers if any.
+            iterator = iter(dataloader_to_iter_on)
+
+            # restore caching state
+            state = CollectionIteratorState.load_state_dict(state_dict)
+
+            if isinstance(dataloader_to_iter_on, CycleIterator):
+                iterator._loader_iter.state = state
+            else:
+                iterator.state = state
+            return iterator
 
         # apply the `create_loader_iters` on the collection of `DataLoader / Iterator`.
         # each `Iterator` was created from the `DataLoader`.

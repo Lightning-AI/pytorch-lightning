@@ -956,15 +956,17 @@ def _run_training(trainer_kwargs, failure_type: int = 0):
     return model.seen_batches
 
 
+@pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 70 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
-def test_dataset_rng_states_restart_with_lightning(tmpdir):
+def test_dataset_rng_states_restart_with_lightning(multiple_trainloader_mode, tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
         progress_bar_refresh_rate=0,
+        multiple_trainloader_mode=multiple_trainloader_mode,
     )
     seed_everything(1)
     all_batches = _run_training(trainer_kwargs)
