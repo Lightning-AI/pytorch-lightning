@@ -56,11 +56,6 @@ class EvaluationLoop(DataLoaderLoop):
             return self.trainer.test_dataloaders
         return self.trainer.val_dataloaders
 
-    @property
-    def predictions(self):
-        """Returns the predictions from all dataloaders"""
-        return self.epoch_loop.predictions
-
     def connect(self, epoch_loop: EvaluationEpochLoop):
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
@@ -140,9 +135,6 @@ class EvaluationLoop(DataLoaderLoop):
 
         # hook
         self.on_evaluation_end()
-
-        # save predictions to disk
-        self.epoch_loop.predictions.to_disk()
 
         # enable train mode again
         self.on_evaluation_model_train()
