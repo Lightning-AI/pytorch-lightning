@@ -201,7 +201,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         results = trainer.run_stage()
 
         # persist info in ddp_spawn
-        self.transfer_distrib_spawn_state_on_fit_end(results)
+        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
@@ -280,8 +280,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def transfer_distrib_spawn_state_on_fit_end(self, results):
-        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+    def __transfer_distrib_spawn_state_on_fit_end(self, trainer, results):
+        checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
@@ -292,11 +292,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
             # save the last weights
             last_path = None
-            if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-                and best_model_path is not None
-                and len(best_model_path) > 0
-            ):
+            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 atomic_save(self.on_save(state_dict), last_path)
 
