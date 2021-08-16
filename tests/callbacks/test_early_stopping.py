@@ -82,10 +82,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # the checkpoint saves "epoch + 1"
     early_stop_callback_state = early_stop_callback.saved_states[checkpoint["epoch"] - 1]
     assert 4 == len(early_stop_callback.saved_states)
-    assert (
-        checkpoint["callbacks"]["EarlyStoppingTestRestore{'monitor': 'train_loss', 'mode': 'min'}"]
-        == early_stop_callback_state
-    )
+    es_name = "EarlyStoppingTestRestore{'monitor': 'train_loss', 'mode': 'min'}"
+    assert checkpoint["callbacks"][es_name] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, monitor="train_loss")

@@ -45,11 +45,9 @@ from tests.helpers.runif import RunIf
 
 def test_model_checkpoint_state_id():
     early_stopping = ModelCheckpoint(monitor="val_loss")
-    assert (
-        early_stopping.state_id
-        == "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+    expected_id = "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
         " 'train_time_interval': None, 'save_on_train_epoch_end': None}"
-    )
+    assert early_stopping.state_id == expected_id
 
 
 class LogInTwoMethods(BoringModel):
