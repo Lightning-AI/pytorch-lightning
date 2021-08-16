@@ -16,6 +16,7 @@ from torch import tensor
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import LightningFetcher
 
 
@@ -68,3 +69,24 @@ def test_prefetch_iterator(use_combined_loader):
     iterator = LightningFetcher()
     iterator.setup(dataloader)
     assert list(iterator) == []
+
+
+def test_misconfiguration_error():
+
+    fetcher = LightningFetcher()
+    with pytest.raises(
+        MisconfigurationException, match="The `DataFetcher` should be setup with an instance of a PyTorch"
+    ):
+        fetcher.setup(range(10))
+
+    fetcher = LightningFetcher()
+    with pytest.raises(
+        MisconfigurationException, match="The dataloader_iter isn't available outside the __iter__ context."
+    ):
+        loader = DataLoader(range(10))
+        fetcher.setup(loader)
+        assert fetcher.loaders[0] == loader
+        fetcher.loader_iters
+
+    iter(fetcher)
+    assert fetcher.loader_iters

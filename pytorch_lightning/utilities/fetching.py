@@ -59,7 +59,7 @@ class AbstractDataFetcher(ABC):
             )
         self.dataloader = dataloader
 
-    def add_batch(self, batch) -> None:
+    def add_batch(self, batch: Any) -> None:
         self.batches.append(batch)
 
     def fetch_batch(self) -> Any:
