@@ -368,7 +368,7 @@ class CaptureIterableDataset(IterableDataset):
 
             {
                 "batch": ...,  # data returned by DataLoader
-                "__pl_samplers": {
+                "__pl_restart_meta": {
                     "sampler0": {
                         0: {"current_iteration": ...},
                         1: {"current_iteration": ...},
@@ -378,14 +378,14 @@ class CaptureIterableDataset(IterableDataset):
             }
 
         Each sampler in the worker process tracks the current iteration. We return all of them to the main process
-        as part of the sample and then a special collate function :func:`_sampler_metadata_collate`
+        as part of the sample and then a special collate function :func:`_capture_metadata_collate`
         will extract the current iteration as part of the metadata returned by a custom batch.
         """
 
         def _sanitize(data: Mapping):
             out = []
             for k, v in data.items():
-                if k == AutoRestartBatchKeys.PL_SAMPLERS:
+                if k == AutoRestartBatchKeys.PL_RESTART_META:
                     state_dicts.append(v)
                     return data["data"]
                 out.append((k, CaptureIterableDataset._sanitize_batch_from_sampler_state(v, state_dicts)))
@@ -503,18 +503,16 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
-# TODO: change name of this function and update docs
-def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
-    """
-    A collate function that adds the state dict of all samplers used in the worker processes.
-    This function gets executed within the worker processes.
+def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
+    """A collate function that adds the state dict of a :class:`CaptureIterableDataset` or :class:`CaptureMapDataset`
+    used in the worker processes. This function gets executed within the worker processes.
     The structure will be:
 
     .. code-block:: python
 
         {
             "data": ...,  # data returned by Dataset
-            "__pl_samplers": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
+            "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
     if isinstance(dataset, CaptureIterableDataset):
@@ -528,8 +526,7 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     else:
         return default_collate(samples)
 
-    # TODO: change this key name or make a dataclass
-    return {"data": data, AutoRestartBatchKeys.PL_SAMPLERS: metadata}
+    return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
 def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0):
@@ -545,7 +542,7 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefet
             dataset = dl.dataset
             combined_batch = fn()
 
-            batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_SAMPLERS]
+            batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
             num_batches_fetched += 1
 
             if isinstance(dataset, CaptureIterableDataset):
@@ -578,10 +575,8 @@ def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefet
     iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader, num_batches_fetched)
 
 
-def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
-    """
-    Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
-    """
+def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
+    """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
     dataloader.collate_fn = partial(
-        _sampler_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
     )

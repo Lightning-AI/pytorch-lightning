@@ -23,7 +23,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
-    _add_sampler_metadata_collate,
+    _add_capture_metadata_collate,
     CollectionIteratorState,
     IteratorState,
     patch_dataloader_iterator,
@@ -67,7 +67,7 @@ class AbstractFetcher(ABC):
             )
         self.dataloader = dataloader
         if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
-            _add_sampler_metadata_collate(dataloader)
+            _add_capture_metadata_collate(dataloader)
 
     def add_batch(self, batch) -> None:
         self.batches.append(batch)
