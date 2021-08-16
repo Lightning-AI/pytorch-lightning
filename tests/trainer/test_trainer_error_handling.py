@@ -45,19 +45,13 @@ class TrainerStagesErrorsModel(BoringModel):
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesErrorsModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(Exception, match=r"Error during train"), mock.patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during train"), mock.patch("pytorch_lightning.Trainer._on_exception"):
         trainer.fit(model)
     with pytest.raises(Exception, match=r"Error during validation"), mock.patch(
         "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    ):
         trainer.validate(model)
-    with pytest.raises(Exception, match=r"Error during test"), mock.patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during test"), mock.patch("pytorch_lightning.Trainer._on_exception"):
         trainer.test(model)
-    with pytest.raises(Exception, match=r"Error during predict"), mock.patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during predict"), mock.patch("pytorch_lightning.Trainer._on_exception"):
         trainer.predict(model, model.val_dataloader())
