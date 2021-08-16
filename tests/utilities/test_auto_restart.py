@@ -794,7 +794,7 @@ class RandomGetItemDataset(Dataset):
         t = torch.rand(self.size)
         n = torch.from_numpy(np.random.rand(self.size))
         p = torch.tensor([python_random.random() for _ in range(self.size)])
-        return t + n + p
+        return (t + n + p).float()
 
     def __len__(self):
         return self.len
