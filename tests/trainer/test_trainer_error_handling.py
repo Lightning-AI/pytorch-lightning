@@ -12,54 +12,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import DummyException
 
-from torch.multiprocessing.spawn import ProcessRaisedException
 
 class TrainerStagesErrorsModel(BoringModel):
     def on_train_start(self) -> None:
-        raise DummyException("Error during train")
+        raise Exception("Error during train")
 
     def on_validation_start(self) -> None:
-        raise DummyException("Error during validation")
+        raise Exception("Error during validation")
 
     def on_test_start(self) -> None:
-        raise DummyException("Error during test")
+        raise Exception("Error during test")
 
     def on_predict_start(self) -> None:
-        raise DummyException("Error during predict")
+        raise Exception("Error during predict")
 
 
 @pytest.mark.parametrize(
-    "accelerator,num_processes", [(None, 1)]
+    "accelerator,num_processes",
+    [
+        (None, 1),
+        pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp", 2, marks=RunIf(skip_windows=True)),
+    ],
 )
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesErrorsModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(DummyException, match=r"Error during train"):
+    with pytest.raises(Exception, match=r"Error during train"), mock.patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.fit(model)
-    with pytest.raises(DummyException, match=r"Error during validation"):
+    with pytest.raises(Exception, match=r"Error during validation"), mock.patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.validate(model)
-    with pytest.raises(DummyException, match=r"Error during test"):
+    with pytest.raises(Exception, match=r"Error during test"), mock.patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.test(model)
-    with pytest.raises(DummyException, match=r"Error during predict"):
-        trainer.predict(model, model.val_dataloader())
-
-@pytest.mark.parametrize(
-    "accelerator,num_processes", [pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True))]
-)
-def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
-    model = TrainerStagesErrorsModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(ProcessRaisedException, match=r"Error during train"):
-        trainer.fit(model)
-    with pytest.raises(ProcessRaisedException, match=r"Error during validation"):
-        trainer.validate(model)
-    with pytest.raises(ProcessRaisedException, match=r"Error during test"):
-        trainer.test(model)
-    with pytest.raises(ProcessRaisedException, match=r"Error during predict"):
+    with pytest.raises(Exception, match=r"Error during predict"), mock.patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.predict(model, model.val_dataloader())
