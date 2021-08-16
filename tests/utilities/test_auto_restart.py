@@ -827,12 +827,12 @@ class RandomGeneratorGetItemDataset(Dataset):
     ],
 )
 @pytest.mark.parametrize("num_workers", [0])
-@pytest.mark.parametrize("batch_size", [1])
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     # set the manual seed initially
+    torch.manual_seed(1)
 
     def create_dataset_sampler():
-        torch.manual_seed(1)
         dataset = CaptureMapDataset(dataset_class(16, 8))
         random_sampler = RandomSampler(dataset, generator=torch.Generator())
         return dataset, random_sampler
@@ -850,26 +850,25 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     fetcher.setup(dataloader)
     prefetch_iter = iter(fetcher)
 
-    def fetch(fetcher, prefetch_iter, num_batches_fetched, indices):
-        nonlocal batch_size
+    def fetch(fetcher, prefetch_iter, num_batches_fetched):
         batch, _ = next(prefetch_iter)
-        if dataset_class == SequentialGetItemDataset and batch_size == 1:
-            assert batch[0] == indices[num_batches_fetched - 1]
-        # (A) capture the state after fetching 4 batches
+
         state: List[CollectionIteratorState] = fetcher.state
         assert len(state) == 1
         assert isinstance(state[0], CollectionIteratorState)
-        # assert len(state[0].state) == max(num_workers, 1)
+
         assert len(fetcher.dataloader_iter.cache_states) == 1
         if num_workers == 0:
             assert state[0].state[0].num_batches_fetched == num_batches_fetched
         return state
 
     # fetch 4 batches
-    fetch(fetcher, prefetch_iter, 1, indices)
-    fetch(fetcher, prefetch_iter, 2, indices)
-    fetch(fetcher, prefetch_iter, 3, indices)
-    state = fetch(fetcher, prefetch_iter, 4, indices)
+    fetch(fetcher, prefetch_iter, 1)
+    fetch(fetcher, prefetch_iter, 2)
+    fetch(fetcher, prefetch_iter, 3)
+
+    # (A) capture the state after fetching 4 batches
+    state = fetch(fetcher, prefetch_iter, 4)
 
     state = deepcopy(state[0])
 
