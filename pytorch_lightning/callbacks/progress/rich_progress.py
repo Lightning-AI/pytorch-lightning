@@ -21,6 +21,8 @@ if _RICH_AVAILABLE:
     from rich.console import Console
     from rich.progress import BarColumn, Progress, ProgressColumn, SpinnerColumn, TextColumn
     from rich.text import Text
+else:
+    ProgressColumn, TextColumn = None, None
 
 
 class CustomTimeColumn(ProgressColumn):
@@ -77,6 +79,7 @@ class RichProgressBar(ProgressBarBase):
             raise MisconfigurationException("Rich progress bar is not available")
         self._refresh_rate = refresh_rate
         self._enabled = True
+        self._total_val_batches = 0
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
@@ -112,27 +115,36 @@ class RichProgressBar(ProgressBarBase):
             MetricsTextColumn(trainer, stage),
             "]",
             console=self.console,
+            refresh_per_second=self.refresh_rate,
         ).__enter__()
 
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
+        self._total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = total_val_batches * val_checks_per_epoch
+            self._total_val_batches = self._total_val_batches * val_checks_per_epoch
 
-        total_batches = total_train_batches + total_val_batches
+        total_batches = total_train_batches + self._total_val_batches
         self.main_progress_bar = self.progress.add_task(
             f"[red][Epoch {trainer.current_epoch}]",
             total=total_batches,
         )
-        if total_val_batches > 0:
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        super().on_validation_epoch_start(trainer, pl_module)
+        if self._total_val_batches > 0:
             self.val_progress_bar = self.progress.add_task(
                 "[yellow][Validation]",
-                total=total_val_batches,
+                total=self._total_val_batches,
             )
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        super().on_validation_epoch_end(trainer, pl_module)
+        if self.val_progress_bar is not None:
+            self.progress.update(self.val_progress_bar, visible=False)
 
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
@@ -147,7 +159,6 @@ class RichProgressBar(ProgressBarBase):
         if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
             if getattr(self, "progress", None) is not None:
                 self.progress.update(self.main_progress_bar, advance=1.0)
-                self.progress.track(trainer.progress_bar_dict)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -155,7 +166,7 @@ class RichProgressBar(ProgressBarBase):
             self.val_batch_idx, self.total_train_batches + self.total_val_batches
         ):
             if getattr(self, "progress", None) is not None:
-                # self.progress.update(self.main_progress_bar, advance=1.)
+                self.progress.update(self.main_progress_bar, advance=1.0)
                 self.progress.update(self.val_progress_bar, advance=1.0)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
