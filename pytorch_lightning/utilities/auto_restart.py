@@ -66,8 +66,7 @@ class FastForwardSampler(Sampler):
     def __iter__(self) -> Iterator[Any]:
         self._current_iteration = 0
         # the `state dict` was cached as workers were unavailable before.
-        if self._cached_state_dict is not None:  # and self.worker_id in self._cached_state_dict:
-            # reload the current state dict
+        if self._cached_state_dict is not None:
             self._load_non_random_state(self._cached_state_dict)
 
         i = 0
@@ -97,11 +96,7 @@ class FastForwardSampler(Sampler):
 
     def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
         """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
-        return {
-            self.worker_id: {
-                "current_iteration": self._compute_current_iteration(num_batches_processed),
-            }
-        }
+        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         """
@@ -152,9 +147,7 @@ class IteratorState:
 class CollectionIteratorState:
     """This class is used to hold the current iterator state and lives on the iterator."""
 
-    state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(
-        default_factory=lambda: {}
-    )
+    state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
     lastest_worker_id: int = 0
     represent_map_dataset: Optional[bool] = None
 
@@ -210,11 +203,10 @@ class CaptureMapDataset(Dataset):
         worker_info = get_worker_info()
         return worker_info.id if worker_info else 0
 
-    # TODO: only return the state from the latest _get_item()
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                # reset random states
+                # TODO: reset random states
                 pass
             self._cached_state_dict = None
 
@@ -324,15 +316,13 @@ class CaptureIterableDataset(IterableDataset):
         self.iter_data = iter(self.dataset)
 
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
-        if not isinstance(self.iter_data, Generator):
-            self._wrap_generator_samplers()
-        else:
+        if isinstance(self.iter_data, Generator):
             raise MisconfigurationException(
-                "PyTorch Lightning Fault Tolerant doesn't support __iter__ returning a generator. "
-                "Please, use the `__next__` function to fetch the next batch and use a sampler for "
-                "doing your iterations."
+                "PyTorch Lightning Fault Tolerant does not support `__iter__` returning a generator."
+                " Please use the `__next__` function to fetch the next batch and use a sampler for"
+                " doing your iterations."
             )
-
+        self._wrap_generator_samplers()
         return self
 
     def __next__(self) -> Dict[str, Any]:
@@ -529,8 +519,10 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
-def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0):
-    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset)), dataloader.dataset
+def patch_dataloader_iterator(
+    dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0
+) -> None:
+    assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
     def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
         @wraps(fn)
