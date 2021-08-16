@@ -515,8 +515,6 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaing processes, kill otherwise
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-            # give accelerators a chance to finish
-            self.accelerator.teardown()
             self._on_exception()
             # reset bookkeeping
             self.state.stage = None
