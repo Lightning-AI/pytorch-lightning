@@ -14,7 +14,7 @@
 import dataclasses
 import operator
 from abc import ABC
-from collections import Collection, OrderedDict
+from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
@@ -64,54 +64,6 @@ def _is_namedtuple(obj: object) -> bool:
 def _is_dataclass_instance(obj):
     # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
-
-
-def _remove_empty_collection(collection: Collection):
-    if bool(collection):
-        return collection
-    return None
-
-
-def recursively_traverse_for_dtype(obj, func, dtype):
-
-    """
-    This function is used to introspect an object attributes recursively looking a specific dtype.
-    For each instance found, a function would be applied and the result will be stored
-    in the attribute path to find back this object.
-    """
-
-    if isinstance(obj, dtype):
-        return func(obj)
-    if isinstance(obj, Collection) and not isinstance(obj, str):
-        updated = apply_to_collection(
-            obj,
-            object,
-            partial(recursively_traverse_for_dtype, func=func, dtype=dtype),
-            wrong_dtype=Collection,
-            include_none=False,
-        )
-    else:
-        updated = {}
-        try:
-            for k, v in obj.__dict__.items():
-                if isinstance(v, dtype):
-                    updated[k] = func(v)
-                else:
-                    try:
-                        updated[k] = recursively_traverse_for_dtype(v, func, dtype)
-
-                    except AttributeError:
-                        pass
-        except AttributeError:
-            pass
-
-    # may also convert current dict (`updated`) to None
-    new_updated = apply_to_collection(
-        updated, Collection, _remove_empty_collection, include_none=False, wrong_dtype=(torch.Tensor, np.ndarray)
-    )
-    # remove all NoneTypes
-    new_updated = apply_to_collection(new_updated, type(None), _remove_empty_collection, include_none=False)
-    return new_updated
 
 
 def apply_to_collection(

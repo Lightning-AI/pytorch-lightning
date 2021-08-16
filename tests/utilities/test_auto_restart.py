@@ -800,7 +800,6 @@ class RandomGeneratorGetItemDataset(Dataset):
     "dataset_class",
     [
         SequentialGetItemDataset,
-        RandomGetItemDataset,
         # RandomGeneratorGetItemDataset,
     ],
 )

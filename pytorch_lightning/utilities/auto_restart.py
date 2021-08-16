@@ -16,17 +16,12 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from random import getstate as python_get_rng_state
-from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
-import numpy as np
-import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
-# from pytorch_lightning.trainer.supporters import PrefetchIterator
-from pytorch_lightning.utilities.apply_func import apply_to_collection, recursively_traverse_for_dtype
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -83,8 +78,6 @@ class FastForwardSampler(Sampler):
 
         # here: i == self._current_iteration
         if self._cached_state_dict is not None:
-            rng_state = self._cached_state_dict[self.worker_id]["rng_states"]
-            self._set_rng_states(rng_state)
             self._cached_state_dict = None
 
         # recreate iterator to be sure loading is reflected there as well
@@ -107,7 +100,6 @@ class FastForwardSampler(Sampler):
         return {
             self.worker_id: {
                 "current_iteration": self._compute_current_iteration(num_batches_processed),
-                "rng_states": self._get_rng_states(),
             }
         }
 
@@ -140,30 +132,6 @@ class FastForwardSampler(Sampler):
 
     def _load_non_random_state(self, state_dict):
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
-        # self.restarting = True
-
-    def _get_rng_states(self):
-        def _collect(gen: torch.Generator):
-            return gen.get_state()
-
-        states = recursively_traverse_for_dtype(self._sampler, _collect, torch.Generator) or {}
-        states.update(collect_rng_states())
-        return states
-
-    def _set_rng_states(self, rng_state_dict: Dict[str, Any]):
-        set_rng_states(rng_state_dict)
-        # _set_rng_states_on_obj(self._sampler, rng_state_dict)
-
-
-def _set_rng_states_on_obj(obj, rng_state_dict: Dict[str, Any]):
-
-    for k, v in rng_state_dict.items():
-        attr = getattr(obj, k)
-        if isinstance(v, Mapping):
-            _set_rng_states_on_obj(attr, v)
-
-        elif isinstance(attr, torch.Generator):
-            attr.set_state(v)
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -251,7 +219,8 @@ class CaptureMapDataset(Dataset):
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+                # reset random states
+                pass
             self._cached_state_dict = None
 
         data = self.dataset[item]
@@ -275,17 +244,7 @@ class CaptureMapDataset(Dataset):
         self._cached_state_dict = state_dict
 
     def _state_dict(self):
-        return {self.worker_id: {"rng_states": collect_rng_states()}}
-
-
-def collect_rng_states() -> Dict[str, Any]:
-    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
-
-
-def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    torch.set_rng_state(rng_state_dict.get("torch"))
-    np.random.set_state(rng_state_dict.get("numpy"))
-    python_set_rng_state(rng_state_dict.get("python"))
+        return {self.worker_id: {"rng_states": {}}}
 
 
 class CaptureIterableDataset(IterableDataset):

@@ -20,29 +20,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning.utilities.apply_func import (
-    apply_to_collection,
-    apply_to_collections,
-    move_data_to_device,
-    recursively_traverse_for_dtype,
-)
-
-
-def test_recursively_traverse_for_dtype():
-    class TestClass1:
-        def __init__(self):
-            self.f = 12
-            self.g = "string"
-
-    class TestClass2:
-        def __init__(self):
-            self.c = TestClass1()
-            self.e = {"h": TestClass1()}
-            self.i = "string"
-
-    collection = {"a": 12, "b": TestClass2()}
-    expected = {"a": 12, "b": {"c": {"f": 12}, "e": {"h": {"f": 12}}}}
-    assert expected == recursively_traverse_for_dtype(collection, lambda x: x, int)
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 
 
 def test_recursive_application_to_collection():
