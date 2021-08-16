@@ -77,6 +77,7 @@ def apply_to_collection(
 ) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
+
     Args:
         data: the collection to apply the function to
         dtype: the given function will be applied to all elements of this dtype
@@ -86,6 +87,7 @@ def apply_to_collection(
             is of the ``wrong_dtype`` even if it is of type ``dtype``
         include_none: Whether to include an element if the output of ``function`` is ``None``.
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
+
     Returns:
         The resulting collection
     """
@@ -154,6 +156,7 @@ def apply_to_collections(
 ) -> Any:
     """
     Zips two collections and applies a function to their items of a certain dtype.
+
     Args:
         data1: The first collection
         data2: The second collection
@@ -163,8 +166,10 @@ def apply_to_collections(
         wrong_dtype: the given function won't be applied if this type is specified and the given collections
             is of the ``wrong_dtype`` even if it is of type ``dtype``
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
+
     Returns:
         The resulting collection
+
     Raises:
         AssertionError:
             If sequence collections have different data sizes.
@@ -231,12 +236,15 @@ def move_data_to_device(batch: Any, device: torch.device):
     """
     Transfers a collection of data to the given device. Any object that defines a method
     ``to(device)`` will be moved and all other objects in the collection will be left untouched.
+
     Args:
         batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
             See :func:`apply_to_collection` for a list of supported collection types.
         device: The device to which the data should be moved
+
     Return:
         the same collection but with all contained tensors residing on the new device.
+
     See Also:
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`

@@ -130,7 +130,7 @@ class FastForwardSampler(Sampler):
 
         return current_iteration
 
-    def _load_non_random_state(self, state_dict):
+    def _load_non_random_state(self, state_dict: Dict[int, Dict[str, Any]]) -> None:
         self._current_iteration = state_dict[self.worker_id]["current_iteration"]
 
 
@@ -150,9 +150,7 @@ class IteratorState:
 
 @dataclass
 class CollectionIteratorState:
-    """
-    This class is used to hold the current iterator state and lives on the iterator.
-    """
+    """This class is used to hold the current iterator state and lives on the iterator."""
 
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(
         default_factory=lambda: {}
@@ -174,11 +172,11 @@ class CollectionIteratorState:
         self.lastest_worker_id = lastest_worker_id
 
     @property
-    def sampler_states(self) -> Dict:
+    def sampler_states(self) -> Dict[int, Any]:
         return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
 
     @property
-    def dataset_states(self) -> Dict:
+    def dataset_states(self) -> Dict[int, Any]:
         return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
 
     @classmethod
@@ -201,10 +199,7 @@ class CollectionIteratorState:
 
 
 class CaptureMapDataset(Dataset):
-
-    """
-    This class is used to capture the state from the map-based state dataset.
-    """
+    """This class is used to capture the state from the map-based state dataset."""
 
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
@@ -243,7 +238,7 @@ class CaptureMapDataset(Dataset):
             }
         self._cached_state_dict = state_dict
 
-    def _state_dict(self):
+    def _state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": {}}}
 
 
@@ -325,7 +320,7 @@ class CaptureIterableDataset(IterableDataset):
 
     def __iter__(self) -> Iterator:
         # create a generator from the wrapped Iterative Dataset
-        # if the dataset contained samplers, they will be transformers into generators
+        # if the dataset contained samplers, they will be transformeed into generators
         self.iter_data = iter(self.dataset)
 
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
@@ -368,7 +363,9 @@ class CaptureIterableDataset(IterableDataset):
         """
         This function is used to remove the sampler state dict from provided data batch.
         The custom data has this format:
+
         .. code-block:: python
+
             {
                 "batch": ...,  # data returned by DataLoader
                 "__pl_samplers": {
@@ -379,6 +376,7 @@ class CaptureIterableDataset(IterableDataset):
                     "sampler1": ...,
                 },
             }
+
         Each sampler in the worker process tracks the current iteration. We return all of them to the main process
         as part of the sample and then a special collate function :func:`_sampler_metadata_collate`
         will extract the current iteration as part of the metadata returned by a custom batch.
@@ -511,7 +509,9 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
     A collate function that adds the state dict of all samplers used in the worker processes.
     This function gets executed within the worker processes.
     The structure will be:
+
     .. code-block:: python
+
         {
             "data": ...,  # data returned by Dataset
             "__pl_samplers": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
@@ -535,7 +535,7 @@ def _sampler_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 def patch_dataloader_iterator(dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0):
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset)), dataloader.dataset
 
-    def _next_data_wrapper(fn, it, dl, num_batches_fetched):
+    def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
         @wraps(fn)
         def wrapper():
             nonlocal num_batches_fetched
