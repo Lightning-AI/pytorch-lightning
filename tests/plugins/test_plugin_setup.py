@@ -11,23 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
-import pytest
-from typing import Optional
-from pytorch_lightning import Trainer, LightningDataModule, Callback
-from torch.utils.data import DataLoader
-from tests.helpers.boring_model import BoringModel, RandomDataset
-from pytorch_lightning.utilities.distributed import distributed_available
-from tests.helpers.runif import RunIf
 from contextlib import suppress
+from typing import Optional
+
+import pytest
+import torch
+from torch.utils.data import DataLoader
+
+from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.utilities.distributed import distributed_available
+from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
+
 
 class TestModel(BoringModel):
-
     def setup(self, stage: Optional[str]) -> None:
         self.has_setup = distributed_available()
 
-class PlDataModule(LightningDataModule):
 
+class PlDataModule(LightningDataModule):
     def prepare_data(self):
         self._has_prepared = distributed_available()
 
@@ -56,7 +58,9 @@ class PlDataModule(LightningDataModule):
 def _test_has_prepared_and_setup(tmpdir, plugins):
     model = TestModel()
     dm = PlDataModule()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, plugins=plugins, limit_train_batches=1, limit_val_batches=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, gpus=2, plugins=plugins, limit_train_batches=1, limit_val_batches=1
+    )
     trainer.fit(model, dm)
 
 
@@ -64,13 +68,16 @@ def _test_has_prepared_and_setup(tmpdir, plugins):
 def test_has_prepared_and_setup_ddp(tmpdir):
     _test_has_prepared_and_setup(tmpdir, "ddp")
 
+
 @RunIf(min_gpus=2, special=True)
 def test_has_prepared_and_setup_ddp_sharded(tmpdir):
     _test_has_prepared_and_setup(tmpdir, "ddp_sharded")
 
+
 @RunIf(min_gpus=2, special=True)
 def test_has_prepared_and_setup_deepseed(tmpdir):
     _test_has_prepared_and_setup(tmpdir, "deepspeed")
+
 
 @RunIf(min_gpus=2, special=True)
 def test_has_prepared_and_setup_ddp_spawn(tmpdir):

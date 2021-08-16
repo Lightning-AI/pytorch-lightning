@@ -341,7 +341,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 config = json.load(f)
         return config
 
-    def setup_distributed(self, trainer: 'pl.Trainer') -> None:
+    def setup_distributed(self, trainer: "pl.Trainer") -> None:
         super().setup_distributed(trainer)
         if not self._config_initialized:
             self._format_config()
