@@ -22,7 +22,6 @@ from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingEpochLoop(loops.Loop):
@@ -48,8 +47,6 @@ class TrainingEpochLoop(loops.Loop):
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
-        self._dataloader_idx: Optional[int] = None
-        self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
 
     @property
@@ -87,7 +84,6 @@ class TrainingEpochLoop(loops.Loop):
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self.is_last_batch = False
-        self._dataloader_idx = 0
 
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
@@ -120,12 +116,12 @@ class TrainingEpochLoop(loops.Loop):
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
         with self.trainer.profiler.profile("training_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
+            batch = self.trainer.accelerator.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx)
+            batch_output = self.batch_loop.run(batch, self.batch_idx)
 
         self.batch_progress.increment_processed()
 
@@ -143,9 +139,7 @@ class TrainingEpochLoop(loops.Loop):
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
-        self.trainer.call_hook(
-            "on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, self._dataloader_idx
-        )
+        self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
