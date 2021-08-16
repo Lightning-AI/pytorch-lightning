@@ -841,9 +841,6 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataset, random_sampler = create_dataset_sampler()
     _, random_sampler_1 = create_dataset_sampler()
 
-    indices = list(random_sampler_1)
-    assert indices == [6, 15, 9, 0, 13, 10, 5, 12, 11, 2, 7, 4, 1, 14, 8, 3]
-
     ff_sampler = FastForwardSampler(random_sampler)
     ff_sampler.setup(batch_size)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
