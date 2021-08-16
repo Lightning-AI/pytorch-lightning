@@ -75,13 +75,12 @@ class TrainingBatchLoop(Loop):
     def connect(self, **kwargs: "Loop") -> None:
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
-    def run(self, batch: Any, batch_idx: int, dataloader_idx: int) -> AttributeDict:
+    def run(self, batch: Any, batch_idx: int) -> AttributeDict:
         """Runs all the data splits and the ``on_batch_start`` and ``on_train_batch_start`` hooks
 
         Args:
             batch: the current batch to run the train step on
             batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
         """
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
@@ -94,13 +93,13 @@ class TrainingBatchLoop(Loop):
             return AttributeDict(signal=-1)
 
         # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
+        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
         if response == -1:
             return AttributeDict(signal=-1)
 
         self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
-        super().run(batch, batch_idx, dataloader_idx)
+        super().run(batch, batch_idx)
         output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
         self.batch_outputs = None  # free memory
         return output
@@ -110,26 +109,24 @@ class TrainingBatchLoop(Loop):
         self._hiddens = None
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-    def on_run_start(self, batch: Any, batch_idx: int, dataloader_idx: int):
+    def on_run_start(self, batch: Any, batch_idx: int):
         """Splits the data into tbptt splits
 
         Args:
             batch: the current batch to run the trainstep on
             batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
         """
-        void(batch_idx, dataloader_idx)
+        void(batch_idx)
         self._remaining_splits = list(enumerate(self._tbptt_split_batch(batch)))
 
-    def advance(self, batch, batch_idx, dataloader_idx):
+    def advance(self, batch, batch_idx):
         """Runs the train step together with optimization (if necessary) on the current batch split
 
         Args:
             batch: the current batch to run the training on (this is not the split!)
             batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
         """
-        void(batch, dataloader_idx)
+        void(batch)
         split_idx, split_batch = self._remaining_splits.pop(0)
         self.split_idx = split_idx
 
