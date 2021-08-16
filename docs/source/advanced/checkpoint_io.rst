@@ -6,7 +6,7 @@ Custom Checkpointing IO
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
 that is managed by the ``TrainingTypePlugin``.
 
-``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a `Trainer`` object or a``TrainingTypePlugin`` as shown below.
+``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` object or a ``TrainingTypePlugin`` as shown below.
 
 .. code-block:: python
 
