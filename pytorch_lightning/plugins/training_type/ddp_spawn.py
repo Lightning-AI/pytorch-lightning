@@ -25,6 +25,7 @@ from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -62,14 +63,19 @@ class DDPSpawnPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Any,
     ):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+        )
         if num_nodes is not None:
             rank_zero_deprecation(
                 "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
@@ -136,7 +142,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _is_single_process_single_device(self):
         return True
 
-    def setup(self, model):
+    def setup(self) -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         # pass in a state q
         smp = mp.get_context("spawn")
@@ -205,6 +211,9 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
+
+        # ensure that spawned processes go through teardown before joining
+        trainer._call_teardown_hook()
 
     def post_dispatch(self):
         # restore main state with best weights

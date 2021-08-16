@@ -77,7 +77,7 @@ class LightningLoggerBase(ABC):
         Called after model checkpoint callback saves a new checkpoint
 
         Args:
-            model_checkpoint: the model checkpoint callback instance
+            checkpoint_callback: the model checkpoint callback instance
         """
         pass
 
@@ -417,11 +417,11 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return "_".join([str(logger.name) for logger in self._logger_iterable])
+        return "_".join(str(logger.name) for logger in self._logger_iterable)
 
     @property
     def version(self) -> str:
-        return "_".join([str(logger.version) for logger in self._logger_iterable])
+        return "_".join(str(logger.version) for logger in self._logger_iterable)
 
 
 class DummyExperiment:

@@ -126,7 +126,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 log_gpu_memory=None,
                 distributed_backend=None,
                 weights_save_path=None,
-                truncated_bptt_steps=None,
                 resume_from_checkpoint=None,
                 profiler=None,
             ),
@@ -402,17 +401,18 @@ def test_lightning_cli_help():
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
+    out = out.getvalue()
 
-    assert "--print_config" in out.getvalue()
-    assert "--config" in out.getvalue()
-    assert "--seed_everything" in out.getvalue()
-    assert "--model.help" in out.getvalue()
-    assert "--data.help" in out.getvalue()
+    assert "--print_config" in out
+    assert "--config" in out
+    assert "--seed_everything" in out
+    assert "--model.help" in out
+    assert "--data.help" in out
 
     skip_params = {"self"}
     for param in inspect.signature(Trainer.__init__).parameters.keys():
         if param not in skip_params:
-            assert f"--trainer.{param}" in out.getvalue()
+            assert f"--trainer.{param}" in out
 
     cli_args = ["any.py", "--data.help=tests.helpers.BoringDataModule"]
     out = StringIO()
@@ -423,7 +423,6 @@ def test_lightning_cli_help():
 
 
 def test_lightning_cli_print_config():
-
     cli_args = [
         "any.py",
         "--seed_everything=1234",
@@ -687,3 +686,12 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
     assert isinstance(cli.model.optim1, torch.optim.Adam)
     assert isinstance(cli.model.optim2, torch.optim.SGD)
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
+
+
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_disabled_run(run):
+    with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
+        cli = LightningCLI(BoringModel, run=run)
+    fit_mock.call_count == run
+    assert isinstance(cli.trainer, Trainer)
+    assert isinstance(cli.model, LightningModule)

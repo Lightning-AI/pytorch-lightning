@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
@@ -22,9 +21,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingEpochLoop(loops.Loop):
@@ -41,10 +38,7 @@ class TrainingEpochLoop(loops.Loop):
         self.min_steps: int = min_steps
         self.max_steps: int = max_steps
         self.global_step: int = 0
-        # the total batch index across all epochs
-        self.total_batch_idx: int = 0
-        # the current split index when the batch gets split into chunks in truncated backprop through time
-        self.split_idx: Optional[int] = None
+        # manually tracking which is the last batch is necessary for iterable dataset support
         self.is_last_batch: Optional[bool] = None
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
@@ -53,9 +47,14 @@ class TrainingEpochLoop(loops.Loop):
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
-        self._dataloader_idx: Optional[int] = None
-        self._warning_cache: WarningCache = WarningCache()
         self._epoch_output: Optional[List[List[STEP_OUTPUT]]] = None
+
+    @property
+    def total_batch_idx(self) -> int:
+        """Returns the current batch index (across epochs)"""
+        # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
+        # but before the next `ready` increase
+        return self.batch_progress.total.ready - 1
 
     @property
     def batch_idx(self) -> int:
@@ -85,7 +84,6 @@ class TrainingEpochLoop(loops.Loop):
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run"""
         self.is_last_batch = False
-        self._dataloader_idx = 0
 
         # track epoch output
         self._epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
@@ -118,12 +116,12 @@ class TrainingEpochLoop(loops.Loop):
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
         with self.trainer.profiler.profile("training_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=self._dataloader_idx)
+            batch = self.trainer.accelerator.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, self.batch_idx, self._dataloader_idx)
+            batch_output = self.batch_loop.run(batch, self.batch_idx)
 
         self.batch_progress.increment_processed()
 
@@ -141,9 +139,7 @@ class TrainingEpochLoop(loops.Loop):
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
-        self.trainer.call_hook(
-            "on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, self._dataloader_idx
-        )
+        self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
@@ -180,13 +176,8 @@ class TrainingEpochLoop(loops.Loop):
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
-        self.total_batch_idx += 1
-
         # progress global step according to grads progress
         self._increment_accumulated_grad_global_step()
-
-        if self.done:
-            raise StopIteration
 
     def on_run_end(self) -> List[List[STEP_OUTPUT]]:
         """Calls the on_epoch_end hook.
@@ -227,11 +218,12 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
         # call train epoch end hooks
-        self._on_train_epoch_end_hook(processed_outputs)
+        self.trainer.call_hook("on_train_epoch_end")
         self.trainer.call_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-        self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
+        if self._num_training_batches_reached(self.is_last_batch):
+            self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
         epoch_output = self._epoch_output
         # free memory
@@ -249,47 +241,6 @@ class TrainingEpochLoop(loops.Loop):
 
         with torch.no_grad():
             self.val_loop.run()
-
-    def _on_train_epoch_end_hook(self, processed_epoch_output: List[List[STEP_OUTPUT]]) -> None:
-        """Runs ``on_train_epoch_end hook``."""
-        # We cannot rely on Trainer.call_hook because the signatures might be different across
-        # lightning module and callback
-        # As a result, we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
-
-        # This implementation is copied from Trainer.call_hook
-        hook_name = "on_train_epoch_end"
-        prev_fx_name = self.trainer.lightning_module._current_fx_name
-        self.trainer.lightning_module._current_fx_name = hook_name
-
-        # always profile hooks
-        with self.trainer.profiler.profile(hook_name):
-
-            # first call trainer hook
-            if hasattr(self.trainer, hook_name):
-                trainer_hook = getattr(self.trainer, hook_name)
-                trainer_hook(processed_epoch_output)
-
-            # next call hook in lightningModule
-            model_ref = self.trainer.lightning_module
-            if is_overridden(hook_name, model_ref):
-                hook_fx = getattr(model_ref, hook_name)
-                if is_param_in_hook_signature(hook_fx, "outputs"):
-                    self._warning_cache.deprecation(
-                        "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
-                        " `outputs` parameter has been deprecated."
-                        " Support for the old signature will be removed in v1.5"
-                    )
-                    model_ref.on_train_epoch_end(processed_epoch_output)
-                else:
-                    model_ref.on_train_epoch_end()
-
-            # call the accelerator hook
-            if hasattr(self.trainer.accelerator, hook_name):
-                accelerator_hook = getattr(self.trainer.accelerator, hook_name)
-                accelerator_hook()
-
-        # restore current_fx when nested context
-        self.trainer.lightning_module._current_fx_name = prev_fx_name
 
     def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""
@@ -313,39 +264,17 @@ class TrainingEpochLoop(loops.Loop):
         self, epoch_output: List[List[STEP_OUTPUT]], batch_end_outputs: STEP_OUTPUT
     ) -> None:
         """Adds the batch outputs to the epoch outputs and prepares reduction"""
-        hook_overridden = self._should_add_batch_output_to_epoch_output()
+        hook_overridden = is_overridden("training_epoch_end", self.trainer.lightning_module)
         if not hook_overridden:
             return
 
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
             # with 1 step (no tbptt) don't use a sequence at epoch end
-            if (
-                isinstance(opt_outputs, list)
-                and len(opt_outputs) == 1
-                and not isinstance(opt_outputs[0], ResultCollection)
-            ):
+            if isinstance(opt_outputs, list) and len(opt_outputs) == 1:
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
-
-    def _should_add_batch_output_to_epoch_output(self) -> bool:
-        """
-        We add to the epoch outputs if
-        1. The model defines training_epoch_end OR
-        2. The model overrides on_train_epoch_end which has `outputs` in the signature
-        """
-        # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
-        lightning_module = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", lightning_module):
-            return True
-
-        if is_overridden("on_train_epoch_end", lightning_module):
-            model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
-            if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                return True
-
-        return False
 
     @staticmethod
     def _prepare_outputs(
@@ -382,9 +311,10 @@ class TrainingEpochLoop(loops.Loop):
                     batch_outputs = [batch_outputs]
 
                 for tbptt_output in batch_outputs:
-                    out = tbptt_output.extra
+                    out = {}
                     if tbptt_output.minimize is not None:
                         out["loss"] = tbptt_output.minimize.detach()
+                    out.update(tbptt_output.extra)
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension
@@ -416,7 +346,7 @@ class TrainingEpochLoop(loops.Loop):
         """Increments global step according to grads progress"""
         if not self._should_accumulate():
             self.global_step = self.trainer.accelerator.update_global_step(
-                self.total_batch_idx, self.trainer.global_step
+                self.batch_progress.current.ready, self.trainer.global_step
             )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:

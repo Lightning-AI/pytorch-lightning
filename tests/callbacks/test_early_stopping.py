@@ -76,7 +76,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     checkpoint = torch.load(checkpoint_filepath)
     # the checkpoint saves "epoch + 1"
     early_stop_callback_state = early_stop_callback.saved_states[checkpoint["epoch"] - 1]
-    assert checkpoint["callbacks"][type(early_stop_callback)] == early_stop_callback_state
+    assert 4 == len(early_stop_callback.saved_states)
+    assert checkpoint["callbacks"]["EarlyStoppingTestRestore"] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, monitor="train_loss")
@@ -131,7 +132,6 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
-        val_check_interval=1.0,
         num_sanity_val_steps=0,
         max_epochs=10,
         progress_bar_refresh_rate=0,
@@ -416,3 +416,31 @@ def test_multiple_early_stopping_callbacks(
         num_processes=num_processes,
     )
     trainer.fit(model)
+
+
+def test_check_on_train_epoch_end_with_val_check_interval(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", 1)
+            return super().validation_step(batch, batch_idx)
+
+    model = TestModel()
+    val_check_interval, limit_train_batches = 0.3, 10
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        val_check_interval=val_check_interval,
+        max_epochs=1,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=1,
+        callbacks=EarlyStopping(monitor="foo"),
+        progress_bar_refresh_rate=0,
+    )
+
+    side_effect = [(False, "A"), (True, "B")]
+    with mock.patch(
+        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
+    ) as es_mock:
+        trainer.fit(model)
+
+    assert es_mock.call_count == len(side_effect)
+    assert trainer.global_step == len(side_effect) * int(limit_train_batches * val_check_interval)

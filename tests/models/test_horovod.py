@@ -23,12 +23,12 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 from torch import optim
+from torchmetrics.classification.accuracy import Accuracy
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
@@ -242,8 +242,6 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
-# todo: need to be fixed :]
-@pytest.mark.skip("TODO: flaky test - Fatal Python error: Aborted")
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
@@ -377,8 +375,6 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-# todo: need to be fixed :]
-@pytest.mark.skip("TODO: flaky test - Fatal Python error: Aborted")
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     class TestModel(BoringModel):

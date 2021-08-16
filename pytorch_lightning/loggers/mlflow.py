@@ -66,10 +66,8 @@ class MLFlowLogger(LightningLoggerBase):
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import MLFlowLogger
-        mlf_logger = MLFlowLogger(
-            experiment_name="default",
-            tracking_uri="file:./ml-runs"
-        )
+
+        mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
     Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
@@ -77,6 +75,8 @@ class MLFlowLogger(LightningLoggerBase):
     .. code-block:: python
 
         from pytorch_lightning import LightningModule
+
+
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # example
@@ -163,8 +163,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.tags = self.tags or {}
                 if MLFLOW_RUN_NAME in self.tags:
                     log.warning(
-                        f"The tag {MLFLOW_RUN_NAME} is found in tags. "
-                        f"The value will be overridden by {self._run_name}."
+                        f"The tag {MLFLOW_RUN_NAME} is found in tags. The value will be overridden by {self._run_name}."
                     )
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))

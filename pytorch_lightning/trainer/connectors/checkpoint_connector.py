@@ -15,9 +15,10 @@
 import os
 import re
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
+from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -141,6 +142,12 @@ class CheckpointConnector:
         # restore model state_dict
         self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
 
+        # reset metrics states on non-rank 0 as all states have been accumulated on rank 0 via syncing on checkpointing.
+        if not self.trainer.is_global_zero:
+            for module in self.trainer.lightning_module.modules():
+                if isinstance(module, Metric):
+                    module.reset()
+
     def restore_model_weights(self, checkpoint_path: Optional[Union[str, Path]]) -> None:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
@@ -221,7 +228,10 @@ class CheckpointConnector:
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
-        if not self._loaded_checkpoint:
+        if (
+            not self._loaded_checkpoint
+            or not self.trainer.training_type_plugin.lightning_restore_optimizer_and_schedulers
+        ):
             return
 
         # validation
@@ -293,9 +303,7 @@ class CheckpointConnector:
         except AttributeError as err:
             if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-            rank_zero_warn(
-                "warning, `hyper_parameters` dropped from checkpoint." f" An attribute is not picklable {err}"
-            )
+            rank_zero_warn(f"warning, `hyper_parameters` dropped from checkpoint. An attribute is not picklable {err}")
             atomic_save(checkpoint, filepath)
 
         return filepath
@@ -308,7 +316,7 @@ class CheckpointConnector:
             structured dictionary: {
                 'epoch':                     training epoch
                 'global_step':               training global step
-                'pytorch-lightning_version': PyTorch Lightning's version
+                'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
                 'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
@@ -338,7 +346,7 @@ class CheckpointConnector:
             "epoch": current_epoch,
             "global_step": global_step,
             "pytorch-lightning_version": pl.__version__,
-            "state_dict": self.trainer.accelerator.lightning_module_state_dict(),
+            "state_dict": self._get_lightning_module_state_dict(),
         }
         if _fault_tolerant_enabled():
             checkpoint["loops"] = self._get_loops_state_dict()
@@ -440,7 +448,27 @@ class CheckpointConnector:
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)
 
-    def _get_loops_state_dict(self):
+    def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
+        metrics = (
+            [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
+            if _fault_tolerant_enabled()
+            else []
+        )
+
+        for metric in metrics:
+            metric.persistent(True)
+            metric.sync()
+
+        state_dict = self.trainer.accelerator.lightning_module_state_dict()
+
+        for metric in metrics:
+            # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check
+            if metric._is_synced:
+                metric.unsync()
+
+        return state_dict
+
+    def _get_loops_state_dict(self) -> Dict[str, Any]:
         return {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),

@@ -24,7 +24,6 @@ import pytest
 import torch
 from torchmetrics import Accuracy
 
-import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -211,74 +210,6 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     # make sure types are correct
     assert trainer.logged_metrics["foo"] == result
     assert trainer.logged_metrics["bar"] == result
-
-
-def test_tbptt_log(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
-    truncated_bptt_steps = 2
-    sequence_size = 30
-    batch_size = 30
-
-    x_seq = torch.rand(batch_size, sequence_size, 1)
-    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
-
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
-        def __getitem__(self, i):
-            return x_seq, y_seq_list
-
-        def __len__(self):
-            return 1
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.test_hidden = None
-            self.layer = torch.nn.Linear(2, 2)
-
-        def training_step(self, batch, batch_idx, hiddens):
-            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            if hiddens is not None:
-                assert hiddens.grad_fn is None
-            self.test_hidden = torch.tensor(2.0, requires_grad=True).pow(2)
-
-            x_tensor, y_list = batch
-            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
-
-            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
-            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
-
-            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
-
-            self.log("a", loss, on_epoch=True)
-
-            return {"loss": loss, "hiddens": self.test_hidden}
-
-        def on_train_epoch_start(self) -> None:
-            self.test_hidden = None
-
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None
-            )
-
-    model = TestModel()
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=10,
-        limit_val_batches=0,
-        truncated_bptt_steps=truncated_bptt_steps,
-        max_epochs=2,
-        log_every_n_steps=2,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
 
 
 def test_different_batch_types_for_sizing(tmpdir):
@@ -551,7 +482,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             self.log("on_epoch_end", 5)
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             self.log("on_train_epoch_end", 6)
 
     model = BoringModel()
@@ -581,7 +512,7 @@ def test_metric_are_properly_reduced(tmpdir):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
-            self.val_acc = pl.metrics.Accuracy()
+            self.val_acc = Accuracy()
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)

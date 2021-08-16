@@ -1,6 +1,7 @@
 .. testsetup:: *
 
-    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.callbacks import StochasticWeightAveraging
 
 .. _training_tricks:
 
@@ -46,7 +47,7 @@ If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` b
     trainer = Trainer(gradient_clip_val=0.5)  # gradient_clip_algorithm='norm' by default
 
     # clip gradients' maximum magnitude to <=0.5
-    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value')
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm="value")
 
 ----------
 
@@ -57,14 +58,17 @@ This can be used with both non-trained and trained models. The SWA procedure smo
 it harder to end up in a local minimum during optimization.
 
 For a more detailed explanation of SWA and how it works,
-read `this <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ post by the PyTorch team.
+read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
 
-.. seealso:: :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging` (Callback)
+.. seealso:: The :class:`~pytorch_lightning.callbacks.StochasticWeightAveraging` callback
 
 .. testcode::
 
-    # Enable Stochastic Weight Averaging
+    # Enable Stochastic Weight Averaging - uses the class defaults
     trainer = Trainer(stochastic_weight_avg=True)
+
+    # alternatively, if you need to pass custom arguments
+    trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
 
 ----------
 
@@ -82,7 +86,7 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     trainer = Trainer(auto_scale_batch_size=None)
 
     # Autoscale batch size
-    trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
+    trainer = Trainer(auto_scale_batch_size=None | "power" | "binsearch")
 
     # find the batch size
     trainer.tune(model)
@@ -107,7 +111,7 @@ search for batch sizes larger than the size of the training dataset.
     .. code-block:: python
 
         def train_dataloader(self):
-            return DataLoader(train_dataset, batch_size=self.batch_size|self.hparams.batch_size)
+            return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
 
 .. warning::
 

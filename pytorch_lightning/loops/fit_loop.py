@@ -63,18 +63,18 @@ class FitLoop(Loop):
 
     @property
     def total_batch_idx(self) -> int:
-        """Returns the total number of batches already run (across all epochs)"""
+        """Returns the current batch index (across epochs)"""
         return self.epoch_loop.total_batch_idx
 
     @property
     def batch_idx(self) -> int:
-        """Returns the number of batches already run within this epoch"""
+        """Returns the current batch index (within this epoch)"""
         return self.epoch_loop.batch_idx
 
     @property
     def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt"""
-        return self.epoch_loop.split_idx
+        return self.epoch_loop.batch_loop.split_idx
 
     @property
     def min_steps(self) -> int:
@@ -224,15 +224,6 @@ class FitLoop(Loop):
 
         # hook
         self.trainer.call_hook("on_train_end")
-
-        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
-        # It might be related to xla tensors blocked when moving the cpu
-        # kill loggers
-        if self.trainer.logger is not None:
-            self.trainer.logger.finalize("success")
-
-        # summarize profile results
-        self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()

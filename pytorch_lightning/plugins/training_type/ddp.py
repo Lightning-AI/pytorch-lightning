@@ -32,6 +32,7 @@ from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import (
     _HYDRA_AVAILABLE,
@@ -75,14 +76,19 @@ class DDPPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+        )
         self.interactive_ddp_procs = []
         if num_nodes is not None:
             rank_zero_deprecation(
@@ -178,9 +184,6 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # create a temporary directory used to synchronize processes on deadlock.
-        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -412,8 +415,18 @@ class DDPPlugin(ParallelPlugin):
     def _share_information_to_prevent_deadlock(self):
         self._share_pids()
 
-        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+        # there should be a unique sync_dir per nodes.
+        if self.local_rank == 0:
+            # create a temporary directory used to synchronize processes on deadlock.
+            self._sync_dir = tempfile.mkdtemp()
+
+        sync_dirs = []
+        global_node_rank_zero = 0
+        for _ in range(self.num_nodes):
+            sync_dirs.append(self.broadcast(self._sync_dir, global_node_rank_zero))
+            global_node_rank_zero += self.world_size // self.num_nodes
+
+        self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
         """
@@ -438,11 +451,11 @@ class DDPPlugin(ParallelPlugin):
 
         # return if all processes wrote a file in the `sync_dir`.
         # todo (tchaton) Add support for non-shared file-system which will fail.
-        if len(os.listdir(sync_dir)) == self.world_size:
+        if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
         for pid in self._pids:
             if pid != os.getpid():
                 os.kill(pid, signal.SIGKILL)
-            shutil.rmtree(sync_dir)
-            raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+        shutil.rmtree(sync_dir)
+        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")

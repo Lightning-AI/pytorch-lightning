@@ -17,7 +17,7 @@ Abstract base class used to build new callbacks.
 """
 
 import abc
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 import torch
 from torch.optim import Optimizer
@@ -32,6 +32,21 @@ class Callback(abc.ABC):
 
     Subclass this class and override any of the relevant hooks
     """
+
+    @property
+    def state_id(self) -> str:
+        """
+        Identifier for the state of the callback. Used to store and retrieve a callback's state from the
+        checkpoint dictionary by ``checkpoint["callbacks"][state_id]``. Implementations of a callback need to
+        provide a unique state id if 1) the callback has state and 2) it is desired to maintain the state of
+        multiple instances of that callback.
+        """
+        return self.__class__.__qualname__
+
+    @property
+    def _legacy_state_id(self) -> Type["Callback"]:
+        """State identifier for checkpoints saved prior to version 1.5.0."""
+        return type(self)
 
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before configure sharded model"""
@@ -94,9 +109,7 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
-    ) -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the train epoch ends.
 
         To access all batch outputs at the end of the epoch, either:

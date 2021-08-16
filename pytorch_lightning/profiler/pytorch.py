@@ -374,7 +374,7 @@ class PyTorchProfiler(BaseProfiler):
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
             try:
-                torch.autograd._disable_profiler()  # noqa
+                torch.autograd._disable_profiler()
             except (AttributeError, RuntimeError):
                 pass
 

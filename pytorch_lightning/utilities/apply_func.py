@@ -101,7 +101,9 @@ def apply_to_collection(
     if isinstance(data, Mapping):
         out = []
         for k, v in data.items():
-            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                v, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+            )
             if include_none or v is not None:
                 out.append((k, v))
         return elem_type(OrderedDict(out))
@@ -111,7 +113,9 @@ def apply_to_collection(
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
-            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                d, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+            )
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
@@ -119,7 +123,15 @@ def apply_to_collection(
     if _is_dataclass_instance(data):
         out = {}
         for field in data.__dataclass_fields__:
-            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                getattr(data, field),
+                dtype,
+                function,
+                *args,
+                wrong_dtype=wrong_dtype,
+                include_none=include_none,
+                **kwargs
+            )
             if include_none or v is not None:
                 out[field] = v
         return elem_type(**out)

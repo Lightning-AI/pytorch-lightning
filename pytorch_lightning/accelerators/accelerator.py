@@ -75,15 +75,14 @@ class Accelerator:
         """
         self.training_type_plugin.setup_environment(trainer)
 
-    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
         Args:
             trainer: the trainer instance
-            model: the LightningModule
         """
-        self.setup_training_type_plugin(model)
+        self.setup_training_type_plugin()
         if not self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -156,9 +155,7 @@ class Accelerator:
         """
         self.training_type_plugin.teardown()
 
-    def batch_to_device(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
-    ) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -172,7 +169,7 @@ class Accelerator:
 
         if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
             # no need to transfer batch to device in DP mode
-            return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
 
         return move_data_to_device(batch, device)
 
@@ -334,9 +331,9 @@ class Accelerator:
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, model: "pl.LightningModule") -> None:
+    def setup_training_type_plugin(self) -> None:
         """Attaches the training type plugin to the accelerator."""
-        self.training_type_plugin.setup(model)
+        self.training_type_plugin.setup()
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator"""
@@ -411,22 +408,6 @@ class Accelerator:
         """
         return self.training_type_plugin.process_dataloader(dataloader)
 
-    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the train dataloader."""
-        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
-
-    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the val dataloader."""
-        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
-
-    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the test dataloader."""
-        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
-
-    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the predict dataloader."""
-        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
-
     @property
     def results(self) -> Any:
         """
@@ -460,7 +441,7 @@ class Accelerator:
         rank_zero_warn(
             "Accelerator method `connect_training_type_plugin` was deprecated in v1.3. It will be removed in v1.5."
         )
-        self.setup_training_type_plugin(model)
+        self.setup_training_type_plugin()
 
     # todo: remove in v1.5
     def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
@@ -509,6 +490,17 @@ class Accelerator:
             If True, delay setup optimizers until `pre_dispatch`, else call within `setup`.
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
+
+    @property
+    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+        """
+        Override to delay restoring from checkpoint till after pre-dispatch.
+        This is useful when the plugin requires all the setup hooks to run before loading checkpoint.
+
+        Returns:
+            If true, restore checkpoint after pre_dispatch.
+        """
+        return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
