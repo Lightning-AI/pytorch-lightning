@@ -195,15 +195,14 @@ python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
 
-Additionally, for testing backward compatibility with older versions of Pytorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
+Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
 
 ```bash
-cd legacy
-wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
-unzip -o checkpoints.zip
+wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
+unzip -o legacy/checkpoints.zip -d legacy/
 ```
 
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of Pytorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
+Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
 
 You can run the full test-case in your terminal via this make script:
 
