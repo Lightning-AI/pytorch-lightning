@@ -591,7 +591,6 @@ class ResultCollection(dict):
 
     def to(self, *args, **kwargs) -> "ResultCollection":
         """Move all data to the given device."""
-        # the meta reference is lost there for ``ResultMetricCollection``.
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
         if self.minimize is not None:
