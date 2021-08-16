@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest.mock import Mock
 
 import pytest
@@ -22,9 +21,9 @@ from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE
 from tests.helpers import BoringModel
+from tests.helpers.process_group import single_process_pg
 from tests.helpers.runif import RunIf
 
 
@@ -317,16 +316,9 @@ class BoringModelWithShardedTensor(BoringModel):
     not _TORCH_SHARDED_TENSOR_AVAILABLE, reason="Test requires the torch version to support `ShardedTensor`"
 )
 def test_sharded_tensor_state_dict(tmpdir):
-    orig_environ = os.environ.copy()
-    try:
-        # Initialize the global process group since sharded tensor factory
-        # functions depends on a process group
-        os.environ["MASTER_ADDR"] = "localhost"
-        os.environ["MASTER_PORT"] = str(find_free_network_port())
-        os.environ["RANK"] = "0"
-        os.environ["WORLD_SIZE"] = "1"
-        dist.init_process_group("gloo")
-
+    # Initialize the global process group since sharded tensor factory
+    # functions depend on a process group
+    with single_process_pg():
         spec = dist._sharding_spec.ChunkShardingSpec(
             dim=0,
             placements=[
@@ -347,6 +339,3 @@ def test_sharded_tensor_state_dict(tmpdir):
         assert torch.allclose(
             m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor
         ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
-    finally:
-        os.environ.clear()
-        os.environ.update(orig_environ)
