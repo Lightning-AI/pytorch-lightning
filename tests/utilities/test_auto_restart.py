@@ -777,7 +777,7 @@ class SequentialGetItemDataset(Dataset):
         self.len = length
 
     def __getitem__(self, index):
-        return index
+        return torch.tensor([index]).float()
 
     def __len__(self):
         return self.len
@@ -900,18 +900,6 @@ class CustomException(Exception):
     pass
 
 
-class TestDataset(Dataset):
-    def __init__(self, length, *_):
-        self.len = length
-
-    def __getitem__(self, index):
-        return torch.tensor([index]).float()
-        # return torch.rand(1)
-
-    def __len__(self):
-        return self.len
-
-
 class TestIterableDataset(IterableDataset):
     def __init__(self, length, *_):
         self.len = length
@@ -946,7 +934,9 @@ class TestModel(LightningModule):
 
 def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
     seed_everything(1)
-    train_dataloader = [DataLoader(dataset_class(6), batch_size=2, num_workers=0) for dataset_class in dataset_classes]
+    train_dataloader = [
+        DataLoader(dataset_class(6, 1), batch_size=2, num_workers=0) for dataset_class in dataset_classes
+    ]
     train_dataloader = train_dataloader[0] if len(train_dataloader) == 1 else train_dataloader
     model = TestModel(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
@@ -960,9 +950,10 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
 @pytest.mark.parametrize(
     "dataset_classes",
     [
-        [TestDataset],
+        [RandomGetItemDataset],
         [TestIterableDataset],
-        [TestDataset, TestIterableDataset],  # combined dataset
+        [SequentialGetItemDataset, TestIterableDataset],  # combined dataset
+        [RandomGetItemDataset, TestIterableDataset],  # combined dataset
     ],
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
