@@ -373,6 +373,7 @@ class DataHooks:
     """Hooks to be used for data related stuff."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._prepare_data_per_node: bool = True
 
     def prepare_data(self) -> None:
