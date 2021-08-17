@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union
+from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -26,7 +26,7 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.prefetcher: Optional[DataFetcher] = None
+        self.data_fetcher: Optional[DataFetcher] = None
 
     def on_trainer_init(
         self,
@@ -60,10 +60,10 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def get_profiled_train_dataloader(self, train_dataloader):
-        self.prefetcher = DataFetcher()
-        self.prefetcher.setup(train_dataloader)
-        prefetcher_iter = iter(self.prefetcher)
+    def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
+        self.data_fetcher = DataFetcher()
+        self.data_fetcher.setup(train_dataloader)
+        prefetcher_iter = iter(self.data_fetcher)
         profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
         return profiled_dl
 

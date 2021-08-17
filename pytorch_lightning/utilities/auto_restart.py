@@ -24,6 +24,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataFetcher
 
 
 class FastForwardSampler(Sampler):
@@ -515,7 +516,7 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 
 
 def patch_dataloader_iterator(
-    dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0
+    dataloader: DataLoader, iterator: Iterator, data_fecher: DataFetcher, num_batches_fetched: int = 0
 ) -> None:
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
@@ -554,7 +555,7 @@ def patch_dataloader_iterator(
                         num_batches_fetched=num_batches_fetched,
                     )
                 ]
-            prefetcher._store_dataloader_iter_state(it, state)
+            data_fecher: DataFetcher._store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper

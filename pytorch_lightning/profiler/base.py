@@ -78,7 +78,7 @@ class BaseProfiler(AbstractProfiler):
         self._stage: Optional[str] = None
 
     @contextmanager
-    def profile(self, action_name: str) -> None:
+    def profile(self, action_name: str) -> Generator:
         """
         Yields a context manager to encapsulate the scope of a profiled action.
 
