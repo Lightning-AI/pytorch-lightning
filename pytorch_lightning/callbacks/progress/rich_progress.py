@@ -21,60 +21,54 @@ if _RICH_AVAILABLE:
     from rich.console import Console
     from rich.progress import BarColumn, Progress, ProgressColumn, SpinnerColumn, TextColumn
     from rich.text import Text
-else:
-    ProgressColumn, TextColumn, Text = None, None, None
 
+    class CustomTimeColumn(ProgressColumn):
 
-class CustomTimeColumn(ProgressColumn):
+        # Only refresh twice a second to prevent jitter
+        max_refresh = 0.5
 
-    # Only refresh twice a second to prevent jitter
-    max_refresh = 0.5
+        def render(self, task) -> Text:
+            elapsed = task.finished_time if task.finished else task.elapsed
+            remaining = task.time_remaining
+            elapsed_delta = "-:--:--" if elapsed is None else str(timedelta(seconds=int(elapsed)))
+            remaining_delta = "-:--:--" if remaining is None else str(timedelta(seconds=int(remaining)))
+            return Text.from_markup(f"[progress.elapsed]{elapsed_delta} < [progress.remaining]{remaining_delta}")
 
-    def render(self, task) -> Text:
-        elapsed = task.finished_time if task.finished else task.elapsed
-        remaining = task.time_remaining
-        elapsed_delta = "-:--:--" if elapsed is None else str(timedelta(seconds=int(elapsed)))
-        remaining_delta = "-:--:--" if remaining is None else str(timedelta(seconds=int(remaining)))
-        return Text.from_markup(f"[progress.elapsed]{elapsed_delta} < [progress.remaining]{remaining_delta}")
+    class BatchesProcessedColumn(ProgressColumn):
+        def render(self, task) -> Text:
+            return Text.from_markup(f"[magenta] {int(task.completed)}/{task.total}")
 
+    class ProcessingSpeedColumn(ProgressColumn):
+        def render(self, task) -> Text:
+            task_speed = f"{task.speed:>.2f}" if task.speed is not None else "0.00"
+            return Text.from_markup(f"[progress.data.speed] {task_speed}it/s")
 
-class BatchesProcessedColumn(ProgressColumn):
-    def render(self, task) -> Text:
-        return Text.from_markup(f"[magenta] {int(task.completed)}/{task.total}")
+    class MetricsTextColumn(ProgressColumn):
+        """A column containing text."""
 
+        def __init__(self, trainer, stage):
+            self._trainer = trainer
+            self._stage = stage
+            self._tasks = {}
+            self._current_task_id = 0
+            super().__init__()
 
-class ProcessingSpeedColumn(ProgressColumn):
-    def render(self, task) -> Text:
-        task_speed = f"{task.speed:>.2f}" if task.speed is not None else "0.00"
-        return Text.from_markup(f"[progress.data.speed] {task_speed}it/s")
-
-
-class MetricsTextColumn(ProgressColumn):
-    """A column containing text."""
-
-    def __init__(self, trainer, stage):
-        self._trainer = trainer
-        self._stage = stage
-        self._tasks = {}
-        self._current_task_id = 0
-        super().__init__()
-
-    def render(self, task) -> Text:
-        if self._stage == "test" or self._trainer.sanity_checking:
-            return ""
-        if "red" in task.description and task.id not in self._tasks:
-            self._tasks[task.id] = "None"
-            if self._renderable_cache:
-                self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
-            self._current_task_id = task.id
-        if "red" in task.description and task.id != self._current_task_id:
-            return self._tasks[task.id]
-        _text = ""
-        if "red" in task.description or "yellow" in task.description:
-            for k, v in self._trainer.progress_bar_dict.items():
-                _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
-        text = Text.from_markup(_text, style=None, justify="left")
-        return text
+        def render(self, task) -> Text:
+            if self._stage == "test" or self._trainer.sanity_checking:
+                return ""
+            if "red" in task.description and task.id not in self._tasks:
+                self._tasks[task.id] = "None"
+                if self._renderable_cache:
+                    self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
+                self._current_task_id = task.id
+            if "red" in task.description and task.id != self._current_task_id:
+                return self._tasks[task.id]
+            _text = ""
+            if "red" in task.description or "yellow" in task.description:
+                for k, v in self._trainer.progress_bar_dict.items():
+                    _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
+            text = Text.from_markup(_text, style=None, justify="left")
+            return text
 
 
 class RichProgressBar(ProgressBarBase):

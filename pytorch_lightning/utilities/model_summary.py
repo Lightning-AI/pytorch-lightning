@@ -333,9 +333,13 @@ class ModelSummary:
         table = Table(title="Model Summary")
 
         table.add_column(" ")
-        table.add_column("Name", arrays[1][1], justify="left", style="cyan", no_wrap=True)
-        table.add_column("Type", arrays[2][1], style="magenta")
-        table.add_column("Params", arrays[3][1], justify="right", style="green")
+        table.add_column("Name", justify="left", style="cyan", no_wrap=True)
+        table.add_column("Type", style="magenta")
+        table.add_column("Params", justify="right", style="green")
+
+        if self._model.example_input_array is not None:
+            table.add_column("In sizes", justify="right", style="green")
+            table.add_column("Out sizes", justify="right", style="green")
 
         rows = list(zip(*(arr[1] for arr in arrays)))
         for row in rows:
