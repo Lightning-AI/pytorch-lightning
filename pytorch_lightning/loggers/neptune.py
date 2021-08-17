@@ -55,6 +55,8 @@ if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
+
+
 log = logging.getLogger(__name__)
 
 INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
@@ -229,14 +231,39 @@ class NeptuneLogger(LightningLoggerBase):
 
     def __init__(
             self,
+            *,  # force users to call `NeptuneLogger` initializer with `kwargs`
             api_key: Optional[str] = None,
             project: Optional[str] = None,
             close_after_fit: Optional[bool] = True,
             name: Optional[str] = None,
-            run: Optional[str] = None,
+            run: Optional['Run'] = None,
             prefix: str = "",
             base_namespace: str = "",
             **neptune_run_kwargs):
+
+        # verify if user passed proper init arguments
+        self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
+
+        super().__init__()
+        self._api_key = api_key
+        self._project = project
+        self._name = name
+        self._neptune_run_kwargs = neptune_run_kwargs
+        self._close_after_fit = close_after_fit
+        self._prefix = prefix
+        self._base_namespace = base_namespace
+
+        self._run_instance = run  # if run is None, instance will be initialized in first call to `run()`
+
+    @staticmethod
+    def _verify_input_arguments(
+            api_key: Optional[str],
+            project: Optional[str],
+            name: Optional[str],
+            run: Optional['Run'],
+            neptune_run_kwargs: dict):
+
+        # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
         used_legacy_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs
             if legacy_kwarg in LEGACY_NEPTUNE_INIT_KWARGS
@@ -250,17 +277,23 @@ class NeptuneLogger(LightningLoggerBase):
                 "You should use arguments accepted by either NeptuneLogger.init or neptune.init"
             )
 
-        super().__init__()
-        self._project = project
-        self._api_key = api_key
-        self._neptune_run_kwargs = neptune_run_kwargs
-        self._close_after_fit = close_after_fit
-        self._name = name
-        self._run_to_load = run  # particular id of exp to load e.g. "ABC-42"
-        self._prefix = prefix
-        self._base_namespace = base_namespace
+        # check if user passed new client `Run` object
+        if run is not None and not isinstance(run, Run):
+            raise ValueError(
+                "Run parameter expected to be of type `neptune.new.Run`.\n"
+                " NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"
+                " (learn more: https://neptune.ai/blog/neptune-new)."
+            )
 
-        self._run_instance = None
+        # check if user passed redundant neptune.init arguments when passed run
+        any_neptune_init_arg_passed = any(
+            (arg is not None for arg in [api_key, project, name])
+        ) or neptune_run_kwargs
+        if run is not None and any_neptune_init_arg_passed:
+            raise ValueError(
+                "When run object is passed you can't specify other neptune properties.\n"
+                " (learn more: https://neptune.ai/blog/neptune-new)."
+            )
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -296,7 +329,6 @@ class NeptuneLogger(LightningLoggerBase):
                 self._run_instance = neptune.init(
                     project=self._project,
                     api_token=self._api_key,
-                    run=self._run_to_load,
                     name=self._name,
                     **self._neptune_run_kwargs,
                 )
@@ -310,7 +342,7 @@ class NeptuneLogger(LightningLoggerBase):
         return self._run_instance
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:    # skipcq: PYL-W0221
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
         r"""
         Log hyper-parameters to the run.
 
