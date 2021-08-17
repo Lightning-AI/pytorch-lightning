@@ -100,7 +100,7 @@ class FastForwardSampler(Sampler):
     def __len__(self) -> int:
         return len(self._sampler)
 
-    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
+    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
         """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {
             self.worker_id: {
