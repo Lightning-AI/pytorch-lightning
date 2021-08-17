@@ -1,6 +1,6 @@
 ---
-name: Refactoring or deprecation
-about: Refactoring or deprecation
+name: Code improvement
+about: Suggest a code improvement, i.e. refactoring, deprecation, etc.
 title: ''
 labels: enhancement, help wanted
 assignees: ''
@@ -8,7 +8,7 @@ assignees: ''
 
 ## Proposed refactoring or deprecation
 
-<!-- A clear and concise description of the refactoring or deprecation -->
+<!-- A clear and concise description of the code improvement -->
 
 ### Motivation
 
@@ -17,10 +17,6 @@ assignees: ''
 ### Pitch
 
 <!-- A clear and concise description of what you want to happen. -->
-
-### Alternatives
-
-<!-- A clear and concise description of any alternative solutions you've considered, if any. -->
 
 ### Additional context
 
