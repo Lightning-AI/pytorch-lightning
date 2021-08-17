@@ -139,7 +139,7 @@ class IteratorState:
     name: Optional[str] = None
 
     @classmethod
-    def load_state_dict(cls, state_dict) -> "IteratorState":
+    def from_state_dict(cls, state_dict) -> "IteratorState":
         return cls(**state_dict)
 
 
@@ -167,15 +167,15 @@ class MergedIteratorState:
         self.latest_worker_id = latest_worker_id
 
     @classmethod
-    def load_state_dict(cls, state_dict) -> "MergedIteratorState":
+    def from_state_dict(cls, state_dict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
             state_dict["state"] = {
-                worker_id: IteratorState.load_state_dict(state) for worker_id, state in state_dict["state"].items()
+                worker_id: IteratorState.from_state_dict(state) for worker_id, state in state_dict["state"].items()
             }
         else:
             state_dict["state"] = {
                 sampler_name: {
-                    worker_id: IteratorState.load_state_dict(state) for worker_id, state in worker_state.items()
+                    worker_id: IteratorState.from_state_dict(state) for worker_id, state in worker_state.items()
                 }
                 for sampler_name, worker_state in state_dict["state"].items()
             }
