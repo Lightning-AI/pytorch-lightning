@@ -15,9 +15,10 @@
 from typing import Callable, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.supporters import CombinedLoader, LightningFetcher
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import LightningDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -26,7 +27,7 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.prefetcher: Optional[LightningFetcher]
+        self.prefetcher: Optional[LightningDataFetcher]
 
     def on_trainer_init(
         self,
@@ -61,7 +62,7 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader):
-        self.prefetcher = LightningFetcher()
+        self.prefetcher = LightningDataFetcher()
         self.prefetcher.setup(train_dataloader)
         prefecter_iter = iter(self.prefetcher)
         assert isinstance(train_dataloader, CombinedLoader)

@@ -34,7 +34,6 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
-from pytorch_lightning.trainer.supporters import LightningFetcher
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
@@ -46,6 +45,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import LightningDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -844,7 +844,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     ff_sampler = FastForwardSampler(random_sampler)
     ff_sampler.setup(batch_size)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
-    fetcher = LightningFetcher()
+    fetcher = LightningDataFetcher()
     fetcher.setup(dataloader)
     prefetch_iter = iter(fetcher)
 
@@ -883,7 +883,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataset.load_state_dict(state.dataset_states, latest_worker_id=state.lastest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
-    prefetcher = LightningFetcher()
+    prefetcher = LightningDataFetcher()
     prefetcher.setup(dataloader)
     prefetch_iter = iter(prefetcher)
 
