@@ -40,7 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_TRAINING_ENABLED
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -169,7 +169,7 @@ class TrainerDataLoadingMixin(ABC):
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if _fault_tolerant_enabled():
+            if _FAULT_TOLERANT_TRAINING_ENABLED:
                 fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
                 fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -181,7 +181,7 @@ class TrainerDataLoadingMixin(ABC):
                 "drop_last": False,
             }
 
-        if _fault_tolerant_enabled():
+        if _FAULT_TOLERANT_TRAINING_ENABLED:
             fast_forward_sampler = sampler = FastForwardSampler(sampler)
             fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
@@ -251,7 +251,7 @@ class TrainerDataLoadingMixin(ABC):
             dl_kwargs["batch_sampler"] = None
             dl_kwargs["sampler"] = None
 
-        if _fault_tolerant_enabled():
+        if _FAULT_TOLERANT_TRAINING_ENABLED:
             if isinstance(dl_kwargs["dataset"], IterableDataset):
                 # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
@@ -315,7 +315,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # add collate_fn to collect metadata for fault tolerant training
-        if _fault_tolerant_enabled():
+        if _FAULT_TOLERANT_TRAINING_ENABLED:
             apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
