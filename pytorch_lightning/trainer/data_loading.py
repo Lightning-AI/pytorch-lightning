@@ -32,10 +32,8 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
-    _add_capture_metadata_collate,
     _capture_metadata_collate,
     CaptureIterableDataset,
-    CaptureMapDataset,
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -249,16 +247,9 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        if _fault_tolerant_enabled():
-            if isinstance(dl_kwargs["dataset"], IterableDataset):
-                dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-                dl_kwargs["sampler"] = None
-            elif len(dl_kwargs["dataset"]):
-                dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen, please open an issue on Lightning Github repository."
-                )
+        if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
+            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+            dl_kwargs["sampler"] = None
 
         if isinstance(dl_kwargs["dataset"], IterableDataset):
             del dl_kwargs["sampler"]
@@ -318,7 +309,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_enabled():
-            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
+            apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
@@ -531,3 +522,12 @@ class TrainerDataLoadingMixin(ABC):
             dataloader = list(dataloader)
         self.accelerator.barrier("get_dataloaders")
         return dataloader
+
+    @staticmethod
+    def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
+        """
+        Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
+        """
+        dataloader.collate_fn = partial(
+            _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        )

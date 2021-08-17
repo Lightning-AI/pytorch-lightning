@@ -16,12 +16,8 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from random import getstate as python_get_rng_state
-from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
-import numpy as np
-import torch
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
@@ -40,13 +36,11 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(
-        self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None, current_iteration: Optional[int] = 0
-    ) -> None:
+    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
-        self._current_iteration = current_iteration
+        self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -98,14 +92,9 @@ class FastForwardSampler(Sampler):
     def __len__(self) -> int:
         return len(self._sampler)
 
-    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
+    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
-        return {
-            self.worker_id: {
-                "current_iteration": self._compute_current_iteration(num_batches_processed),
-                "rng_states": collect_rng_states(),
-            }
-        }
+        return {self.worker_id: {"current_iteration": self._compute_current_iteration(num_batches_processed)}}
 
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         """
@@ -215,7 +204,8 @@ class CaptureMapDataset(Dataset):
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+                # TODO: reset random states
+                pass
             self._cached_state_dict = None
 
         data = self.dataset[item]
@@ -238,20 +228,8 @@ class CaptureMapDataset(Dataset):
             }
         self._cached_state_dict = state_dict
 
-    def _state_dict(self):
-        return {self.worker_id: {"rng_states": collect_rng_states()}}
-
-
-def collect_rng_states() -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
-    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
-
-
-def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
-    torch.set_rng_state(rng_state_dict.get("torch"))
-    np.random.set_state(rng_state_dict.get("numpy"))
-    python_set_rng_state(rng_state_dict.get("python"))
+    def _state_dict(self) -> Dict[int, Dict[str, Any]]:
+        return {self.worker_id: {"rng_states": {}}}
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -280,7 +258,7 @@ class CaptureIterableDataset(IterableDataset):
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self._state_dict = deepcopy(state_dict)
 
-    def _wrap_generator_samplers(self, current_iteration: int = 0) -> None:
+    def _wrap_generator_samplers(self) -> None:
         self.samplers = {}
 
         # access wrapped dataset attributes
@@ -314,9 +292,7 @@ class CaptureIterableDataset(IterableDataset):
             if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a `FastForwardSampler`
-                sampler = FastForwardSampler(
-                    generator, attr_name=generator_attr_name, current_iteration=current_iteration
-                )
+                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
                 # if `CaptureIterableDataset` was available, the sampler should reload its own state.
                 if self._state_dict is not None:
@@ -344,7 +320,7 @@ class CaptureIterableDataset(IterableDataset):
                 " Please use the `__next__` function to fetch the next batch and use a sampler for"
                 " doing your iterations."
             )
-        self._wrap_generator_samplers(current_iteration=0)
+        self._wrap_generator_samplers()
         return self
 
     def __next__(self) -> Dict[str, Any]:
