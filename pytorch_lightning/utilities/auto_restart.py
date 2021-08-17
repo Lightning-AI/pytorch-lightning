@@ -153,14 +153,15 @@ class MergedIteratorState:
     latest_worker_id: int = 0
     represent_map_dataset: Optional[bool] = None
 
-    def update(self, iter_name: Optional[str], new_state: IteratorState) -> None:
-        self.represent_map_dataset = iter_name is None
+    def update(self, generator_name: Optional[str], new_state: IteratorState) -> None:
+        # a map based dataset doesn't own a generator and therefore `generator_name` should be None.
+        self.represent_map_dataset = generator_name is None
         if self.represent_map_dataset:
             state = self.state
         else:
-            if iter_name not in self.state:
-                self.state[iter_name] = {}
-            state = self.state[iter_name]
+            if generator_name not in self.state:
+                self.state[generator_name] = {}
+            state = self.state[generator_name]
 
         latest_worker_id = new_state.worker_id
         state[latest_worker_id] = new_state
