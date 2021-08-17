@@ -24,12 +24,12 @@ from pytorch_lightning.plugins.environments.lightning_environment import find_fr
 def single_process_pg():
     """
     Initialize the default process group with only the current process for
-    testing purposes. The process group is destoryed when the with block is
+    testing purposes. The process group is destroyed when the with block is
     exited.
     """
     if dist.is_initialized():
         raise RuntimeError(
-            "Can't use `single_process_pg_for_test` when the default process group is already initialized."
+            "Can't use `single_process_pg ` when the default process group is already initialized."
         )
 
     orig_environ = os.environ.copy()
