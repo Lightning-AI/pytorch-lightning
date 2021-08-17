@@ -102,9 +102,8 @@ class TrainingEpochLoop(loops.Loop):
             self.scheduler_progress.current.reset()
             self.batch_loop.optim_progress.reset_on_epoch()
 
-    def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         # hook
-        self._dataloader_iter = dataloader_iter
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
