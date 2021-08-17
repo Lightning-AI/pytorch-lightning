@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -642,7 +642,7 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(max_torch="1.7")
 def test_fault_tolerant_not_supported():
-    assert not _FAULT_TOLERANT_ENABLED
+    assert not _fault_tolerant_training()
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):

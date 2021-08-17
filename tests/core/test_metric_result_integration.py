@@ -28,7 +28,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync, MetricSource, ResultCollection
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED, _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -384,7 +384,7 @@ def result_collection_reload(**kwargs):
     and final accumulation with Fault Tolerant Training is correct.
     """
 
-    if not _FAULT_TOLERANT_ENABLED:
+    if not _fault_tolerant_training():
         pytest.skip("Fault tolerant not available")
 
     num_processes = kwargs.get("gpus", 1)

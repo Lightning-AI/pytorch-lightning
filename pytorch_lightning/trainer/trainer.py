@@ -77,7 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
@@ -1344,7 +1344,7 @@ class Trainer(
             )
 
     def _on_exception(self):
-        if not _FAULT_TOLERANT_ENABLED:
+        if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")

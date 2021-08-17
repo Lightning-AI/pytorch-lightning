@@ -102,5 +102,7 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
+
 # experimental feature within PyTorch Lightning.
-_FAULT_TOLERANT_ENABLED = _TORCH_GREATER_EQUAL_1_7 and int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
+def _fault_tolerant_training() -> bool:
+    return _TORCH_GREATER_EQUAL_1_7 and int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
