@@ -17,7 +17,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Union, Generator
+from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
