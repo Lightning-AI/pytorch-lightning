@@ -318,7 +318,7 @@ class CaptureIterableDataset(IterableDataset):
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
         if isinstance(self.iter_data, Generator):
             raise MisconfigurationException(
-                "PyTorch Lightning Fault Tolerant does not support `__iter__` returning a generator."
+                "PyTorch Lightning Fault-Tolerant feature does not support `__iter__` returning a generator."
                 " Please use the `__next__` function to fetch the next batch and use a sampler for"
                 " doing your iterations."
             )
