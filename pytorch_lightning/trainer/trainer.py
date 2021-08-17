@@ -1348,4 +1348,8 @@ class Trainer(
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
+
+        # if a previous `pl_auto_save` was saved, delete it.
+        if os.path.exists(file_path):
+            os.remove(file_path)
         self.save_checkpoint(file_path)

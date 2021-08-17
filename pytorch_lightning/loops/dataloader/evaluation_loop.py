@@ -20,6 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.supporters import LightningFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -98,7 +99,11 @@ class EvaluationLoop(DataLoaderLoop):
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        dataloader_iter = enumerate(dataloader)
+
+        # prepare the fetcher
+        prefecther = LightningFetcher()
+        prefecther.setup(dataloader)
+        dataloader_iter = enumerate(prefecther)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(

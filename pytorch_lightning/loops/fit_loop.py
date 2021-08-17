@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Optional
+from typing import Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -234,3 +234,12 @@ class FitLoop(Loop):
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
+
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(False)
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+        self.trainer.train_dataloader.load_state_dict(state_dict.get("dataloader_state_dict"))
