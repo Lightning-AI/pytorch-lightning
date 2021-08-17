@@ -173,14 +173,6 @@ class CollectionIteratorState:
         state[latest_worker_id] = new_state
         self.latest_worker_id = latest_worker_id
 
-    @property
-    def sampler_states(self) -> Dict[int, Any]:
-        return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
-
-    @property
-    def dataset_states(self) -> Dict[int, Any]:
-        return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
-
     @classmethod
     def load_state_dict(cls, state_dict) -> "CollectionIteratorState":
         if state_dict["represent_map_dataset"]:
