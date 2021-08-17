@@ -14,8 +14,8 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Union
 from multiprocessing.queues import SimpleQueue
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
