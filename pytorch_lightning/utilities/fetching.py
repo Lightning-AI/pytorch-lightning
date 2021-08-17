@@ -24,8 +24,8 @@ from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
-    CollectionIteratorState,
     IteratorState,
+    MergedIteratorState,
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -95,7 +95,7 @@ class AbstractFetcher(ABC):
             dataloader_iter.cache_states = {}
 
         if getattr(dataloader_iter, "state", None) is None:
-            dataloader_iter.state = CollectionIteratorState()
+            dataloader_iter.state = MergedIteratorState()
 
         for iter_state in dataloader_iter_states:
             iter_name = iter_state.name

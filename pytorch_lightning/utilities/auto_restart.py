@@ -129,6 +129,8 @@ class FastForwardSampler(Sampler):
 
 @dataclass(frozen=True, unsafe_hash=True)
 class IteratorState:
+    """The state of an iterator in a single worker process."""
+
     dataset_state: Dict[int, Any] = field(default_factory=dict)
     sampler_state: Dict[int, Any] = field(default_factory=dict)
     worker_id: int = 0
@@ -137,49 +139,44 @@ class IteratorState:
     name: Optional[str] = None
 
     @classmethod
-    def load_state_dict(cls, state_dict) -> "IteratorState":
+    def from_state_dict(cls, state_dict) -> "IteratorState":
         return cls(**state_dict)
 
 
 @dataclass
-class CollectionIteratorState:
-    """This class is used to hold the current iterator state and lives on the iterator."""
+class MergedIteratorState:
+    """This class is used to hold the current iterator state and lives on the iterator. It holds the current merged
+    states from all worker processes. Once an iterator advances, it can store updates of the worker states in this
+    merged iterator state."""
 
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
     latest_worker_id: int = 0
     represent_map_dataset: Optional[bool] = None
 
-    def update(self, iter_name: Optional[str], new_state: IteratorState) -> None:
-        self.represent_map_dataset = iter_name is None
+    def update(self, generator_name: Optional[str], new_state: IteratorState) -> None:
+        # a map based dataset doesn't own a generator and therefore `generator_name` should be None.
+        self.represent_map_dataset = generator_name is None
         if self.represent_map_dataset:
             state = self.state
         else:
-            if iter_name not in self.state:
-                self.state[iter_name] = {}
-            state = self.state[iter_name]
+            if generator_name not in self.state:
+                self.state[generator_name] = {}
+            state = self.state[generator_name]
 
         latest_worker_id = new_state.worker_id
         state[latest_worker_id] = new_state
         self.latest_worker_id = latest_worker_id
 
-    @property
-    def sampler_states(self) -> Dict[int, Any]:
-        return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
-
-    @property
-    def dataset_states(self) -> Dict[int, Any]:
-        return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
-
     @classmethod
-    def load_state_dict(cls, state_dict) -> "CollectionIteratorState":
+    def from_state_dict(cls, state_dict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
             state_dict["state"] = {
-                worker_id: IteratorState.load_state_dict(state) for worker_id, state in state_dict["state"].items()
+                worker_id: IteratorState.from_state_dict(state) for worker_id, state in state_dict["state"].items()
             }
         else:
             state_dict["state"] = {
                 sampler_name: {
-                    worker_id: IteratorState.load_state_dict(state) for worker_id, state in worker_state.items()
+                    worker_id: IteratorState.from_state_dict(state) for worker_id, state in worker_state.items()
                 }
                 for sampler_name, worker_state in state_dict["state"].items()
             }
