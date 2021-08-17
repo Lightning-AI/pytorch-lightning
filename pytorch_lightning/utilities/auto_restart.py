@@ -129,6 +129,8 @@ class FastForwardSampler(Sampler):
 
 @dataclass(frozen=True, unsafe_hash=True)
 class IteratorState:
+    """The state of an iterator in a single worker process."""
+
     dataset_state: Dict[int, Any] = field(default_factory=dict)
     sampler_state: Dict[int, Any] = field(default_factory=dict)
     worker_id: int = 0
@@ -143,7 +145,9 @@ class IteratorState:
 
 @dataclass
 class MergedIteratorState:
-    """This class is used to hold the current iterator state and lives on the iterator."""
+    """This class is used to hold the current iterator state and lives on the iterator. It holds the current merged
+    states from all worker processes. Once an iterator advances, it can store updates of the worker states in this
+    merged iterator state."""
 
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
     latest_worker_id: int = 0
