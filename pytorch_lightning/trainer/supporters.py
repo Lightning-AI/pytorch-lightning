@@ -426,7 +426,7 @@ class CombinedLoader:
                 # reload dataset state
                 dataset.load_state_dict(
                     iterator_state.dataset_state,
-                    latest_worker_id=state_dict["lastest_worker_id"],
+                    latest_worker_id=state_dict["latest_worker_id"],
                     num_workers=iterator_state.num_workers,
                 )
 

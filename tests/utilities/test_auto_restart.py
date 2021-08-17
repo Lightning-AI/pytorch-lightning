@@ -880,7 +880,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
 
     # load the state dict saved at (A)
     ff_sampler.load_state_dict(state.sampler_states)
-    dataset.load_state_dict(state.dataset_states, latest_worker_id=state.lastest_worker_id, num_workers=num_workers)
+    dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
     prefetcher = LightningDataFetcher()
