@@ -66,12 +66,6 @@ def _is_dataclass_instance(obj):
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
-def _remove_empty_collection(collection: Collection):
-    if bool(collection):
-        return collection
-    return None
-
-
 def apply_to_collection(
     data: Any,
     dtype: Union[type, tuple],
