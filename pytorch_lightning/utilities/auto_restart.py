@@ -142,7 +142,7 @@ class IteratorState:
 
 
 @dataclass
-class CollectionIteratorState:
+class MergedIteratorState:
     """This class is used to hold the current iterator state and lives on the iterator."""
 
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
@@ -163,7 +163,7 @@ class CollectionIteratorState:
         self.latest_worker_id = latest_worker_id
 
     @classmethod
-    def load_state_dict(cls, state_dict) -> "CollectionIteratorState":
+    def load_state_dict(cls, state_dict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
             state_dict["state"] = {
                 worker_id: IteratorState.load_state_dict(state) for worker_id, state in state_dict["state"].items()
