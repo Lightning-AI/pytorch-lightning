@@ -20,10 +20,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning.utilities.apply_func import (
-    apply_to_collection,
-    apply_to_collections,
-)
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 
 
 def test_recursive_application_to_collection():

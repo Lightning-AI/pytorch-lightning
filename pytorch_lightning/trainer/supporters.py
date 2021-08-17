@@ -32,9 +32,9 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     CaptureMapDataset,
     CollectionIteratorState,
+    hash_rng_state,
     IteratorState,
     patch_dataloader_iterator,
-    hash_rng_state,
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
