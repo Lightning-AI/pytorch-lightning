@@ -56,8 +56,11 @@ class Closure(ABC):
 
     @property
     def result(self) -> ClosureResult:
-        """The cached result from the last time the closure was called."""
-        return self._result
+        """The cached result from the last time the closure was called. Once accessed, the internal reference
+        gets reset and the consumer will have to hold on to the reference as long as necessary."""
+        result = self._result
+        self._result = None  # free memory
+        return result
 
     @abstractmethod
     def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
