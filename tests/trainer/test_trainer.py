@@ -1933,7 +1933,6 @@ class TrainerStagesErrorsModel(BoringModel):
     [
         (None, 1),
         pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True)),
-        pytest.param("ddp", 2, marks=RunIf(skip_windows=True, special=True)),
     ],
 )
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
