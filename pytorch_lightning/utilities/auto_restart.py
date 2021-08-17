@@ -312,7 +312,7 @@ class CaptureIterableDataset(IterableDataset):
 
     def __iter__(self) -> Iterator:
         # create a generator from the wrapped Iterative Dataset
-        # if the dataset contained samplers, they will be transformeed into generators
+        # if the dataset contained samplers, they will be transformed into generators
         self.iter_data = iter(self.dataset)
 
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
