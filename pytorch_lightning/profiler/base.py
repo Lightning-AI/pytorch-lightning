@@ -17,7 +17,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -96,7 +96,7 @@ class BaseProfiler(AbstractProfiler):
         finally:
             self.stop(action_name)
 
-    def profile_iterable(self, iterable, action_name: str) -> Generator:
+    def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
         iterator = iter(iterable)
         while True:
             try:
