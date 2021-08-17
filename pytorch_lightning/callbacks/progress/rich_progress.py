@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
+from typing import Dict
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _RICH_AVAILABLE:
-    from rich.console import Console
+    from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, SpinnerColumn, TextColumn
     from rich.text import Text
 
@@ -35,11 +36,11 @@ if _RICH_AVAILABLE:
             return Text.from_markup(f"[progress.elapsed]{elapsed_delta} < [progress.remaining]{remaining_delta}")
 
     class BatchesProcessedColumn(ProgressColumn):
-        def render(self, task) -> Text:
+        def render(self, task) -> RenderableType:
             return Text.from_markup(f"[magenta] {int(task.completed)}/{task.total}")
 
     class ProcessingSpeedColumn(ProgressColumn):
-        def render(self, task) -> Text:
+        def render(self, task) -> RenderableType:
             task_speed = f"{task.speed:>.2f}" if task.speed is not None else "0.00"
             return Text.from_markup(f"[progress.data.speed] {task_speed}it/s")
 
@@ -54,21 +55,29 @@ if _RICH_AVAILABLE:
             super().__init__()
 
         def render(self, task) -> Text:
-            if self._stage == "test" or self._trainer.sanity_checking:
+            if self._trainer.sanity_checking:
                 return ""
-            if "red" in task.description and task.id not in self._tasks:
+            if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
                 if self._renderable_cache:
                     self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
                 self._current_task_id = task.id
-            if "red" in task.description and task.id != self._current_task_id:
+            if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
             _text = ""
-            if "red" in task.description or "yellow" in task.description:
-                for k, v in self._trainer.progress_bar_dict.items():
-                    _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
+            for k, v in self._trainer.progress_bar_dict.items():
+                _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             text = Text.from_markup(_text, style=None, justify="left")
             return text
+
+
+STYLES: Dict[str, str] = {
+    "train": "red",
+    "sanity_check": "yellow",
+    "validate": "yellow",
+    "test": "yellow",
+    "predict": "yellow",
+}
 
 
 class RichProgressBar(ProgressBarBase):
@@ -81,9 +90,12 @@ class RichProgressBar(ProgressBarBase):
         self._refresh_rate = refresh_rate
         self._enabled = True
         self._total_val_batches = 0
+        self.progress = None
+        self.val_sanity_progress_bar = None
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
+        self.predict_progress_bar = None
         self.console = Console(record=True)
 
     @property
@@ -122,7 +134,7 @@ class RichProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_sanity_progress_bar = self.progress.add_task(
-            "[yellow][Validation Sanity Check]",
+            f"[{STYLES['sanity_check']}][Validation Sanity Check]",
             total=trainer.num_sanity_val_steps,
         )
 
@@ -141,7 +153,7 @@ class RichProgressBar(ProgressBarBase):
 
         total_batches = total_train_batches + self._total_val_batches
         self.main_progress_bar = self.progress.add_task(
-            f"[red][Epoch {trainer.current_epoch}]",
+            f"[{STYLES['train']}][Epoch {trainer.current_epoch}]",
             total=total_batches,
         )
 
@@ -149,7 +161,7 @@ class RichProgressBar(ProgressBarBase):
         super().on_validation_epoch_start(trainer, pl_module)
         if self._total_val_batches > 0:
             self.val_progress_bar = self.progress.add_task(
-                "[yellow][Validation]",
+                f"[{STYLES['validate']}][Validation]",
                 total=self._total_val_batches,
             )
 
@@ -161,14 +173,14 @@ class RichProgressBar(ProgressBarBase):
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         self.test_progress_bar = self.progress.add_task(
-            "[yellow][Testing]",
+            f"[{STYLES['test']}][Testing]",
             total=self.total_test_batches,
         )
 
     def on_predict_epoch_start(self, trainer, pl_module):
         super().on_predict_epoch_start(trainer, pl_module)
         self.predict_progress_bar = self.progress.add_task(
-            "[red][Predicting]",
+            f"[{STYLES['predict']}][Predicting]",
             total=self.total_predict_batches,
         )
 
