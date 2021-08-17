@@ -36,7 +36,7 @@ class DataConnector:
         prepare_data_per_node: bool,
     ) -> None:
         self.trainer.datamodule = None
-        self.trainer.prepare_data_per_node = prepare_data_per_node
+        self.prepare_data_per_node = prepare_data_per_node
 
         if not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
@@ -81,7 +81,7 @@ class DataConnector:
         if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
             should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
-        if self.trainer.prepare_data_per_node:
+        if self.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
         return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 
