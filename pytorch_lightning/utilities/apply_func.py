@@ -95,11 +95,6 @@ def apply_to_collection(
     if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
         return function(data, *args, **kwargs)
 
-    # range is a type implemented in C and is afaik the only sequence-like
-    # that does not accept other sequences for construction
-    if isinstance(data, range):
-        data = tuple(data)
-
     elem_type = type(data)
 
     # Recursively apply to collection items
