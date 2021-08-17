@@ -34,6 +34,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _capture_metadata_collate,
     CaptureIterableDataset,
+    CaptureMapDataset,
     FastForwardSampler,
 )
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -246,14 +247,17 @@ class TrainerDataLoadingMixin(ABC):
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
 
-        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        if _fault_tolerant_enabled() and isinstance(dl_kwargs["dataset"], IterableDataset):
-            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-            dl_kwargs["sampler"] = None
-
-        if isinstance(dl_kwargs["dataset"], IterableDataset):
-            del dl_kwargs["sampler"]
-            del dl_kwargs["batch_sampler"]
+        if _fault_tolerant_enabled():
+            if isinstance(dl_kwargs["dataset"], IterableDataset):
+                # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+                dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+                dl_kwargs["sampler"] = None
+            elif len(dl_kwargs["dataset"]):
+                dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
+            else:
+                raise MisconfigurationException(
+                    "This shouldn't happen, please open an issue on Lightning Github repository."
+                )
 
         return dl_kwargs
 
