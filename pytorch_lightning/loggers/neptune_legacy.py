@@ -223,6 +223,10 @@ class NeptuneLegacyLogger(LightningLoggerBase):
         self.experiment_id = experiment_id
         self._experiment = None
 
+        self.params = None
+        self.properties = None
+        self.tags = None
+
         log.info(f'NeptuneLegacyLogger will work in {"offline" if self.offline_mode else "online"} mode')
 
     def __getstate__(self):
@@ -256,7 +260,7 @@ class NeptuneLegacyLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         for key, val in params.items():
@@ -271,7 +275,8 @@ class NeptuneLegacyLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded, currently ignored
         """
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+        if rank_zero_only.rank != 0:
+            raise ValueError('experiment tried to log from global_rank != 0')
 
         metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
@@ -294,15 +299,13 @@ class NeptuneLegacyLogger(LightningLoggerBase):
     def name(self) -> str:
         if self.offline_mode:
             return 'offline-name'
-        else:
-            return self.experiment.name
+        return self.experiment.name
 
     @property
     def version(self) -> str:
         if self.offline_mode:
             return 'offline-id-1234'
-        else:
-            return self.experiment.id
+        return self.experiment.id
 
     @rank_zero_only
     def log_metric(

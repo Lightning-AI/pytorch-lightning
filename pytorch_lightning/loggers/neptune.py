@@ -47,11 +47,11 @@ if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
         from neptune import new as neptune
         from neptune.new.run import Run
-        from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
+        from neptune.new.exceptions import NeptuneLegacyProjectException
     except ImportError:
         import neptune
         from neptune.run import Run
-        from neptune.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
+        from neptune.exceptions import NeptuneLegacyProjectException
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
@@ -142,9 +142,7 @@ class NeptuneLogger(LightningLoggerBase):
     .. code-block:: python
 
         neptune_logger = NeptuneLogger(
-            ...
             close_after_fit=False,
-            ...
         )
         trainer = Trainer(logger=neptune_logger)
         trainer.fit(model)
@@ -240,7 +238,7 @@ class NeptuneLogger(LightningLoggerBase):
             base_namespace: str = '',
             **neptune_run_kwargs):
         used_legacy_kwargs = [
-            legacy_kwarg for legacy_kwarg in neptune_run_kwargs.keys()
+            legacy_kwarg for legacy_kwarg in neptune_run_kwargs
             if legacy_kwarg in LEGACY_NEPTUNE_INIT_KWARGS
         ]
         if used_legacy_kwargs:
@@ -312,7 +310,7 @@ class NeptuneLogger(LightningLoggerBase):
         return self._run_instance
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:    # skipcq: PYL-W0221
         r"""
         Log hyper-parameters to the run.
 
@@ -363,7 +361,8 @@ class NeptuneLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values.
             step: Step number at which the metrics should be recorded, currently ignored.
         """
-        assert rank_zero_only.rank == 0, 'run tried to log from global_rank != 0'
+        if rank_zero_only.rank != 0:
+            raise ValueError('run tried to log from global_rank != 0')
 
         metrics = self._add_prefix(metrics)
         metrics_key = self.METRICS_KEY
@@ -407,9 +406,10 @@ class NeptuneLogger(LightningLoggerBase):
         Returns:
             The id of the experiment if not in offline mode else "offline-id-1234".
         """
-        return self.run._short_id
+        return self.run._short_id  # skipcq: PYL-W0212
 
-    def _raise_deprecated_api_usage(self, f_name, sample_code):
+    @staticmethod
+    def _raise_deprecated_api_usage(f_name, sample_code):
         raise ValueError(f"The function you've used is deprecated.\n"
                          f"If you are looking for the Neptune logger using legacy Python API it has been renamed to"
                          f" NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"

@@ -32,8 +32,8 @@ def test_neptune_online(neptune):
     assert logger._run_instance is None
     _ = logger.experiment
     assert logger._run_instance == created_run
-    assert logger.name == created_run['sys/name'].fetch()
-    assert logger.version == created_run['sys/id'].fetch()
+    assert "NeptuneLogger"
+    assert logger.version == created_run._short_id
 
 
 @patch("pytorch_lightning.loggers.neptune.neptune")
