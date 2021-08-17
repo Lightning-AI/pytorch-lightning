@@ -21,20 +21,58 @@ from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel
 
 
+class Run:
+    _short_id = 'foo'
+    pass
+
+
 @patch("pytorch_lightning.loggers.neptune.neptune")
 def test_neptune_online(neptune):
     logger = NeptuneLogger(api_key="test", project="project")
 
     created_run = neptune.init()
 
-    # It's important to check if the internal variable _experiment was initialized in __init__.
-    # Calling logger.experiment would cause a side-effect of initializing _experiment,
-    # if it wasn't already initialized.
     assert logger._run_instance is None
     _ = logger.experiment
     assert logger._run_instance == created_run
-    assert "NeptuneLogger"
+    assert logger.name == "NeptuneLogger"
     assert logger.version == created_run._short_id
+    assert neptune.init.call_count == 2  # one call in Logger, one in test
+
+
+@patch("pytorch_lightning.loggers.neptune.neptune")
+@patch("pytorch_lightning.loggers.neptune.Run", Run)
+def test_online_with_custom_run(neptune):
+    created_run = Run()
+    logger = NeptuneLogger(run=created_run)
+
+    assert logger._run_instance == created_run
+    assert logger.name == "NeptuneLogger"
+    assert logger.version == created_run._short_id
+    assert neptune.init.call_count == 0
+
+
+@patch("pytorch_lightning.loggers.neptune.Run", Run)
+def test_online_with_wrong_kwargs():
+    with pytest.raises(ValueError):
+        NeptuneLogger(run='some string')
+
+    with pytest.raises(ValueError):
+        NeptuneLogger(run=Run(), project='redundant project')
+
+    with pytest.raises(ValueError):
+        NeptuneLogger(run=Run(), api_key='redundant api key')
+
+    with pytest.raises(ValueError):
+        NeptuneLogger(run=Run(), name='redundant api name')
+
+    with pytest.raises(ValueError):
+        NeptuneLogger(run=Run(), foo='random **kwarg')
+
+    # this should work
+    NeptuneLogger(run=Run())
+    NeptuneLogger(project='foo')
+    NeptuneLogger(foo='bar')
 
 
 @patch("pytorch_lightning.loggers.neptune.neptune")
