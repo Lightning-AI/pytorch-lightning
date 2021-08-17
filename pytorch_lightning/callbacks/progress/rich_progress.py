@@ -55,13 +55,22 @@ class MetricsTextColumn(ProgressColumn):
     def __init__(self, trainer, stage):
         self._trainer = trainer
         self._stage = stage
+        self._tasks = {}
+        self._current_task_id = 0
         super().__init__()
 
     def render(self, task) -> Text:
+        if "red" in task.description and task.id not in self._tasks:
+            self._tasks[task.id] = "None"
+            if self._renderable_cache:
+                self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
+            self._current_task_id = task.id
+        if "red" in task.description and task.id != self._current_task_id:
+            return self._tasks[task.id]
         _text = ""
         if self._stage == "test":
             return ""
-        if "red" in f"{task.description}" or "yellow" in f"{task.description}":
+        if "red" in task.description or "yellow" in task.description:
             for k, v in self._trainer.progress_bar_dict.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
         text = Text.from_markup(_text, style=None, justify="left")
