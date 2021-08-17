@@ -32,7 +32,6 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     CaptureMapDataset,
     CollectionIteratorState,
-    hash_rng_state,
     IteratorState,
     patch_dataloader_iterator,
 )
@@ -435,13 +434,6 @@ class CombinedLoader:
             if isinstance(dataset, CaptureMapDataset):
                 iterator_state = state_dict["state"][0]
 
-                print(
-                    "reload state for dataset",
-                    hash_rng_state(state_dict["state"][0]["dataset_state"][0]["rng_states"]["torch"]),
-                    "actual:",
-                    hash_rng_state(torch.get_rng_state()),
-                )
-
                 if not isinstance(iterator_state, IteratorState):
                     iterator_state = IteratorState.load_state_dict(iterator_state)
 
@@ -675,11 +667,9 @@ class AbstractFetcher(ABC):
         self._has_setup = True
 
     def add_batch(self, batch) -> None:
-        # print(id(self.dataloader.dataset), "state when adding prefetched", hash_rng_state(torch.get_rng_state()))
         self.batches.append(batch)
 
     def fetch_batch(self) -> Any:
-        # print(id(self.dataloader.dataset), "state when fetching from prefetcher", hash_rng_state(torch.get_rng_state()))
         return self.batches.pop(0)
 
     def _apply_patch(self):
