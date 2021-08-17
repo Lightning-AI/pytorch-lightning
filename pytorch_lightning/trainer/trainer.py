@@ -497,8 +497,8 @@ class Trainer(
 
         Args:
             trainer_fn: one of (fit, validate, test, predict)
-
-            *args/**kwargs: args to be passed to trainer_fn
+            *args: positional arguments to be passed to the `trainer_fn`
+            **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
             return trainer_fn(*args, **kwargs)
