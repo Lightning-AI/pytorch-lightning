@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
 from functools import partial
-from typing import Any, Generator, List, Optional, Tuple
+from typing import Any, Callable, Generator, List, Optional, Tuple
 
+import torch
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
@@ -54,16 +57,27 @@ class AbstractDataFetcher(ABC):
         self.dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
 
+        self.batch_to_device: Optional[Callable]
+        self.profiler: "Optional[pl.profiler.base.BaseProfiler]"
+
         self.batches: List
         self.fetched: int
         self.done: bool
 
         self.reset()
 
-    def setup(self, dataloader: DataLoader, **kwargs) -> None:
+    def setup(
+        self,
+        dataloader: Iterable,
+        batch_to_device: Optional[Callable] = None,
+        profiler: "Optional[pl.profiler.base.BaseProfiler]" = None,
+    ) -> None:
         self._add_capture_metadata_collate(dataloader)
 
         self.dataloader = dataloader
+        self.batch_to_device = batch_to_device
+        self.profiler = profiler
+
         if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
             _add_capture_metadata_collate(dataloader)
 
@@ -77,10 +91,10 @@ class AbstractDataFetcher(ABC):
 
         apply_to_collection(dataloader, DataLoader, _add_capture_metadata_collate)
 
-    def add_batch(self, batch) -> None:
+    def append_batch(self, batch) -> None:
         self.batches.append(batch)
 
-    def fetch_batch(self) -> Any:
+    def pop_batch(self) -> Any:
         return self.batches.pop(0)
 
     def _apply_patch(self):
@@ -175,33 +189,95 @@ class DataFetcher(AbstractDataFetcher):
     This class is used to control batch fetching flow.
     """
 
+    @contextlib.contextmanager
+    def fetching_context(self):
+        yield
+
+    def on_fetch_start(self) -> None:
+        pass
+
+    def on_fetch_end(self, batch) -> None:
+        if self.batch_to_device:
+            batch = self.batch_to_device(batch)
+        self.append_batch(batch)
+
+    def wait(self) -> None:
+        pass
+
     def fetching_function(self) -> Generator:
         self.done = False
         while not self.done:
             self._prefetching(self.prefetch_batches)
 
-            for batch in self.dataloader_iter:
-                yield_batch = self.fetch_batch()
-                self.add_batch(batch)
-                self.fetched += 1
-                # yield last and has next
-                yield yield_batch, False
+            while self.batches:
+                try:
+                    yield_batch = self.pop_batch()
+                    self._fetch_next_batch()
+                    # yield last and has next
+                    yield from self._yield_batch(yield_batch=yield_batch)
+                except StopIteration:
+                    self.batches.insert(0, yield_batch)
+                    break
 
             yield from self._consume_prefetched_batches()
-
-    def _consume_prefetched_batches(self) -> Generator:
-        self.done = True
-        while self.batches:
-            if len(self.batches) == 1:
-                yield self.batches.pop(0), True
-            else:
-                yield self.batches.pop(0), False
 
     def _prefetching(self, prefetch_batches: int) -> None:
         for _ in range(prefetch_batches):
             try:
-                batch = next(self.dataloader_iter)
-                self.fetched += 1
-                self.add_batch(batch)
+                self._fetch_next_batch()
             except StopIteration:
                 break
+
+    def _fetch_next_batch(self):
+        with self.fetching_context():
+            self.on_fetch_start()
+            batch = next(self.dataloader_iter)
+            self.fetched += 1
+            self.on_fetch_end(batch)
+
+    def _consume_prefetched_batches(self) -> Generator:
+        self.done = True
+        while self.batches:
+            yield from self._yield_batch()
+
+    def _yield_batch(self, yield_batch: Optional[Any] = None) -> Generator:
+        self.wait()
+        if yield_batch is None:
+            batch = self.batches.pop(0)
+            is_last = len(self.batches) == 0
+            yield batch, is_last
+        else:
+            yield yield_batch, False
+
+
+class InterBatchParallelismDataFetcher(DataFetcher):
+
+    """
+    This class is used to control batch fetching flow.
+    """
+
+    def __init__(
+        self,
+        prefetch_batches: int = 0,
+    ) -> None:
+        super().__init__(prefetch_batches=prefetch_batches)
+
+        self.cuda_stream = torch.cuda.Stream()
+        self.events = []
+
+    @contextlib.contextmanager
+    def fetching_context(self):
+        with torch.cuda.stream(self.cuda_stream):
+            yield
+
+    def on_fetch_start(self) -> None:
+        self.events.append(torch.cuda.Event())
+
+    def on_fetch_end(self, batch) -> None:
+        super().on_fetch_end(batch)
+        if len(self.events):
+            self.events[-1].record()
+
+    def wait(self) -> None:
+        event = self.events.pop(0)
+        event.wait()
