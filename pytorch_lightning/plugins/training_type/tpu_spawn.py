@@ -249,27 +249,26 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.logger is not None:
             trainer.logger.finalize("success")
 
-    @property
-    def xmp_spawn_kwargs(self):
+    def get_xmp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
         return {
-            "args": (self.lightning_module.trainer, self.mp_queue),
+            "args": (trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
 
-    def start_training(self, trainer) -> None:
+    def start_training(self, trainer: "pl.Trainer") -> None:
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+        xmp.spawn(self.new_process, **self.get_xmp_spawn_kwargs(trainer))
 
-    def start_evaluating(self, trainer) -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+        xmp.spawn(self.new_process, **self.get_xmp_spawn_kwargs(trainer))
 
-    def start_predicting(self, trainer) -> None:
-        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        xmp.spawn(self.new_process, **self.get_xmp_spawn_kwargs(trainer))
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

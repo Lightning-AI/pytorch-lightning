@@ -15,6 +15,7 @@ import logging
 import os
 import re
 from typing import Any, Dict, List, Optional, Union
+from multiprocessing.queues import SimpleQueue
 
 import torch
 import torch.distributed
@@ -151,22 +152,21 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    @property
-    def mp_spawn_kwargs(self):
-        return {"args": (self.lightning_module.trainer, self.mp_queue), "nprocs": self.num_processes}
+    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
+        return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
 
-    def start_training(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_training(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
-    def start_evaluating(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_predicting(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def new_process(self, process_idx, trainer, mp_queue):
+    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         reset_seed()
