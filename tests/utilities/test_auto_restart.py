@@ -828,7 +828,7 @@ class RandomGeneratorGetItemDataset(Dataset):
     [
         SequentialGetItemDataset,
         RandomGetItemDataset,
-        # RandomGeneratorGetItemDataset,
+        # RandomGeneratorGetItemDataset,  # TODO: support in future PR
     ],
 )
 @pytest.mark.parametrize("num_workers", [0])
