@@ -1979,8 +1979,8 @@ class LightningModule(
 
     def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
         """
-        Adds sharded tensor state dict hooks is sharded tensors are supported. These hooks ensure that
-        ShardedTensors are included when saving, and are loaded correctly.
+        Adds ShardedTensor state dict hooks if ShardedTensors are supported. These hooks ensure that
+        ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
         if not _TORCH_SHARDED_TENSOR_AVAILABLE:
             return
