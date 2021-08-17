@@ -80,7 +80,9 @@ class MetricsTextColumn(ProgressColumn):
 class RichProgressBar(ProgressBarBase):
     def __init__(self, refresh_rate: int = 1):
         if not _RICH_AVAILABLE:
-            raise MisconfigurationException("Rich progress bar is not available")
+            raise MisconfigurationException(
+                "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install rich`."
+            )
         super().__init__()
         self._refresh_rate = refresh_rate
         self._enabled = True
