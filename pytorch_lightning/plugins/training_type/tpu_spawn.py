@@ -249,7 +249,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.logger is not None:
             trainer.logger.finalize("success")
 
-    def get_xmp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
+    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
         return {
             "args": (trainer, self.mp_queue),
             "nprocs": len(self.parallel_devices),
@@ -261,14 +261,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.get_xmp_spawn_kwargs(trainer))
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
         self._close_logger(trainer)
-        xmp.spawn(self.new_process, **self.get_xmp_spawn_kwargs(trainer))
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        xmp.spawn(self.new_process, **self.get_xmp_spawn_kwargs(trainer))
+        xmp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
