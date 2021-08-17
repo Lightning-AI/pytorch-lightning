@@ -239,7 +239,7 @@ class TrainingBatchLoop(Loop):
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
-                self._check_finite(loss)
+                check_finite_loss(self.trainer.lightning_module, loss)
 
             return loss
 
@@ -302,7 +302,7 @@ class TrainingBatchLoop(Loop):
 
             _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
-            result_collection = self._process_training_step_output(self.trainer, training_step_output)
+            result_collection, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
             if result_collection is None:
                 return
 
@@ -453,17 +453,6 @@ class TrainingBatchLoop(Loop):
                 yield None
         else:
             yield None
-
-    def _check_finite(self, loss: Tensor) -> None:
-        """Checks fotr finite parameters and loss values.
-
-        Args:
-            loss: the loss value to check to be finite
-        """
-        if not torch.isfinite(loss).all():
-            raise ValueError(f"The loss returned in `training_step` is {loss}.")
-        model = self.trainer.lightning_module
-        detect_nan_parameters(model)
 
     def backward(
         self,
