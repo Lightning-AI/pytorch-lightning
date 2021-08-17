@@ -151,7 +151,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
+        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
@@ -422,6 +422,14 @@ class Trainer(
         self.optimizer_connector.on_trainer_init()
 
         # init data flags
+        if prepare_data_per_node is None:
+            prepare_data_per_node = True
+        else:
+            rank_zero_warn(
+                "Setting prepare_data_per_node with the trainer flag is deprecated and will be removed in v1.7.0!"
+                "Please use the property in the DataHooks for setting prepare_data_per_node"
+            )
+
         self.data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
