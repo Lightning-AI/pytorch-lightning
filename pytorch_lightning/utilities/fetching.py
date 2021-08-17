@@ -29,10 +29,10 @@ from pytorch_lightning.utilities.auto_restart import (
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
-class AbstractFetcher(ABC):
+class AbstractDataFetcher(ABC):
 
     """
     This class is used to control batch fetching flow.
@@ -61,13 +61,22 @@ class AbstractFetcher(ABC):
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
-            raise MisconfigurationException(
-                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
-            )
+        self._add_capture_metadata_collate(dataloader)
         self.dataloader = dataloader
-        if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
-            _add_capture_metadata_collate(dataloader)
+
+    @staticmethod
+    def _add_capture_metadata_collate(dataloader: Iterable) -> None:
+        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
+            return
+
+        if isinstance(dataloader, CombinedLoader):
+            dataloader = dataloader.loaders
+
+        def add_capture_metadata_collate(dataloader: DataLoader):
+            if not isinstance(dataloader.collate_fn, partial):
+                _add_capture_metadata_collate(dataloader)
+
+        apply_to_collection(dataloader, DataLoader, add_capture_metadata_collate)
 
     def add_batch(self, batch) -> None:
         self.batches.append(batch)
@@ -82,7 +91,7 @@ class AbstractFetcher(ABC):
                 # cycle_iterator = iterator
                 iterator = iterator._loader_iter
 
-            if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
+            if isinstance(loader, DataLoader) and _fault_tolerant_training():
                 loader._lightning_fetcher = self
                 patch_dataloader_iterator(loader, iterator, self)
 
@@ -161,7 +170,7 @@ class AbstractFetcher(ABC):
         self.done: bool = False
 
 
-class LightningDataFetcher(AbstractFetcher):
+class DataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.

@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -98,13 +98,6 @@ def _generate_state(base_seed, worker_id):
         data_val = (data_val ^ (data_val >> XSHIFT)) & MASK32
         state.append(data_val)
     return state
-
-
-@RunIf(min_torch="1.7.0")
-@pytest.mark.parametrize("env_setting,expected", [("0", False), ("1", True)])
-def test_fault_tolerant_enabled(env_setting, expected):
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": env_setting}):
-        assert _fault_tolerant_enabled() == expected
 
 
 def test_fast_forward_getattr():
@@ -647,10 +640,9 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(max_torch="1.6")
+@RunIf(max_torch="1.7")
 def test_fault_tolerant_not_supported():
-    with pytest.raises(MisconfigurationException, match="Restart is only supported with torch >= 1.7.0."):
-        _fault_tolerant_enabled()
+    assert not _fault_tolerant_training()
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):

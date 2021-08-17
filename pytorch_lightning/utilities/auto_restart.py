@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tup
 from torch.utils.data import Dataset, get_worker_info, Sampler
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -515,7 +516,10 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 
 
 def patch_dataloader_iterator(
-    dataloader: DataLoader, iterator: Iterator, prefetcher, num_batches_fetched: int = 0
+    dataloader: DataLoader,
+    iterator: Iterator,
+    data_fecher: "pl.utilities.fetching.DataFetcher",
+    num_batches_fetched: int = 0,
 ) -> None:
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
@@ -554,7 +558,7 @@ def patch_dataloader_iterator(
                         num_batches_fetched=num_batches_fetched,
                     )
                 ]
-            prefetcher._store_dataloader_iter_state(it, state)
+            data_fecher._store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper
