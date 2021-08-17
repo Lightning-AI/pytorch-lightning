@@ -60,6 +60,8 @@ class MetricsTextColumn(ProgressColumn):
         super().__init__()
 
     def render(self, task) -> Text:
+        if self._stage == "test" or self._trainer.sanity_checking:
+            return ""
         if "red" in task.description and task.id not in self._tasks:
             self._tasks[task.id] = "None"
             if self._renderable_cache:
@@ -68,8 +70,6 @@ class MetricsTextColumn(ProgressColumn):
         if "red" in task.description and task.id != self._current_task_id:
             return self._tasks[task.id]
         _text = ""
-        if self._stage == "test":
-            return ""
         if "red" in task.description or "yellow" in task.description:
             for k, v in self._trainer.progress_bar_dict.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
@@ -123,6 +123,17 @@ class RichProgressBar(ProgressBarBase):
             refresh_per_second=self.refresh_rate,
         ).__enter__()
 
+    def on_sanity_check_start(self, trainer, pl_module):
+        super().on_sanity_check_start(trainer, pl_module)
+        self.val_sanity_progress_bar = self.progress.add_task(
+            "[yellow][Validation Sanity Check]",
+            total=trainer.num_sanity_val_steps,
+        )
+
+    def on_sanity_check_end(self, trainer, pl_module):
+        super().on_sanity_check_end(trainer, pl_module)
+        self.progress.update(self.val_sanity_progress_bar, visible=False)
+
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
@@ -153,10 +164,16 @@ class RichProgressBar(ProgressBarBase):
 
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
-        total_test_batches = self.total_test_batches
         self.test_progress_bar = self.progress.add_task(
-            "[red][Testing]",
-            total=total_test_batches,
+            "[yellow][Testing]",
+            total=self.total_test_batches,
+        )
+
+    def on_predict_epoch_start(self, trainer, pl_module):
+        super().on_predict_epoch_start(trainer, pl_module)
+        self.predict_progress_bar = self.progress.add_task(
+            "[red][Predicting]",
+            total=self.total_predict_batches,
         )
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -166,7 +183,9 @@ class RichProgressBar(ProgressBarBase):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self.val_progress_bar and self._should_update(
+        if trainer.sanity_checking:
+            self.progress.update(self.val_sanity_progress_bar, advance=1.0)
+        elif self.val_progress_bar and self._should_update(
             self.val_batch_idx, self.total_train_batches + self.total_val_batches
         ):
             self.progress.update(self.main_progress_bar, advance=1.0)
@@ -176,6 +195,11 @@ class RichProgressBar(ProgressBarBase):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.test_batch_idx, self.total_test_batches):
             self.progress.update(self.test_progress_bar, advance=1.0)
+
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.predict_batch_idx, self.total_predict_batches):
+            self.progress.update(self.predict_progress_bar, advance=1.0)
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
