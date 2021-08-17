@@ -13,6 +13,7 @@
 # limitations under the License.
 from unittest.mock import MagicMock, call, patch
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -70,12 +71,8 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
 
 
 def _assert_legacy(callback, *args, **kwargs):
-    try:
+    with pytest.raises(ValueError):
         callback(*args, **kwargs)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("Should throw `ValueError`")
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')

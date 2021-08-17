@@ -18,7 +18,7 @@ Neptune Logger
 --------------
 """
 __all__ = [
-    'NeptuneLogger',
+    "NeptuneLogger",
 ]
 
 import logging
@@ -39,7 +39,7 @@ _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", 
 if _module_available("neptune"):
     from neptune import __version__ as neptune_versions
 
-    _NEPTUNE_AVAILABLE = neptune_versions.startswith('0.9.') or neptune_versions.startswith('1.')
+    _NEPTUNE_AVAILABLE = neptune_versions.startswith("0.9.") or neptune_versions.startswith("1.")
 else:
     _NEPTUNE_AVAILABLE = False
 
@@ -57,27 +57,27 @@ else:
     neptune, Run = None, None
 log = logging.getLogger(__name__)
 
-INTEGRATION_VERSION_KEY = 'source_code/integrations/pytorch-lightning'
+INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 LEGACY_NEPTUNE_INIT_KWARGS = [
-    'project_name',
-    'offline_mode',
-    'experiment_name',
-    'experiment_id',
-    'params',
-    'properties',
-    'upload_source_files',
-    'abort_callback',
-    'logger',
-    'upload_stdout',
-    'upload_stderr',
-    'send_hardware_metrics',
-    'run_monitoring_thread',
-    'handle_uncaught_exceptions',
-    'git_info',
-    'hostname',
-    'notebook_id',
-    'notebook_path',
+    "project_name",
+    "offline_mode",
+    "experiment_name",
+    "experiment_id",
+    "params",
+    "properties",
+    "upload_source_files",
+    "abort_callback",
+    "logger",
+    "upload_stdout",
+    "upload_stderr",
+    "send_hardware_metrics",
+    "run_monitoring_thread",
+    "handle_uncaught_exceptions",
+    "git_info",
+    "hostname",
+    "notebook_id",
+    "notebook_path",
 ]
 
 
@@ -101,9 +101,9 @@ class NeptuneLogger(LightningLoggerBase):
         # Arguments passed to the "NeptuneLogger" are used to create new run in neptune.
         # We are using an "api_key" for the anonymous user "neptuner" but you can use your own.
         neptune_logger = NeptuneLogger(
-            api_key='ANONYMOUS',
-            project='common/new-pytorch-lightning-integration',
-            name='lightning-run',  # Optional
+            api_key="ANONYMOUS",
+            project="common/new-pytorch-lightning-integration",
+            name="lightning-run",  # Optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
@@ -117,20 +117,20 @@ class NeptuneLogger(LightningLoggerBase):
             def training_step(self, batch, batch_idx):
                 # log metrics
                 acc = ...
-                self.logger.experiment['train/acc'].log(acc)
+                self.logger.experiment["train/acc"].log(acc)
 
                 # log images
                 img = ...
-                self.logger.experiment['train/misclassified_images'].log(File.as_image(img))
+                self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
 
             def any_lightning_module_function_or_hook(self):
                 # log model checkpoint
                 ...
-                self.logger.experiment['checkpoints/epoch37'].upload('epoch=37.ckpt')
+                self.logger.experiment["checkpoints/epoch37"].upload("epoch=37.ckpt")
 
                 # generic recipe
                 metadata = ...
-                self.logger.experiment['your/metadata/structure'].log(metadata)
+                self.logger.experiment["your/metadata/structure"].log(metadata)
 
     Check `Neptune docs <https://docs.neptune.ai/user-guides/logging-and-managing-runs-results/logging-runs-data>`_
     for more info about how to log various types metadata (scores, files, images, interactive visuals, CSVs, etc.).
@@ -154,7 +154,7 @@ class NeptuneLogger(LightningLoggerBase):
         ...
         fig, ax = plt.subplots(figsize=(16, 12))
         plot_confusion_matrix(y_true, y_pred, ax=ax)
-        neptune_logger.experiment['test/confusion_matrix'].upload(File.as_image(fig))
+        neptune_logger.experiment["test/confusion_matrix"].upload(File.as_image(fig))
 
     **Pass additional parameters to Neptune run**
 
@@ -166,10 +166,10 @@ class NeptuneLogger(LightningLoggerBase):
         from pytorch_lightning.loggers import NeptuneLogger
 
         neptune_logger = NeptuneLogger(
-            project='common/new-pytorch-lightning-integration',
-            name='lightning-run',
-            description='mlp quick run with pytorch-lightning',
-            tags=['mlp', 'quick-run'],
+            project="common/new-pytorch-lightning-integration",
+            name="lightning-run",
+            description="mlp quick run with pytorch-lightning",
+            tags=["mlp", "quick-run"],
             )
         trainer = Trainer(max_epochs=3, logger=neptune_logger)
 
@@ -208,7 +208,7 @@ class NeptuneLogger(LightningLoggerBase):
         name: Optional. Editable name of the run.
             Run name appears in the "all metadata/sys" section in Neptune UI.
         run: Optional. Default is ``None``. The ID of the existing run.
-            If specified (e.g. 'ABC-42'), connect to run with `sys/id` in project_name.
+            If specified (e.g. "ABC-42"), connect to run with `sys/id` in project_name.
             Input argument "name" will be overridden based on fetched run data.
         prefix: A string to put at the beginning of metric keys.
         base_namespace: Parent namespace under which parameters and metrics will be stored.
@@ -222,10 +222,10 @@ class NeptuneLogger(LightningLoggerBase):
             If configured project has not been migrated to new structure yet.
     """
 
-    LOGGER_JOIN_CHAR = '/'
-    PARAMETERS_KEY = 'parameters'
-    METRICS_KEY = 'metrics'
-    ARTIFACTS_KEY = 'artifacts'
+    LOGGER_JOIN_CHAR = "/"
+    PARAMETERS_KEY = "parameters"
+    METRICS_KEY = "metrics"
+    ARTIFACTS_KEY = "artifacts"
 
     def __init__(
             self,
@@ -234,8 +234,8 @@ class NeptuneLogger(LightningLoggerBase):
             close_after_fit: Optional[bool] = True,
             name: Optional[str] = None,
             run: Optional[str] = None,
-            prefix: str = '',
-            base_namespace: str = '',
+            prefix: str = "",
+            base_namespace: str = "",
             **neptune_run_kwargs):
         used_legacy_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs
@@ -256,7 +256,7 @@ class NeptuneLogger(LightningLoggerBase):
         self._neptune_run_kwargs = neptune_run_kwargs
         self._close_after_fit = close_after_fit
         self._name = name
-        self._run_to_load = run  # particular id of exp to load e.g. 'ABC-42'
+        self._run_to_load = run  # particular id of exp to load e.g. "ABC-42"
         self._prefix = prefix
         self._base_namespace = base_namespace
 
@@ -264,7 +264,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        # Run instance can't be pickled
+        # Run instance can"t be pickled
         state["_run_instance"] = None
         return state
 
@@ -319,7 +319,7 @@ class NeptuneLogger(LightningLoggerBase):
         **Note**
 
         You can also log parameters by directly using the logger instance:
-        ``neptune_logger.experiment['model/hyper-parameters'] = params_dict``.
+        ``neptune_logger.experiment["model/hyper-parameters"] = params_dict``.
 
         In this way you can keep hierarchical structure of the parameters.
 
@@ -332,15 +332,15 @@ class NeptuneLogger(LightningLoggerBase):
             from pytorch_lightning.loggers import NeptuneLogger
 
             PARAMS = {
-                'batch_size': 64,
-                'lr': 0.07,
-                'decay_factor': 0.97
+                "batch_size": 64,
+                "lr": 0.07,
+                "decay_factor": 0.97
             }
 
             neptune_logger = NeptuneLogger(
-                api_key='ANONYMOUS',
+                api_key="ANONYMOUS",
                 close_after_fit=False,
-                project='common/new-pytorch-lightning-integration'
+                project="common/new-pytorch-lightning-integration"
             )
 
             neptune_logger.log_hyperparams(PARAMS)
@@ -349,7 +349,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         parameters_key = self.PARAMETERS_KEY
         if self._base_namespace:
-            parameters_key = f'{self._base_namespace}/{parameters_key}'
+            parameters_key = f"{self._base_namespace}/{parameters_key}"
 
         self.run[parameters_key] = params
 
@@ -363,17 +363,17 @@ class NeptuneLogger(LightningLoggerBase):
             step: Step number at which the metrics should be recorded, currently ignored.
         """
         if rank_zero_only.rank != 0:
-            raise ValueError('run tried to log from global_rank != 0')
+            raise ValueError("run tried to log from global_rank != 0")
 
         metrics = self._add_prefix(metrics)
         metrics_key = self.METRICS_KEY
         if self._base_namespace:
-            metrics_key = f'{self._base_namespace}/{metrics_key}'
+            metrics_key = f"{self._base_namespace}/{metrics_key}"
 
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
             # Lighting does not always guarantee.
-            self.experiment[f'{metrics_key}/{key}'].log(val)
+            self.experiment[f"{metrics_key}/{key}"].log(val)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
@@ -388,7 +388,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return 'NeptuneLogger'
+        return "NeptuneLogger"
 
     @property
     def version(self) -> str:
