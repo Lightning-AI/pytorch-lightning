@@ -956,7 +956,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
         # [RandomGetItemDataset, RandomGetItemDataset],  # combined dataset, TODO: add support for it in future PR
     ],
 )
-@pytest.mark.parametrize("multiple_trainloader_mode", ["min_size"])  # , "max_size_cycle"])
+@pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
 def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, multiple_trainloader_mode):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,

@@ -140,23 +140,6 @@ class SharedCycleIteratorState:
         return decision_fn(self.has_finished.values())
 
 
-@dataclass
-class SharedCycleIteratorState:
-
-    mode: str
-    dataloaders: List[DataLoader] = field(default_factory=lambda: [])
-    has_finished: Dict[int, bool] = field(default_factory=lambda: {})
-
-    def reset(self) -> None:
-        for dataloader in self.dataloaders:
-            self.has_finished[id(dataloader)] = False
-
-    @property
-    def done(self) -> bool:
-        decision_fn = all if self.mode == "max_size_cycle" else any
-        return decision_fn(self.has_finished.values())
-
-
 class CycleIterator:
     """
     Iterator for restarting a dataloader if it runs out of samples
