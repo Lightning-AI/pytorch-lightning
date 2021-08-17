@@ -1,4 +1,5 @@
-# Copyright The PyTorch Lightning team.
+#
+# Copyright (c) 2021, Neptune Labs Sp. z o.o.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,10 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 """
 Neptune Logger
 --------------
 """
+__all__ = [
+    'NeptuneLogger',
+]
+
 import logging
 import operator
 from argparse import Namespace
@@ -26,29 +32,6 @@ from pytorch_lightning import __version__
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.imports import _compare_version
-
-log = logging.getLogger(__name__)
-
-LEGACY_NEPTUNE_INIT_KWARGS = [
-    'project_name',
-    'offline_mode',
-    'experiment_name',
-    'experiment_id',
-    'params',
-    'properties',
-    'upload_source_files',
-    'abort_callback',
-    'logger',
-    'upload_stdout',
-    'upload_stderr',
-    'send_hardware_metrics',
-    'run_monitoring_thread',
-    'handle_uncaught_exceptions',
-    'git_info',
-    'hostname',
-    'notebook_id',
-    'notebook_path',
-]
 
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
@@ -72,6 +55,30 @@ if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
 else:
     # needed for test mocks, and function signatures
     neptune, Run = None, None
+log = logging.getLogger(__name__)
+
+INTEGRATION_VERSION_KEY = 'source_code/integrations/pytorch-lightning'
+
+LEGACY_NEPTUNE_INIT_KWARGS = [
+    'project_name',
+    'offline_mode',
+    'experiment_name',
+    'experiment_id',
+    'params',
+    'properties',
+    'upload_source_files',
+    'abort_callback',
+    'logger',
+    'upload_stdout',
+    'upload_stderr',
+    'send_hardware_metrics',
+    'run_monitoring_thread',
+    'handle_uncaught_exceptions',
+    'git_info',
+    'hostname',
+    'notebook_id',
+    'notebook_path',
+]
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -134,7 +141,11 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(..., close_after_fit=False, ...)
+        neptune_logger = NeptuneLogger(
+            ...
+            close_after_fit=False,
+            ...
+        )
         trainer = Trainer(logger=neptune_logger)
         trainer.fit(model)
 
@@ -228,11 +239,6 @@ class NeptuneLogger(LightningLoggerBase):
             prefix: str = '',
             base_namespace: str = '',
             **neptune_run_kwargs):
-        if neptune is None:
-            raise ImportError(
-                "You want to use `neptune` in version >=0.9 logger which is not installed yet,"
-                " install it with `pip install 'neptune-client>=0.9'`."
-            )
         used_legacy_kwargs = [
             legacy_kwarg for legacy_kwarg in neptune_run_kwargs.keys()
             if legacy_kwarg in LEGACY_NEPTUNE_INIT_KWARGS
@@ -296,7 +302,7 @@ class NeptuneLogger(LightningLoggerBase):
                     name=self._name,
                     **self._neptune_run_kwargs,
                 )
-                self._run_instance["source_code/integrations/neptune-pytorch-lightning"] = __version__
+                self._run_instance[INTEGRATION_VERSION_KEY] = __version__
             except NeptuneLegacyProjectException as e:
                 raise TypeError(f"""
                     Project {self._project} has not been imported to new structure yet.
@@ -383,19 +389,11 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        try:
-            self.run.sync()
-        except NeptuneOfflineModeFetchException:
-            return "offline-name"
-        return self.run['sys/name'].fetch()
+        return 'NeptuneLogger'
 
     @property
     def version(self) -> str:
-        try:
-            self.run.sync()
-        except NeptuneOfflineModeFetchException:
-            return 'offline-id-1234'
-        return self.run['sys/id'].fetch()
+        return self.run._short_id
 
     def _raise_deprecated_api_usage(self, f_name, sample_code):
         raise ValueError(f"The function you've used is deprecated.\n"
