@@ -1912,3 +1912,38 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     gc.collect()
     memory_3 = torch.cuda.memory_allocated(0)
     assert memory_3 == initial
+
+
+class TrainerStagesErrorsModel(BoringModel):
+    def on_train_start(self) -> None:
+        raise Exception("Error during train")
+
+    def on_validation_start(self) -> None:
+        raise Exception("Error during validation")
+
+    def on_test_start(self) -> None:
+        raise Exception("Error during test")
+
+    def on_predict_start(self) -> None:
+        raise Exception("Error during predict")
+
+
+@pytest.mark.parametrize(
+    "accelerator,num_processes",
+    [
+        (None, 1),
+        pytest.param("ddp_cpu", 2, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp", 2, marks=RunIf(skip_windows=True, special=True)),
+    ],
+)
+def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesErrorsModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    with pytest.raises(Exception, match=r"Error during train"), patch("pytorch_lightning.Trainer._on_exception"):
+        trainer.fit(model)
+    with pytest.raises(Exception, match=r"Error during validation"), patch("pytorch_lightning.Trainer._on_exception"):
+        trainer.validate(model)
+    with pytest.raises(Exception, match=r"Error during test"), patch("pytorch_lightning.Trainer._on_exception"):
+        trainer.test(model)
+    with pytest.raises(Exception, match=r"Error during predict"), patch("pytorch_lightning.Trainer._on_exception"):
+        trainer.predict(model, model.val_dataloader(), return_predictions=False)

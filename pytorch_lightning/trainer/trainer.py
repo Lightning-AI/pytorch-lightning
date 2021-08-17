@@ -508,8 +508,6 @@ class Trainer(
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.teardown()
         except BaseException:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
