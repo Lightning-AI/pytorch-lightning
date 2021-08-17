@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_TRAINING_ENABLED
+from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -348,7 +348,7 @@ class CheckpointConnector:
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
         }
-        if _FAULT_TOLERANT_TRAINING_ENABLED:
+        if _FAULT_TOLERANT_ENABLED:
             checkpoint["loops"] = self._get_loops_state_dict()
 
         if not weights_only:
@@ -451,7 +451,7 @@ class CheckpointConnector:
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (
             [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
-            if _FAULT_TOLERANT_TRAINING_ENABLED
+            if _FAULT_TOLERANT_ENABLED
             else []
         )
 

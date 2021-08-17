@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_TRAINING_ENABLED
+from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED
 
 
 class TensorRunningAccum:
@@ -375,7 +375,7 @@ class CombinedLoader:
             num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
                 may have already prefetched more batches by the time a state dict is requested.
         """
-        if not _FAULT_TOLERANT_TRAINING_ENABLED:
+        if not _FAULT_TOLERANT_ENABLED:
             return DataLoaderDict()
 
         state_dict_fn = partial(self._state_dict_fn, num_batches_processed=num_batches_processed)
@@ -541,7 +541,7 @@ class CombinedLoaderIterator:
 
         def next_fn(iterator: Iterator):
             batch = next(iterator)
-            if not _FAULT_TOLERANT_TRAINING_ENABLED:
+            if not _FAULT_TOLERANT_ENABLED:
                 return batch
             # when fault tolerant is enabled, the iterator will return
             # `FastForwardSampler` state_dict metadata

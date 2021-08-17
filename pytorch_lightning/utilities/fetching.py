@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.auto_restart import (
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_TRAINING_ENABLED
+from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED
 
 
 class AbstractDataFetcher(ABC):
@@ -90,7 +90,7 @@ class AbstractDataFetcher(ABC):
                 # cycle_iterator = iterator
                 iterator = iterator._loader_iter
 
-            if isinstance(loader, DataLoader) and _FAULT_TOLERANT_TRAINING_ENABLED:
+            if isinstance(loader, DataLoader) and _FAULT_TOLERANT_ENABLED:
                 loader._lightning_fetcher = self
                 patch_dataloader_iterator(loader, iterator, self)
 
