@@ -28,9 +28,7 @@ def single_process_pg():
     exited.
     """
     if dist.is_initialized():
-        raise RuntimeError(
-            "Can't use `single_process_pg ` when the default process group is already initialized."
-        )
+        raise RuntimeError("Can't use `single_process_pg ` when the default process group is already initialized.")
 
     orig_environ = os.environ.copy()
     os.environ["MASTER_ADDR"] = "localhost"
