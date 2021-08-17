@@ -47,7 +47,7 @@ def scale_batch_size(
         rank_zero_warn(
             f"Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!"
             f" `model.{batch_arg_name}` will be used as the initial batch size for scaling."
-            f" If this is not the intended behavior, please remove either one."
+            " If this is not the intended behavior, please remove either one."
         )
 
     if hasattr(model.train_dataloader, "patch_loader_code"):

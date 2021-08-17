@@ -78,6 +78,14 @@ class RunningStage(LightningEnum):
     def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
 
+    @property
+    def dataloader_prefix(self) -> Optional[str]:
+        if self in (self.SANITY_CHECKING, self.TUNING):
+            return None
+        if self == self.VALIDATING:
+            return "val"
+        return self.value
+
 
 @dataclass
 class TrainerState:

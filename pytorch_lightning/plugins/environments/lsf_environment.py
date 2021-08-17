@@ -125,7 +125,7 @@ class LSFEnvironment(ClusterEnvironment):
         hosts = hosts.split()
         if len(hosts) < 2:
             raise ValueError(
-                "Cannot parse hosts from LSB_HOSTS environment variable." ' Expected format: "batch <rank_0_host> ..."'
+                'Cannot parse hosts from LSB_HOSTS environment variable. Expected format: "batch <rank_0_host> ..."'
             )
         return hosts
 

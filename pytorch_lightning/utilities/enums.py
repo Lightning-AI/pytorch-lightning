@@ -121,8 +121,6 @@ class GradClipAlgorithmType(LightningEnum):
 
 
 class AutoRestartBatchKeys(LightningEnum):
-    """
-    Defines special dictionary keys used to track sampler progress with multiple workers.
-    """
+    """Defines special dictionary keys used to track captured dataset state with multiple workers."""
 
-    PL_SAMPLERS = "__pl_samplers"
+    PL_RESTART_META = "__pl_restart_meta"
