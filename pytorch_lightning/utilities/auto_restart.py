@@ -76,6 +76,8 @@ class FastForwardSampler(Sampler):
             i += 1
 
         # here: i == self._current_iteration
+        if self._cached_state_dict is not None:
+            self._cached_state_dict = None
 
         # recreate iterator to be sure loading is reflected there as well
         while True:
@@ -146,7 +148,7 @@ class CollectionIteratorState:
     """This class is used to hold the current iterator state and lives on the iterator."""
 
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
-    lastest_worker_id: int = 0
+    latest_worker_id: int = 0
     represent_map_dataset: Optional[bool] = None
 
     def update(self, iter_name: Optional[str], new_state: IteratorState) -> None:
@@ -158,9 +160,9 @@ class CollectionIteratorState:
                 self.state[iter_name] = {}
             state = self.state[iter_name]
 
-        lastest_worker_id = new_state.worker_id
-        state[lastest_worker_id] = new_state
-        self.lastest_worker_id = lastest_worker_id
+        latest_worker_id = new_state.worker_id
+        state[latest_worker_id] = new_state
+        self.latest_worker_id = latest_worker_id
 
     @property
     def sampler_states(self) -> Dict[int, Any]:
