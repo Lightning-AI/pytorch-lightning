@@ -1868,8 +1868,8 @@ def test_ddp_terminate_when_deadlock_is_detected_oom(tmpdir):
             # RuntimeError: DataLoader worker (pid 6990) is killed by signal: Bus error.
             # It is possible that dataloader's workers are out of shared memory.
             # Please try to raise your shared memory limit.
-            # RandomDataset(32, 1000000) is approximately 0.128GB.
-            return DataLoader(RandomDataset(32, 1000000), num_workers=7, batch_size=64)
+            # RandomDataset(32, 100000) is approximately 0.0128GB.
+            return DataLoader(RandomDataset(32, 100000), num_workers=7, batch_size=64)
 
     model = TestModel()
 
