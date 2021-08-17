@@ -61,13 +61,21 @@ class AbstractDataFetcher(ABC):
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
-            raise MisconfigurationException(
-                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
-            )
+        self._add_capture_metadata_collate(dataloader)
+
         self.dataloader = dataloader
         if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
             _add_capture_metadata_collate(dataloader)
+
+    @staticmethod
+    def _add_capture_metadata_collate(dataloader: Iterable) -> None:
+        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
+            return
+
+        if isinstance(dataloader, CombinedLoader):
+            dataloader = dataloader.loaders
+
+        apply_to_collection(dataloader, DataLoader, _add_capture_metadata_collate)
 
     def add_batch(self, batch) -> None:
         self.batches.append(batch)

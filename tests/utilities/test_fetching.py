@@ -75,13 +75,6 @@ def test_misconfiguration_error():
 
     fetcher = DataFetcher()
     with pytest.raises(
-        MisconfigurationException,
-        match="The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``.",
-    ):
-        fetcher.setup(range(10))
-
-    fetcher = DataFetcher()
-    with pytest.raises(
         MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
     ):
         loader = DataLoader(range(10))
