@@ -821,6 +821,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
     class HookedDataModule(BoringDataModule):
         def __init__(self, called):
             super().__init__()
+            self._prepare_data_per_node = True
 
             def call(hook, fn, *args, **kwargs):
                 out = fn(*args, **kwargs)
@@ -835,6 +836,10 @@ def test_trainer_datamodule_hook_system(tmpdir):
             for h in get_members(LightningDataModule):
                 attr = getattr(self, h)
                 setattr(self, h, partial(call, h, attr))
+
+        @property
+        def prepare_data_per_node(self) -> bool:
+            return True
 
     model = BoringModel()
     batches = 2

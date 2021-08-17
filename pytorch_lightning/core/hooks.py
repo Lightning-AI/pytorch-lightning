@@ -372,6 +372,9 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
+    def __init__(self) -> None:
+        self._prepare_data_per_node: bool = True
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -804,6 +807,18 @@ class DataHooks:
             - :meth:`transfer_batch_to_device`
         """
         return batch
+
+    @property
+    def prepare_data_per_node(self) -> bool:
+        """
+        If True, each LOCAL_RANK=0 will call prepare data.
+        Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+        """
+        return self._prepare_data_per_node
+
+    @prepare_data_per_node.setter
+    def prepare_data_per_node(self, prepare_data_per_node: bool) -> None:
+        self._prepare_data_per_node = prepare_data_per_node
 
 
 class CheckpointHooks:
