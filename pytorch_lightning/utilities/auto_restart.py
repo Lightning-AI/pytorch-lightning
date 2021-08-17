@@ -57,9 +57,7 @@ class FastForwardSampler(Sampler):
         return getattr(self._sampler, key, None)
 
     def setup(self, dataloader_batch_size: Optional[int] = None) -> None:
-        # TODO: ask @tchaton about this docstring
-        """
-        Setup the ``FastForwardSampler``.
+        """Setup the ``FastForwardSampler``.
         This is required only when the provided dataset subclassed :class:`torch.utils.data.Dataset`.
         """
         self._dataloader_batch_size = dataloader_batch_size
