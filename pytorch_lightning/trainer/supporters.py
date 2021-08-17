@@ -112,6 +112,12 @@ class TensorRunningAccum:
 
 @dataclass
 class SharedCycleIteratorState:
+    """A state shared between all CylceIterators in a CombinedLoader.
+
+    With a shared state, the iterators can decide to terminate based on the state of all others.
+    If the mode is *max_size_cycle*, all iterators need to have finished before the combined loading is considered
+    finished, and otherwise any iterator finishing early will lead to all iterators ending early.
+    """
 
     mode: str = "max_size_cycle"
     dataloaders: List[DataLoader] = field(default_factory=lambda: [])
@@ -126,7 +132,7 @@ class SharedCycleIteratorState:
     @property
     def done(self) -> bool:
         if not self.has_reset:
-            raise MisconfigurationException("Please, call reset once all dataloaders have been added.")
+            raise MisconfigurationException("Please call reset once all dataloaders have been added.")
         if len(self.dataloaders) == 1:
             return False
         decision_fn = all if self.mode == "max_size_cycle" else any
