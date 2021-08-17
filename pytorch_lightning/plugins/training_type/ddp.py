@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
@@ -434,6 +435,11 @@ class DDPPlugin(ParallelPlugin):
             return
 
         sync_dir = self._sync_dir
+
+        # The cluster may be configured to periodically purge the `/tmp`
+        # directory, in which case `sync_dir` may not exist anymore at this
+        # point. Idempotently create it to ensure its existence.
+        Path(sync_dir).mkdir(parents=True, exist_ok=True)
 
         # save a file locally.
         torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
