@@ -778,7 +778,7 @@ Only the optimizer or scheduler name needs to be passed along its arguments.
 
     $ python train.py --optimizer=Adam --optimizer.lr=0.01 --lr_scheduler=CosineAnnealingLR
 
-If you model requires multiple optimizers, the LightningCLI provides already registered optimizers and schedulers under the properties `registered_optimizers` and `registered_lr_schedulers`
+If your model requires multiple optimizers, the LightningCLI provides already registered optimizers and schedulers under the properties `registered_optimizers` and `registered_lr_schedulers`
 
 .. code-block::
 

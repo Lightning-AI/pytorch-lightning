@@ -44,7 +44,7 @@ else:
 class _Registry(dict):
     def __call__(
         self,
-        cls: Optional[Type] = None,
+        cls: Type,
         key: Optional[str] = None,
         override: bool = False,
     ) -> "Optional[Type]":
@@ -356,7 +356,6 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
-        self._sanitize_argv()
         self.setup_parser(**parser_kwargs)
         self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
@@ -387,18 +386,31 @@ class LightningCLI:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def _sanitize_argv(self) -> None:
+    def _sanitize_registry_argv(self) -> None:
         """This function is used to replace space within `sys.argv` with its equal sign counter-part."""
-        args = [idx for idx, v in enumerate(sys.argv) if v.startswith("-")]
+
+        def validate_arg(v: str) -> bool:
+            keys = {"--optimizer", "--lr_scheduler", "--trainer.callbacks"}
+            keys.update({f"--{key}" for key in self.parser.optimizers_and_lr_schedulers.keys()})
+            return any(v.startswith(k) for k in keys)
+
+        args = [idx for idx, v in enumerate(sys.argv) if validate_arg(v)]
         if not args:
             return
         start_index = args[0]
         argv = []
+        should_add = False
         for v in sys.argv[start_index:]:
-            if v.startswith("-"):
+            if validate_arg(v):
                 argv.append(v)
+                should_add = True
             else:
-                argv[-1] += "=" + v
+                if should_add and not v.startswith("--"):
+                    argv[-1] += "=" + v
+                else:
+                    argv.append(v)
+                should_add = False
+
         sys.argv = sys.argv[:start_index] + argv
 
     def setup_parser(self, **kwargs: Any) -> None:
@@ -438,13 +450,21 @@ class LightningCLI:
             parser: The parser object to which arguments can be added
         """
 
+    @staticmethod
+    def _contains_from_registry(pattern: str, registry: _Registry) -> bool:
+        return any(True for v in sys.argv for registered_name in registry if f"--{pattern}={registered_name}" in v)
+
     def link_optimizers_and_lr_schedulers(self) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
-        if any(True for v in sys.argv for optim_name in OPTIMIZER_REGISTRY if f"--optimizer={optim_name}" in v):
+
+        # sanetize registry arguments
+        self._sanitize_registry_argv()
+
+        if self._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
             if "optimizer" not in self.parser.groups:
                 self.parser.add_optimizer_args(self.registered_optimizers)
 
-        if any(True for v in sys.argv for sch_name in LR_SCHEDULER_REGISTRY if f"--lr_scheduler={sch_name}" in v):
+        if self._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
             lr_schdulers = tuple(v for v in LR_SCHEDULER_REGISTRY.values())
             if "lr_scheduler" not in self.parser.groups:
                 self.parser.add_lr_scheduler_args(lr_schdulers)
@@ -468,8 +488,10 @@ class LightningCLI:
         map_user_key_to_info = {}
         for registered_name, registered_cls in registry.items():
             for v in sys.argv:
-                if f"={registered_name}" in v:
-                    key = v.split("=")[0]
+                if "=" not in v:
+                    continue
+                key, name = v.split("=")
+                if registered_name == name:
                     map_user_key_to_info[key] = _ClassInfo(class_arg=v, cls=registered_cls)
 
         if len(map_user_key_to_info) > 0:

@@ -992,3 +992,60 @@ def test_argv_modifiers():
         )
         expected = base + [f"--lr_scheduler={lr_scheduler}"]
         TestLightningCLI(BoringModel, run=False, expected=expected)
+
+    class MyLightningCLI(TestLightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(
+                self.registered_optimizers,
+                nested_key="optim1",
+                link_to="model.optim1",
+            )
+            parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
+            parser.add_lr_scheduler_args(
+                self.registered_lr_schedulers,
+                link_to="model.scheduler",
+            )
+
+        def parse_arguments(self, parser: LightningArgumentParser) -> None:
+            # fmt: off
+            with self._prepare_from_registry(OPTIMIZER_REGISTRY), \
+                 self._prepare_from_registry(LR_SCHEDULER_REGISTRY), \
+                 self._prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
+                assert sys.argv == self.expected
+                raise Exception("Should raise")
+
+    class TestModel(BoringModel):
+        def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
+            super().__init__()
+            self.optim1 = instantiate_class(self.parameters(), optim1)
+            self.optim2 = instantiate_class(self.parameters(), optim2)
+            self.scheduler = instantiate_class(self.optim1, scheduler)
+
+    cli_args = [
+        "--lr_scheduler", "OneCycleLR",
+        "--optim1", "Adam",
+        "--optim1.lr=0.1",
+        "--optim2", "ASGD",
+        "--lr_scheduler.anneal_strategy=linear",
+        "--something", "a", "b", "c"
+    ]
+
+    with pytest.raises(Exception, match='Should raise'), mock.patch("sys.argv", base + cli_args):
+        optim_2 = dict(
+            class_path="torch.optim.asgd.ASGD",
+            init_args=dict(),
+        )
+        optim_1 = dict(
+            class_path="torch.optim.adam.Adam",
+            init_args=dict(lr="0.1"),
+        )
+        lr_scheduler = dict(
+            class_path="torch.optim.lr_scheduler.OneCycleLR",
+            init_args=dict(anneal_strategy="linear"),
+        )
+        expected = base
+        expected += ["--something", "a", "b", "c"]
+        expected += [f"--optim2={optim_2}"]
+        expected += [f"--optim1={optim_1}"]
+        expected += [f"--lr_scheduler={lr_scheduler}"]
+        MyLightningCLI(TestModel, run=False, expected=expected)
