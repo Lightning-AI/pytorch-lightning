@@ -100,7 +100,7 @@ class FastForwardSampler(Sampler):
     def __len__(self) -> int:
         return len(self._sampler)
 
-    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
+    def state_dict(self, num_batches_processed: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         """Returns the state of the sampler in the current worker. The worker id indexes the state dict."""
         return {
             self.worker_id: {
@@ -159,7 +159,7 @@ class CollectionIteratorState:
     """This class is used to hold the current iterator state and lives on the iterator."""
 
     state: Union[Dict[Union[int, str], Union[Dict[str, IteratorState], IteratorState]]] = field(default_factory=dict)
-    lastest_worker_id: int = 0
+    latest_worker_id: int = 0
     represent_map_dataset: Optional[bool] = None
 
     def update(self, iter_name: Optional[str], new_state: IteratorState) -> None:
@@ -171,9 +171,9 @@ class CollectionIteratorState:
                 self.state[iter_name] = {}
             state = self.state[iter_name]
 
-        lastest_worker_id = new_state.worker_id
-        state[lastest_worker_id] = new_state
-        self.lastest_worker_id = lastest_worker_id
+        latest_worker_id = new_state.worker_id
+        state[latest_worker_id] = new_state
+        self.latest_worker_id = latest_worker_id
 
     @property
     def sampler_states(self) -> Dict[int, Any]:
@@ -342,7 +342,7 @@ class CaptureIterableDataset(IterableDataset):
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
         if isinstance(self.iter_data, Generator):
             raise MisconfigurationException(
-                "PyTorch Lightning Fault Tolerant does not support `__iter__` returning a generator."
+                "PyTorch Lightning Fault-Tolerant feature does not support `__iter__` returning a generator."
                 " Please use the `__next__` function to fetch the next batch and use a sampler for"
                 " doing your iterations."
             )
