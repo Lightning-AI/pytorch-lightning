@@ -76,8 +76,6 @@ class FastForwardSampler(Sampler):
             i += 1
 
         # here: i == self._current_iteration
-        if self._cached_state_dict is not None:
-            self._cached_state_dict = None
 
         # recreate iterator to be sure loading is reflected there as well
         while True:
