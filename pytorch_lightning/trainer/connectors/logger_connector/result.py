@@ -289,9 +289,12 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
+    def __init__(self, *args) -> None:
         super().__init__(*args)
-        self.meta = metadata
+
+    @property
+    def meta(self) -> _Metadata:
+        return list(self.values())[0].meta
 
     def __getstate__(self, drop_value: bool = False) -> dict:
         def getstate(item: ResultMetric) -> dict:
@@ -312,9 +315,6 @@ class ResultMetricCollection(dict):
 
         items = setstate(state["items"])
         self.update(items)
-
-        any_result_metric = next(iter(items.values()))
-        self.meta = any_result_metric.meta
 
     @classmethod
     def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "ResultMetricCollection":
@@ -480,7 +480,7 @@ class ResultCollection(dict):
 
         value = apply_to_collection(value, (torch.Tensor, Metric), fn)
         if isinstance(value, dict):
-            value = ResultMetricCollection(value, metadata=meta)
+            value = ResultMetricCollection(value)
         self[key] = value
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
@@ -591,7 +591,6 @@ class ResultCollection(dict):
 
     def to(self, *args, **kwargs) -> "ResultCollection":
         """Move all data to the given device."""
-
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
         if self.minimize is not None:

@@ -11,16 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
-from typing import Callable
 
-
-def is_param_in_hook_signature(hook_fx: Callable, param: str, explicit: bool = False) -> bool:
-    """
-    Args:
-        hook_fx: the hook callable
-        param: the name of the parameter to check
-        explicit: whether the parameter has to be explicitly declared
-    """
-    hook_params = list(inspect.signature(hook_fx).parameters)
-    return param in hook_params or (not explicit and "args" in hook_params)
+from pytorch_lightning.loops.processors.iterator_batch_processor import IteratorBatchProcessor  # noqa: F401
