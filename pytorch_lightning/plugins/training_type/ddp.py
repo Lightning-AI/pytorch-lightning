@@ -38,6 +38,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
+    _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
     _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_7,
@@ -59,6 +60,8 @@ from pytorch_lightning.utilities.seed import reset_seed
 if not _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_9:
     from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
+if _FAIRSCALE_AVAILABLE:
+    from fairscale.optim import OSS
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
@@ -336,22 +339,27 @@ class DDPPlugin(ParallelPlugin):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
-            if isinstance(optimizer, DistributedOptimizer) or isinstance(optimizer, ZeroRedundancyOptimizer):
+            if (
+                isinstance(optimizer, DistributedOptimizer)
+                or isinstance(optimizer, ZeroRedundancyOptimizer)
+                or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
+            ):
                 raise ValueError(
                     f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
                 )
 
             if isinstance(optimizer, PostLocalSGDOptimizer):
                 continue
-                optim_class = type(optimizer)
-                post_localSGD_optimizer = PostLocalSGDOptimizer(
-                    params=self.model.parameters(),
-                    optimizer_class=optim_class,
-                    averager=averager,
-                    **optimizer.defaults,
-                )
-                optimizers[x] = post_localSGD_optimizer
-                del optimizer
+            
+            optim_class = type(optimizer)
+            post_localSGD_optimizer = PostLocalSGDOptimizer(
+                params=optimizer.param_groups,
+                optimizer_class=optim_class,
+                averager=averager,
+                **optimizer.defaults,
+            )
+            optimizers[x] = post_localSGD_optimizer
+            del optimizer
         trainer = self.lightning_module.trainer
         trainer.optimizers = optimizers
         trainer.convert_to_lightning_optimizers()
