@@ -40,6 +40,7 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
+        # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict = {}
 
     @property
@@ -246,4 +247,5 @@ class FitLoop(Loop):
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
+        # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
