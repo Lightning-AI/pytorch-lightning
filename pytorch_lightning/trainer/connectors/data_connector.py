@@ -105,8 +105,7 @@ class DataConnector:
             profiler=self.trainer.profiler,
         )
         prefetcher_iter = iter(self.data_fetcher)
-        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), f"get_{stage}_batch")
-        return profiled_dl
+        return enumerate(prefetcher_iter)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0

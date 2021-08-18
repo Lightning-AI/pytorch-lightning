@@ -265,12 +265,14 @@ class DataFetcher(AbstractDataFetcher):
             yield
 
     def _fetch_next_batch(self):
-        with self.apply_profiler(f"get_{self.stage}_batch"), self.fetching_context():
-            data = self.on_fetch_start()
-            with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
-                batch = next(self.dataloader_iter)
-            self.fetched += 1
-            self.on_fetch_end(batch, data)
+        with self.apply_profiler(f"get_{self.stage}_batch"):
+            with self.fetching_context():
+                data = self.on_fetch_start()
+                with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
+                    batch = next(self.dataloader_iter)
+                print(batch)
+                self.fetched += 1
+                self.on_fetch_end(batch, data)
 
     def _consume_prefetched_batches(self) -> Generator:
         self.done = True
