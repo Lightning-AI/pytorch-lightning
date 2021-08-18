@@ -174,6 +174,7 @@ def _run_binsearch_scaling(
     """Batch scaling mode where the size is initially is doubled at each iteration
     until an OOM error is encountered. Hereafter, the batch size is further
     refined using a binary search"""
+    low = 1
     high = None
     count = 0
     while True:
