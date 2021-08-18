@@ -300,12 +300,11 @@ class InterBatchParallelismDataFetcher(DataFetcher):
 
 
 class TrainingStepDataLoaderIter:
-
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
         self.data_fetcher = data_fetcher
 
-    def __iter__(self) -> 'TrainingStepDataLoaderIter':
+    def __iter__(self) -> "TrainingStepDataLoaderIter":
         return self
 
     def __next__(self) -> Any:
