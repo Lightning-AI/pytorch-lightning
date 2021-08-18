@@ -350,7 +350,7 @@ class DDPPlugin(ParallelPlugin):
 
             if isinstance(optimizer, PostLocalSGDOptimizer):
                 continue
-            
+
             optim_class = type(optimizer)
             post_localSGD_optimizer = PostLocalSGDOptimizer(
                 params=optimizer.param_groups,
