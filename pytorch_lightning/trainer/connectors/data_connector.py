@@ -41,7 +41,7 @@ class DataConnector:
             prepare_data_per_node = True
         else:
             rank_zero_deprecation(
-                "Setting prepare_data_per_node with the trainer flag is deprecated and will be removed in v1.7.0!"
+                "Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
                 "Please use `~pytorch_lightning.core.datamodule.prepare_data_per_node` instead. "
             )
         self.trainer.prepare_data_per_node = prepare_data_per_node
