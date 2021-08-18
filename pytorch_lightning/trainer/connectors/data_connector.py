@@ -85,7 +85,7 @@ class DataConnector:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
         if self.trainer.datamodule is not None:
             if is_overridden("prepare_data", self.trainer.datamodule) and (
-                not self.trainer.datamodule._has_prepared_data
+                not self.trainer.datamodule.has_prepared_data
             ):
                 dm_prepare_data_per_node = (
                     self.trainer.prepare_data_per_node
