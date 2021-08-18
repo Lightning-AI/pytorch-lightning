@@ -133,8 +133,6 @@ def get_cycles_per_ms() -> float:
     return sum(stats) / len(stats)
 
 
-CYCLES_PER_MS = int(get_cycles_per_ms())
-
 BATCH_SIZE = 128
 EMB_SZ = 100
 EMB_DIM = 64
@@ -153,6 +151,7 @@ class RecommenderModel(BoringModel):
         super().__init__()
         self.layer = None
         self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
+        self.CYCLES_PER_MS = int(get_cycles_per_ms())
 
     def forward(self, indices: torch.Tensor):
         result = self.local_embedding(indices)
@@ -160,12 +159,12 @@ class RecommenderModel(BoringModel):
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         # emulate heavy routine
-        torch.cuda._sleep(CYCLES_PER_MS * 100)
+        torch.cuda._sleep(self.CYCLES_PER_MS * 100)
         return batch
 
     def training_step_end(self, training_step_outputs):
         # emulate heavy routine
-        torch.cuda._sleep(CYCLES_PER_MS * 100)
+        torch.cuda._sleep(self.CYCLES_PER_MS * 100)
         return training_step_outputs
 
     def configure_optimizers(self):
@@ -181,7 +180,7 @@ class RecommenderModel(BoringModel):
         return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_gpus=1, min_torch="1.8.0")
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
@@ -206,6 +205,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     assert (t3 - t2) / (t1 - t0) > 1.3
 
 
+@RunIf(min_torch="1.8.0")
 def test_fetching_dataloader_iter(tmpdir):
     class TestModel(RecommenderModel):
         def __init__(self, *args, **kwargs):
