@@ -282,12 +282,22 @@ class HookedModel(BoringModel):
             dict(name="Callback.on_before_optimizer_step", args=(trainer, model, ANY, 0)),
             dict(name="on_before_optimizer_step", args=(ANY, 0)),
         ]
+        _transfer = [
+            dict(name="on_before_batch_transfer", args=(ANY, 0)),
+            dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
+            dict(name="on_after_batch_transfer", args=(ANY, 0)),
+        ]
+
         for i in range(batches):
+            # number of prefetched batch is 1.
+            if i == 0:
+                transfer = _transfer * 2
+            else:
+                transfer = _transfer
+            
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
-                    dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
-                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
+                    *transfer,
                     # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
@@ -325,12 +335,22 @@ class HookedModel(BoringModel):
     def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
         using_deepspeed = kwargs.get("plugins") == "deepspeed"
         out = []
+        _transfer = [
+            dict(name="on_before_batch_transfer", args=(ANY, 0)),
+            dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
+            dict(name="on_after_batch_transfer", args=(ANY, 0)),
+        ]
+
         for i in range(batches):
+            # number of prefetched batch is 1.
+            if i == 0:
+                transfer = _transfer * 2
+            else:
+                transfer = _transfer
+            
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
-                    dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
-                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
+                    *transfer,
                     # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i, 0)),
@@ -375,12 +395,23 @@ class HookedModel(BoringModel):
     def _eval_batch(fn, trainer, model, batches, key, device=torch.device("cpu")):
         out = []
         outputs = {key: ANY}
+
+        _transfer = [
+            dict(name="on_before_batch_transfer", args=(ANY, 0)),
+            dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
+            dict(name="on_after_batch_transfer", args=(ANY, 0)),
+        ]
+
         for i in range(batches):
+            # number of prefetched batch is 1.
+            if i == 0:
+                transfer = _transfer * 2
+            else:
+                transfer = _transfer
+            
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
-                    dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
-                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
+                    *transfer,
                     # TODO: `{,Callback}.on_batch_{start,end}`
                     dict(name=f"Callback.on_{fn}_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i, 0)),
