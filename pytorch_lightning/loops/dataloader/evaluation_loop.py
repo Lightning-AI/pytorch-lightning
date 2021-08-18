@@ -99,9 +99,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        data_fetcher = DataFetcher()
-        data_fetcher.setup(dataloader)
-        dataloader_iter = enumerate(data_fetcher)
+        dataloader_iter = self.trainer.data_connector.get_profiled_dataloader(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(

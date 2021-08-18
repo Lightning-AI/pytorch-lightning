@@ -13,16 +13,16 @@
 # limitations under the License.
 from time import time
 from typing import Any
-
+from unittest import mock
 import pytest
 import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
-
+import os
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher
+from pytorch_lightning.utilities.fetching import DataFetcher, InterBatchParallelismDataFetcher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -136,7 +136,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     EMB_SZ = 100
     EMB_DIM = 64
 
-    class RandomDataset(Dataset):
+    class RandomIndicesDataset(Dataset):
         def __getitem__(self, index):
             return torch.randint(EMB_DIM, [BATCH_SIZE])
 
@@ -155,13 +155,13 @@ def test_trainer_num_prefetch_batches(tmpdir):
             return result
 
         def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-            torch.cuda._sleep(CYCLES_PER_MS * 1_000)
+            torch.cuda._sleep(CYCLES_PER_MS)
             if not self.non_blocking:
                 torch.cuda.synchronize()
             return batch
 
         def training_step_end(self, training_step_outputs):
-            torch.cuda._sleep(CYCLES_PER_MS * 1_000)
+            torch.cuda._sleep(CYCLES_PER_MS)
             if not self.non_blocking:
                 torch.cuda.synchronize()
             return training_step_outputs
@@ -169,25 +169,28 @@ def test_trainer_num_prefetch_batches(tmpdir):
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
+        def train_dataloader(self):
+            return DataLoader(RandomIndicesDataset(), batch_size=4)
+
         def val_dataloader(self):
-            pass  # todo skip ?
+            return DataLoader(RandomIndicesDataset(), batch_size=4)
 
         def test_dataloader(self):
-            pass  # todo skip?
+            return DataLoader(RandomIndicesDataset(), batch_size=4)
 
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(), batch_size=4)
+    model = RecommenderModel(non_blocking=True)
 
-    model = RecommenderModel(non_blocking=False)
-
-    t0 = time()
+    with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
+        t0 = time()
+        trainer = Trainer(max_epochs=2, gpus=1)
+        trainer.fit(model)
+        t1 = time()
+    
+    torch.cuda.synchronize()
+    
+    t2 = time()
     trainer = Trainer(max_epochs=2, gpus=1)
     trainer.fit(model)
+    t3 = time()
 
-    t1 = time()
-    trainer = Trainer(max_epochs=2, num_prefetch_batches=4, gpus=1)
-    trainer.fit(model)
-
-    t2 = time()
-
-    assert (t1 - t0) > (t2 - t1)
+    assert (t1 - t0) < (t3 - t2)

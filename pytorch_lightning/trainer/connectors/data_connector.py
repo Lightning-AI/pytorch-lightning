@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from typing import Callable, Iterable, Optional, Union
-
+import os
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, InterBatchParallelismDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -60,16 +60,27 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
-        self.data_fetcher = DataFetcher()
+    def _select_data_fetcher(self) -> AbstractDataFetcher:
+        if os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1':
+            return InterBatchParallelismDataFetcher()
+        else:
+            return DataFetcher()
+
+    def get_profiled_dataloader(self, dataloader: Iterable) -> Iterable:
+        stage: str = self.trainer.state.stage.value
+        self.data_fetcher = self._select_data_fetcher()
         self.data_fetcher.setup(
-            train_dataloader,
-            self.trainer.accelerator.batch_to_device,
-            self.trainer.profiler,
+            dataloader,
+            stage=stage,
+            batch_to_device=self.trainer.accelerator.batch_to_device,
+            profiler=self.trainer.profiler,
         )
         prefetcher_iter = iter(self.data_fetcher)
-        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
+        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), f"get_{stage}_batch")
         return profiled_dl
+
+    def get_profiled_evaluation_dataloader(self, evalution_dataloader: Iterable) -> Iterable:
+        return self.get_profiled_dataloader(evalution_dataloader, "train")
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0

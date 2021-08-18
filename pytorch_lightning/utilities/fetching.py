@@ -57,6 +57,7 @@ class AbstractDataFetcher(ABC):
         self.dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
 
+        self.stage: Optional[str]
         self.batch_to_device: Optional[Callable]
         self.profiler: "Optional[pl.profiler.base.BaseProfiler]"
 
@@ -69,14 +70,19 @@ class AbstractDataFetcher(ABC):
     def setup(
         self,
         dataloader: Iterable,
+        stage: Optional[str] = None,
         batch_to_device: Optional[Callable] = None,
         profiler: "Optional[pl.profiler.base.BaseProfiler]" = None,
     ) -> None:
         self._add_capture_metadata_collate(dataloader)
 
         self.dataloader = dataloader
+        self.stage = stage
         self.batch_to_device = batch_to_device
         self.profiler = profiler
+
+        if self.profiler is not None and stage is None:
+            raise MisconfigurationException("When providing a profiler, the stage should be provided too.")
 
     @staticmethod
     def _add_capture_metadata_collate(dataloader: Iterable) -> None:
@@ -199,7 +205,8 @@ class DataFetcher(AbstractDataFetcher):
 
     def on_fetch_end(self, batch) -> None:
         if self.batch_to_device:
-            batch = self.batch_to_device(batch)
+            with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
+                batch = self.batch_to_device(batch)
         self.append_batch(batch)
 
     def wait(self) -> None:
@@ -229,10 +236,19 @@ class DataFetcher(AbstractDataFetcher):
             except StopIteration:
                 break
 
+    @contextlib.contextmanager
+    def apply_profiler(self, name: str) -> Generator:
+        if self.profiler:
+            with self.profiler.profile(name):
+                yield
+        else:
+            yield
+
     def _fetch_next_batch(self):
-        with self.fetching_context():
+        with self.apply_profiler(f"get_{self.stage}_batch"), self.fetching_context():
             self.on_fetch_start()
-            batch = next(self.dataloader_iter)
+            with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
+                batch = next(self.dataloader_iter)
             self.fetched += 1
             self.on_fetch_end(batch)
 
