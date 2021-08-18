@@ -32,7 +32,6 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
-    _add_capture_metadata_collate,
     _capture_metadata_collate,
     CaptureIterableDataset,
     CaptureMapDataset,
