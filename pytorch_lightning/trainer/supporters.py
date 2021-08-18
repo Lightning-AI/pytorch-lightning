@@ -391,17 +391,15 @@ class CombinedLoader:
             partial(self._state_dict_fn, has_completed=has_completed),
         )
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict) -> None:
         # store the samplers state.
         # They would be reloaded once the `CombinedIterator` as been created
         # and the workers are created.
         self._loaders_iter_state_dict = state_dict
 
-    def on_restart(self, iterator: Iterator):
+    def on_restart(self, iterator: Iterator) -> None:
         if not self._loaders_iter_state_dict:
             return
-
-        # this happen inside the workers if any were specificied.
 
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
             if isinstance(dataloader, CycleIterator):
@@ -412,7 +410,9 @@ class CombinedLoader:
 
             dataset = dataloader.dataset
 
-            # We reload the states before creating the workers.
+            # We reload the states before creating the workers
+            # The specific type of dataset will then decide if the state should be applied before or after
+            # spawning the workers
             if isinstance(dataset, CaptureMapDataset):
                 iterator_state = state_dict["state"][0]
 
@@ -441,16 +441,16 @@ class CombinedLoader:
                 )
 
             # We finally spawned the workers if any.
-            iterator = iter(dataloader_to_iter_on)
+            it = iter(dataloader_to_iter_on)
 
             # restore caching state
             state = MergedIteratorState.from_state_dict(state_dict)
 
             if isinstance(dataloader_to_iter_on, CycleIterator):
-                iterator._loader_iter.state = state
+                it._loader_iter.state = state
             else:
-                iterator.state = state
-            return iterator
+                it.state = state
+            return it
 
         # apply the `create_loader_iters` on the collection of `DataLoader / Iterator`.
         # each `Iterator` was created from the `DataLoader`.
