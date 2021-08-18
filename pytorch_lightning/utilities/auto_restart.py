@@ -202,7 +202,12 @@ class MergedIteratorState:
 
 
 class CaptureMapDataset(Dataset):
-    """This class is used to capture the state from the map-based state dataset."""
+    """This class is used to capture the state from the map-based state dataset.
+
+    Note:
+        We currently don't support restoring if we fail during the first `N = num_workers` batches, where
+        `num_workers` is the number of workers spawned by the dataloader.
+    """
 
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset

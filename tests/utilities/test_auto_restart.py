@@ -792,7 +792,6 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-# NOTE: we are not able to restore if we fail during the first N=num_workers batches
 # TODO: test with batch sampler
 # TODO: test with `RandomGeneratorGetItemDataset`
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
