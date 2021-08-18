@@ -290,10 +290,7 @@ def test_lightning_cli_configurable_callbacks(tmpdir):
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(LearningRateMonitor, "learning_rate_monitor")
 
-    cli_args = [
-        f"--trainer.default_root_dir={tmpdir}",
-        "--learning_rate_monitor.logging_interval=epoch",
-    ]
+    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--learning_rate_monitor.logging_interval=epoch"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel, run=False)
@@ -834,3 +831,53 @@ def test_lightning_cli_run():
     assert cli.trainer.global_step == 1
     assert isinstance(cli.trainer, Trainer)
     assert isinstance(cli.model, LightningModule)
+
+
+def test_lightning_cli_config_with_subcommand(tmpdir):
+    config = {
+        # FIXME: this is not necessary, I expected it to be
+        # "subcommand": "test",
+        "test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}
+    }
+    with mock.patch("sys.argv", ["any.py", f"--config={config}"]), mock.patch(
+        "pytorch_lightning.Trainer.test", autospec=True
+    ) as test_mock:
+        cli = LightningCLI(BoringModel)
+
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    assert cli.trainer.limit_test_batches == 1
+
+
+def test_lightning_cli_config_before_subcommand():
+    # FIXME: passing a config with the subconfigs of multiple subcommands does not work
+    config = {
+        "test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"},
+        "validate": {"trainer": {"limit_val_batches": 1}, "verbose": False, "ckpt_path": "barfoo"},
+    }
+
+    with mock.patch("sys.argv", ["any.py", f"--config={config}", "test"]), mock.patch(
+        "pytorch_lightning.Trainer.test", autospec=True
+    ) as test_mock:
+        cli = LightningCLI(BoringModel)
+
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    assert cli.trainer.limit_test_batches == 1
+
+    with mock.patch("sys.argv", ["any.py", f"--config={config}", "validate"]), mock.patch(
+        "pytorch_lightning.Trainer.test", autospec=True
+    ) as validate_mock:
+        cli = LightningCLI(BoringModel)
+
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    assert cli.trainer.limit_val_batches == 1
+
+
+def test_lightning_cli_config_after_subcommand(tmpdir):
+    config = {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}
+    with mock.patch("sys.argv", ["any.py", "test", f"--config={config}"]), mock.patch(
+        "pytorch_lightning.Trainer.test", autospec=True
+    ) as test_mock:
+        cli = LightningCLI(BoringModel)
+
+    test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
+    assert cli.trainer.limit_test_batches == 1
