@@ -79,34 +79,35 @@ class DataConnector:
         local_rank_zero = self.trainer.local_rank == 0
         global_rank_zero = self.trainer.local_rank == 0 and self.trainer.node_rank == 0
 
+        datamodule = self.trainer.datamodule
+        lightning_module = self.trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if self.trainer.datamodule is not None and (not self.trainer.datamodule.has_prepared_data):
-
-            dm_prepare_data_per_node = self.trainer.datamodule.prepare_data_per_node
+        if self.trainer.datamodule is not None and (not datamodule.has_prepared_data):
+            dm_prepare_data_per_node = datamodule.prepare_data_per_node
             if (self.trainer.prepare_data_per_node is not None) and (
-                dm_prepare_data_per_node != self.trainer.prepare_data_per_node
+                datamodule.prepare_data_per_node != self.trainer.prepare_data_per_node
             ):
                 raise MisconfigurationException(
-                    f"`prepare_data_per_node` should not be set in Trainer, got {self.trainer.prepare_data_per_node}. "
-                    f"`self.trainer.prepare_data_per_node`(={self.trainer.prepare_data_per_node}) is inconsistent with "
-                    f"`self.trainer.datamodule.prepare_data_per_node`"
-                    f"(={self.trainer.datamodule.prepare_data_per_node})."
+                    f"Inconsistent settings found for `prepare_data_per_node`. "
+                    f"Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)` "
+                    f"and `DataModule.prepare_data_per_node={datamodule.prepare_data_per_node}`. "
+                    f"Move `prepare_data_per_node` setting to DataModule property"
                 )
             if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
                 self.trainer.datamodule.prepare_data()
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if self.trainer.lightning_module is not None:
-            lm_prepare_data_per_node = self.trainer.lightning_module.prepare_data_per_node
+            lm_prepare_data_per_node = lightning_module._prepare_data_per_node
             if (self.trainer.prepare_data_per_node is not None) and (
-                lm_prepare_data_per_node != self.trainer.prepare_data_per_node
+                lightning_module.prepare_data_per_node != self.trainer.prepare_data_per_node
             ):
                 raise MisconfigurationException(
-                    f"`prepare_data_per_node` should not be set in Trainer, got {self.trainer.prepare_data_per_node}. "
-                    f"`self.trainer.prepare_data_per_node`(={self.trainer.prepare_data_per_node}) is inconsistent with "
-                    f" `self.trainer.lightinig_module.prepare_data_per_node`"
-                    f"(={self.trainer.lightning_module.prepare_data_per_node})."
+                    f"Inconsistent settings found for `prepare_data_per_node`. "
+                    f"Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)` "
+                    f"and `LightningModule.prepare_data_per_node={lightning_module.prepare_data_per_node}`. "
+                    f"Move `prepare_data_per_node` setting to LightningModule property"
                 )
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
                 self.trainer.lightning_module.prepare_data()
