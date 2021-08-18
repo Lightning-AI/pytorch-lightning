@@ -808,6 +808,10 @@ class RandomGetItemDataset(Dataset):
 @pytest.mark.parametrize("num_workers", [0])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
+    """Test that the sequence of batches coming from a random number generator continues with the correct sequence
+    after reloading the state.
+    """
+
     def create_dataset_sampler():
         dataset = CaptureMapDataset(dataset_class(16, 8))
         random_sampler = RandomSampler(dataset, generator=torch.Generator())
@@ -937,6 +941,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
 def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, multiple_trainloader_mode):
+    """Test that the Trainer can resume from a (doubly) failed run in the case of several types of datasets."""
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=3,
