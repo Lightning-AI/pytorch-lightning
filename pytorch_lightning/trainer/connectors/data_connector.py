@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Iterable, Optional, Union
 import os
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 import pytorch_lightning as pl
@@ -22,6 +21,7 @@ from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetche
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 import logging
+from typing import Iterable
 
 
 log = logging.getLogger(__name__)
@@ -95,9 +95,6 @@ class DataConnector:
         prefetcher_iter = iter(self.data_fetcher)
         profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), f"get_{stage}_batch")
         return profiled_dl
-
-    def get_profiled_evaluation_dataloader(self, evalution_dataloader: Iterable) -> Iterable:
-        return self.get_profiled_dataloader(evalution_dataloader, "train")
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
