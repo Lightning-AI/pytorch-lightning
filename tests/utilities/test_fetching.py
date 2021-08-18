@@ -202,7 +202,8 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     assert global_step == trainer.global_step == 8
     assert isinstance(trainer.data_connector.data_fetcher, DataFetcher)
-    assert (t3 - t2) / (t1 - t0) > 1.3
+    ratio = (t3 - t2) / (t1 - t0)
+    assert ratio > 1.3, ratio
 
 
 @RunIf(min_torch="1.8.0")
