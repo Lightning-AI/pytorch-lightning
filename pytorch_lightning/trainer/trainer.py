@@ -243,7 +243,7 @@ class Trainer(
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
                 Deprecated in v1.5.0 and will be removed in v1.7.0
-                Please use `~pytorch_lightning.core.datamodule.prepare_data_per_node` instead
+                Please set `prepare_data_per_node` in LightningDataModule or LightningModule directly instead.
 
             process_position: orders the progress bar when running multiple models on same machine.
 
