@@ -15,7 +15,7 @@
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class TensorRunningAccum:
@@ -381,7 +381,7 @@ class CombinedLoader:
             num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
                 may have already prefetched more batches by the time a state dict is requested.
         """
-        if not _fault_tolerant_enabled():
+        if not _fault_tolerant_training():
             return DataLoaderDict()
 
         state_dict_fn = partial(self._state_dict_fn, num_batches_processed=num_batches_processed)
@@ -547,7 +547,7 @@ class CombinedLoaderIterator:
 
         def next_fn(iterator: Iterator):
             batch = next(iterator)
-            if not _fault_tolerant_enabled():
+            if not _fault_tolerant_training():
                 return batch
             # when fault tolerant is enabled, the iterator will return
             # `FastForwardSampler` state_dict metadata
@@ -598,25 +598,3 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
             new_data.append(x)
 
     return compute_func(new_data)
-
-
-def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, None]:
-    """
-    Returns an iterator that pre-fetches and caches the next item.
-    The values are passed through from the given iterable with an added boolean indicating if this is the last item.
-    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
-    """
-    it = iter(iterable)
-
-    try:
-        # the iterator may be empty from the beginning
-        last = next(it)
-    except StopIteration:
-        return
-
-    for val in it:
-        # yield last and has next
-        yield last, False
-        last = val
-    # yield last, no longer has next
-    yield last, True
