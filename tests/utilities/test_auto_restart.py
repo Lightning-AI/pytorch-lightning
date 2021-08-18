@@ -880,7 +880,7 @@ class CustomException(Exception):
     pass
 
 
-class TestIterableDataset(IterableDataset):
+class SequentialIterableDataset(IterableDataset):
     def __init__(self, length, *_):
         self.len = length
         self.sampler = SequentialSampler(range(self.len))
@@ -932,10 +932,10 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
     [
         # single training dataset
         [RandomGetItemDataset],
-        [TestIterableDataset],
+        [SequentialIterableDataset],
         # multiple training datasets (combinded dataloader)
-        [SequentialGetItemDataset, TestIterableDataset],
-        [TestIterableDataset, TestIterableDataset],
+        [SequentialGetItemDataset, SequentialIterableDataset],
+        [SequentialIterableDataset, SequentialIterableDataset],
         # [RandomGetItemDataset, RandomGetItemDataset],  TODO: support in the future
     ],
 )
