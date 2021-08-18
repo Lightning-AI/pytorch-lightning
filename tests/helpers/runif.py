@@ -87,7 +87,7 @@ class RunIf:
             ipu: if IPU is available
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
-            skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
+            skip_windows: skip test for Windows platform (typically for some limited torch functionality)
             special: running in special mode, outside pytest suit
             fairscale: if `fairscale` module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test

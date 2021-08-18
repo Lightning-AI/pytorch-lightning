@@ -115,8 +115,8 @@ class WandbLogger(LightningLoggerBase):
     ):
         if wandb is None:
             raise ImportError(
-                "You want to use `wandb` logger which is not installed yet,"  # pragma: no-cover
-                " install it with `pip install wandb`."
+                "You want to use `wandb` logger which is not installed yet,"
+                " install it with `pip install wandb`."  # pragma: no-cover
             )
 
         if offline and log_model:

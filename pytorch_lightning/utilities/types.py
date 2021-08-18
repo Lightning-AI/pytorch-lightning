@@ -17,6 +17,7 @@ Convention:
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
 """
 from numbers import Number
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Sequence, Type, Union
 
 import torch
@@ -31,6 +32,7 @@ EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
+_PATH = Union[str, Path]
 TRAIN_DATALOADERS = Union[
     DataLoader,
     Sequence[DataLoader],
