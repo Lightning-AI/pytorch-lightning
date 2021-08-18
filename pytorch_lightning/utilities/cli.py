@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 if _JSONARGPARSE_AVAILABLE:
     from docstring_parser import parse
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, set_config_read_mode
+    from jsonargparse.actions import _ActionSubCommands
 
     set_config_read_mode(fsspec_enabled=True)
 else:
@@ -278,7 +279,6 @@ class LightningCLI:
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
         self.setup_parser(run, **parser_kwargs)
-        self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
 
         subcommand: Optional[str] = self.config["subcommand"] if run else None
@@ -291,7 +291,7 @@ class LightningCLI:
 
         self.before_instantiate_classes()
         self.instantiate_classes()
-        self.add_configure_optimizers_method_to_model()
+        self.add_configure_optimizers_method_to_model(subcommand)
 
         if subcommand is not None:
             self._run_subcommand(subcommand)
@@ -332,6 +332,7 @@ class LightningCLI:
         self.add_default_arguments_to_parser(parser)
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
+        self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """
@@ -377,16 +378,16 @@ class LightningCLI:
         self._subcommand_method_arguments[subcommand] = added
         return parser
 
-    def link_optimizers_and_lr_schedulers(self) -> None:
+    def link_optimizers_and_lr_schedulers(self, parser: LightningArgumentParser) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
-        for key, (class_type, link_to) in self.parser.optimizers_and_lr_schedulers.items():
+        for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
                 continue
             if isinstance(class_type, tuple):
-                self.parser.link_arguments(key, link_to)
+                parser.link_arguments(key, link_to)
             else:
                 add_class_path = _add_class_path_generator(class_type)
-                self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
+                parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
@@ -419,17 +420,23 @@ class LightningCLI:
             config["callbacks"].append(config_callback)
         return self.trainer_class(**config)
 
-    def add_configure_optimizers_method_to_model(self) -> None:
+    def add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
         """
         Adds to the model an automatically generated ``configure_optimizers`` method.
 
         If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC',
         then a `configure_optimizers` method is automatically implemented in the model class.
         """
+        if subcommand is None:
+            optimizers_and_lr_schedulers = self.parser.optimizers_and_lr_schedulers
+        else:
+            action_subcommands = [a for a in self.parser._actions if isinstance(a, _ActionSubCommands)][0]
+            subcommand_parser = action_subcommands._name_parser_map[subcommand]
+            optimizers_and_lr_schedulers = subcommand_parser.optimizers_and_lr_schedulers
 
         def get_automatic(class_type: Union[Type, Tuple[Type, ...]]) -> List[str]:
             automatic = []
-            for key, (base_class, link_to) in self.parser.optimizers_and_lr_schedulers.items():
+            for key, (base_class, link_to) in optimizers_and_lr_schedulers.items():
                 if not isinstance(base_class, tuple):
                     base_class = (base_class,)
                 if link_to == "AUTOMATIC" and any(issubclass(c, class_type) for c in base_class):
@@ -457,14 +464,14 @@ class LightningCLI:
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
             )
 
-        optimizer_class = self.parser.optimizers_and_lr_schedulers[optimizers[0]][0]
-        optimizer_init = self.config_init.get(optimizers[0], {})
+        optimizer_class = optimizers_and_lr_schedulers[optimizers[0]][0]
+        optimizer_init = self._get(self.config_init, optimizers[0], default={})
         if not isinstance(optimizer_class, tuple):
             optimizer_init = _global_add_class_path(optimizer_class, optimizer_init)
         lr_scheduler_init = None
         if lr_schedulers:
-            lr_scheduler_class = self.parser.optimizers_and_lr_schedulers[lr_schedulers[0]][0]
-            lr_scheduler_init = self.config_init.get(lr_schedulers[0], {})
+            lr_scheduler_class = optimizers_and_lr_schedulers[lr_schedulers[0]][0]
+            lr_scheduler_init = self._get(self.config_init, lr_schedulers[0], default={})
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
@@ -480,13 +487,15 @@ class LightningCLI:
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
     @staticmethod
-    def _get(subcommand: Optional[str], config: Dict, key: Optional[str]) -> Optional[Any]:
+    def _get(
+        subcommand: Optional[str], config: Dict, key: Optional[str], default: Optional[Any] = None
+    ) -> Optional[Any]:
         """Utility to get a config value which might be inside a subcommand."""
         if subcommand is not None:
             if key is None:
                 return config[subcommand]
-            return config[subcommand].get(key)
-        return config.get(key)
+            return config[subcommand].get(key, default)
+        return config.get(key, default)
 
     def _run_subcommand(self, subcommand: str) -> None:
         """Run the chosen subcommand."""

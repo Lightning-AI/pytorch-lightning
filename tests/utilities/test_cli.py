@@ -609,7 +609,8 @@ def test_cli_config_overwrite(tmpdir):
         LightningCLI(BoringModel, save_config_overwrite=True, trainer_defaults=trainer_defaults)
 
 
-def test_lightning_cli_optimizer(tmpdir):
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_optimizer(tmpdir, run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
@@ -618,15 +619,19 @@ def test_lightning_cli_optimizer(tmpdir):
         "BoringModel.configure_optimizers` will be overridden by "
         "`MyLightningCLI.add_configure_optimizers_method_to_model`"
     )
-    with mock.patch("sys.argv", ["any.py"]), pytest.warns(UserWarning, match=match):
-        cli = MyLightningCLI(BoringModel, run=False)
-
-    cli.trainer.init_optimizers(cli.trainer.model)
+    argv = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=True"] if run else []
+    with mock.patch("sys.argv", ["any.py"] + argv), pytest.warns(UserWarning, match=match):
+        cli = MyLightningCLI(BoringModel, run=run)
 
     assert cli.model.configure_optimizers is not BoringModel.configure_optimizers
-    assert len(cli.trainer.optimizers) == 1
-    assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.lr_schedulers) == 0
+
+    if not run:
+        optimizer = cli.model.configure_optimizers()
+        assert isinstance(optimizer, torch.optim.Adam)
+    else:
+        assert len(cli.trainer.optimizers) == 1
+        assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
+        assert len(cli.trainer.lr_schedulers) == 0
 
 
 def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
@@ -635,7 +640,12 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1", "--lr_scheduler.gamma=0.8"]
+    cli_args = [
+        "fit",
+        f"--trainer.default_root_dir={tmpdir}",
+        "--trainer.fast_dev_run=True",
+        "--lr_scheduler.gamma=0.8",
+    ]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel)
@@ -689,6 +699,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(tmpdir):
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
     cli_args = [
+        "fit",
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
         "--optim2.class_path=torch.optim.SGD",
