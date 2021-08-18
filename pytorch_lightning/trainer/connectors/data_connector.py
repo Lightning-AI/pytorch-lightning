@@ -87,11 +87,7 @@ class DataConnector:
                 "this signature is experimental and the behavior may subject to change."
             )
             return DataLoaderIterDataFetcher()
-<<<<<<< HEAD
         elif os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1': # self.trainer.training_type_plugin.on_gpu
-=======
-        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
->>>>>>> cc11c0a32f3fc27da6aa2c4fbbc044710ff8e419
             return InterBatchParallelismDataFetcher()
         else:
             return DataFetcher()
