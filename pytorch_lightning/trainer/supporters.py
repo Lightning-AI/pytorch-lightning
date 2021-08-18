@@ -378,7 +378,7 @@ class CombinedLoader:
         ``CaptureIterableDataset`` and fast-forward samplers.
 
         """
-        if not _fault_tolerant_training():
+        if not _fault_tolerant_training() or self._iterator is None:
             return DataLoaderDict()
 
         return apply_to_collections(
