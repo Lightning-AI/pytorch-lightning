@@ -792,23 +792,9 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-class RandomGeneratorGetItemDataset(Dataset):
-    def __init__(self, length, size):
-        self.size = size
-        self.len = length
-        self.generator = torch.Generator()
-
-    def __getitem__(self, index):
-        return torch.rand(self.size, generator=self.generator)
-
-    def __len__(self):
-        return self.len
-
-
 # NOTE: we are not able to restore if we fail during the first N=num_workers batches
 # TODO: test with batch sampler
 # TODO: test with `RandomGeneratorGetItemDataset`
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 50 sec and should be skipped in Azure CI")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
 @pytest.mark.parametrize(
@@ -816,15 +802,12 @@ class RandomGeneratorGetItemDataset(Dataset):
     [
         SequentialGetItemDataset,
         RandomGetItemDataset,
-        # RandomGeneratorGetItemDataset,  # TODO: support in future PR
+        # RandomGeneratorGetItemDataset,
     ],
 )
 @pytest.mark.parametrize("num_workers", [0])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
-    # set the manual seed initially
-    torch.manual_seed(1)
-
     def create_dataset_sampler():
         dataset = CaptureMapDataset(dataset_class(16, 8))
         random_sampler = RandomSampler(dataset, generator=torch.Generator())
