@@ -14,6 +14,7 @@
 import logging
 import os
 import re
+from multiprocessing.queues import SimpleQueue
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -21,10 +22,12 @@ import torch.distributed
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -62,14 +65,19 @@ class DDPSpawnPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Any,
     ):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+        )
         if num_nodes is not None:
             rank_zero_deprecation(
                 "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
@@ -150,22 +158,21 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    @property
-    def mp_spawn_kwargs(self):
-        return {"args": (self.lightning_module.trainer, self.mp_queue), "nprocs": self.num_processes}
+    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
+        return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
 
-    def start_training(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_training(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
-    def start_evaluating(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_predicting(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def new_process(self, process_idx, trainer, mp_queue):
+    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         reset_seed()
@@ -201,7 +208,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         results = trainer.run_stage()
 
         # persist info in ddp_spawn
-        self.transfer_distrib_spawn_state_on_fit_end(results)
+        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
@@ -280,8 +287,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def transfer_distrib_spawn_state_on_fit_end(self, results):
-        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+        checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
@@ -292,11 +299,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
             # save the last weights
             last_path = None
-            if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-                and best_model_path is not None
-                and len(best_model_path) > 0
-            ):
+            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 atomic_save(self.on_save(state_dict), last_path)
 

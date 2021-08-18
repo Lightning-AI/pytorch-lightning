@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
-from torch import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
@@ -29,10 +28,9 @@ from pytorch_lightning.utilities.auto_restart import (
     _find_current_worker,
     CaptureIterableDataset,
 )
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class TensorRunningAccum:
@@ -112,62 +110,27 @@ class TensorRunningAccum:
             return getattr(self.memory[: self.current_idx], how)()
 
 
-class PredictionCollection:
-    def __init__(self, global_rank: int, world_size: int):
-        self.global_rank = global_rank
-        self.world_size = world_size
-        self.predictions = {}
-        self.num_predictions = 0
+@dataclass
+class SharedCycleIteratorState:
 
-    def _add_prediction(self, name, values, filename):
-        if filename not in self.predictions:
-            self.predictions[filename] = {name: values}
-        elif name not in self.predictions[filename]:
-            self.predictions[filename][name] = values
-        elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values))
-        elif isinstance(values, list):
-            self.predictions[filename][name].extend(values)
+    mode: str = "max_size_cycle"
+    dataloaders: List[DataLoader] = field(default_factory=lambda: [])
+    has_finished: Dict[int, bool] = field(default_factory=lambda: {})
+    has_reset: bool = False
 
-    def add(self, predictions):
+    def reset(self) -> None:
+        for dataloader in self.dataloaders:
+            self.has_finished[id(dataloader)] = False
+        self.has_reset = True
 
-        if predictions is None:
-            return
-
-        for filename, pred_dict in predictions.items():
-            for feature_name, values in pred_dict.items():
-                self._add_prediction(feature_name, values, filename)
-
-    def to_disk(self) -> None:
-        """Write predictions to file(s)."""
-        for filepath, predictions in self.predictions.items():
-            fs = get_filesystem(filepath)
-            # normalize local filepaths only
-            if fs.protocol == "file":
-                filepath = os.path.realpath(filepath)
-            if self.world_size > 1:
-                stem, extension = os.path.splitext(filepath)
-                filepath = f"{stem}_rank_{self.global_rank}{extension}"
-            dirpath = os.path.split(filepath)[0]
-            fs.mkdirs(dirpath, exist_ok=True)
-
-            # Convert any tensor values to list
-            predictions = {k: v if not isinstance(v, Tensor) else v.tolist() for k, v in predictions.items()}
-
-            # Check if all features for this file add up to same length
-            feature_lens = {k: len(v) for k, v in predictions.items()}
-            if len(set(feature_lens.values())) != 1:
-                raise ValueError("Mismatching feature column lengths found in stored EvalResult predictions.")
-
-            # Switch predictions so each entry has its own dict
-            outputs = []
-            for values in zip(*predictions.values()):
-                output_element = dict(zip(predictions.keys(), values))
-                outputs.append(output_element)
-
-            # Write predictions for current file to disk
-            with fs.open(filepath, "wb") as fp:
-                torch.save(outputs, fp)
+    @property
+    def done(self) -> bool:
+        if not self.has_reset:
+            raise MisconfigurationException("Please, call reset once all dataloaders have been added.")
+        if len(self.dataloaders) == 1:
+            return False
+        decision_fn = all if self.mode == "max_size_cycle" else any
+        return decision_fn(self.has_finished.values())
 
 
 class CycleIterator:
@@ -175,7 +138,7 @@ class CycleIterator:
     Iterator for restarting a dataloader if it runs out of samples
     """
 
-    def __init__(self, loader: Any, length: Optional[int] = None):
+    def __init__(self, loader: Any, length: Optional[int] = None, state: SharedCycleIteratorState = None):
         """
         Args:
             loader: the loader to restart for cyclic (and optionally infinite) sampling
@@ -184,6 +147,15 @@ class CycleIterator:
         """
         if length is None:
             length = float("inf")
+
+        if not state:
+            state = SharedCycleIteratorState()
+            state.dataloaders.append(loader)
+            state.reset()
+        else:
+            state.dataloaders.append(loader)
+
+        self.state = state
 
         self.length = length
         self.loader = loader
@@ -205,21 +177,27 @@ class CycleIterator:
         """
         Fetches the next batch from internal dataloader and restarts
         it if necessary
-
         Returns:
             Any: the resulting batch
-
         Raises:
             StopIteration: if more then :attr:`length` batches have been returned
         """
         # Note: if self.length is `inf`, then the iterator will never stop
-        if self.counter >= self.__len__():
+        if self.counter >= self.__len__() or self.state.done:
             raise StopIteration
 
         try:
             return next(self._loader_iter)
 
         except StopIteration:
+
+            # inform the shared state this loader has completed
+            self.state.has_finished[id(self.loader)] = True
+
+            # check if iteration should be stopped.
+            if self.state.done:
+                raise StopIteration
+
             self._loader_iter = iter(self.loader)
             return next(self._loader_iter)
 
@@ -397,7 +375,7 @@ class CombinedLoader:
             num_batches_processed: The number of batches processed so far, needed because the individual dataloaders
                 may have already prefetched more batches by the time a state dict is requested.
         """
-        if not _fault_tolerant_enabled():
+        if not _fault_tolerant_training():
             return DataLoaderDict()
 
         state_dict_fn = partial(self._state_dict_fn, num_batches_processed=num_batches_processed)
@@ -468,9 +446,13 @@ class CombinedLoader:
 
         # multiple loaders
         if isinstance(self.loaders, (Sequence, Mapping)):
+            state = SharedCycleIteratorState()
+
             self.loaders = apply_to_collection(
-                self.loaders, Iterable, CycleIterator, length=length, wrong_dtype=(Sequence, Mapping)
+                self.loaders, Iterable, CycleIterator, length=length, state=state, wrong_dtype=(Sequence, Mapping)
             )
+
+            state.reset()
 
     def __iter__(self) -> Any:
         """
@@ -559,7 +541,7 @@ class CombinedLoaderIterator:
 
         def next_fn(iterator: Iterator):
             batch = next(iterator)
-            if not _fault_tolerant_enabled():
+            if not _fault_tolerant_training():
                 return batch
             # when fault tolerant is enabled, the iterator will return
             # `FastForwardSampler` state_dict metadata
@@ -610,25 +592,3 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
             new_data.append(x)
 
     return compute_func(new_data)
-
-
-def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, None]:
-    """
-    Returns an iterator that pre-fetches and caches the next item.
-    The values are passed through from the given iterable with an added boolean indicating if this is the last item.
-    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
-    """
-    it = iter(iterable)
-
-    try:
-        # the iterator may be empty from the beginning
-        last = next(it)
-    except StopIteration:
-        return
-
-    for val in it:
-        # yield last and has next
-        yield last, False
-        last = val
-    # yield last, no longer has next
-    yield last, True
