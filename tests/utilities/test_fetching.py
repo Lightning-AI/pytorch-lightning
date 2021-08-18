@@ -11,14 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from time import time
 from typing import Any
 from unittest import mock
+
 import pytest
 import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
-import os
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -185,9 +187,9 @@ def test_trainer_num_prefetch_batches(tmpdir):
         trainer = Trainer(max_epochs=2, gpus=1)
         trainer.fit(model)
         t1 = time()
-    
+
     torch.cuda.synchronize()
-    
+
     t2 = time()
     trainer = Trainer(max_epochs=2, gpus=1)
     trainer.fit(model)

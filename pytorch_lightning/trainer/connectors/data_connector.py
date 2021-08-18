@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Iterable, Optional, Union
 import os
+from typing import Callable, Iterable, Optional, Union
+
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -61,7 +62,7 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1':
+        if os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
             return InterBatchParallelismDataFetcher()
         else:
             return DataFetcher()
