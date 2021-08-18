@@ -15,7 +15,7 @@
 
 import pytest
 
-from pytorch_lightning import LightningDataModule
+from pytorch_lightning import LightningDataModule, Trainer
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -80,3 +80,10 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = dm.dims
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = LightningDataModule(dims=(1, 1, 1))
+
+
+def test_v1_7_0_trainer_reload_dataloaders_every_n_epochs(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `reload_dataloaders_every_n_epochs` with the trainer flag is deprecated "
+    ):
+        _ = Trainer(reload_dataloaders_every_n_epochs=1)
