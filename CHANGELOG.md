@@ -54,6 +54,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `CheckpointIO` to expose checkpoint IO from training type plugin ([#8743](https://github.com/PyTorchLightning/pytorch-lightning/pull/8743))
 
 
+- Added support for `BatchInterParallelism` ([#8959](https://github.com/PyTorchLightning/pytorch-lightning/pull/8959))
+
+
+- Added support for passing the `dataloader_iter` to the `training_step` ([#8959](https://github.com/PyTorchLightning/pytorch-lightning/pull/8959))
+
+
 ### Changed
 
 - Parsing of the `gpus` Trainer argument has changed: `gpus="n"` (str) no longer selects the GPU index n and instead selects the first n devices. ([#8770](https://github.com/PyTorchLightning/pytorch-lightning/pull/8770))
