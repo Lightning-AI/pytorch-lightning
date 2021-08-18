@@ -221,10 +221,11 @@ class DataFetcher(AbstractDataFetcher):
                 try:
                     yield_batch = self.pop_batch()
                     self._fetch_next_batch()
+
                     # yield last and has next
-                    yield from self._yield_batch(yield_batch=yield_batch)
+                    self.wait()
+                    yield yield_batch, False
                 except StopIteration:
-                    self.batches.insert(0, yield_batch)
                     break
 
             yield from self._consume_prefetched_batches()
@@ -257,14 +258,11 @@ class DataFetcher(AbstractDataFetcher):
         while self.batches:
             yield from self._yield_batch()
 
-    def _yield_batch(self, yield_batch: Optional[Any] = None) -> Generator:
+    def _yield_batch(self) -> Generator:
         self.wait()
-        if yield_batch is None:
-            batch = self.batches.pop(0)
-            is_last = len(self.batches) == 0
-            yield batch, is_last
-        else:
-            yield yield_batch, False
+        batch = self.batches.pop(0)
+        is_last = len(self.batches) == 0
+        yield batch, is_last
 
 
 class InterBatchParallelismDataFetcher(DataFetcher):
