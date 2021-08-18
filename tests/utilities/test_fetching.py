@@ -215,6 +215,6 @@ def test_fetching_dataloader_iter(tmpdir):
 
         training_epoch_end = None
 
-    model = TestModel(non_blocking=True)
+    model = TestModel()
     trainer = Trainer(max_epochs=2, gpus=1)
     trainer.fit(model)
