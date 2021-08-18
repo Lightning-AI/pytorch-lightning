@@ -33,10 +33,18 @@ class DataConnector:
         check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
         reload_dataloaders_every_epoch: bool,
-        prepare_data_per_node: bool,
+        prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
-        self.prepare_data_per_node = prepare_data_per_node
+
+        if prepare_data_per_node is None:
+            prepare_data_per_node = True
+        else:
+            rank_zero_deprecation(
+                "Setting prepare_data_per_node with the trainer flag is deprecated and will be removed in v1.7.0!"
+                "Please use `~pytorch_lightning.core.datamodule.prepare_data_per_node` instead. "
+            )
+        self.trainer.prepare_data_per_node = prepare_data_per_node
 
         if not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
@@ -81,7 +89,7 @@ class DataConnector:
         if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
             should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
-        if self.prepare_data_per_node:
+        if self.trainer.datamodule is not None and self.trainer.datamodule.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
         return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 

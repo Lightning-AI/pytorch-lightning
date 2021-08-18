@@ -242,6 +242,8 @@ class Trainer(
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
+                Deprecated in v1.5.0 and will be removed in v1.7.0
+                Please use `~pytorch_lightning.core.datamodule.prepare_data_per_node` instead
 
             process_position: orders the progress bar when running multiple models on same machine.
 
@@ -422,14 +424,6 @@ class Trainer(
         self.optimizer_connector.on_trainer_init()
 
         # init data flags
-        if prepare_data_per_node is None:
-            prepare_data_per_node = True
-        else:
-            rank_zero_warn(
-                "Setting prepare_data_per_node with the trainer flag is deprecated and will be removed in v1.7.0!"
-                "Please use the property in the DataHooks for setting prepare_data_per_node"
-            )
-
         self.data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,

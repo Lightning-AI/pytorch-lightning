@@ -41,7 +41,7 @@ def test_can_prepare_data(local_rank, node_rank):
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-    trainer.data_connector.prepare_data_per_node = True
+    dm.prepare_data_per_node = True
 
     dm.random_full = None
     dm._has_prepared_data = False
@@ -66,7 +66,7 @@ def test_can_prepare_data(local_rank, node_rank):
     # global rank = 0   (True)
     dm.random_full = None
     dm._has_prepared_data = False
-    trainer.data_connector.prepare_data_per_node = False
+    dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
     assert trainer.data_connector.can_prepare_data()
@@ -94,7 +94,7 @@ def test_can_prepare_data(local_rank, node_rank):
     # 2 dm
     # prepar per node = True
     # local rank = 0 (True)
-    trainer.data_connector.prepare_data_per_node = True
+    dm.prepare_data_per_node = True
     local_rank.return_value = 0
 
     # is_overridden prepare data = True
