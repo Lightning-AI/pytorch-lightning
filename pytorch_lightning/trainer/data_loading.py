@@ -40,7 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _inter_batch_parallelism
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -261,6 +261,10 @@ class TrainerDataLoadingMixin(ABC):
                 raise MisconfigurationException(
                     "This shouldn't happen, please open an issue on Lightning Github repository."
                 )
+
+        if _inter_batch_parallelism():
+            # can only do asynchronous transfer if we use pin_memory
+            dl_kwargs["pin_memory"] = True
 
         return dl_kwargs
 
