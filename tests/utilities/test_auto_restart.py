@@ -681,7 +681,7 @@ def test_dataloader_to_state_dict_and_reload():
     assert state_dict == {
         "num_workers": 0,
         "previous_worker": None,
-        0: {"current_iteration": 16, "rng_states": ANY},
+        0: {"current_iteration": 16},
     }
 
     dataloader = create_dataloader()
@@ -693,7 +693,7 @@ def test_dataloader_to_state_dict_and_reload():
     assert state_dict == {
         "num_workers": 0,
         "previous_worker": None,
-        0: {"current_iteration": 24, "rng_states": ANY},
+        0: {"current_iteration": 24},
     }
 
 
