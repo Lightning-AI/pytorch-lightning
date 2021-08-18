@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.auto_restart import (
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAULT_TOLERANT_ENABLED
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class AbstractDataFetcher(ABC):
@@ -78,9 +78,6 @@ class AbstractDataFetcher(ABC):
         self.batch_to_device = batch_to_device
         self.profiler = profiler
 
-        if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
-            _add_capture_metadata_collate(dataloader)
-
     @staticmethod
     def _add_capture_metadata_collate(dataloader: Iterable) -> None:
         if not isinstance(dataloader, (DataLoader, CombinedLoader)):
@@ -89,7 +86,11 @@ class AbstractDataFetcher(ABC):
         if isinstance(dataloader, CombinedLoader):
             dataloader = dataloader.loaders
 
-        apply_to_collection(dataloader, DataLoader, _add_capture_metadata_collate)
+        def add_capture_metadata_collate(dataloader: DataLoader):
+            if not isinstance(dataloader.collate_fn, partial):
+                _add_capture_metadata_collate(dataloader)
+
+        apply_to_collection(dataloader, DataLoader, add_capture_metadata_collate)
 
     def append_batch(self, batch) -> None:
         self.batches.append(batch)
@@ -104,7 +105,7 @@ class AbstractDataFetcher(ABC):
                 # cycle_iterator = iterator
                 iterator = iterator._loader_iter
 
-            if isinstance(loader, DataLoader) and _FAULT_TOLERANT_ENABLED:
+            if isinstance(loader, DataLoader) and _fault_tolerant_training():
                 loader._lightning_fetcher = self
                 patch_dataloader_iterator(loader, iterator, self)
 
