@@ -298,3 +298,32 @@ class InterBatchParallelismDataFetcher(DataFetcher):
     def wait(self) -> None:
         event = self.events.pop(0)
         event.wait()
+
+
+class TrainingStepDataLoaderIter:
+
+    def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
+        self.iterator = iterator
+        self.data_fetcher = data_fetcher
+
+    def __iter__(self) -> 'TrainingStepDataLoaderIter':
+        return self
+
+    def __next__(self) -> Any:
+        self.data_fetcher.fetched += 1
+        try:
+            return next(self.iterator)
+        except StopIteration:
+            self.data_fetcher.done = True
+
+
+class DataLoaderIterDataFetcher(DataFetcher):
+
+    """
+    This class is used to control batch fetching flow.
+    """
+
+    def fetching_function(self) -> Generator:
+        iterator = iter(TrainingStepDataLoaderIter(self.dataloader_iter, self))
+        while True:
+            yield iterator, self.done

@@ -22,7 +22,7 @@ import os
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, InterBatchParallelismDataFetcher
+from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -126,57 +126,57 @@ def get_cycles_per_ms() -> float:
     stats = vals[2 : num - 2]
     return sum(stats) / len(stats)
 
+CYCLES_PER_MS = int(get_cycles_per_ms())
+
+BATCH_SIZE = 128
+EMB_SZ = 100
+EMB_DIM = 64
+
+class RandomIndicesDataset(Dataset):
+    def __getitem__(self, index):
+        return torch.randint(EMB_DIM, [BATCH_SIZE])
+
+    def __len__(self):
+        return 16
+
+class RecommenderModel(BoringModel):
+    def __init__(self, non_blocking: bool):
+        super().__init__()
+        self.layer = None
+        self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
+        self.non_blocking = non_blocking
+
+    def forward(self, indices: torch.Tensor):
+        result = self.local_embedding(indices)
+        return result
+
+    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
+        torch.cuda._sleep(CYCLES_PER_MS)
+        if not self.non_blocking:
+            torch.cuda.synchronize()
+        return batch
+
+    def training_step_end(self, training_step_outputs):
+        torch.cuda._sleep(CYCLES_PER_MS)
+        if not self.non_blocking:
+            torch.cuda.synchronize()
+        return training_step_outputs
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.parameters(), lr=0.1)
+
+    def train_dataloader(self):
+        return DataLoader(RandomIndicesDataset(), batch_size=4)
+
+    def val_dataloader(self):
+        return DataLoader(RandomIndicesDataset(), batch_size=4)
+
+    def test_dataloader(self):
+        return DataLoader(RandomIndicesDataset(), batch_size=4)
+
 
 @RunIf(min_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
-
-    CYCLES_PER_MS = int(get_cycles_per_ms())
-
-    BATCH_SIZE = 128
-    EMB_SZ = 100
-    EMB_DIM = 64
-
-    class RandomIndicesDataset(Dataset):
-        def __getitem__(self, index):
-            return torch.randint(EMB_DIM, [BATCH_SIZE])
-
-        def __len__(self):
-            return 16
-
-    class RecommenderModel(BoringModel):
-        def __init__(self, non_blocking: bool):
-            super().__init__()
-            self.layer = None
-            self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
-            self.non_blocking = non_blocking
-
-        def forward(self, indices: torch.Tensor):
-            result = self.local_embedding(indices)
-            return result
-
-        def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-            torch.cuda._sleep(CYCLES_PER_MS)
-            if not self.non_blocking:
-                torch.cuda.synchronize()
-            return batch
-
-        def training_step_end(self, training_step_outputs):
-            torch.cuda._sleep(CYCLES_PER_MS)
-            if not self.non_blocking:
-                torch.cuda.synchronize()
-            return training_step_outputs
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.parameters(), lr=0.1)
-
-        def train_dataloader(self):
-            return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-        def val_dataloader(self):
-            return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-        def test_dataloader(self):
-            return DataLoader(RandomIndicesDataset(), batch_size=4)
 
     model = RecommenderModel(non_blocking=True)
 
@@ -194,3 +194,23 @@ def test_trainer_num_prefetch_batches(tmpdir):
     t3 = time()
 
     assert (t1 - t0) < (t3 - t2)
+
+
+def test_fetching_dataloader_iter(tmpdir):
+
+    class TestModel(RecommenderModel):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.automatic_optimization = False
+
+        def training_step(self, dataloader_iter, batch_idx): 
+            assert isinstance(self.trainer.data_connector._select_data_fetcher(), DataLoaderIterDataFetcher)
+            batch = next(dataloader_iter)
+            assert isinstance(batch, torch.Tensor) or batch is None
+
+        training_epoch_end = None
+
+    model = TestModel(non_blocking=True)
+    trainer = Trainer(max_epochs=2, gpus=1)
+    trainer.fit(model)
