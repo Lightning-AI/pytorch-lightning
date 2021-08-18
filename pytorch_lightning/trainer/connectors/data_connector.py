@@ -71,7 +71,6 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def _check_training_step_requires_dataloader_iter(self) -> bool:
-        self.trainer.lightning_module
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         contains_datalaoder_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
         use_manual_optimization = not self.trainer.lightning_module.automatic_optimization
@@ -89,8 +88,8 @@ class DataConnector:
                 "this signature is experimental and the behavior may subject to change."
             )
             return DataLoaderIterDataFetcher()
-        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-            # FIXME: Replace by self.trainer.training_type_plugin.on_gpu
+        elif self.trainer.training_type_plugin.on_gpu and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+            # experimental feature
             return InterBatchParallelismDataFetcher()
         else:
             return DataFetcher()
