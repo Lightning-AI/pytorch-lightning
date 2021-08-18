@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from mock.mock import ANY
 
 from pytorch_lightning.loops import FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
