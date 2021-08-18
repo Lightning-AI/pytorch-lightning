@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
-class AbstractFetcher(ABC):
+class AbstractDataFetcher(ABC):
 
     """
     This class is used to control batch fetching flow.
@@ -170,7 +170,7 @@ class AbstractFetcher(ABC):
         self.done: bool = False
 
 
-class DataFetcher(AbstractFetcher):
+class DataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.
