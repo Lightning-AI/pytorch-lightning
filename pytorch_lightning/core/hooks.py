@@ -372,6 +372,10 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._reload_dataloaders_every_n_epochs: int = 0
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -804,6 +808,18 @@ class DataHooks:
             - :meth:`transfer_batch_to_device`
         """
         return batch
+
+        @property
+        def reload_dataloaders_every_n_epochs(self) -> int:
+            """
+            A non-negative integer to reload dataloaders every n epochs.
+            Default: 0
+            """
+            return self._reload_dataloaders_every_n_epochs
+
+        @reload_dataloaders_every_n_epochs.setter
+        def reload_dataloaders_every_n_epochs(self, reload_dataloaders_every_n_epochs: int) -> None:
+            self._reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
 
 
 class CheckpointHooks:

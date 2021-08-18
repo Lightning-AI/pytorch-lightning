@@ -145,7 +145,7 @@ class Trainer(
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
-        reload_dataloaders_every_n_epochs: int = 0,
+        reload_dataloaders_every_n_epochs: Optional[int] = None,
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -282,6 +282,9 @@ class Trainer(
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
                 Default: 0
+                this flag in Trainer is deprecated in v1.5.0 and will be removed in v1.7.0
+                Please set ``reload_dataloaders_every_n_epochs`` in `LightningDataModule` or `LightningModule`
+                directly instead.
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
@@ -424,9 +427,9 @@ class Trainer(
         # init data flags
         self.data_connector.on_trainer_init(
             check_val_every_n_epoch,
-            reload_dataloaders_every_n_epochs,
             reload_dataloaders_every_epoch,
             prepare_data_per_node,
+            reload_dataloaders_every_n_epochs,
         )
 
         # init training tricks
