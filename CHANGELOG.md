@@ -95,7 +95,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - `Trainer.request_dataloader` now takes a `RunningStage` enum instance ([#8858](https://github.com/PyTorchLightning/pytorch-lightning/pull/8858))
 
-- Deprecated `reload_dataloaders_every_n_epochs` flag on Trainer and set it as a property of DataHooks, accessible in the LightningModule and LightningDataModule [TBD]
+- Deprecated `reload_dataloaders_every_n_epochs` flag on Trainer and set it as a property of DataHooks, accessible in the LightningModule and LightningDataModule ([#8986](https://github.com/PyTorchLightning/pytorch-lightning/pull/8986))
 
 ### Deprecated
 
