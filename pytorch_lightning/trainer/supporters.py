@@ -18,7 +18,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class TensorRunningAccum:
@@ -382,7 +382,7 @@ class CombinedLoader:
         ``CaptureIterableDataset`` and fast-forward samplers.
 
         """
-        if not _fault_tolerant_enabled():
+        if not _fault_tolerant_training():
             return DataLoaderDict()
 
         return apply_to_collections(
@@ -578,6 +578,22 @@ class CombinedLoaderIterator:
             Any: a collections of batch data
         """
         return apply_to_collection(loader_iters, Iterator, next)
+
+        def next_fn(iterator: Iterator):
+            batch = next(iterator)
+            if not _fault_tolerant_training():
+                return batch
+            # when fault tolerant is enabled, the iterator will return
+            # `FastForwardSampler` state_dict metadata
+            # along side with the user data.
+            # the metadata are extracted and store directly on the iterator
+            # to simplify the collection on `state_dict` call.
+            batch, samplers_state_dict = CaptureIterableDataset.extract_samplers_state_dict_from_batch(batch)
+            # store the `sampler_state_dict` on the iterator
+            CaptureIterableDataset.store_samplers_state_dict(iterator, samplers_state_dict)
+            return batch
+
+        return apply_to_collection(loader_iters, Iterator, next_fn)
 
     @staticmethod
     def create_loader_iters(

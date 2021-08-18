@@ -41,7 +41,7 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -170,7 +170,7 @@ class TrainerDataLoadingMixin(ABC):
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if _fault_tolerant_enabled():
+            if _fault_tolerant_training():
                 fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
                 fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -182,7 +182,7 @@ class TrainerDataLoadingMixin(ABC):
                 "drop_last": False,
             }
 
-        if _fault_tolerant_enabled():
+        if _fault_tolerant_training():
             fast_forward_sampler = sampler = FastForwardSampler(sampler)
             fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
@@ -260,9 +260,16 @@ class TrainerDataLoadingMixin(ABC):
                     "This shouldn't happen, please open an issue on Lightning Github repository."
                 )
 
-        if isinstance(dl_kwargs["dataset"], IterableDataset):
-            del dl_kwargs["sampler"]
-            del dl_kwargs["batch_sampler"]
+        if _fault_tolerant_training():
+            if isinstance(dl_kwargs["dataset"], IterableDataset):
+                # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+                dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+            elif len(dl_kwargs["dataset"]):
+                dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
+            else:
+                raise MisconfigurationException(
+                    "This shouldn't happen, please open an issue on Lightning Github repository."
+                )
 
         return dl_kwargs
 
@@ -317,8 +324,8 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # add collate_fn to collect metadata for fault tolerant training
-        if _fault_tolerant_enabled():
-            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
+        if _fault_tolerant_training():
+            apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
@@ -531,3 +538,12 @@ class TrainerDataLoadingMixin(ABC):
             dataloader = list(dataloader)
         self.accelerator.barrier("get_dataloaders")
         return dataloader
+
+    @staticmethod
+    def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
+        """
+        Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is enabled.
+        """
+        dataloader.collate_fn = partial(
+            _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        )

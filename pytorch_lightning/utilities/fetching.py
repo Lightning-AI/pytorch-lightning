@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.auto_restart import (
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class AbstractFetcher(ABC):
@@ -61,10 +61,7 @@ class AbstractFetcher(ABC):
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
-            raise MisconfigurationException(
-                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
-            )
+        self._add_capture_metadata_collate(dataloader)
         self.dataloader = dataloader
         if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
             _add_capture_metadata_collate(dataloader)
@@ -161,7 +158,7 @@ class AbstractFetcher(ABC):
         self.done: bool = False
 
 
-class LightningDataFetcher(AbstractFetcher):
+class DataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.

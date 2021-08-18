@@ -18,7 +18,7 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -77,7 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
@@ -486,6 +486,34 @@ class Trainer(
 
         self.num_predict_batches = []
 
+    def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
+        r"""
+        Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
+        as all errors should funnel through them
+
+        Args:
+            trainer_fn: one of (fit, validate, test, predict)
+            *args: positional arguments to be passed to the `trainer_fn`
+            **kwargs: keyword arguments to be passed to `trainer_fn`
+        """
+        try:
+            return trainer_fn(*args, **kwargs)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
+
     def fit(
         self,
         model: "pl.LightningModule",
@@ -508,18 +536,27 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        Trainer._log_api_event("fit")
-
-        self.state.fn = TrainerFn.FITTING
-        self.state.status = TrainerStatus.RUNNING
-        self.training = True
-
         if train_dataloader is not None:
             rank_zero_deprecation(
                 "`trainer.fit(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
                 " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
             )
             train_dataloaders = train_dataloader
+        self._call_and_handle_interrupt(self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule)
+
+    def _fit_impl(
+        self,
+        model: "pl.LightningModule",
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> None:
+        Trainer._log_api_event("fit")
+
+        self.state.fn = TrainerFn.FITTING
+        self.state.status = TrainerStatus.RUNNING
+        self.training = True
+
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
             datamodule = train_dataloaders
@@ -572,6 +609,22 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
+        if val_dataloaders is not None:
+            rank_zero_deprecation(
+                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.validate(dataloaders)` instead."
+            )
+            dataloaders = val_dataloaders
+        return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+
+    def _validate_impl(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> _EVALUATE_OUTPUT:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -582,12 +635,6 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
 
-        if val_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.validate(dataloaders)` instead."
-            )
-            dataloaders = val_dataloaders
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
@@ -651,6 +698,22 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
+        if test_dataloaders is not None:
+            rank_zero_deprecation(
+                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.test(dataloaders)` instead."
+            )
+            dataloaders = test_dataloaders
+        return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+
+    def _test_impl(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> _EVALUATE_OUTPUT:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -661,12 +724,6 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
 
-        if test_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.test(dataloaders)` instead."
-            )
-            dataloaders = test_dataloaders
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
@@ -728,7 +785,18 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
+        return self._call_and_handle_interrupt(
+            self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
+        )
 
+    def _predict_impl(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        return_predictions: Optional[bool] = None,
+        ckpt_path: Optional[str] = None,
+    ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -1067,29 +1135,8 @@ class Trainer(
 
         self.reset_train_val_dataloaders(model)
 
-        try:
-            # reset trainer on this loop and all child loops in case user connected a custom loop
-            self.fit_loop.trainer = self
-            self.fit_loop.run()
-        except KeyboardInterrupt:
-            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.on_train_end()
-        except BaseException:
-            self.state.status = TrainerStatus.INTERRUPTED
-            if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
-                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-            # give accelerators a chance to finish
-            self.accelerator.on_train_end()
-            self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
-            raise
+        self.fit_loop.trainer = self
+        self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -1344,7 +1391,7 @@ class Trainer(
             )
 
     def _on_exception(self):
-        if not _fault_tolerant_enabled():
+        if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
