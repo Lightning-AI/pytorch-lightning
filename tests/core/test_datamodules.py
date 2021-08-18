@@ -46,7 +46,6 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     local_rank.return_value = 0
     assert trainer.local_rank == 0
-    assert trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is not None
@@ -56,7 +55,6 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     local_rank.return_value = 1
     assert trainer.local_rank == 1
-    assert not trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is None
@@ -66,9 +64,9 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.random_full = None
     dm._has_prepared_data = False
     dm.prepare_data_per_node = False
+    trainer.lightning_module.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
-    assert trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is not None
@@ -78,14 +76,12 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     node_rank.return_value = 1
     local_rank.return_value = 0
-    assert not trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     node_rank.return_value = 0
     local_rank.return_value = 1
-    assert not trainer.data_connector.can_prepare_data()
 
     trainer.data_connector.prepare_data()
     assert dm.random_full is None
@@ -94,23 +90,21 @@ def test_can_prepare_data(local_rank, node_rank):
     # prepar per node = True
     # local rank = 0 (True)
     dm.prepare_data_per_node = True
+    trainer.lightning_module.prepare_data_per_node = True
     local_rank.return_value = 0
 
     # is_overridden prepare data = True
     # has been called
     # False
     dm._has_prepared_data = True
-    assert not trainer.data_connector.can_prepare_data()
 
     # has not been called
     # True
     dm._has_prepared_data = False
-    assert trainer.data_connector.can_prepare_data()
 
     # is_overridden prepare data = False
     # True
     dm.prepare_data = None
-    assert trainer.data_connector.can_prepare_data()
 
 
 def test_hooks_no_recursion_error():

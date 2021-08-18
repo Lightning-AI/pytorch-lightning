@@ -837,10 +837,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
                 attr = getattr(self, h)
                 setattr(self, h, partial(call, h, attr))
 
-        @property
-        def prepare_data_per_node(self) -> bool:
-            return True
-
     model = BoringModel()
     batches = 2
     trainer = Trainer(
