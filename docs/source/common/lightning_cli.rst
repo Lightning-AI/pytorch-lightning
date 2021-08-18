@@ -106,19 +106,6 @@ and config file options, instantiating the classes, setting up a callback to sav
 finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the model,
 (:code:`cli.model`).
 
-The :class:`~pytorch_lightning.utilities.cli.LightningCLI` is configured to run
-:meth:`~pytorch_lightning.trainer.Trainer.fit` by default. This can be changed either by setting
-``LightningCLI(trainer_fn="test")`` or by passing the argument through command line positionally, e.g.:
-
-.. code-block:: bash
-
-    python trainer.py test --trainer.limit_test_batches=10
-
-.. tip::
-
-    You can override :meth:`~pytorch_lightning.utilities.cli.LightningCLI.prepare_run_kwargs` to pass any extra
-    arguments to the trainer function to run.
-
 After multiple trainings with different configurations, each run will have in its respective log directory a
 :code:`config.yaml` file. This file can be used for reference to know in detail all the settings that were used for each
 particular run, and also could be used to trivially reproduce a training, e.g.:
@@ -441,9 +428,9 @@ The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
 :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
 more arguments. After parsing, the configuration is stored in the :code:`config` attribute of the class instance. The
 :class:`~pytorch_lightning.utilities.cli.LightningCLI` class also has two methods that can be used to run code before
-and after the trainer runs: :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_run` and
-:meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_run`. A realistic example for these would be to send an email
-before and after the execution. The code would be something like:
+and after :code:`trainer.fit` is executed: :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_fit` and
+:meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`. A realistic example for these would be to send an email
+before and after the execution of fit. The code would be something like:
 
 .. testcode::
 
@@ -454,19 +441,18 @@ before and after the execution. The code would be something like:
         def add_arguments_to_parser(self, parser):
             parser.add_argument("--notification_email", default="will@email.com")
 
-        def before_run(self):
-            send_email(address=self.config["notification_email"], message="Trainer running")
+        def before_fit(self):
+            send_email(address=self.config["notification_email"], message="trainer.fit starting")
 
-        def after_run(self):
-            send_email(address=self.config["notification_email"], message="Trainer finished")
+        def after_fit(self):
+            send_email(address=self.config["notification_email"], message="trainer.fit finished")
 
 
     cli = MyLightningCLI(MyModel)
 
 Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
 has the same structure as the yaml format described previously. This means for instance that the parameters used for
-instantiating the trainer class can be found in :code:`self.config['trainer']`. You can also access the trainer function
-that is meant to run with :code:`self.config["trainer_fn"].value`.
+instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
 .. tip::
 
