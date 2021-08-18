@@ -23,9 +23,11 @@ from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
+import __main__
 import numpy as np
 import torch
 import torch.distributed
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
@@ -53,20 +55,15 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
-from torch.nn.parallel.distributed import DistributedDataParallel
-
-import __main__
 
 if not _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_9:
-    from torch.distributed.optim import DistributedOptimizer
-    from torch.distributed.optim import PostLocalSGDOptimizer
-    from torch.distributed.optim import ZeroRedundancyOptimizer
+    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
-    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook	
+    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 if _TORCH_GREATER_EQUAL_1_9:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
     import torch.distributed.algorithms.model_averaging.averagers as averagers
@@ -330,18 +327,19 @@ class DDPPlugin(ParallelPlugin):
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
-            rank_zero_warn("Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin. Set this period as 16.")
+            rank_zero_warn(
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin. Set this period as 16."
+            )
             self._model_averaging_period = 16
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
-            if (
-                isinstance(optimizer, DistributedOptimizer)
-                or isinstance(optimizer, ZeroRedundancyOptimizer)
-            ):
-                raise ValueError("Cannot wrap a distributed optimizer of type {} by PostLocalSGDOptimizer.".format(optimizer.__name__))
+            if isinstance(optimizer, DistributedOptimizer) or isinstance(optimizer, ZeroRedundancyOptimizer):
+                raise ValueError(
+                    f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
+                )
 
             if not isinstance(optimizer, PostLocalSGDOptimizer):
                 optim_class = type(optimizer)
