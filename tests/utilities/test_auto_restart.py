@@ -792,7 +792,6 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-# TODO: test with batch sampler
 # TODO: test with `RandomGeneratorGetItemDataset`
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(min_torch="1.7.0")
@@ -812,19 +811,16 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     """
 
     def create_dataset_sampler():
-        dataset = CaptureMapDataset(dataset_class(16, 8))
-        random_sampler = RandomSampler(dataset, generator=torch.Generator())
-        return dataset, random_sampler
+        dset = CaptureMapDataset(dataset_class(16, 8))
+        random_sampler = RandomSampler(dset, generator=torch.Generator())
+        return dset, random_sampler
 
-    dataset, random_sampler = create_dataset_sampler()
-
-    ff_sampler = FastForwardSampler(random_sampler)
-    ff_sampler.setup(batch_size)
-    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
-    _add_capture_metadata_collate(dataloader)
-    fetcher = DataFetcher()
-    fetcher.setup(dataloader)
-    prefetch_iter = iter(fetcher)
+    def create_dataloader_sampler(dset, sampler):
+        sampler = FastForwardSampler(sampler)
+        sampler.setup(batch_size)
+        dl = DataLoader(dset, num_workers=num_workers, sampler=sampler, batch_size=batch_size)
+        _add_capture_metadata_collate(dl)
+        return dl, sampler
 
     def fetch(fetcher, prefetch_iter, num_batches_fetched):
         batch, _ = next(prefetch_iter)
@@ -837,6 +833,13 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         if num_workers == 0:
             assert state[0].state[0].num_batches_fetched == num_batches_fetched
         return state
+
+    dataset, random_sampler = create_dataset_sampler()
+    dataloader, ff_sampler = create_dataloader_sampler(dataset, random_sampler)
+
+    fetcher = DataFetcher()
+    fetcher.setup(dataloader)
+    prefetch_iter = iter(fetcher)
 
     # fetch 4 batches
     fetch(fetcher, prefetch_iter, 1)
@@ -853,15 +856,12 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
 
     # start reloading
     dataset, random_sampler = create_dataset_sampler()
-    ff_sampler = FastForwardSampler(random_sampler)
-    ff_sampler.setup(batch_size)
+    dataloader, ff_sampler = create_dataloader_sampler(dataset, random_sampler)
 
     # load the state dict saved at (A)
     ff_sampler.load_state_dict(state.sampler_states)
     dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
-    dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
-    _add_capture_metadata_collate(dataloader)
     prefetcher = DataFetcher()
     prefetcher.setup(dataloader)
     prefetch_iter = iter(prefetcher)
