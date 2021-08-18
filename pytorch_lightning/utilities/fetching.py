@@ -38,7 +38,21 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 class AbstractDataFetcher(ABC):
 
     """
-    This class is used to control batch fetching flow.
+    This based class should be used to implement a fault tolerant `DataFetcher`.
+
+    It is required to override the ``fetching_function`` with fetching logic.
+    
+    Example::
+
+        class SimpleDataFetcher(AbstractDataFetcher):
+
+            def fetching_function(self):
+                while True:
+                    try:
+                        yield next(self.dataloader_iter), False
+                    except StopIteration:
+                        yield None, True
+    
     """
 
     @abstractmethod
@@ -194,23 +208,27 @@ class DataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.
+
+    By default, the `fetching_function` will `prefetch` a batch in advance to detect the end of the iteration.
     """
 
     @contextlib.contextmanager
     def fetching_context(self):
+        """Hook to override to add context logic around batch fetching"""
         yield
 
     def on_fetch_start(self) -> None:
-        pass
+        """Hook to override to handle the logic before fetching a batch"""
 
-    def on_fetch_end(self, batch, extra: Optional[Any] = None) -> None:
+    def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
+        """Hook to extend which handles the logic after fetching a batch"""
         if self.batch_to_device:
             with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
                 batch = self.batch_to_device(batch)
         self.append_batch(batch)
 
     def wait(self) -> None:
-        pass
+        """Hook to override to indicate the `DataFetcher` to wait for an event."""
 
     def fetching_function(self) -> Generator:
         self.done = False
@@ -268,7 +286,21 @@ class DataFetcher(AbstractDataFetcher):
 class InterBatchParallelismDataFetcher(DataFetcher):
 
     """
-    This class is used to control batch fetching flow.
+    This class implements `inter-batch-parallelism` algorithm which aims at hiding the latency of host-to-device copy 
+    of input batches behind computational intensive operation.
+
+    Without parallization:
+
+    batch 0: [HtoD][forward][backward]
+    batch 1:                          [HtoD][forward][backward]
+    batch 2:                                                   [HtoD][forward][backward]
+
+    With parallelization, the latency of HtoD copy can be hidden:
+
+    batch 0: [HtoD][forward][backward]
+    batch 1:       [HtoD]             [forward][backward]
+    batch 2:             [HtoD]                          [forward][backward]
+
     """
 
     def __init__(
@@ -282,23 +314,32 @@ class InterBatchParallelismDataFetcher(DataFetcher):
 
     @contextlib.contextmanager
     def fetching_context(self):
+        """Wrap the batch fetching logic under a cuda stream"""
         with torch.cuda.stream(self.cuda_stream):
             yield
 
     def on_fetch_start(self) -> "torch.cuda.Event":
+        # create a cuda event used to record the async stream of data to device.
         return torch.cuda.Event()
 
     def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
+        # move the batch to device and store it
         super().on_fetch_end(batch)
+
+        # record event and store the event
         event.record()
         self.events.append(event)
 
     def wait(self) -> None:
+        # pop first event from the queue and wait for the batch to be available on device.
         event = self.events.pop(0)
         event.wait()
 
 
 class TrainingStepDataLoaderIter:
+
+    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user control."""
+    
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
         self.data_fetcher = data_fetcher
@@ -318,7 +359,26 @@ class TrainingStepDataLoaderIter:
 class DataLoaderIterDataFetcher(DataFetcher):
 
     """
-    This class is used to control batch fetching flow.
+    This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step
+    for users to implement their own pre-fetching logic.
+
+    This feature can be activated as follow:
+
+    Example::
+
+
+        Class MyModel(LightningModule):
+
+            def __init__(self):
+                self.automatic_optimization = False
+
+            def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
+                # it is user responsability to fetch and move the batch to the right device.
+                batch = next(dataloader_iter)
+                batch = batch.to(self.device)
+
+                ...
+
     """
 
     def fetching_function(self) -> Generator:
