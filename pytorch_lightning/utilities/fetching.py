@@ -60,9 +60,9 @@ class AbstractDataFetcher(ABC):
 
         self.reset()
 
-    def setup(self, dataloader: DataLoader, *args, **kwargs) -> None:
-        self.dataloader = dataloader
+    def setup(self, dataloader: DataLoader, **kwargs) -> None:
         self._add_capture_metadata_collate(dataloader)
+        self.dataloader = dataloader
 
     @staticmethod
     def _add_capture_metadata_collate(dataloader: Iterable) -> None:
