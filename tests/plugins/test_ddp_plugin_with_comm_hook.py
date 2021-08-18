@@ -121,7 +121,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         ddp_comm_state=post_localSGD.PostLocalSGDState(
             process_group=None,
             subgroup=None,
-            start_localSGD_iter=4,
+            start_localSGD_iter=8,
         ),
         ddp_comm_hook=post_localSGD.post_localSGD_hook,
         model_averaging_period=4,
