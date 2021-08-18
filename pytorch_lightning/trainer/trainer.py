@@ -486,7 +486,7 @@ class Trainer(
 
         self.num_predict_batches = []
 
-    def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any):
+    def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
         r"""
         Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
         as all errors should funnel through them
