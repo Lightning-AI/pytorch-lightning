@@ -283,12 +283,14 @@ def register_ddp_comm_hook(
 
     .. warning ::
         DDP communication wrapper needs pytorch version at least 1.9.0
+        Post-localSGD hook needs pytorch version at least 1.9.0
 
     Example:
 
         from torch.distributed.algorithms.ddp_comm_hooks import (
             default_hooks as default,
             powerSGD_hook as powerSGD,
+            post_localSGD_hook as post_localSGD,
         )
 
         # fp16_compress_hook for compress gradients
@@ -306,6 +308,18 @@ def register_ddp_comm_hook(
                 start_powerSGD_iter=5000,
             ),
             ddp_comm_hook=powerSGD.powerSGD_hook,
+        )
+
+        # post_localSGD_hook
+        subgroup, _ = torch.distributed.new_subgroups()
+        register_comm_hook(
+            model=ddp_model,
+            state=post_localSGD.PostLocalSGDState(
+                process_group=None,
+                subgroup=subgroup,
+                start_localSGD_iter=1_000,
+            ),
+            ddp_comm_hook=post_localSGD.post_localSGD_hook,
         )
 
         # fp16_compress_wrapper combined with other communication hook

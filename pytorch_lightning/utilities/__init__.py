@@ -38,6 +38,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
+    _IS_WINDOWS,
     _JSONARGPARSE_AVAILABLE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,
