@@ -208,7 +208,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 @RunIf(min_torch="1.8.0")
 def test_fetching_dataloader_iter(tmpdir):
-    class TestModel(RecommenderModel):
+    class TestModel(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.automatic_optimization = False
@@ -221,5 +221,5 @@ def test_fetching_dataloader_iter(tmpdir):
         training_epoch_end = None
 
     model = TestModel()
-    trainer = Trainer(max_epochs=2, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
