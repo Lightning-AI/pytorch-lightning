@@ -318,7 +318,8 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            # Post-localSDG is only available after 1.9, and `torch.distributed.optim` package currently is not available on Windows.
+            # Post-localSDG is only available after 1.9,
+            # and `torch.distributed.optim` package currently is not available on Windows.
             if (
                 not _IS_WINDOWS
                 and _TORCH_GREATER_EQUAL_1_9
@@ -331,7 +332,8 @@ class DDPPlugin(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             rank_zero_warn(
-                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin. Set this period as 16."
+                "Post-localSGD algorithm is used, "
+                "but model averaging period is not provided to DDP plugin. Set this period as 16."
             )
             self._model_averaging_period = 16
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)

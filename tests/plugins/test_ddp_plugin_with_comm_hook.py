@@ -24,7 +24,6 @@ if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_9:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-    import torch.distributed.algorithms.model_averaging.averagers as averagers
 
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
