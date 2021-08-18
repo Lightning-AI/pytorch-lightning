@@ -926,11 +926,13 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
 @pytest.mark.parametrize(
     "dataset_classes",
     [
+        # single training dataset
         [RandomGetItemDataset],
         [TestIterableDataset],
-        [SequentialGetItemDataset, TestIterableDataset],  # combined dataset
-        [TestIterableDataset, TestIterableDataset],  # combined dataset
-        # [RandomGetItemDataset, RandomGetItemDataset],  # combined dataset, TODO: add support for it in future PR
+        # multiple training datasets (combinded dataloader)
+        [SequentialGetItemDataset, TestIterableDataset],
+        [TestIterableDataset, TestIterableDataset],
+        # [RandomGetItemDataset, RandomGetItemDataset],  TODO: support in the future
     ],
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
