@@ -41,7 +41,7 @@ class AbstractDataFetcher(ABC):
     This based class should be used to implement a fault tolerant `DataFetcher`.
 
     It is required to override the ``fetching_function`` with fetching logic.
-    
+
     Example::
 
         class SimpleDataFetcher(AbstractDataFetcher):
@@ -52,7 +52,7 @@ class AbstractDataFetcher(ABC):
                         yield next(self.dataloader_iter), False
                     except StopIteration:
                         yield None, True
-    
+
     """
 
     @abstractmethod
@@ -286,7 +286,7 @@ class DataFetcher(AbstractDataFetcher):
 class InterBatchParallelismDataFetcher(DataFetcher):
 
     """
-    This class implements `inter-batch-parallelism` algorithm which aims at hiding the latency of host-to-device copy 
+    This class implements `inter-batch-parallelism` algorithm which aims at hiding the latency of host-to-device copy
     of input batches behind computational intensive operation.
 
     Without parallization:
@@ -319,11 +319,11 @@ class InterBatchParallelismDataFetcher(DataFetcher):
             yield
 
     def on_fetch_start(self) -> "torch.cuda.Event":
-        # create a cuda event used to record the async stream of data to device.
+        # create a cuda event used to record the async stream of data to device.
         return torch.cuda.Event()
 
     def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
-        # move the batch to device and store it
+        # move the batch to device and store it
         super().on_fetch_end(batch)
 
         # record event and store the event
@@ -331,7 +331,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         self.events.append(event)
 
     def wait(self) -> None:
-        # pop first event from the queue and wait for the batch to be available on device.
+        # pop first event from the queue and wait for the batch to be available on device.
         event = self.events.pop(0)
         event.wait()
 
@@ -339,7 +339,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
 class TrainingStepDataLoaderIter:
 
     """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user control."""
-    
+
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
         self.data_fetcher = data_fetcher
