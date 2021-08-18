@@ -15,6 +15,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from mock.mock import ANY
 
 from pytorch_lightning.loops import FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
@@ -22,23 +23,31 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_loops_state_dict():
+    trainer = Trainer()
+    trainer.train_dataloader = Mock()
+
     fit_loop = FitLoop()
     with pytest.raises(MisconfigurationException, match="Loop FitLoop should be connected to a"):
         fit_loop.trainer = object()
 
+    fit_loop.trainer = trainer
     fit_loop.connect(Mock())
     state_dict = fit_loop.state_dict()
+
     new_fit_loop = FitLoop()
+    new_fit_loop.trainer = trainer
+
     new_fit_loop.load_state_dict(state_dict)
     assert fit_loop.state_dict() == new_fit_loop.state_dict()
 
 
 def test_loops_state_dict_structure():
     trainer = Trainer()
+    trainer.train_dataloader = Mock()
     state_dict = trainer.checkpoint_connector._get_loops_state_dict()
     expected = {
         "fit_loop": {
-            "state_dict": {},
+            "state_dict": {"dataloader_state_dict": ANY},
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},

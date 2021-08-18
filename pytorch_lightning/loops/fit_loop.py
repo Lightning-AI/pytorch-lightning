@@ -40,6 +40,7 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
+        self._dataloader_state_dict: Dict = {}
 
     @property
     def current_epoch(self) -> int:
@@ -175,6 +176,10 @@ class FitLoop(Loop):
         if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
+        if self._dataloader_state_dict:
+            self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
+            self._dataloader_state_dict = {}
+
         # TODO: specify the possible exception
         with suppress(Exception):
             # set seed for distributed sampler (enables shuffling for each epoch)
@@ -241,5 +246,4 @@ class FitLoop(Loop):
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
-        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
-        self.trainer.train_dataloader.load_state_dict(state_dict.get("dataloader_state_dict"))
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
