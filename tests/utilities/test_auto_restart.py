@@ -40,13 +40,13 @@ from pytorch_lightning.utilities.auto_restart import (
     _dataloader_to_state_dict,
     CaptureIterableDataset,
     CaptureMapDataset,
-    CollectionIteratorState,
     FastForwardSampler,
+    MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.fetching import LightningDataFetcher
+from pytorch_lightning.utilities.fetching import DataFetcher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -836,16 +836,16 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     ff_sampler = FastForwardSampler(random_sampler)
     ff_sampler.setup(batch_size)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
-    fetcher = LightningDataFetcher()
+    fetcher = DataFetcher()
     fetcher.setup(dataloader)
     prefetch_iter = iter(fetcher)
 
     def fetch(fetcher, prefetch_iter, num_batches_fetched):
         batch, _ = next(prefetch_iter)
 
-        state: List[CollectionIteratorState] = fetcher.state
+        state: List[MergedIteratorState] = fetcher.state
         assert len(state) == 1
-        assert isinstance(state[0], CollectionIteratorState)
+        assert isinstance(state[0], MergedIteratorState)
 
         assert len(fetcher.dataloader_iter.cache_states) == 1
         if num_workers == 0:
@@ -875,7 +875,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
-    prefetcher = LightningDataFetcher()
+    prefetcher = DataFetcher()
     prefetcher.setup(dataloader)
     prefetch_iter = iter(prefetcher)
 

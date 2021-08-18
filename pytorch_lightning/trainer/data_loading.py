@@ -249,21 +249,10 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        if _fault_tolerant_enabled():
+        if _fault_tolerant_training():
             if isinstance(dl_kwargs["dataset"], IterableDataset):
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
                 dl_kwargs["sampler"] = None
-            elif len(dl_kwargs["dataset"]):
-                dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen, please open an issue on Lightning Github repository."
-                )
-
-        if _fault_tolerant_training():
-            if isinstance(dl_kwargs["dataset"], IterableDataset):
-                # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-                dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
             elif len(dl_kwargs["dataset"]):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
             else:

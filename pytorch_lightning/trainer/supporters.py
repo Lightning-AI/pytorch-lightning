@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _find_fast_forward_samplers,
     CaptureIterableDataset,
     CaptureMapDataset,
-    CollectionIteratorState,
+    MergedIteratorState,
     IteratorState,
     patch_dataloader_iterator,
 )
@@ -418,7 +418,7 @@ class CombinedLoader:
                 iterator_state = state_dict["state"][0]
 
                 if not isinstance(iterator_state, IteratorState):
-                    iterator_state = IteratorState.load_state_dict(iterator_state)
+                    iterator_state = IteratorState.from_state_dict(iterator_state)
 
                 # reload sampler state
                 ff_sampler = _find_fast_forward_samplers(dataloader)
@@ -445,7 +445,7 @@ class CombinedLoader:
             iterator = iter(dataloader_to_iter_on)
 
             # restore caching state
-            state = CollectionIteratorState.load_state_dict(state_dict)
+            state = MergedIteratorState.from_state_dict(state_dict)
 
             if isinstance(dataloader_to_iter_on, CycleIterator):
                 iterator._loader_iter.state = state

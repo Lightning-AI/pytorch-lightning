@@ -61,7 +61,7 @@ class AbstractFetcher(ABC):
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        self._add_capture_metadata_collate(dataloader)
+        # self._add_capture_metadata_collate(dataloader)
         self.dataloader = dataloader
         if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
             _add_capture_metadata_collate(dataloader)
@@ -79,7 +79,7 @@ class AbstractFetcher(ABC):
                 # cycle_iterator = iterator
                 iterator = iterator._loader_iter
 
-            if isinstance(loader, DataLoader) and _fault_tolerant_enabled():
+            if isinstance(loader, DataLoader) and _fault_tolerant_training():
                 loader._lightning_fetcher = self
                 patch_dataloader_iterator(loader, iterator, self)
 
@@ -158,7 +158,7 @@ class AbstractFetcher(ABC):
         self.done: bool = False
 
 
-class DataFetcher(AbstractDataFetcher):
+class DataFetcher(AbstractFetcher):
 
     """
     This class is used to control batch fetching flow.
