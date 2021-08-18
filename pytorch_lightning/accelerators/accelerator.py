@@ -155,9 +155,7 @@ class Accelerator:
         """
         self.training_type_plugin.teardown()
 
-    def batch_to_device(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
-    ) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -171,7 +169,7 @@ class Accelerator:
 
         if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
             # no need to transfer batch to device in DP mode
-            return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
 
         return move_data_to_device(batch, device)
 
@@ -409,22 +407,6 @@ class Accelerator:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return self.training_type_plugin.process_dataloader(dataloader)
-
-    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the train dataloader."""
-        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
-
-    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the val dataloader."""
-        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
-
-    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the test dataloader."""
-        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
-
-    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        """Called before resetting the predict dataloader."""
-        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
 
     @property
     def results(self) -> Any:

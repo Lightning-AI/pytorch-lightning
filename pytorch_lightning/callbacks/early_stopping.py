@@ -91,7 +91,7 @@ class EarlyStopping(Callback):
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
-        check_on_train_epoch_end: bool = True,
+        check_on_train_epoch_end: Optional[bool] = None,
     ):
         super().__init__()
         self.min_delta = min_delta
@@ -119,6 +119,12 @@ class EarlyStopping(Callback):
                 " For backward compatibility, setting this to `early_stop_on`."
             )
         self.monitor = monitor or "early_stop_on"
+
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self._check_on_train_epoch_end is None:
+            # if the user runs validation multiple times per training epoch, we try to check after
+            # validation instead of on train epoch end
+            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
@@ -191,7 +197,7 @@ class EarlyStopping(Callback):
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
-        should_stop, reason = self._evalute_stopping_criteria(current)
+        should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop
         should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
@@ -201,7 +207,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason)
 
-    def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
+    def _evaluate_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):

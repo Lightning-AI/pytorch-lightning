@@ -27,6 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
@@ -274,8 +275,11 @@ class DeepSpeedPlugin(DDPPlugin):
             pin_memory = cpu_offload_use_pin_memory
 
         super().__init__(
-            parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
+            parallel_devices=parallel_devices,
+            num_nodes=num_nodes,
+            cluster_environment=cluster_environment,
         )
+
         self.config = self._load_config(config)
         if self.config is None:
             # User has not overridden config, set defaults
@@ -350,7 +354,7 @@ class DeepSpeedPlugin(DDPPlugin):
             world_size = world_size if world_size is not None else self.cluster_environment.world_size()
             self._set_node_environment_variables(global_rank, world_size)
             log.info(
-                f"initializing deepspeed distributed: "
+                "initializing deepspeed distributed: "
                 f"GLOBAL_RANK: {global_rank}, "
                 f"MEMBER: {global_rank + 1}/{world_size}"
             )
@@ -688,6 +692,7 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
         """
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
+            # todo (sean): Add link to docs once docs are merged.
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
@@ -820,3 +825,11 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
