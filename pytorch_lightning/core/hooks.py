@@ -714,11 +714,14 @@ class DataHooks:
 
         Example::
 
-            def transfer_batch_to_device(self, batch, device):
+            def transfer_batch_to_device(self, batch, device, dataloader_idx):
                 if isinstance(batch, CustomBatch):
                     # move all tensors in your custom data structure to the device
                     batch.samples = batch.samples.to(device)
                     batch.targets = batch.targets.to(device)
+                elif dataloader_idx == 0:
+                    # skip device transfer for the first dataloader
+                    pass
                 else:
                     batch = super().transfer_batch_to_device(data, device)
                 return batch
