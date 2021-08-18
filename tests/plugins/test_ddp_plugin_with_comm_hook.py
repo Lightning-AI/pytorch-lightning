@@ -25,6 +25,7 @@ if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:
 if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_9:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
+
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
@@ -115,7 +116,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
-    
+
     training_type_plugin = DDPPlugin(
         ddp_comm_state=post_localSGD.PostLocalSGDState(
             process_group=None,
