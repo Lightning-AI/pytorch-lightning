@@ -24,7 +24,11 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
+from pytorch_lightning.utilities.fetching import (
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelismDataFetcher,
+)
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -145,26 +149,23 @@ class RandomIndicesDataset(Dataset):
 
 
 class RecommenderModel(BoringModel):
-    def __init__(self, non_blocking: bool):
+    def __init__(self):
         super().__init__()
         self.layer = None
         self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
-        self.non_blocking = non_blocking
 
     def forward(self, indices: torch.Tensor):
         result = self.local_embedding(indices)
         return result
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        torch.cuda._sleep(CYCLES_PER_MS)
-        if not self.non_blocking:
-            torch.cuda.synchronize()
+        # emulate heavy routine
+        torch.cuda._sleep(CYCLES_PER_MS * 100)
         return batch
 
     def training_step_end(self, training_step_outputs):
-        torch.cuda._sleep(CYCLES_PER_MS)
-        if not self.non_blocking:
-            torch.cuda.synchronize()
+        # emulate heavy routine
+        torch.cuda._sleep(CYCLES_PER_MS * 100)
         return training_step_outputs
 
     def configure_optimizers(self):
@@ -183,22 +184,26 @@ class RecommenderModel(BoringModel):
 @RunIf(min_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
 
-    model = RecommenderModel(non_blocking=True)
+    model = RecommenderModel()
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
-        trainer = Trainer(max_epochs=2, gpus=1)
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, gpus=1)
         trainer.fit(model)
         t1 = time()
+        global_step = trainer.global_step
+        assert isinstance(trainer.data_connector.data_fetcher, InterBatchParallelismDataFetcher)
 
     torch.cuda.synchronize()
 
     t2 = time()
-    trainer = Trainer(max_epochs=2, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, gpus=1)
     trainer.fit(model)
     t3 = time()
 
-    assert (t1 - t0) < (t3 - t2)
+    assert global_step == trainer.global_step == 8
+    assert isinstance(trainer.data_connector.data_fetcher, DataFetcher)
+    assert (t3 - t2) / (t1 - t0) > 1.3
 
 
 def test_fetching_dataloader_iter(tmpdir):
@@ -214,6 +219,6 @@ def test_fetching_dataloader_iter(tmpdir):
 
         training_epoch_end = None
 
-    model = TestModel(non_blocking=True)
+    model = TestModel()
     trainer = Trainer(max_epochs=2, gpus=1)
     trainer.fit(model)

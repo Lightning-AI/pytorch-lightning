@@ -203,7 +203,7 @@ class DataFetcher(AbstractDataFetcher):
     def on_fetch_start(self) -> None:
         pass
 
-    def on_fetch_end(self, batch) -> None:
+    def on_fetch_end(self, batch, extra: Optional[Any] = None) -> None:
         if self.batch_to_device:
             with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
                 batch = self.batch_to_device(batch)
@@ -246,11 +246,11 @@ class DataFetcher(AbstractDataFetcher):
 
     def _fetch_next_batch(self):
         with self.apply_profiler(f"get_{self.stage}_batch"), self.fetching_context():
-            self.on_fetch_start()
+            data = self.on_fetch_start()
             with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
                 batch = next(self.dataloader_iter)
             self.fetched += 1
-            self.on_fetch_end(batch)
+            self.on_fetch_end(batch, data)
 
     def _consume_prefetched_batches(self) -> Generator:
         self.done = True
@@ -287,12 +287,13 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         with torch.cuda.stream(self.cuda_stream):
             yield
 
-    def on_fetch_start(self) -> None:
-        self.events.append(torch.cuda.Event())
+    def on_fetch_start(self) -> "torch.cuda.Event":
+        return torch.cuda.Event()
 
-    def on_fetch_end(self, batch) -> None:
+    def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
         super().on_fetch_end(batch)
-        self.events[-1].record()
+        event.record()
+        self.events.append(event)
 
     def wait(self) -> None:
         event = self.events.pop(0)
