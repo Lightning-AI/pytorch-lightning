@@ -14,7 +14,7 @@
 
 import logging
 import os
-from typing import Iterable, Optional, Union
+from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -84,11 +84,8 @@ class DataConnector:
                 "this signature is experimental and the behavior may subject to change."
             )
             return DataLoaderIterDataFetcher()
-<<<<<<< HEAD
-        elif os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1': # self.trainer.training_type_plugin.on_gpu
-=======
         elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
->>>>>>> cc11c0a32f3fc27da6aa2c4fbbc044710ff8e419
+            # FIXME: Replace by self.trainer.training_type_plugin.on_gpu
             return InterBatchParallelismDataFetcher()
         else:
             return DataFetcher()
