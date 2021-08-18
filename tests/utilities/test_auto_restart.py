@@ -817,7 +817,6 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         return dataset, random_sampler
 
     dataset, random_sampler = create_dataset_sampler()
-    _, random_sampler_1 = create_dataset_sampler()
 
     ff_sampler = FastForwardSampler(random_sampler)
     ff_sampler.setup(batch_size)
