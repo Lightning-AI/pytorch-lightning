@@ -1722,7 +1722,6 @@ class LightningModule(
         )
         return self.trainer.progress_bar_callback.get_progress_bar_dict(self)
 
-
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
             raise MisconfigurationException(

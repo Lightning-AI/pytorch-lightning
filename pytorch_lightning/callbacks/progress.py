@@ -26,7 +26,7 @@ import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
