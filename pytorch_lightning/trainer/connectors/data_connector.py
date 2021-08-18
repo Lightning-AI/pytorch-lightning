@@ -12,19 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from typing import Iterable
+
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, InterBatchParallelismDataFetcher, DataLoaderIterDataFetcher
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelismDataFetcher,
+)
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-import logging
-from typing import Iterable
-
 
 log = logging.getLogger(__name__)
+
 
 class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
@@ -66,7 +72,7 @@ class DataConnector:
 
     def _check_if_dataloader_iter_data_fetcher(self) -> bool:
         self.trainer.lightning_module
-        training_step_fx = getattr(self.trainer.lightning_module, "training_step")    
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         contains_datalaoder_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
         use_manual_optimization = not self.trainer.lightning_module.automatic_optimization
         return contains_datalaoder_iter and use_manual_optimization and self.trainer.training
@@ -78,10 +84,10 @@ class DataConnector:
                 "this signature is experimental and the behavior may subject to change."
             )
             return DataLoaderIterDataFetcher()
-        elif os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1':
+        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
             return InterBatchParallelismDataFetcher()
         else:
-           return DataFetcher()
+            return DataFetcher()
 
     def get_profiled_dataloader(self, dataloader: Iterable) -> Iterable:
         stage: str = self.trainer.state.stage.value

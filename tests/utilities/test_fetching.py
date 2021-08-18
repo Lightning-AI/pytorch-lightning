@@ -128,11 +128,13 @@ def get_cycles_per_ms() -> float:
     stats = vals[2 : num - 2]
     return sum(stats) / len(stats)
 
+
 CYCLES_PER_MS = int(get_cycles_per_ms())
 
 BATCH_SIZE = 128
 EMB_SZ = 100
 EMB_DIM = 64
+
 
 class RandomIndicesDataset(Dataset):
     def __getitem__(self, index):
@@ -140,6 +142,7 @@ class RandomIndicesDataset(Dataset):
 
     def __len__(self):
         return 16
+
 
 class RecommenderModel(BoringModel):
     def __init__(self, non_blocking: bool):
@@ -199,14 +202,12 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 
 def test_fetching_dataloader_iter(tmpdir):
-
     class TestModel(RecommenderModel):
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.automatic_optimization = False
 
-        def training_step(self, dataloader_iter, batch_idx): 
+        def training_step(self, dataloader_iter, batch_idx):
             assert isinstance(self.trainer.data_connector._select_data_fetcher(), DataLoaderIterDataFetcher)
             batch = next(dataloader_iter)
             assert isinstance(batch, torch.Tensor) or batch is None
