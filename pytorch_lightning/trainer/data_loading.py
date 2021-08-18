@@ -248,11 +248,14 @@ class TrainerDataLoadingMixin(ABC):
                     f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
                 )
 
+        if isinstance(dl_kwargs["dataset"], IterableDataset):
+            dl_kwargs["batch_sampler"] = None
+            dl_kwargs["sampler"] = None
+
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
         if _fault_tolerant_training():
             if isinstance(dl_kwargs["dataset"], IterableDataset):
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-                dl_kwargs["sampler"] = None
             elif len(dl_kwargs["dataset"]):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
             else:

@@ -836,6 +836,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     ff_sampler = FastForwardSampler(random_sampler)
     ff_sampler.setup(batch_size)
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
+    _add_capture_metadata_collate(dataloader)
     fetcher = DataFetcher()
     fetcher.setup(dataloader)
     prefetch_iter = iter(fetcher)
@@ -875,6 +876,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     dataset.load_state_dict(state.dataset_states, latest_worker_id=state.latest_worker_id, num_workers=num_workers)
 
     dataloader = DataLoader(dataset, sampler=ff_sampler, num_workers=num_workers, batch_size=batch_size)
+    _add_capture_metadata_collate(dataloader)
     prefetcher = DataFetcher()
     prefetcher.setup(dataloader)
     prefetch_iter = iter(prefetcher)

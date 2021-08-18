@@ -60,11 +60,8 @@ class AbstractFetcher(ABC):
 
         self.reset()
 
-    def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        # self._add_capture_metadata_collate(dataloader)
+    def setup(self, dataloader: DataLoader, *args, **kwargs) -> None:
         self.dataloader = dataloader
-        if isinstance(dataloader, DataLoader) and not isinstance(dataloader.collate_fn, partial):
-            _add_capture_metadata_collate(dataloader)
 
     def add_batch(self, batch) -> None:
         self.batches.append(batch)
