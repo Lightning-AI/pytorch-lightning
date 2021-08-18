@@ -244,6 +244,7 @@ class DataFetcher(AbstractDataFetcher):
                     self.wait()
                     yield yield_batch, False
                 except StopIteration:
+                    self.batches.insert(0, yield_batch)
                     break
 
             yield from self._consume_prefetched_batches()
