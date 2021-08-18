@@ -287,7 +287,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         with torch.cuda.stream(self.cuda_stream):
             yield
 
-    def on_fetch_start(self) -> 'torch.cuda.Event':
+    def on_fetch_start(self) -> "torch.cuda.Event":
         return torch.cuda.Event()
 
     def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
