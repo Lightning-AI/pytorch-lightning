@@ -99,7 +99,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `DataModule` properties: `train_transforms`, `val_transforms`, `test_transforms`, `size`, `dims` ([#8851](https://github.com/PyTorchLightning/pytorch-lightning/pull/8851))
 
 
-- Deprecated`LightningModule.get_progress_bar_dict` ([#8985](https://github.com/PyTorchLightning/pytorch-lightning/pull/8985))
+- Deprecated `LightningModule.get_progress_bar_dict` ([#8985](https://github.com/PyTorchLightning/pytorch-lightning/pull/8985))
 
 
 -
