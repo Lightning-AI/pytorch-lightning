@@ -41,8 +41,8 @@ class DataConnector:
             prepare_data_per_node = True
         else:
             rank_zero_deprecation(
-                "Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
-                "Please use `~pytorch_lightning.core.datamodule.prepare_data_per_node` instead. "
+                "Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0! "
+                "Please set `prepare_data_per_node` in LightningDataModule directly instead. "
             )
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
@@ -89,9 +89,15 @@ class DataConnector:
         if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
             should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
 
-        if self.trainer.datamodule is not None and self.trainer.datamodule.prepare_data_per_node:
+        if self._prepare_data_per_node():
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
         return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+
+    def _prepare_data_per_node(self) -> bool:
+        # temporary private util function until `prepare_data_per_node` is fully migrated to LightningDataModule
+        if self.trainer.datamodule is None:
+            return self.trainer.prepare_data_per_node
+        return self.trainer.datamodule.prepare_data_per_node
 
     def attach_data(
         self,

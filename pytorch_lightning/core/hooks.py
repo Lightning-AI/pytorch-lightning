@@ -409,6 +409,9 @@ class DataHooks:
             # call on GLOBAL_RANK=0 (great for shared file systems)
             Trainer(prepare_data_per_node=False)
 
+        Note:  Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0.
+        Please set `prepare_data_per_node` in LightningDataModule directly instead.
+
         This is called before requesting the dataloaders:
 
         .. code-block:: python

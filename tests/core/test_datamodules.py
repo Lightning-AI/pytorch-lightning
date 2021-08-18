@@ -41,7 +41,6 @@ def test_can_prepare_data(local_rank, node_rank):
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-    dm.prepare_data_per_node = True
 
     dm.random_full = None
     dm._has_prepared_data = False
