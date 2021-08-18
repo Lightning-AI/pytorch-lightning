@@ -41,13 +41,11 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(
-        self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None, current_iteration: Optional[int] = 0
-    ) -> None:
+    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
-        self._current_iteration = current_iteration
+        self._current_iteration = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -288,7 +286,7 @@ class CaptureIterableDataset(IterableDataset):
     def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         self._state_dict = deepcopy(state_dict)
 
-    def _wrap_generator_samplers(self, current_iteration: int = 0) -> None:
+    def _wrap_generator_samplers(self) -> None:
         self.samplers = {}
 
         # access wrapped dataset attributes
@@ -322,9 +320,7 @@ class CaptureIterableDataset(IterableDataset):
             if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
 
                 # wrap the generator into a `FastForwardSampler`
-                sampler = FastForwardSampler(
-                    generator, attr_name=generator_attr_name, current_iteration=current_iteration
-                )
+                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
                 # if `CaptureIterableDataset` was available, the sampler should reload its own state.
                 if self._state_dict is not None:
@@ -352,7 +348,7 @@ class CaptureIterableDataset(IterableDataset):
                 " Please use the `__next__` function to fetch the next batch and use a sampler for"
                 " doing your iterations."
             )
-        self._wrap_generator_samplers(current_iteration=0)
+        self._wrap_generator_samplers()
         return self
 
     def __next__(self) -> Dict[str, Any]:
