@@ -13,15 +13,15 @@
 # limitations under the License.
 import os
 from time import time
-from typing import Any
+from typing import Any, Iterator
 from unittest import mock
-from typing import Iterator
+
 import pytest
 import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (

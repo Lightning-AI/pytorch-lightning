@@ -294,7 +294,7 @@ class HookedModel(BoringModel):
                 transfer = _transfer * 2
             else:
                 transfer = _transfer
-            
+
             out.extend(
                 [
                     *transfer,
@@ -347,7 +347,7 @@ class HookedModel(BoringModel):
                 transfer = _transfer * 2
             else:
                 transfer = _transfer
-            
+
             out.extend(
                 [
                     *transfer,
@@ -408,7 +408,7 @@ class HookedModel(BoringModel):
                 transfer = _transfer * 2
             else:
                 transfer = _transfer
-            
+
             out.extend(
                 [
                     *transfer,
