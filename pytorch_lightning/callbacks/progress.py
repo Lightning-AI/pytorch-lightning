@@ -85,7 +85,6 @@ class ProgressBarBase(Callback):
 
         bar = LitProgressBar()
         trainer = Trainer(callbacks=[bar])
-
     """
 
     def __init__(self):
