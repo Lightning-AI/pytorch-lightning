@@ -341,7 +341,8 @@ class DDPPlugin(ParallelPlugin):
                     f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
                 )
 
-            if not isinstance(optimizer, PostLocalSGDOptimizer):
+            if isinstance(optimizer, PostLocalSGDOptimizer):
+                continue
                 optim_class = type(optimizer)
                 post_localSGD_optimizer = PostLocalSGDOptimizer(
                     params=self.model.parameters(),
