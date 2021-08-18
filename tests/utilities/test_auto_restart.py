@@ -45,8 +45,8 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.fetching import DataFetcher
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 

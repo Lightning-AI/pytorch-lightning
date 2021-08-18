@@ -31,8 +31,8 @@ from pytorch_lightning.utilities.auto_restart import (
     _find_fast_forward_samplers,
     CaptureIterableDataset,
     CaptureMapDataset,
-    MergedIteratorState,
     IteratorState,
+    MergedIteratorState,
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.data import get_len
