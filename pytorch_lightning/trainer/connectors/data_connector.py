@@ -14,7 +14,7 @@
 
 import logging
 import os
-from typing import Iterable
+from typing import Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -28,9 +28,6 @@ from pytorch_lightning.utilities.fetching import (
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-import logging
-from typing import Iterable, Optional, Union
-
 
 log = logging.getLogger(__name__)
 
