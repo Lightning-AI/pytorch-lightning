@@ -809,17 +809,17 @@ class DataHooks:
         """
         return batch
 
-        @property
-        def reload_dataloaders_every_n_epochs(self) -> int:
-            """
-            A non-negative integer to reload dataloaders every n epochs.
-            Default: 0
-            """
-            return self._reload_dataloaders_every_n_epochs
+    @property
+    def reload_dataloaders_every_n_epochs(self) -> int:
+        """
+        A non-negative integer to reload dataloaders every n epochs.
+        Default: 0
+        """
+        return self._reload_dataloaders_every_n_epochs
 
-        @reload_dataloaders_every_n_epochs.setter
-        def reload_dataloaders_every_n_epochs(self, reload_dataloaders_every_n_epochs: int) -> None:
-            self._reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
+    @reload_dataloaders_every_n_epochs.setter
+    def reload_dataloaders_every_n_epochs(self, reload_dataloaders_every_n_epochs: int) -> None:
+        self._reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
 
 
 class CheckpointHooks:
