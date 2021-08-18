@@ -23,6 +23,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -532,3 +533,13 @@ class DataModuleWithHparams(LightningDataModule):
 def test_simple_hyperparameters_saving():
     data = DataModuleWithHparams(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
+
+
+def test_inconsistent_prepare_data_per_node(tmpdir):
+    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
+        model = BoringModel()
+        dm = BoringDataModule()
+        trainer = Trainer(prepare_data_per_node=False)
+        trainer.model = model
+        trainer.datamodule = dm
+        trainer.data_connector.prepare_data()
