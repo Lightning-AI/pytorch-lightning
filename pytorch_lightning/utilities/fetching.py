@@ -292,8 +292,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
 
     def on_fetch_end(self, batch) -> None:
         super().on_fetch_end(batch)
-        if len(self.events):
-            self.events[-1].record()
+        self.events[-1].record()
 
     def wait(self) -> None:
         event = self.events.pop(0)
@@ -315,6 +314,7 @@ class TrainingStepDataLoaderIter:
             return next(self.iterator)
         except StopIteration:
             self.data_fetcher.done = True
+            raise StopIteration
 
 
 class DataLoaderIterDataFetcher(DataFetcher):

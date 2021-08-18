@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetche
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 import logging
-from typing import Iterable
+from typing import Iterable, Optional, Union
 
 
 log = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def _check_if_dataloader_iter_data_fetcher(self) -> bool:
+    def _check_training_step_requires_dataloader_iter(self) -> bool:
         self.trainer.lightning_module
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")    
         contains_datalaoder_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
@@ -72,13 +72,13 @@ class DataConnector:
         return contains_datalaoder_iter and use_manual_optimization and self.trainer.training
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if self._check_if_dataloader_iter_data_fetcher():
+        if self._check_training_step_requires_dataloader_iter():
             log.warning(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
                 "this signature is experimental and the behavior may subject to change."
             )
             return DataLoaderIterDataFetcher()
-        elif os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1':
+        elif os.getenv("PL_INTER_BATCH_PARALLELISM", '0') == '1': # self.trainer.training_type_plugin.on_gpu
             return InterBatchParallelismDataFetcher()
         else:
            return DataFetcher()
