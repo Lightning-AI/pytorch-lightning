@@ -558,3 +558,25 @@ def _test_progress_bar_max_val_check_interval(
     total_val_batches = total_val_batches * val_checks_per_epoch
     if trainer.is_global_zero:
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+
+
+def test_get_progress_bar_dict_callback(tmpdir):
+    class TestProgressBar(ProgressBar):
+        def get_progress_bar_dict(self, model):
+            items = super().get_progress_bar_dict(model)
+            items.pop("v_num", None)
+            return items
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[TestProgressBar()],
+        progress_bar_refresh_rate=None,
+        max_epochs=1,
+        overfit_batches=5,
+    )
+    model = BoringModel()
+    model.truncated_bptt_steps = 2
+    standard_metrics = trainer.progress_bar_callback.get_progress_bar_dict(model)
+    assert "loss" in standard_metrics.keys()
+    assert "split_idx" in standard_metrics.keys()
+    assert "v_num" not in standard_metrics.keys()

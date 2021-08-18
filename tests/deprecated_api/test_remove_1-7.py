@@ -15,7 +15,7 @@
 
 import pytest
 
-from pytorch_lightning import LightningDataModule
+from pytorch_lightning import LightningDataModule, Trainer
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -80,3 +80,25 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = dm.dims
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = LightningDataModule(dims=(1, 1, 1))
+
+
+def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
+    class TestModel(BoringModel):
+        def get_progress_bar_dict(self):
+            items = super().get_progress_bar_dict()
+            items.pop("v_num", None)
+            return items
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[],
+        progress_bar_refresh_rate=None,
+        max_epochs=1,
+        overfit_batches=5,
+    )
+    test_model = TestModel()
+    trainer.fit(test_model)
+    with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
+        standard_metrics = test_model.get_progress_bar_dict()
+    assert "loss" in standard_metrics.keys()
+    assert "v_num" not in standard_metrics.keys()
