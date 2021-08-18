@@ -251,9 +251,9 @@ class TrainerDataLoadingMixin(ABC):
             dl_kwargs["batch_sampler"] = None
             dl_kwargs["sampler"] = None
 
-        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
         if _fault_tolerant_training():
             if isinstance(dl_kwargs["dataset"], IterableDataset):
+                # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
                 dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
             elif len(dl_kwargs["dataset"]):
                 dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
