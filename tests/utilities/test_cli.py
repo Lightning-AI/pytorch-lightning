@@ -949,31 +949,43 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
     with mock.patch("sys.argv", input):
         TestLightningCLI(expected, BoringModel)
 
-    class TestLightningCLI2(TestLightningCLI):
+
+def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(tmpdir):
+    class TestLightningCLI(LightningCLI):
+        def __init__(self, *args):
+            super().__init__(*args, run=False)
+
         def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(self.registered_optimizers, nested_key="optim1", link_to="model.optim1")
-            parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
-            parser.add_lr_scheduler_args(self.registered_lr_schedulers, link_to="model.scheduler")
+            parser.add_optimizer_args(self.registered_optimizers, nested_key="opt1", link_to="model.opt1_config")
+            parser.add_optimizer_args(
+                (torch.optim.ASGD, torch.optim.SGD), nested_key="opt2", link_to="model.opt2_config"
+            )
+            parser.add_lr_scheduler_args(self.registered_lr_schedulers, link_to="model.sch_config")
             parser.add_argument("--something", type=str, nargs="+")
 
-        def instantiate_classes(self):
-            pass
-
     class TestModel(BoringModel):
-        def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
+        def __init__(self, opt1_config: dict, opt2_config: dict, sch_config: dict):
             super().__init__()
-            self.optim1 = instantiate_class(self.parameters(), optim1)
-            self.optim2 = instantiate_class(self.parameters(), optim2)
-            self.scheduler = instantiate_class(self.optim1, scheduler)
+            self.opt1_config = opt1_config
+            self.opt2_config = opt2_config
+            self.sch_config = sch_config
+            opt1 = instantiate_class(self.parameters(), opt1_config)
+            assert isinstance(opt1, torch.optim.Adam)
+            opt2 = instantiate_class(self.parameters(), opt2_config)
+            assert isinstance(opt2, torch.optim.ASGD)
+            sch = instantiate_class(opt1, sch_config)
+            assert isinstance(sch, torch.optim.lr_scheduler.OneCycleLR)
 
+    base = ["any.py", "--trainer.max_epochs=1"]
     input = base + [
         "--lr_scheduler",
         "OneCycleLR",
         "--lr_scheduler.total_steps=10",
-        "--optim1",
+        "--lr_scheduler.max_lr=1",
+        "--opt1",
         "Adam",
-        "--optim2.lr=0.1",
-        "--optim2",
+        "--opt2.lr=0.1",
+        "--opt2",
         "ASGD",
         "--lr_scheduler.anneal_strategy=linear",
         "--something",
@@ -981,20 +993,30 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
         "b",
         "c",
     ]
-    optim_1 = {"class_path": "torch.optim.adam.Adam", "init_args": {}}
-    optim_2 = {"class_path": "torch.optim.asgd.ASGD", "init_args": {"lr": "0.1"}}
-    lr_scheduler = {
-        "class_path": "torch.optim.lr_scheduler.OneCycleLR",
-        "init_args": {"total_steps": "10", "anneal_strategy": "linear"},
-    }
-    expected = base + [
-        "--something",
-        "a",
-        "b",
-        "c",
-        f"--optim2={optim_2}",
-        f"--optim1={optim_1}",
-        f"--lr_scheduler={lr_scheduler}",
-    ]
-    with mock.patch("sys.argv", input):
-        TestLightningCLI2(expected, TestModel)
+
+    # save config
+    out = StringIO()
+    with mock.patch("sys.argv", input + ["--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        TestLightningCLI(TestModel)
+
+    # validate yaml
+    yaml_config = out.getvalue()
+    dict_config = yaml.safe_load(yaml_config)
+    assert dict_config["opt1"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["opt2"]["class_path"] == "torch.optim.asgd.ASGD"
+    assert dict_config["opt2"]["init_args"]["lr"] == 0.1
+    assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
+    assert dict_config["lr_scheduler"]["init_args"]["anneal_strategy"] == "linear"
+    assert dict_config["something"] == ["a", "b", "c"]
+
+    # reload config
+    yaml_config_file = tmpdir / "config.yaml"
+    yaml_config_file.write_text(yaml_config, "utf-8")
+    with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
+        cli = TestLightningCLI(TestModel)
+
+    assert cli.model.opt1_config["class_path"] == "torch.optim.adam.Adam"
+    assert cli.model.opt2_config["class_path"] == "torch.optim.asgd.ASGD"
+    assert cli.model.opt2_config["init_args"]["lr"] == 0.1
+    assert cli.model.sch_config["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
+    assert cli.model.sch_config["init_args"]["anneal_strategy"] == "linear"
