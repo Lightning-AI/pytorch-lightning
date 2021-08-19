@@ -759,7 +759,6 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
 
     cli = MyLightningCLI(MyModel)
 
-
 For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
 a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including
 :code:`class_path` and :code:`init_args` entries. The function
@@ -770,15 +769,16 @@ a single class or a tuple of classes, the value given to :code:`optimizer_init` 
 Built in schedulers & optimizers and registering your own
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For code simplification, the LightningCLI provides properties with PyTorch's built-in `optimizers` and `schedulers` already registered.
-
+For code simplification, the CLI provides properties with PyTorch's built-in optimizers and learning rate schedulers
+already registered.
 Only the optimizer or scheduler name needs to be passed along its arguments.
 
 .. code-block:: bash
 
     $ python train.py --optimizer=Adam --optimizer.lr=0.01 --lr_scheduler=CosineAnnealingLR
 
-If your model requires multiple optimizers, the LightningCLI provides already registered optimizers and schedulers under the properties `registered_optimizers` and `registered_lr_schedulers`
+If your model requires multiple optimizers, you can choose from all available optimizers and learning rate schedulers
+by accessing `self.registered_optimizers` and `self.registered_lr_schedulers` respectively.
 
 .. code-block::
 
@@ -786,20 +786,20 @@ If your model requires multiple optimizers, the LightningCLI provides already re
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
                 self.registered_optimizers,
-                nested="gen_optimizer",
+                nested_key="gen_optimizer",
                 link_to="model.optimizer_init",
             )
             parser.add_optimizer_args(
                 self.registered_optimizers,
-                nested="gen_discriminator",
+                nested_key="gen_discriminator",
                 link_to="model.optimizer_init",
             )
 
 .. code-block:: bash
 
-    $ python train.py --gen_optimizer=Adam --optimizer.lr=0.01 -gen_discriminator=Adam --optimizer.lr=0.0001
+    $ python train.py --gen_optimizer=Adam --optimizer.lr=0.01 --gen_discriminator=Adam --optimizer.lr=0.0001
 
-Furthermore, a user can register their own optimizers or schedulers as follows.
+Furthermore, you can register your own optimizers and/or learning rate schedulers as follows:
 
 .. code-block:: python
 
@@ -810,12 +810,12 @@ Furthermore, a user can register their own optimizers or schedulers as follows.
 
     @OPTIMIZER_REGISTRY
     class CustomAdam(torch.optim.Adam):
-        pass
+        ...
 
 
     @LR_SCHEDULER_REGISTRY
     class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
-        pass
+        ...
 
 
     cli = LightningCLI(...)
