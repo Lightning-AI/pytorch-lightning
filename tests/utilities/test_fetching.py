@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from time import time
-from typing import Any, Iterator
+from typing import Any
 from unittest import mock
 
 import pytest

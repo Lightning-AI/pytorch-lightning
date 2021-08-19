@@ -215,7 +215,8 @@ class DataFetcher(AbstractDataFetcher):
     By default, the `fetching_function` will `prefetch` a batch in advance to detect the end of the iteration.
 
     Args:
-        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch at least 1 batch for tracking the latest batch.
+        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
+            at least 1 batch for tracking the latest batch.
         store_on_gpu: Whether to store the pre-fetched batches on device.
     """
 
@@ -365,7 +366,10 @@ class InterBatchParallelismDataFetcher(DataFetcher):
 
 class StepFuncDataLoaderIter:
 
-    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user control."""
+    """
+    This class is a wrapper to keep track of dataloader iterator fetching event
+    while left entirely to user control.
+    """
 
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
