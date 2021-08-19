@@ -66,6 +66,7 @@ class LightningModule(
     # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = (
         [
+            "datamodule",
             "example_input_array",
             "on_gpu",
             "current_epoch",
@@ -77,9 +78,8 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "loaded_optimizer_states_dict",
-            "prepare_data_per_node",
         ]
-        + DataHooks.__jit_unused__properties__
+        + DataHooks.__jit_unused_properties__
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
