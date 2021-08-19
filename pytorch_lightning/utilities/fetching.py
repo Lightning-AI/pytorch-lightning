@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib
+from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
@@ -227,7 +227,7 @@ class DataFetcher(AbstractDataFetcher):
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_gpu = store_on_gpu
 
-    @contextlib.contextmanager
+    @contextmanager
     def fetching_context(self):
         """Hook to override to add context logic around batch fetching"""
         yield
@@ -273,7 +273,7 @@ class DataFetcher(AbstractDataFetcher):
             except StopIteration:
                 break
 
-    @contextlib.contextmanager
+    @contextmanager
     def apply_profiler(self, name: str) -> Generator:
         if self.profiler:
             with self.profiler.profile(name):
@@ -339,7 +339,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         self.cuda_stream = torch.cuda.Stream()
         self.events = []
 
-    @contextlib.contextmanager
+    @contextmanager
     def fetching_context(self):
         """Wrap the batch fetching logic under a cuda stream"""
         with torch.cuda.stream(self.cuda_stream):
