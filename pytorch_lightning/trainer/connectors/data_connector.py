@@ -29,6 +29,7 @@ from pytorch_lightning.utilities.fetching import (
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ class DataConnector:
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
         if self._check_training_step_requires_dataloader_iter():
-            log.warning(
+            rank_zero_warn(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
                 "this signature is experimental and the behavior may subject to change."
             )
@@ -108,9 +109,9 @@ class DataConnector:
             batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
+        # store to enable teardown and clean extra fetched batches
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
-        prefetcher_iter = iter(data_fetcher)
-        return enumerate(prefetcher_iter)
+        return enumerate(data_fetcher)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
