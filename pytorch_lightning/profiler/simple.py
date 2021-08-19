@@ -60,13 +60,11 @@ class SimpleProfiler(BaseProfiler):
         self.start_time = time.monotonic()
 
     def start(self, action_name: str) -> None:
-        print("start", action_name)
         if action_name in self.current_actions:
             raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
     def stop(self, action_name: str) -> None:
-        print("stop", action_name)
         end_time = time.monotonic()
         if action_name not in self.current_actions:
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
