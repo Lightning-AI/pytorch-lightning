@@ -306,7 +306,7 @@ class DataFetcher(AbstractDataFetcher):
     def move_data_to_device(self, batch: Any) -> Any:
         if self.batch_to_device:
             with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
-                batch = self.batch_to_device(batch)    
+                batch = self.batch_to_device(batch)
         return batch
 
 
