@@ -30,7 +30,7 @@ import yaml
 from packaging import version
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, ProgressBar
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
@@ -689,34 +689,36 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
+    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1", "--lr_scheduler.gamma=0.2"]
     if use_registries:
-        cli_args = [
-            f"--trainer.default_root_dir={tmpdir}",
-            "--trainer.max_epochs=1",
+        cli_args += [
             "--optim1",
             "Adam",
             "--optim1.weight_decay",
             "0.001",
             "--optim2=SGD",
-            "--optim2.lr=0.005",
+            "--optim2.lr=0.01",
             "--lr_scheduler=ExponentialLR",
-            "--lr_scheduler.gamma=0.1",
         ]
     else:
-        cli_args = [
-            f"--trainer.default_root_dir={tmpdir}",
-            "--trainer.max_epochs=1",
-            "--optim2.class_path=torch.optim.SGD",
-            "--optim2.init_args.lr=0.01",
-            "--lr_scheduler.gamma=0.2",
-        ]
+        cli_args += ["--optim2.class_path=torch.optim.SGD", "--optim2.init_args.lr=0.01"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(TestModel)
 
     assert isinstance(cli.model.optim1, torch.optim.Adam)
     assert isinstance(cli.model.optim2, torch.optim.SGD)
+    assert cli.model.optim2.param_groups[0]["lr"] == 0.01
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
+
+
+@pytest.mark.parametrize("run", (False, True))
+def test_lightning_cli_disabled_run(run):
+    with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
+        cli = LightningCLI(BoringModel, run=run)
+    fit_mock.call_count == run
+    assert isinstance(cli.trainer, Trainer)
+    assert isinstance(cli.model, LightningModule)
 
 
 @CALLBACK_REGISTRY
@@ -735,7 +737,6 @@ class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
 
 
 def test_registries(tmpdir):
-
     assert CALLBACK_REGISTRY.available_objects() == [
         "BackboneFinetuning",
         "BaseFinetuning",
@@ -786,13 +787,9 @@ def test_registries(tmpdir):
 
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
-def test_registries_resolution(use_class_path_callbacks, tmpdir):
+def test_registries_resolution(use_class_path_callbacks):
     """This test validates registries are used when simplified command line are being used."""
-
     cli_args = [
-        f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.fast_dev_run=1",
-        "--trainer.progress_bar_refresh_rate=0",
         "--optimizer",
         "Adam",
         "--optimizer.lr",
@@ -807,33 +804,28 @@ def test_registries_resolution(use_class_path_callbacks, tmpdir):
         "--lr_scheduler.step_size=50",
     ]
 
-    expected_callbacks = 2
-
+    extras = []
     if use_class_path_callbacks:
-
         callbacks = [
-            dict(class_path="pytorch_lightning.callbacks.Callback"),
-            dict(class_path="pytorch_lightning.callbacks.Callback", init_args=dict()),
+            {"class_path": "pytorch_lightning.callbacks.Callback"},
+            {"class_path": "pytorch_lightning.callbacks.Callback", "init_args": {}},
         ]
-
         cli_args += [f"--trainer.callbacks={json.dumps(callbacks)}"]
-
-        expected_callbacks = 4
+        extras = [Callback, Callback]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = LightningCLI(BoringModel)
+        cli = LightningCLI(BoringModel, run=False)
 
-    assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.callbacks) == expected_callbacks
+    optimizers, lr_scheduler = cli.model.configure_optimizers()
+    assert isinstance(optimizers[0], torch.optim.Adam)
+    assert optimizers[0].param_groups[0]["lr"] == 0.0001
+    assert lr_scheduler[0].step_size == 50
 
-
-@pytest.mark.parametrize("run", (False, True))
-def test_lightning_cli_disabled_run(run):
-    with mock.patch("sys.argv", ["any.py"]), mock.patch("pytorch_lightning.Trainer.fit") as fit_mock:
-        cli = LightningCLI(BoringModel, run=run)
-    fit_mock.call_count == run
-    assert isinstance(cli.trainer, Trainer)
-    assert isinstance(cli.model, LightningModule)
+    assert [type(c) for c in cli.trainer.callbacks] == [LearningRateMonitor] + extras + [
+        SaveConfigCallback,
+        ProgressBar,
+        ModelCheckpoint,
+    ]
 
 
 @pytest.mark.skipif(True, reason="typing from json-argparse is failing.")
