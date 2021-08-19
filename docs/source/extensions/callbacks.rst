@@ -162,7 +162,7 @@ the following example.
 
 A Lightning checkpoint from this Trainer with the two stateful callbacks will include the following information:
 
-.. code-block:: python
+.. code-block::
 
     {
         "state_dict": ...,
