@@ -312,19 +312,30 @@ Similar to the callbacks, any arguments in :class:`~pytorch_lightning.trainer.tr
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class can be configured
 the same way using :code:`class_path` and :code:`init_args`.
 
-Lightning optionally simplifies the user command line so that only the :class:`~pytorch_lightning.callbacks.Callback` name is required.
-The argument's order matters and the user needs to pass the arguments in the following way.
+Lightning optionally simplifies the user command line so that only the :class:`~pytorch_lightning.callbacks.Callback`
+name is required. The argument's order matters and the user needs to pass the arguments in the following way.
 This is supported only for PyTorch Lightning built-in :class:`~pytorch_lightning.callbacks.Callback`.
 
 .. code-block:: bash
 
-    $  python ... --trainer.callbacks={CALLBACK_NAME_1} --trainer.callbacks.{CALLBACK_1_ARGS_1}=... --trainer.callbacks.{CALLBACK_1_ARGS_2}=... --trainer.callbacks={CALLBACK_N} --trainer.callbacks.{CALLBACK_N_ARGS_1}=...
+    $ python ... \
+        --trainer.callbacks={CALLBACK_1_NAME} \
+        --trainer.callbacks.{CALLBACK_1_ARGS_1}=... \
+        --trainer.callbacks.{CALLBACK_1_ARGS_2}=... \
+        ...
+        --trainer.callbacks={CALLBACK_N_NAME} \
+        --trainer.callbacks.{CALLBACK_N_ARGS_1}=... \
+        ...
 
 Here is an example:
 
 .. code-block:: bash
 
-    $  python ... --trainer.callbacks=EarlyStopping --trainer.callbacks.patience=5 --trainer.callbacks=LearningRateMonitor
+    $ python ... \
+        --trainer.callbacks=EarlyStopping \
+        --trainer.callbacks.patience=5 \
+        --trainer.callbacks=LearningRateMonitor \
+        --trainer.callbacks.logging_interval=epoch
 
 Register your callbacks
 ^^^^^^^^^^^^^^^^^^^^^^^
