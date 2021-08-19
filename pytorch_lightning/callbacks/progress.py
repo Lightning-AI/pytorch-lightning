@@ -352,7 +352,6 @@ class ProgressBar(ProgressBarBase):
             leave=False,
             dynamic_ncols=True,
             file=self.file,
-            ascii=True,
         )
         return bar
 
@@ -367,7 +366,6 @@ class ProgressBar(ProgressBarBase):
             dynamic_ncols=True,
             file=self.file,
             smoothing=0,
-            ascii=True,
         )
         return bar
 
@@ -382,7 +380,6 @@ class ProgressBar(ProgressBarBase):
             dynamic_ncols=True,
             file=self.file,
             smoothing=0,
-            ascii=True,
         )
         return bar
 
@@ -409,7 +406,6 @@ class ProgressBar(ProgressBarBase):
             leave=True,
             dynamic_ncols=True,
             file=self.file,
-            ascii=True,
         )
         return bar
 
