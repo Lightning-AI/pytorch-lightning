@@ -89,7 +89,6 @@ class BoringModel(LightningModule):
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
-        self.prepare_data_per_node = True
 
     def forward(self, x):
         return self.layer(x)
@@ -151,7 +150,6 @@ class BoringModel(LightningModule):
 class BoringDataModule(LightningDataModule):
     def __init__(self, data_dir: str = "./"):
         super().__init__()
-        self.prepare_data_per_node = True
         self.data_dir = data_dir
         self.non_picklable = None
         self.checkpoint_state: Optional[str] = None
