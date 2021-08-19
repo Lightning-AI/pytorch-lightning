@@ -258,9 +258,10 @@ class DataFetcher(AbstractDataFetcher):
                     # yield last and has next
                     self.wait()
 
-                    if not self.store_on_gpu:
-                        yield_batch = self.move_data_to_device(yield_batch)
-                    yield yield_batch, False
+                    yield (
+                        self.move_data_to_device(yield_batch) if not self.store_on_gpu else yield_batch,
+                        False
+                    )
                 except StopIteration:
                     self.batches.insert(0, yield_batch)
                     break
