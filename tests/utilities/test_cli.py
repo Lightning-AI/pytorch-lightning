@@ -950,6 +950,37 @@ def test_argv_transformations_with_optimizers_and_lr_schedulers():
         TestLightningCLI(expected, BoringModel)
 
 
+def test_optimizers_and_lr_schedulers_reload(tmpdir):
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + [
+        "--lr_scheduler",
+        "OneCycleLR",
+        "--lr_scheduler.total_steps=10",
+        "--lr_scheduler.max_lr=1",
+        "--optimizer",
+        "Adam",
+        "--optimizer.lr=0.1",
+    ]
+
+    # save config
+    out = StringIO()
+    with mock.patch("sys.argv", input + ["--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(BoringModel)
+
+    # validate yaml
+    yaml_config = out.getvalue()
+    dict_config = yaml.safe_load(yaml_config)
+    assert dict_config["optimizer"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["optimizer"]["init_args"]["lr"] == 0.1
+    assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
+
+    # reload config
+    yaml_config_file = tmpdir / "config.yaml"
+    yaml_config_file.write_text(yaml_config, "utf-8")
+    with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
+        LightningCLI(BoringModel)
+
+
 def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(tmpdir):
     class TestLightningCLI(LightningCLI):
         def __init__(self, *args):
