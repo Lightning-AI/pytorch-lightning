@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple

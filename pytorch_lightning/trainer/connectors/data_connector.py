@@ -37,11 +37,11 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        
+
         self.train_data_fetcher: Optional[DataFetcher] = None
         self.validate_data_fetcher: Optional[DataFetcher] = None
         self.test_data_fetcher: Optional[DataFetcher] = None
-    
+
     def on_trainer_init(
         self,
         check_val_every_n_epoch: int,
