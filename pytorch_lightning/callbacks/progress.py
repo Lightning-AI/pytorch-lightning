@@ -71,7 +71,8 @@ class tqdm(_tqdm):
             msg = self.__repr__()
             super().display(msg=msg, pos=0)
 
-    def format_num(self, n) -> str:
+    @staticmethod
+    def format_num(n) -> str:
         """Add additional padding to the formatted numbers"""
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
