@@ -1137,6 +1137,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo", mode=mode)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
         callbacks=[model_checkpoint],
@@ -1159,6 +1160,7 @@ def test_hparams_type(tmpdir, hparams_type):
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo")
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,

@@ -142,7 +142,7 @@ PyTorch Lightning Documentation
    generated/CODE_OF_CONDUCT.md
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
-   governance.md
+   governance
    generated/CHANGELOG.md
 
 Indices and tables
