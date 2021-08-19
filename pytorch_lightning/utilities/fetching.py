@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple
@@ -215,7 +215,8 @@ class DataFetcher(AbstractDataFetcher):
     By default, the `fetching_function` will `prefetch` a batch in advance to detect the end of the iteration.
 
     Args:
-        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch at least 1 batch for tracking the latest batch.
+        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
+            at least 1 batch for tracking the latest batch.
         store_on_gpu: Whether to store the pre-fetched batches on device.
     """
 
@@ -365,7 +366,10 @@ class InterBatchParallelismDataFetcher(DataFetcher):
 
 class StepFuncDataLoaderIter:
 
-    """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user control."""
+    """
+    This class is a wrapper to keep track of dataloader iterator fetching event
+    while left entirely to user control.
+    """
 
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
