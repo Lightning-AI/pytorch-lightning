@@ -23,7 +23,9 @@ from unittest import mock
 import pytest
 import torch
 
-from pl_examples import _DALI_AVAILABLE
+from pytorch_lightning.utilities.imports import _module_available
+
+_DALI_AVAILABLE = _module_available("nvidia.dali")
 
 ARGS_DEFAULT = (
     "--trainer.default_root_dir %(tmpdir)s "
@@ -95,12 +97,7 @@ def test_examples_cpu_autoencoder(tmpdir, cli_args):
 @pytest.mark.skipif(platform.system() != "Linux", reason="Only applies to Linux platform.")
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
 def test_examples_mnist_dali(tmpdir, cli_args):
-    from pl_examples.basic_examples.dali_image_classifier import cli_main
-
-    # update the temp dir
-    cli_args = cli_args % {"tmpdir": tmpdir}
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
+    run(tmpdir, "pl_examples.basic_examples.dali_image_classifier", cli_args)
 
 
 if __name__ == "__main__":
