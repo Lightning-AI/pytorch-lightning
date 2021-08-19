@@ -41,11 +41,13 @@ def run(tmpdir, import_cli, cli_args):
     file = Path(__file__).absolute()
     cli_args = cli_args % {"tmpdir": tmpdir}
     # this will execute this exact same file
-    command = [sys.executable, str(file), f"--import_cli={import_cli}", f"--cli_args={cli_args}"]
+    coverage = ["-m", "coverage", "run", "--source", "pytorch_lightning", "-a"]
+    command = [sys.executable, *coverage, str(file), f"--import_cli={import_cli}", f"--cli_args={cli_args}"]
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
         std, err = p.communicate(timeout=60)
+        print(std)
         err = str(err.decode("utf-8"))
         if 'Exception' in err or 'Error' in err:
             raise Exception(err)
@@ -59,7 +61,6 @@ def run(tmpdir, import_cli, cli_args):
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
 def test_examples_dp_simple_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
-
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
