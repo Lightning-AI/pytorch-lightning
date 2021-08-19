@@ -89,10 +89,10 @@ class DataConnector:
                 datamodule.prepare_data_per_node != self.trainer.prepare_data_per_node
             ):
                 raise MisconfigurationException(
-                    f"Inconsistent settings found for `prepare_data_per_node`. "
-                    f"Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)` "
-                    f"and `DataModule.prepare_data_per_node={datamodule.prepare_data_per_node}`. "
-                    f"Move `prepare_data_per_node` setting to DataModule property"
+                    "Inconsistent settings found for `prepare_data_per_node`."
+                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
+                    f" and `DataModule.prepare_data_per_node={datamodule.prepare_data_per_node}`."
+                    " Move `prepare_data_per_node` setting to DataModule property."
                 )
             if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
                 self.trainer.datamodule.prepare_data()
