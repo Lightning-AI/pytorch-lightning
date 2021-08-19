@@ -23,12 +23,10 @@ from unittest import mock
 import pytest
 import torch
 
-try:
-    from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.imports import _module_available
+from tests.helpers.runif import RunIf
 
-    _DALI_AVAILABLE = _module_available("nvidia.dali")
-except Exception:
-    _DALI_AVAILABLE = False
+_DALI_AVAILABLE = _module_available("nvidia.dali")
 
 ARGS_DEFAULT = (
     "--trainer.default_root_dir %(tmpdir)s "
@@ -64,33 +62,39 @@ def run(tmpdir, import_cli, cli_args):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
+@RunIf(min_python="3.7")
 def test_examples_dp_simple_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
+@RunIf(min_python="3.7")
 def test_examples_dp_backbone_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.backbone_image_classifier", cli_args)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
+@RunIf(min_python="3.7")
 def test_examples_dp_autoencoder(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.autoencoder", cli_args)
 
 
 @pytest.mark.parametrize("cli_args", [ARGS_DEFAULT])
+@RunIf(min_python="3.7")
 def test_examples_cpu_simple_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
 
 
 @pytest.mark.parametrize("cli_args", [ARGS_DEFAULT])
+@RunIf(min_python="3.7")
 def test_examples_cpu_backbone_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.backbone_image_classifier", cli_args)
 
 
 @pytest.mark.parametrize("cli_args", [ARGS_DEFAULT])
+@RunIf(min_python="3.7")
 def test_examples_cpu_autoencoder(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.autoencoder", cli_args)
 
@@ -99,6 +103,7 @@ def test_examples_cpu_autoencoder(tmpdir, cli_args):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(platform.system() != "Linux", reason="Only applies to Linux platform.")
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
+@RunIf(min_python="3.7")
 def test_examples_mnist_dali(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.dali_image_classifier", cli_args)
 
