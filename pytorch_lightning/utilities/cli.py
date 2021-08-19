@@ -513,9 +513,8 @@ class LightningCLI:
                 parser.add_optimizer_args(self.registered_optimizers)
 
         if self._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
-            lr_schdulers = tuple(v for v in LR_SCHEDULER_REGISTRY.values())
-            if "lr_scheduler" not in parser.groups:
-                parser.add_lr_scheduler_args(lr_schdulers)
+            if "lr_scheduler" not in self.parser.groups:
+                self.parser.add_lr_scheduler_args(self.registered_lr_schedulers)
 
         for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
