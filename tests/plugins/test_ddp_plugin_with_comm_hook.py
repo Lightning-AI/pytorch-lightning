@@ -112,7 +112,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, special=True)
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
