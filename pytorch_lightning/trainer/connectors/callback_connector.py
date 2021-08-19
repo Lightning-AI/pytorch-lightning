@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, 
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class CallbackConnector:
@@ -39,6 +40,12 @@ class CallbackConnector:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
+        if stochastic_weight_avg:
+            rank_zero_deprecation(
+                "Setting `Trainer(stochastic_weight_avg=True)` is deprecated in v1.5 and will be removed in v1.7."
+                " Please pass `pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`"
+                " directly to the Trainer's ``callbacks`` argument instead."
+            )
         self.trainer._stochastic_weight_avg = stochastic_weight_avg
 
         # init callbacks

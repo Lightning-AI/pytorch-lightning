@@ -15,7 +15,7 @@
 
 import pytest
 
-from pytorch_lightning import LightningDataModule
+from pytorch_lightning import LightningDataModule, Trainer
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -80,3 +80,8 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = dm.dims
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = LightningDataModule(dims=(1, 1, 1))
+
+
+def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
+        _ = Trainer(stochastic_weight_avg=True)
