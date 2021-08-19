@@ -85,9 +85,8 @@ class DataConnector:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
         if datamodule is not None and not datamodule.has_prepared_data:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
-            if (self.trainer.prepare_data_per_node is not None) and (
-                datamodule.prepare_data_per_node != self.trainer.prepare_data_per_node
-            ):
+            dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
+            if (self.trainer.prepare_data_per_node is not None) and not dm_eq_prepare_data:
                 raise MisconfigurationException(
                     "Inconsistent settings found for `prepare_data_per_node`."
                     f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
@@ -100,8 +99,8 @@ class DataConnector:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None:
             lm_prepare_data_per_node = lightning_module.prepare_data_per_node
-            eq_prepare_data = lightning_module.prepare_data_per_node == self.trainer.prepare_data_per_node
-            if (self.trainer.prepare_data_per_node is not None) and not eq_prepare_data:
+            lm_eq_prepare_data = lightning_module.prepare_data_per_node == self.trainer.prepare_data_per_node
+            if (self.trainer.prepare_data_per_node is not None) and not lm_eq_prepare_data:
                 raise MisconfigurationException(
                     "Inconsistent settings found for `prepare_data_per_node`."
                     f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"

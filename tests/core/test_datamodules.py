@@ -42,7 +42,6 @@ def test_can_prepare_data(local_rank, node_rank):
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-
     dm.random_full = None
     dm._has_prepared_data = False
     local_rank.return_value = 0
@@ -94,18 +93,19 @@ def test_can_prepare_data(local_rank, node_rank):
     trainer.lightning_module.prepare_data_per_node = True
     local_rank.return_value = 0
 
-    # is_overridden prepare data = True
-    # has been called
-    # False
-    dm._has_prepared_data = True
+    with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
+        # is_overridden prepare data = True
+        # has been called
+        # False
+        dm._has_prepared_data = True
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_not_called()
 
-    # has not been called
-    # True
-    dm._has_prepared_data = False
-
-    # is_overridden prepare data = False
-    # True
-    dm.prepare_data = None
+        # has not been called
+        # True
+        dm._has_prepared_data = False
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_called_once()
 
 
 def test_hooks_no_recursion_error():
