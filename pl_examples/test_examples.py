@@ -11,9 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import importlib
 import platform
+import subprocess
+import sys
+from argparse import ArgumentParser
+from pathlib import Path
+from subprocess import TimeoutExpired
 from unittest import mock
 
 import pytest
@@ -33,43 +37,57 @@ ARGS_DP = ARGS_DEFAULT + "--trainer.gpus 2 --trainer.accelerator dp "
 ARGS_AMP = "--trainer.precision 16 "
 
 
-@pytest.mark.parametrize(
-    "import_cli",
-    [
-        "pl_examples.basic_examples.simple_image_classifier",
-        "pl_examples.basic_examples.backbone_image_classifier",
-        "pl_examples.basic_examples.autoencoder",
-    ],
-)
+def run(tmpdir, import_cli, cli_args):
+    file = Path(__file__).absolute()
+    cli_args = cli_args % {"tmpdir": tmpdir}
+    # this will execute this exact same file
+    coverage = ["-m", "coverage", "run", "--source", "pytorch_lightning", "-a"]
+    command = [sys.executable, *coverage, str(file), f"--import_cli={import_cli}", f"--cli_args={cli_args}"]
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        std, err = p.communicate(timeout=60)
+        print(std)
+        err = str(err.decode("utf-8"))
+        if "Exception" in err or "Error" in err:
+            raise Exception(err)
+    except TimeoutExpired:
+        p.kill()
+        std, err = p.communicate()
+    return std, err
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
-def test_examples_dp(tmpdir, import_cli, cli_args):
-
-    module = importlib.import_module(import_cli)
-    # update the temp dir
-    cli_args = cli_args % {"tmpdir": tmpdir}
-
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        module.cli_main()
+def test_examples_dp_simple_image_classifier(tmpdir, cli_args):
+    run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
 
 
-@pytest.mark.parametrize(
-    "import_cli",
-    [
-        "pl_examples.basic_examples.simple_image_classifier",
-        "pl_examples.basic_examples.backbone_image_classifier",
-        "pl_examples.basic_examples.autoencoder",
-    ],
-)
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
+def test_examples_dp_backbone_image_classifier(tmpdir, cli_args):
+    run(tmpdir, "pl_examples.basic_examples.backbone_image_classifier", cli_args)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
+def test_examples_dp_autoencoder(tmpdir, cli_args):
+    run(tmpdir, "pl_examples.basic_examples.autoencoder", cli_args)
+
+
 @pytest.mark.parametrize("cli_args", [ARGS_DEFAULT])
-def test_examples_cpu(tmpdir, import_cli, cli_args):
+def test_examples_cpu_simple_image_classifier(tmpdir, cli_args):
+    run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
 
-    module = importlib.import_module(import_cli)
-    # update the temp dir
-    cli_args = cli_args % {"tmpdir": tmpdir}
 
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        module.cli_main()
+@pytest.mark.parametrize("cli_args", [ARGS_DEFAULT])
+def test_examples_cpu_backbone_image_classifier(tmpdir, cli_args):
+    run(tmpdir, "pl_examples.basic_examples.backbone_image_classifier", cli_args)
+
+
+@pytest.mark.parametrize("cli_args", [ARGS_DEFAULT])
+def test_examples_cpu_autoencoder(tmpdir, cli_args):
+    run(tmpdir, "pl_examples.basic_examples.autoencoder", cli_args)
 
 
 @pytest.mark.skipif(not _DALI_AVAILABLE, reason="Nvidia DALI required")
@@ -83,3 +101,13 @@ def test_examples_mnist_dali(tmpdir, cli_args):
     cli_args = cli_args % {"tmpdir": tmpdir}
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
         cli_main()
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--import_cli", type=str)
+    parser.add_argument("--cli_args", type=str)
+    args = parser.parse_args()
+    module = importlib.import_module(args.import_cli)
+    with mock.patch("argparse._sys.argv", ["any.py"] + args.cli_args.strip().split()):
+        module.cli_main()

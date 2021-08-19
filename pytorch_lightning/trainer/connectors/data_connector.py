@@ -216,7 +216,9 @@ class DataConnector:
                 loader.unpatch(model)
 
     def teardown(self) -> None:
-        [attr.teardown() for attr in vars(self).values() if isinstance(attr, AbstractDataFetcher)]
+        for attr in vars(self).values():
+            if isinstance(attr, AbstractDataFetcher):
+                attr.teardown()
 
 
 class _PatchDataLoader:

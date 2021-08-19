@@ -263,7 +263,10 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         if _inter_batch_parallelism():
-            # can only do asynchronous transfer if we use pin_memory
+            if dl_kwargs.get("pin_memory", False):
+                rank_zero_warn(
+                    "When enabling inter batch parallelism, `pin_memory` would be overriden to True to enable asynchronous transfer."
+                )
             dl_kwargs["pin_memory"] = True
 
         return dl_kwargs

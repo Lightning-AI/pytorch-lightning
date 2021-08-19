@@ -31,7 +31,6 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -57,7 +56,6 @@ class LightningModule(
     ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
-    GradInformation,
     ModelIO,
     ModelHooks,
     DataHooks,

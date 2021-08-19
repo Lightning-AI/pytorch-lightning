@@ -100,6 +100,8 @@ class TrainingBatchLoop(Loop):
         self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
         super().run(batch, batch_idx)
+        # free memory
+        del batch
         output = AttributeDict(signal=0, training_step_output=self.batch_outputs)
         self.batch_outputs = None  # free memory
         return output
