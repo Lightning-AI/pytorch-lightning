@@ -95,7 +95,7 @@ def test_memory_consumption_validation(tmpdir):
             upper = 201 * self.num_params * 4
             current = torch.cuda.memory_allocated(0)
             assert lower < current
-            # FIXME: Where is the extra memory coming from ?
+            # FIXME: Where is the extra memory coming from ?
             assert current - initial_memory < upper + 3000
             return super().validation_step(batch, batch_idx)
 
