@@ -116,6 +116,22 @@ class RichProgressBar(ProgressBarBase):
     def enable(self) -> None:
         self._enabled = True
 
+    @property
+    def sanity_check_description(self) -> str:
+        return "[Validation Sanity Check]"
+
+    @property
+    def validation_description(self) -> str:
+        return "[Validation]"
+
+    @property
+    def test_description(self) -> str:
+        return "[Testing]"
+
+    @property
+    def predict_description(self) -> str:
+        return "[Predicting]"
+
     def setup(self, trainer, pl_module, stage):
         self.progress = Progress(
             SpinnerColumn(),
@@ -134,7 +150,7 @@ class RichProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_sanity_progress_bar = self.progress.add_task(
-            f"[{STYLES['sanity_check']}][Validation Sanity Check]",
+            f"[{STYLES['sanity_check']}]{self.sanity_check_description}",
             total=trainer.num_sanity_val_steps,
         )
 
@@ -152,8 +168,11 @@ class RichProgressBar(ProgressBarBase):
             self._total_val_batches = self._total_val_batches * val_checks_per_epoch
 
         total_batches = total_train_batches + self._total_val_batches
+
+        train_description = self._get_train_description(trainer.current_epoch)
+
         self.main_progress_bar = self.progress.add_task(
-            f"[{STYLES['train']}][Epoch {trainer.current_epoch}]",
+            f"[{STYLES['train']}]{train_description}",
             total=total_batches,
         )
 
@@ -161,7 +180,7 @@ class RichProgressBar(ProgressBarBase):
         super().on_validation_epoch_start(trainer, pl_module)
         if self._total_val_batches > 0:
             self.val_progress_bar = self.progress.add_task(
-                f"[{STYLES['validate']}][Validation]",
+                f"[{STYLES['validate']}]{self.validation_description}",
                 total=self._total_val_batches,
             )
 
@@ -173,14 +192,14 @@ class RichProgressBar(ProgressBarBase):
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
         self.test_progress_bar = self.progress.add_task(
-            f"[{STYLES['test']}][Testing]",
+            f"[{STYLES['test']}]{self.test_description}",
             total=self.total_test_batches,
         )
 
     def on_predict_epoch_start(self, trainer, pl_module):
         super().on_predict_epoch_start(trainer, pl_module)
         self.predict_progress_bar = self.progress.add_task(
-            f"[{STYLES['predict']}][Predicting]",
+            f"[{STYLES['predict']}]{self.predict_description}",
             total=self.total_predict_batches,
         )
 
@@ -211,6 +230,17 @@ class RichProgressBar(ProgressBarBase):
 
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
+
+    def _get_train_description(self, current_epoch: int) -> str:
+        train_description = f"[Epoch {current_epoch}]"
+        if len(self.validation_description) > len(train_description):
+            # Padding is required to avoid flickering due of uneven lengths of "Epoch X"
+            # and "Validation" Bar description
+            num_digits = len(str(current_epoch))
+            required_padding = (len(self.validation_description) - len(train_description) + 1) - num_digits
+            for _ in range(required_padding):
+                train_description += " "
+        return train_description
 
     def teardown(self, trainer, pl_module, stage):
         self.progress.__exit__(None, None, None)
