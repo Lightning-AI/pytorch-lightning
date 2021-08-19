@@ -1373,13 +1373,12 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
             self.test_call_count = 0
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
-            # The `DataFetcher` will pre-fetch 1 extra batch.
             if self.trainer.training:
                 assert dataloader_idx == 0
             elif self.trainer.validating:
-                assert dataloader_idx == (0 if self.val_call_count <= (5 + 1) else 1)
+                assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:
-                assert dataloader_idx == (0 if self.test_call_count <= (5 + 1) else 1)
+                assert dataloader_idx == (0 if self.test_call_count <= 5 else 1)
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
