@@ -161,12 +161,6 @@ def test_v1_5_0_auto_move_data():
                 pass
 
 
-def test_v1_5_0_lighting_module_grad_norm(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        model.grad_norm(2)
-
-
 def test_v1_5_0_datamodule_setter():
     model = BoringModel()
     datamodule = BoringDataModule()
