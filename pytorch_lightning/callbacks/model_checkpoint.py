@@ -255,8 +255,8 @@ class ModelCheckpoint(Callback):
         self.__validate_init_configuration()
 
     @property
-    def state_id(self) -> str:
-        return self._generate_state_id(
+    def state_key(self) -> str:
+        return self._generate_state_key(
             monitor=self.monitor,
             mode=self.mode,
             every_n_train_steps=self._every_n_train_steps,

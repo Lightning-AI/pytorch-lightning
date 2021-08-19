@@ -128,8 +128,8 @@ class EarlyStopping(Callback):
         self.monitor = monitor or "early_stop_on"
 
     @property
-    def state_id(self) -> str:
-        return self._generate_state_id(monitor=self.monitor, mode=self.mode)
+    def state_key(self) -> str:
+        return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._check_on_train_epoch_end is None:

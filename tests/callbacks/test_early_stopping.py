@@ -33,9 +33,9 @@ from tests.helpers.simple_models import ClassificationModel
 _logger = logging.getLogger(__name__)
 
 
-def test_early_stopping_state_id():
+def test_early_stopping_state_key():
     early_stopping = EarlyStopping(monitor="val_loss")
-    assert early_stopping.state_id == "EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}"
+    assert early_stopping.state_key == "EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}"
 
 
 class EarlyStoppingTestRestore(EarlyStopping):

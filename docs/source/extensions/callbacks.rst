@@ -125,7 +125,7 @@ Note that the returned state must be able to be pickled.
 
 When your callback is meant to be used only as a singleton callback then implementing the above two hooks is enough
 to persist state effectively. However, if passing multiple instances of the callback to the Trainer is supported, then
-the callback must define a :attr:`~pytorch_lightning.callbacks.Callback.state_id` property in order for Lightning
+the callback must define a :attr:`~pytorch_lightning.callbacks.Callback.state_key` property in order for Lightning
 to be able to distinguish the different states when loading the callback state. This concept is best illustrated by
 the following example.
 
@@ -138,9 +138,9 @@ the following example.
             self.state = {"epochs": 0, "batches": 0}
 
         @property
-        def state_id(self):
+        def state_key(self):
             # note: we do not include `verbose` here on purpose
-            return self._generate_state_id(what=self.what)
+            return self._generate_state_key(what=self.what)
 
         def on_train_epoch_end(self, *args, **kwargs):
             if self.what == "epochs":
@@ -173,8 +173,8 @@ A Lightning checkpoint from this Trainer with the two stateful callbacks will in
         }
     }
 
-The implementation of a :attr:`~pytorch_lightning.callbacks.Callback.state_id` is essential here. If it were missing,
-Lightning would not be able to disambiguate the state for these two callbacks, and :attr:`~pytorch_lightning.callbacks.Callback.state_id`
+The implementation of a :attr:`~pytorch_lightning.callbacks.Callback.state_key` is essential here. If it were missing,
+Lightning would not be able to disambiguate the state for these two callbacks, and :attr:`~pytorch_lightning.callbacks.Callback.state_key`
 by default only defines the class name as the key, e.g., here ``Counter``.
 
 
