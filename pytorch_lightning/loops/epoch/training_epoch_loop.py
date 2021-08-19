@@ -23,7 +23,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-
 BATCH_LOOP_TYPE = Optional[TrainingBatchLoop]
 
 

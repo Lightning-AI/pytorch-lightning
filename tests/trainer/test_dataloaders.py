@@ -1373,7 +1373,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
             self.test_call_count = 0
 
         def assert_dataloader_idx_hook(self, dataloader_idx):
-            # The `DataFetcher` will pre-fetch 1 extra batch.
+            # The `DataFetcher` will pre-fetch 1 extra batch.
             if self.trainer.training:
                 assert dataloader_idx == 0
             elif self.trainer.validating:
