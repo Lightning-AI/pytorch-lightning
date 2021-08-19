@@ -203,6 +203,9 @@ class AbstractDataFetcher(ABC):
         self.fetched: int = 0
         self.done: bool = False
 
+    def teardown(self) -> None:
+        self.reset()
+
 
 class DataFetcher(AbstractDataFetcher):
 
@@ -210,7 +213,19 @@ class DataFetcher(AbstractDataFetcher):
     This class is used to control batch fetching flow.
 
     By default, the `fetching_function` will `prefetch` a batch in advance to detect the end of the iteration.
+
+    Args:
+        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch at least 1 batch for tracking the latest batch.
+        store_on_gpu: Whether to store the pre-fetched batches on device.
     """
+
+    def __init__(
+        self,
+        prefetch_batches: int = 0,
+        store_on_gpu: bool = False,
+    ) -> None:
+        super().__init__(prefetch_batches=prefetch_batches)
+        self.store_on_gpu = store_on_gpu
 
     @contextlib.contextmanager
     def fetching_context(self):
@@ -222,9 +237,8 @@ class DataFetcher(AbstractDataFetcher):
 
     def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
         """Hook to extend which handles the logic after fetching a batch"""
-        if self.batch_to_device:
-            with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
-                batch = self.batch_to_device(batch)
+        if self.store_on_gpu:
+            batch = self.move_data_to_device(batch)
         self.append_batch(batch)
 
     def wait(self) -> None:
@@ -242,6 +256,9 @@ class DataFetcher(AbstractDataFetcher):
 
                     # yield last and has next
                     self.wait()
+
+                    if not self.store_on_gpu:
+                        yield_batch = self.move_data_to_device(yield_batch)
                     yield yield_batch, False
                 except StopIteration:
                     self.batches.insert(0, yield_batch)
@@ -281,8 +298,16 @@ class DataFetcher(AbstractDataFetcher):
     def _yield_batch(self) -> Generator:
         self.wait()
         batch = self.batches.pop(0)
+        if not self.store_on_gpu:
+            batch = self.move_data_to_device(batch)
         is_last = len(self.batches) == 0
         yield batch, is_last
+
+    def move_data_to_device(self, batch: Any) -> Any:
+        if self.batch_to_device:
+            with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
+                batch = self.batch_to_device(batch)    
+        return batch
 
 
 class InterBatchParallelismDataFetcher(DataFetcher):
@@ -309,7 +334,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         self,
         prefetch_batches: int = 0,
     ) -> None:
-        super().__init__(prefetch_batches=prefetch_batches)
+        super().__init__(prefetch_batches=prefetch_batches, store_on_gpu=True)
 
         self.cuda_stream = torch.cuda.Stream()
         self.events = []

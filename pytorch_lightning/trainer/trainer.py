@@ -1056,6 +1056,7 @@ class Trainer(
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
+        self.data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
 

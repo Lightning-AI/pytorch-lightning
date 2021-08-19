@@ -97,14 +97,15 @@ class DataConnector:
 
     def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
         stage: str = self.trainer.state.stage.value
-        self.data_fetcher = self._select_data_fetcher()
-        self.data_fetcher.setup(
+        data_fetcher = self._select_data_fetcher()
+        data_fetcher.setup(
             dataloader,
             stage=stage,
             batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
-        prefetcher_iter = iter(self.data_fetcher)
+        setattr(self, f"{stage}_data_fetcher", data_fetcher)
+        prefetcher_iter = iter(data_fetcher)
         return enumerate(prefetcher_iter)
 
     def prepare_data(self) -> None:
@@ -208,6 +209,9 @@ class DataConnector:
             loader = getattr(model, f"{stage}_dataloader", None)
             if isinstance(loader, _PatchDataLoader):
                 loader.unpatch(model)
+
+    def teardown(self) -> None:
+        [attr.teardown() for attr in vars(self).values() if isinstance(attr, AbstractDataFetcher)]
 
 
 class _PatchDataLoader:
