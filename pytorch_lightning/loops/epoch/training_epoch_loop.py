@@ -146,7 +146,7 @@ class TrainingEpochLoop(loops.Loop):
 
         # free memory
         del batch
-    
+
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
