@@ -821,7 +821,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
     class HookedDataModule(BoringDataModule):
         def __init__(self, called):
             super().__init__()
-            self.prepare_data_per_node = True
 
             def call(hook, fn, *args, **kwargs):
                 out = fn(*args, **kwargs)
