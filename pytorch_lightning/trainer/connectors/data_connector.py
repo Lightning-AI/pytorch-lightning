@@ -15,7 +15,7 @@
 import logging
 import os
 from typing import Callable, Iterable, Optional, Union
-
+from functools import partial
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -95,13 +95,13 @@ class DataConnector:
         else:
             return DataFetcher()
 
-    def get_profiled_dataloader(self, dataloader: Iterable) -> Iterable:
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
         stage: str = self.trainer.state.stage.value
         self.data_fetcher = self._select_data_fetcher()
         self.data_fetcher.setup(
             dataloader,
             stage=stage,
-            batch_to_device=self.trainer.accelerator.batch_to_device,
+            batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
         prefetcher_iter = iter(self.data_fetcher)

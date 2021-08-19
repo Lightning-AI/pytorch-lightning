@@ -57,13 +57,13 @@ class AbstractDataFetcher(ABC):
 
     @abstractmethod
     def fetching_function(self) -> Generator:
-        pass
+        """Override with your own fetching logic."""
 
     def __init__(
         self,
         prefetch_batches: int = 0,
     ) -> None:
-        if not isinstance(prefetch_batches, int) or (isinstance(prefetch_batches, int) and prefetch_batches < 0):
+        if prefetch_batches < 0:
             raise MisconfigurationException("`prefetch_batches` should at least be 0.")
 
         self.prefetch_batches = prefetch_batches + 1
@@ -270,7 +270,6 @@ class DataFetcher(AbstractDataFetcher):
                 data = self.on_fetch_start()
                 with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
                     batch = next(self.dataloader_iter)
-                print(batch)
                 self.fetched += 1
                 self.on_fetch_end(batch, data)
 
@@ -339,7 +338,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         event.wait()
 
 
-class TrainingStepDataLoaderIter:
+class StepFuncDataLoaderIter:
 
     """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user control."""
 
@@ -347,19 +346,21 @@ class TrainingStepDataLoaderIter:
         self.iterator = iterator
         self.data_fetcher = data_fetcher
 
-    def __iter__(self) -> "TrainingStepDataLoaderIter":
+    def __iter__(self) -> "StepFuncDataLoaderIter":
         return self
 
     def __next__(self) -> Any:
-        self.data_fetcher.fetched += 1
         try:
-            return next(self.iterator)
+            data = next(self.iterator)
+            # FIXME: Link this to `batch_idx`.
+            self.data_fetcher.fetched += 1
+            return data
         except StopIteration:
             self.data_fetcher.done = True
             raise StopIteration
 
 
-class DataLoaderIterDataFetcher(DataFetcher):
+class DataLoaderIterDataFetcher(AbstractDataFetcher):
 
     """
     This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step
@@ -376,7 +377,7 @@ class DataLoaderIterDataFetcher(DataFetcher):
                 self.automatic_optimization = False
 
             def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
-                # it is user responsability to fetch and move the batch to the right device.
+                # it is the user responsability to fetch and move the batch to the right device.
                 batch = next(dataloader_iter)
                 batch = batch.to(self.device)
 
@@ -385,6 +386,6 @@ class DataLoaderIterDataFetcher(DataFetcher):
     """
 
     def fetching_function(self) -> Generator:
-        iterator = iter(TrainingStepDataLoaderIter(self.dataloader_iter, self))
+        iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
         while True:
             yield iterator, self.done

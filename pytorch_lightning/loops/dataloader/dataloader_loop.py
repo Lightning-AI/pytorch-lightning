@@ -55,6 +55,7 @@ class DataLoaderLoop(Loop):
 
     def reset(self) -> None:
         """Resets the internal state"""
+
         if not self.restarting:
             self.dataloader_progress.current.reset()
 

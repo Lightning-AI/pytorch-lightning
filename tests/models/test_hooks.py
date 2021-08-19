@@ -893,11 +893,11 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
+        *batch_transfer * (batches + 1),
         dict(name="train_dataloader"),
-        *batch_transfer * batches,
+        *batch_transfer * (batches + 1),
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
+        *batch_transfer * (batches + 1),
         dict(
             name="on_save_checkpoint",
             args=(
@@ -923,7 +923,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="validate")),
         dict(name="val_dataloader"),
-        *batch_transfer * batches,
+        *batch_transfer * (batches + 1),
         dict(name="teardown", kwargs=dict(stage="validate")),
     ]
     assert called == expected
@@ -935,7 +935,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="test")),
         dict(name="test_dataloader"),
-        *batch_transfer * batches,
+        *batch_transfer * (batches + 1),
         dict(name="teardown", kwargs=dict(stage="test")),
     ]
     assert called == expected

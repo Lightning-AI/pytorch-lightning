@@ -23,10 +23,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-# TODO: currently, the batch processor is only a loop when tbptt is enabled.
-# As we introduce more specialized batch processors, we may want to choose a
-# more suitable abstraction for them.
-BATCH_LOOP_TYPE = Optional[Tuple[TrainingBatchLoop]]
+
+BATCH_LOOP_TYPE = Optional[TrainingBatchLoop]
 
 
 class TrainingEpochLoop(loops.Loop):
