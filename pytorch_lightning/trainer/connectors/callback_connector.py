@@ -44,7 +44,7 @@ class CallbackConnector:
             rank_zero_deprecation(
                 "Setting `Trainer(stochastic_weight_avg=True)` is deprecated in v1.5 and will be removed in v1.7."
                 " Please pass `pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`"
-                " directly to the Trainer's ``callbacks`` argument instead."
+                " directly to the Trainer's `callbacks` argument instead."
             )
         self.trainer._stochastic_weight_avg = stochastic_weight_avg
 
