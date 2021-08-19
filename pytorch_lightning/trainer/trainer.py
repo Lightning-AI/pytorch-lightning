@@ -242,7 +242,7 @@ class Trainer(
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
-                
+
                 .. deprecated:: v1.5
                     Deprecated in v1.5.0 and will be removed in v1.7.0
                     Please set `prepare_data_per_node` in LightningDataModule or LightningModule directly instead.
