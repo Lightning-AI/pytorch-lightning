@@ -15,14 +15,14 @@ import inspect
 import os
 import sys
 from argparse import Namespace
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 from types import MethodType, ModuleType
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Type, TypedDict, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 from unittest import mock
 
 import torch
 from torch.optim import Optimizer
+from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
@@ -482,12 +482,8 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    @contextmanager
-    def _prepare_from_registry(self, registry: _Registry) -> Generator[None, None, None]:
-        """
-        This context manager is used to simplify unique class instantiation.
-        """
-
+    @staticmethod
+    def _prepare_from_registry(argv: List[str], registry: _Registry) -> List[str]:
         # find if the users is using shortcut command line.
         map_user_key_to_info = {}
         for registered_name, registered_cls in registry.items():
@@ -500,30 +496,25 @@ class LightningCLI:
 
         if len(map_user_key_to_info) > 0:
             # for each shortcut command line, add its init arguments and skip them from `sys.argv`.
-            argv = []
-            for v in sys.argv:
+            out = []
+            for v in argv:
                 skip = False
                 for key in map_user_key_to_info:
                     if key in v:
                         skip = True
                         map_user_key_to_info[key].add_class_init_arg(v)
                 if not skip:
-                    argv.append(v)
+                    out.append(v)
 
             # re-create the global command line and mock `sys.argv`.
-            argv += [f"{user_key}={info.class_init}" for user_key, info in map_user_key_to_info.items()]
-            with mock.patch("sys.argv", argv):
-                yield
-        else:
-            yield
+            out += [f"{user_key}={info.class_init}" for user_key, info in map_user_key_to_info.items()]
+            return out
+        return argv
 
-    @contextmanager
-    def _prepare_class_list_from_registry(self, pattern: str, registry: _Registry) -> Generator[None, None, None]:
-        """
-        This context manager is used to simplify instantiation of a list of class.
-        """
-        argv = [v for v in sys.argv if pattern not in v]
-        all_matched_args = [v for v in sys.argv if pattern in v]
+    @staticmethod
+    def _prepare_class_list_from_registry(argv: List[str], pattern: str, registry: _Registry) -> List[str]:
+        out = [v for v in argv if pattern not in v]
+        all_matched_args = [v for v in argv if pattern in v]
         all_simplified_args = [v for v in all_matched_args if f"{pattern}" in v and f"{pattern}=[" not in v]
         all_cls_simplified_args = [v for v in all_simplified_args if f"{pattern}=" in v]
         all_non_simplified_args = [v for v in all_matched_args if f"{pattern}=" in v and f"{pattern}=[" in v]
@@ -555,20 +546,17 @@ class LightningCLI:
             if len(all_non_simplified_args) > 0:
                 class_args.extend(eval(all_non_simplified_args[0].split("=")[-1]))
 
-            argv += [f"{pattern}={class_args}"]
-            with mock.patch("sys.argv", argv):
-                yield
-        else:
-            yield
+            out += [f"{pattern}={class_args}"]
+            return out
+        return argv
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
-        # fmt: off
-        with self._prepare_from_registry(OPTIMIZER_REGISTRY), \
-             self._prepare_from_registry(LR_SCHEDULER_REGISTRY), \
-             self._prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
+        argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
+        argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+        argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+        with mock.patch("sys.argv", argv):
             self.config = parser.parse_args()
-        # fmt: on
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
