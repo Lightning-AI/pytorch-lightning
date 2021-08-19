@@ -19,7 +19,6 @@ import pickle
 import sys
 from argparse import Namespace
 from contextlib import redirect_stdout
-from importlib.util import module_from_spec, spec_from_file_location
 from io import StringIO
 from typing import List, Optional, Union
 from unittest import mock
@@ -826,42 +825,6 @@ def test_registries_resolution(use_class_path_callbacks):
         ProgressBar,
         ModelCheckpoint,
     ]
-
-
-@pytest.mark.skipif(True, reason="typing from json-argparse is failing.")
-def test_custom_callbacks(tmpdir):
-    """
-    Test that registered callbacks can be used with LightningCLI.
-    """
-
-    class TestModel(BoringModel):
-        def on_fit_start(self):
-            callbacks = [c for c in self.trainer.callbacks if isinstance(c, CustomCallback)]
-            assert len(callbacks) == 1
-
-    with mock.patch("sys.argv", ["any.py"]):
-        LightningCLI(
-            TestModel,
-            trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True, callbacks=CustomCallback()),
-        )
-
-    code = """from pytorch_lightning.callbacks import Callback\nfrom pytorch_lightning.utilities.cli import CALLBACK_REGISTRY\n\nclass TestCallback(Callback):\n\tpass\n\nCALLBACK_REGISTRY(cls=TestCallback)"""  # noqa E501
-
-    f = open(tmpdir / "test.py", "w")
-    f.write(code)
-    f.close()
-
-    spec = spec_from_file_location("test", f.name)
-    mod = module_from_spec(spec)
-    sys.modules["test"] = mod
-    spec.loader.exec_module(mod)
-    callback_cls = getattr(mod, "TestCallback")
-    assert issubclass(callback_cls, Callback)
-
-    callback = {"class_path": f"{tmpdir}.test.CustomCallback"}
-
-    with mock.patch("sys.argv", ["any.py", f"--trainer.callbacks=[{callback}]"]):
-        LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
 
 def test_argv_transformation_noop():
