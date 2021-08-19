@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
-import os
 from typing import Any, Dict
 
 import pytest
-import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -161,36 +159,6 @@ def test_v1_5_0_auto_move_data():
             @auto_move_data
             def bar(self):
                 pass
-
-
-def test_v1_5_0_lightning_module_write_prediction(tmpdir):
-    class DeprecatedWritePredictionsModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self._predictions_file = os.path.join(tmpdir, "predictions.pt")
-
-        def test_step(self, batch, batch_idx):
-            super().test_step(batch, batch_idx)
-            self.write_prediction("a", torch.Tensor(0), self._predictions_file)
-
-        def test_epoch_end(self, outputs):
-            self.write_prediction_dict({"a": "b"}, self._predictions_file)
-
-    with pytest.deprecated_call(match="`write_prediction` was deprecated in v1.3 and will be removed in v1.5"):
-        model = DeprecatedWritePredictionsModel()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-        trainer.test(model)
-
-    with pytest.deprecated_call(match="`write_prediction_dict` was deprecated in v1.3 and will be removed in v1.5"):
-        model = DeprecatedWritePredictionsModel()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
-        trainer.test(model)
-
-
-def test_v1_5_0_lighting_module_grad_norm(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
-        model.grad_norm(2)
 
 
 def test_v1_5_0_datamodule_setter():

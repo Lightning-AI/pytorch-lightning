@@ -379,6 +379,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         pass
 
     ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
     optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
