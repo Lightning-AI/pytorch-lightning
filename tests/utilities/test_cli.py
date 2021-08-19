@@ -812,13 +812,8 @@ def test_registries_resolution(use_class_path_callbacks, tmpdir):
     if use_class_path_callbacks:
 
         callbacks = [
-            dict(
-                class_path="pytorch_lightning.callbacks.Callback",
-            ),
-            dict(
-                class_path="pytorch_lightning.callbacks.Callback",
-                init_args=dict(),
-            ),
+            dict(class_path="pytorch_lightning.callbacks.Callback"),
+            dict(class_path="pytorch_lightning.callbacks.Callback", init_args=dict()),
         ]
 
         cli_args += [f"--trainer.callbacks={json.dumps(callbacks)}"]
@@ -877,6 +872,90 @@ def test_custom_callbacks(tmpdir):
         LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
 
+def test_argv_transformation_noop():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    argv = LightningCLI._prepare_from_registry(base, OPTIMIZER_REGISTRY)
+    assert argv == base
+    argv = LightningCLI._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+    assert argv == base
+    argv = LightningCLI._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+    assert argv == base
+
+
+def test_argv_transformation_single_callback():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + ["--trainer.callbacks=ModelCheckpoint", "--trainer.callbacks.monitor=val_loss"]
+    callbacks = [
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_loss"},
+        }
+    ]
+    expected = base + [f"--trainer.callbacks={str(callbacks)}"]
+    argv = LightningCLI._prepare_from_registry(input, OPTIMIZER_REGISTRY)
+    assert argv == input
+    argv = LightningCLI._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+    assert argv == input
+    argv = LightningCLI._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+    assert argv == expected
+
+
+def test_argv_transformation_multiple_callbacks():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + [
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=val_loss",
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=val_acc",
+    ]
+    callbacks = [
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_loss"},
+        },
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_acc"},
+        },
+    ]
+    expected = base + [f"--trainer.callbacks={str(callbacks)}"]
+    argv = LightningCLI._prepare_from_registry(input, OPTIMIZER_REGISTRY)
+    assert argv == input
+    argv = LightningCLI._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+    assert argv == input
+    argv = LightningCLI._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+    assert argv == expected
+
+
+def test_argv_transformation_multiple_callbacks_with_config():
+    base = ["any.py", "--trainer.max_epochs=1"]
+    input = base + [
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=val_loss",
+        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks.monitor=val_acc",
+        "--trainer.callbacks=[{'class_path': 'pytorch_lightning.callbacks.Callback'}]",
+    ]
+    callbacks = [
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_loss"},
+        },
+        {
+            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
+            "init_args": {"monitor": "val_acc"},
+        },
+        {"class_path": "pytorch_lightning.callbacks.Callback"},
+    ]
+    expected = base + [f"--trainer.callbacks={str(callbacks)}"]
+    argv = LightningCLI._prepare_from_registry(input, OPTIMIZER_REGISTRY)
+    assert argv == input
+    argv = LightningCLI._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+    assert argv == input
+    argv = LightningCLI._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+    assert argv == expected
+
+
 def test_argv_modifiers():
     """
     This test validates ``sys.argv`` from `LightningCLI` are properly transforming the command line.
@@ -888,130 +967,46 @@ def test_argv_modifiers():
             super().__init__(*args, **kwargs)
 
         def parse_arguments(self, parser: LightningArgumentParser) -> None:
-            # fmt: off
-            with self._prepare_from_registry(OPTIMIZER_REGISTRY), \
-                 self._prepare_from_registry(LR_SCHEDULER_REGISTRY), \
-                 self._prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
-                assert sys.argv == self.expected
-                self.config = parser.parse_args()
-            # fmt: on
+            argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
+            argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+            argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+            assert argv == self.expected
+            super().parse_arguments(parser)
 
     base = ["any.py", "--trainer.max_epochs=1"]
 
-    with mock.patch("sys.argv", base):
-        expected = base
-        TestLightningCLI(BoringModel, run=False, expected=expected)
-
-    with mock.patch("sys.argv", base + ["--trainer.callbacks=ModelCheckpoint", "--trainer.callbacks.monitor=val_loss"]):
-        callbacks = [
-            dict(
-                class_path="pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-                init_args=dict(monitor="val_loss"),
-            ),
-        ]
-        expected = base + [
-            f"--trainer.callbacks={str(callbacks)}",
-        ]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
-
-    cli_args = [
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_loss",
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_acc",
-    ]
-
-    with mock.patch("sys.argv", base + cli_args):
-        callbacks = [
-            dict(
-                class_path="pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-                init_args=dict(monitor="val_loss"),
-            ),
-            dict(
-                class_path="pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-                init_args=dict(monitor="val_acc"),
-            ),
-        ]
-        expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
-
-    cli_args = [
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_loss",
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_acc",
-        "--trainer.callbacks=[{'class_path': 'pytorch_lightning.callbacks.Callback'}]",
-    ]
-
-    with mock.patch("sys.argv", base + cli_args):
-        callbacks = [
-            dict(
-                class_path="pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-                init_args=dict(monitor="val_loss"),
-            ),
-            dict(
-                class_path="pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-                init_args=dict(monitor="val_acc"),
-            ),
-            dict(
-                class_path="pytorch_lightning.callbacks.Callback",
-            ),
-        ]
-        expected = base + [f"--trainer.callbacks={str(callbacks)}"]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
-
     with mock.patch("sys.argv", base + ["--optimizer", "Adadelta"]):
-        optimizer = dict(
-            class_path="torch.optim.adadelta.Adadelta",
-            init_args=dict(),
-        )
+        optimizer = dict(class_path="torch.optim.adadelta.Adadelta", init_args=dict())
         expected = base + [f"--optimizer={optimizer}"]
         TestLightningCLI(BoringModel, run=False, expected=expected)
 
     with mock.patch("sys.argv", base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]):
-        optimizer = dict(
-            class_path="torch.optim.adadelta.Adadelta",
-            init_args=dict(lr="10"),
-        )
+        optimizer = dict(class_path="torch.optim.adadelta.Adadelta", init_args=dict(lr="10"))
         expected = base + [f"--optimizer={optimizer}"]
         TestLightningCLI(BoringModel, run=False, expected=expected)
 
     with mock.patch("sys.argv", base + ["--lr_scheduler", "OneCycleLR"]):
-        lr_scheduler = dict(
-            class_path="torch.optim.lr_scheduler.OneCycleLR",
-            init_args=dict(),
-        )
+        lr_scheduler = dict(class_path="torch.optim.lr_scheduler.OneCycleLR", init_args=dict())
         expected = base + [f"--lr_scheduler={lr_scheduler}"]
         TestLightningCLI(BoringModel, run=False, expected=expected)
 
     with mock.patch("sys.argv", base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]):
-        lr_scheduler = dict(
-            class_path="torch.optim.lr_scheduler.OneCycleLR",
-            init_args=dict(anneal_strategy="linear"),
-        )
+        lr_scheduler = dict(class_path="torch.optim.lr_scheduler.OneCycleLR", init_args=dict(anneal_strategy="linear"))
         expected = base + [f"--lr_scheduler={lr_scheduler}"]
         TestLightningCLI(BoringModel, run=False, expected=expected)
 
     class MyLightningCLI(TestLightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(
-                self.registered_optimizers,
-                nested_key="optim1",
-                link_to="model.optim1",
-            )
+            parser.add_optimizer_args(self.registered_optimizers, nested_key="optim1", link_to="model.optim1")
             parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
-            parser.add_lr_scheduler_args(
-                self.registered_lr_schedulers,
-                link_to="model.scheduler",
-            )
+            parser.add_lr_scheduler_args(self.registered_lr_schedulers, link_to="model.scheduler")
 
         def parse_arguments(self, parser: LightningArgumentParser) -> None:
-            # fmt: off
-            with self._prepare_from_registry(OPTIMIZER_REGISTRY), \
-                 self._prepare_from_registry(LR_SCHEDULER_REGISTRY), \
-                 self._prepare_class_list_from_registry("--trainer.callbacks", CALLBACK_REGISTRY):
-                assert sys.argv == self.expected
-                raise Exception("Should raise")
+            argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
+            argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
+            argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
+            assert argv == self.expected
+            raise Exception("Should raise")
 
     class TestModel(BoringModel):
         def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
@@ -1021,27 +1016,24 @@ def test_argv_modifiers():
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
     cli_args = [
-        "--lr_scheduler", "OneCycleLR",
-        "--optim1", "Adam",
+        "--lr_scheduler",
+        "OneCycleLR",
+        "--optim1",
+        "Adam",
         "--optim1.lr=0.1",
-        "--optim2", "ASGD",
+        "--optim2",
+        "ASGD",
         "--lr_scheduler.anneal_strategy=linear",
-        "--something", "a", "b", "c"
+        "--something",
+        "a",
+        "b",
+        "c",
     ]
 
-    with pytest.raises(Exception, match='Should raise'), mock.patch("sys.argv", base + cli_args):
-        optim_2 = dict(
-            class_path="torch.optim.asgd.ASGD",
-            init_args=dict(),
-        )
-        optim_1 = dict(
-            class_path="torch.optim.adam.Adam",
-            init_args=dict(lr="0.1"),
-        )
-        lr_scheduler = dict(
-            class_path="torch.optim.lr_scheduler.OneCycleLR",
-            init_args=dict(anneal_strategy="linear"),
-        )
+    with pytest.raises(Exception, match="Should raise"), mock.patch("sys.argv", base + cli_args):
+        optim_2 = dict(class_path="torch.optim.asgd.ASGD", init_args=dict())
+        optim_1 = dict(class_path="torch.optim.adam.Adam", init_args=dict(lr="0.1"))
+        lr_scheduler = dict(class_path="torch.optim.lr_scheduler.OneCycleLR", init_args=dict(anneal_strategy="linear"))
         expected = base
         expected += ["--something", "a", "b", "c"]
         expected += [f"--optim2={optim_2}"]
