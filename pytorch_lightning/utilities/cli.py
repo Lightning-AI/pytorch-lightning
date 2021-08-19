@@ -17,7 +17,6 @@ import sys
 from argparse import Namespace
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from functools import partial
 from types import MethodType, ModuleType
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Type, TypedDict, Union
 from unittest import mock
@@ -645,24 +644,16 @@ class LightningCLI:
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
-        configure_optimizers = partial(
-            self.configure_optimizers, optimizer_init=optimizer_init, lr_scheduler_init=lr_scheduler_init
-        )
-        configure_optimizers.__code__ = self.model.configure_optimizers.__code__
+        def configure_optimizers(
+            self: LightningModule,
+        ) -> Union[Optimizer, Tuple[List[Optimizer], List[LRSchedulerType]]]:
+            optimizer = instantiate_class(self.parameters(), optimizer_init)
+            if not lr_scheduler_init:
+                return optimizer
+            lr_scheduler = instantiate_class(optimizer, lr_scheduler_init)
+            return [optimizer], [lr_scheduler]
 
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
-
-    @staticmethod
-    def configure_optimizers(
-        pl_module: LightningModule,
-        optimizer_init: Union[str, List[str]],
-        lr_scheduler_init: Optional[Union[str, List[str]]] = None,
-    ) -> Union[Optimizer, Tuple[List[Optimizer], List[LRSchedulerType]]]:
-        optimizer = instantiate_class(pl_module.parameters(), optimizer_init)
-        if not lr_scheduler_init:
-            return optimizer
-        lr_scheduler = instantiate_class(optimizer, lr_scheduler_init)
-        return [optimizer], [lr_scheduler]
 
     def prepare_fit_kwargs(self) -> None:
         """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
