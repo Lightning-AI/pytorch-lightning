@@ -11,17 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 import importlib
-import sys
 import platform
-from unittest import mock
-import pytest
-import torch
 import subprocess
+import sys
 from argparse import ArgumentParser
 from pathlib import Path
 from subprocess import TimeoutExpired
+from unittest import mock
+
+import pytest
+import torch
 
 from pl_examples import _DALI_AVAILABLE
 
@@ -40,7 +40,7 @@ ARGS_AMP = "--trainer.precision 16 "
 def run(tmpdir, import_cli, cli_args):
     file = Path(__file__).absolute()
     cli_args = cli_args % {"tmpdir": tmpdir}
-    # this will execute this exact same file
+    # this will execute this exact same file
     coverage = ["-m", "coverage", "run", "--source", "pytorch_lightning", "-a"]
     command = [sys.executable, *coverage, str(file), f"--import_cli={import_cli}", f"--cli_args={cli_args}"]
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -49,7 +49,7 @@ def run(tmpdir, import_cli, cli_args):
         std, err = p.communicate(timeout=60)
         print(std)
         err = str(err.decode("utf-8"))
-        if 'Exception' in err or 'Error' in err:
+        if "Exception" in err or "Error" in err:
             raise Exception(err)
     except TimeoutExpired:
         p.kill()
@@ -61,6 +61,7 @@ def run(tmpdir, import_cli, cli_args):
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
 def test_examples_dp_simple_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
