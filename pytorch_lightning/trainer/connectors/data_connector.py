@@ -77,15 +77,15 @@ class DataConnector:
 
     def _check_training_step_requires_dataloader_iter(self) -> bool:
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        contains_datalaoder_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
+        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
         use_manual_optimization = not self.trainer.lightning_module.automatic_optimization
-        if contains_datalaoder_iter and not use_manual_optimization:
+        if contains_dataloader_iter and not use_manual_optimization:
             raise MisconfigurationException(
                 "When the `training_step` has a `dataloader_idx` argument, you should set "
                 "`automatic_optimization=False` within your LightningModule. "
             )
 
-        return contains_datalaoder_iter and use_manual_optimization and self.trainer.training
+        return contains_dataloader_iter and use_manual_optimization and self.trainer.training
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
         if self._check_training_step_requires_dataloader_iter():
