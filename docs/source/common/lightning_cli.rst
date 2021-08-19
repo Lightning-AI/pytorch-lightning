@@ -4,7 +4,7 @@
     import torch
     from unittest import mock
     from typing import List
-    from pytorch_lightning import LightningModule, LightningDataModule, Trainer
+    from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
     from pytorch_lightning.utilities.cli import LightningCLI
 
     cli_fit = LightningCLI.fit
@@ -665,10 +665,79 @@ Optimizers and learning rate schedulers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Optimizers and learning rate schedulers can also be made configurable. The most common case is when a model only has a
-single optimizer and optionally a single learning rate scheduler. In this case the model's
-:class:`~pytorch_lightning.core.lightning.LightningModule` could be left without implementing the
-:code:`configure_optimizers` method since it is normally always the same and just adds boilerplate. The following code
-snippet shows how to implement it:
+single optimizer and optionally a single learning rate scheduler. In this case, the model's
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` could be left unimplemented since it is
+normally always the same and just adds boilerplate.
+
+The CLI works out-of-the-box with PyTorch's built-in optimizers and learning rate schedulers when
+at most one of each is used.
+Only the optimizer or scheduler name needs to be passed, optionally with its ``__init__`` arguments:
+
+.. code-block:: bash
+
+    $ python train.py --optimizer=Adam --optimizer.lr=0.01 --lr_scheduler=ExponentialLR --lr_scheduler.gamma=0.1
+
+A corresponding example of the config file would be:
+
+.. code-block:: yaml
+
+    optimizer:
+      class_path: torch.optim.Adam
+      init_args:
+        lr: 0.01
+    lr_scheduler:
+      class_path: torch.optim.lr_scheduler.ExponentialLR
+      init_args:
+        gamma: 0.1
+
+Furthermore, you can register your own optimizers and/or learning rate schedulers as follows:
+
+.. code-block:: python
+
+    from pytorch_lightning.utilities.cli import OPTIMIZER_REGISTRY, LR_SCHEDULER_REGISTRY
+
+
+    @OPTIMIZER_REGISTRY
+    class CustomAdam(torch.optim.Adam):
+        ...
+
+
+    @LR_SCHEDULER_REGISTRY
+    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
+        ...
+
+
+    cli = LightningCLI(...)
+
+.. code-block:: bash
+
+    $ python train.py --optimizer=CustomAdam --optimizer.lr=0.01 --lr_scheduler=CustomCosineAnnealingLR
+
+If you need to customize the key names or link arguments together, you can choose from all available optimizers and
+learning rate schedulers by accessing `self.registered_optimizers` and `self.registered_lr_schedulers` respectively.
+
+.. code-block::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_optimizer_args(
+                self.registered_optimizers,
+                nested_key="gen_optimizer",
+                link_to="model.optimizer_init",
+            )
+            parser.add_optimizer_args(
+                self.registered_optimizers,
+                nested_key="gen_discriminator",
+                link_to="model.optimizer_init",
+            )
+
+.. code-block:: bash
+
+    $ python train.py --gen_optimizer=Adam --optimizer.lr=0.01 --gen_discriminator=Adam --optimizer.lr=0.0001
+
+If you will not be changing the class, you can manually add the arguments for specific optimizers and/or
+learning rate schedulers by subclassing the CLI. This has the advantage of providing the proper help message for those
+classes. The following code snippet shows how to implement it:
 
 .. testcode::
 
@@ -684,9 +753,9 @@ snippet shows how to implement it:
 
     cli = MyLightningCLI(MyModel)
 
-With this the :code:`configure_optimizers` method is automatically implemented and in the config the :code:`optimizer`
-and :code:`lr_scheduler` groups would accept all of the options for the given classes, in this example :code:`Adam` and
-:code:`ExponentialLR`. Therefore, the config file would be structured like:
+With this, in the config the :code:`optimizer` and :code:`lr_scheduler` groups would accept all of the options for the
+given classes, in this example :code:`Adam` and :code:`ExponentialLR`.
+Therefore, the config file would be structured like:
 
 .. code-block:: yaml
 
@@ -704,37 +773,6 @@ And any of these arguments could be passed directly through command line. For ex
 .. code-block:: bash
 
     $ python train.py --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
-
-There is also the possibility of selecting among multiple classes by giving them as a tuple. For example:
-
-.. testcode::
-
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
-
-In this case in the config the :code:`optimizer` group instead of having directly init settings, it should specify
-:code:`class_path` and optionally :code:`init_args`. Sub-classes of the classes in the tuple would also be accepted.
-A corresponding example of the config file would be:
-
-.. code-block:: yaml
-
-    optimizer:
-      class_path: torch.optim.Adam
-      init_args:
-        lr: 0.01
-
-And the same through command line:
-
-.. code-block:: bash
-
-    $ python train.py --optimizer.class_path=torch.optim.Adam --optimizer.init_args.lr=0.01
-
-Optionally, the command line can be simplified for PyTorch built-in `optimizers` and `schedulers`:
-
-.. code-block:: bash
-
-    $ python train.py --optimizer=Adam --optimizer.lr=0.01
 
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
 example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
@@ -770,70 +808,11 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
 
     cli = MyLightningCLI(MyModel)
 
-For both possibilities of using :meth:`pytorch_lightning.utilities.cli.LightningArgumentParser.add_optimizer_args` with
-a single class or a tuple of classes, the value given to :code:`optimizer_init` will always be a dictionary including
-:code:`class_path` and :code:`init_args` entries. The function
-:func:`~pytorch_lightning.utilities.cli.instantiate_class` takes care of importing the class defined in
-:code:`class_path` and instantiating it using some positional arguments, in this case :code:`self.parameters()`, and the
-:code:`init_args`. Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
-
-Built in schedulers & optimizers and registering your own
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For code simplification, the CLI provides properties with PyTorch's built-in optimizers and learning rate schedulers
-already registered.
-Only the optimizer or scheduler name needs to be passed along its arguments.
-
-.. code-block:: bash
-
-    $ python train.py --optimizer=Adam --optimizer.lr=0.01 --lr_scheduler=CosineAnnealingLR
-
-If your model requires multiple optimizers, you can choose from all available optimizers and learning rate schedulers
-by accessing `self.registered_optimizers` and `self.registered_lr_schedulers` respectively.
-
-.. code-block::
-
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(
-                self.registered_optimizers,
-                nested_key="gen_optimizer",
-                link_to="model.optimizer_init",
-            )
-            parser.add_optimizer_args(
-                self.registered_optimizers,
-                nested_key="gen_discriminator",
-                link_to="model.optimizer_init",
-            )
-
-.. code-block:: bash
-
-    $ python train.py --gen_optimizer=Adam --optimizer.lr=0.01 --gen_discriminator=Adam --optimizer.lr=0.0001
-
-Furthermore, you can register your own optimizers and/or learning rate schedulers as follows:
-
-.. code-block:: python
-
-    import torch
-    from pytorch_lightning.utilities.cli import OPTIMIZER_REGISTRY, LR_SCHEDULER_REGISTRY
-    from pytorch_lightning.callbacks import Callback
-
-
-    @OPTIMIZER_REGISTRY
-    class CustomAdam(torch.optim.Adam):
-        ...
-
-
-    @LR_SCHEDULER_REGISTRY
-    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
-        ...
-
-
-    cli = LightningCLI(...)
-
-.. code-block:: bash
-
-    $ python train.py --optimizer=CustomAdam --optimizer.lr=0.01 --lr_scheduler=CustomCosineAnnealingLR
+The value given to :code:`optimizer_init` will always be a dictionary including :code:`class_path` and
+:code:`init_args` entries. The function :func:`~pytorch_lightning.utilities.cli.instantiate_class`
+takes care of importing the class defined in :code:`class_path` and instantiating it using some positional arguments,
+in this case :code:`self.parameters()`, and the :code:`init_args`.
+Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
 
 
 Notes related to reproducibility
