@@ -338,7 +338,7 @@ class InterBatchParallelismDataFetcher(DataFetcher):
         super().__init__(prefetch_batches=prefetch_batches, store_on_gpu=True)
 
         self.cuda_stream = torch.cuda.Stream()
-        self.events = []
+        self.events: List[torch.cuda.Event] = []
 
     @contextmanager
     def fetching_context(self):
@@ -416,5 +416,5 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
 
     def fetching_function(self) -> Generator:
         iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
-        while True:
+        while self.done:
             yield iterator, self.done
