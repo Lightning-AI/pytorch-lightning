@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
 from types import MethodType, ModuleType
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Type, TypedDict, Union
 from unittest import mock
 
 import torch
@@ -100,19 +100,22 @@ class _ClassInfo:
     class_init_args: List[str] = field(default_factory=lambda: [])
     class_arg_idx: Optional[int] = None
 
-    def add_class_init_args(self, args: str) -> None:
-        if args != self.class_arg:
-            self.class_init_args.append(args)
+    class _ClassConfig(TypedDict):
+        class_path: str
+        init_args: Dict[str, str]
+
+    def add_class_init_arg(self, arg: str) -> None:
+        if arg != self.class_arg:
+            self.class_init_args.append(arg)
 
     @property
-    def class_init(self) -> Dict[str, str]:
-        class_init = {"class_path": self.cls.__module__ + "." + self.cls.__name__}
+    def class_init(self) -> _ClassConfig:
         init_args = {}
         for init_arg in self.class_init_args:
             arg_path, value = init_arg.split("=")
-            init_args[arg_path.split(".")[-1]] = value
-        class_init["init_args"] = init_args
-        return class_init
+            key = arg_path.split(".")[-1]
+            init_args[key] = value
+        return self._ClassConfig(class_path=self.cls.__module__ + "." + self.cls.__name__, init_args=init_args)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -375,11 +378,11 @@ class LightningCLI:
             self.after_fit()
 
     @property
-    def registered_optimizers(self) -> Tuple[Type[Optimizer]]:
+    def registered_optimizers(self) -> Tuple[Type[Optimizer], ...]:
         return tuple(OPTIMIZER_REGISTRY.values())
 
     @property
-    def registered_lr_schedulers(self) -> Tuple[LRSchedulerType]:
+    def registered_lr_schedulers(self) -> Tuple[LRSchedulerType, ...]:
         return tuple(LR_SCHEDULER_REGISTRY.values())
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
@@ -479,7 +482,7 @@ class LightningCLI:
                 self.parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
     @contextmanager
-    def _prepare_from_registry(self, registry: _Registry):
+    def _prepare_from_registry(self, registry: _Registry) -> Generator[None, None, None]:
         """
         This context manager is used to simplify unique class instantiation.
         """
@@ -502,7 +505,7 @@ class LightningCLI:
                 for key in map_user_key_to_info:
                     if key in v:
                         skip = True
-                        map_user_key_to_info[key].add_class_init_args(v)
+                        map_user_key_to_info[key].add_class_init_arg(v)
                 if not skip:
                     argv.append(v)
 
@@ -514,7 +517,7 @@ class LightningCLI:
             yield
 
     @contextmanager
-    def _prepare_class_list_from_registry(self, pattern: str, registry: _Registry):
+    def _prepare_class_list_from_registry(self, pattern: str, registry: _Registry) -> Generator[None, None, None]:
         """
         This context manager is used to simplify instantiation of a list of class.
         """
@@ -544,7 +547,7 @@ class LightningCLI:
             for idx, v in enumerate(all_simplified_args):
                 if v in all_cls_simplified_args:
                     current_info = [info for info in infos if idx == info.class_arg_idx][0]
-                current_info.add_class_init_args(v)
+                current_info.add_class_init_arg(v)
 
             class_args = [info.class_init for info in infos]
             # add other callback arguments.
