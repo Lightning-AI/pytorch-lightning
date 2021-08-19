@@ -372,6 +372,8 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
+    __jit_unused_properties__ = ["prepare_data_per_node"]
+
     def __init__(self) -> None:
         super().__init__()
         self._prepare_data_per_node: bool = True

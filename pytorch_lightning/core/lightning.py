@@ -78,6 +78,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "loaded_optimizer_states_dict",
+            "prepare_data_per_node",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
