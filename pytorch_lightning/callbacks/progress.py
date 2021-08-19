@@ -23,10 +23,10 @@ import io
 import math
 import os
 import sys
+from typing import Optional, Union
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-from typing import Optional, Union
 
 if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
@@ -43,8 +43,31 @@ class tqdm(_tqdm):
     Custom tqdm progressbar where we append 0 to floating points/strings to prevent the progress bar from flickering
     """
 
-    @staticmethod
-    def format_num(n) -> str:
+    def __init__(self, *args, **kwargs):
+        self.using_text_io_wrapper = False
+        super().__init__(*args, **kwargs)
+
+        self.using_text_io_wrapper = hasattr(self, "fp") and isinstance(self.fp, io.TextIOWrapper)
+
+    def display(self, msg=None, pos=None):
+        if self.using_text_io_wrapper:
+            if self.n != self.total:
+                msg = " " + self.__repr__()
+                super().display(msg=msg, pos=0)
+            else:
+                super().display()
+                with open(self.fp.name) as fr:
+                    content = fr.readlines()
+                    content = [c for c in content if not c.startswith(" ")]
+                    self.fp.seek(0)
+                    self.fp.truncate()
+                    for c in content:
+                        self.fp.write(c)
+        else:
+            msg = self.__repr__()
+            super().display(msg=msg, pos=0)
+
+    def format_num(self, n) -> str:
         """Add additional padding to the formatted numbers"""
         should_be_padded = isinstance(n, (float, str))
         if not isinstance(n, str):
@@ -274,10 +297,11 @@ class ProgressBar(ProgressBarBase):
 
     """
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0, file=sys.stdout, disable: bool = False):
         super().__init__()
         self._refresh_rate = refresh_rate
         self._process_position = process_position
+        self.file = file
         self._enabled = True
         self.main_progress_bar = None
         self.val_progress_bar = None
@@ -323,7 +347,8 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self.file,
+            ascii=True,
         )
         return bar
 
@@ -336,8 +361,9 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self.file,
             smoothing=0,
+            ascii=True,
         )
         return bar
 
@@ -350,8 +376,9 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self.file,
             smoothing=0,
+            ascii=True,
         )
         return bar
 
@@ -365,7 +392,7 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self.file,
         )
         return bar
 
@@ -377,7 +404,8 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout,
+            file=self.file,
+            ascii=True,
         )
         return bar
 

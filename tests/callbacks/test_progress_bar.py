@@ -22,7 +22,7 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.progress import tqdm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -558,3 +558,29 @@ def _test_progress_bar_max_val_check_interval(
     total_val_batches = total_val_batches * val_checks_per_epoch
     if trainer.is_global_zero:
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+
+
+def test_progress_bar_redirect(tmpdir):
+
+    """
+    This test ensures the log saved to a file are being trimmed.
+    """
+
+    seed_everything(42)
+
+    class LoggingModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = super().validation_step(batch, batch_idx)
+            self.log("val_loss", loss["x"], prog_bar=True)
+            return loss
+
+    log_file = tmpdir / "tmp.log"
+
+    with open(log_file, "w") as fw:
+        trainer = Trainer(max_epochs=4, callbacks=ProgressBar(file=fw, disable=True))
+        trainer.fit(LoggingModel())
+
+    with open(log_file) as fr:
+        contents = fr.readlines()
+        assert len(contents) == 22
+        assert abs(sum(len(c) for c in contents) - 1025) < 10
