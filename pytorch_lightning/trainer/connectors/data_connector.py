@@ -83,7 +83,7 @@ class DataConnector:
         lightning_module = self.trainer.lightning_module
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if self.trainer.datamodule is not None and (not datamodule.has_prepared_data):
+        if datamodule is not None and not datamodule.has_prepared_data:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             if (self.trainer.prepare_data_per_node is not None) and (
                 datamodule.prepare_data_per_node != self.trainer.prepare_data_per_node
@@ -98,8 +98,8 @@ class DataConnector:
                 self.trainer.datamodule.prepare_data()
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
-        if self.trainer.lightning_module is not None:
-            lm_prepare_data_per_node = lightning_module._prepare_data_per_node
+        if lightning_module is not None:
+            lm_prepare_data_per_node = lightning_module.prepare_data_per_node
             if (self.trainer.prepare_data_per_node is not None) and (
                 lightning_module.prepare_data_per_node != self.trainer.prepare_data_per_node
             ):
@@ -110,7 +110,7 @@ class DataConnector:
                     f"Move `prepare_data_per_node` setting to LightningModule property"
                 )
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
-                self.trainer.lightning_module.prepare_data()
+                lightning_module.prepare_data()
                 self.trainer._is_data_prepared = True
 
     def attach_data(
