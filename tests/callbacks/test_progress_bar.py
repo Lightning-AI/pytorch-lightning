@@ -577,10 +577,10 @@ def test_progress_bar_redirect(tmpdir):
     log_file = tmpdir / "tmp.log"
 
     with open(log_file, "w") as fw:
-        trainer = Trainer(max_epochs=4, callbacks=ProgressBar(file=fw, disable=True))
+        trainer = Trainer(max_epochs=4, callbacks=ProgressBar(file=fw))
         trainer.fit(LoggingModel())
 
     with open(log_file) as fr:
         contents = fr.readlines()
-        assert len(contents) == 22
-        assert abs(sum(len(c) for c in contents) - 1025) < 10
+        assert len(contents) == 10
+        assert abs(sum(len(c) for c in contents) - 808) < 10

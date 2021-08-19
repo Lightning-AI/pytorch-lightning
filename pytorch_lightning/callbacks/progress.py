@@ -27,7 +27,6 @@ from typing import Optional, Union
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-
 if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
 else:
@@ -57,12 +56,17 @@ class tqdm(_tqdm):
             else:
                 super().display()
                 with open(self.fp.name) as fr:
-                    content = fr.readlines()
-                    content = [c for c in content if not c.startswith(" ")]
+                    lines = fr.readlines()
+                    lines = [
+                        line
+                        for line in lines
+                        if (not line.startswith(" ") and line != "\n" and "0it " not in line and "-1it " not in line)
+                    ]
                     self.fp.seek(0)
                     self.fp.truncate()
-                    for c in content:
-                        self.fp.write(c)
+                    for line in lines:
+                        line = line.replace("[A", "")
+                        self.fp.write(line)
         else:
             msg = self.__repr__()
             super().display(msg=msg, pos=0)
@@ -297,7 +301,7 @@ class ProgressBar(ProgressBarBase):
 
     """
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0, file=sys.stdout, disable: bool = False):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0, file=sys.stdout):
         super().__init__()
         self._refresh_rate = refresh_rate
         self._process_position = process_position
