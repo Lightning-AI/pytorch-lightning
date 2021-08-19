@@ -100,6 +100,8 @@ class _ClassInfo:
     class_arg_idx: Optional[int] = None
 
     class _ClassConfig(TypedDict):
+        """Defines the config structure that ``jsonargparse`` uses for instantiation"""
+
         class_path: str
         init_args: Dict[str, str]
 
@@ -388,12 +390,13 @@ class LightningCLI:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def _sanitize_registry_argv(self) -> None:
-        """This function is used to replace space within `sys.argv` with its equal sign counter-part."""
+    @staticmethod
+    def _sanitize_argv(optimizers_and_lr_schedulers: List[str]) -> None:
+        """This function is used to replace ``<space>`` in ``sys.argv`` with ``=``."""
 
         def validate_arg(v: str) -> bool:
             keys = {"--optimizer", "--lr_scheduler", "--trainer.callbacks"}
-            keys.update({f"--{key}" for key in self.parser.optimizers_and_lr_schedulers.keys()})
+            keys.update({f"--{key}" for key in optimizers_and_lr_schedulers})
             return any(v.startswith(k) for k in keys)
 
         args = [idx for idx, v in enumerate(sys.argv) if validate_arg(v)]
@@ -459,8 +462,7 @@ class LightningCLI:
     def link_optimizers_and_lr_schedulers(self) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
 
-        # sanetize registry arguments
-        self._sanitize_registry_argv()
+        self._sanitize_argv(list(self.parser.optimizers_and_lr_schedulers))
 
         if self._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
             if "optimizer" not in self.parser.groups:
