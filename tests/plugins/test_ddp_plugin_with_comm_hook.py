@@ -128,12 +128,11 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         sync_batchnorm=True,
     )
     trainer = Trainer(
-        max_epochs=1,
+        fast_dev_run=True,
         gpus=2,
         plugins=[training_type_plugin],
         default_root_dir=tmpdir,
         sync_batchnorm=True,
-        fast_dev_run=True,
     )
     trainer.fit(model)
     trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
