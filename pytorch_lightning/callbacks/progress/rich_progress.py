@@ -55,7 +55,7 @@ if _RICH_AVAILABLE:
             super().__init__()
 
         def render(self, task) -> Text:
-            if self._trainer.sanity_checking:
+            if self._stage != "fit" or self._trainer.sanity_checking:
                 return ""
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
@@ -81,7 +81,7 @@ STYLES: Dict[str, str] = {
 
 
 class RichProgressBar(ProgressBarBase):
-    def __init__(self, refresh_rate: int = 1):
+    def __init__(self, refresh_rate: float = 1.0):
         if not _RICH_AVAILABLE:
             raise MisconfigurationException(
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install rich`."
