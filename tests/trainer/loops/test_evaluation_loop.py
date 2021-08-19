@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
-import torch
 import sys
-from torch.utils.data import DataLoader
-import pytest
 from collections import Collection
 from functools import partial
-from pytorch_lightning import Trainer, seed_everything
+from unittest import mock
+
+import pytest
+import torch
+from torch.utils.data import DataLoader
+
+from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 @mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop.on_evaluation_epoch_end")
@@ -63,6 +65,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
 
     assert order == ["log_epoch_metrics", "on_validation_end"]
 
+
 @RunIf(min_gpus=1)
 def test_memory_consumption_validation(tmpdir):
     """Test that the training batch is no longer in GPU memory when running validation"""
@@ -72,7 +75,6 @@ def test_memory_consumption_validation(tmpdir):
     initial_memory = torch.cuda.memory_allocated(0)
 
     class BoringLargeBatchModel(BoringModel):
-
         def __init__(self):
             super().__init__()
 
@@ -97,7 +99,7 @@ def test_memory_consumption_validation(tmpdir):
             assert current - initial_memory < upper
             return super().training_step(batch, batch_idx)
 
-        def validation_step(self, batch, batch_idx, dataloader_idx = None):
+        def validation_step(self, batch, batch_idx, dataloader_idx=None):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
             lower = 101 * self.num_params * 4
             upper = 201 * self.num_params * 4
@@ -112,8 +114,12 @@ def test_memory_consumption_validation(tmpdir):
 
     torch.cuda.empty_cache()
     trainer = Trainer(
-        gpus=1, default_root_dir=tmpdir, fast_dev_run=20, move_metrics_to_cpu=True, weights_summary=None, logger=None, progress_bar_refresh_rate=0
+        gpus=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=20,
+        move_metrics_to_cpu=True,
+        weights_summary=None,
+        logger=None,
+        progress_bar_refresh_rate=0,
     )
     trainer.fit(BoringLargeBatchModel())
-
-
