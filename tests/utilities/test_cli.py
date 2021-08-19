@@ -956,57 +956,53 @@ def test_argv_transformation_multiple_callbacks_with_config():
     assert argv == expected
 
 
-def test_argv_modifiers():
-    """
-    This test validates ``sys.argv`` from `LightningCLI` are properly transforming the command line.
-    """
-
+def test_argv_transformations_with_optimizers_and_lr_schedulers():
     class TestLightningCLI(LightningCLI):
-        def __init__(self, *args, expected=None, **kwargs):
+        def __init__(self, expected, *args):
             self.expected = expected
-            super().__init__(*args, **kwargs)
+            super().__init__(*args, run=False)
 
-        def parse_arguments(self, parser: LightningArgumentParser) -> None:
+        def before_instantiate_classes(self):
             argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
             argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
             argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
             assert argv == self.expected
-            super().parse_arguments(parser)
 
     base = ["any.py", "--trainer.max_epochs=1"]
 
-    with mock.patch("sys.argv", base + ["--optimizer", "Adadelta"]):
-        optimizer = dict(class_path="torch.optim.adadelta.Adadelta", init_args=dict())
-        expected = base + [f"--optimizer={optimizer}"]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
+    input = base + ["--optimizer", "Adadelta"]
+    optimizer = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}}
+    expected = base + [f"--optimizer={optimizer}"]
+    with mock.patch("sys.argv", input):
+        TestLightningCLI(expected, BoringModel)
 
-    with mock.patch("sys.argv", base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]):
-        optimizer = dict(class_path="torch.optim.adadelta.Adadelta", init_args=dict(lr="10"))
-        expected = base + [f"--optimizer={optimizer}"]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
+    input = base + ["--optimizer", "Adadelta", "--optimizer.lr", "10"]
+    optimizer = {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}}
+    expected = base + [f"--optimizer={optimizer}"]
+    with mock.patch("sys.argv", input):
+        TestLightningCLI(expected, BoringModel)
 
-    with mock.patch("sys.argv", base + ["--lr_scheduler", "OneCycleLR"]):
-        lr_scheduler = dict(class_path="torch.optim.lr_scheduler.OneCycleLR", init_args=dict())
-        expected = base + [f"--lr_scheduler={lr_scheduler}"]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
+    input = base + ["--lr_scheduler", "OneCycleLR"]
+    lr_scheduler = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}}
+    expected = base + [f"--lr_scheduler={lr_scheduler}"]
+    with mock.patch("sys.argv", input):
+        TestLightningCLI(expected, BoringModel)
 
-    with mock.patch("sys.argv", base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]):
-        lr_scheduler = dict(class_path="torch.optim.lr_scheduler.OneCycleLR", init_args=dict(anneal_strategy="linear"))
-        expected = base + [f"--lr_scheduler={lr_scheduler}"]
-        TestLightningCLI(BoringModel, run=False, expected=expected)
+    input = base + ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"]
+    lr_scheduler = {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}}
+    expected = base + [f"--lr_scheduler={lr_scheduler}"]
+    with mock.patch("sys.argv", input):
+        TestLightningCLI(expected, BoringModel)
 
-    class MyLightningCLI(TestLightningCLI):
+    class TestLightningCLI2(TestLightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(self.registered_optimizers, nested_key="optim1", link_to="model.optim1")
             parser.add_optimizer_args((torch.optim.ASGD, torch.optim.SGD), nested_key="optim2", link_to="model.optim2")
             parser.add_lr_scheduler_args(self.registered_lr_schedulers, link_to="model.scheduler")
+            parser.add_argument("--something", type=str, nargs="+")
 
-        def parse_arguments(self, parser: LightningArgumentParser) -> None:
-            argv = self._prepare_from_registry(sys.argv, OPTIMIZER_REGISTRY)
-            argv = self._prepare_from_registry(argv, LR_SCHEDULER_REGISTRY)
-            argv = self._prepare_class_list_from_registry(argv, "--trainer.callbacks", CALLBACK_REGISTRY)
-            assert argv == self.expected
-            raise Exception("Should raise")
+        def instantiate_classes(self):
+            pass
 
     class TestModel(BoringModel):
         def __init__(self, optim1: dict, optim2: dict, scheduler: dict):
@@ -1015,12 +1011,13 @@ def test_argv_modifiers():
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
-    cli_args = [
+    input = base + [
         "--lr_scheduler",
         "OneCycleLR",
+        "--lr_scheduler.total_steps=10",
         "--optim1",
         "Adam",
-        "--optim1.lr=0.1",
+        "--optim2.lr=0.1",
         "--optim2",
         "ASGD",
         "--lr_scheduler.anneal_strategy=linear",
@@ -1029,14 +1026,20 @@ def test_argv_modifiers():
         "b",
         "c",
     ]
-
-    with pytest.raises(Exception, match="Should raise"), mock.patch("sys.argv", base + cli_args):
-        optim_2 = dict(class_path="torch.optim.asgd.ASGD", init_args=dict())
-        optim_1 = dict(class_path="torch.optim.adam.Adam", init_args=dict(lr="0.1"))
-        lr_scheduler = dict(class_path="torch.optim.lr_scheduler.OneCycleLR", init_args=dict(anneal_strategy="linear"))
-        expected = base
-        expected += ["--something", "a", "b", "c"]
-        expected += [f"--optim2={optim_2}"]
-        expected += [f"--optim1={optim_1}"]
-        expected += [f"--lr_scheduler={lr_scheduler}"]
-        MyLightningCLI(TestModel, run=False, expected=expected)
+    optim_1 = {"class_path": "torch.optim.adam.Adam", "init_args": {}}
+    optim_2 = {"class_path": "torch.optim.asgd.ASGD", "init_args": {"lr": "0.1"}}
+    lr_scheduler = {
+        "class_path": "torch.optim.lr_scheduler.OneCycleLR",
+        "init_args": {"total_steps": "10", "anneal_strategy": "linear"},
+    }
+    expected = base + [
+        "--something",
+        "a",
+        "b",
+        "c",
+        f"--optim2={optim_2}",
+        f"--optim1={optim_1}",
+        f"--lr_scheduler={lr_scheduler}",
+    ]
+    with mock.patch("sys.argv", input):
+        TestLightningCLI2(expected, TestModel)
