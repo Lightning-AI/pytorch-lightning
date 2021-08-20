@@ -99,6 +99,7 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
 
     def get_arg_and_value(*args, **_):
         return args[0]
+
     call_list = [get_arg_and_value(*cal[0], **cal[1]) for cal in mocked.call_args_list]
 
     for key in keys:
