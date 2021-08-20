@@ -14,7 +14,7 @@
 import logging
 from collections import OrderedDict
 from copy import copy
-from typing import Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import torch
 
@@ -29,6 +29,7 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
 
@@ -113,6 +114,29 @@ class IteratorBatchProcessor:
         """
         return list(enumerate(self.trainer.optimizers))
 
+    def _build_kwargs(self, dataloader_iter: Iterator, batch_idx: int) -> Dict[str, Any]:
+        """Builds the keyword arguments for training_step
+
+        Args:
+            batch: the batch to train on
+            batch_idx: the index of the current batch
+            opt_idx: the index of the current optimizer
+            hiddens: the hidden state of the previous RNN iteration
+
+        Returns:
+            the keyword arguments for the training step
+        """
+        # enable not needing to add opt_idx to training_step
+        step_kwargs = OrderedDict({"dataloader_iter": dataloader_iter})
+
+        lightning_module = self.trainer.lightning_module
+
+        training_step_fx = getattr(lightning_module, "training_step")
+        if is_param_in_hook_signature(training_step_fx, "batch_idx"):
+            step_kwargs["batch_idx"] = batch_idx
+
+        return step_kwargs
+
     def run(self, dataloader_iter: Iterator) -> Optional[AttributeDict]:
         """
         Args:
@@ -138,7 +162,7 @@ class IteratorBatchProcessor:
             # manually capture logged metrics
             model._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
-                step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter), ("batch_idx", batch_idx)])
+                step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
@@ -152,7 +176,8 @@ class IteratorBatchProcessor:
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
-        batch_outputs[0].append(copy(training_step_output))
+        if training_step_output:
+            batch_outputs[0].append(copy(training_step_output))
         return AttributeDict(signal=0, training_step_output=batch_outputs, is_last=is_last)
 
     def teardown(self) -> None:
