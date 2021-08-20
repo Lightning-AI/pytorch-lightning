@@ -89,17 +89,22 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
         callbacks=[gpu_stats],
         logger=logger,
     )
-
-    trainer.fit(model)
+    with mock.patch.object(CSVLogger, "log_metrics", wraps=trainer.logger.log_metrics) as mocked:
+        trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
-    met_data = np.genfromtxt(path_csv, delimiter=",", names=True, deletechars="", replace_space=" ")
+    keys = ["batch_time/intra_step (ms)", "batch_time/inter_step (ms)"]
 
-    for key in ["batch_time/intra_step (ms)", "batch_time/inter_step (ms)"]:
-        batch_time_data = met_data[key]
-        batch_time_data = batch_time_data[~np.isnan(batch_time_data)]
-        assert batch_time_data.shape[0] == trainer.global_step // log_every_n_steps
+    assert mocked.call_count == len(keys) * trainer.global_step // log_every_n_steps
+
+    def get_arg_and_value(*args, **_):
+        return args[0]
+    call_list = [get_arg_and_value(*cal[0], **cal[1]) for cal in mocked.call_args_list]
+
+    for key in keys:
+        list_key = [cal for cal in call_list if key in cal]
+        assert len(list_key) == trainer.global_step // log_every_n_steps
+        assert ~np.isnan([le[key] for le in list_key]).any()
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
