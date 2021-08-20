@@ -66,7 +66,7 @@ def test_gpu_stats_monitor(tmpdir):
 @RunIf(min_gpus=1)
 def test_gpu_stats_monitor_no_queries(tmpdir):
     """
-    Test GPU stats are logged using a logger.
+    Test GPU logger doesn't fail if no "nvidia-smi" queries are to be performed.
     """
     model = BoringModel()
     gpu_stats = GPUStatsMonitor(
