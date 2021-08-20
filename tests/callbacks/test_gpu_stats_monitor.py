@@ -93,6 +93,14 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
+    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    met_data = np.genfromtxt(path_csv, delimiter=",", names=True, deletechars="", replace_space=" ")
+
+    for key in ["batch_time/intra_step (ms)", "batch_time/inter_step (ms)"]:
+        batch_time_data = met_data[key]
+        batch_time_data = batch_time_data[~np.isnan(batch_time_data)]
+        assert batch_time_data.shape[0] == trainer.global_step // log_every_n_steps
+
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
