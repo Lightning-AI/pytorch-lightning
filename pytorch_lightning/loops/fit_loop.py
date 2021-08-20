@@ -258,12 +258,17 @@ class FitLoop(Loop):
             and n_epochs != trainer_reload_dataloaders_every_n_epochs
         ):
             raise MisconfigurationException(
-                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with both."
-                f"`Trainer(reload_dataloaders_every_n_epochs={self.trainer.prepare_data_per_node}.)`"
-                f" and `DataModule.Value was set with both ={datamodule.prepare_data_per_node}`."
-                " Move `Value was set with both ` setting to DataModule or LightningModule property."
+                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
+                f"`Trainer(reload_dataloaders_every_n_epochs={trainer_reload_dataloaders_every_n_epochs}.)`"
+                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
+                " Move `reload_dataloaders_every_n_epochs` setting to"
+                " DataModule or LightningModule property."
             )
         if n_epochs is None:
-            n_epochs = 0
+            n_epochs = (
+                trainer_reload_dataloaders_every_n_epochs
+                if trainer_reload_dataloaders_every_n_epochs is not None
+                else 0
+            )
 
         return n_epochs and (not current_epoch % n_epochs)
