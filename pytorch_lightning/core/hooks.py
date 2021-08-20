@@ -413,7 +413,7 @@ class DataHooks:
 
         Note:
             Setting ``prepare_data_per_node`` with the trainer flag is deprecated and will be removed in v1.7.0.
-            Please set `prepare_data_per_node` in LightningDataModule or LightningModule directly instead.
+            Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
         This is called before requesting the dataloaders:
 
