@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 from collections import OrderedDict
-from copy import copy
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import torch
@@ -166,7 +165,7 @@ class IteratorBatchProcessor:
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
         if training_step_output:
-            batch_outputs[0].append(copy(training_step_output))
+            batch_outputs[0].append(training_step_output)
         return AttributeDict(signal=0, training_step_output=batch_outputs, is_last=is_last)
 
     def teardown(self) -> None:
