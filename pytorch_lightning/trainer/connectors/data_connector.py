@@ -56,9 +56,9 @@ class DataConnector:
     def on_trainer_init(
         self,
         check_val_every_n_epoch: int,
-        reload_dataloaders_every_n_epochs: int,
         reload_dataloaders_every_epoch: bool,
-        prepare_data_per_node: Optional[bool] = None,
+        prepare_data_per_node: bool,
+        reload_dataloaders_every_n_epochs: Optional[int] = None,
     ) -> None:
         self.trainer.datamodule = None
 
@@ -75,6 +75,15 @@ class DataConnector:
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
+
+        if reload_dataloaders_every_n_epochs is None:
+            reload_dataloaders_every_n_epochs = 0
+        else:
+            rank_zero_deprecation(
+                "Setting `reload_dataloaders_every_n_epochs` with the trainer flag is deprecated "
+                "and will be removed in v1.7.0! Please set `reload_dataloaders_every_n_epochs` "
+                "in LightningDataModule or LightningModule directly instead. "
+            )
 
         if reload_dataloaders_every_epoch:
             reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)

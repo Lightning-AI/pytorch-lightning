@@ -373,15 +373,9 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
-    def __init__(self) -> None:
-        """
-        Attributes:
-            prepare_data_per_node:
-                If True, each LOCAL_RANK=0 will call prepare data.
-                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
-        """
+    def __init__(self):
         super().__init__()
-        self.prepare_data_per_node: bool = True
+        self.reload_dataloaders_every_n_epochs: int = 0
 
     def prepare_data(self) -> None:
         """
