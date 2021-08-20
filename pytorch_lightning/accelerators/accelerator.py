@@ -25,7 +25,7 @@ from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -428,32 +428,6 @@ class Accelerator:
         """
         with self.training_type_plugin.model_sharded_context():
             yield
-
-    # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: "pl.LightningModule") -> None:
-        """
-        Attaches the training type plugin to the accelerator.
-        Also transfers ownership of the model to this plugin
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_warn(
-            "Accelerator method `connect_training_type_plugin` was deprecated in v1.3. It will be removed in v1.5."
-        )
-        self.setup_training_type_plugin()
-
-    # todo: remove in v1.5
-    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
-        """Attaches the precision plugin to the accelerator
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_warn(
-            "Accelerator method `connect_precision_plugin` was deprecated in v1.3. It will be removed in v1.5."
-        )
-        self.setup_precision_plugin()
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
