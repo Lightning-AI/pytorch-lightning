@@ -371,9 +371,6 @@ class Accelerator:
         """
         return self.training_type_plugin.lightning_module_state_dict()
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
-        return self.training_type_plugin.on_save(checkpoint)
-
     def barrier(self, name: Optional[str] = None) -> None:
         self.training_type_plugin.barrier(name=name)
 
