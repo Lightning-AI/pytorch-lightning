@@ -69,12 +69,14 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
     Test GPU stats are logged using a logger.
     """
     model = BoringModel()
-    gpu_stats = GPUStatsMonitor(memory_utilization=False,
-                                gpu_utilization=False,
-                                intra_step_time=True,
-                                inter_step_time=True,
-                                fan_speed=False,
-                                temperature=False,)
+    gpu_stats = GPUStatsMonitor(
+        memory_utilization=False,
+        gpu_utilization=False,
+        intra_step_time=True,
+        inter_step_time=True,
+        fan_speed=False,
+        temperature=False,
+    )
     logger = CSVLogger(tmpdir)
     log_every_n_steps = 2
 
