@@ -86,7 +86,7 @@ class DataConnector:
         if datamodule is not None and not datamodule.has_prepared_data:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
-            if (self.trainer.prepare_data_per_node is not None) and not dm_eq_prepare_data:
+            if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:
                 raise MisconfigurationException(
                     "Inconsistent settings found for `prepare_data_per_node`."
                     f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
