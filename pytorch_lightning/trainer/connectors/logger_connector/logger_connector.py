@@ -224,9 +224,12 @@ class LoggerConnector:
 
     def _log_gpus_metrics(self):
         for key, mem in self.gpus_metrics.items():
-            gpu_id = int(key.split("/")[0].split(":")[1])
-            if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
-                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
+            if self.log_gpu_memory == 'min_max':
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
+            else:
+                gpu_id = int(key.split("/")[0].split(":")[1])
+                if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                    self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
     """
     Utilities and properties

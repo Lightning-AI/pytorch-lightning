@@ -645,7 +645,8 @@ def test_sanity_metrics_are_reset(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_log_gpu_memory_without_logging_on_step(tmpdir):
+@pytest.mark.parametrize("log_gpu_memory", ["all", "min_max"])
+def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
 
     model = BoringModel()
     trainer = Trainer(
@@ -653,7 +654,7 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir):
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=0,
-        log_gpu_memory="all",
+        log_gpu_memory=log_gpu_memory,
         log_every_n_steps=1,
         gpus=[1],
     )
