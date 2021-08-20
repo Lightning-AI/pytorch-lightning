@@ -83,9 +83,9 @@ seriously.
 
 For API removal, renaming or other forms of backward-incompatible changes, the procedure is:
 
-1. A deprecation process is initiated at version X, producing warning messages at runtime and in the documentation.
-2. Calls to the deprecated API remain unchanged in their function during the deprecation phase.
-3. Two minor versions in the future at version X+2 the feature/API gets removed.
+#. A deprecation process is initiated at version X, producing warning messages at runtime and in the documentation.
+#. Calls to the deprecated API remain unchanged in their function during the deprecation phase.
+#. Two minor versions in the future at version X+2 the feature/API gets removed.
 
 New API and features are declared as
 
