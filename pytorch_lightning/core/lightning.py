@@ -402,9 +402,22 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+        if self.trainer is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
+                " This is most likely because the model hasn't been passed to the `Trainer`"
+            )
         results = self.trainer._results
-        assert results is not None
-        assert self._current_fx_name is not None
+        if results is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                " yet. This is most likely because you are trying to log in a `predict` hook,"
+                " but it doesn't support logging"
+            )
+        if self._current_fx_name is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
+            )
         FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
