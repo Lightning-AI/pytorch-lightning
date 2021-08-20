@@ -115,8 +115,6 @@ class IteratorBatchProcessor:
         Args:
             batch: the batch to train on
             batch_idx: the index of the current batch
-            opt_idx: the index of the current optimizer
-            hiddens: the hidden state of the previous RNN iteration
 
         Returns:
             the keyword arguments for the training step
