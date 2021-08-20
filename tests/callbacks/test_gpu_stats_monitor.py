@@ -83,7 +83,7 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        limit_train_batches=7,
+        limit_train_batches=2,
         log_every_n_steps=log_every_n_steps,
         gpus=1,
         callbacks=[gpu_stats],
