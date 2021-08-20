@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
-from typing import Dict
+from typing import Dict, Optional
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
@@ -87,15 +87,15 @@ class RichProgressBar(ProgressBarBase):
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install rich`."
             )
         super().__init__()
-        self._refresh_rate = refresh_rate
-        self._enabled = True
-        self._total_val_batches = 0
-        self.progress = None
-        self.val_sanity_progress_bar = None
-        self.main_progress_bar = None
-        self.val_progress_bar = None
-        self.test_progress_bar = None
-        self.predict_progress_bar = None
+        self._refresh_rate: float = refresh_rate
+        self._enabled: bool = True
+        self._total_val_batches: int = 0
+        self.progress: Progress = None
+        self.val_sanity_progress_bar_id: Optional[int] = None
+        self.main_progress_bar_id: Optional[int] = None
+        self.val_progress_bar_id: Optional[int] = None
+        self.test_progress_bar_id: Optional[int] = None
+        self.predict_progress_bar_id: Optional[int] = None
         self.console = Console(record=True)
 
     @property
@@ -149,14 +149,14 @@ class RichProgressBar(ProgressBarBase):
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
-        self.val_sanity_progress_bar = self.progress.add_task(
+        self.val_sanity_progress_bar_id = self.progress.add_task(
             f"[{STYLES['sanity_check']}]{self.sanity_check_description}",
             total=trainer.num_sanity_val_steps,
         )
 
     def on_sanity_check_end(self, trainer, pl_module):
         super().on_sanity_check_end(trainer, pl_module)
-        self.progress.update(self.val_sanity_progress_bar, visible=False)
+        self.progress.update(self.val_sanity_progress_bar_id, visible=False)
 
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
@@ -171,7 +171,7 @@ class RichProgressBar(ProgressBarBase):
 
         train_description = self._get_train_description(trainer.current_epoch)
 
-        self.main_progress_bar = self.progress.add_task(
+        self.main_progress_bar_id = self.progress.add_task(
             f"[{STYLES['train']}]{train_description}",
             total=total_batches,
         )
@@ -179,26 +179,26 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_epoch_start(self, trainer, pl_module):
         super().on_validation_epoch_start(trainer, pl_module)
         if self._total_val_batches > 0:
-            self.val_progress_bar = self.progress.add_task(
+            self.val_progress_bar_id = self.progress.add_task(
                 f"[{STYLES['validate']}]{self.validation_description}",
                 total=self._total_val_batches,
             )
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
-        if self.val_progress_bar is not None:
-            self.progress.update(self.val_progress_bar, visible=False)
+        if self.val_progress_bar_id is not None:
+            self.progress.update(self.val_progress_bar_id, visible=False)
 
     def on_test_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
-        self.test_progress_bar = self.progress.add_task(
+        self.test_progress_bar_id = self.progress.add_task(
             f"[{STYLES['test']}]{self.test_description}",
             total=self.total_test_batches,
         )
 
     def on_predict_epoch_start(self, trainer, pl_module):
         super().on_predict_epoch_start(trainer, pl_module)
-        self.predict_progress_bar = self.progress.add_task(
+        self.predict_progress_bar_id = self.progress.add_task(
             f"[{STYLES['predict']}]{self.predict_description}",
             total=self.total_predict_batches,
         )
@@ -206,29 +206,29 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
-            self.progress.update(self.main_progress_bar, advance=1.0)
+            self.progress.update(self.main_progress_bar_id, advance=1.0)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if trainer.sanity_checking:
-            self.progress.update(self.val_sanity_progress_bar, advance=1.0)
-        elif self.val_progress_bar and self._should_update(
+            self.progress.update(self.val_sanity_progress_bar_id, advance=1.0)
+        elif self.val_progress_bar_id and self._should_update(
             self.val_batch_idx, self.total_train_batches + self.total_val_batches
         ):
-            self.progress.update(self.main_progress_bar, advance=1.0)
-            self.progress.update(self.val_progress_bar, advance=1.0)
+            self.progress.update(self.main_progress_bar_id, advance=1.0)
+            self.progress.update(self.val_progress_bar_id, advance=1.0)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.test_batch_idx, self.total_test_batches):
-            self.progress.update(self.test_progress_bar, advance=1.0)
+            self.progress.update(self.test_progress_bar_id, advance=1.0)
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.predict_batch_idx, self.total_predict_batches):
-            self.progress.update(self.predict_progress_bar, advance=1.0)
+            self.progress.update(self.predict_progress_bar_id, advance=1.0)
 
-    def _should_update(self, current, total):
+    def _should_update(self, current, total) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def _get_train_description(self, current_epoch: int) -> str:
