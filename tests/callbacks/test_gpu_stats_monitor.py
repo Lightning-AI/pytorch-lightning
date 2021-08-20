@@ -63,6 +63,35 @@ def test_gpu_stats_monitor(tmpdir):
         assert any(f in h for h in met_data.dtype.names)
 
 
+@RunIf(min_gpus=1)
+def test_gpu_stats_monitor_no_queries(tmpdir):
+    """
+    Test GPU stats are logged using a logger.
+    """
+    model = BoringModel()
+    gpu_stats = GPUStatsMonitor(memory_utilization=False,
+                                gpu_utilization=False,
+                                intra_step_time=True,
+                                inter_step_time=True,
+                                fan_speed=False,
+                                temperature=False,)
+    logger = CSVLogger(tmpdir)
+    log_every_n_steps = 2
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=7,
+        log_every_n_steps=log_every_n_steps,
+        gpus=1,
+        callbacks=[gpu_stats],
+        logger=logger,
+    )
+
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """

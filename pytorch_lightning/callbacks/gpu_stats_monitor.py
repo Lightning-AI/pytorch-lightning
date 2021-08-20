@@ -187,6 +187,9 @@ class GPUStatsMonitor(Callback):
         return [cuda_visible_devices[device_id].strip() for device_id in device_ids]
 
     def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
+        if len(queries) == 0:
+            return []
+
         """Run nvidia-smi to get the gpu stats"""
         gpu_query = ",".join(queries)
         format = "csv,nounits,noheader"
