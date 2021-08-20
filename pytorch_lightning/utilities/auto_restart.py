@@ -174,12 +174,12 @@ class MergedIteratorState:
 
     @property
     def sampler_states(self) -> Dict[int, Any]:
-        # TODO: add docs
-        # TODO: double check the index here:
+        """Returns the merged sampler states for all worker processes."""
         return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
 
     @property
     def dataset_states(self) -> Dict[int, Any]:
+        """Returns the merged dataset states for all worker processes."""
         return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
 
     @classmethod
