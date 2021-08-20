@@ -162,7 +162,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Reloads dataloaders if necessary"""
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
-        elif self.trainer.val_dataloaders is None or self._should_reload_train_dl_epoch():
+        elif self.trainer.val_dataloaders is None or self._should_reload_val_dl_epoch():
             self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
@@ -251,7 +251,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _should_reload_train_dl_epoch(self) -> bool:
+    def _should_reload_val_dl_epoch(self) -> bool:
         """Check if val dataloader should be reloaded in the current epoch."""
         current_epoch = self.epoch_loop.batch_progress.current.completed
         lightning_module = self.trainer.lightning_module
