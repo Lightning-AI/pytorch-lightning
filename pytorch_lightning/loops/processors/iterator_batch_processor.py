@@ -135,10 +135,6 @@ class IteratorBatchProcessor:
         Args:
             dataloader_iter: the iterator over the dataloader producing the new batch
         """
-        # dataloader_iter = itertools.starmap(
-        #    lambda batch_idx, batch_with_is_last: batch_with_is_last[0], dataloader_iter
-        # )
-
         _, (dataloader_iter, batch_idx, is_last) = next(dataloader_iter)
 
         self.trainer.logger_connector.on_batch_start()
