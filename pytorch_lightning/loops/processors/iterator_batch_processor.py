@@ -75,11 +75,6 @@ class IteratorBatchProcessor:
                 "The model hook `tbptt_split_batch` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        # if model.automatic_optimization:
-        #    raise MisconfigurationException(
-        #        "`automatic_optimization` is not compatible with "
-        #        "taking a `dataloader_iter` argument in your `training_step`."
-        #    )
         if trainer.accumulate_grad_batches != 1:
             raise MisconfigurationException(
                 "`accumulate_grad_batches` can only be 1 when your "
