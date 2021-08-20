@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
 import logging
 from collections import OrderedDict
 from copy import copy
@@ -75,11 +74,11 @@ class IteratorBatchProcessor:
                 "The model hook `tbptt_split_batch` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        if model.automatic_optimization:
-            raise MisconfigurationException(
-                "`automatic_optimization` is not compatible with "
-                "taking a `dataloader_iter` argument in your `training_step`."
-            )
+        # if model.automatic_optimization:
+        #    raise MisconfigurationException(
+        #        "`automatic_optimization` is not compatible with "
+        #        "taking a `dataloader_iter` argument in your `training_step`."
+        #    )
         if trainer.accumulate_grad_batches != 1:
             raise MisconfigurationException(
                 "`accumulate_grad_batches` can only be 1 when your "
@@ -119,9 +118,11 @@ class IteratorBatchProcessor:
         Args:
             dataloader_iter: the iterator over the dataloader producing the new batch
         """
-        dataloader_iter = itertools.starmap(
-            lambda batch_idx, batch_with_is_last: batch_with_is_last[0], dataloader_iter
-        )
+        # dataloader_iter = itertools.starmap(
+        #    lambda batch_idx, batch_with_is_last: batch_with_is_last[0], dataloader_iter
+        # )
+
+        _, (dataloader_iter, batch_idx, is_last) = next(dataloader_iter)
 
         self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")
@@ -137,19 +138,13 @@ class IteratorBatchProcessor:
             # manually capture logged metrics
             model._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
-                step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
+                step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter), ("batch_idx", batch_idx)])
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
             _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
-            if training_step_output is None or "is_last" not in training_step_output:
-                raise MisconfigurationException(
-                    "When `training_step` takes `dataloader_iter` as an argument, the result dict must "
-                    "contain a `is_last` field to indicate whether there are more batches to be processed."
-                )
-            is_last = training_step_output["is_last"]
             training_step_output, _ = _process_training_step_output(self.trainer, training_step_output)
 
             if self.trainer.terminate_on_nan:

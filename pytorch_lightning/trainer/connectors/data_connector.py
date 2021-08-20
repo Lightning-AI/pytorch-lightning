@@ -26,7 +26,7 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.data_fetcher: Optional[DataFetcher] = None
+        self.data_fetcher: Optional[DataFetcher] = DataFetcher()
 
     def on_trainer_init(
         self,
@@ -61,7 +61,6 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
-        self.data_fetcher = DataFetcher()
         self.data_fetcher.setup(train_dataloader)
         prefetcher_iter = iter(self.data_fetcher)
         profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
