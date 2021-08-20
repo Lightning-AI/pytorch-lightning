@@ -8,21 +8,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  sphinx-check:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-          # lfs: true
-      - uses: ammaraskar/sphinx-action@master
-        with:
-          # git is required to clone the docs theme
-          # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
-          pre-build-command: "apt-get update -y && apt-get install -y git pandoc && pip install -r requirements/docs.txt"
-          docs-folder: "docs/"
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-
   test-docs:
     runs-on: ubuntu-20.04
     steps:

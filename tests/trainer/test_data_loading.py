@@ -254,3 +254,62 @@ def test_dataloader_reinit_for_subclass():
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
     with pytest.raises(MisconfigurationException, match="will be replaced  by `DistributedSampler`"):
         trainer.auto_add_sampler(dataloader, shuffle=True)
+
+
+def test_loader_detaching():
+    """Checks that the loader has been resetted after the entrypoint"""
+
+    class LoaderTestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert len(model.train_dataloader()) == 10
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            assert len(model.val_dataloader()) == 10
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            assert len(model.test_dataloader()) == 10
+            return super().test_step(batch, batch_idx)
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            assert len(model.predict_dataloader()) == 10
+            return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
+
+    loader = DataLoader(RandomDataset(32, 10), batch_size=1)
+
+    model = LoaderTestModel()
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer = Trainer(fast_dev_run=1)
+    trainer.fit(model, loader, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer.validate(model, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer.predict(model, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64
+
+    trainer.test(model, loader)
+
+    assert len(model.train_dataloader()) == 64
+    assert len(model.val_dataloader()) == 64
+    assert len(model.predict_dataloader()) == 64
+    assert len(model.test_dataloader()) == 64

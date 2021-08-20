@@ -132,7 +132,7 @@ def test_all_stages(tmpdir, ipus):
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
-    trainer.predict(model, model.val_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(ipu=True)
@@ -143,7 +143,7 @@ def test_inference_only(tmpdir, ipus):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=ipus)
     trainer.validate(model)
     trainer.test(model)
-    trainer.predict(model, model.val_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(ipu=True)

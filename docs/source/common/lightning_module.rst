@@ -853,18 +853,6 @@ validation_epoch_end
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
-write_prediction
-~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.write_prediction
-    :noindex:
-
-write_prediction_dict
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.write_prediction_dict
-    :noindex:
-
 ------------
 
 Properties

@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
@@ -32,6 +33,7 @@ from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import (
     _HYDRA_AVAILABLE,
@@ -75,14 +77,19 @@ class DDPPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+        )
         self.interactive_ddp_procs = []
         if num_nodes is not None:
             rank_zero_deprecation(
@@ -434,6 +441,11 @@ class DDPPlugin(ParallelPlugin):
             return
 
         sync_dir = self._sync_dir
+
+        # The cluster may be configured to periodically purge the `/tmp`
+        # directory, in which case `sync_dir` may not exist anymore at this
+        # point. Idempotently create it to ensure its existence.
+        Path(sync_dir).mkdir(parents=True, exist_ok=True)
 
         # save a file locally.
         torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))

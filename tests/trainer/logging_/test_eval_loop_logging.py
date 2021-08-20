@@ -590,3 +590,29 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         "test_loss",
     }
     assert set(results[0]) == {"test_loss"}
+
+
+def test_logging_dict_on_validation_step(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss = super().validation_step(batch, batch_idx)
+            loss = loss["x"]
+            metrics = {
+                "loss": loss,
+                "loss_1": loss,
+            }
+            self.log("val_metrics", metrics)
+
+        validation_epoch_end = None
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        progress_bar_refresh_rate=1,
+    )
+
+    trainer.fit(model)

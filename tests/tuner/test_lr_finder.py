@@ -184,7 +184,7 @@ def test_accumulation_and_early_stopping(tmpdir):
 
     assert lrfinder.suggestion() != 1e-3
     assert len(lrfinder.results["lr"]) == 100
-    assert lrfinder._total_batch_idx == 200
+    assert lrfinder._total_batch_idx == 199
 
 
 def test_suggestion_parameters_work(tmpdir):

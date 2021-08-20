@@ -682,7 +682,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers',
+        match=f'The dataloader, {stage}_dataloader{" 0" if stage != "train" else ""}, does not have many workers',
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
@@ -721,7 +721,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers',
+        match=f'The dataloader, {stage}_dataloader{" 0" if stage != "train" else ""}, does not have many workers',
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
