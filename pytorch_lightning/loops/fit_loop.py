@@ -21,6 +21,7 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
+        if self.current_epoch != 0 and self._should_reload_train_dl_epoch():
             self.trainer.reset_train_dataloader(model)
 
         if self._dataloader_state_dict:
@@ -241,12 +242,28 @@ class FitLoop(Loop):
     def teardown(self) -> None:
         self.epoch_loop.teardown()
 
-    def on_save_checkpoint(self) -> Dict:
-        state_dict = super().on_save_checkpoint()
-        # FIXME(@tchaton) Should pass has_completed=True when iterator is exhausted ?
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
-        return state_dict
+    def _should_reload_train_dl_epoch(self) -> bool:
+        """Check if train dataloader should be reloaded in the current epoch."""
+        current_epoch = self.current_epoch
+        lightning_module = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
+        trainer_reload_dataloaders_every_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        n_epochs = None
+        if lightning_module is not None:
+            n_epochs = lightning_module.reload_dataloaders_every_n_epochs
+        if datamodule is not None:
+            n_epochs = datamodule.reload_dataloaders_every_n_epochs
+        if (
+            trainer_reload_dataloaders_every_n_epochs is not None
+            and n_epochs != trainer_reload_dataloaders_every_n_epochs
+        ):
+            raise MisconfigurationException(
+                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with both."
+                f"`Trainer(reload_dataloaders_every_n_epochs={self.trainer.prepare_data_per_node}.)`"
+                f" and `DataModule.Value was set with both ={datamodule.prepare_data_per_node}`."
+                " Move `Value was set with both ` setting to DataModule or LightningModule property."
+            )
+        if n_epochs is None:
+            n_epochs = 0
 
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
-        # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
+        return n_epochs and (not current_epoch % n_epochs)

@@ -455,6 +455,7 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model.test_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
+    dm.reload_dataloaders_every_n_epochs = 2
     trainer.fit(model, dm)
 
 

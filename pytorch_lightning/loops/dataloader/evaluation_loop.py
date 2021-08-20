@@ -20,6 +20,8 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -160,7 +162,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Reloads dataloaders if necessary"""
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
-        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
+        elif self.trainer.val_dataloaders is None or self._should_reload_train_dl_epoch():
             self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
@@ -248,3 +250,29 @@ class EvaluationLoop(DataLoaderLoop):
     def teardown(self) -> None:
         self._results.cpu()
         self.epoch_loop.teardown()
+
+    def _should_reload_train_dl_epoch(self) -> bool:
+        """Check if val dataloader should be reloaded in the current epoch."""
+        current_epoch = self.epoch_loop.batch_progress.current.completed
+        lightning_module = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
+        trainer_reload_dataloaders_every_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        n_epochs = None
+        if lightning_module is not None:
+            n_epochs = lightning_module.reload_dataloaders_every_n_epochs
+        if datamodule is not None:
+            n_epochs = datamodule.reload_dataloaders_every_n_epochs
+        if (
+            trainer_reload_dataloaders_every_n_epochs is not None
+            and n_epochs != trainer_reload_dataloaders_every_n_epochs
+        ):
+            raise MisconfigurationException(
+                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with both."
+                f"`Trainer(reload_dataloaders_every_n_epochs={self.trainer.prepare_data_per_node}.)`"
+                f" and `DataModule.Value was set with both ={datamodule.prepare_data_per_node}`."
+                " Move `Value was set with both ` setting to DataModule or LightningModule property."
+            )
+        if n_epochs is None:
+            n_epochs = 0
+
+        return n_epochs and (not current_epoch % n_epochs)

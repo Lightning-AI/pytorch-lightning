@@ -852,6 +852,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     called = []
     dm = HookedDataModule(called)
+    dm.reload_dataloaders_every_n_epochs = 1
     trainer.fit(model, datamodule=dm)
     batch_transfer = [
         dict(name="on_before_batch_transfer", args=(ANY, 0)),
@@ -887,6 +888,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     called = []
     dm = HookedDataModule(called)
+    dm.reload_dataloaders_every_n_epochs = 1
     trainer.validate(model, datamodule=dm, verbose=False)
     expected = [
         dict(name="prepare_data"),
@@ -911,6 +913,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     called = []
     dm = HookedDataModule(called)
+    dm.reload_dataloaders_every_n_epochs = 1
     trainer.predict(model, datamodule=dm)
     expected = [
         dict(name="prepare_data"),

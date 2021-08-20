@@ -1140,6 +1140,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         reload_dataloaders_every_n_epochs=True,
         max_epochs=3,
     )
+    model.reload_dataloaders_every_n_epochs = 1
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -1206,6 +1207,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
+    model.reload_dataloaders_every_n_epochs = n
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -1253,6 +1255,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
+    model.reload_dataloaders_every_n_epochs = 1
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 

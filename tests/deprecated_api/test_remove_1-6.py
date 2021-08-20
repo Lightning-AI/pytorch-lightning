@@ -100,6 +100,7 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
             reload_dataloaders_every_epoch=True,
             max_epochs=3,
         )
+    model.reload_dataloaders_every_n_epochs = 1
     trainer.fit(model)
     trainer.test()
 
