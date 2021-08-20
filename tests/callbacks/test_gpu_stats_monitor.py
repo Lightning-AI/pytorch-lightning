@@ -74,38 +74,24 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
         gpu_utilization=False,
         intra_step_time=True,
         inter_step_time=True,
-        fan_speed=False,
-        temperature=False,
     )
-    logger = CSVLogger(tmpdir)
-    log_every_n_steps = 2
-
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
         limit_train_batches=2,
-        log_every_n_steps=log_every_n_steps,
+        limit_val_batches=0,
+        log_every_n_steps=1,
         gpus=1,
         callbacks=[gpu_stats],
-        logger=logger,
     )
-    with mock.patch.object(CSVLogger, "log_metrics", wraps=trainer.logger.log_metrics) as mocked:
+    with mock.patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics") as log_metrics_mock:
         trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    keys = ["batch_time/intra_step (ms)", "batch_time/inter_step (ms)"]
-
-    assert mocked.call_count == len(keys) * trainer.global_step // log_every_n_steps
-
-    def get_arg_and_value(*args, **_):
-        return args[0]
-
-    call_list = [get_arg_and_value(*cal[0], **cal[1]) for cal in mocked.call_args_list]
-
-    for key in keys:
-        list_key = [cal for cal in call_list if key in cal]
-        assert len(list_key) == trainer.global_step // log_every_n_steps
-        assert ~np.isnan([le[key] for le in list_key]).any()
+    assert log_metrics_mock.mock_calls[2:] == [
+        mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=0),
+        mock.call({"batch_time/inter_step (ms)": mock.ANY}, step=1),
+        mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=1),
+    ]
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
