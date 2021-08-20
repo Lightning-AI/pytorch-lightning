@@ -57,7 +57,7 @@ class DataConnector:
         self,
         check_val_every_n_epoch: int,
         reload_dataloaders_every_epoch: bool,
-        prepare_data_per_node: Optional[bool] = None,
+        prepare_data_per_node: bool,
         reload_dataloaders_every_n_epochs: Optional[int] = None,
     ) -> None:
         self.trainer.datamodule = None
