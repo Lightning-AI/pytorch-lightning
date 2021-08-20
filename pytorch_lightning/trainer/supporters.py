@@ -204,7 +204,7 @@ class CycleIterator:
                 raise StopIteration
 
             self._loader_iter = iter(self.loader)
-            # if fault tolerant is enabled, we need to patch the iterator to collect the states before the batch gets returned.
+            # if fault tolerant is enabled, we need to patch the iterator to collect the states before the batch gets returned.
             fetcher = getattr(self.loader, "_lightning_fetcher", None)
             if fetcher:
                 patch_dataloader_iterator(self.loader, self._loader_iter, fetcher)
