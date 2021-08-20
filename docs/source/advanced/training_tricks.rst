@@ -149,7 +149,7 @@ The algorithm in short works by:
     3. The found batch size is saved to either `model.batch_size` or `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
 
-.. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
+.. warning:: Batch size finder is not yet supported for DDP and any of its variations, it is coming soon.
 
 
 Advanced GPU Optimizations
