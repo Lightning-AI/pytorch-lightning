@@ -262,8 +262,8 @@ class DDPPlugin(ParallelPlugin):
         if self.local_rank != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes from `local_rank > 0`. This should not happen."
-                "Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                "2) `ClusterEnvironment.creates_children()` incorrectly implemented."
+                " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
+                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
