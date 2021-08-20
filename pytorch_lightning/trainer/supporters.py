@@ -372,11 +372,14 @@ class CombinedLoader:
             return DataLoaderDict(**asdict(state))
         return DataLoaderDict()
 
-    def state_dict(self, has_completed: bool = True) -> Dict:
+    def state_dict(self, has_completed: bool = False) -> Dict:
         """
         The state dict includes all states from wrapped dataloaders and their samplers through the
         ``CaptureIterableDataset`` and fast-forward samplers.
 
+        Args:
+            has_completed: whether the current state of data fetching is considered completed or not. If it is, the
+                current state gets returned, otherwise the previously cached state.
         """
         if not _fault_tolerant_training() or self._iterator is None:
             return DataLoaderDict()
