@@ -247,21 +247,23 @@ class FitLoop(Loop):
         current_epoch = self.current_epoch
         lightning_module = self.trainer.lightning_module
         datamodule = self.trainer.datamodule
-        trainer_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        trainer_reload_dataloaders_every_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
         n_epochs = None
         if lightning_module is not None:
-            n_epochs = lightning_module.reload_train_dataloader_every_n_epochs
+            n_epochs = lightning_module.reload_dataloaders_every_n_epochs
         if datamodule is not None:
-            n_epochs = datamodule.reload_train_dataloader_every_n_epochs
-        if trainer_n_epochs is not None and n_epochs != trainer_n_epochs:
+            n_epochs = datamodule.reload_dataloaders_every_n_epochs
+        if (
+            trainer_reload_dataloaders_every_n_epochs is not None
+            and n_epochs != trainer_reload_dataloaders_every_n_epochs
+        ):
             raise MisconfigurationException(
-                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
-                f"`Trainer(reload_dataloaders_every_n_epochs={trainer_n_epochs}.)`"
-                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
-                " Move `reload_dataloaders_every_n_epochs` setting to"
-                " DataModule or LightningModule property."
+                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with both."
+                f"`Trainer(reload_dataloaders_every_n_epochs={self.trainer.prepare_data_per_node}.)`"
+                f" and `DataModule.Value was set with both ={datamodule.prepare_data_per_node}`."
+                " Move `Value was set with both ` setting to DataModule or LightningModule property."
             )
         if n_epochs is None:
-            n_epochs = trainer_n_epochs if trainer_n_epochs is not None else 0
+            n_epochs = 0
 
         return n_epochs and (not current_epoch % n_epochs)
