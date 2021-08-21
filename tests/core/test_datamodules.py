@@ -539,11 +539,13 @@ def test_simple_hyperparameters_saving():
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
 
 
-def test_inconsistent_prepare_data_per_node(tmpdir):
-    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
+def test_inconsistent_reload_dataloaders_every_n_epochs(tmpdir):
+    with pytest.raises(
+        MisconfigurationException, match="Inconsistent settings found for `reload_dataloaders_every_n_epochs`"
+    ):
         model = BoringModel()
         dm = BoringDataModule()
-        trainer = Trainer(prepare_data_per_node=False)
+        trainer = Trainer(reload_dataloaders_every_n_epochs=2)
         trainer.model = model
         trainer.datamodule = dm
-        trainer.data_connector.prepare_data()
+        trainer.fit(model, datamodule=dm)
