@@ -55,7 +55,9 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
-        model.trainer.call_hook("on_before_backward", closure_loss)
+        trainer = model.trainer
+        trainer.call_hook(trainer.on_before_backward, closure_loss)
+        trainer.call_hook(model.on_before_backward, closure_loss)
         return closure_loss
 
     def backward(
@@ -88,7 +90,9 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
-        model.trainer.call_hook("on_after_backward")
+        trainer = model.trainer
+        trainer.call_hook(trainer.on_after_backward)
+        trainer.call_hook(model.on_after_backward)
         return closure_loss
 
     def pre_optimizer_step(
@@ -100,7 +104,9 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         **kwargs: Any,
     ) -> bool:
         """Hook to do something before each optimizer step."""
-        model.trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        trainer = model.trainer
+        trainer.call_hook(trainer.on_before_optimizer_step, optimizer, optimizer_idx)
+        trainer.call_hook(model.on_before_optimizer_step, optimizer, optimizer_idx)
         return True
 
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:

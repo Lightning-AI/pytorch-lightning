@@ -99,7 +99,7 @@ class ModelHooks:
 
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[int]:
         """
         Called in the training loop before anything happens for that batch.
 

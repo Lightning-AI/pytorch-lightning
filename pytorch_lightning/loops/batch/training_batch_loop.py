@@ -88,12 +88,12 @@ class TrainingBatchLoop(Loop):
 
         # hook
         self.trainer.logger_connector.on_batch_start()
-        response = self.trainer.call_hook("on_batch_start")
-        if response == -1:
-            return AttributeDict(signal=-1)
+        self.trainer.call_hook(self.trainer.on_batch_start)
 
         # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, 0)
+        self.trainer.call_hook(self.trainer.on_train_batch_start, batch, batch_idx, 0)
+        response = self.trainer.call_hook(self.trainer.lightning_module.on_train_batch_start, batch, batch_idx, 0)
+        self.trainer.call_hook(self.trainer.accelerator.on_train_batch_start, batch, batch_idx, 0)
         if response == -1:
             return AttributeDict(signal=-1)
 
@@ -274,15 +274,14 @@ class TrainingBatchLoop(Loop):
         with self.trainer.profiler.profile("model_forward"):
             step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
 
-            # manually capture logged metrics
-            model_ref._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
+            training_step_output = self.trainer.call_hook(self.trainer.accelerator.training_step, step_kwargs)
+            self.trainer.accelerator.post_training_step()
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            model_output = self.trainer.call_hook(model_ref.training_step_end, training_step_output)
+            accel_output = self.trainer.call_hook(self.trainer.accelerator.training_step_end, training_step_output)
+            training_step_output = accel_output if model_output is None else model_output
 
-            _check_training_step_output(self.trainer.lightning_module, training_step_output)
+            _check_training_step_output(model_ref, training_step_output)
 
             training_step_output, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
             if training_step_output is None:
@@ -347,7 +346,10 @@ class TrainingBatchLoop(Loop):
             optimizer: the current optimizer
         """
         self.optim_progress.optimizer.zero_grad.increment_ready()
-        self.trainer.call_hook("on_before_zero_grad", optimizer)
+
+        self.trainer.call_hook(self.trainer.on_before_zero_grad, optimizer)
+        self.trainer.call_hook(self.trainer.lightning_module.on_before_zero_grad, optimizer)
+
         self.optim_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:

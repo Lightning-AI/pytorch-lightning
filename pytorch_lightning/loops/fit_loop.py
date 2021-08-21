@@ -165,7 +165,10 @@ class FitLoop(Loop):
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
         self._results.to(device=self.trainer.lightning_module.device)
-        self.trainer.call_hook("on_train_start")
+
+        self.trainer.call_hook(self.trainer.on_train_start)
+        self.trainer.call_hook(self.trainer.lightning_module.on_train_start)
+        self.trainer.call_hook(self.trainer.accelerator.on_train_start)
 
     def on_advance_start(self) -> None:
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and ``on_train_epoch_start``"""
@@ -223,10 +226,9 @@ class FitLoop(Loop):
         self.current_epoch -= 1
 
         # hook
-        self.trainer.call_hook("on_train_end")
-
-        # give accelerators a chance to finish
-        self.trainer.accelerator.on_train_end()
+        self.trainer.call_hook(self.trainer.on_train_end)
+        self.trainer.call_hook(self.trainer.lightning_module.on_train_end)
+        self.trainer.call_hook(self.trainer.accelerator.on_train_end)
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""

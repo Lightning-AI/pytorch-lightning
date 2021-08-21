@@ -17,7 +17,7 @@ import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataset import IterableDataset
@@ -65,7 +65,6 @@ class TrainerDataLoadingMixin(ABC):
     accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
     dev_debugger: InternalDebugger
-    call_hook: Callable
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -524,10 +523,17 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         hook = f"{stage.dataloader_prefix}_dataloader"
-        self.call_hook("on_" + hook, pl_module=model)
-        dataloader = self.call_hook(hook, pl_module=model)
+        on_hook = f"on_{hook}"
+        model = model or self.lightning_module
+
+        on_hook_fn = getattr(model, on_hook)
+        self.call_hook(on_hook_fn, pl_module=model)
+
+        hook_fn = getattr(model, hook)
+        dataloader = self.call_hook(hook_fn, pl_module=model)
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
+
         self.accelerator.barrier("get_dataloaders")
         return dataloader
 

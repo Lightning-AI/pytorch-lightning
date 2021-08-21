@@ -951,7 +951,7 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_hook("on_before_accelerator_backend_setup")
+        self.call_hook(self.on_before_accelerator_backend_setup)
         self.accelerator.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
@@ -995,7 +995,8 @@ class Trainer(
         # ----------------------------
         # hook
         if self.state.fn == TrainerFn.FITTING:
-            self.call_hook("on_fit_start")
+            self.call_hook(self.on_fit_start)
+            self.call_hook(model.on_fit_start)
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
@@ -1019,7 +1020,8 @@ class Trainer(
         # ----------------------------
         # hook
         if self.state.fn == TrainerFn.FITTING:
-            self.call_hook("on_fit_end")
+            self.call_hook(self.on_fit_end)
+            self.call_hook(model.on_fit_end)
 
         # teardown if necessary (similar calls for spawn plugins are excluded as they have
         # been included at the end of `new_process` functions)
@@ -1103,14 +1105,16 @@ class Trainer(
         # --------------------------
         # Pre-train
         # --------------------------
-        self.call_hook("on_pretrain_routine_start")
+        self.call_hook(self.on_pretrain_routine_start)
+        self.call_hook(self.lightning_module.on_pretrain_routine_start)
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             max_depth = ModelSummary.MODES[self.weights_summary]
             summarize(self.lightning_module, max_depth=max_depth)
 
-        self.call_hook("on_pretrain_routine_end")
+        self.call_hook(self.on_pretrain_routine_end)
+        self.call_hook(self.lightning_module.on_pretrain_routine_end)
 
     def _run_train(self) -> None:
         self._pre_training_routine()
@@ -1173,7 +1177,7 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
-            self.call_hook("on_sanity_check_start")
+            self.call_hook(self.on_sanity_check_start)
 
             # reload dataloaders
             self._evaluation_loop.reload_evaluation_dataloaders()
@@ -1182,7 +1186,7 @@ class Trainer(
             with torch.no_grad():
                 self._evaluation_loop.run()
 
-            self.call_hook("on_sanity_check_end")
+            self.call_hook(self.on_sanity_check_end)
 
             # reset validation metrics
             self.logger_connector.reset()
@@ -1238,7 +1242,9 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
-        self.call_hook("setup", stage=fn)
+
+        self.call_hook(self.setup, stage=fn)
+        self.call_hook(self.lightning_module.setup, stage=fn)
 
         self.accelerator.barrier("post_setup")
 
@@ -1251,8 +1257,8 @@ class Trainer(
         model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
-                self.call_hook("configure_sharded_model")
-                self.call_hook("on_configure_sharded_model")
+                self.call_hook(model.configure_sharded_model)
+                self.call_hook(self.on_configure_sharded_model)
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
@@ -1264,7 +1270,8 @@ class Trainer(
 
         self.data_connector.detach_data(self.lightning_module)
 
-        self.call_hook("teardown", stage=fn)
+        self.call_hook(self.teardown, stage=fn)
+        self.call_hook(self.lightning_module.teardown, stage=fn)
 
         self.lightning_module._current_fx_name = None
         self.lightning_module._current_dataloader_idx = None
@@ -1279,36 +1286,24 @@ class Trainer(
         # summarize profile results
         self.profiler.describe()
 
-    def call_hook(
-        self, hook_name: str, *args: Any, pl_module: Optional["pl.LightningModule"] = None, **kwargs: Any
+    def _call_hook(
+        self,
+        fn: Callable,
+        *args: Any,
+        hook_name: Optional[str] = None,
+        pl_module: Optional["pl.LightningModule"] = None,
+        **kwargs: Any,
     ) -> Any:
-        pl_module = self.lightning_module or pl_module
-        if pl_module:
+        # FIXME: keep hook name input?
+        hook_name = hook_name or fn.__name__
+        pl_module = pl_module or self.lightning_module
+
+        if pl_module is not None:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # always profile hooks
         with self.profiler.profile(hook_name):
-
-            # first call trainer hook
-            callback_fx = getattr(self, hook_name, None)
-            if callable(callback_fx):
-                callback_fx(*args, **kwargs)
-
-            # next call hook in lightningModule
-            output = None
-            model_fx = getattr(pl_module, hook_name, None)
-            if callable(model_fx):
-                output = model_fx(*args, **kwargs)
-
-            # call the accelerator hook
-            if hook_name not in ("setup", "teardown") and hasattr(self.accelerator, hook_name):
-                accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_output = accelerator_hook(*args, **kwargs)
-                # Rely on the accelerator output if lightningModule hook returns nothing
-                # Required for cases such as DataParallel where we reduce the output for the user
-                # todo: move this data parallel logic into the data parallel plugin
-                output = accelerator_output if output is None else output
+            output = fn(*args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context

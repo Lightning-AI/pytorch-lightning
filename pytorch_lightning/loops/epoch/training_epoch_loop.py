@@ -103,10 +103,14 @@ class TrainingEpochLoop(loops.Loop):
             self.batch_loop.optim_progress.reset_on_epoch()
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        # hook
         self.trainer.logger_connector.on_epoch_start()
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
+
+        self.trainer.call_hook(self.trainer.on_epoch_start)
+        self.trainer.call_hook(self.trainer.lightning_module.on_epoch_start)
+
+        self.trainer.call_hook(self.trainer.on_train_epoch_start)
+        self.trainer.call_hook(self.trainer.lightning_module.on_train_epoch_start)
+
         self.trainer.fit_loop.epoch_progress.increment_started()
 
     def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
@@ -162,8 +166,14 @@ class TrainingEpochLoop(loops.Loop):
 
         # hook
         if not isinstance(self.batch_loop, IteratorBatchProcessor):
-            self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
-        self.trainer.call_hook("on_batch_end")
+            self.trainer.call_hook(
+                self.trainer.on_train_batch_end, processed_batch_end_outputs, batch, self.batch_idx, 0
+            )
+            self.trainer.call_hook(
+                self.trainer.lightning_module.on_train_batch_end, processed_batch_end_outputs, batch, self.batch_idx, 0
+            )
+
+        self.trainer.call_hook(self.trainer.on_batch_end)
         self.trainer.logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -225,13 +235,8 @@ class TrainingEpochLoop(loops.Loop):
         model = self.trainer.lightning_module
 
         if is_overridden("training_epoch_end", model):
-            # run training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = "training_epoch_end"
-
-            # lightningmodule hook
-            training_epoch_end_output = model.training_epoch_end(processed_outputs)
-
+            # hook
+            training_epoch_end_output = self.trainer.call_hook(model.training_epoch_end, processed_outputs)
             if training_epoch_end_output is not None:
                 raise MisconfigurationException(
                     "training_epoch_end expects a return of None. "
@@ -240,9 +245,13 @@ class TrainingEpochLoop(loops.Loop):
 
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
-        # call train epoch end hooks
-        self.trainer.call_hook("on_train_epoch_end")
-        self.trainer.call_hook("on_epoch_end")
+        self.trainer.call_hook(self.trainer.on_train_epoch_end)
+        self.trainer.call_hook(model.on_train_epoch_end)
+        self.trainer.call_hook(self.trainer.accelerator.on_train_epoch_end)
+
+        self.trainer.call_hook(self.trainer.on_epoch_end)
+        self.trainer.call_hook(model.on_epoch_end)
+
         self.trainer.logger_connector.on_epoch_end()
 
         if self._num_training_batches_reached(self.is_last_batch):

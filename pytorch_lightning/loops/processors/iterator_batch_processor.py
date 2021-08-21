@@ -124,7 +124,8 @@ class IteratorBatchProcessor:
         )
 
         self.trainer.logger_connector.on_batch_start()
-        response = self.trainer.call_hook("on_batch_start")
+        self.trainer.call_hook(self.trainer.on_batch_start)
+        response = self.trainer.call_hook(self.trainer.lightning_module.on_batch_start)
         if response == -1:
             return AttributeDict(signal=-1)
 
@@ -134,14 +135,16 @@ class IteratorBatchProcessor:
         model = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            # manually capture logged metrics
-            model._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.accelerator.post_training_step()
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
+
+            training_step_output = self.trainer.call_hook(self.trainer.accelerator.training_step, step_kwargs)
+            self.trainer.accelerator.post_training_step()
+
+            model_output = self.trainer.call_hook(model.training_step_end, training_step_output)
+            accel_output = self.trainer.call_hook(self.trainer.accelerator.training_step_end, training_step_output)
+            training_step_output = accel_output if model_output is None else model_output
+
             _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
             if training_step_output is None or "is_last" not in training_step_output:
