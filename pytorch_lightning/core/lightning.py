@@ -24,7 +24,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
@@ -1949,11 +1948,13 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue to append the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of
+            `pytorch_lightning.plugins.training_type.ddp_spawn.add_to_queue`
+            and will be removed in v1.7.
         """
-        callback_metrics: dict = apply_to_collection(
-            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
-        )  # send as numpy to avoid issues with memory sharing
-        queue.put(callback_metrics)
+        self.trainer.training_type_plugin.add_to_queue(queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """
@@ -1962,12 +1963,13 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue from where to get the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 in favor of
+            `pytorch_lightning.plugins.training_type.ddp_spawn.get_from_queue`
+            and will be removed in v1.7.
         """
-        # NOTE: `add_to_queue` needs to be called before
-        callback_metrics: dict = queue.get()
-        self.trainer.callback_metrics.update(
-            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
-        )
+        self.trainer.training_type_plugin.get_from_queue(queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:

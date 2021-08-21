@@ -16,6 +16,7 @@ import os
 import re
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Dict, List, Optional, Union
+import numpy as np
 
 import torch
 import torch.distributed
@@ -36,6 +37,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
@@ -384,4 +386,31 @@ class DDPSpawnPlugin(ParallelPlugin):
             cls,
             description="DDPSpawn Plugin with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+
+    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """
+        Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
+        To avoid issues with memory sharing, we cast the data to numpy.
+
+        Args:
+            queue: the instance of the queue to append the data.
+        """
+        callback_metrics: dict = apply_to_collection(
+            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+        )  # send as numpy to avoid issues with memory sharing
+        queue.put(callback_metrics)
+
+    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+        """
+        Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
+        To preserve consistency, we cast back the data to ``torch.Tensor``.
+
+        Args:
+            queue: the instance of the queue from where to get the data.
+        """
+        # NOTE: `add_to_queue` needs to be called before
+        callback_metrics: dict = queue.get()
+        self.trainer.callback_metrics.update(
+            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
         )
