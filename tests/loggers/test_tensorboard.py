@@ -17,6 +17,7 @@ import os
 from argparse import Namespace
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 import yaml
@@ -178,6 +179,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
+        "matrix": torch.empty(2, 2, 2),
     }
     logger.log_hyperparams(hparams)
 
@@ -193,6 +195,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
+        "matrix": torch.empty(2, 2, 2),
     }
     metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)
