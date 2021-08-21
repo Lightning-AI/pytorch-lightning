@@ -131,13 +131,10 @@ class IteratorBatchProcessor:
 
         self.trainer.fit_loop.epoch_loop.batch_progress.increment_started()
 
-        # give the PL module a result for logging
         model = self.trainer.lightning_module
+        step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
 
         with self.trainer.profiler.profile("model_forward"):
-
-            step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
-
             training_step_output = self.trainer.call_hook(self.trainer.accelerator.training_step, step_kwargs)
             self.trainer.accelerator.post_training_step()
 
