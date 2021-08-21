@@ -177,9 +177,9 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook(self.trainer.lightning_module.on_test_start, *args, **kwargs)
             self.trainer.call_hook(self.trainer.accelerator.on_test_start, *args, **kwargs)
         else:
-            self.trainer.call_hook(self.trainer.on_test_start, *args, **kwargs)
-            self.trainer.call_hook(self.trainer.lightning_module.on_test_start, *args, **kwargs)
-            self.trainer.call_hook(self.trainer.accelerator.on_test_start, *args, **kwargs)
+            self.trainer.call_hook(self.trainer.on_validation_start, *args, **kwargs)
+            self.trainer.call_hook(self.trainer.lightning_module.on_validation_start, *args, **kwargs)
+            self.trainer.call_hook(self.trainer.accelerator.on_validation_start, *args, **kwargs)
 
     def on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode"""

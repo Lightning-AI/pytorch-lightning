@@ -1286,7 +1286,7 @@ class Trainer(
         # summarize profile results
         self.profiler.describe()
 
-    def _call_hook(
+    def call_hook(
         self,
         fn: Callable,
         *args: Any,
