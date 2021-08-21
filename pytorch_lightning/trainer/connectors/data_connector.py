@@ -108,7 +108,7 @@ class DataConnector:
                     " Move `prepare_data_per_node` setting to LightningModule property."
                 )
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
-                lightning_module.prepare_data()
+                self.trainer.call_hook("prepare_data")
                 self.trainer._is_data_prepared = True
 
     def attach_data(
