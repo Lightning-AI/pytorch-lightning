@@ -64,7 +64,6 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.random_full = None
     dm._has_prepared_data = False
     dm.prepare_data_per_node = False
-    trainer.lightning_module.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
 
@@ -90,7 +89,6 @@ def test_can_prepare_data(local_rank, node_rank):
     # prepar per node = True
     # local rank = 0 (True)
     dm.prepare_data_per_node = True
-    trainer.lightning_module.prepare_data_per_node = True
     local_rank.return_value = 0
 
     with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
