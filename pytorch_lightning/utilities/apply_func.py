@@ -51,7 +51,7 @@ def from_numpy(value: np.ndarray, device: Union[str, torch.device] = None) -> to
     return torch.from_numpy(value).to(device)
 
 
-CONVERSION_DTYPES = [
+CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any], torch.Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
     (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
     (int, partial(to_dtype_tensor, dtype=torch.int)),
@@ -72,7 +72,7 @@ def _is_dataclass_instance(obj: object) -> bool:
 
 def apply_to_collection(
     data: Any,
-    dtype: Union[type, Tuple[type]],
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
     *args: Any,
     wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
@@ -147,7 +147,7 @@ def apply_to_collection(
 def apply_to_collections(
     data1: Optional[Any],
     data2: Optional[Any],
-    dtype: Union[type, Tuple[type]],
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
     *args: Any,
     wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
@@ -177,6 +177,8 @@ def apply_to_collections(
         # in case they were passed reversed
         data1, data2 = data2, None
 
+    if data1 is None:
+        return
     elem_type = type(data1)
 
     if isinstance(data1, dtype) and data2 is not None and (wrong_dtype is None or not isinstance(data1, wrong_dtype)):
