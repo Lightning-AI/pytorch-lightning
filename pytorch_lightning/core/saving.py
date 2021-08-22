@@ -212,25 +212,6 @@ class ModelIO:
 
         return model
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Do something with the checkpoint.
-        Gives model a chance to load something before ``state_dict`` is restored.
-
-        Args:
-            checkpoint: A dictionary with variables from the checkpoint.
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Give the model a chance to add something to the checkpoint.
-        ``state_dict`` is already there.
-
-        Args:
-            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
-                Contents need to be pickleable.
-        """
-
     # -------------------------
     # OPTIONAL HOOKS
     # -------------------------
