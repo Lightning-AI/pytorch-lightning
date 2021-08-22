@@ -190,10 +190,14 @@ class _PatchDataLoader:
     def __call__(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         return self.dataloader
 
+    @property
+    def __name__(self) -> str:
+        return self.stage + "_dataloader"
+
     def patch(self, model: "pl.LightningModule") -> None:
-        self._old_loader = getattr(model, self.stage + "_dataloader")
-        setattr(model, self.stage + "_dataloader", self)
+        self._old_loader = getattr(model, self.__name__)
+        setattr(model, self.__name__, self)
 
     def unpatch(self, model: "pl.LightningModule") -> None:
-        setattr(model, self.stage + "_dataloader", self._old_loader)
+        setattr(model, self.__name__, self._old_loader)
         self._old_loader = None

@@ -1477,6 +1477,10 @@ def test_request_dataloader(tmpdir):
         def __call__(self):
             return self.loader
 
+        def __name__(self):
+            # `_PatchDataLoader` requires this when passed to `trainer.call_hook`
+            return "foo"
+
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
