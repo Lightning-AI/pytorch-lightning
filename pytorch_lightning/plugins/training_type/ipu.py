@@ -98,7 +98,6 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
-        self._original_accumulate_grad_batches = None
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
@@ -111,6 +110,9 @@ class IPUPlugin(ParallelPlugin):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
     def setup(self) -> None:
+        # set the `accumulate_grad_batches` property as early as possible
+        self._handle_gradient_accumulation_steps()
+
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
@@ -132,7 +134,6 @@ class IPUPlugin(ParallelPlugin):
         for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[x] = model
-        self._handle_gradient_accumulation_steps()
 
     @property
     def replication_factor(self) -> int:
