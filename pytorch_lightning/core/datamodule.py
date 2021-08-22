@@ -105,6 +105,15 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         self._has_teardown_test = False
         self._has_teardown_predict = False
 
+    def __init_subclass__(cls, *args, **kwargs) -> None:
+
+        if "__init__" not in cls.__dict__ and "__post_init__" not in cls.__dict__:
+            raise NotImplementedError(
+                f"If {cls.__name__} is implemented as dataclass, there must be a __post_init__ method with super().__init__ call, else add an __init__ method."
+            )
+
+        return super().__init_subclass__()
+
     @property
     def train_transforms(self):
         """

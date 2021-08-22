@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
 from argparse import ArgumentParser
+from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import call, PropertyMock
@@ -20,7 +22,7 @@ from unittest.mock import call, PropertyMock
 import pytest
 import torch
 
-from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -539,3 +541,93 @@ class DataModuleWithHparams(LightningDataModule):
 def test_simple_hyperparameters_saving():
     data = DataModuleWithHparams(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
+
+
+def test_define_as_dataclass():
+    """
+    Test datamodule for initialization as Python dataclass.
+    Since the super().__init__() method must be called, there requires to be a __post_init__ method implemented in the inheriting class.
+    """
+
+    class RandomDataset(torch.utils.data.Dataset):
+        def __init__(self, size, length):
+            self.len = length
+            self.data = torch.randn(length, size)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+        def __len__(self):
+            return self.len
+
+    # checks for exception being raised when no __init__ and __post_init__ method is implemented
+    with pytest.raises(NotImplementedError) as excep:
+
+        @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
+        class BoringDataModule(LightningDataModule):
+
+            batch_size: int = 2
+
+            def train_dataloader(self):
+                return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+    @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, batch_size):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+    # assets for the different dunder methods added by dataclass, when __init__ is impelmented, i.e.
+    # __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule(batch_size=32)
+    assert hasattr(BoringDataModule, "__repr__")
+    assert BoringDataModule(batch_size=32) == BoringDataModule(batch_size=32)
+
+    @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
+    class BoringDataModule(LightningDataModule):
+
+        batch_size: int = 2
+
+        def __post_init__(self):
+            super().__init__()
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+    # assets for the different dunder methods added by dataclass, when __post_init__ is impelmented, i.e.
+    # __init__, __repr__, __eq__, __lt__, __le__, etc.
+    assert BoringDataModule(batch_size=32)
+    assert hasattr(BoringDataModule, "__repr__")
+    assert BoringDataModule(batch_size=32) == BoringDataModule(batch_size=32)
+
+    class BoringModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            return self.layer(x)
+
+        def training_step(self, batch, batch_idx):
+            loss = self(batch).sum()
+            self.log("train_loss", loss)
+            return {"loss": loss}
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(BoringModel(), datamodule=BoringDataModule(batch_size=32))
+
+    # checks if the trainer can finish one loop
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
