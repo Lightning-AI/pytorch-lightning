@@ -73,7 +73,7 @@ class DataConnector:
         if self.can_prepare_data():
             if self.trainer.datamodule is not None:
                 self.trainer.datamodule.prepare_data()
-            self.trainer.lightning_module.prepare_data()
+            self.trainer.call_hook("prepare_data")
             self.trainer._is_data_prepared = True
 
     def can_prepare_data(self):

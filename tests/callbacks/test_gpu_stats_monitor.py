@@ -63,6 +63,37 @@ def test_gpu_stats_monitor(tmpdir):
         assert any(f in h for h in met_data.dtype.names)
 
 
+@RunIf(min_gpus=1)
+def test_gpu_stats_monitor_no_queries(tmpdir):
+    """
+    Test GPU logger doesn't fail if no "nvidia-smi" queries are to be performed.
+    """
+    model = BoringModel()
+    gpu_stats = GPUStatsMonitor(
+        memory_utilization=False,
+        gpu_utilization=False,
+        intra_step_time=True,
+        inter_step_time=True,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        log_every_n_steps=1,
+        gpus=1,
+        callbacks=[gpu_stats],
+    )
+    with mock.patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics") as log_metrics_mock:
+        trainer.fit(model)
+
+    assert log_metrics_mock.mock_calls[2:] == [
+        mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=0),
+        mock.call({"batch_time/inter_step (ms)": mock.ANY}, step=1),
+        mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=1),
+    ]
+
+
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """

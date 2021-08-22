@@ -797,6 +797,7 @@ class DeepSpeedPlugin(DDPPlugin):
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
+        plugin_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
         plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         plugin_registry.register(
             "deepspeed_stage_2_offload",
