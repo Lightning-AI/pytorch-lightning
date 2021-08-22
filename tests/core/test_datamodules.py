@@ -34,11 +34,8 @@ from tests.helpers.utils import reset_seed
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-
-    model = BoringModel()
     dm = BoringDataModule()
     trainer = Trainer()
-    trainer.model = model
     trainer.datamodule = dm
 
     # 1 no DM
@@ -392,14 +389,14 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
@@ -407,7 +404,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
             return batch
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)

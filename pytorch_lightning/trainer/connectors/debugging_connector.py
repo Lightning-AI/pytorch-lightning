@@ -35,8 +35,7 @@ class DebuggingConnector:
     ):
         if not isinstance(fast_dev_run, (bool, int)):
             raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run} is not a valid configuration."
-                " It should be either a bool or an int >= 0"
+                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
             )
 
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):

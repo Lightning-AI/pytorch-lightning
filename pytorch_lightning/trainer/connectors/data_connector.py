@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -26,6 +26,7 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
+        self.data_fetcher: Optional[DataFetcher] = None
 
     def on_trainer_init(
         self,
@@ -53,17 +54,17 @@ class DataConnector:
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
             raise MisconfigurationException(
-                "`reload_dataloaders_every_n_epochs` should be an int >= 0,"
-                f" got {reload_dataloaders_every_n_epochs}."
+                f"`reload_dataloaders_every_n_epochs` should be an int >= 0, got {reload_dataloaders_every_n_epochs}."
             )
 
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def get_profiled_train_dataloader(self, train_dataloader):
-        profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(prefetch_iterator(train_dataloader)), "get_train_batch"
-        )
+    def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
+        self.data_fetcher = DataFetcher()
+        self.data_fetcher.setup(train_dataloader)
+        prefetcher_iter = iter(self.data_fetcher)
+        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
         return profiled_dl
 
     def prepare_data(self) -> None:
@@ -72,7 +73,7 @@ class DataConnector:
         if self.can_prepare_data():
             if self.trainer.datamodule is not None:
                 self.trainer.datamodule.prepare_data()
-            self.trainer.lightning_module.prepare_data()
+            self.trainer.call_hook("prepare_data")
             self.trainer._is_data_prepared = True
 
     def can_prepare_data(self):
@@ -117,19 +118,23 @@ class DataConnector:
         # functions to overwrite with these implementations
         if train_dataloaders is not None:
             self.trainer.train_dataloader = None
-            model.train_dataloader = _PatchDataLoader(train_dataloaders)
+            train_dataloader = _PatchDataLoader(train_dataloaders, "train")
+            train_dataloader.patch(model)
 
         if val_dataloaders is not None:
             self.trainer.val_dataloaders = None
-            model.val_dataloader = _PatchDataLoader(val_dataloaders)
+            val_dataloader = _PatchDataLoader(val_dataloaders, "val")
+            val_dataloader.patch(model)
 
         if test_dataloaders is not None:
             self.trainer.test_dataloaders = None
-            model.test_dataloader = _PatchDataLoader(test_dataloaders)
+            test_dataloader = _PatchDataLoader(test_dataloaders, "test")
+            test_dataloader.patch(model)
 
         if predict_dataloaders is not None:
             self.trainer.predict_dataloaders = None
-            model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
+            predict_dataloader = _PatchDataLoader(predict_dataloaders, "predict")
+            predict_dataloader.patch(model)
 
     def attach_datamodule(
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
@@ -157,6 +162,13 @@ class DataConnector:
         if hasattr(datamodule, "data_pipeline"):
             model.data_pipeline = datamodule.data_pipeline
 
+    @staticmethod
+    def detach_data(model: "pl.LightningModule") -> None:
+        for stage in ("train", "val", "test", "predict"):
+            loader = getattr(model, f"{stage}_dataloader", None)
+            if isinstance(loader, _PatchDataLoader):
+                loader.unpatch(model)
+
 
 class _PatchDataLoader:
     r"""
@@ -167,13 +179,23 @@ class _PatchDataLoader:
         dataloader: Dataloader object to return when called.
     """
 
-    def __init__(self, dataloader: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
+    def __init__(self, dataloader: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS], stage: str) -> None:
         self.dataloader = dataloader
 
         # cannot pickle __code__ so cannot verify if PatchDataloader
         # exists which shows dataloader methods have been overwritten.
         # so, we hack it by using the string representation
         self.patch_loader_code = str(self.__call__.__code__)
+        self.old_loader: Optional[Callable] = None
+        self.stage = stage
 
     def __call__(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         return self.dataloader
+
+    def patch(self, model: "pl.LightningModule") -> None:
+        self._old_loader = getattr(model, self.stage + "_dataloader")
+        setattr(model, self.stage + "_dataloader", self)
+
+    def unpatch(self, model: "pl.LightningModule") -> None:
+        setattr(model, self.stage + "_dataloader", self._old_loader)
+        self._old_loader = None
