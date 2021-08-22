@@ -737,6 +737,7 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
+            print(batch_idx, trainer.global_step, deepspeed_engine.global_steps)
             assert trainer.global_step == deepspeed_engine.global_steps
             self.on_train_batch_start_called = True
 
@@ -746,9 +747,10 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=5,
+        max_epochs=3,
         plugins=[DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer)],
         gpus=2,
+        limit_train_batches=5,  # odd to test leftover batches
         limit_val_batches=2,
         precision=16,
         accumulate_grad_batches=2,
