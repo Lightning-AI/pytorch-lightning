@@ -93,8 +93,10 @@ class DataConnector:
                 "this signature is experimental and the behavior may subject to change."
             )
             return DataLoaderIterDataFetcher()
-        elif self.trainer.training_type_plugin.on_gpu and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
             # note: this is an experimental feature
+            if not self.trainer.training_type_plugin.on_gpu:
+                raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
             return InterBatchParallelDataFetcher()
         else:
             return DataFetcher()
