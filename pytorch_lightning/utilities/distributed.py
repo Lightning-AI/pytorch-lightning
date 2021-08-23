@@ -355,6 +355,17 @@ def init_ddp_connection(
     world_size: Optional[int] = None,
     **kwargs,
 ) -> None:
+    """
+    Utility function to initialize DDP connection by setting env variables
+    and initiliazing the distributed process group.
+
+    Args:
+        cluster_environment: ``ClusterEnvironment`` instance
+        torch_distributed_backend: backend to use (includes `nccl` and `gloo`)
+        global_rank: rank of the current process
+        world_size: number of processes in the group
+        kwargs: kwargs for ``init_process_group``
+    """
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.master_address()
