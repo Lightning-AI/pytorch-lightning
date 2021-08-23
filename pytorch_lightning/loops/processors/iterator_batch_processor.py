@@ -108,27 +108,6 @@ class IteratorBatchProcessor:
         """
         return list(enumerate(self.trainer.optimizers))
 
-    def _build_kwargs(self, dataloader_iter: Iterator, batch_idx: int) -> Dict[str, Any]:
-        """Builds the keyword arguments for training_step
-
-        Args:
-            batch: the batch to train on
-            batch_idx: the index of the current batch
-
-        Returns:
-            the keyword arguments for the training step
-        """
-        # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict({"dataloader_iter": dataloader_iter})
-
-        lightning_module = self.trainer.lightning_module
-
-        training_step_fx = getattr(lightning_module, "training_step")
-        if is_param_in_hook_signature(training_step_fx, "batch_idx"):
-            step_kwargs["batch_idx"] = batch_idx
-
-        return step_kwargs
-
     def run(self, dataloader_iter: Iterator) -> Optional[AttributeDict]:
         """
         Args:
@@ -173,3 +152,25 @@ class IteratorBatchProcessor:
         No-op. Only defined to comply with FitLoop's expectation.
         """
         pass
+
+    # FIXME: To be deleted in next PR.
+    def _build_kwargs(self, dataloader_iter: Iterator, batch_idx: int) -> Dict[str, Any]:
+        """Builds the keyword arguments for training_step
+
+        Args:
+            batch: the batch to train on
+            batch_idx: the index of the current batch
+
+        Returns:
+            the keyword arguments for the training step
+        """
+        # enable not needing to add opt_idx to training_step
+        step_kwargs = OrderedDict({"dataloader_iter": dataloader_iter})
+
+        lightning_module = self.trainer.lightning_module
+
+        training_step_fx = getattr(lightning_module, "training_step")
+        if is_param_in_hook_signature(training_step_fx, "batch_idx"):
+            step_kwargs["batch_idx"] = batch_idx
+
+        return step_kwargs

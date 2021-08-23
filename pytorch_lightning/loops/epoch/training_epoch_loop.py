@@ -136,7 +136,7 @@ class TrainingEpochLoop(loops.Loop):
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
             # FIXME: Remove with InterBatchProcessor.
-            if not self.trainer.data_connector.data_fetcher.store_on_gpu:
+            if not self.trainer.data_connector.data_fetcher.store_on_device:
                 with self.trainer.profiler.profile("training_batch_to_device"):
                     batch = self.trainer.accelerator.batch_to_device(batch)
 
@@ -160,7 +160,6 @@ class TrainingEpochLoop(loops.Loop):
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_output.training_step_output if len(opt_idx_out)]
-
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook

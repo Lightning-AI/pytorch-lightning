@@ -17,7 +17,7 @@ from typing import Callable, Iterable, Optional, Union
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, InterBatchParallelismDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, InterBatchParallelDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -26,7 +26,7 @@ class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.data_fetcher: Optional[DataFetcher] = DataFetcher()
+        self.data_fetcher: AbstractDataFetcher = DataFetcher()
 
     def on_trainer_init(
         self,
@@ -62,7 +62,7 @@ class DataConnector:
 
     def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
         # FIXME: Temporary hack
-        if isinstance(self.data_fetcher, InterBatchParallelismDataFetcher):
+        if isinstance(self.data_fetcher, InterBatchParallelDataFetcher):
             self.data_fetcher.setup(train_dataloader, batch_to_device=self.trainer.accelerator.batch_to_device)
         else:
             self.data_fetcher.setup(train_dataloader)
