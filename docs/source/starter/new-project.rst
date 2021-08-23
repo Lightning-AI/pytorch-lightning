@@ -120,10 +120,10 @@ A :doc:`lightning module <../common/lightning_module>` defines a *system* not a 
 Examples of systems are:
 
 - `Autoencoder <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
-- `BERT <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/6100885854c803458886c731cddd6bd67498c0a1/.notebooks/lightning_examples/text-transformers.ipynb>`_
-- `DQN <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/6100885854c803458886c731cddd6bd67498c0a1/.notebooks/lightning_examples/reinforce-learning-DQN.ipynb>`_
-- `GAN <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/6100885854c803458886c731cddd6bd67498c0a1/.notebooks/lightning_examples/basic-gan.ipynb>`_
-- `Image classifier <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/6100885854c803458886c731cddd6bd67498c0a1/.notebooks/lightning_examples/mnist-hello-world.ipynb>`_
+- `BERT <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/text-transformers.ipynb>`_
+- `DQN <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/reinforce-learning-DQN.ipynb>`_
+- `GAN <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/basic-gan.ipynb>`_
+- `Image classifier <https://colab.research.google.com/github/PyTorchLightning/lightning-tutorials/blob/publication/.notebooks/lightning_examples/mnist-hello-world.ipynb>`_
 - Seq2seq
 - `SimCLR <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
