@@ -55,7 +55,7 @@ class AbstractClosure(ABC):
         self._result: Optional[ClosureResult] = None
 
     @property
-    def result(self) -> ClosureResult:
+    def result(self) -> Optional[ClosureResult]:
         """The cached result from the last time the closure was called. Once accessed, the internal reference
         gets reset and the consumer will have to hold on to the reference as long as necessary."""
         result = self._result
@@ -115,7 +115,7 @@ class Closure(AbstractClosure):
         if self.warning_cache is None:
             self.warning_cache = WarningCache()
 
-    def closure(self, *args, **kwargs) -> ClosureResult:
+    def closure(self, *args, **kwargs) -> Optional[ClosureResult]:
         with self._profiler.profile("training_step_and_backward"):
             output = self._step_fn()
             output = ClosureResult(**output) if output else None
