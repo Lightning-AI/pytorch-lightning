@@ -17,6 +17,7 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import torch
@@ -377,8 +378,6 @@ class StepFuncDataLoaderIter:
     def __next__(self) -> Any:
         try:
             data = next(self.iterator)
-            # FIXME: Link this to `batch_idx`.
-            self.data_fetcher.fetched += 1
             return data
         except StopIteration:
             self.data_fetcher.done = True
@@ -409,4 +408,4 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     def fetching_function(self) -> Generator:
         iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
         while not self.done:
-            yield iterator, self.fetched, self.done
+            yield self.fetched, (iterator, self.done)

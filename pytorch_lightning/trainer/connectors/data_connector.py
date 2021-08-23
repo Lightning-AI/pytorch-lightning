@@ -72,13 +72,6 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def _check_training_step_requires_dataloader_iter(self) -> bool:
-        if not self.trainer.training:
-            return False
-        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
-        return contains_dataloader_iter
-
     def _select_data_fetcher(self) -> AbstractDataFetcher:
         if self._check_training_step_requires_dataloader_iter():
             rank_zero_warn(
@@ -103,6 +96,8 @@ class DataConnector:
         )
         # store to enable teardown and clean extra fetched batches
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
+        if isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            return data_fetcher
         return enumerate(data_fetcher)
 
     def prepare_data(self) -> None:
@@ -206,6 +201,35 @@ class DataConnector:
             loader = getattr(model, f"{stage}_dataloader", None)
             if isinstance(loader, _PatchDataLoader):
                 loader.unpatch(model)
+
+    def _check_training_step_requires_dataloader_iter(self) -> bool:
+        if not self.trainer.training:
+            return False
+
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
+
+        if contains_dataloader_iter:
+
+            if is_overridden("on_train_batch_start", self.trainer.lightning_module):
+                raise MisconfigurationException(
+                    "The model hook `on_train_batch_start` is not compatible with "
+                    "taking a `dataloader_iter` argument in your `training_step`."
+                )
+
+            if is_overridden("on_train_batch_end", self.trainer.lightning_module):
+                raise MisconfigurationException(
+                    "The model hook `on_train_batch_end` is not compatible with "
+                    "taking a `dataloader_iter` argument in your `training_step`."
+                )
+
+            if self.trainer.lightning_module.truncated_bptt_steps > 0:
+                raise MisconfigurationException(
+                    "The model taking a `dataloader_iter` argument in your `training_step` "
+                    "is incompatible with `truncated_bptt_steps > 0`."
+                )
+
+        return contains_dataloader_iter
 
 
 class _PatchDataLoader:

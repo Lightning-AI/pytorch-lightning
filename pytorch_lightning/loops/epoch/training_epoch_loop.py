@@ -17,17 +17,11 @@ import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
-from pytorch_lightning.loops.processors import IteratorBatchProcessor
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress, SchedulerProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-# TODO: currently, the batch processor is only a loop when tbptt is enabled.
-# As we introduce more specialized batch processors, we may want to choose a
-# more suitable abstraction for them.
-BATCH_LOOP_TYPE = Optional[Tuple[TrainingBatchLoop, IteratorBatchProcessor]]
 
 
 class TrainingEpochLoop(loops.Loop):
@@ -50,7 +44,7 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop: BATCH_LOOP_TYPE = None
+        self.batch_loop: TrainingBatchLoop = None
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)
@@ -81,7 +75,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def connect(
         self,
-        batch_loop: BATCH_LOOP_TYPE = None,
+        batch_loop: TrainingBatchLoop = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
@@ -118,29 +112,17 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        if isinstance(self.batch_loop, IteratorBatchProcessor):
-            # By contract, when taking `dataloader_iter` as an argument,
-            # `training_step` is responsible for reporting `is_last` in the
-            # result dict, which is used to determine the stop condition for
-            # the epoch. So as long as `advance` is invoked, it's correct to
-            # assume that there are more batches to be processed.
-            self.batch_progress.increment_ready()
-            with self.trainer.profiler.profile("run_training_batch"):
-                batch_output = self.batch_loop.run(dataloader_iter)
-            self.batch_progress.increment_processed()
-            is_last = batch_output.is_last
-        else:
-            _, (batch, is_last) = next(dataloader_iter)
+        batch_idx, (batch, is_last) = next(dataloader_iter)
 
-            # ------------------------------------
-            # TRAINING_STEP + TRAINING_STEP_END
-            # ------------------------------------
-            self.batch_progress.increment_ready()
+        # ------------------------------------
+        # TRAINING_STEP + TRAINING_STEP_END
+        # ------------------------------------
+        self.batch_progress.increment_ready()
 
-            with self.trainer.profiler.profile("run_training_batch"):
-                batch_output = self.batch_loop.run(batch, self.batch_idx)
+        with self.trainer.profiler.profile("run_training_batch"):
+            batch_output = self.batch_loop.run(batch, batch_idx)
 
-            self.batch_progress.increment_processed()
+        self.batch_progress.increment_processed()
 
         self.is_last_batch = is_last
 
@@ -158,8 +140,7 @@ class TrainingEpochLoop(loops.Loop):
         processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
-        if not isinstance(self.batch_loop, IteratorBatchProcessor):
-            self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
+        self.trainer.call_hook("on_train_batch_end", processed_batch_end_outputs, batch, self.batch_idx, 0)
         self.trainer.call_hook("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 

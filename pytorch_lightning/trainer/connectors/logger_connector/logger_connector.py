@@ -15,7 +15,6 @@ from pprint import pprint
 from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 import torch
-
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
@@ -199,7 +198,8 @@ class LoggerConnector:
     """
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
-        self.trainer._results.extract_batch_size(split_batch)
+        if isinstance(split_batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
+            self.trainer._results.extract_batch_size(split_batch)
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
