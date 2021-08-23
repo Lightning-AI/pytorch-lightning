@@ -22,8 +22,6 @@ from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.warnings import WarningCache
 
-warning_cache = WarningCache()
-
 
 @dataclass
 class ClosureResult:
@@ -100,6 +98,8 @@ class Closure(AbstractClosure):
         optimizer.step(closure)
     """
 
+    warning_cache = WarningCache()
+
     def __init__(
         self,
         step_fn: Callable[[], dict],
@@ -119,7 +119,7 @@ class Closure(AbstractClosure):
             output = ClosureResult(**output) if output else None
 
             if output is None:
-                warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
+                self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
 
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
