@@ -66,6 +66,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added Rich Progress Bar ([#8929](https://github.com/PyTorchLightning/pytorch-lightning/pull/8929))
 
 
+- Added a friendly error message when DDP attempts to spawn new distributed processes with rank > 0 ([#9005](https://github.com/PyTorchLightning/pytorch-lightning/pull/9005))
+
+
 ### Changed
 
 - Parsing of the `gpus` Trainer argument has changed: `gpus="n"` (str) no longer selects the GPU index n and instead selects the first n devices. ([#8770](https://github.com/PyTorchLightning/pytorch-lightning/pull/8770))
@@ -167,6 +170,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated `GradInformation` module in favor of `pytorch_lightning.utilities.grads` ([#8831](https://github.com/PyTorchLightning/pytorch-lightning/pull/8831/))
+
+
+- Removed `TrainingTypePlugin.on_save` and `Accelerator.on_save` ([#9023](https://github.com/PyTorchLightning/pytorch-lightning/pull/9023))
 
 
 - Removed deprecated `connect_precision_plugin` and `connect_training_type_plugin` from `Accelerator` ([#9019](https://github.com/PyTorchLightning/pytorch-lightning/pull/9019))
