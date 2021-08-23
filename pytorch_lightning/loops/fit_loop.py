@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Optional
+from typing import Iterator, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -192,12 +192,13 @@ class FitLoop(Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
+        dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader)
+        dataloader_iter = iter(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.epoch_loop.run(train_dataloader)
+            epoch_output = self.epoch_loop.run(dataloader_iter)
 
             if epoch_output is None:
                 return
