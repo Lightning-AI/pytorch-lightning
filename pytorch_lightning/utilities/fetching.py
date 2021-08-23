@@ -418,6 +418,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 batch = batch.to(self.device)
                 ...
     """
+
     def __init__(self):
         super().__init__()
         # prevent calling ``move_batch_to_device```
