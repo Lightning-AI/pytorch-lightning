@@ -113,7 +113,7 @@ def tmpdir_server(tmpdir):
 def single_process_pg():
     """
     Initialize the default process group with only the current process for
-    testing purposes. The process group is destoryed when the with block is
+    testing purposes. The process group is destroyed when the with block is
     exited.
     """
     if torch.distributed.is_initialized():
