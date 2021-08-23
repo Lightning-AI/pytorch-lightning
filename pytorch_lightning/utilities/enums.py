@@ -66,6 +66,7 @@ class DistributedType(LightningEnum):
         return [
             DistributedType.DP,
             DistributedType.DDP_SPAWN,
+            DistributedType.DDP_FORK,
             DistributedType.DDP_SHARDED_SPAWN,
             DistributedType.TPU_SPAWN,
         ]
@@ -79,6 +80,7 @@ class DistributedType(LightningEnum):
     DDP2 = "ddp2"
     DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
+    DDP_FORK = "ddp_fork"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
     HOROVOD = "horovod"

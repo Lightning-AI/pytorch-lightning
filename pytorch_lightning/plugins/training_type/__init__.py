@@ -1,5 +1,6 @@
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.ddp_fork import DDPForkPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401

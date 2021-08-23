@@ -452,6 +452,7 @@ class AcceleratorConnector:
         return self._distrib_type in (
             DistributedType.DDP,
             DistributedType.DDP_SPAWN,
+            DistributedType.DDP_FORK,
             DistributedType.DDP_SHARDED,
             DistributedType.DDP_SHARDED_SPAWN,
             DistributedType.DDP_FULLY_SHARDED,
