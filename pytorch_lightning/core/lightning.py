@@ -456,7 +456,8 @@ class LightningModule(
 
         if is_param_in_hook_signature(self.training_step, "dataloader_iter") and batch_size is None:
             raise MisconfigurationException(
-                "When the `dataloader_iter` is requested within the `training_step`, `batch_size` should be provided.")
+                "When the `dataloader_iter` is requested within the `training_step`, `batch_size` should be provided."
+            )
 
         results.log(
             self._current_fx_name,

@@ -13,17 +13,9 @@
 # limitations under the License.
 import os
 from time import time
-from typing import Any
-from unittest import mock
 from typing import Any, Iterator
+from unittest import mock
 
-import pytest
-from torch.utils.data import DataLoader
-
-from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import STEP_OUTPUT
-from tests.helpers import BoringModel, RandomDataset
 import pytest
 import torch
 from torch import tensor
@@ -33,6 +25,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -254,7 +248,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
-    
+
     breakpoint()
 
     assert trainer.fit_loop.epoch_loop.batch_progress == 64
@@ -382,7 +376,6 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
     """
 
     class InvalidModel(AsyncBoringModel):
-
         def __init__(self) -> None:
             super().__init__()
             self.truncated_bptt_steps = 2

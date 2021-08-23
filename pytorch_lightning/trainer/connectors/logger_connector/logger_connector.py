@@ -15,6 +15,7 @@ from pprint import pprint
 from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
