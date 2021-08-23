@@ -31,7 +31,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     Plugin for native mixed precision training with :mod:`torch.cuda.amp`.
 
     Args:
-        precision: Whether to use torch.float16 (16) or torch.bfloat16 (bfloat16).
+        precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
     """
 
     def __init__(self, precision: Union[int, str] = 16) -> None:
@@ -48,7 +48,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler = torch.cuda.amp.GradScaler()
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
-        if precision in ("bfloat16", "bf16"):
+        if precision == "bf16":
             if not _TORCH_GREATER_EQUAL_1_10:
                 raise MisconfigurationException(
                     "To use bfloat16 with native amp you must install torch greater or equal to 1.10."

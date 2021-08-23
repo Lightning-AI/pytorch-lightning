@@ -180,21 +180,6 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 
 
 @RunIf(min_gpus=1, amp_native=True, min_torch="1.10.0dev")
-@pytest.mark.parametrize("precision", ["bf16", "bfloat16"])
-def test_amp_bfloat_alias(tmpdir, precision):
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=precision,
-        gpus=1,
-    )
-    plugin = trainer.precision_plugin
-    assert isinstance(plugin, NativeMixedPrecisionPlugin)
-    assert plugin.is_bfloat16
-    assert plugin.autocast_context_manager().fast_dtype == torch.bfloat16
-
-
-@RunIf(min_gpus=1, amp_native=True, min_torch="1.10.0dev")
 def test_amp_precision_bfloat_warning(tmpdir):
     model = BoringModel()
     trainer = Trainer(
@@ -217,6 +202,6 @@ def test_amp_precision_16_bfloat_throws_error(tmpdir):
     ):
         Trainer(
             default_root_dir=tmpdir,
-            precision="bfloat16",
+            precision="bf16",
             gpus=1,
         )

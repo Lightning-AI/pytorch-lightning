@@ -70,7 +70,7 @@ class AMPTestModel(BoringModel):
     [
         16,
         pytest.param(
-            "bfloat16",
+            "bf16",
             marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_10, reason="torch.bfloat16 not available"),
         ),
     ],

@@ -560,7 +560,7 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision in (16, "bfloat16", "bf16"):
+        if self.precision in (16, "bf16"):
             if self.use_tpu:
                 return TPUHalfPrecisionPlugin()
 
