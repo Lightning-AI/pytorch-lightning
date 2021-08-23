@@ -22,7 +22,8 @@ from typing import Any, Callable, Generator, List, Optional, Tuple
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
+from pytorch_lightning.profiler import BaseProfiler
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
@@ -73,26 +74,22 @@ class AbstractDataFetcher(ABC):
         self.dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
 
-        self.stage: Optional[str]
-        self.batch_to_device: Optional[Callable]
-        self.profiler: "Optional[pl.profiler.base.BaseProfiler]"
-
-        self.batches: List
-        self.fetched: int
-        self.done: bool
+        self.stage: Optional[RunningStage] = None
+        self.batch_to_device: Optional[Callable] = None
+        self.profiler: Optional[BaseProfiler] = None
 
         self.reset()
 
     def setup(
         self,
         dataloader: Iterable,
-        stage: Optional[str] = None,
+        stage: Optional[RunningStage] = None,
         batch_to_device: Optional[Callable] = None,
-        profiler: "Optional[pl.profiler.base.BaseProfiler]" = None,
+        profiler: Optional[BaseProfiler] = None,
     ) -> None:
         self._add_capture_metadata_collate(dataloader)
-
         self.dataloader = dataloader
+
         self.stage = stage
         self.batch_to_device = batch_to_device
         self.profiler = profiler
@@ -204,10 +201,11 @@ class AbstractDataFetcher(ABC):
         return self.fetching_function()
 
     def reset(self) -> None:
-        self.batches: List = []
-        self.dataloader: Optional[Iterable]
-        self.fetched: int = 0
-        self.done: bool = False
+        # FIXME: reset stage?
+        self.dataloader: Optional[Iterable]  # FIXME: set to None?
+        self.batches: List[Any] = []
+        self.fetched = 0
+        self.done = False
 
     def teardown(self) -> None:
         self.reset()
@@ -259,10 +257,11 @@ class DataFetcher(AbstractDataFetcher):
 
     def fetching_function(self) -> Optional[Tuple[Any, bool]]:
         if self.done:
+            # FIXME useless while?
             while self.batches:
                 return self._get_queued_batch()
             raise StopIteration
-        else:
+        else:  # FIXME: unnecessary else
             try:
                 yield_batch = self.pop_batch()
                 self._fetch_next_batch()
@@ -279,22 +278,24 @@ class DataFetcher(AbstractDataFetcher):
                 self.done = True
                 return self._get_queued_batch()
 
+            # FIXME: this is a hack
             except IndexError:
                 raise StopIteration
 
     @contextmanager
     def apply_profiler(self, name: str) -> Generator:
-        if self.profiler:
-            with self.profiler.profile(name):
+        if self.profiler is not None:
+            with self.profiler.profile(name.format(self.stage.dataloader_prefix)):
                 yield
         else:
             yield
 
     def _fetch_next_batch(self):
-        with self.apply_profiler(f"get_{self.stage}_batch"):
+        # FIXME: uneccessary double with
+        with self.apply_profiler("get_{}_batch"):
             with self.fetching_context():
                 data = self.on_fetch_start()
-                with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
+                with self.apply_profiler("fetch_next_{}_batch"):
                     batch = next(self.dataloader_iter)
                 self.fetched += 1
                 self.on_fetch_end(batch, data)
@@ -314,7 +315,7 @@ class DataFetcher(AbstractDataFetcher):
 
     def move_data_to_device(self, batch: Any) -> Any:
         if self.batch_to_device:
-            with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
+            with self.apply_profiler("move_{}_batch_to_device"):
                 batch = self.batch_to_device(batch)
         return batch
 
@@ -413,7 +414,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 self.automatic_optimization = False
 
             def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
-                # it is the user responsability to fetch and move the batch to the right device.
+                # it is the user responsibility to fetch and move the batch to the right device.
                 batch = next(dataloader_iter)
                 batch = batch.to(self.device)
                 ...
@@ -421,7 +422,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
 
     def __init__(self):
         super().__init__()
-        # prevent calling ``move_batch_to_device```
+        # prevent calling `move_batch_to_device`
         self.store_on_device = True
 
     def prefetching(self, prefetch_batches: int) -> None:

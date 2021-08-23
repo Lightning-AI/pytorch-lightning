@@ -43,15 +43,15 @@ class DataConnector:
         self.multiple_trainloader_mode = multiple_trainloader_mode
 
         self.train_data_fetcher = train_data_fetcher
-        self.validate_data_fetcher = validate_data_fetcher
+        self.val_data_fetcher = validate_data_fetcher
         self.test_data_fetcher = test_data_fetcher
-        self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
-        if self.trainer.sanity_checking:
-            return self.sanity_check_data_fetcher
-        return self.test_data_fetcher if self.trainer.testing else self.validate_data_fetcher
+        if self.trainer.testing:
+            return self.test_data_fetcher
+        elif self.trainer.validating:
+            return self.val_data_fetcher
 
     def on_trainer_init(
         self,
@@ -97,9 +97,6 @@ class DataConnector:
         return contains_dataloader_iter
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if self.trainer.sanity_checking:
-            return DataFetcher()
-
         if self.trainer.training and self._check_training_step_requires_dataloader_iter():
             rank_zero_warn(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
@@ -111,19 +108,19 @@ class DataConnector:
             if not self.trainer.training_type_plugin.on_gpu:
                 raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
             return InterBatchParallelDataFetcher()
-
+        elif self.trainer.evaluating:
+            return self.evaluation_data_fetcher
         return DataFetcher()
 
     def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
-        stage: str = self.trainer.state.stage.value
-        data_fetcher = setattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
+        stage = self.trainer.state.stage
+        data_fetcher = self._select_data_fetcher()
         data_fetcher.setup(
             dataloader,
             stage=stage,
             batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
-        setattr(self, f"{stage}_data_fetcher", data_fetcher)
         if isinstance(data_fetcher, DataLoaderIterDataFetcher):
             return data_fetcher
         return enumerate(data_fetcher)
