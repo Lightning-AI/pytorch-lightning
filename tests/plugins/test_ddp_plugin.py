@@ -91,6 +91,6 @@ def test_incorrect_ddp_script_spawning(tmpdir):
         plugins=[DDPPlugin(), WronglyImplementedEnvironment()],
     )
     with pytest.raises(
-        RuntimeError, match="Lightning attempted to launch new distributed processes from `local_rank > 0`."
+        RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
     ):
         trainer.fit(model)
