@@ -353,7 +353,7 @@ def init_ddp_connection(
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
-):
+) -> None:
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.master_address()
