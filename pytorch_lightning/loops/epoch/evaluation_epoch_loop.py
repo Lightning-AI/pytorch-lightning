@@ -91,9 +91,6 @@ class EvaluationEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("evaluation_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
-
         self.batch_progress.increment_ready()
 
         # hook
@@ -229,3 +226,4 @@ class EvaluationEpochLoop(Loop):
                 output = output.cpu()
             outputs.append(output)
         return outputs
+    
