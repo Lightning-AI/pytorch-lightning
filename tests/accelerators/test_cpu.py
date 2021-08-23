@@ -82,9 +82,9 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
         def restore_checkpoint_after_pre_dispatch(self) -> bool:
             return restore_after_pre_dispatch
 
-        def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
             assert self.predispatched_called == restore_after_pre_dispatch
-            return super().load_checkpoint_file(checkpoint_path)
+            return super().load_checkpoint(checkpoint_path)
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
