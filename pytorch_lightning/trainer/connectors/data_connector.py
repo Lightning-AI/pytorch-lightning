@@ -80,17 +80,15 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def _check_training_step_requires_dataloader_iter(self) -> bool:
-        if not self.trainer.training:
-            return False
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
         return contains_dataloader_iter
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if self._check_training_step_requires_dataloader_iter():
+        if self.trainer.training and self._check_training_step_requires_dataloader_iter():
             rank_zero_warn(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-                "this signature is experimental and the behavior may subject to change."
+                "this signature is experimental and the behavior is subject to change."
             )
             return DataLoaderIterDataFetcher()
         elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
@@ -98,8 +96,7 @@ class DataConnector:
             if not self.trainer.training_type_plugin.on_gpu:
                 raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
             return InterBatchParallelDataFetcher()
-        else:
-            return DataFetcher()
+        return DataFetcher()
 
     def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
         stage: str = self.trainer.state.stage.value
