@@ -15,14 +15,14 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_10
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:
     from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
-if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_9:
+if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_10:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
 
