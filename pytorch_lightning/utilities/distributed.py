@@ -353,7 +353,7 @@ def init_ddp_connection(
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Utility function to initialize DDP connection by setting env variables

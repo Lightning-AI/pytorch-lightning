@@ -697,12 +697,12 @@ class DeepSpeedPlugin(DDPPlugin):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint_file(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
             checkpoint_path = self.broadcast(checkpoint_path)
-            return super().load_checkpoint_file(checkpoint_path)
+            return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information
         from pytorch_lightning.trainer.states import TrainerFn
@@ -730,7 +730,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint_file()`
+        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()
             self._restore_zero_state(checkpoint)
@@ -782,7 +782,7 @@ class DeepSpeedPlugin(DDPPlugin):
         load(self.lightning_module, prefix="")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint_file()`
+        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
