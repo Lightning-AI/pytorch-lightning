@@ -136,7 +136,7 @@ class TrainingEpochLoop(loops.Loop):
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
             # FIXME: Remove with InterBatchProcessor.
-            if not self.trainer.data_connector.data_fetcher.store_on_gpu:
+            if not self.trainer.data_connector.train_data_fetcher.store_on_gpu:
                 with self.trainer.profiler.profile("training_batch_to_device"):
                     batch = self.trainer.accelerator.batch_to_device(batch)
 

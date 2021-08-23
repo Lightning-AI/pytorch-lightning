@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from unittest import mock
 from time import time
 from typing import Any
 
@@ -182,13 +184,13 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
 
-    t0 = time()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, gpus=1)
-    trainer.data_connector.data_fetcher = InterBatchParallelismDataFetcher()
-    trainer.fit(model)
-    t1 = time()
-    global_step = trainer.global_step
-    assert isinstance(trainer.data_connector.data_fetcher, InterBatchParallelismDataFetcher)
+    with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
+        t0 = time()
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, gpus=1)
+        trainer.fit(model)
+        t1 = time()
+        global_step = trainer.global_step
+        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelismDataFetcher)
 
     torch.cuda.synchronize()
 
@@ -198,7 +200,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     t3 = time()
 
     assert global_step == trainer.global_step == 8
-    assert isinstance(trainer.data_connector.data_fetcher, DataFetcher)
+    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
     ratio = (t3 - t2) / (t1 - t0)
     assert ratio > 1.2, ratio
 
