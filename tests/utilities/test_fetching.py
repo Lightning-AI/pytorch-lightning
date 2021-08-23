@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning.callbacks.base import Callback
 from time import time
 from typing import Any, Iterator, Type
 from unittest import mock
@@ -23,6 +22,7 @@ from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -182,7 +182,6 @@ def test_trainer_num_prefetch_batches(tmpdir):
     model = RecommenderModel()
 
     class CheckDataFetcher(Callback):
-
         def __init__(self, data_fetcher_cls: Type):
             self.data_fetcher_cls = data_fetcher_cls
 
