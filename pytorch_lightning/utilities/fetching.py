@@ -409,4 +409,4 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     def fetching_function(self) -> Generator:
         iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
         while not self.done:
-            yield iterator, self.fetched, self.done
+            yield self.fetched, (iterator, self.done)

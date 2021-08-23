@@ -113,7 +113,7 @@ class IteratorBatchProcessor:
         Args:
             dataloader_iter: the iterator over the dataloader producing the new batch
         """
-        _, (dataloader_iter, batch_idx, is_last) = next(dataloader_iter)
+        batch_idx, (dataloader_iter, is_last) = next(dataloader_iter)
 
         self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")

@@ -31,14 +31,10 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle", data_fetcher: Optional[AbstractDataFetcher] = None):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-
-        self.train_data_fetcher: Optional[AbstractDataFetcher] = None
-        self.validate_data_fetcher: Optional[AbstractDataFetcher] = None
-        self.test_data_fetcher: Optional[AbstractDataFetcher] = None
-        self.sanity_checking_data_fetcher: Optional[AbstractDataFetcher] = None
+        self.data_fetcher = data_fetcher
 
     def on_trainer_init(
         self,
@@ -100,16 +96,16 @@ class DataConnector:
 
     def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
         stage: str = self.trainer.state.stage.value
-        data_fetcher = self._select_data_fetcher()
-        data_fetcher.setup(
+        self.data_fetcher = self._select_data_fetcher()
+        self.data_fetcher.setup(
             dataloader,
             stage=stage,
             batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
-        # store to enable teardown and clean extra fetched batches
-        setattr(self, f"{stage}_data_fetcher", data_fetcher)
-        return enumerate(data_fetcher)
+        if isinstance(self.data_fetcher, DataLoaderIterDataFetcher):
+            return self.data_fetcher
+        return enumerate(self.data_fetcher)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0

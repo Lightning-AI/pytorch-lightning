@@ -73,6 +73,8 @@ class AsyncBoringModel(BoringModel):
     def train_dataloader(self):
         return DataLoader(RandomDataset(_BATCH_SIZE, _DATASET_LEN))
 
+    training_epoch_end = None
+
 
 def test_training_step_with_dataloader_access(tmpdir) -> None:
     """
