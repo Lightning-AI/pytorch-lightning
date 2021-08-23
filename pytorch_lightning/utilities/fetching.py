@@ -49,7 +49,7 @@ class AbstractDataFetcher(ABC):
                     try:
                         yield next(self.dataloader_iter), False
                     except StopIteration:
-                        yield None, True
+                        return None, True
     """
 
     @abstractmethod
