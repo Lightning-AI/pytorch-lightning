@@ -45,11 +45,11 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
+    init_ddp_connection,
     rank_zero_info,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
-    init_ddp_connection,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
