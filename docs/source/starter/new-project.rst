@@ -127,6 +127,7 @@ Examples of systems are:
 - Seq2seq
 - `SimCLR <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
+- [and a lot more](https://github.com/PyTorchLightning/lightning-tutorials/tree/publication/.notebooks/lightning_examples)
 
 Under the hood a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
