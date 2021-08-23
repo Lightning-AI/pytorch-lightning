@@ -659,7 +659,7 @@ def test_log_gpu_memory_without_logging_on_step(tmpdir, log_gpu_memory):
         gpus=[1],
     )
     trainer.fit(model)
-    if log_gpu_memory == 'min_max':
+    if log_gpu_memory == "min_max":
         assert "min_gpu_mem" in trainer.logged_metrics
         assert "max_gpu_mem" in trainer.logged_metrics
     else:
