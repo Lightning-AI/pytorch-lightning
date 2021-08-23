@@ -124,10 +124,11 @@ class IteratorBatchProcessor:
 
         # give the PL module a result for logging
         model = self.trainer.lightning_module
+        # manually capture logged metrics
+        model._current_fx_name = "training_step"
+        step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
 
         with self.trainer.profiler.profile("model_forward"):
-            # manually capture logged metrics
-            model._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
                 step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
@@ -142,6 +143,8 @@ class IteratorBatchProcessor:
                 check_finite_loss(self.trainer.lightning_module, training_step_output.minimize)
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        if training_step_output:
+            batch_outputs[0].append(training_step_output)
 
         if training_step_output:
             batch_outputs[0].append(training_step_output)
