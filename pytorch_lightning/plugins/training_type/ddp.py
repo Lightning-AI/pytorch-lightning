@@ -40,10 +40,10 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
-    _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
+    _TORCH_GREATER_EQUAL_1_10,
     rank_zero_deprecation,
     rank_zero_warn,
 )
@@ -57,7 +57,7 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
-if not _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_9:
+if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _FAIRSCALE_AVAILABLE:
@@ -67,7 +67,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
-if _TORCH_GREATER_EQUAL_1_9:
+if _TORCH_GREATER_EQUAL_1_10:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
     import torch.distributed.algorithms.model_averaging.averagers as averagers
 
@@ -95,7 +95,7 @@ class DDPPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        model_averaging_period: Optional[int] = None,
+        model_averaging_period: Optional[int] = 16,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -321,8 +321,7 @@ class DDPPlugin(ParallelPlugin):
             # Post-localSDG is only available after 1.9,
             # and `torch.distributed.optim` package currently is not available on Windows.
             if (
-                not _IS_WINDOWS
-                and _TORCH_GREATER_EQUAL_1_9
+                _TORCH_GREATER_EQUAL_1_10
                 and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
                 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             ):
@@ -331,11 +330,10 @@ class DDPPlugin(ParallelPlugin):
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
-            rank_zero_warn(
+            raise ValueError(
                 "Post-localSGD algorithm is used, "
                 "but model averaging period is not provided to DDP plugin. Set this period as 16."
             )
-            self._model_averaging_period = 16
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
