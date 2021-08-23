@@ -33,9 +33,15 @@ class DataConnector:
         check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
         reload_dataloaders_every_epoch: bool,
-        prepare_data_per_node: bool,
+        prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
+
+        if prepare_data_per_node is not None:
+            rank_zero_deprecation(
+                "Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0! "
+                "Please set `prepare_data_per_node` in LightningDataModule or LightningModule directly instead. "
+            )
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
         if not isinstance(check_val_every_n_epoch, int):
@@ -70,20 +76,40 @@ class DataConnector:
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        if self.can_prepare_data():
-            if self.trainer.datamodule is not None:
+        local_rank_zero = self.trainer.local_rank == 0
+        global_rank_zero = self.trainer.local_rank == 0 and self.trainer.node_rank == 0
+
+        datamodule = self.trainer.datamodule
+        lightning_module = self.trainer.lightning_module
+        # handle datamodule prepare data:
+        # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
+        if datamodule is not None and not datamodule.has_prepared_data:
+            dm_prepare_data_per_node = datamodule.prepare_data_per_node
+            dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
+            if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:
+                raise MisconfigurationException(
+                    "Inconsistent settings found for `prepare_data_per_node`."
+                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
+                    f" and `DataModule.prepare_data_per_node={datamodule.prepare_data_per_node}`."
+                    " Move `prepare_data_per_node` setting to DataModule property."
+                )
+            if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
                 self.trainer.datamodule.prepare_data()
-            self.trainer.call_hook("prepare_data")
-            self.trainer._is_data_prepared = True
-
-    def can_prepare_data(self):
-        should_call_dm_prepare_data = True
-        if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
-            should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
-
-        if self.trainer.prepare_data_per_node:
-            return self.trainer.local_rank == 0 and should_call_dm_prepare_data
-        return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+        # handle lightning module prepare data:
+        # check for prepare_data_per_node before calling lightning_module.prepare_data
+        if lightning_module is not None:
+            lm_prepare_data_per_node = lightning_module.prepare_data_per_node
+            lm_eq_prepare_data = lightning_module.prepare_data_per_node == self.trainer.prepare_data_per_node
+            if (self.trainer.prepare_data_per_node is not None) and not lm_eq_prepare_data:
+                raise MisconfigurationException(
+                    "Inconsistent settings found for `prepare_data_per_node`."
+                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
+                    f" and `LightningModule.prepare_data_per_node={lightning_module.prepare_data_per_node}`."
+                    " Move `prepare_data_per_node` setting to LightningModule property."
+                )
+            if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
+                self.trainer.call_hook("prepare_data")
+                self.trainer._is_data_prepared = True
 
     def attach_data(
         self,
