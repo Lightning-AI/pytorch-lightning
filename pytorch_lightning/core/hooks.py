@@ -372,11 +372,9 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
-    __jit_unused_properties__ = ["prepare_data_per_node"]
-
     def __init__(self) -> None:
         """
-        property:
+        Attributes:
             prepare_data_per_node:
                 If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.

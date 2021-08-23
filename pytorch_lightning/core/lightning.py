@@ -79,7 +79,6 @@ class LightningModule(
             "truncated_bptt_steps",
             "loaded_optimizer_states_dict",
         ]
-        + DataHooks.__jit_unused_properties__
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
