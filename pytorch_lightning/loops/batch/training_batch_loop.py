@@ -15,8 +15,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
-from functools import partial, update_wrapper
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 import numpy as np
 import torch
