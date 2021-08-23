@@ -226,4 +226,3 @@ class EvaluationEpochLoop(Loop):
                 output = output.cpu()
             outputs.append(output)
         return outputs
-    
