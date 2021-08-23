@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional
 
 from torch import Tensor
 
-from pytorch_lightning.profiler import BaseProfiler
+from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -63,7 +63,7 @@ class AbstractClosure(ABC):
         return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
+    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
@@ -98,7 +98,7 @@ class Closure(AbstractClosure):
         optimizer.step(closure)
     """
 
-    warning_cache: Optional[WarningCache] = None
+    warning_cache = WarningCache()
 
     def __init__(
         self,
@@ -111,11 +111,9 @@ class Closure(AbstractClosure):
         self._step_fn = step_fn
         self._backward_fn = backward_fn
         self._zero_grad_fn = zero_grad_fn
-        self._profiler = profiler
-        if self.warning_cache is None:
-            self.warning_cache = WarningCache()
+        self._profiler = PassThroughProfiler() if profiler is None else profiler
 
-    def closure(self, *args, **kwargs) -> Optional[ClosureResult]:
+    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
         with self._profiler.profile("training_step_and_backward"):
             output = self._step_fn()
             output = ClosureResult(**output) if output else None
@@ -127,7 +125,7 @@ class Closure(AbstractClosure):
                 with self._profiler.profile("zero_grad"):
                     self._zero_grad_fn()
 
-            if self._backward_fn is not None and output is not None:
+            if self._backward_fn is not None and output is not None and output.closure_loss is not None:
                 with self._profiler.profile("backward"):
                     output.closure_loss = self._backward_fn(output.closure_loss)
 
