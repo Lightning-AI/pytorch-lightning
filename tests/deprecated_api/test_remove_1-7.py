@@ -16,6 +16,7 @@
 import pytest
 
 from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning.loggers import TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -87,3 +88,8 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
     ):
         _ = Trainer(prepare_data_per_node=False)
+
+
+def test_v1_7_0_test_tube_logger(tmpdir):
+    with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
+        _ = TestTubeLogger(tmpdir)
