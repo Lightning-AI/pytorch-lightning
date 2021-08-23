@@ -14,12 +14,8 @@
 import os
 from time import time
 from typing import Any, Iterator
-from torch.utils.data import DataLoader
 from unittest import mock
-from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import STEP_OUTPUT
-from tests.helpers import BoringModel, RandomDataset
+
 import pytest
 import torch
 from torch import tensor
@@ -254,7 +250,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
-    
+
     # we don't sync batch_progress with user fetching
     assert trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
     assert trainer.data_connector.data_fetcher.fetched == 64

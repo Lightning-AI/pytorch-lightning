@@ -105,7 +105,7 @@ class TrainingBatchLoop(Loop):
         return output
 
     def on_stop_iteration(self):
-        # if a stop iteration is being triggered within the ``training_step``,
+        # if a stop iteration is being triggered within the ``training_step``,
         # forward the expection to the parent loop.
         raise StopIteration
 

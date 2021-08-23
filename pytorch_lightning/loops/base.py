@@ -87,7 +87,7 @@ class Loop(ABC):
         Returns:
             the default output value of :meth:`on_run_end`
         """
-    
+
     def _advance_step(self, *args, **kwargs):
         self.on_advance_start(*args, **kwargs)
         self.advance(*args, **kwargs)
