@@ -77,6 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
@@ -151,7 +152,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
+        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
@@ -242,6 +243,10 @@ class Trainer(
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
+
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
             process_position: orders the progress bar when running multiple models on same machine.
 
@@ -924,6 +929,8 @@ class Trainer(
             )
             batch_loop = IteratorBatchProcessor(self, model)
             self.fit_loop.epoch_loop.connect(batch_loop)
+            # FIXME: Move this logic to data_connector after removing `IteratorBatchProcessor`
+            self.data_connector.data_fetcher = DataLoaderIterDataFetcher()
 
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams

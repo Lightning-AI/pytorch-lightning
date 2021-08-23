@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
 import logging
 from collections import OrderedDict
-from copy import copy
-from typing import Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import torch
 
@@ -30,6 +28,7 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
 
@@ -75,11 +74,6 @@ class IteratorBatchProcessor:
                 "The model hook `tbptt_split_batch` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
-        if model.automatic_optimization:
-            raise MisconfigurationException(
-                "`automatic_optimization` is not compatible with "
-                "taking a `dataloader_iter` argument in your `training_step`."
-            )
         if trainer.accumulate_grad_batches != 1:
             raise MisconfigurationException(
                 "`accumulate_grad_batches` can only be 1 when your "
@@ -119,9 +113,7 @@ class IteratorBatchProcessor:
         Args:
             dataloader_iter: the iterator over the dataloader producing the new batch
         """
-        dataloader_iter = itertools.starmap(
-            lambda batch_idx, batch_with_is_last: batch_with_is_last[0], dataloader_iter
-        )
+        _, (dataloader_iter, batch_idx, is_last) = next(dataloader_iter)
 
         self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")
@@ -132,32 +124,27 @@ class IteratorBatchProcessor:
 
         # give the PL module a result for logging
         model = self.trainer.lightning_module
+        # manually capture logged metrics
+        model._current_fx_name = "training_step"
+        step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
 
         with self.trainer.profiler.profile("model_forward"):
-            # manually capture logged metrics
-            model._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
-                step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
             _check_training_step_output(self.trainer.lightning_module, training_step_output)
 
-            if training_step_output is None or "is_last" not in training_step_output:
-                raise MisconfigurationException(
-                    "When `training_step` takes `dataloader_iter` as an argument, the result dict must "
-                    "contain a `is_last` field to indicate whether there are more batches to be processed."
-                )
-            is_last = training_step_output["is_last"]
             training_step_output, _ = _process_training_step_output(self.trainer, training_step_output)
 
             if self.trainer.terminate_on_nan:
                 check_finite_loss(self.trainer.lightning_module, training_step_output.minimize)
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        if training_step_output:
+            batch_outputs[0].append(training_step_output)
 
-        batch_outputs[0].append(copy(training_step_output))
         return AttributeDict(signal=0, training_step_output=batch_outputs, is_last=is_last)
 
     def teardown(self) -> None:
@@ -165,3 +152,23 @@ class IteratorBatchProcessor:
         No-op. Only defined to comply with FitLoop's expectation.
         """
         pass
+
+    # FIXME: To be deleted in next PR.
+    def _build_kwargs(self, dataloader_iter: Iterator, batch_idx: int) -> Dict[str, Any]:
+        """Builds the keyword arguments for training_step
+
+        Args:
+            dataloader_iter: The dataloader to pass
+            batch_idx: the index of the current batch
+
+        Returns:
+            An ordered dict with the keyword arguments for the training step
+        """
+        # enable not needing to add opt_idx to training_step
+        step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
+
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        if is_param_in_hook_signature(training_step_fx, "batch_idx"):
+            step_kwargs["batch_idx"] = batch_idx
+
+        return step_kwargs
