@@ -48,7 +48,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler = torch.cuda.amp.GradScaler()
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
-        if precision == "bfloat16":
+        if precision in ("bfloat16", "bf16"):
             if not _TORCH_GREATER_EQUAL_1_10:
                 raise MisconfigurationException(
                     "To use bfloat16 with native amp you must install torch greater or equal to 1.10."

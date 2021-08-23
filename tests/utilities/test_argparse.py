@@ -231,5 +231,5 @@ def test_precision_parsed_correctly(arg, expected):
 
 
 def test_precision_type():
-    assert isinstance(_precision_allowed_type("bfloat16"), float)
-    assert isinstance(_precision_allowed_type("16"), int)
+    assert _precision_allowed_type("bfloat16") == "bfloat16"
+    assert _precision_allowed_type("16") == 16

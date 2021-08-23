@@ -560,7 +560,7 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision in (16, "bfloat16"):
+        if self.precision in (16, "bfloat16", "bf16"):
             if self.use_tpu:
                 return TPUHalfPrecisionPlugin()
 
@@ -581,7 +581,7 @@ class AcceleratorConnector:
                     else:
                         raise MisconfigurationException(msg)
                 else:
-                    log.info(f"Using native {self.precision}bit precision")
+                    log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
                     if self._is_sharded_training_type:
                         return ShardedNativeMixedPrecisionPlugin(self.precision)
                     if self._is_fully_sharded_training_type:
