@@ -27,7 +27,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("use_combined_loader", [False])
+@pytest.mark.parametrize("use_combined_loader", [False, True])
 def test_prefetch_iterator(use_combined_loader):
     """Test the DataFetcher with PyTorch IterableDataset."""
 
