@@ -21,7 +21,6 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -349,7 +348,7 @@ def tpu_distributed() -> bool:
 
 
 def init_ddp_connection(
-    cluster_environment: ClusterEnvironment,
+    cluster_environment,
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
