@@ -21,6 +21,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -345,3 +346,23 @@ def register_ddp_comm_hook(
 
 def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
+
+
+def init_ddp_connection(cluster_environment: ClusterEnvironment, torch_distributed_backend: str, global_rank: Optional[int] = None, world_size: Optional[int] = None):
+    global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
+    world_size = world_size if world_size is not None else cluster_environment.world_size()
+    os.environ["MASTER_ADDR"] = cluster_environment.master_address()
+    os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
+    if torch.distributed.is_available() and not torch.distributed.is_initialized():
+        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+        torch.distributed.init_process_group(
+            torch_distributed_backend, rank=global_rank, world_size=world_size
+        )
+
+        # on rank=0 let everyone know training is starting
+        rank_zero_info(
+            f"{'-' * 100}\n"
+            f"distributed_backend={torch_distributed_backend}\n"
+            f"All DDP processes registered. Starting ddp with {world_size} processes\n"
+            f"{'-' * 100}\n"
+        )

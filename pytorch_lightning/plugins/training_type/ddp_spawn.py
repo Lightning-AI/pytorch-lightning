@@ -44,6 +44,7 @@ from pytorch_lightning.utilities.distributed import (
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
+    init_ddp_connection,
 )
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -185,7 +186,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
@@ -260,27 +261,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
         )
         self._register_ddp_hooks()
-
-    def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:
-        # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-
-        if not torch.distributed.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch.distributed.init_process_group(
-                self.torch_distributed_backend, rank=global_rank, world_size=world_size
-            )
-
-            # on rank=0 let everyone know training is starting
-            rank_zero_info(
-                f"{'-' * 100}\n"
-                f"distributed_backend={self.torch_distributed_backend}\n"
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
-                f"{'-' * 100}\n"
-            )
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
