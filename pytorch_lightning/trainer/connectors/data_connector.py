@@ -31,7 +31,12 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle", data_fetcher: Optional[AbstractDataFetcher] = None):
+    def __init__(
+        self,
+        trainer: "pl.Trainer",
+        multiple_trainloader_mode: str = "max_size_cycle",
+        data_fetcher: Optional[AbstractDataFetcher] = None,
+    ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
         self.data_fetcher = data_fetcher
