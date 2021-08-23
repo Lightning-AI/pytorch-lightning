@@ -36,6 +36,10 @@ class TestTubeLogger(LightningLoggerBase):
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
     but using a nicer folder structure (see `full docs <https://williamfalcon.github.io/test-tube>`_).
 
+    Warning:
+        The test-tube package is no longer maintained and PyTorch Lightning will remove the :class:´TestTubeLogger´
+        in v1.7.0.
+
     Install it with pip:
 
     .. code-block:: bash
@@ -97,6 +101,10 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: bool = False,
         prefix: str = "",
     ):
+        rank_zero_warn(
+            "The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7. We recommend switching to the"
+            " `pytorch_lightning.loggers.TensorBoardLogger` for an alternative."
+        )
         if Experiment is None:
             raise ImportError(
                 "You want to use `test_tube` logger which is not installed yet,"
