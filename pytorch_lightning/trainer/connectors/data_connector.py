@@ -222,6 +222,11 @@ class DataConnector:
             if isinstance(loader, _PatchDataLoader):
                 loader.unpatch(model)
 
+    def teardown(self) -> None:
+        for attr in vars(self).values():
+            if isinstance(attr, AbstractDataFetcher):
+                attr.teardown()
+
     def _check_training_step_requires_dataloader_iter(self) -> bool:
         if not self.trainer.training:
             return False
