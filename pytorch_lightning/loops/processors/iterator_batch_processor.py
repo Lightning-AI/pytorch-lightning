@@ -130,7 +130,6 @@ class IteratorBatchProcessor:
 
         with self.trainer.profiler.profile("model_forward"):
             with self.trainer.profiler.profile("training_step"):
-                step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
@@ -143,6 +142,7 @@ class IteratorBatchProcessor:
                 check_finite_loss(self.trainer.lightning_module, training_step_output.minimize)
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+
         if training_step_output:
             batch_outputs[0].append(training_step_output)
 
@@ -159,7 +159,7 @@ class IteratorBatchProcessor:
         """Builds the keyword arguments for training_step
 
         Args:
-            batch: the batch to train on
+            dataloader_iter: The dataloader to pass
             batch_idx: the index of the current batch
 
         Returns:

@@ -29,7 +29,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("use_combined_loader", [False])
+@pytest.mark.parametrize("use_combined_loader", [False, True])
 def test_prefetch_iterator(use_combined_loader):
     """Test the DataFetcher with PyTorch IterableDataset."""
 
@@ -111,14 +111,6 @@ def get_cycles_per_ms() -> float:
         cycles_per_ms = 1000000 / start.elapsed_time(end)
         return cycles_per_ms
 
-    # Get 10 values and remove the 2 max and 2 min and return the avg.
-    # This is to avoid system disturbance that skew the results, e.g.
-    # the very first cuda call likely does a bunch of init, which takes
-    # much longer than subsequent calls.
-    #
-    # Tested on both Tesla V100, Quadro GP100, Titan RTX, RTX 3090 GPUs
-    # and seems to return stable values. Therefore, we enable caching
-    # using lru_cache decorator above.
     num = 10
     vals = []
     for _ in range(num):
