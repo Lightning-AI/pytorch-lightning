@@ -349,11 +349,11 @@ def tpu_distributed() -> bool:
 
 
 def init_ddp_connection(
-    cluster_environment: "pl.plugins.environments.cluster_environment.ClusterEnvironment",
+    cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Utility function to initialize DDP connection by setting env variables
