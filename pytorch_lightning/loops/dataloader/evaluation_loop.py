@@ -100,7 +100,8 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dataloader = self.trainer.data_connector.get_profiled_dataloader(
-            dataloader, dataloader_idx=self.current_dataloader_idx)
+            dataloader, dataloader_idx=self.current_dataloader_idx
+        )
         dataloader_iter = iter(dataloader)
 
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
