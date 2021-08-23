@@ -87,6 +87,12 @@ class Loop(ABC):
         Returns:
             the default output value of :meth:`on_run_end`
         """
+    
+    def _advance_step(self, *args, **kwargs):
+        self.on_advance_start(*args, **kwargs)
+        self.advance(*args, **kwargs)
+        self.on_advance_end()
+        self.restarting = False
 
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
@@ -107,11 +113,9 @@ class Loop(ABC):
 
         while not self.done:
             try:
-                self.on_advance_start(*args, **kwargs)
-                self.advance(*args, **kwargs)
-                self.on_advance_end()
-                self.restarting = False
+                self._advance_step(*args, **kwargs)
             except StopIteration:
+                self.on_stop_iteration()
                 break
 
         output = self.on_run_end()
@@ -159,6 +163,9 @@ class Loop(ABC):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
+
+    def on_stop_iteration(self):
+        """Called when a stop iteration is being triggered."""
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
         """

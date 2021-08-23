@@ -16,8 +16,6 @@ from time import time
 from typing import Any
 from unittest import mock
 from typing import Any, Iterator
-
-import pytest
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -229,7 +227,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
             self.batches = []
 
         def training_step(self, dataloader_iter, batch_idx):
-            # assert self.count == batch_idx
+            assert self.count == batch_idx
             assert isinstance(self.trainer.data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
@@ -240,7 +238,9 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
             self.count += 2
             if self.automatic_optimization:
                 loss = super().training_step(batch, 0)
-                self.log("train_loss", loss["loss"])
+                with pytest.raises(MisconfigurationException, match="`batch_size` should be provided"):
+                    self.log("train_loss", loss["loss"])
+                self.log("train_loss", loss["loss"], batch_size=1)
             else:
                 opt = self.optimizers()
                 output = self(batch)
@@ -255,9 +255,8 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
     
-    breakpoint()
-
-    assert trainer.fit_loop.epoch_loop.batch_progress == 64
+    # we don't sync batch_progress with user fetching
+    assert trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
     assert trainer.data_connector.train_data_fetcher.fetched == 64
     assert model.count == 64
 
@@ -332,7 +331,7 @@ def test_stop_iteration(tmpdir) -> None:
         def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
             output = super().training_step(dataloader_iter)
             if self.num_batches_processed == EXPECT_NUM_BATCHES_PROCESSED:
-                raise StopIteration()
+                raise StopIteration
             return output
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)

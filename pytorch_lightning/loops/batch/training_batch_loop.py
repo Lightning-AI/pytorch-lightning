@@ -104,6 +104,11 @@ class TrainingBatchLoop(Loop):
         self.batch_outputs = None  # free memory
         return output
 
+    def on_stop_iteration(self):
+        # if a stop iteration is being triggered within the ``training_step``,
+        # forward the expection to the parent loop.
+        raise StopIteration
+
     def reset(self) -> None:
         """Resets the loop state"""
         self._hiddens = None

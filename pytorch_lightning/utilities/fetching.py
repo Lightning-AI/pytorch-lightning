@@ -378,6 +378,7 @@ class StepFuncDataLoaderIter:
     def __next__(self) -> Any:
         try:
             data = next(self.iterator)
+            self.data_fetcher.fetched += 1
             return data
         except StopIteration:
             self.data_fetcher.done = True
