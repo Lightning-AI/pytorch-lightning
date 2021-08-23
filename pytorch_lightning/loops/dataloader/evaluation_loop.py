@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Iterator, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -98,10 +97,8 @@ class EvaluationLoop(DataLoaderLoop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
-        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        data_fetcher = DataFetcher()
-        data_fetcher.setup(dataloader)
-        dataloader_iter = enumerate(data_fetcher)
+
+        dataloader_iter = self._prepare_dataloader_iter()
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.epoch_loop.run(
@@ -250,3 +247,8 @@ class EvaluationLoop(DataLoaderLoop):
     def teardown(self) -> None:
         self._results.cpu()
         self.epoch_loop.teardown()
+
+    def _prepare_dataloader_iter(self) -> Iterator:
+        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader)
+        return iter(dataloader)

@@ -11,22 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+from functools import partial
 from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, InterBatchParallelismDataFetcher
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelismDataFetcher,
+)
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.data_fetcher: Optional[DataFetcher] = DataFetcher()
+
+        self.train_data_fetcher: Optional[AbstractDataFetcher] = None
+        self.validate_data_fetcher: Optional[AbstractDataFetcher] = None
+        self.test_data_fetcher: Optional[AbstractDataFetcher] = None
 
     def on_trainer_init(
         self,
@@ -60,15 +71,38 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
-        # FIXME: Temporary hack
-        if isinstance(self.data_fetcher, InterBatchParallelismDataFetcher):
-            self.data_fetcher.setup(train_dataloader, batch_to_device=self.trainer.accelerator.batch_to_device)
+    def _check_training_step_requires_dataloader_iter(self) -> bool:
+        if not self.trainer.training:
+            return False
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
+        return contains_dataloader_iter
+
+    def _select_data_fetcher(self) -> AbstractDataFetcher:
+        if self._check_training_step_requires_dataloader_iter():
+            rank_zero_warn(
+                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+                "this signature is experimental and the behavior may subject to change."
+            )
+            return DataLoaderIterDataFetcher()
+        elif self.trainer.training_type_plugin.on_gpu and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+            # note: this is an experimental feature
+            return InterBatchParallelismDataFetcher()
         else:
-            self.data_fetcher.setup(train_dataloader)
-        prefetcher_iter = iter(self.data_fetcher)
-        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
-        return profiled_dl
+            return DataFetcher()
+
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+        stage: str = self.trainer.state.stage.value
+        data_fetcher = self._select_data_fetcher()
+        data_fetcher.setup(
+            dataloader,
+            stage=stage,
+            batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
+            profiler=self.trainer.profiler,
+        )
+        # store to enable teardown and clean extra fetched batches
+        setattr(self, f"{stage}_data_fetcher", data_fetcher)
+        return enumerate(data_fetcher)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
