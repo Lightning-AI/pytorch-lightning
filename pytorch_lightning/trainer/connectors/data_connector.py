@@ -254,10 +254,6 @@ class DataConnector:
 
     def _check_training_step_requires_dataloader_iter(self) -> bool:
         """Check if the current `training_step` is requesting `dataloader_iter`."""
-
-        if not self.trainer.training:
-            return False
-
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
 
