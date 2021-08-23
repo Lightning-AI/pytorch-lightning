@@ -77,6 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
@@ -928,6 +929,8 @@ class Trainer(
             )
             batch_loop = IteratorBatchProcessor(self, model)
             self.fit_loop.epoch_loop.connect(batch_loop)
+            # FIXME: Move this logic to data_connector after removing `IteratorBatchProcessor`
+            self.data_connector.data_fetcher = DataLoaderIterDataFetcher()
 
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
