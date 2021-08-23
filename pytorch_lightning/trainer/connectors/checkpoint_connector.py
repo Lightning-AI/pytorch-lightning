@@ -60,16 +60,8 @@ class CheckpointConnector:
         if not checkpoint_path:
             return
 
-        # clear cache before restore
-        torch.cuda.empty_cache()
-
-        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
-        fs = get_filesystem(checkpoint_path)
-        if not fs.exists(checkpoint_path):
-            raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
-
-        rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
-        self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+        rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
+        self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
 
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
@@ -152,7 +144,7 @@ class CheckpointConnector:
         """Restore only the model weights."""
         checkpoint = self._loaded_checkpoint
         if checkpoint_path is not None:
-            checkpoint = self.trainer.training_type_plugin.load_checkpoint_file(checkpoint_path)
+            checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
