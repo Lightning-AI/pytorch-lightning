@@ -555,7 +555,6 @@ class TrainingBatchLoop(Loop):
         step_kwargs = OrderedDict([("batch", batch)])
 
         lightning_module = self.trainer.lightning_module
-
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
 
         if is_param_in_hook_signature(training_step_fx, "batch_idx"):
