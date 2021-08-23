@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 class AbstractDataFetcher(ABC):
 
     """
-    This based class should be used to implement a fault tolerant `DataFetcher`.
+    This based class should be used to implement a fault tolerant ``DataFetcher``.
     It is required to override the ``fetching_function`` with fetching logic.
     Example::
         class SimpleDataFetcher(AbstractDataFetcher):
@@ -206,7 +206,8 @@ class DataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.
-    By default, the `fetching_function` will `prefetch` a batch in advance to detect the end of the iteration.
+    By default, the ``fetching_function`` will pre-fetch a batch in advance to detect the end of the iteration.
+
     Args:
         prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
             at least 1 batch for tracking the latest batch.
@@ -305,13 +306,17 @@ class DataFetcher(AbstractDataFetcher):
 class InterBatchParallelismDataFetcher(DataFetcher):
 
     """
-    This class implements `inter-batch-parallelism` algorithm which aims at hiding the latency of host-to-device copy
-    of input batches behind computational intensive operation.
-    Without parallization:
+    This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy
+    of input batches behind computationally intensive operations.
+
+    Without parallelization:
+
     batch 0: [HtoD][forward][backward]
     batch 1:                          [HtoD][forward][backward]
     batch 2:                                                   [HtoD][forward][backward]
+
     With parallelization, the latency of HtoD copy can be hidden:
+
     batch 0: [HtoD][forward][backward]
     batch 1:       [HtoD]             [forward][backward]
     batch 2:             [HtoD]                          [forward][backward]
@@ -380,7 +385,8 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     """
     This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step
     for users to implement their own pre-fetching logic.
-    This feature can be activated as follow:
+    This feature can be activated as follows:
+
     Example::
         Class MyModel(LightningModule):
             def __init__(self):
