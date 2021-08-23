@@ -15,8 +15,8 @@
 
 import pytest
 
-from pytorch_lightning.utilities.debugging_examples import BoringModel
 from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers.datamodules import MNISTDataModule
 
