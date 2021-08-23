@@ -16,7 +16,6 @@ from typing import Dict, Optional
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities import _RICH_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _RICH_AVAILABLE:
     from rich.console import Console, RenderableType
@@ -81,9 +80,33 @@ STYLES: Dict[str, str] = {
 
 
 class RichProgressBar(ProgressBarBase):
+    """
+    Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
+
+    Install it with pip:
+
+    .. code-block:: bash
+
+        pip install rich
+
+    .. code-block:: python
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import RichProgressBar
+
+        trainer = Trainer(callbacks=RichProgressBar())
+
+    Args:
+        refresh_rate: the number of updates per second, must be strictly positive
+
+    Raises:
+        ImportError:
+            If required `rich` package is not installed on the device.
+    """
+
     def __init__(self, refresh_rate: float = 1.0):
         if not _RICH_AVAILABLE:
-            raise MisconfigurationException(
+            raise ImportError(
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install rich`."
             )
         super().__init__()
