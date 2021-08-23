@@ -159,6 +159,8 @@ jobs:
     - name: Examples
       run: |
         python -m pytest pl_examples -v --durations=10
+      env:
+        PL_USE_MOCKED_MNIST: "1"
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
