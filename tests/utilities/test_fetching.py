@@ -191,7 +191,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
         trainer.fit(model)
         t1 = time()
         global_step = trainer.global_step
-        assert isinstance(trainer.data_connector.data_fetcher, InterBatchParallelDataFetcher)
+        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
 
     torch.cuda.synchronize()
 
@@ -201,7 +201,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     t3 = time()
 
     assert global_step == trainer.global_step == 4
-    assert isinstance(trainer.data_connector.data_fetcher, DataFetcher)
+    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
     ratio = (t3 - t2) / (t1 - t0)
     assert ratio > 1.1, ratio
 

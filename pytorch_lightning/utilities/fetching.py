@@ -47,14 +47,18 @@ class AbstractDataFetcher(ABC):
             def fetching_function(self):
                 while True:
                     try:
-                        yield next(self.dataloader_iter), False
+                        return next(self.dataloader_iter), False
                     except StopIteration:
                         return None, True
     """
 
     @abstractmethod
-    def fetching_function(self) -> Generator:
+    def fetching_function(self) -> Any:
         """Override with your own fetching logic."""
+
+    @abstractmethod
+    def prefetching(self, prefetch_batches: int) -> None:
+        """Override with your own pre-fetching logic."""
 
     def __init__(
         self,
@@ -63,6 +67,7 @@ class AbstractDataFetcher(ABC):
         if prefetch_batches < 0:
             raise MisconfigurationException("`prefetch_batches` should at least be 0.")
 
+        self.store_on_device = False
         self.prefetch_batches = prefetch_batches + 1
 
         self.dataloader: Optional[Iterable] = None
@@ -192,6 +197,10 @@ class AbstractDataFetcher(ABC):
         self.reset()
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
+        self.prefetching(self.prefetch_batches)
+        return self
+
+    def __next__(self):
         return self.fetching_function()
 
     def reset(self) -> None:
@@ -241,33 +250,37 @@ class DataFetcher(AbstractDataFetcher):
     def wait(self) -> None:
         """Hook to override to indicate the `DataFetcher` to wait for an event."""
 
-    def fetching_function(self) -> Generator:
-        self.done = False
-        while not self.done:
-            self._prefetching(self.prefetch_batches)
-
-            while self.batches:
-                try:
-                    yield_batch = self.pop_batch()
-                    self._fetch_next_batch()
-
-                    # wait for batch to be available.
-                    self.wait()
-
-                    # yield last and has next
-                    yield (self.move_data_to_device(yield_batch) if not self.store_on_device else yield_batch, False)
-                except StopIteration:
-                    self.batches.insert(0, yield_batch)
-                    break
-
-            yield from self._consume_prefetched_batches()
-
-    def _prefetching(self, prefetch_batches: int) -> None:
+    def prefetching(self, prefetch_batches: int) -> None:
         for _ in range(prefetch_batches):
             try:
                 self._fetch_next_batch()
             except StopIteration:
                 break
+
+    def fetching_function(self) -> Optional[Tuple[Any, bool]]:
+        if self.done:
+            while self.batches:
+                return self._get_queued_batch()
+            raise StopIteration
+        else:
+            try:
+                yield_batch = self.pop_batch()
+                self._fetch_next_batch()
+
+                # wait for batch to be available.
+                self.wait()
+
+                # yield last and has next
+                return yield_batch, False
+                # FIXME: Why does this count as a python `referrers` ?
+                # return (self.move_data_to_device(yield_batch) if not self.store_on_device else yield_batch, False)
+            except StopIteration:
+                self.batches.insert(0, yield_batch)
+                self.done = True
+                return self._get_queued_batch()
+
+            except IndexError:
+                raise StopIteration
 
     @contextmanager
     def apply_profiler(self, name: str) -> Generator:
@@ -291,13 +304,13 @@ class DataFetcher(AbstractDataFetcher):
         while self.batches:
             yield from self._yield_batch()
 
-    def _yield_batch(self) -> Generator:
+    def _get_queued_batch(self) -> Tuple[Any, bool]:
         self.wait()
         batch = self.batches.pop(0)
         if not self.store_on_device:
             batch = self.move_data_to_device(batch)
         is_last = len(self.batches) == 0
-        yield batch, is_last
+        return batch, is_last
 
     def move_data_to_device(self, batch: Any) -> Any:
         if self.batch_to_device:
@@ -405,8 +418,15 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 batch = batch.to(self.device)
                 ...
     """
+    def __init__(self):
+        super().__init__()
+        # prevent calling ``move_batch_to_device```
+        self.store_on_device = True
 
-    def fetching_function(self) -> Generator:
-        iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
+    def prefetching(self, prefetch_batches: int) -> None:
+        self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
+
+    def fetching_function(self):
         while not self.done:
-            yield self.fetched, (iterator, self.done)
+            return self.fetched, (self.iterator, self.done)
+        raise StopIteration

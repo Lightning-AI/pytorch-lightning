@@ -91,6 +91,9 @@ class EvaluationEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
+        if not self.trainer.data_connector.evaluation_data_fetcher.store_on_device:
+            batch = self.trainer.accelerator.batch_to_device(batch)
+
         self.batch_progress.increment_ready()
 
         # hook
