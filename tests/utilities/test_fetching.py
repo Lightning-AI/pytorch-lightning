@@ -97,11 +97,16 @@ def test_misconfiguration_error():
 
 def get_cycles_per_ms() -> float:
     """
-    Measure and return approximate number of cycles per millisecond for torch.cuda._sleep
-    Copied from: github.com/pytorch/pytorch/blob/master/test/test_cuda.py
+    Get 10 values and remove the 2 max and 2 min and return the avg.
+    This is to avoid system disturbance that skew the results, e.g. the very first cuda call likely does a bunch of
+    init, which takes much longer than subsequent calls.
     """
 
     def measure() -> float:
+        """
+        Measure and return approximate number of cycles per millisecond for `torch.cuda._sleep`
+        Copied from: https://github.com/pytorch/pytorch/blob/v1.9.0/test/test_cuda.py#L81
+        """
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
         start.record()
@@ -110,10 +115,6 @@ def get_cycles_per_ms() -> float:
         end.synchronize()
         cycles_per_ms = 1000000 / start.elapsed_time(end)
         return cycles_per_ms
-
-    # Get 10 values and remove the 2 max and 2 min and return the avg.
-    # This is to avoid system disturbance that skew the results, e.g. the very first cuda call likely does a bunch of
-    # init, which takes much longer than subsequent calls.
 
     num = 10
     vals = []

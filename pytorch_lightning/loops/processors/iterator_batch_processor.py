@@ -167,9 +167,7 @@ class IteratorBatchProcessor:
         # enable not needing to add opt_idx to training_step
         step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
 
-        lightning_module = self.trainer.lightning_module
-
-        training_step_fx = getattr(lightning_module, "training_step")
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         if is_param_in_hook_signature(training_step_fx, "batch_idx"):
             step_kwargs["batch_idx"] = batch_idx
 
