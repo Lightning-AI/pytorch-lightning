@@ -59,19 +59,20 @@ The minor versions contain new features, API changes, deprecations, removals, po
 changes and also all previous bugfixes included in any bugfix release. With every release, we publish a changelog
 where we list additions, removals, changed functionality and fixes.
 
-Project Management
-******************
+Project Management and Decision Making
+**************************************
 
 The decision what goes into a release is governed by the :ref:`staff contributors and leaders <governance>` of
 Lightning development. Whenever possible, discussion happens publicly on GitHub and includes the whole community.
+For controversial changes, it is mandatory to seek consultation from :ref:`BDFL`.
 When a consensus is reached, staff and core contributors assign milestones and labels to the issue and/or pull request
-(PR) and start tracking the development. It is possible that priorities change over time.
+and start tracking the development. It is possible that priorities change over time.
 
-Decision Making
-***************
-
-Text
-
+Commits to the project are exclusively to be added by pull requests on GitHub and anyone in the community is welcome to
+review them. However, reviews submitted by
+`code owners <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CODEOWNERS>`_
+have higher weight and it is necessary to get the approval of code owners before a pull request can be merged.
+Additional requirements may apply case by case.
 
 API Evolution
 *************
