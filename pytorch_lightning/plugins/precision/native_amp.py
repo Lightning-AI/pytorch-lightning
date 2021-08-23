@@ -63,7 +63,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.is_bfloat16:
             warning_cache.warn(
-                "Skipping torch.cuda.amp.GradScaler() in NativeMixedPrecisionPlugin as torch.bfloat16 is used "
+                "Skipping torch.cuda.amp.GradScaler in NativeMixedPrecisionPlugin as torch.bfloat16 is used."
             )
             return super().pre_backward(model, closure_loss)
         closure_loss = self.scaler.scale(closure_loss)

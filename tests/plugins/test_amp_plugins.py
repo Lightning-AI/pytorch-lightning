@@ -223,10 +223,13 @@ def test_amp_precision_bfloat(tmpdir):
     assert isinstance(plugin, NativeMixedPrecisionPlugin)
     assert plugin.is_bfloat16
     assert plugin.autocast.fast_dtype == torch.bfloat16
-    trainer.fit(model)
+    with pytest.warns(
+        UserWarning, match="Skipping torch.cuda.amp.GradScaler in NativeMixedPrecisionPlugin as torch.bfloat16 is used."
+    ):
+        trainer.fit(model)
 
 
-@RunIf(min_gpus=1, amp_native=True)
+@RunIf(min_gpus=1, amp_native=True, max_torch="1.9")
 def test_amp_precision_16_bfloat_throws_error(tmpdir):
     with pytest.raises(
         MisconfigurationException,
