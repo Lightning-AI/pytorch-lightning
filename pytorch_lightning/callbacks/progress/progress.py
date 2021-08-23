@@ -56,6 +56,7 @@ class ProgressBar(ProgressBarBase):
     r"""
     This is the default progress bar used by Lightning. It prints to `stdout` using the
     :mod:`tqdm` package and shows up to four different bars:
+
     - **sanity check progress:** the progress during the sanity check run
     - **main progress:** shows training + validation progress combined. It also accounts for
       multiple validation runs during training when
@@ -63,18 +64,25 @@ class ProgressBar(ProgressBarBase):
     - **validation progress:** only visible during validation;
       shows total progress over all validation datasets.
     - **test progress:** only active when testing; shows total progress over all test datasets.
+
     For infinite datasets, the progress bar never ends.
+
     If you want to customize the default ``tqdm`` progress bars used by Lightning, you can override
     specific methods of the callback class and pass your custom implementation to the
     :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+
     Example::
+
         class LitProgressBar(ProgressBar):
+
             def init_validation_tqdm(self):
                 bar = super().init_validation_tqdm()
                 bar.set_description('running validation ...')
                 return bar
+
         bar = LitProgressBar()
         trainer = Trainer(callbacks=[bar])
+
     Args:
         refresh_rate:
             Determines at which rate (in number of batches) the progress bars get updated.
