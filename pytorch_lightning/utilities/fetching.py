@@ -14,13 +14,22 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
+from copy import deepcopy
+from functools import partial
 from typing import Any, Generator, List, Optional, Tuple
 
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.auto_restart import (
+    _add_capture_metadata_collate,
+    IteratorState,
+    MergedIteratorState,
+    patch_dataloader_iterator,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class AbstractDataFetcher(ABC):
@@ -48,46 +57,90 @@ class AbstractDataFetcher(ABC):
         self.batches: List
         self.fetched: int
         self.done: bool
-        self.has_raised: bool
 
         self.reset()
 
     def setup(self, dataloader: DataLoader, **kwargs) -> None:
-        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
-            raise MisconfigurationException(
-                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
-            )
+        self._add_capture_metadata_collate(dataloader)
         self.dataloader = dataloader
 
-    def add_batch(self, batch: Any) -> None:
+    @staticmethod
+    def _add_capture_metadata_collate(dataloader: Iterable) -> None:
+        if not isinstance(dataloader, (DataLoader, CombinedLoader)):
+            return
+
+        if isinstance(dataloader, CombinedLoader):
+            dataloader = dataloader.loaders
+
+        def add_capture_metadata_collate(dataloader: DataLoader):
+            if not isinstance(dataloader.collate_fn, partial):
+                _add_capture_metadata_collate(dataloader)
+
+        apply_to_collection(dataloader, DataLoader, add_capture_metadata_collate)
+
+    def add_batch(self, batch) -> None:
         self.batches.append(batch)
 
     def fetch_batch(self) -> Any:
         return self.batches.pop(0)
 
+    def _apply_patch(self):
+        def _apply_patch_fn(loader: DataLoader, iterator: Iterator):
+            if isinstance(loader, CycleIterator):
+                loader = loader.loader
+                # cycle_iterator = iterator
+                iterator = iterator._loader_iter
+
+            if isinstance(loader, DataLoader) and _fault_tolerant_training():
+                loader._lightning_fetcher = self
+                patch_dataloader_iterator(loader, iterator, self)
+
+        apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
+
+    def _store_dataloader_iter_state(
+        self, dataloader_iter: Iterator, dataloader_iter_states: List[IteratorState]
+    ) -> None:
+        if getattr(dataloader_iter, "cache_states", None) is None:
+            dataloader_iter.cache_states = {}
+
+        if getattr(dataloader_iter, "state", None) is None:
+            dataloader_iter.state = MergedIteratorState()
+
+        for iter_state in dataloader_iter_states:
+            iter_name = iter_state.name
+            if iter_name not in dataloader_iter.cache_states:
+                dataloader_iter.cache_states[iter_name] = []
+            dataloader_iter.cache_states[iter_name].append(iter_state)
+
+        if self.fetched >= self.prefetch_batches:
+            for iter_state in dataloader_iter_states:
+                if len(dataloader_iter.state):
+                    dataloader_iter.previous_state = deepcopy(dataloader_iter.state)
+                iter_name = iter_state.name
+                state = dataloader_iter.cache_states[iter_name].pop(0)
+                dataloader_iter.state.update(iter_name, state)
+
     @property
     def loaders(self) -> List[DataLoader]:
-        if not self.dataloader:
+        if self.dataloader is None:
             raise MisconfigurationException(
                 "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
             )
         if isinstance(self.dataloader, CombinedLoader):
             loaders = self.dataloader.loaders
-        elif isinstance(self.dataloader, (tuple, list)):
-            loaders = self.dataloader
         else:
             loaders = [self.dataloader]
         return loaders
 
     @property
     def loader_iters(self) -> List[Iterator]:
-        if not self.dataloader:
+        if self.dataloader is None:
             raise MisconfigurationException(
                 "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
             )
 
-        if not self.dataloader_iter:
-            raise MisconfigurationException("The dataloader_iter isn't available outside the __iter__ context.")
+        if self.dataloader_iter is None:
+            raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
 
         if isinstance(self.dataloader, CombinedLoader):
             loader_iters = self.dataloader_iter.loader_iters
@@ -107,15 +160,17 @@ class AbstractDataFetcher(ABC):
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
         self.dataloader_iter = iter(self.dataloader)
+        self._apply_patch()
         return self.fetching_function()
 
     def reset(self) -> None:
         self.batches: List = []
+        self.dataloader: Optional[Iterable]
         self.fetched: int = 0
         self.done: bool = False
 
 
-class LightningDataFetcher(AbstractDataFetcher):
+class DataFetcher(AbstractDataFetcher):
 
     """
     This class is used to control batch fetching flow.

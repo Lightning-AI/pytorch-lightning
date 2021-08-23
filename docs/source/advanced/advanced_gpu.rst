@@ -202,13 +202,15 @@ DeepSpeed also offers lower level training optimizations, and efficient optimize
 
 Below is a summary of all the configurations of DeepSpeed.
 
-* :ref:`deepspeed-zero-stage-2` - **Shard optimizer states and gradients**, remains at parity with DDP with memory improvement
+* :ref:`deepspeed-zero-stage-1` - **Shard optimizer states**, remains at speed parity with DDP whilst providing memory improvement
 
-* :ref:`deepspeed-zero-stage-2-offload` - **Offload optimizer states and gradients to CPU**. Increases communication, but significant memory improvement
+* :ref:`deepspeed-zero-stage-2` - **Shard optimizer states and gradients**, remains at speed parity with DDP whilst providing even more memory improvement
 
-* :ref:`deepspeed-zero-stage-3` - **Shard optimizer states, gradients, (Optional) activations and parameters**. Increases communication volume, but even more memory improvement
+* :ref:`deepspeed-zero-stage-2-offload` - **Offload optimizer states and gradients to CPU**. Increases distributed communication volume and GPU-CPU device transfer, but provides significant memory improvement
 
-* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, (Optional) activations and parameters to CPU**. Increases communication, but even more signficant memory improvement.
+* :ref:`deepspeed-zero-stage-3` - **Shard optimizer states, gradients, parameters and optionally activations**. Increases distributed communication volume, but provides even more memory improvement
+
+* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, parameters and optionally activations to CPU**. Increases distributed communication volume and GPU-CPU device transfer, but even more signficant memory improvement.
 
 * :ref:`deepspeed-activation-checkpointing` - **Free activations after forward pass**. Increases computation, but provides memory improvement for all stages.
 
@@ -227,12 +229,30 @@ If you run into an issue with the install or later in training, ensure that the 
     When saving a checkpoint we rely on DeepSpeed which saves a directory containing the model and various components.
 
 
+.. _deepspeed-zero-stage-1:
+
+DeepSpeed ZeRO Stage 1
+""""""""""""""""""""""
+
+`DeepSpeed ZeRO Stage 1 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_ partitions your optimizer states (Stage 1) across your GPUs to reduce memory.
+
+It is recommended to skip Stage 1 and use Stage 2, which comes with larger memory improvements and still remains efficient. Stage 1 is useful to pair with certain optimizations such as `Torch ORT <https://github.com/pytorch/ort>`__.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins="deepspeed_stage_1", precision=16)
+    trainer.fit(model)
+
+
 .. _deepspeed-zero-stage-2:
 
 DeepSpeed ZeRO Stage 2
 """"""""""""""""""""""
 
-By default, we enable `DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
+`DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_ partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
 As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described in a few sections below.
 
 .. code-block:: python

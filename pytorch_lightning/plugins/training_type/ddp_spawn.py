@@ -14,6 +14,7 @@
 import logging
 import os
 import re
+from multiprocessing.queues import SimpleQueue
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -21,6 +22,7 @@ import torch.distributed
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -38,7 +40,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
-    rank_zero_info,
+    init_ddp_connection,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -156,22 +158,21 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    @property
-    def mp_spawn_kwargs(self):
-        return {"args": (self.lightning_module.trainer, self.mp_queue), "nprocs": self.num_processes}
+    def get_mp_spawn_kwargs(self, trainer: "pl.Trainer") -> dict:
+        return {"args": (trainer, self.mp_queue), "nprocs": self.num_processes}
 
-    def start_training(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_training(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
-    def start_evaluating(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def start_predicting(self, trainer):
-        mp.spawn(self.new_process, **self.mp_spawn_kwargs)
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        mp.spawn(self.new_process, **self.get_mp_spawn_kwargs(trainer))
 
-    def new_process(self, process_idx, trainer, mp_queue):
+    def new_process(self, process_idx: int, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
         self.mp_queue = mp_queue
 
         reset_seed()
@@ -184,7 +185,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
 
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
@@ -207,7 +208,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         results = trainer.run_stage()
 
         # persist info in ddp_spawn
-        self.transfer_distrib_spawn_state_on_fit_end(results)
+        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
@@ -260,34 +261,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         )
         self._register_ddp_hooks()
 
-    def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:
-        # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-
-        if not torch.distributed.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch.distributed.init_process_group(
-                self.torch_distributed_backend, rank=global_rank, world_size=world_size
-            )
-
-            # on rank=0 let everyone know training is starting
-            rank_zero_info(
-                f"{'-' * 100}\n"
-                f"distributed_backend={self.torch_distributed_backend}\n"
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
-                f"{'-' * 100}\n"
-            )
-
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
 
-    def transfer_distrib_spawn_state_on_fit_end(self, results):
-        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+        checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
@@ -298,11 +278,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
             # save the last weights
             last_path = None
-            if (
-                self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-                and best_model_path is not None
-                and len(best_model_path) > 0
-            ):
+            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 atomic_save(self.on_save(state_dict), last_path)
 

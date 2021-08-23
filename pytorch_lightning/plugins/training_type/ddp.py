@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
@@ -44,7 +45,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
-    rank_zero_info,
+    init_ddp_connection,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -252,7 +253,7 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection()
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
 
         # set the ranks and devices
         self.dist.rank = self.global_rank
@@ -314,25 +315,6 @@ class DDPPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if torch.distributed.is_available() and not torch.distributed.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch.distributed.init_process_group(
-                self.torch_distributed_backend, rank=global_rank, world_size=world_size
-            )
-
-            # on rank=0 let everyone know training is starting
-            rank_zero_info(
-                f"{'-' * 100}\n"
-                f"distributed_backend={self.torch_distributed_backend}\n"
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
-                f"{'-' * 100}\n"
-            )
 
     def pre_dispatch(self):
         # move the model to the correct device
@@ -440,6 +422,11 @@ class DDPPlugin(ParallelPlugin):
             return
 
         sync_dir = self._sync_dir
+
+        # The cluster may be configured to periodically purge the `/tmp`
+        # directory, in which case `sync_dir` may not exist anymore at this
+        # point. Idempotently create it to ensure its existence.
+        Path(sync_dir).mkdir(parents=True, exist_ok=True)
 
         # save a file locally.
         torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
