@@ -27,15 +27,10 @@ from tests.helpers.runif import RunIf
 
 
 class CustomCheckpointIO(CheckpointIO):
-    save_checkpoint_called: bool = False
-    load_checkpoint_called: bool = False
-
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
-        self.save_checkpoint_called = True
         torch.save(checkpoint, path)
 
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
-        self.load_checkpoint_called = True
         return torch.load(path)
 
 
