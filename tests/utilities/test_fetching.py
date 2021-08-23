@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from pytorch_lightning.callbacks.base import Callback
 from time import time
-from typing import Any, Iterator
+from typing import Any, Iterator, Type
 from unittest import mock
 
 import pytest
@@ -179,6 +180,15 @@ class RecommenderModel(BoringModel):
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
+
+    class CheckDataFetcher(Callback):
+
+        def __init__(self, data_fetcher_cls: Type):
+            self.data_fetcher_cls = data_fetcher_cls
+
+        def on_batch_start(self, trainer, *_) -> None:
+            assert isinstance(trainer.data_connector.train_data_fetcher, self.data_fetcher_cls)
+
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -190,21 +200,21 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
+        trainer_kwargs["callbacks"] = CheckDataFetcher(InterBatchParallelDataFetcher)
         trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
         global_step = trainer.global_step
-        assert isinstance(trainer.data_connector.data_fetcher, InterBatchParallelDataFetcher)
 
     torch.cuda.synchronize()
 
     t2 = time()
+    trainer_kwargs["callbacks"] = CheckDataFetcher(DataFetcher)
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
 
     assert global_step == trainer.global_step == 4
-    assert isinstance(trainer.data_connector.data_fetcher, DataFetcher)
     ratio = (t3 - t2) / (t1 - t0)
     assert ratio > 1.1, ratio
 
@@ -221,7 +231,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer.data_connector.data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -242,16 +252,17 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
                 loss.backward()
                 opt.step()
 
-        training_epoch_end = None
+        def training_epoch_end(self, *_):
+            assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
+            assert self.trainer.data_connector.train_data_fetcher.fetched == 64
+            assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
 
-    # we don't sync batch_progress with user fetching
-    assert trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-    assert trainer.data_connector.data_fetcher.fetched == 64
-    assert model.count == 64
+    # should be cleaned out !
+    assert not hasattr(trainer.data_connector, "train_data_fetcher")
 
 
 class DummyWaitable:
