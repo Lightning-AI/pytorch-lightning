@@ -34,11 +34,8 @@ from tests.helpers.utils import reset_seed
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-
-    model = BoringModel()
     dm = BoringDataModule()
     trainer = Trainer()
-    trainer.model = model
     trainer.datamodule = dm
 
     # 1 no DM

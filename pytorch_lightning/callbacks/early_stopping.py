@@ -159,7 +159,9 @@ class EarlyStopping(Callback):
             "patience": self.patience,
         }
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
+    ) -> None:
         self.wait_count = callback_state["wait_count"]
         self.stopped_epoch = callback_state["stopped_epoch"]
         self.best_score = callback_state["best_score"]
