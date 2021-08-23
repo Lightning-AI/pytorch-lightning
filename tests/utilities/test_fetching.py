@@ -15,7 +15,7 @@ import os
 from time import time
 from typing import Any, Iterator
 from torch.utils.data import DataLoader
-
+from unittest import mock
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -201,7 +201,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
         trainer.fit(model)
         t1 = time()
         global_step = trainer.global_step
-        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
+        assert isinstance(trainer.data_connector.data_fetcher, InterBatchParallelDataFetcher)
 
     torch.cuda.synchronize()
 
@@ -211,7 +211,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     t3 = time()
 
     assert global_step == trainer.global_step == 4
-    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
+    assert isinstance(trainer.data_connector.data_fetcher, DataFetcher)
     ratio = (t3 - t2) / (t1 - t0)
     assert ratio > 1.1, ratio
 
@@ -228,7 +228,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer.data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.data_connector.data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -257,7 +257,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     
     # we don't sync batch_progress with user fetching
     assert trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-    assert trainer.data_connector.train_data_fetcher.fetched == 64
+    assert trainer.data_connector.data_fetcher.fetched == 64
     assert model.count == 64
 
 

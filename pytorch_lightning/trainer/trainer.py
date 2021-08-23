@@ -152,7 +152,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
+        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
@@ -243,6 +243,10 @@ class Trainer(
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
+
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
             process_position: orders the progress bar when running multiple models on same machine.
 
