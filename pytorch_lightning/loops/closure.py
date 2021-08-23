@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 @dataclass
 class ClosureResult:
-    """A container to hold the result of a :class:`Closure` call.
+    """A container to hold the result of a :class:`AbstractClosure` call.
 
     Attributes:
         closure_loss: The loss with a graph attached.
@@ -38,7 +38,7 @@ class ClosureResult:
     result_collection: Optional[ResultCollection]
 
 
-class Closure(ABC):
+class AbstractClosure(ABC):
     """
     Abstract base class for optimizer closures in Lightning.
 
@@ -73,12 +73,12 @@ class Closure(ABC):
             return self._result.loss
 
 
-class LightningClosure(Closure):
+class Closure(AbstractClosure):
     """
-    An implementation of a :class:`Closure` for optimization in Lightning that combines three elementary
+    An implementation of a :class:`AbstractClosure` for optimization in Lightning that combines three elementary
     closures into one: ``training_step``, ``backward`` and ``zero_grad``.
 
-    The LightningClosure gets created by the training loop(s) and is then passed to the
+    The Closure gets created by the training loop(s) and is then passed to the
     :meth:`torch.optim.Optimizer.step` method. An optimizer is responsible for calling the closure and optionally
     do something with the output.
 
@@ -93,7 +93,7 @@ class LightningClosure(Closure):
 
     Example:
 
-        closure = LightningClosure()
+        closure = Closure()
         optimizer = torch.optim.Adam(...)
         optimizer.step(closure)
     """

@@ -25,7 +25,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.closure import ClosureResult, LightningClosure
+from pytorch_lightning.loops.closure import ClosureResult, Closure
 from pytorch_lightning.loops.utilities import (
     _check_training_step_output,
     _process_training_step_output,
@@ -217,7 +217,7 @@ class TrainingBatchLoop(Loop):
         backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
-        closure = LightningClosure(
+        closure = Closure(
             step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn, profiler=self.trainer.profiler
         )
         return closure
