@@ -21,7 +21,7 @@ Leads
 -----
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
-- Justus Schock (`justusschock <https://github.com/justusschock>`_) (Former Core Member PyTorch Ignite)
+- Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 - Sean Narenthiran (`SeanNaren <https://github.com/SeanNaren>`_)
