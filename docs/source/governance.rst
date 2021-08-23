@@ -66,7 +66,7 @@ Project Management and Decision Making
 
 The decision what goes into a release is governed by the :ref:`staff contributors and leaders <governance>` of
 Lightning development. Whenever possible, discussion happens publicly on GitHub and includes the whole community.
-For controversial changes, it is mandatory to seek consultation from :ref:`BDFL`.
+For controversial changes, it is mandatory to seek consultation from :ref:`BDFL` for a final decision.
 When a consensus is reached, staff and core contributors assign milestones and labels to the issue and/or pull request
 and start tracking the development. It is possible that priorities change over time.
 
