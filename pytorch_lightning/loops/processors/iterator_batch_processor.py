@@ -146,8 +146,6 @@ class IteratorBatchProcessor:
         if training_step_output:
             batch_outputs[0].append(training_step_output)
 
-        if training_step_output:
-            batch_outputs[0].append(training_step_output)
         return AttributeDict(signal=0, training_step_output=batch_outputs, is_last=is_last)
 
     def teardown(self) -> None:
