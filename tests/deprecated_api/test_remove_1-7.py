@@ -15,7 +15,7 @@
 
 import pytest
 
-from pytorch_lightning import LightningDataModule
+from pytorch_lightning import LightningDataModule, Trainer
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -80,3 +80,10 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = dm.dims
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = LightningDataModule(dims=(1, 1, 1))
+
+
+def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
+    ):
+        _ = Trainer(prepare_data_per_node=False)
