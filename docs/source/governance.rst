@@ -5,7 +5,7 @@ Lightning Governance
 
 This document describes governance processes we follow in developing PyTorch Lightning.
 
-Persons of interest
+Persons of Interest
 *******************
 
 BDFL
