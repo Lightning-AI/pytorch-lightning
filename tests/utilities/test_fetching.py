@@ -19,9 +19,9 @@ import torch
 from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pl_examples.bug_report_model import BoringModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
 from tests.helpers.runif import RunIf
