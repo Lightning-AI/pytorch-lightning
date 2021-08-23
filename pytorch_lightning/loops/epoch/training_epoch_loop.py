@@ -44,7 +44,7 @@ class TrainingEpochLoop(loops.Loop):
         self.batch_progress = Progress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop: TrainingBatchLoop = None
+        self.batch_loop: Optional[TrainingBatchLoop] = None
         self.val_loop: Optional["loops.EvaluationLoop"] = None
 
         self._results = ResultCollection(training=True)

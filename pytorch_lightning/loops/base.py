@@ -88,12 +88,6 @@ class Loop(ABC):
             the default output value of :meth:`on_run_end`
         """
 
-    def _advance_step(self, *args, **kwargs):
-        self.on_advance_start(*args, **kwargs)
-        self.advance(*args, **kwargs)
-        self.on_advance_end()
-        self.restarting = False
-
     def run(self, *args: Any, **kwargs: Any) -> Optional[Any]:
         """
         The main entry point to the loop.
@@ -113,7 +107,10 @@ class Loop(ABC):
 
         while not self.done:
             try:
-                self._advance_step(*args, **kwargs)
+                self.on_advance_start(*args, **kwargs)
+                self.advance(*args, **kwargs)
+                self.on_advance_end()
+                self.restarting = False
             except StopIteration:
                 self.on_stop_iteration()
                 break

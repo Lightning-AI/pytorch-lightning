@@ -235,6 +235,8 @@ class DataConnector:
                 attr.teardown()
 
     def _check_training_step_requires_dataloader_iter(self) -> bool:
+        """Check if the current `training_step` is requesting `dataloader_iter`."""
+
         if not self.trainer.training:
             return False
 
