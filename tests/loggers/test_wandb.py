@@ -18,7 +18,6 @@ from unittest import mock
 
 import pytest
 
-import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
