@@ -218,6 +218,18 @@ def test_int_or_float_type():
     assert isinstance(_int_or_float_type("0"), int)
 
 
+@pytest.mark.parametrize(["arg", "expected"], [["--precision=16", 16], ["--precision=bfloat16", "bfloat16"]])
+def test_precision_parsed_correctly(arg, expected):
+    """
+    Test to ensure that the precision flag is passed correctly when adding argparse args.
+    """
+    parser = ArgumentParser()
+    parser = Trainer.add_argparse_args(parser)
+    fake_argv = [arg]
+    args = parser.parse_args(fake_argv)
+    assert args.precision == expected
+
+
 def test_precision_type():
     assert isinstance(_precision_allowed_type("bfloat16"), float)
     assert isinstance(_precision_allowed_type("16"), int)
