@@ -70,6 +70,8 @@ def test_amp_apex_ddp(
         plugins=[plugin_cls()] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
+    if amp == "native":
+        assert not trainer.precision_plugin.is_bfloat16
 
 
 class GradientUnscaleBoringModel(BoringModel):
@@ -177,42 +179,9 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, amp_native=True)
-def test_amp_precision_16_bfloat_disabled(tmpdir):
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=16,
-        gpus=1,
-    )
-    plugin = trainer.precision_plugin
-    assert isinstance(plugin, NativeMixedPrecisionPlugin)
-    assert not plugin.is_bfloat16
-
-
 @RunIf(min_gpus=1, amp_native=True, min_torch="1.10.0dev")
 def test_amp_precision_bfloat(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            output = self(batch)
-            assert output.dtype == torch.bfloat16
-            loss = self.loss(batch, output)
-            return {"loss": loss}
-
-        def validation_step(self, batch, batch_idx):
-            output = self(batch)
-            assert output.dtype == torch.bfloat16
-            loss = self.loss(batch, output)
-            return {"x": loss}
-
-        def test_step(self, batch, batch_idx):
-            output = self(batch)
-            assert output.dtype == torch.bfloat16
-            loss = self.loss(batch, output)
-            return {"y": loss}
-
-    model = TestModel()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -222,7 +191,7 @@ def test_amp_precision_bfloat(tmpdir):
     plugin = trainer.precision_plugin
     assert isinstance(plugin, NativeMixedPrecisionPlugin)
     assert plugin.is_bfloat16
-    assert plugin.autocast.fast_dtype == torch.bfloat16
+    assert plugin.autocast_context_manager().fast_dtype == torch.bfloat16
     with pytest.warns(
         UserWarning, match="Skipping torch.cuda.amp.GradScaler in NativeMixedPrecisionPlugin as torch.bfloat16 is used."
     ):

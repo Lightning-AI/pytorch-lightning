@@ -96,8 +96,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.update()
         return False
 
-    @property
-    def autocast(self) -> torch.cuda.amp.autocast:
+    def autocast_context_manager(self) -> torch.cuda.amp.autocast:
         if self.is_bfloat16:
             return torch.cuda.amp.autocast(fast_dtype=self._fast_dtype)
         return torch.cuda.amp.autocast()
@@ -105,25 +104,25 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     @contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
-        with self.autocast:
+        with self.autocast_context_manager():
             yield
 
     @contextmanager
     def val_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
-        with self.autocast:
+        with self.autocast_context_manager():
             yield
 
     @contextmanager
     def test_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
-        with self.autocast:
+        with self.autocast_context_manager():
             yield
 
     @contextmanager
     def predict_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
-        with self.autocast:
+        with self.autocast_context_manager():
             yield
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
