@@ -86,7 +86,9 @@ For API removal, renaming or other forms of backward-incompatible changes, the p
 
 #. A deprecation process is initiated at version X, producing warning messages at runtime and in the documentation.
 #. Calls to the deprecated API remain unchanged in their function during the deprecation phase.
-#. Two minor versions in the future at version X+2 the feature/API gets removed.
+#. Two minor versions in the future at version X+2 the breaking change takes effect.
+
+The "X+2" rule is a recommendation and not a strict requirement. Longer deprecation cylces may apply for some cases.
 
 New API and features are declared as
 
