@@ -92,7 +92,7 @@ For API removal, renaming or other forms of backward-incompatible changes, the p
 
 The "X+2" rule is a recommendation and not a strict requirement. Longer deprecation cylces may apply for some cases.
 
-New API and features are declared as
+New API and features are declared as:
 
 - *Experimental*: Anything labelled as *experimental* or *beta* in the documentation is considered unstable and should
     not be used in production. The community is encouraged to test the feature and report issues directly on GitHub.
