@@ -41,7 +41,7 @@ class DataConnector:
     ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        
+
         self.train_data_fetcher = train_data_fetcher
         self.validate_data_fetcher = validate_data_fetcher
         self.test_data_fetcher = test_data_fetcher
