@@ -8,6 +8,8 @@ This document describes governance processes we follow in developing PyTorch Lig
 Persons of Interest
 *******************
 
+.. _bdfl:
+
 BDFL
 ----
 Role: All final decisions related to Lightning.
