@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     DataFetcher,
     DataLoaderIterDataFetcher,
-    InterBatchParallelismDataFetcher,
+    InterBatchParallelDataFetcher,
 )
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -158,12 +158,12 @@ class RecommenderModel(BoringModel):
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         # emulate heavy routine
-        torch.cuda._sleep(self.CYCLES_PER_MS * 100)
+        torch.cuda._sleep(self.CYCLES_PER_MS * 50)
         return batch
 
     def training_step_end(self, training_step_outputs):
         # emulate heavy routine
-        torch.cuda._sleep(self.CYCLES_PER_MS * 100)
+        torch.cuda._sleep(self.CYCLES_PER_MS * 50)
         return training_step_outputs
 
     def configure_optimizers(self):
@@ -183,28 +183,28 @@ class RecommenderModel(BoringModel):
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, max_epochs=1, gpus=1, limit_train_batches=4, limit_val_batches=0, num_sanity_val_steps=0)
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, gpus=1)
+        trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
         global_step = trainer.global_step
-        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelismDataFetcher)
-        assert isinstance(trainer.data_connector.validate_data_fetcher, InterBatchParallelismDataFetcher)
+        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
 
     torch.cuda.synchronize()
 
     t2 = time()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, gpus=1)
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
 
-    assert global_step == trainer.global_step == 8
+    assert global_step == trainer.global_step == 4
     assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
-    assert isinstance(trainer.data_connector.validate_data_fetcher, DataFetcher)
     ratio = (t3 - t2) / (t1 - t0)
-    assert ratio > 1.25, ratio
+    assert ratio > 1.1, ratio
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])

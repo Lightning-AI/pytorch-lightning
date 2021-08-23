@@ -38,16 +38,18 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 class AbstractDataFetcher(ABC):
 
     """
-    This based class should be used to implement a fault tolerant ``DataFetcher``.
+    This base class should be used to implement a fault tolerant ``DataFetcher``.
     It is required to override the ``fetching_function`` with fetching logic.
+
     Example::
+
         class SimpleDataFetcher(AbstractDataFetcher):
             def fetching_function(self):
                 while True:
                     try:
                         yield next(self.dataloader_iter), False
                     except StopIteration:
-                        yield None, True
+                        return None, True
     """
 
     @abstractmethod
@@ -211,16 +213,16 @@ class DataFetcher(AbstractDataFetcher):
     Args:
         prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
             at least 1 batch for tracking the latest batch.
-        store_on_gpu: Whether to store the pre-fetched batches on device.
+        store_on_device: Whether to store the pre-fetched batches on device.
     """
 
     def __init__(
         self,
         prefetch_batches: int = 0,
-        store_on_gpu: bool = False,
+        store_on_device: bool = False,
     ) -> None:
         super().__init__(prefetch_batches=prefetch_batches)
-        self.store_on_gpu = store_on_gpu
+        self.store_on_device = store_on_device
 
     @contextmanager
     def fetching_context(self):
@@ -232,7 +234,7 @@ class DataFetcher(AbstractDataFetcher):
 
     def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
         """Hook to extend which handles the logic after fetching a batch"""
-        if self.store_on_gpu:
+        if self.store_on_device:
             batch = self.move_data_to_device(batch)
         self.append_batch(batch)
 
@@ -249,10 +251,15 @@ class DataFetcher(AbstractDataFetcher):
                     yield_batch = self.pop_batch()
                     self._fetch_next_batch()
 
-                    # yield last and has next
+                    # wait for batch to be available.
                     self.wait()
 
-                    yield (self.move_data_to_device(yield_batch) if not self.store_on_gpu else yield_batch, False)
+                    # yield last and has next
+                    yield (
+                        self.move_data_to_device(yield_batch)
+                        if not self.store_on_device else yield_batch, 
+                        False
+                    )
                 except StopIteration:
                     self.batches.insert(0, yield_batch)
                     break
@@ -291,7 +298,7 @@ class DataFetcher(AbstractDataFetcher):
     def _yield_batch(self) -> Generator:
         self.wait()
         batch = self.batches.pop(0)
-        if not self.store_on_gpu:
+        if not self.store_on_device:
             batch = self.move_data_to_device(batch)
         is_last = len(self.batches) == 0
         yield batch, is_last
@@ -303,30 +310,32 @@ class DataFetcher(AbstractDataFetcher):
         return batch
 
 
-class InterBatchParallelismDataFetcher(DataFetcher):
+class InterBatchParallelDataFetcher(DataFetcher):
 
     """
     This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy
     of input batches behind computationally intensive operations.
 
-    Without parallelization:
+    code-block::
 
-    batch 0: [HtoD][forward][backward]
-    batch 1:                          [HtoD][forward][backward]
-    batch 2:                                                   [HtoD][forward][backward]
+        Without parallelization:
 
-    With parallelization, the latency of HtoD copy can be hidden:
+        batch 0: [HtoD][forward][backward]
+        batch 1:                          [HtoD][forward][backward]
+        batch 2:                                                   [HtoD][forward][backward]
 
-    batch 0: [HtoD][forward][backward]
-    batch 1:       [HtoD]             [forward][backward]
-    batch 2:             [HtoD]                          [forward][backward]
+        With parallelization, the latency of HtoD copy can be hidden:
+
+        batch 0: [HtoD][forward][backward]
+        batch 1:       [HtoD]             [forward][backward]
+        batch 2:             [HtoD]                          [forward][backward]
     """
 
     def __init__(
         self,
         prefetch_batches: int = 0,
     ) -> None:
-        super().__init__(prefetch_batches=prefetch_batches, store_on_gpu=True)
+        super().__init__(prefetch_batches=prefetch_batches, store_on_device=True)
 
         self.cuda_stream = torch.cuda.Stream()
         self.events: List[torch.cuda.Event] = []
@@ -388,9 +397,12 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     This feature can be activated as follows:
 
     Example::
+
         Class MyModel(LightningModule):
+
             def __init__(self):
                 self.automatic_optimization = False
+
             def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
                 # it is the user responsability to fetch and move the batch to the right device.
                 batch = next(dataloader_iter)

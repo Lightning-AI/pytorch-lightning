@@ -22,7 +22,7 @@ from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
     DataFetcher,
     DataLoaderIterDataFetcher,
-    InterBatchParallelismDataFetcher,
+    InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -38,6 +38,7 @@ class DataConnector:
         self.train_data_fetcher: Optional[AbstractDataFetcher] = None
         self.validate_data_fetcher: Optional[AbstractDataFetcher] = None
         self.test_data_fetcher: Optional[AbstractDataFetcher] = None
+        self.sanity_checking_data_fetcher: Optional[AbstractDataFetcher] = None
 
     def on_trainer_init(
         self,
@@ -87,7 +88,7 @@ class DataConnector:
             return DataLoaderIterDataFetcher()
         elif self.trainer.training_type_plugin.on_gpu and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
             # note: this is an experimental feature
-            return InterBatchParallelismDataFetcher()
+            return InterBatchParallelDataFetcher()
         else:
             return DataFetcher()
 
