@@ -106,7 +106,6 @@ class DDPPlugin(ParallelPlugin):
         self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
-        self._has_spawned_children = False
         self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -174,9 +173,7 @@ class DDPPlugin(ParallelPlugin):
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
-        assert self.local_rank == 0
         self._check_can_spawn_children()
-        self._has_spawned_children = True
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
@@ -260,10 +257,11 @@ class DDPPlugin(ParallelPlugin):
         self.dist.device = self.root_device
 
     def _check_can_spawn_children(self):
-        if self._has_spawned_children:
+        if self.local_rank != 0:
             raise RuntimeError(
-                "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+                "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
+                " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
+                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
