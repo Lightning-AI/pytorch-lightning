@@ -11,6 +11,7 @@ from pytorch_lightning.utilities.argparse import (
     _gpus_allowed_type,
     _int_or_float_type,
     _parse_args_from_docstring,
+    _precision_allowed_type,
     add_argparse_args,
     from_argparse_args,
     parse_argparser,
@@ -215,3 +216,8 @@ def test_gpus_allowed_type():
 def test_int_or_float_type():
     assert isinstance(_int_or_float_type("0.0"), float)
     assert isinstance(_int_or_float_type("0"), int)
+
+
+def test_precision_type():
+    assert isinstance(_precision_allowed_type("bfloat16"), float)
+    assert isinstance(_precision_allowed_type("16"), int)
