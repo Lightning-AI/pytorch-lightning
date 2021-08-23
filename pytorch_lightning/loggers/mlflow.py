@@ -184,7 +184,7 @@ class MLFlowLogger(LightningLoggerBase):
     @property
     def experiment_id(self) -> str:
         """
-        Create the experiment if it does not exist to get the experiment id
+        Create the experiment if it does not exist to get the experiment id.
 
         Return:
             The experiment id.
