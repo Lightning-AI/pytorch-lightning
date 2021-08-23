@@ -38,9 +38,11 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 class AbstractDataFetcher(ABC):
 
     """
-    This based class should be used to implement a fault tolerant ``DataFetcher``.
+    This base class should be used to implement a fault tolerant ``DataFetcher``.
     It is required to override the ``fetching_function`` with fetching logic.
+
     Example::
+
         class SimpleDataFetcher(AbstractDataFetcher):
             def fetching_function(self):
                 while True:
@@ -309,17 +311,19 @@ class InterBatchParallelismDataFetcher(DataFetcher):
     This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy
     of input batches behind computationally intensive operations.
 
-    Without parallelization:
+    Example::
 
-    batch 0: [HtoD][forward][backward]
-    batch 1:                          [HtoD][forward][backward]
-    batch 2:                                                   [HtoD][forward][backward]
+        Without parallelization:
 
-    With parallelization, the latency of HtoD copy can be hidden:
+        batch 0: [HtoD][forward][backward]
+        batch 1:                          [HtoD][forward][backward]
+        batch 2:                                                   [HtoD][forward][backward]
 
-    batch 0: [HtoD][forward][backward]
-    batch 1:       [HtoD]             [forward][backward]
-    batch 2:             [HtoD]                          [forward][backward]
+        With parallelization, the latency of HtoD copy can be hidden:
+
+        batch 0: [HtoD][forward][backward]
+        batch 1:       [HtoD]             [forward][backward]
+        batch 2:             [HtoD]                          [forward][backward]
     """
 
     def __init__(
@@ -388,9 +392,12 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     This feature can be activated as follows:
 
     Example::
+
         Class MyModel(LightningModule):
+
             def __init__(self):
                 self.automatic_optimization = False
+
             def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
                 # it is the user responsability to fetch and move the batch to the right device.
                 batch = next(dataloader_iter)
