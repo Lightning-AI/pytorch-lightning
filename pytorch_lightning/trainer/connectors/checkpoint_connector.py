@@ -294,8 +294,6 @@ class CheckpointConnector:
 
         model.on_hpc_save(checkpoint)
 
-        checkpoint = self.trainer.accelerator.on_save(checkpoint)
-
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
