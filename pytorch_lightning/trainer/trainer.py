@@ -137,7 +137,7 @@ class Trainer(
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
-        precision: int = 32,
+        precision: Union[int, str] = 32,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -255,8 +255,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
-                TPUs.
+            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bfloat16).
+                Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
