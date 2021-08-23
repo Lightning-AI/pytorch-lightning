@@ -22,11 +22,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import (
-    DataFetcher,
-    DataLoaderIterDataFetcher,
-    InterBatchParallelDataFetcher,
-)
+from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -181,8 +177,7 @@ class RecommenderModel(BoringModel):
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, max_epochs=1, gpus=1, limit_train_batches=3, limit_val_batches=0)
+    trainer_kwargs = dict(default_root_dir=tmpdir, max_epochs=1, gpus=1, limit_train_batches=3, limit_val_batches=0)
 
     t0 = time()
     trainer = Trainer(**trainer_kwargs)
