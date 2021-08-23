@@ -280,6 +280,8 @@ class TrainingBatchLoop(Loop):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
+            del step_kwargs
+
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
             _check_training_step_output(self.trainer.lightning_module, training_step_output)
