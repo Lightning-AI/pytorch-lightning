@@ -106,18 +106,6 @@ def test_stop_iteration(tmpdir) -> None:
     ), "Expect {EXPECT_NUM_BATCHES_PROCESSED} batches to be processed."
 
 
-def test_automatic_optimization_enabled(tmpdir) -> None:
-    """
-    Verify that a `MisconfigurationException` is raised when
-    `automatic_optimization` is enabled.
-    """
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
-    m = AsyncBoringModel()
-    m.automatic_optimization = True
-    with pytest.raises(MisconfigurationException):
-        trainer.fit(m)
-
-
 def test_on_train_batch_start_overridden(tmpdir) -> None:
     """
     Verify that a `MisconfigurationException` is raised when

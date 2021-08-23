@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -140,15 +141,143 @@ def test_fx_validator(tmpdir):
         if allowed:
             validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="You can't"):
+                with pytest.raises(MisconfigurationException, match="must be one of"):
                     validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
-            with pytest.raises(MisconfigurationException, match="function doesn't support"):
+            with pytest.raises(MisconfigurationException, match="You can't"):
                 validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
-    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
+    with pytest.raises(RuntimeError, match="Logging inside `foo` is not implemented"):
         validator.check_logging("foo", False, False)
+
+
+class HookedCallback(Callback):
+    def __init__(self, not_supported):
+        def call(hook, trainer, model=None, *_, **__):
+            lightning_module = trainer.lightning_module or model
+            if lightning_module is None:
+                # `on_init_{start,end}` do not have the `LightningModule` available
+                assert hook in ("on_init_start", "on_init_end")
+                return
+
+            if hook in not_supported:
+                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
+                    lightning_module.log("anything", 1)
+            else:
+                lightning_module.log(hook, 1)
+
+        for h in get_members(Callback):
+            setattr(self, h, partial(call, h))
+
+
+class HookedModel(BoringModel):
+    def __init__(self, not_supported):
+        super().__init__()
+        pl_module_hooks = get_members(LightningModule)
+        pl_module_hooks.difference_update(
+            {
+                "log",
+                "log_dict",
+                # the following are problematic as they do have `self._current_fx_name` defined some times but
+                # not others depending on where they were called. So we cannot reliably `self.log` in them
+                "on_before_batch_transfer",
+                "transfer_batch_to_device",
+                "on_after_batch_transfer",
+                "get_progress_bar_dict",
+            }
+        )
+        # remove `nn.Module` hooks
+        module_hooks = get_members(torch.nn.Module)
+        pl_module_hooks.difference_update(module_hooks)
+
+        def call(hook, fn, *args, **kwargs):
+            out = fn(*args, **kwargs)
+
+            if hook in not_supported:
+                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
+                    self.log("anything", 1)
+            else:
+                self.log(hook, 1)
+            return out
+
+        for h in pl_module_hooks:
+            attr = getattr(self, h)
+            setattr(self, h, partial(call, h, attr))
+
+
+def test_fx_validator_integration(tmpdir):
+    """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors"""
+    not_supported = {
+        None: "`self.trainer` reference is not registered",
+        "on_before_accelerator_backend_setup": "You can't",
+        "setup": "You can't",
+        "configure_sharded_model": "You can't",
+        "on_configure_sharded_model": "You can't",
+        "configure_optimizers": "You can't",
+        "on_fit_start": "You can't",
+        "on_pretrain_routine_start": "You can't",
+        "on_pretrain_routine_end": "You can't",
+        "on_train_dataloader": "You can't",
+        "train_dataloader": "You can't",
+        "on_val_dataloader": "You can't",
+        "val_dataloader": "You can't",
+        "on_validation_end": "You can't",
+        "on_train_end": "You can't",
+        "on_fit_end": "You can't",
+        "teardown": "You can't",
+        "on_sanity_check_start": "You can't",
+        "on_sanity_check_end": "You can't",
+        "prepare_data": "You can't",
+        "configure_callbacks": "You can't",
+        "on_validation_model_eval": "You can't",
+        "summarize": "not managed by the `Trainer",
+    }
+    model = HookedModel(not_supported)
+
+    with pytest.raises(MisconfigurationException, match=not_supported[None]):
+        model.log("foo", 1)
+
+    callback = HookedCallback(not_supported)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        callbacks=callback,
+    )
+    trainer.fit(model)
+
+    not_supported.update(
+        {
+            # `lightning_module` ref is now present from the `fit` call
+            "on_before_accelerator_backend_setup": "You can't",
+            "on_test_dataloader": "You can't",
+            "test_dataloader": "You can't",
+            "on_test_model_eval": "You can't",
+            "on_test_end": "You can't",
+        }
+    )
+    trainer.test(model, verbose=False)
+
+    not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
+    not_supported.update(
+        {
+            "on_predict_dataloader": "ResultCollection` is not registered yet",
+            "predict_dataloader": "ResultCollection` is not registered yet",
+            "on_predict_model_eval": "ResultCollection` is not registered yet",
+            "on_predict_start": "ResultCollection` is not registered yet",
+            "on_predict_epoch_start": "ResultCollection` is not registered yet",
+            "on_predict_batch_start": "ResultCollection` is not registered yet",
+            "predict_step": "ResultCollection` is not registered yet",
+            "on_predict_batch_end": "ResultCollection` is not registered yet",
+            "on_predict_epoch_end": "ResultCollection` is not registered yet",
+            "on_predict_end": "ResultCollection` is not registered yet",
+        }
+    )
+    trainer.predict(model)
 
 
 @RunIf(min_gpus=2)
