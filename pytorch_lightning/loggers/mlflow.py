@@ -175,7 +175,7 @@ class MLFlowLogger(LightningLoggerBase):
         """
         Create the experiment if it does not exist to get the run id.
 
-        Return:
+        Returns:
             The run id.
         """
         _ = self.experiment
@@ -186,7 +186,7 @@ class MLFlowLogger(LightningLoggerBase):
         """
         Create the experiment if it does not exist to get the experiment id.
 
-        Return:
+        Returns:
             The experiment id.
         """
         _ = self.experiment
@@ -252,7 +252,7 @@ class MLFlowLogger(LightningLoggerBase):
         """
         Get the experiment id.
 
-        Return:
+        Returns:
             The experiment id.
         """
         return self.experiment_id
@@ -262,7 +262,7 @@ class MLFlowLogger(LightningLoggerBase):
         """
         Get the run id.
 
-        Return:
+        Returns:
             The run id.
         """
         return self.run_id
