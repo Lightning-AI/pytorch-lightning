@@ -52,7 +52,7 @@ class AbstractClosure(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        self._result = None
+        self._result: Optional[ClosureResult] = None
 
     @property
     def result(self) -> ClosureResult:
