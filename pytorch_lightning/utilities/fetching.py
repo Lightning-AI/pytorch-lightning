@@ -255,11 +255,7 @@ class DataFetcher(AbstractDataFetcher):
                     self.wait()
 
                     # yield last and has next
-                    yield (
-                        self.move_data_to_device(yield_batch)
-                        if not self.store_on_device else yield_batch, 
-                        False
-                    )
+                    yield (self.move_data_to_device(yield_batch) if not self.store_on_device else yield_batch, False)
                 except StopIteration:
                     self.batches.insert(0, yield_batch)
                     break
