@@ -124,12 +124,12 @@ class IteratorBatchProcessor:
 
         # give the PL module a result for logging
         model = self.trainer.lightning_module
+        # manually capture logged metrics
+        model._current_fx_name = "training_step"
+        step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
 
         with self.trainer.profiler.profile("model_forward"):
-            # manually capture logged metrics
-            model._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
-                step_kwargs = self._build_kwargs(dataloader_iter, batch_idx)
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
@@ -142,9 +142,9 @@ class IteratorBatchProcessor:
                 check_finite_loss(self.trainer.lightning_module, training_step_output.minimize)
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
-
         if training_step_output:
             batch_outputs[0].append(training_step_output)
+
         return AttributeDict(signal=0, training_step_output=batch_outputs, is_last=is_last)
 
     def teardown(self) -> None:
@@ -158,18 +158,16 @@ class IteratorBatchProcessor:
         """Builds the keyword arguments for training_step
 
         Args:
-            batch: the batch to train on
+            dataloader_iter: The dataloader to pass
             batch_idx: the index of the current batch
 
         Returns:
-            the keyword arguments for the training step
+            An ordered dict with the keyword arguments for the training step
         """
         # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict({"dataloader_iter": dataloader_iter})
+        step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
 
-        lightning_module = self.trainer.lightning_module
-
-        training_step_fx = getattr(lightning_module, "training_step")
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         if is_param_in_hook_signature(training_step_fx, "batch_idx"):
             step_kwargs["batch_idx"] = batch_idx
 
