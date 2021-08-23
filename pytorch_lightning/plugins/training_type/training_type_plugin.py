@@ -201,9 +201,6 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
-        return checkpoint
-
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary
 
@@ -273,8 +270,6 @@ class TrainingTypePlugin(Plugin, ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.on_save(checkpoint)
         if self.should_rank_save_checkpoint:
             return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
