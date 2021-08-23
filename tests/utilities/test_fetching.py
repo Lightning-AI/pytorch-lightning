@@ -180,7 +180,13 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
     trainer_kwargs = dict(
-        default_root_dir=tmpdir, max_epochs=1, gpus=1, limit_train_batches=4, limit_val_batches=0, num_sanity_val_steps=0)
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=1,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        num_sanity_val_steps=0,
+    )
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
