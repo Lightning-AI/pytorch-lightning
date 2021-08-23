@@ -349,7 +349,7 @@ def tpu_distributed() -> bool:
 
 
 def init_ddp_connection(
-    cluster_environment: "pl.plugins.environments.ClusterEnvironment",
+    cluster_environment: "pl.plugins.environments.cluster_environment.ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
