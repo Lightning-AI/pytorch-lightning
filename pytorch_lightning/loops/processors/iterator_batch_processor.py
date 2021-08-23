@@ -142,7 +142,6 @@ class IteratorBatchProcessor:
                 check_finite_loss(self.trainer.lightning_module, training_step_output.minimize)
 
         batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
-
         if training_step_output:
             batch_outputs[0].append(training_step_output)
 
@@ -163,10 +162,10 @@ class IteratorBatchProcessor:
             batch_idx: the index of the current batch
 
         Returns:
-            the keyword arguments for the training step
+            An ordered dict with the keyword arguments for the training step
         """
         # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict({"dataloader_iter": dataloader_iter})
+        step_kwargs = OrderedDict([("dataloader_iter", dataloader_iter)])
 
         lightning_module = self.trainer.lightning_module
 

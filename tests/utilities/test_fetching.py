@@ -111,6 +111,10 @@ def get_cycles_per_ms() -> float:
         cycles_per_ms = 1000000 / start.elapsed_time(end)
         return cycles_per_ms
 
+    # Get 10 values and remove the 2 max and 2 min and return the avg.
+    # This is to avoid system disturbance that skew the results, e.g. the very first cuda call likely does a bunch of
+    # init, which takes much longer than subsequent calls.
+
     num = 10
     vals = []
     for _ in range(num):
