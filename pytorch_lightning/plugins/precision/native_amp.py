@@ -42,7 +42,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 "You have asked for native AMP but your PyTorch version does not support it."
                 " Consider upgrading with `pip install torch>=1.6`."
             )
-        self.fast_dtype = self._select_precision_dtype(precision)
+        self._fast_dtype = self._select_precision_dtype(precision)
         self.backend = AMPType.NATIVE
         if not self.is_bfloat16:
             self.scaler = torch.cuda.amp.GradScaler()
@@ -58,7 +58,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @property
     def is_bfloat16(self) -> bool:
-        return self.fast_dtype == torch.bfloat16
+        return self._fast_dtype == torch.bfloat16
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.is_bfloat16:
@@ -99,7 +99,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     @property
     def autocast(self) -> torch.cuda.amp.autocast:
         if self.is_bfloat16:
-            return torch.cuda.amp.autocast(fast_dtype=self.fast_dtype)
+            return torch.cuda.amp.autocast(fast_dtype=self._fast_dtype)
         return torch.cuda.amp.autocast()
 
     @contextmanager
