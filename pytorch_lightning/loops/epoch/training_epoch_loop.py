@@ -114,10 +114,11 @@ class TrainingEpochLoop(loops.Loop):
         """
         batch_idx, (batch, is_last) = next(dataloader_iter)
 
+        self.batch_progress.increment_ready()
+
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
-        self.batch_progress.increment_ready()
 
         with self.trainer.profiler.profile("run_training_batch"):
             batch_output = self.batch_loop.run(batch, batch_idx)

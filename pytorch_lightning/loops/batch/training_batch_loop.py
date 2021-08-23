@@ -550,7 +550,7 @@ class TrainingBatchLoop(Loop):
             the keyword arguments for the training step
         """
         # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict({"batch": batch})
+        step_kwargs = OrderedDict([("batch", batch)])
 
         lightning_module = self.trainer.lightning_module
 
