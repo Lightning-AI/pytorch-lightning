@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from time import time
-from typing import Any, Iterator, Type
+from typing import Any, Iterator
 from unittest import mock
 
 import pytest
@@ -22,13 +22,11 @@ from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -313,23 +311,37 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
     assert m.num_batches_processed == DATASET_LEN, f"Expect all {DATASET_LEN} batches to be processed."
 
 
-def test_stop_iteration(tmpdir) -> None:
+@pytest.mark.parametrize("trigger_stop_iteration", [False, True])
+def test_stop_iteration(trigger_stop_iteration, tmpdir):
     """
-    Verify that when `StopIteration` is raised within `training_step`, `fit()`
-    terminiates as expected.
+    Verify that StopIteration properly terminates the training when this is trigged
+    from the current `dataloader_iter`
     """
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
     class TestModel(AsyncBoringModel):
+        def __init__(self, trigger_stop_iteration) -> None:
+            super().__init__()
+            self.trigger_stop_iteration = trigger_stop_iteration
+
+        def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> STEP_OUTPUT:
+            output = super().training_step(dataloader_iter)
+            if self.trigger_stop_iteration and batch_idx == EXPECT_NUM_BATCHES_PROCESSED:
+                raise StopIteration
+            return output
+
         def train_dataloader(self):
+            if self.trigger_stop_iteration:
+                return DataLoader(RandomDataset(BATCH_SIZE, 2 * EXPECT_NUM_BATCHES_PROCESSED))
             return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
-    m = TestModel()
+    m = TestModel(trigger_stop_iteration)
     trainer.fit(m)
-    assert (
-        m.num_batches_processed == EXPECT_NUM_BATCHES_PROCESSED
-    ), "Expect {EXPECT_NUM_BATCHES_PROCESSED} batches to be processed."
+    expected = EXPECT_NUM_BATCHES_PROCESSED
+    if trigger_stop_iteration:
+        expected *= 2
+    assert m.num_batches_processed == expected
 
 
 def test_on_train_batch_start_overridden(tmpdir) -> None:
