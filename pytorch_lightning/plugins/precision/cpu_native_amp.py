@@ -25,11 +25,10 @@ class CPUNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     Plugin for CPU native mixed precision training with :mod:`torch.cpu.amp`.
 
     Args:
-        precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
-            Currently only torch.bfloat16 is supported.
+        precision: Currently only bf16 (torch.bfloat16) is supported.
     """
 
-    def __init__(self, precision: Union[int, str] = 16) -> None:
+    def __init__(self, precision: Union[int, str] = "bf16") -> None:
         super().__init__(precision)
 
         if not _TORCH_CPU_AMP_AVAILABLE:
