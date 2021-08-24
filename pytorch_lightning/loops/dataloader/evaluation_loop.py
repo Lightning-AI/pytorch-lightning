@@ -105,9 +105,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader_iter, dataloader_idx, dl_max_batches, self.num_dataloaders
-        )
+        dl_outputs = self.epoch_loop.run(dataloader_iter, dataloader_idx, dl_max_batches, self.num_dataloaders)
 
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
