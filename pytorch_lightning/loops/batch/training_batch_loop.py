@@ -212,23 +212,42 @@ class TrainingBatchLoop(Loop):
         self._run_optimization_end(opt_idx)
         return result
 
-    def _make_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+    def _make_closure(
+        self,
+        split_batch: Any,
+        batch_idx: int,
+        opt_idx: int,
+        optimizer: Optimizer,
+        hiddens: Any,
+    ) -> Closure:
+        """
+        Build a closure object that captures the given arguments and runs the training step function and optionally
+        other functions such as backward and zero_grad.
+        """
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
         backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
         closure = Closure(
-            step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn, profiler=self.trainer.profiler
+            step_fn=step_fn,
+            backward_fn=backward_fn,
+            zero_grad_fn=zero_grad_fn,
+            profiler=self.trainer.profiler,
         )
         return closure
 
-    def _make_step_fn(self, split_batch, batch_idx, opt_idx, hiddens):
+    def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any) -> Callable:
         def step_fn():
             return self._training_step(split_batch, batch_idx, opt_idx, hiddens)
 
         return step_fn
 
-    def _make_backward_fn(self, batch_idx, optimizer, opt_idx):
+    def _make_backward_fn(
+        self,
+        batch_idx: int,
+        optimizer: Optimizer,
+        opt_idx: int,
+    ) -> Optional[Callable[[Tensor], Tensor]]:
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
 
@@ -245,7 +264,7 @@ class TrainingBatchLoop(Loop):
         if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
             return backward_fn
 
-    def _make_zero_grad_fn(self, batch_idx, opt_idx, optimizer):
+    def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
         def zero_grad_fn():
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
