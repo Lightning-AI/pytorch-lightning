@@ -21,8 +21,8 @@ from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.debugging_examples import BoringModel
 from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE
+from pytorch_lightning.utilities.debugging_examples import BoringModel
 from tests.helpers.runif import RunIf
 
 
