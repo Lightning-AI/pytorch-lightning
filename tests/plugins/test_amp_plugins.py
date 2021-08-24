@@ -21,6 +21,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -69,6 +70,8 @@ def test_amp_apex_ddp(
         plugins=[plugin_cls()] if custom_plugin else None,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
+    if amp == "native":
+        assert not trainer.precision_plugin.is_bfloat16
 
 
 class GradientUnscaleBoringModel(BoringModel):
@@ -174,3 +177,16 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = BoringModel()
     trainer.fit(model)
+
+
+@RunIf(min_gpus=1, amp_native=True, max_torch="1.9")
+def test_amp_precision_16_bfloat_throws_error(tmpdir):
+    with pytest.raises(
+        MisconfigurationException,
+        match="To use bfloat16 with native amp you must install torch greater or equal to 1.10",
+    ):
+        Trainer(
+            default_root_dir=tmpdir,
+            precision="bf16",
+            gpus=1,
+        )
