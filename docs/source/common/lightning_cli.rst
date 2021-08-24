@@ -13,7 +13,7 @@
             pass
 
 
-    class LightningCLI(pl.utilities.cli.LightningCLI):
+    class LightningCLI2(pl.utilities.cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
@@ -87,7 +87,7 @@ The case in which the user's :class:`~pytorch_lightning.core.lightning.Lightning
 
 .. testcode::
 
-    cli = LightningCLI(MyModel)
+    cli = LightningCLI2(MyModel)
 
 The help of the tool describing all configurable options and default values can be shown by running :code:`python
 trainer.py --help`. Default options can be changed by providing individual command line arguments. However, it is better
@@ -120,7 +120,7 @@ needs a small modification as follows:
 
 .. testcode::
 
-    cli = LightningCLI(MyModel, MyDataModule)
+    cli = LightningCLI2(MyModel, MyDataModule)
 
 The start of a possible implementation of :class:`MyModel` including the recommended argument descriptions in the
 docstring could be the one below. Note that by using type hints and docstrings there is no need to duplicate this
@@ -313,13 +313,13 @@ file. Loading a defaults file :code:`my_cli_defaults.yaml` in the current workin
 
 .. testcode::
 
-    cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]})
+    cli = LightningCLI2(MyModel, MyDataModule, parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]})
 
 or if you want defaults per subcommand:
 
 .. testcode::
 
-    cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"fit": {"default_config_files": ["my_fit_defaults.yaml"]}})
+    cli = LightningCLI2(MyModel, MyDataModule, parser_kwargs={"fit": {"default_config_files": ["my_fit_defaults.yaml"]}})
 
 To load a file in the user's home directory would be just changing to :code:`~/.my_cli_defaults.yaml`. Note that this
 setting is given through :code:`parser_kwargs`. More parameters are supported. For details see the `ArgumentParser API
@@ -335,7 +335,7 @@ To avoid this, you can set the following argument:
 
 .. testcode::
 
-    cli = LightningCLI(MyModel, run=False)  # True by default
+    cli = LightningCLI2(MyModel, run=False)  # True by default
     # you'll have to call fit yourself:
     cli.trainer.fit(cli.model)
 
@@ -490,7 +490,7 @@ The code for the :code:`fit` subcommand would be something like:
 
 .. testcode::
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.add_argument("--notification_email", default="will@email.com")
 
@@ -525,7 +525,7 @@ configurable. This can be implemented as follows:
     from pytorch_lightning.callbacks import EarlyStopping
 
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(EarlyStopping, "my_early_stopping")
             parser.set_defaults({"my_early_stopping.patience": 5})
@@ -591,7 +591,7 @@ is subclassed then a default can be set as follows:
     }
 
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.set_defaults({"model.backbone": default_backbone})
 
@@ -602,7 +602,7 @@ A more compact version that avoids writing a dictionary would be:
     from jsonargparse import lazy_instance
 
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.set_defaults({"model.backbone": lazy_instance(MyModel, encoder_layers=24)})
 
@@ -618,7 +618,7 @@ like shown below, the :code:`batch_size` only has to be provided in the :code:`d
 
 .. testcode::
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
 
@@ -644,7 +644,7 @@ available until the data module has been instantiated. The code below illustrate
 
 .. testcode::
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
 
@@ -674,7 +674,7 @@ snippet shows how to implement it:
     import torch
 
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
@@ -707,7 +707,7 @@ There is also the possibility of selecting among multiple classes by giving them
 
 .. testcode::
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
 
@@ -748,7 +748,7 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
             return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}
 
 
-    class MyLightningCLI(LightningCLI):
+    class MyLightningCLI(LightningCLI2):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
                 torch.optim.Adam,
