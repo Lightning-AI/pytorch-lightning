@@ -510,7 +510,6 @@ class CombinedLoader:
 
         _BaseDataLoaderIter.__getstate__ = __getstate__patch__
         iterator = CombinedLoaderIterator(self.loaders)
-
         # handle fault tolerant restart logic.
         self.on_restart(iterator)
         self._iterator = iterator
