@@ -560,16 +560,6 @@ def test_define_as_dataclass():
         def __len__(self):
             return self.len
 
-    # checks for exception being raised when no __init__ and __post_init__ method is implemented
-    with pytest.raises(NotImplementedError) as excep:
-
-        @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-        class BoringDataModule(LightningDataModule):
-
-            batch_size: int = 2
-
-            def train_dataloader(self):
-                return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
     class BoringDataModule(LightningDataModule):
@@ -590,9 +580,6 @@ def test_define_as_dataclass():
     class BoringDataModule(LightningDataModule):
 
         batch_size: int = 2
-
-        def __post_init__(self):
-            super().__init__()
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)

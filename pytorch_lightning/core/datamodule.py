@@ -68,51 +68,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
-        super().__init__()
-        if train_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        if val_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        if test_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        if dims is not None:
-            rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        self._train_transforms = train_transforms
-        self._val_transforms = val_transforms
-        self._test_transforms = test_transforms
-        self._dims = dims if dims is not None else ()
-
-        # Pointer to the trainer object
-        self.trainer = None
-
-        # Private attrs to keep track of whether or not data hooks have been called yet
-        self._has_prepared_data = False
-
-        self._has_setup_fit = False
-        self._has_setup_validate = False
-        self._has_setup_test = False
-        self._has_setup_predict = False
-
-        self._has_teardown_fit = False
-        self._has_teardown_validate = False
-        self._has_teardown_test = False
-        self._has_teardown_predict = False
-
-    def __init_subclass__(cls, *args, **kwargs) -> None:
-
-        if "__init__" not in cls.__dict__ and "__post_init__" not in cls.__dict__:
-            raise NotImplementedError(
-                f"If {cls.__name__} is implemented as dataclass, there must be a __post_init__ method with super().__init__ call, else add an __init__ method."
-            )
-
-        return super().__init_subclass__()
+    def __init__(self): pass
 
     @property
     def train_transforms(self):
@@ -432,6 +388,31 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
+        
+        # from init
+        obj._train_transforms = None
+        obj._val_transforms = None
+        obj._test_transforms = None
+        obj._dims = ()
+
+        # Pointer to the trainer object
+        obj.trainer = None
+
+        # Private attrs to keep track of whether or not data hooks have been called yet
+        obj._has_prepared_data = False
+
+        obj._has_setup_fit = False
+        obj._has_setup_validate = False
+        obj._has_setup_test = False
+        obj._has_setup_predict = False
+
+        obj._has_teardown_fit = False
+        obj._has_teardown_validate = False
+        obj._has_teardown_test = False
+        obj._has_teardown_predict = False
+
+        super().__init__(obj)
+
         return obj
 
     @staticmethod
