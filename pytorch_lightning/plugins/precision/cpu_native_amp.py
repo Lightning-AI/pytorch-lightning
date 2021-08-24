@@ -28,7 +28,7 @@ class CPUNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         precision: Currently only bf16 (torch.bfloat16) is supported.
     """
 
-    def __init__(self, precision: Union[int, str] = "bf16") -> None:
+    def __init__(self, precision: str = "bf16") -> None:
         if not _TORCH_CPU_AMP_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for native AMP on CPU, but AMP is only available on GPU for PyTorch 1.9 "
@@ -36,7 +36,7 @@ class CPUNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
             )
         super().__init__(precision)
 
-    def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
+    def _select_precision_dtype(self, precision: str = "bf16") -> torch.dtype:
         if not precision == "bf16":
             raise MisconfigurationException(
                 "CPU native amp only supports bfloat16. Please pass precision=bf16 to the Trainer."
