@@ -419,7 +419,7 @@ def test_multiple_optimizers_step(tmpdir):
 
         called = False
 
-        def on_after_backward(self):
+        def on_before_optimizer_step(self, *args):
             self.called = True
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
