@@ -179,7 +179,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, amp_native=True, min_torch="1.10.0dev")
+@RunIf(min_gpus=1, amp_native=True, min_torch="1.10.0")
 def test_amp_precision_bfloat_warning(tmpdir):
     model = BoringModel()
     trainer = Trainer(
