@@ -239,7 +239,7 @@ class NeptuneLogger(LightningLoggerBase):
             api_key: Optional[str] = None,
             project: Optional[str] = None,
             name: Optional[str] = None,
-            run: Optional['Run'] = None,
+            run: Optional["Run"] = None,
             log_model_checkpoints: Optional[bool] = True,
             prefix: str = "training",
             **neptune_run_kwargs):
@@ -269,7 +269,7 @@ class NeptuneLogger(LightningLoggerBase):
             api_key: Optional[str],
             project: Optional[str],
             name: Optional[str],
-            run: Optional['Run'],
+            run: Optional["Run"],
             neptune_run_kwargs: dict):
 
         # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
