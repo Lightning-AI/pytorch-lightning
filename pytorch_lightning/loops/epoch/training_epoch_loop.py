@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.loops.base import Loop
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 import torch
@@ -23,6 +24,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 
 
 class TrainingEpochLoop(loops.Loop):
@@ -104,7 +106,7 @@ class TrainingEpochLoop(loops.Loop):
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
-        self._prepare_dataloader_iter(dataloader_iter)
+        _prepare_dataloader_iter(self, dataloader_iter, self.batch_idx + 1)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs a single training batch.
@@ -386,8 +388,8 @@ class TrainingEpochLoop(loops.Loop):
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def _prepare_dataloader_iter(self, dataloader_iter: AbstractDataFetcher) -> None:
+    def _prepare_dataloader_iter(loop: Loop, dataloader_iter: AbstractDataFetcher, batch_idx: int) -> None:
         if not isinstance(dataloader_iter, DataLoaderIterDataFetcher):
-            dataloader_iter = enumerate(dataloader_iter, self.batch_idx + 1)
+            dataloader_iter = enumerate(dataloader_iter, batch_idx)
         # restore iteration
-        self.dataloader_iter = dataloader_iter
+        loop.dataloader_iter = dataloader_iter

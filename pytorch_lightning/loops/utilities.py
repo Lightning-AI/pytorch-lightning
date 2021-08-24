@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Mapping, Optional, Tuple
+from typing import Mapping, Optional, Tuple, Iterator
 
 import torch
 
@@ -22,6 +22,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 
 
 def check_finite_loss(model: "pl.LightningModule", loss: torch.Tensor) -> None:
@@ -102,3 +104,10 @@ def _process_training_step_output(
     if trainer.move_metrics_to_cpu:
         results.cpu()
     return results, hiddens
+
+
+def _prepare_dataloader_iter(loop: Loop, dataloader_iter: Iterator, batch_idx: int) -> None:
+    if not isinstance(dataloader_iter, DataLoaderIterDataFetcher):
+        dataloader_iter = enumerate(dataloader_iter, batch_idx)
+    # restore iteration
+    loop.dataloader_iter = dataloader_iter

@@ -22,6 +22,7 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 
 
 class EvaluationEpochLoop(Loop):
@@ -71,7 +72,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
 
-        self.dataloader_iter = enumerate(dataloader_iter, self.batch_progress.current.ready)
+        _prepare_dataloader_iter(self, dataloader_iter, self.batch_progress.current.ready + 1)
 
     def advance(
         self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
