@@ -614,7 +614,7 @@ class AcceleratorConnector:
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError("We only support precisions 64, 32 and 16!")
+        raise NotImplementedError(f"We only support precision: {PrecisionType.supported_types()}")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
