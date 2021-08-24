@@ -134,22 +134,22 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        '''
+        """
         Gets the save directory where the TensorBoard experiments are saved.
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
-        '''
+        """
         return self._save_dir
 
     @property
     def sub_dir(self) -> Optional[str]:
-        '''
+        """
         Gets the sub directory where the TensorBoard experiments are saved.
 
         Returns:
             The local path to the sub directory where the TensorBoard experiments are saved.
-        '''
+        """
         return self._sub_dir
 
     @property
@@ -270,22 +270,22 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        '''
+        """
         Get the name of the experiment.
 
         Returns:
             The name of the experiment.
-        '''
+        """
         return self._name
 
     @property
     def version(self) -> int:
-        '''
+        """
         Get the experiment version.
 
         Returns:
             The experiment version if specified else the next version.
-        '''
+        """
         if self._version is None:
             self._version = self._get_next_version()
         return self._version
