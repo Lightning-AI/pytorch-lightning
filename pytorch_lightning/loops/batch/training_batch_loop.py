@@ -15,6 +15,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
+from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 import numpy as np
@@ -235,11 +236,9 @@ class TrainingBatchLoop(Loop):
             profiler=self.trainer.profiler,
         )
 
-    def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any) -> Callable:
-        def step_fn():
-            return self._training_step(split_batch, batch_idx, opt_idx, hiddens)
-
-        return step_fn
+    def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any) -> Callable[[], dict]:
+        """Build the step function that runs the `training_step` and processes its output."""
+        return partial(self._training_step, split_batch, batch_idx, opt_idx, hiddens)
 
     def _make_backward_fn(
         self,
@@ -247,6 +246,11 @@ class TrainingBatchLoop(Loop):
         optimizer: Optimizer,
         opt_idx: int,
     ) -> Optional[Callable[[Tensor], Tensor]]:
+        """
+        Build a `backward` function that handles back-propagation through the output produced by the `training_step`
+        function. Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        """
+
         def backward_fn(loss: Tensor):
             self.backward(loss, optimizer, opt_idx)
 
@@ -264,6 +268,11 @@ class TrainingBatchLoop(Loop):
             return backward_fn
 
     def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
+        """
+        Build a `zero_grad` function that zeroes the gradients before back-propagation.
+        Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        """
+
         def zero_grad_fn():
             self._on_before_zero_grad(optimizer)
             self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
