@@ -547,13 +547,14 @@ class TrainingBatchLoop(Loop):
             the keyword arguments for the training step
         """
         # enable not needing to add opt_idx to training_step
-        step_kwargs = OrderedDict([("batch", batch)])
+        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
 
         lightning_module = self.trainer.lightning_module
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
 
-        if is_param_in_hook_signature(training_step_fx, "batch_idx"):
-            step_kwargs["batch_idx"] = batch_idx
+        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+            if not is_param_in_hook_signature(training_step_fx, "batch_idx", explicit=True):
+                del step_kwargs["batch_idx"]
 
         if len(self.trainer.optimizers) > 1:
             has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
