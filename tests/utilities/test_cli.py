@@ -854,8 +854,7 @@ def test_lightning_cli_config_before_subcommand():
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
-    # FIXME: `ckpt_path="foobar"` when https://github.com/omni-us/jsonargparse/issues/88 is fixed
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path=None)
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
     assert cli.trainer.limit_test_batches == 1
 
     with mock.patch("sys.argv", ["any.py", f"--config={config}", "validate"]), mock.patch(
