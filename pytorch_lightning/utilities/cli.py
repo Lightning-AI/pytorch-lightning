@@ -208,7 +208,7 @@ class LightningCLI:
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
         env_parse: bool = False,
-        parser_kwargs: Optional[Dict[str, Any]] = None,
+        parser_kwargs: Optional[Union[Dict[str, Any], Dict[str, Dict[str, Any]]]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
         run: bool = True,
@@ -252,7 +252,7 @@ class LightningCLI:
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
-            parser_kwargs: Additional arguments to instantiate LightningArgumentParser.
+            parser_kwargs: Additional arguments to instantiate each LightningArgumentParser.
             subclass_mode_model: Whether model can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
@@ -273,9 +273,10 @@ class LightningCLI:
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
 
-        parser_kwargs = parser_kwargs or {}
-        parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
-        self.setup_parser(run, **parser_kwargs)
+        main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
+            parser_kwargs or {}, {"description": description, "env_prefix": env_prefix, "default_env": env_parse}
+        )
+        self.setup_parser(run, main_kwargs, subparser_kwargs)
         self.parse_arguments(self.parser)
 
         self.subcommand = self.config["subcommand"] if run else None
@@ -291,16 +292,28 @@ class LightningCLI:
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
 
+    def _setup_parser_kwargs(
+        self, kwargs: Dict[str, Any], defaults: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        if kwargs.keys() & self.subcommands().keys():
+            # `kwargs` contains arguments per subcommand
+            return defaults, kwargs
+        main_kwargs = defaults
+        main_kwargs.update(kwargs)
+        return main_kwargs, {}
+
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
 
-    def setup_parser(self, add_subcommands: bool, **kwargs: Any) -> None:
+    def setup_parser(
+        self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]
+    ) -> None:
         """Initialize and setup the parser, subcommands, and arguments."""
-        self.parser = self.init_parser(**kwargs)
+        self.parser = self.init_parser(**main_kwargs)
         self._subcommand_method_arguments: Dict[str, List[str]] = {}
         if add_subcommands:
-            self._add_subcommands(self.parser)
+            self._add_subcommands(self.parser, **subparser_kwargs)
         else:
             self._add_arguments(self.parser)
 
@@ -348,7 +361,7 @@ class LightningCLI:
             "tune": {"model", "train_dataloaders", "train_dataloader", "val_dataloaders", "datamodule"},
         }
 
-    def _add_subcommands(self, parser: LightningArgumentParser) -> None:
+    def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:
         """Adds subcommands to the input parser."""
         parser_subcommands = parser.add_subcommands()
         # the user might have passed a builder function
@@ -357,13 +370,13 @@ class LightningCLI:
         )
 
         for subcommand in self.subcommands():
-            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand)
+            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
             fn = getattr(trainer_class, subcommand)
             description = _get_short_description(fn)
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
-    def _prepare_subcommand_parser(self, klass: Type, subcommand: str) -> LightningArgumentParser:
-        parser = self.init_parser()
+    def _prepare_subcommand_parser(self, klass: Type, subcommand: str, **kwargs: Any) -> LightningArgumentParser:
+        parser = self.init_parser(**kwargs)
         self._add_arguments(parser)
         # subcommand arguments
         subcommands = self.subcommands()
@@ -373,7 +386,8 @@ class LightningCLI:
         self._subcommand_method_arguments[subcommand] = added
         return parser
 
-    def link_optimizers_and_lr_schedulers(self, parser: LightningArgumentParser) -> None:
+    @staticmethod
+    def link_optimizers_and_lr_schedulers(parser: LightningArgumentParser) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
         for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
