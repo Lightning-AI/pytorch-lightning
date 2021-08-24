@@ -48,7 +48,7 @@ class TrainingTricksConnector:
         self.trainer.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
-    def configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]):
+    def configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]) -> None:
         if isinstance(accumulate_grad_batches, dict):
             self.trainer.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         elif isinstance(accumulate_grad_batches, int):
