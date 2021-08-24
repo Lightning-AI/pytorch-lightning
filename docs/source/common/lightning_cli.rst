@@ -97,7 +97,7 @@ practice to create a configuration file and provide this to the tool. A way to d
 
     # Dump default configuration to have as reference
     python trainer.py fit --print_config > config.yaml
-    # Modify the config to your liking - you can remove all default arguments.
+    # Modify the config to your liking - you can remove all default arguments
     nano config.yaml
     # Fit your model using the configuration
     python trainer.py fit --config config.yaml
@@ -218,7 +218,7 @@ The CLI supports running any trainer function from command line by changing the 
         test                Perform one evaluation epoch over the test set.
         predict             Run inference on your data.
         tune                Runs routines to tune hyperparameters before training.
-    % python trainer.py test --trainer.limit_test_batches=10
+    $ python trainer.py test --trainer.limit_test_batches=10 [...]
 
 
 Use of command line arguments

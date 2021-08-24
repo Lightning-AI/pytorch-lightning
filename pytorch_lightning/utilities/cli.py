@@ -26,9 +26,9 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
 
 if _JSONARGPARSE_AVAILABLE:
-    from docstring_parser import parse
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, set_config_read_mode
     from jsonargparse.actions import _ActionSubCommands
+    from jsonargparse.optionals import import_docstring_parse
 
     set_config_read_mode(fsspec_enabled=True)
 else:
@@ -549,6 +549,7 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
+    parse = import_docstring_parse("LightningCLI(run=True)")
     try:
         docstring = parse(component.__doc__)
         return docstring.short_description
