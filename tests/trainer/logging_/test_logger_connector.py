@@ -218,9 +218,7 @@ def test_fx_validator_integration(tmpdir):
         "on_fit_start": "You can't",
         "on_pretrain_routine_start": "You can't",
         "on_pretrain_routine_end": "You can't",
-        "on_train_dataloader": "You can't",
         "train_dataloader": "You can't",
-        "on_val_dataloader": "You can't",
         "val_dataloader": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",
@@ -254,7 +252,6 @@ def test_fx_validator_integration(tmpdir):
         {
             # `lightning_module` ref is now present from the `fit` call
             "on_before_accelerator_backend_setup": "You can't",
-            "on_test_dataloader": "You can't",
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
             "on_test_end": "You can't",
@@ -265,7 +262,6 @@ def test_fx_validator_integration(tmpdir):
     not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_predict_dataloader": "ResultCollection` is not registered yet",
             "predict_dataloader": "ResultCollection` is not registered yet",
             "on_predict_model_eval": "ResultCollection` is not registered yet",
             "on_predict_start": "ResultCollection` is not registered yet",

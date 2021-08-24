@@ -15,6 +15,7 @@ import os
 from unittest import mock
 from unittest.mock import Mock, patch
 
+from typing import Any, Iterable
 import numpy
 import pytest
 import torch
@@ -30,7 +31,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
-
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 def test_fit_train_loader_only(tmpdir):
     model = EvalModelTemplate()
@@ -1470,34 +1472,28 @@ def test_request_dataloader(tmpdir):
         def __next__(self):
             return next(self._iter)
 
-    class DataLoaderFunc:
-        def __init__(self, loader):
-            self.loader = loader
-
-        def __call__(self):
-            return self.loader
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.on_train_dataloader_called = False
+            self.train_dataloader_called = False
             self.on_train_batch_start_called = False
-            self.on_val_dataloader_called = False
+            self.val_dataloader_called = False
             self.on_val_batch_start_called = False
+        
+        def train_dataloader(self)-> TRAIN_DATALOADERS:
+            loader = DataLoader(RandomDataset(32, 64))
+            wrapper = DataLoaderWrapper(loader)
+            self.train_dataloader_called = True
+            return DataLoaderWrapper(loader)
 
-        def on_train_dataloader(self) -> None:
-            loader = self.train_dataloader()
-            self.train_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_train_dataloader_called = True
+        def val_dataloader(self) -> EVAL_DATALOADERS:
+            loader = DataLoader(RandomDataset(32, 64))
+            self.val_dataloader_called = True
+            return DataLoaderWrapper(loader)
 
         def on_train_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
             self.on_train_batch_start_called = True
-
-        def on_val_dataloader(self) -> None:
-            loader = self.val_dataloader()
-            self.val_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_val_dataloader_called = True
 
         def on_validation_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
@@ -1507,7 +1503,7 @@ def test_request_dataloader(tmpdir):
     model = TestModel()
     trainer.fit(model)
     trainer.test(model)
-    assert model.on_train_dataloader_called
+    assert model.train_dataloader_called
+    assert model.val_dataloader_called
     assert model.on_train_batch_start_called
-    assert model.on_val_dataloader_called
     assert model.on_val_batch_start_called
