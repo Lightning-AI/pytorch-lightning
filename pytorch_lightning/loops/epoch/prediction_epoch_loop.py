@@ -6,6 +6,7 @@ from deprecate import void
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -140,7 +141,7 @@ class PredictionEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         if self.should_store_predictions:
-            self.predictions.append(predictions)
+            self.predictions.append(move_data_to_device(predictions, "cpu"))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
         """
