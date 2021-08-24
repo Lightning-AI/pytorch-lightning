@@ -24,6 +24,7 @@ from pytorch_lightning import __version__, Callback, LightningDataModule, Lightn
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
+
 @pytest.mark.parametrize("max_steps", [1, 2, 3])
 def test_on_before_zero_grad_called(tmpdir, max_steps):
     class CurrentTestModel(BoringModel):

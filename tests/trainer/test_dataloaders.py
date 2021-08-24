@@ -15,7 +15,6 @@ import os
 from unittest import mock
 from unittest.mock import Mock, patch
 
-from typing import Any, Iterable
 import numpy
 import pytest
 import torch
@@ -28,11 +27,11 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.model_helpers import is_overridden
+
 
 def test_fit_train_loader_only(tmpdir):
     model = EvalModelTemplate()
@@ -1479,10 +1478,9 @@ def test_request_dataloader(tmpdir):
             self.on_train_batch_start_called = False
             self.val_dataloader_called = False
             self.on_val_batch_start_called = False
-        
-        def train_dataloader(self)-> TRAIN_DATALOADERS:
+
+        def train_dataloader(self) -> TRAIN_DATALOADERS:
             loader = DataLoader(RandomDataset(32, 64))
-            wrapper = DataLoaderWrapper(loader)
             self.train_dataloader_called = True
             return DataLoaderWrapper(loader)
 
