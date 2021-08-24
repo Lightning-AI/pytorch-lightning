@@ -315,4 +315,7 @@ def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
     >>> _precision_allowed_type("bf16")
     'bf16'
     """
-    return eval(x)
+    try:
+        return int(x)
+    except ValueError:
+        return x
