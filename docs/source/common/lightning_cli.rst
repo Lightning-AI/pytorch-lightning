@@ -4,13 +4,18 @@
     import torch
     from unittest import mock
     from typing import List
+    import pytorch_lightning as pl
     from pytorch_lightning import LightningModule, LightningDataModule, Trainer
-    from pytorch_lightning.utilities.cli import LightningCLI
 
-    cli_fit = LightningCLI.fit
-    LightningCLI.fit = lambda *_, **__: None
-    trainer_fit = Trainer.fit
-    Trainer.fit = lambda *_, **__: None
+
+    class NoFitTrainer(Trainer):
+        def fit(self, *_, **__):
+            pass
+
+
+    class LightningCLI(pl.utilities.cli.LightningCLI):
+        def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
+            super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
 
     class MyModel(LightningModule):
@@ -48,8 +53,6 @@
 
 .. testcleanup:: *
 
-    LightningCLI.fit = cli_fit
-    Trainer.fit = trainer_fit
     mock_argv.stop()
 
 
@@ -84,8 +87,6 @@ The case in which the user's :class:`~pytorch_lightning.core.lightning.Lightning
 
 .. testcode::
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-
     cli = LightningCLI(MyModel)
 
 The help of the tool describing all configurable options and default values can be shown by running :code:`python
@@ -118,8 +119,6 @@ If a separate :class:`~pytorch_lightning.core.datamodule.LightningDataModule` cl
 needs a small modification as follows:
 
 .. testcode::
-
-    from pytorch_lightning.utilities.cli import LightningCLI
 
     cli = LightningCLI(MyModel, MyDataModule)
 
@@ -323,8 +322,6 @@ specified by an import path and init arguments. For example, with a tool impleme
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-
     cli = LightningCLI(MyModelBaseClass, MyDataModuleBaseClass, subclass_mode_model=True, subclass_mode_data=True)
 
 A possible config file could be as follows:
@@ -434,9 +431,6 @@ before and after the execution of fit. The code would be something like:
 
 .. testcode::
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-
-
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_argument("--notification_email", default="will@email.com")
@@ -470,7 +464,6 @@ configurable. This can be implemented as follows:
 .. testcode::
 
     from pytorch_lightning.callbacks import EarlyStopping
-    from pytorch_lightning.utilities.cli import LightningCLI
 
 
     class MyLightningCLI(LightningCLI):
@@ -566,9 +559,6 @@ like shown below, the :code:`batch_size` only has to be provided in the :code:`d
 
 .. testcode::
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-
-
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
@@ -594,9 +584,6 @@ the number of classes to instantiate its fully connected layer (for a classifica
 available until the data module has been instantiated. The code below illustrates how to address this.
 
 .. testcode::
-
-    from pytorch_lightning.utilities.cli import LightningCLI
-
 
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -626,7 +613,6 @@ snippet shows how to implement it:
 .. testcode::
 
     import torch
-    from pytorch_lightning.utilities.cli import LightningCLI
 
 
     class MyLightningCLI(LightningCLI):
@@ -688,7 +674,7 @@ example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. Th
 
 .. testcode::
 
-    from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
+    from pytorch_lightning.utilities.cli import instantiate_class
 
 
     class MyModel(LightningModule):
