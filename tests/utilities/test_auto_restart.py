@@ -934,7 +934,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
         # multiple training datasets (combinded dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
-        # [RandomGetItemDataset, RandomGetItemDataset],  TODO: support in the future
+        # [RandomGetItemDataset, RandomGetItemDataset],  # TODO: support in the future
     ],
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])

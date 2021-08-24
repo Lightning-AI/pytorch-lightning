@@ -580,7 +580,6 @@ class CombinedLoaderIterator:
         Returns
             Any: a collections of batch data
         """
-        return apply_to_collection(loader_iters, Iterator, next)
 
         def next_fn(iterator: Iterator):
             batch = next(iterator)
