@@ -496,8 +496,6 @@ class CombinedLoader:
             )
             state.reset()
 
-            state.reset()
-
     def __iter__(self) -> Any:
         """
         Create and return an iterator, `CombinedLoaderIterator`, for the combined loader.
