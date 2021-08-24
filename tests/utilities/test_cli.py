@@ -832,7 +832,7 @@ def test_lightning_cli_run():
     assert isinstance(cli.model, LightningModule)
 
 
-def test_lightning_cli_config_with_subcommand(tmpdir):
+def test_lightning_cli_config_with_subcommand():
     config = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
     with mock.patch("sys.argv", ["any.py", f"--config={config}"]), mock.patch(
         "pytorch_lightning.Trainer.test", autospec=True
@@ -866,7 +866,28 @@ def test_lightning_cli_config_before_subcommand():
     assert cli.trainer.limit_val_batches == 1
 
 
-def test_lightning_cli_config_after_subcommand(tmpdir):
+def test_lightning_cli_config_before_subcommand_two_configs():
+    config1 = {"validate": {"trainer": {"limit_val_batches": 1}, "verbose": False, "ckpt_path": "barfoo"}}
+    config2 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
+
+    with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "test"]), mock.patch(
+        "pytorch_lightning.Trainer.test", autospec=True
+    ) as test_mock:
+        cli = LightningCLI(BoringModel)
+
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    assert cli.trainer.limit_test_batches == 1
+
+    with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "validate"]), mock.patch(
+        "pytorch_lightning.Trainer.validate", autospec=True
+    ) as validate_mock:
+        cli = LightningCLI(BoringModel)
+
+    validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
+    assert cli.trainer.limit_val_batches == 1
+
+
+def test_lightning_cli_config_after_subcommand():
     config = {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}
     with mock.patch("sys.argv", ["any.py", "test", f"--config={config}"]), mock.patch(
         "pytorch_lightning.Trainer.test", autospec=True
@@ -875,3 +896,47 @@ def test_lightning_cli_config_after_subcommand(tmpdir):
 
     test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
     assert cli.trainer.limit_test_batches == 1
+
+
+def test_lightning_cli_config_before_and_after_subcommand():
+    config1 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
+    config2 = {"trainer": {"fast_dev_run": 1}, "verbose": False, "ckpt_path": "foobar"}
+    with mock.patch("sys.argv", ["any.py", f"--config={config1}", "test", f"--config={config2}"]), mock.patch(
+        "pytorch_lightning.Trainer.test", autospec=True
+    ) as test_mock:
+        cli = LightningCLI(BoringModel)
+
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar")
+    assert cli.trainer.limit_test_batches == 1
+    assert cli.trainer.fast_dev_run == 1
+
+
+def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
+    fit_config = {"trainer": {"limit_train_batches": 2}}
+    fit_config_path = tmpdir / "fit.yaml"
+    fit_config_path.write_text(str(fit_config), "utf8")
+
+    validate_config = {"trainer": {"limit_val_batches": 3}}
+    validate_config_path = tmpdir / "validate.yaml"
+    validate_config_path.write_text(str(validate_config), "utf8")
+
+    parser_kwargs = {
+        "fit": {"default_config_files": [str(fit_config_path)]},
+        "validate": {"default_config_files": [str(validate_config_path)]},
+    }
+
+    with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
+        "pytorch_lightning.Trainer.fit", autospec=True
+    ) as fit_mock:
+        cli = LightningCLI(BoringModel, parser_kwargs=parser_kwargs)
+    fit_mock.assert_called()
+    assert cli.trainer.limit_train_batches == 2
+    assert cli.trainer.limit_val_batches == 1.0
+
+    with mock.patch("sys.argv", ["any.py", "validate"]), mock.patch(
+        "pytorch_lightning.Trainer.validate", autospec=True
+    ) as validate_mock:
+        cli = LightningCLI(BoringModel, parser_kwargs=parser_kwargs)
+    validate_mock.assert_called()
+    assert cli.trainer.limit_train_batches == 1.0
+    assert cli.trainer.limit_val_batches == 3
