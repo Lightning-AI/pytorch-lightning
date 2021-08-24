@@ -613,7 +613,6 @@ class CombinedLoaderIterator:
         Returns
             a collections of iterators
         """
-
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
 
