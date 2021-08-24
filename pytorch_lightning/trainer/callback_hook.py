@@ -14,14 +14,13 @@
 
 from abc import ABC
 from copy import deepcopy
-from inspect import signature
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -237,29 +236,11 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
-    @staticmethod
-    def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
-        parameters = list(signature(fn).parameters)
-        return len(parameters) == 2 and parameters[0] != "args"
-
-    @staticmethod
-    def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
-        parameters = list(signature(fn).parameters)
-        return len(parameters) == 1 and parameters[0] != "args"
-
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
-            if self.__is_old_signature_on_save_checkpoint(callback.on_save_checkpoint):
-                rank_zero_deprecation(
-                    "`Callback.on_save_checkpoint` signature has changed in v1.3."
-                    " A `checkpoint` parameter has been added."
-                    " Support for the old signature will be removed in v1.5"
-                )
-                state = callback.on_save_checkpoint(self, self.lightning_module)
-            else:
-                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 callback_states[callback.state_key] = state
         return callback_states
@@ -289,15 +270,7 @@ class TrainerCallbackHookMixin(ABC):
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
-                    rank_zero_deprecation(
-                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
-                        " `trainer` and `pl_module` parameters have been added."
-                        " Support for the old signature will be removed in v1.5"
-                    )
-                    callback.on_load_checkpoint(state)
-                else:
-                    callback.on_load_checkpoint(self, self.lightning_module, state)
+                callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_before_backward(self, loss: torch.Tensor) -> None:
         """Called before ``loss.backward()``."""

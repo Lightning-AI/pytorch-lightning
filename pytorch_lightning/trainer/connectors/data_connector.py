@@ -11,31 +11,62 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+from functools import partial
 from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(
+        self,
+        trainer: "pl.Trainer",
+        multiple_trainloader_mode: str = "max_size_cycle",
+        train_data_fetcher: Optional[AbstractDataFetcher] = None,
+        validate_data_fetcher: Optional[AbstractDataFetcher] = None,
+        test_data_fetcher: Optional[AbstractDataFetcher] = None,
+    ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.data_fetcher: Optional[DataFetcher] = None
+
+        self.train_data_fetcher = train_data_fetcher
+        self.validate_data_fetcher = validate_data_fetcher
+        self.test_data_fetcher = test_data_fetcher
+        self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
+
+    @property
+    def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
+        if self.trainer.sanity_checking:
+            return self.sanity_check_data_fetcher
+        return self.test_data_fetcher if self.trainer.testing else self.validate_data_fetcher
 
     def on_trainer_init(
         self,
         check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
         reload_dataloaders_every_epoch: bool,
-        prepare_data_per_node: bool,
+        prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
+
+        if prepare_data_per_node is not None:
+            rank_zero_deprecation(
+                "Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0! "
+                "Please set `prepare_data_per_node` in LightningDataModule or LightningModule directly instead. "
+            )
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
         if not isinstance(check_val_every_n_epoch, int):
@@ -60,30 +91,80 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
-        self.data_fetcher = DataFetcher()
-        self.data_fetcher.setup(train_dataloader)
-        prefetcher_iter = iter(self.data_fetcher)
-        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
-        return profiled_dl
+    def _check_training_step_requires_dataloader_iter(self) -> bool:
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
+        return contains_dataloader_iter
+
+    def _select_data_fetcher(self) -> AbstractDataFetcher:
+        if self.trainer.sanity_checking:
+            return DataFetcher()
+
+        if self.trainer.training and self._check_training_step_requires_dataloader_iter():
+            rank_zero_warn(
+                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+                "this signature is experimental and the behavior is subject to change."
+            )
+            return DataLoaderIterDataFetcher()
+        elif self.trainer.training and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+            # note: this is an experimental feature
+            if not self.trainer.training_type_plugin.on_gpu:
+                raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+            return InterBatchParallelDataFetcher()
+
+        return DataFetcher()
+
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+        stage: str = self.trainer.state.stage.value
+        data_fetcher = setattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
+        data_fetcher.setup(
+            dataloader,
+            stage=stage,
+            batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
+            profiler=self.trainer.profiler,
+        )
+        setattr(self, f"{stage}_data_fetcher", data_fetcher)
+        if isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            return data_fetcher
+        return enumerate(data_fetcher)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        if self.can_prepare_data():
-            if self.trainer.datamodule is not None:
+        local_rank_zero = self.trainer.local_rank == 0
+        global_rank_zero = self.trainer.local_rank == 0 and self.trainer.node_rank == 0
+
+        datamodule = self.trainer.datamodule
+        lightning_module = self.trainer.lightning_module
+        # handle datamodule prepare data:
+        # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
+        if datamodule is not None and not datamodule.has_prepared_data:
+            dm_prepare_data_per_node = datamodule.prepare_data_per_node
+            dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
+            if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:
+                raise MisconfigurationException(
+                    "Inconsistent settings found for `prepare_data_per_node`."
+                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
+                    f" and `DataModule.prepare_data_per_node={datamodule.prepare_data_per_node}`."
+                    " Move `prepare_data_per_node` setting to DataModule property."
+                )
+            if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
                 self.trainer.datamodule.prepare_data()
-            self.trainer.lightning_module.prepare_data()
-            self.trainer._is_data_prepared = True
-
-    def can_prepare_data(self):
-        should_call_dm_prepare_data = True
-        if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
-            should_call_dm_prepare_data = not self.trainer.datamodule._has_prepared_data
-
-        if self.trainer.prepare_data_per_node:
-            return self.trainer.local_rank == 0 and should_call_dm_prepare_data
-        return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+        # handle lightning module prepare data:
+        # check for prepare_data_per_node before calling lightning_module.prepare_data
+        if lightning_module is not None:
+            lm_prepare_data_per_node = lightning_module.prepare_data_per_node
+            lm_eq_prepare_data = lightning_module.prepare_data_per_node == self.trainer.prepare_data_per_node
+            if (self.trainer.prepare_data_per_node is not None) and not lm_eq_prepare_data:
+                raise MisconfigurationException(
+                    "Inconsistent settings found for `prepare_data_per_node`."
+                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
+                    f" and `LightningModule.prepare_data_per_node={lightning_module.prepare_data_per_node}`."
+                    " Move `prepare_data_per_node` setting to LightningModule property."
+                )
+            if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
+                self.trainer.call_hook("prepare_data")
+                self.trainer._is_data_prepared = True
 
     def attach_data(
         self,

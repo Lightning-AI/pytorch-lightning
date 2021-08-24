@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from unittest.mock import Mock
 
 import torch
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     GradientAccumulationScheduler,
@@ -36,18 +35,22 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     lr_monitor = LearningRateMonitor()
     progress_bar = ProgressBar()
 
-    # no model callbacks
-    model = Mock()
-    model.configure_callbacks.return_value = []
+    # no model reference
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, checkpoint2])
-    trainer.model = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
 
+    # no model callbacks
+    model = LightningModule()
+    model.configure_callbacks = lambda: []
+    trainer.model = model
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [progress_bar, lr_monitor, checkpoint1, checkpoint2]
+
     # with model-specific callbacks that substitute ones in Trainer
-    model = Mock()
-    model.configure_callbacks.return_value = [checkpoint1, early_stopping, checkpoint2]
+    model = LightningModule()
+    model.configure_callbacks = lambda: [checkpoint1, early_stopping, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
@@ -116,8 +119,8 @@ def test_attach_model_callbacks():
     """Test that the callbacks defined in the model and through Trainer get merged correctly."""
 
     def assert_composition(trainer_callbacks, model_callbacks, expected):
-        model = Mock()
-        model.configure_callbacks.return_value = model_callbacks
+        model = LightningModule()
+        model.configure_callbacks = lambda: model_callbacks
         trainer = Trainer(checkpoint_callback=False, progress_bar_refresh_rate=0, callbacks=trainer_callbacks)
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
@@ -167,8 +170,8 @@ def test_attach_model_callbacks():
 
 def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
-    model = Mock()
-    model.configure_callbacks.return_value = [LearningRateMonitor(), EarlyStopping()]
+    model = LightningModule()
+    model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping()]
     trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
