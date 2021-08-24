@@ -23,7 +23,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import CPUNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities import _TORCH_CPU_AMP_AVAILABLE, _TORCH_BFLOAT_AVAILABLE
+from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
