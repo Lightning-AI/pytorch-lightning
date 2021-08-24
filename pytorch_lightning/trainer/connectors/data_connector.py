@@ -111,7 +111,7 @@ class DataConnector:
 
         return DataFetcher()
 
-    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0, batch_idx: int = 0) -> Iterable:
         stage: str = self.trainer.state.stage.value
         data_fetcher = setattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
         data_fetcher.setup(
@@ -123,7 +123,7 @@ class DataConnector:
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
         if isinstance(data_fetcher, DataLoaderIterDataFetcher):
             return data_fetcher
-        return enumerate(data_fetcher)
+        return enumerate(data_fetcher, batch_idx)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
