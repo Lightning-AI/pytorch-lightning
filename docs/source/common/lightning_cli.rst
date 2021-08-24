@@ -5,6 +5,7 @@
     from unittest import mock
     from typing import List
     import pytorch_lightning as pl
+    import pytorch_lightning.utilities.cli
     from pytorch_lightning import LightningModule, LightningDataModule, Trainer
 
 
