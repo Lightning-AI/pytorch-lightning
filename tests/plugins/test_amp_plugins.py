@@ -179,21 +179,6 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1, amp_native=True, min_torch="1.10.0")
-def test_amp_precision_bfloat_warning(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision="bf16",
-        gpus=1,
-    )
-    with pytest.warns(
-        UserWarning, match="Skipping torch.cuda.amp.GradScaler in NativeMixedPrecisionPlugin as torch.bfloat16 is used."
-    ):
-        trainer.fit(model)
-
-
 @RunIf(min_gpus=1, amp_native=True, max_torch="1.9")
 def test_amp_precision_16_bfloat_throws_error(tmpdir):
     with pytest.raises(

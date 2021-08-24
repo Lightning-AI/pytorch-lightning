@@ -21,9 +21,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -62,9 +59,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.is_bfloat16:
-            warning_cache.warn(
-                "Skipping torch.cuda.amp.GradScaler in NativeMixedPrecisionPlugin as torch.bfloat16 is used."
-            )
             return super().pre_backward(model, closure_loss)
         closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)

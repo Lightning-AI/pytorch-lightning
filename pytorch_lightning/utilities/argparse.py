@@ -309,7 +309,10 @@ def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
 
 
 def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
-    try:
-        return int(x)
-    except ValueError:
-        return x
+    """
+    >>> _precision_allowed_type("32")
+    32
+    >>> _precision_allowed_type("bf16")
+    'bf16'
+    """
+    return eval(x)
