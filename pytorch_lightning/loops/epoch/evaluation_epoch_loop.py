@@ -19,10 +19,10 @@ from deprecate import void
 from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 
 
 class EvaluationEpochLoop(Loop):

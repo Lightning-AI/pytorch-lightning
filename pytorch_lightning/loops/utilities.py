@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Mapping, Optional, Tuple, Iterator
+from typing import Iterator, Mapping, Optional, Tuple
 
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 
 
 def check_finite_loss(model: "pl.LightningModule", loss: torch.Tensor) -> None:
