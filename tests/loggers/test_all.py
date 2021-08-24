@@ -79,10 +79,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger
 
 
-@pytest.mark.parametrize(
-    "logger_class",
-    ALL_LOGGER_CLASSES
-)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     with contextlib.ExitStack() as stack:
@@ -233,10 +230,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     assert trainer.default_root_dir == tmpdir
 
 
-@pytest.mark.parametrize(
-    "logger_class",
-    ALL_LOGGER_CLASSES
-)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """Test that the logger objects can be pickled.
 
