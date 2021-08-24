@@ -21,6 +21,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
@@ -285,6 +286,12 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         return max(existing_versions) + 1
+
+    @staticmethod
+    def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+        params = LightningLoggerBase._sanitize_params(params)
+        # logging of arrays with dimension > 1 is not supported, sanitize as string
+        return {k: str(v) if isinstance(v, (torch.Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
     def __getstate__(self):
         state = self.__dict__.copy()
