@@ -534,6 +534,7 @@ def test_simple_hyperparameters_saving():
     data = DataModuleWithHparams(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
 
+
 def test_define_as_dataclass():
     """
     Test datamodule for initialization as Python dataclass.
@@ -550,7 +551,6 @@ def test_define_as_dataclass():
 
         def __len__(self):
             return self.len
-
 
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
     class BoringDataModule(LightningDataModule):
@@ -609,6 +609,7 @@ def test_define_as_dataclass():
 
     # checks if the trainer can finish one loop
     assert trainer.state.finished, f"Training failed with {trainer.state}"
+
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):

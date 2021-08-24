@@ -68,7 +68,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self): pass
+    def __init__(self):
+        pass
 
     @property
     def train_transforms(self):
@@ -388,7 +389,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         obj.prepare_data = cls._track_data_hook_calls(obj, obj.prepare_data)
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
         obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
-        
+
         # from init
         obj._train_transforms = None
         obj._val_transforms = None
