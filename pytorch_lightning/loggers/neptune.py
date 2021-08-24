@@ -256,6 +256,7 @@ class NeptuneLogger(LightningLoggerBase):
         self._prefix = prefix
 
         self._run_instance = run  # if run is None, instance will be initialized in first call to `run()`
+        self._run_instance_initialized = False
 
     def _construct_path_with_prefix(self, *keys) -> str:
         """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with
@@ -355,12 +356,16 @@ class NeptuneLogger(LightningLoggerBase):
                     name=self._name,
                     **self._neptune_run_kwargs,
                 )
-                self._run_instance[INTEGRATION_VERSION_KEY] = __version__
             except NeptuneLegacyProjectException as e:
                 raise TypeError(f"""
                     Project {self._project} has not been imported to new structure yet.
                     You can still integrate it with `NeptuneLegacyLogger`.
                     """) from e
+
+        if not self._run_instance_initialized:
+            # make sure that we've log integration version for both newly created and outside `Run` instances
+            self._run_instance_initialized = True
+            self._run_instance[INTEGRATION_VERSION_KEY] = __version__
 
         return self._run_instance
 
