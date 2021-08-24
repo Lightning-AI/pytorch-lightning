@@ -274,7 +274,8 @@ class LightningCLI:
         self.subclass_mode_data = subclass_mode_data
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
-            parser_kwargs or {}, {"description": description, "env_prefix": env_prefix, "default_env": env_parse}
+            parser_kwargs or {},  # type: ignore  # github.com/python/mypy/issues/6463
+            {"description": description, "env_prefix": env_prefix, "default_env": env_parse},
         )
         self.setup_parser(run, main_kwargs, subparser_kwargs)
         self.parse_arguments(self.parser)
