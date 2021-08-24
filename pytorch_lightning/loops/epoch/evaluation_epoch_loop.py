@@ -67,7 +67,7 @@ class EvaluationEpochLoop(Loop):
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter, dataloader_idx)
+        void(dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
 
@@ -87,7 +87,7 @@ class EvaluationEpochLoop(Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        void(dl_max_batches, num_dataloaders)
+        void(dataloader_iter, dl_max_batches, num_dataloaders)
 
         batch_idx, (batch, _) = next(self.dataloader_iter)
 
