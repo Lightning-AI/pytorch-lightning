@@ -186,7 +186,7 @@ class _PatchDataLoader:
         # exists which shows dataloader methods have been overwritten.
         # so, we hack it by using the string representation
         self.patch_loader_code = str(self.__call__.__code__)
-        self.old_loader: Optional[Callable] = None
+        self._old_loader: Optional[Callable] = None
         self.stage = stage
 
     def __call__(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
