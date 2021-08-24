@@ -34,7 +34,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
     def creates_children(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    def main_address(self) -> str:
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ["MASTER_ADDR"] = "127.0.0.1"
@@ -42,7 +42,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
         master_address = os.environ.get("MASTER_ADDR")
         return master_address
 
-    def master_port(self) -> int:
+    def main_port(self) -> int:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ["MASTER_PORT"] = "12910"

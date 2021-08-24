@@ -25,8 +25,8 @@ def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = SLURMEnvironment()
     assert env.creates_children()
-    assert env.master_address() == "127.0.0.1"
-    assert env.master_port() == 12910
+    assert env.main_address() == "127.0.0.1"
+    assert env.main_port() == 12910
     with pytest.raises(KeyError):
         # world size is required to be passed as env variable
         env.world_size()
@@ -52,8 +52,8 @@ def test_default_attributes():
 def test_attributes_from_environment_variables(caplog):
     """Test that the SLURM cluster environment takes the attributes from the environment variables."""
     env = SLURMEnvironment()
-    assert env.master_address() == "1.1.1.1"
-    assert env.master_port() == 15000 + 1234
+    assert env.main_address() == "1.1.1.1"
+    assert env.main_port() == 15000 + 1234
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 2
@@ -80,4 +80,4 @@ def test_master_address_from_slurm_node_list(slurm_node_list, expected):
     """Test extracting the master node from different formats for the SLURM_NODELIST."""
     with mock.patch.dict(os.environ, {"SLURM_NODELIST": slurm_node_list}):
         env = SLURMEnvironment()
-        assert env.master_address() == expected
+        assert env.main_address() == expected

@@ -22,11 +22,11 @@ class ClusterEnvironment(ABC):
         """Whether the environment creates the subprocesses or not."""
 
     @abstractmethod
-    def master_address(self) -> str:
+    def main_address(self) -> str:
         """The master address through which all processes connect and communicate."""
 
     @abstractmethod
-    def master_port(self) -> int:
+    def main_port(self) -> int:
         """An open and configured port in the master node through which all processes communicate."""
 
     @abstractmethod

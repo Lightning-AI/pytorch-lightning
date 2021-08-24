@@ -359,14 +359,14 @@ class DeepSpeedPlugin(DDPPlugin):
                 f"MEMBER: {global_rank + 1}/{world_size}"
             )
         deepspeed.init_distributed(
-            self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
+            self.torch_distributed_backend, distributed_port=self.cluster_environment.main_port()
         )
 
     def _set_node_environment_variables(
         self, global_rank: Optional[int] = None, world_size: Optional[int] = None
     ) -> None:
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address()
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port())
         os.environ["RANK"] = str(global_rank)
         os.environ["WORLD_SIZE"] = str(world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)

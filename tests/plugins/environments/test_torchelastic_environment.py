@@ -25,8 +25,8 @@ def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = TorchElasticEnvironment()
     assert env.creates_children()
-    assert env.master_address() == "127.0.0.1"
-    assert env.master_port() == 12910
+    assert env.main_address() == "127.0.0.1"
+    assert env.main_port() == 12910
     assert env.world_size() is None
     with pytest.raises(KeyError):
         # local rank is required to be passed as env variable
@@ -48,8 +48,8 @@ def test_default_attributes():
 def test_attributes_from_environment_variables(caplog):
     """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = TorchElasticEnvironment()
-    assert env.master_address() == "1.2.3.4"
-    assert env.master_port() == 500
+    assert env.main_address() == "1.2.3.4"
+    assert env.main_port() == 500
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 2

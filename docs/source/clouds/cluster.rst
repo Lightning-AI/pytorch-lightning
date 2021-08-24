@@ -270,10 +270,10 @@ and node rank (node id). Here is an example of a custom
         def node_rank(self) -> int:
             return int(os.environ["NODE_RANK"])
 
-        def master_address(self) -> str:
+        def main_address(self) -> str:
             return os.environ["MASTER_ADDRESS"]
 
-        def master_port(self) -> int:
+        def main_port(self) -> int:
             return int(os.environ["MASTER_PORT"])
 
 

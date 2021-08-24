@@ -27,7 +27,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def creates_children(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    def main_address(self) -> str:
         # figure out the root node addr
         slurm_nodelist = os.environ.get("SLURM_NODELIST")
         if slurm_nodelist:
@@ -40,7 +40,7 @@ class SLURMEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
-    def master_port(self) -> int:
+    def main_port(self) -> int:
         # -----------------------
         # SLURM JOB = PORT number
         # -----------------------

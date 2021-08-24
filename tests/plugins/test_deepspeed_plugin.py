@@ -790,8 +790,8 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
         # assert no env variables have been set within the DeepSpeedPlugin
         assert all(k not in os.environ for k in ("MASTER_PORT", "MASTER_ADDR", "RANK", "WORLD_SIZE", "LOCAL_RANK"))
     else:
-        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.master_address())
-        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.master_port())
+        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.main_address())
+        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.main_port())
         assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
         assert os.environ["WORLD_SIZE"] == str(trainer.training_type_plugin.world_size)
         assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)

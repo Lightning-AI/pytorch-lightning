@@ -1115,10 +1115,10 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     class MyCluster(ClusterEnvironment):
-        def master_address(self):
+        def main_address(self):
             return your_master_address
 
-        def master_port(self):
+        def main_port(self):
             return your_master_port
 
         def world_size(self):

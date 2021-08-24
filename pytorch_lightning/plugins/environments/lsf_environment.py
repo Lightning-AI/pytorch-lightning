@@ -56,11 +56,11 @@ class LSFEnvironment(ClusterEnvironment):
     def creates_children(self) -> bool:
         return True
 
-    def master_address(self):
+    def main_address(self):
         """The master address is read from a list of hosts contained in the environment variable `LSB_HOSTS`."""
         return self._master_address
 
-    def master_port(self):
+    def main_port(self):
         """THe master port gets calculated from the LSF job ID."""
         return self._master_port
 
