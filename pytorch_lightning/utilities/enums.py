@@ -52,12 +52,8 @@ class AMPType(LightningEnum):
 class PrecisionType(LightningEnum):
     """Type of precision used.
 
-    >>> PrecisionType.BFLOAT == PrecisionType.from_str('bfloat16')
-    True
-    >>> # you can match the type
     >>> PrecisionType.HALF == 16
     True
-    >>> # which is type invariant
     >>> PrecisionType.HALF in (16, "16")
     True
     """
@@ -65,7 +61,7 @@ class PrecisionType(LightningEnum):
     HALF = 16
     FLOAT = 32
     FULL = 64
-    BFLOAT = "bfloat16"
+    BFLOAT = "bf16"
 
     @staticmethod
     def supported_type(precision: Union[str, int]) -> bool:

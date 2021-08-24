@@ -13,7 +13,7 @@ def test_consistency():
 
 
 def test_precision_supported_types():
-    assert PrecisionType.supported_types() == ["16", "32", "64", "bfloat16"]
+    assert PrecisionType.supported_types() == ["16", "32", "64", "bf16"]
     assert PrecisionType.supported_type(16)
     assert PrecisionType.supported_type("16")
     assert not PrecisionType.supported_type(1)

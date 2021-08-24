@@ -149,7 +149,7 @@ class AcceleratorConnector:
         self.plugins = plugins
 
         self._validate_accelerator_and_devices()
-        self._validate_precision_type()
+        self._validate_precision_type(self.precision)
 
         self._warn_if_devices_flag_ignored()
 
@@ -549,14 +549,14 @@ class AcceleratorConnector:
         )
         return TorchElasticEnvironment.is_using_torchelastic()
 
-    def _validate_precision_type(self) -> None:
+    @staticmethod
+    def _validate_precision_type(precision: Union[int, str]) -> None:
         """
         Ensures that the set precision type passed by the user is valid.
         """
-
-        if not PrecisionType.supported_type(self.precision):
+        if not PrecisionType.supported_type(precision):
             raise MisconfigurationException(
-                f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+                f"Precision {precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
             )
 
     def select_precision_plugin(self) -> PrecisionPlugin:
