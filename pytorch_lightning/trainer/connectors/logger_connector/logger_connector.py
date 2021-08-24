@@ -200,7 +200,7 @@ class LoggerConnector:
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
         # when the user request `dataloader_iter`, we can't track the batch_size
-        # and this is left to user responsability.
+        # and this is left to user responsibility.
         if isinstance(split_batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
             self.trainer._results.extract_batch_size(split_batch)
 

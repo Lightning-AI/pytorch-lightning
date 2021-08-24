@@ -181,13 +181,6 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
 
-    class CheckDataFetcher(Callback):
-        def __init__(self, data_fetcher_cls: Type):
-            self.data_fetcher_cls = data_fetcher_cls
-
-        def on_batch_start(self, trainer, *_) -> None:
-            assert isinstance(trainer.data_connector.train_data_fetcher, self.data_fetcher_cls)
-
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -199,18 +192,18 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
-        trainer_kwargs["callbacks"] = CheckDataFetcher(InterBatchParallelDataFetcher)
         trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
+        assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
         t1 = time()
         global_step = trainer.global_step
 
     torch.cuda.synchronize()
 
     t2 = time()
-    trainer_kwargs["callbacks"] = CheckDataFetcher(DataFetcher)
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
+    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
     t3 = time()
 
     assert global_step == trainer.global_step == 4
@@ -259,9 +252,6 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
-
-    # should be cleaned out !
-    assert not hasattr(trainer.data_connector, "train_data_fetcher")
 
 
 class DummyWaitable:
@@ -331,11 +321,9 @@ def test_stop_iteration(tmpdir) -> None:
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
     class TestModel(AsyncBoringModel):
-        def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
-            output = super().training_step(dataloader_iter)
-            if self.num_batches_processed == EXPECT_NUM_BATCHES_PROCESSED:
-                raise StopIteration
-            return output
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     m = TestModel()

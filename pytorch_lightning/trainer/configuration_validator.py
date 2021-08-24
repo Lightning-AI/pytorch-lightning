@@ -16,6 +16,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
 class ConfigValidator:
@@ -34,6 +35,7 @@ class ConfigValidator:
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, "val")
             self.__verify_manual_optimization_support(model)
+            self.__check_training_step_requires_dataloader_iter(model)
         elif self.trainer.state.fn == TrainerFn.VALIDATING:
             self.__verify_eval_loop_configuration(model, "val")
         elif self.trainer.state.fn == TrainerFn.TESTING:
@@ -128,3 +130,30 @@ class ConfigValidator:
                 f" Remove `Trainer(accumulate_grad_batches={self.trainer.accumulate_grad_batches})`"
                 " or switch to automatic optimization."
             )
+
+    def __check_training_step_requires_dataloader_iter(self, model: "pl.LightningModule") -> bool:
+        """Check if the current `training_step` is requesting `dataloader_iter`."""
+        training_step_fx = getattr(model, "training_step")
+        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
+
+        if contains_dataloader_iter:
+
+            if is_overridden("on_train_batch_start", model):
+                raise MisconfigurationException(
+                    "The model hook `on_train_batch_start` is not compatible with "
+                    "taking a `dataloader_iter` argument in your `training_step`."
+                )
+
+            if is_overridden("on_train_batch_end", model):
+                raise MisconfigurationException(
+                    "The model hook `on_train_batch_end` is not compatible with "
+                    "taking a `dataloader_iter` argument in your `training_step`."
+                )
+
+            if model.truncated_bptt_steps > 0:
+                raise MisconfigurationException(
+                    "The model taking a `dataloader_iter` argument in your `training_step` "
+                    "is incompatible with `truncated_bptt_steps > 0`."
+                )
+
+        return contains_dataloader_iter

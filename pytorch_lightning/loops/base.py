@@ -112,7 +112,6 @@ class Loop(ABC):
                 self.on_advance_end()
                 self.restarting = False
             except StopIteration:
-                self.on_stop_iteration()
                 break
 
         output = self.on_run_end()
@@ -160,9 +159,6 @@ class Loop(ABC):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
-
-    def on_stop_iteration(self):
-        """Called when a stop iteration is being triggered."""
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
         """
