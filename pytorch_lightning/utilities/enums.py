@@ -49,6 +49,33 @@ class AMPType(LightningEnum):
     NATIVE = "native"
 
 
+class PrecisionType(LightningEnum):
+    """Type of precision used.
+
+    >>> PrecisionType.BFLOAT == PrecisionType.from_str('bfloat16')
+    True
+    >>> # you can match the type
+    >>> PrecisionType.HALF == 16
+    True
+    >>> # which is type invariant
+    >>> PrecisionType.HALF in (16, "16")
+    True
+    """
+
+    HALF = 16
+    FLOAT = 32
+    FULL = 64
+    BFLOAT = "bfloat16"
+
+    @staticmethod
+    def supported_type(precision: Union[str, int]) -> bool:
+        return any(x == precision for x in PrecisionType)
+
+    @staticmethod
+    def supported_types() -> List[Union[str, int]]:
+        return [x.value for x in PrecisionType]
+
+
 class DistributedType(LightningEnum):
     """Define type of ditributed computing.
 

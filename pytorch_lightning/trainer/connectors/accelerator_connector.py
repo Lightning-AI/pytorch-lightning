@@ -73,6 +73,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
@@ -148,6 +149,8 @@ class AcceleratorConnector:
         self.plugins = plugins
 
         self._validate_accelerator_and_devices()
+        self._validate_precision_type()
+
         self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
@@ -550,14 +553,13 @@ class AcceleratorConnector:
         """
         Ensures that the set precision type passed by the user is valid.
         """
-        valid_types = (16, 32, 64, "bf16")
-        if self.precision not in valid_types:
+
+        if not PrecisionType.supported_type(self.precision):
             raise MisconfigurationException(
-                f"Precision {self.precision} is invalid. Allowed precision values: {valid_types}"
+                f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
             )
 
     def select_precision_plugin(self) -> PrecisionPlugin:
-        self._validate_precision_type()
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
 
