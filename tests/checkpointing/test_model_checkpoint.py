@@ -47,7 +47,7 @@ def test_model_checkpoint_state_key():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     expected_id = (
         "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None}"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': None}"
     )
     assert early_stopping.state_key == expected_id
 
@@ -159,7 +159,7 @@ def test_model_checkpoint_score_and_ckpt(
 
         mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None}"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -273,7 +273,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None}"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -875,7 +875,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     ckpt_id = (
         "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None}"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
     )
     assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
@@ -1118,7 +1118,7 @@ def test_current_score(tmpdir):
     ckpts = [
         ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None}"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
         for ckpt in ckpts
     ]

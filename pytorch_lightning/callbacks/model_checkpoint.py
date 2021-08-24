@@ -197,7 +197,7 @@ class ModelCheckpoint(Callback):
     .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
         following arguments:
 
-        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval*
+        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
         Read more: :ref:`Persisting Callback State`
     """
@@ -262,6 +262,7 @@ class ModelCheckpoint(Callback):
             every_n_train_steps=self._every_n_train_steps,
             every_n_epochs=self._every_n_epochs,
             train_time_interval=self._train_time_interval,
+            save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
