@@ -221,17 +221,7 @@ class LightningCLI:
         A full configuration yaml would be parsed from ``PL_CONFIG`` if set.
         Individual settings are so parsed from variables named for example ``PL_TRAINER__MAX_EPOCHS``.
 
-        Example, first implement the ``trainer.py`` tool as::
-
-            from mymodels import MyModel
-            from pytorch_lightning.utilities.cli import LightningCLI
-            LightningCLI(MyModel)
-
-        Then in a shell, run the tool with the desired configuration::
-
-            $ python trainer.py --print_config > config.yaml
-            $ nano config.yaml  # modify the config as desired
-            $ python trainer.py --cfg config.yaml
+        For more info, read :ref:`the CLI docs <common/lightning_cli:LightningCLI>`.
 
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
