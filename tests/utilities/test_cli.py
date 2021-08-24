@@ -875,7 +875,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
-    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
+    test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path=None)
     assert cli.trainer.limit_test_batches == 1
 
     with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "validate"]), mock.patch(
