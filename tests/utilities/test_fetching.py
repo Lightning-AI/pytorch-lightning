@@ -321,7 +321,6 @@ def test_stop_iteration(tmpdir) -> None:
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
     class TestModel(AsyncBoringModel):
-
         def train_dataloader(self):
             return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
 

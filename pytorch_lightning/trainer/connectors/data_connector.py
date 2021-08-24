@@ -257,6 +257,7 @@ class DataConnector:
         if self.sanity_check_data_fetcher:
             self.sanity_check_data_fetcher.teardown()
 
+
 class _PatchDataLoader:
     r"""
     Callable object for patching dataloaders passed into trainer.fit().
