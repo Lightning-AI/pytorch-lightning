@@ -553,7 +553,7 @@ class TrainingBatchLoop(Loop):
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
 
         if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-            if not is_param_in_hook_signature(training_step_fx, "batch_idx", explicit=True):
+            if not is_param_in_hook_signature(training_step_fx, "batch_idx"):
                 del step_kwargs["batch_idx"]
 
         if len(self.trainer.optimizers) > 1:

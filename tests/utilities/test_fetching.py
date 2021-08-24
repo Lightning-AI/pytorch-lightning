@@ -324,9 +324,9 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
             super().__init__()
             self.trigger_stop_iteration = trigger_stop_iteration
 
-        def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> STEP_OUTPUT:
+        def training_step(self, dataloader_iter: Iterator, *args) -> STEP_OUTPUT:
             output = super().training_step(dataloader_iter)
-            if self.trigger_stop_iteration and batch_idx == EXPECT_NUM_BATCHES_PROCESSED:
+            if self.trigger_stop_iteration and args[0] == EXPECT_NUM_BATCHES_PROCESSED:
                 raise StopIteration
             return output
 
