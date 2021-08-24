@@ -33,6 +33,11 @@ from tests.helpers.simple_models import ClassificationModel
 _logger = logging.getLogger(__name__)
 
 
+def test_early_stopping_state_key():
+    early_stopping = EarlyStopping(monitor="val_loss")
+    assert early_stopping.state_key == "EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}"
+
+
 class EarlyStoppingTestRestore(EarlyStopping):
     # this class has to be defined outside the test function, otherwise we get pickle error
     def __init__(self, expected_state, *args, **kwargs):
@@ -77,7 +82,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # the checkpoint saves "epoch + 1"
     early_stop_callback_state = early_stop_callback.saved_states[checkpoint["epoch"] - 1]
     assert 4 == len(early_stop_callback.saved_states)
-    assert checkpoint["callbacks"]["EarlyStoppingTestRestore"] == early_stop_callback_state
+    es_name = "EarlyStoppingTestRestore{'monitor': 'train_loss', 'mode': 'min'}"
+    assert checkpoint["callbacks"][es_name] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, monitor="train_loss")

@@ -17,7 +17,7 @@ from copy import deepcopy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 
@@ -26,8 +26,6 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
     """
     This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test
     """
-
-    seed_everything(4)
 
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
@@ -74,9 +72,6 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         trainer.test()
         results.append(deepcopy(trainer.callback_metrics))
         best_model_paths.append(trainer.checkpoint_callback.best_model_path)
-
-    for idx in range(len(results) - 1):
-        assert results[idx]["val_loss"] > results[idx + 1]["val_loss"]
 
     for idx, best_model_path in enumerate(best_model_paths):
         if idx == 0:

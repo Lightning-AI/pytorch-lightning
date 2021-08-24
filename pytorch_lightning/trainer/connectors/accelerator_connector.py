@@ -73,6 +73,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
@@ -148,6 +149,7 @@ class AcceleratorConnector:
         self.plugins = plugins
 
         self._validate_accelerator_and_devices()
+
         self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
@@ -560,7 +562,7 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision == 16:
+        if self.precision in (16, "bf16"):
             if self.use_tpu:
                 return TPUHalfPrecisionPlugin()
 
@@ -581,12 +583,12 @@ class AcceleratorConnector:
                     else:
                         raise MisconfigurationException(msg)
                 else:
-                    log.info("Using native 16bit precision.")
+                    log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
                     if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin()
+                        return ShardedNativeMixedPrecisionPlugin(self.precision)
                     if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin()
-                    return NativeMixedPrecisionPlugin()
+                        return FullyShardedNativeMixedPrecisionPlugin(self.precision)
+                    return NativeMixedPrecisionPlugin(self.precision)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
@@ -601,7 +603,9 @@ class AcceleratorConnector:
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError("We only support precisions 64, 32 and 16!")
+        raise MisconfigurationException(
+            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+        )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
