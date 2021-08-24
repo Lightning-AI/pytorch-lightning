@@ -300,6 +300,8 @@ def test_training_step_no_return_when_even(tmpdir):
         checkpoint_callback=False,
     )
 
+    Closure.warning_cache.clear()
+
     with pytest.warns(UserWarning, match=r".*training_step returned None.*"):
         trainer.fit(model)
 
