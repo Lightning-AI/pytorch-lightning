@@ -228,13 +228,12 @@ class TrainingBatchLoop(Loop):
         backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
 
-        closure = Closure(
+        return Closure(
             step_fn=step_fn,
             backward_fn=backward_fn,
             zero_grad_fn=zero_grad_fn,
             profiler=self.trainer.profiler,
         )
-        return closure
 
     def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Any) -> Callable:
         def step_fn():
