@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import os
 from argparse import Namespace
-from functools import partial
 from types import MethodType
-from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 from torch.optim import Optimizer
 
@@ -81,11 +79,10 @@ class LightningArgumentParser(ArgumentParser):
         Returns:
             A list with the names of the class arguments added.
         """
-        if callable(lightning_class) and not inspect.isclass(lightning_class):
+        if callable(lightning_class) and not isinstance(lightning_class, type):
             lightning_class = class_from_function(lightning_class)
 
-        lightning_class = cast(type, lightning_class)
-        if inspect.isclass(lightning_class) and issubclass(
+        if isinstance(lightning_class, type) and issubclass(
             lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)
         ):
             if issubclass(lightning_class, Callback):
@@ -281,9 +278,7 @@ class LightningCLI:
         self.setup_parser(run, **parser_kwargs)
         self.parse_arguments(self.parser)
 
-        subcommand: Optional[str] = self.config["subcommand"] if run else None
-        # set the default subcommand value
-        self._get = partial(self._get, subcommand)
+        self.subcommand = self.config["subcommand"] if run else None
 
         seed = self._get(self.config, "seed_everything")
         if seed is not None:
@@ -291,10 +286,10 @@ class LightningCLI:
 
         self.before_instantiate_classes()
         self.instantiate_classes()
-        self.add_configure_optimizers_method_to_model(subcommand)
+        self.add_configure_optimizers_method_to_model(self.subcommand)
 
-        if subcommand is not None:
-            self._run_subcommand(subcommand)
+        if self.subcommand is not None:
+            self._run_subcommand(self.subcommand)
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
@@ -358,7 +353,7 @@ class LightningCLI:
         parser_subcommands = parser.add_subcommands()
         # the user might have passed a builder function
         trainer_class = (
-            self.trainer_class if inspect.isclass(self.trainer_class) else class_from_function(self.trainer_class)
+            self.trainer_class if isinstance(self.trainer_class, type) else class_from_function(self.trainer_class)
         )
 
         for subcommand in self.subcommands():
@@ -486,15 +481,10 @@ class LightningCLI:
 
         self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
 
-    @staticmethod
-    def _get(
-        subcommand: Optional[str], config: Dict, key: Optional[str], default: Optional[Any] = None
-    ) -> Optional[Any]:
+    def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
-        if subcommand is not None:
-            if key is None:
-                return config[subcommand]
-            return config[subcommand].get(key, default)
+        if self.subcommand is not None:
+            return config[self.subcommand].get(key, default)
         return config.get(key, default)
 
     def _run_subcommand(self, subcommand: str) -> None:
