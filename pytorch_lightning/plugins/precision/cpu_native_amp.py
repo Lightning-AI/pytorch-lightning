@@ -29,13 +29,12 @@ class CPUNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """
 
     def __init__(self, precision: Union[int, str] = "bf16") -> None:
-        super().__init__(precision)
-
         if not _TORCH_CPU_AMP_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for native AMP on CPU, but AMP is only available on GPU for PyTorch 1.9 "
                 "and lower. To use native AMP on CPU, install PyTorch 1.10 or later."
             )
+        super().__init__(precision)
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
         if not precision == "bf16":
