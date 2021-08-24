@@ -240,6 +240,24 @@ class TrainingBatchLoop(Loop):
         """Build the step function that runs the `training_step` and processes its output."""
         return partial(self._training_step, split_batch, batch_idx, opt_idx, hiddens)
 
+    def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
+        """
+        Build a `zero_grad` function that zeroes the gradients before back-propagation.
+        Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
+        """
+
+        def zero_grad_fn():
+            self._on_before_zero_grad(optimizer)
+            self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+
+        is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+        if (
+            not self._skip_backward
+            and self.trainer.lightning_module.automatic_optimization
+            and is_first_batch_to_accumulate
+        ):
+            return zero_grad_fn
+
     def _make_backward_fn(
         self,
         batch_idx: int,
@@ -266,24 +284,6 @@ class TrainingBatchLoop(Loop):
 
         if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
             return backward_fn
-
-    def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
-        """
-        Build a `zero_grad` function that zeroes the gradients before back-propagation.
-        Returns ``None`` in the case backward needs to be skipped, e.g., when manual optimization is on.
-        """
-
-        def zero_grad_fn():
-            self._on_before_zero_grad(optimizer)
-            self._optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
-        is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
-        if (
-            not self._skip_backward
-            and self.trainer.lightning_module.automatic_optimization
-            and is_first_batch_to_accumulate
-        ):
-            return zero_grad_fn
 
     def _process_closure_result(self, opt_closure_result: Optional[ClosureResult]) -> None:
         """Checks if the closure results is finite and optionally breaks if it is not
