@@ -25,7 +25,7 @@ from pytorch_lightning.plugins import (
     NativeMixedPrecisionPlugin,
 )
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities import _TORCH_CPU_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -201,13 +201,13 @@ def test_amp_precision_16_bfloat_throws_error(tmpdir):
 def test_cpu_amp_precision_throws_error(tmpdir):
     with pytest.raises(
         MisconfigurationException,
-        match="To use CPU native amp you must install torch greater or equal to 1.10.",
+        match="To use native AMP on CPU, install PyTorch 1.10 or later.",
     ):
         CPUNativeMixedPrecisionPlugin()
 
 
 @RunIf(
-    pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_10, reason="Torch 1.10 is not available."), min_gpus=1, amp_native=True
+    pytest.mark.skipif(_TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available."), min_gpus=1, amp_native=True
 )
 def test_cpu_amp_precision_16_throws_error(tmpdir):
     """

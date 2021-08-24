@@ -68,10 +68,7 @@ _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
-_TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0") or _compare_version(
-    "torch", operator.ge, "1.10.0dev"
-)  # todo (sean): remove dev check once 1.10 released
-
+_TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available("pl_bolts")
@@ -89,6 +86,7 @@ _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cu
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich")
+_TORCH_CPU_AMP_AVAILABLE = _compare_version("torch", operator.ge, "1.10.0dev20210501")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version("torch", operator.ge, "1.10.0.dev20210809")
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")

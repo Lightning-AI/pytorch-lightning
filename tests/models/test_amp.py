@@ -23,7 +23,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import CPUNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities import _TORCH_CPU_AMP_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -70,6 +70,7 @@ class AMPTestModel(BoringModel):
             assert torch.is_autocast_enabled()
 
 
+@pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="CPU AMP not available")
 @pytest.mark.parametrize(
     "accelerator",
     [
@@ -82,10 +83,7 @@ class AMPTestModel(BoringModel):
     "precision",
     [
         pytest.param(16, marks=pytest.mark.skip("CPU precision 16 is not supported in PyTorch yet.")),  # TODO
-        pytest.param(
-            "bf16",
-            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_10, reason="torch.bfloat16 not available"),
-        ),
+        "bf16",
     ],
 )
 @pytest.mark.parametrize("num_processes", [1, 2])
