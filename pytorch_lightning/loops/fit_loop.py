@@ -193,7 +193,7 @@ class FitLoop(Loop):
     def advance(self) -> None:
         """Runs one whole epoch."""
         dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader, batch_idx=self.batch_idx + 1)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader)
         dataloader_iter = iter(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):

@@ -17,7 +17,6 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 
 from deprecate import void
 from torch import Tensor
-
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -70,6 +69,8 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
 
+        self.dataloader_iter = enumerate(dataloader_iter, self.batch_progress.current.ready)
+
     def advance(
         self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
@@ -86,7 +87,7 @@ class EvaluationEpochLoop(Loop):
         """
         void(dl_max_batches, num_dataloaders)
 
-        batch_idx, (batch, _) = next(dataloader_iter)
+        batch_idx, (batch, _) = next(self.dataloader_iter)
 
         if batch is None:
             raise StopIteration

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
@@ -96,14 +97,16 @@ class TrainingEpochLoop(loops.Loop):
             self.scheduler_progress.current.reset()
             self.batch_loop.optim_progress.reset_on_epoch()
 
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+    def on_run_start(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
+        
+        self._prepare_dataloader_iter(dataloader_iter)
 
-    def advance(self, dataloader_iter: Iterator, **kwargs: Any) -> None:
+    def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs a single training batch.
 
         Args:
@@ -112,7 +115,7 @@ class TrainingEpochLoop(loops.Loop):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        batch_idx, (batch, is_last) = next(dataloader_iter)
+        batch_idx, (batch, is_last) = next(self.dataloader_iter)
 
         if not self.trainer.data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
@@ -382,3 +385,9 @@ class TrainingEpochLoop(loops.Loop):
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
+
+    def _prepare_dataloader_iter(self, dataloader_iter: AbstractDataFetcher) -> None:
+        if not isinstance(dataloader_iter, DataLoaderIterDataFetcher):
+            dataloader_iter = enumerate(dataloader_iter, self.batch_idx + 1)
+        # restore iteration
+        self.dataloader_iter = dataloader_iter
