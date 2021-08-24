@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import IteratorBatchProcessor, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -77,12 +77,10 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 log = logging.getLogger(__name__)
@@ -920,27 +918,12 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _maybe_switch_to_iterator_batch_processor(self, model: "pl.LightningModule") -> None:
-        training_step_fx = getattr(model, "training_step")
-        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-            log.warning(
-                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-                "this signature is experimental and the behavior may subject to change."
-            )
-            batch_loop = IteratorBatchProcessor(self, model)
-            self.fit_loop.epoch_loop.connect(batch_loop)
-            # FIXME: Move this logic to data_connector after removing `IteratorBatchProcessor`
-            self.data_connector.data_fetcher = DataLoaderIterDataFetcher()
-
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
         self.config_validator.verify_loop_configurations(model)
-
-        if self.training:
-            self._maybe_switch_to_iterator_batch_processor(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
@@ -1077,6 +1060,7 @@ class Trainer(
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
+        self.data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
 
