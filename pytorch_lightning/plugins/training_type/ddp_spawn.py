@@ -364,3 +364,13 @@ class DDPSpawnPlugin(ParallelPlugin):
             description="DDPSpawn Plugin with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
+
+    def teardown(self) -> None:
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
+
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()
