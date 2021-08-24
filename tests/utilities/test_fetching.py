@@ -231,7 +231,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
             self.count += 2
             if self.automatic_optimization:
                 loss = super().training_step(batch, 0)
-                with pytest.raises(MisconfigurationException, match="`batch_size` should be provided"):
+                with pytest.raises(MisconfigurationException, match="dataloader_iter"):
                     self.log("train_loss", loss["loss"])
                 self.log("train_loss", loss["loss"], batch_size=1)
             else:
