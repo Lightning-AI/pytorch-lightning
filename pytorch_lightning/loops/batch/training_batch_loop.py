@@ -222,8 +222,8 @@ class TrainingBatchLoop(Loop):
         hiddens: Any,
     ) -> Closure:
         """
-        Build a closure object that captures the given arguments and runs the training step function and optionally
-        other functions such as backward and zero_grad.
+        Build a closure object that captures the given arguments and runs the `training_step` function and optionally
+        other functions such as `backward` and `zero_grad`.
         """
         step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx, hiddens)
         backward_fn = self._make_backward_fn(batch_idx, optimizer, opt_idx)
