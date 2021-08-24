@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from time import time
-from typing import Any
+from typing import Any, Iterator
 from unittest import mock
 
 import pytest
@@ -25,7 +25,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
-from tests.helpers.boring_model import BoringModel
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
@@ -125,7 +126,8 @@ def get_cycles_per_ms() -> float:
     return sum(stats) / len(stats)
 
 
-BATCH_SIZE = 128
+BATCH_SIZE = 32
+DATASET_LEN = 64
 EMB_SZ = 100
 EMB_DIM = 64
 
@@ -176,6 +178,7 @@ class RecommenderModel(BoringModel):
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
+
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -190,8 +193,8 @@ def test_trainer_num_prefetch_batches(tmpdir):
         trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
-        global_step = trainer.global_step
         assert isinstance(trainer.data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
+        global_step = trainer.global_step
 
     torch.cuda.synchronize()
 
@@ -199,9 +202,9 @@ def test_trainer_num_prefetch_batches(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
+    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
 
     assert global_step == trainer.global_step == 4
-    assert isinstance(trainer.data_connector.train_data_fetcher, DataFetcher)
     ratio = (t3 - t2) / (t1 - t0)
     assert ratio > 1.1, ratio
 
@@ -218,7 +221,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer.data_connector.data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -227,7 +230,10 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
             assert isinstance(batch, torch.Tensor) or batch is None
             self.count += 2
             if self.automatic_optimization:
-                return super().training_step(batch, 0)
+                loss = super().training_step(batch, 0)
+                with pytest.raises(MisconfigurationException, match="dataloader_iter"):
+                    self.log("train_loss", loss["loss"])
+                self.log("train_loss", loss["loss"], batch_size=1)
             else:
                 opt = self.optimizers()
                 output = self(batch)
@@ -236,10 +242,152 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
                 loss.backward()
                 opt.step()
 
-        training_epoch_end = None
+        def training_epoch_end(self, *_):
+            assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
+            assert self.trainer.data_connector.train_data_fetcher.fetched == 64
+            assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    trainer.data_connector.data_fetcher = DataLoaderIterDataFetcher()
     trainer.fit(model)
-    assert model.count == 64
+
+
+class DummyWaitable:
+    def __init__(self, val: Any) -> None:
+        self.val = val
+
+    def wait(self) -> Any:
+        return self.val
+
+
+class AsyncBoringModel(BoringModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.automatic_optimization = False
+        self.batch_i_handle = None
+        self.num_batches_processed = 0
+
+    def _async_op(self, batch: Any) -> DummyWaitable:
+        return DummyWaitable(val=batch)
+
+    def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
+        if self.batch_i_handle is None:
+            batch_i_raw = next(dataloader_iter)
+            self.batch_i_handle = self._async_op(batch_i_raw)
+
+        # Invariant: _async_op for batch[i] has been initiated
+        batch_ip1_handle = None
+        is_last = False
+        try:
+            batch_ip1_raw = next(dataloader_iter)
+            batch_ip1_handle = self._async_op(batch_ip1_raw)
+        except StopIteration:
+            is_last = True
+
+        batch_i = self.batch_i_handle.wait()
+
+        pred = self.layer(batch_i)
+        loss = self.loss(batch_i, pred)
+        loss.backward()
+        self.optimizers().step()
+        self.optimizers().zero_grad()
+
+        self.batch_i_handle = batch_ip1_handle
+        self.num_batches_processed += 1
+
+        return {"loss": loss, "is_last": is_last}
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(BATCH_SIZE, DATASET_LEN))
+
+
+def test_training_step_with_dataloader_access(tmpdir) -> None:
+    """
+    A baseline functional test for `training_step` with dataloader access.
+    """
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    m = AsyncBoringModel()
+    trainer.fit(m)
+    assert m.num_batches_processed == DATASET_LEN, f"Expect all {DATASET_LEN} batches to be processed."
+
+
+@pytest.mark.parametrize("trigger_stop_iteration", [False, True])
+def test_stop_iteration(trigger_stop_iteration, tmpdir):
+    """
+    Verify that StopIteration properly terminates the training when this is trigged
+    from the current `dataloader_iter`
+    """
+    EXPECT_NUM_BATCHES_PROCESSED = 2
+
+    class TestModel(AsyncBoringModel):
+        def __init__(self, trigger_stop_iteration) -> None:
+            super().__init__()
+            self.trigger_stop_iteration = trigger_stop_iteration
+
+        def training_step(self, dataloader_iter: Iterator, *args) -> STEP_OUTPUT:
+            output = super().training_step(dataloader_iter)
+            if self.trigger_stop_iteration and args[0] == EXPECT_NUM_BATCHES_PROCESSED:
+                raise StopIteration
+            return output
+
+        def train_dataloader(self):
+            if self.trigger_stop_iteration:
+                return DataLoader(RandomDataset(BATCH_SIZE, 2 * EXPECT_NUM_BATCHES_PROCESSED))
+            return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
+
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    m = TestModel(trigger_stop_iteration)
+    trainer.fit(m)
+    expected = EXPECT_NUM_BATCHES_PROCESSED
+    if trigger_stop_iteration:
+        expected *= 2
+    assert m.num_batches_processed == expected
+
+
+def test_on_train_batch_start_overridden(tmpdir) -> None:
+    """
+    Verify that a `MisconfigurationException` is raised when
+    `on_train_batch_start` is overridden on the `LightningModule`.
+    """
+
+    class InvalidModel(AsyncBoringModel):
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            pass
+
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    m = InvalidModel()
+    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_start` is not compatible with"):
+        trainer.fit(m)
+
+
+def test_on_train_batch_end_overridden(tmpdir) -> None:
+    """
+    Verify that a `MisconfigurationException` is raised when
+    `on_train_batch_end` is overridden on the `LightningModule`.
+    """
+
+    class InvalidModel(AsyncBoringModel):
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            pass
+
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    m = InvalidModel()
+    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_end` is not compatible with"):
+        trainer.fit(m)
+
+
+def test_tbptt_split_batch_overridden(tmpdir) -> None:
+    """
+    Verify that a `MisconfigurationException` is raised when
+    `tbptt_split_batch` is overridden on the `LightningModule`.
+    """
+
+    class InvalidModel(AsyncBoringModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.truncated_bptt_steps = 2
+
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    m = InvalidModel()
+    with pytest.raises(MisconfigurationException, match="is incompatible with `truncated_bptt_steps > 0`."):
+        trainer.fit(m)
