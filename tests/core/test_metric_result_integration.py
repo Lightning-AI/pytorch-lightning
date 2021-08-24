@@ -411,7 +411,6 @@ def result_collection_reload(**kwargs):
             # However, below we will simulate a failure on `batch_idx=3`.
 
             if self.trainer.fit_loop.restarting:
-
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                 self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
 

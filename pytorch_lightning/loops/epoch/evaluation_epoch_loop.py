@@ -37,6 +37,7 @@ class EvaluationEpochLoop(Loop):
         self._num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
         self.batch_progress = Progress()
+        self.dataloader_iter: Optional[Iterator] = None
 
     @property
     def done(self) -> bool:
