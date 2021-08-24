@@ -454,7 +454,7 @@ class LightningModule(
                     f" of {list(self._metric_attributes.values())}"
                 )
 
-        if is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True) and batch_size is None:
+        if self.trainer.training and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True) and batch_size is None:
             raise MisconfigurationException(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
