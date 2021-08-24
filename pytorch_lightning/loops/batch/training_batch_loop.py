@@ -200,7 +200,7 @@ class TrainingBatchLoop(Loop):
             else:
                 closure()
 
-        result = closure.result
+        result = closure.get_result()
 
         if result:
             # if no result, user decided to skip optimization
