@@ -43,6 +43,15 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
+def test_model_checkpoint_state_key():
+    early_stopping = ModelCheckpoint(monitor="val_loss")
+    expected_id = (
+        "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': None}"
+    )
+    assert early_stopping.state_key == expected_id
+
+
 class LogInTwoMethods(BoringModel):
     def training_step(self, batch, batch_idx):
         out = super().training_step(batch, batch_idx)
@@ -148,7 +157,10 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks"][type(checkpoint)]
+        mc_specific_data = chk["callbacks"][
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -259,7 +271,10 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk["callbacks"][type(checkpoint)]
+        mc_specific_data = chk["callbacks"][
+            f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
+        ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
         assert mc_specific_data["current_score"] == score
@@ -312,7 +327,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
     checkpoint.to_yaml(path_yaml)
-    d = yaml.full_load(open(path_yaml, "r"))
+    d = yaml.full_load(open(path_yaml))
     best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
@@ -858,8 +873,11 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
 
-    ch_type = type(model_checkpoint)
-    assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
+    ckpt_id = (
+        "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+    )
+    assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
@@ -1039,7 +1057,7 @@ def test_configure_model_checkpoint(tmpdir):
 
     # default configuration
     trainer = Trainer(checkpoint_callback=True, callbacks=[], **kwargs)
-    assert len([c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]) == 1
+    assert sum(1 for c in trainer.callbacks if isinstance(c, ModelCheckpoint)) == 1
     assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
 
     # custom callback passed to callbacks list, checkpoint_callback=True is ignored
@@ -1097,7 +1115,13 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"][type(model_checkpoint)] for ckpt in ckpts]
+    ckpts = [
+        ckpt["callbacks"][
+            "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
+            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        ]
+        for ckpt in ckpts
+    ]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
 
 
@@ -1113,6 +1137,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo", mode=mode)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
         callbacks=[model_checkpoint],
@@ -1135,6 +1160,7 @@ def test_hparams_type(tmpdir, hparams_type):
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo")
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -1206,7 +1232,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     trainer.fit(BoringModel())
 
     ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
-    expected = {"test.ckpt", *[f"test-v{i}.ckpt" for i in ckpt_range]}
+    expected = {"test.ckpt", *(f"test-v{i}.ckpt" for i in ckpt_range)}
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models} == expected
     # check created ckpts

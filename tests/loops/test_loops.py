@@ -100,6 +100,7 @@ def test_loop_restore():
     class Simple(Loop):
         def __init__(self, dataset: Iterator):
             super().__init__()
+            self.iteration_count = 0
             self.dataset = dataset
 
         @property
@@ -126,6 +127,9 @@ def test_loop_restore():
                 raise CustomException
 
             self.outputs.append(value)
+
+        def on_advance_end(self) -> None:
+            self.iteration_count += 1
 
         def state_dict(self) -> Dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
@@ -375,6 +379,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         pass
 
     ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
     optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optim_progress
@@ -493,6 +498,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
+        "epoch_loop.val_loop._results": ANY,
+        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 

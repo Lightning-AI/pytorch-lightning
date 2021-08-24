@@ -107,7 +107,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     train_val_step_model = FastDevRunModel()
     trainer = Trainer(**trainer_config)
     trainer.fit(train_val_step_model)
-    trainer.test(ckpt_path=None)
+    trainer.test(train_val_step_model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_val_step_model)
@@ -120,7 +120,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
     trainer = Trainer(**trainer_config)
     trainer.fit(train_step_only_model)
-    trainer.test(ckpt_path=None)
+    trainer.test(train_step_only_model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_step_only_model)

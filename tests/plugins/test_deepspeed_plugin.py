@@ -9,16 +9,20 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
+
+if _DEEPSPEED_AVAILABLE:
+    from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 
 
 class ModelParallelBoringModel(BoringModel):
@@ -31,6 +35,11 @@ class ModelParallelBoringModel(BoringModel):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
+
+
+class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
 class ModelParallelBoringModelManualOptim(BoringModel):
@@ -324,8 +333,6 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     trainer.fit(model)
     trainer.test(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer)
-
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_custom_precision_params(tmpdir):
@@ -389,17 +396,13 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu(tmpdir):
     """
-    Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+    Test to ensure that DeepSpeed with multiple GPUs works.
     """
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        plugins=[DeepSpeedPlugin(zero_optimization=False, stage=2)],
-        gpus=2,
-        fast_dev_run=True,
-        precision=16,
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     trainer.test(model)
@@ -414,11 +417,60 @@ def test_deepspeed_fp32_works(tmpdir):
     trainer.fit(model)
 
 
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_stage_3_save_warning(tmpdir):
+    """
+    Test to ensure that DeepSpeed Stage 3 gives a warning when saving.
+    """
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    with pytest.warns(UserWarning, match="each worker will save a shard of the checkpoint within a directory."):
+        trainer.save_checkpoint(checkpoint_path)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_single_file(tmpdir):
+    """
+    Test to ensure that DeepSpeed loads from a single file checkpoint.
+    """
+    model = BoringModel()
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.save_checkpoint(checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=1, fast_dev_run=True, precision=16
+    )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert not plugin.load_full_weights
+    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+        trainer.test(model, ckpt_path=checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3, load_full_weights=True)],
+        gpus=1,
+        fast_dev_run=True,
+        precision=16,
+    )
+    plugin = trainer.training_type_plugin
+    assert isinstance(plugin, DeepSpeedPlugin)
+    assert plugin.load_full_weights
+    trainer.test(model, ckpt_path=checkpoint_path)
+
+
 class ModelParallelClassificationModel(LightningModule):
     def __init__(self, lr: float = 0.01, num_blocks: int = 5):
         super().__init__()
         self.lr = lr
         self.num_blocks = num_blocks
+        self.prepare_data_per_node = True
 
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
@@ -469,6 +521,10 @@ class ModelParallelClassificationModel(LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if not hasattr(self, "model"):
+            self.configure_sharded_model()
+
 
 class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
     @property
@@ -499,7 +555,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     trainer.fit(model)
     trainer.test(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -515,12 +571,10 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     trainer.fit(model)
     trainer.test(model)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModelManualOptim)
+    _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-def run_checkpoint_test(
-    tmpdir: str, save_full_weights: bool, automatic_optimization: bool = True, accumulate_grad_batches: int = 2
-):
+def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumulate_grad_batches: int = 2):
     seed_everything(1)
     if automatic_optimization:
         model = ModelParallelClassificationModel()
@@ -530,9 +584,8 @@ def run_checkpoint_test(
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
+        plugins=[DeepSpeedPlugin(stage=3)],
         gpus=2,
         precision=16,
         accumulate_grad_batches=accumulate_grad_batches,
@@ -540,29 +593,20 @@ def run_checkpoint_test(
     )
     trainer.fit(model, datamodule=dm)
 
-    results = trainer.test(model, datamodule=dm)
+    results = trainer.test(datamodule=dm)
     assert results[0]["test_acc"] > 0.7
-
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results[0]["test_acc"] > 0.7
     assert saved_results == results
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
-        gpus=2,
-        precision=16,
-        accumulate_grad_batches=2,
-        callbacks=[ck],
-        resume_from_checkpoint=ck.best_model_path,
-    )
-    results = trainer.test(model, datamodule=dm)
-    assert results[0]["test_acc"] > 0.7
+    if automatic_optimization:
+        model = ModelParallelClassificationModel()
+    else:
+        model = ManualModelParallelClassificationModel()
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins=[DeepSpeedPlugin(stage=3)], precision=16)
 
-    dm.predict_dataloader = dm.test_dataloader
-    results = trainer.predict(datamodule=dm)
-    assert results[-1] > 0.7
+    results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
+    assert results[0]["test_acc"] > 0.7
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -571,16 +615,94 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
     and see convergence.
     """
-    run_checkpoint_test(tmpdir, save_full_weights=False)
+    run_checkpoint_test(tmpdir)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
+@RunIf(min_gpus=1, deepspeed=True, special=False)
+def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     """
-    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    where we save the full weights to one file.
+    Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning
+    that the optimizer state and scheduler states cannot be restored.
     """
-    run_checkpoint_test(tmpdir, save_full_weights=True)
+    dm = ClassifDataModule()
+    model = BoringModel()
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.save_checkpoint(checkpoint_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        plugins=DeepSpeedPlugin(stage=3, load_full_weights=True),
+        gpus=1,
+        precision=16,
+        resume_from_checkpoint=checkpoint_path,
+    )
+    with pytest.warns(
+        UserWarning,
+        match="A single checkpoint file has been given. This means optimizer states and "
+        "scheduler states can not be restored. If you'd like to restore these states, you must "
+        "provide a path to the originally saved DeepSpeed checkpoint.",
+    ):
+        trainer.fit(model, datamodule=dm)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can resume training.
+    """
+    initial_model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
+
+    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
+    initial_trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        plugins=DeepSpeedPlugin(stage=3),
+        gpus=1,
+        precision=16,
+        callbacks=[ck],
+    )
+    initial_trainer.fit(initial_model, datamodule=dm)
+
+    class TestCallback(Callback):
+        def on_train_batch_start(
+            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+        ) -> None:
+            original_deepspeed_plugin = initial_trainer.accelerator.training_type_plugin
+            current_deepspeed_plugin = trainer.accelerator.training_type_plugin
+
+            assert isinstance(original_deepspeed_plugin, DeepSpeedPlugin)
+            assert isinstance(current_deepspeed_plugin, DeepSpeedPlugin)
+            # assert optimizer states are the correctly loaded
+            original_optimizer_dict = original_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
+            current_optimizer_dict = current_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
+            for orig_tensor, current_tensor in zip(
+                original_optimizer_dict["fp32_flat_groups"], current_optimizer_dict["fp32_flat_groups"]
+            ):
+                assert torch.all(orig_tensor.eq(current_tensor))
+            # assert model state is loaded correctly
+            for current_param, initial_param in zip(pl_module.parameters(), initial_model.parameters()):
+                assert torch.equal(current_param.cpu(), initial_param.cpu())
+            # assert epoch has correctly been restored
+            assert trainer.current_epoch == 1
+
+    model = ModelParallelClassificationModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        plugins=DeepSpeedPlugin(stage=3),
+        gpus=1,
+        precision=16,
+        resume_from_checkpoint=ck.best_model_path,
+        callbacks=TestCallback(),
+    )
+    trainer.fit(model, datamodule=dm)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -589,7 +711,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
     where we save the full weights to one file.
     """
-    run_checkpoint_test(tmpdir, save_full_weights=True, automatic_optimization=False, accumulate_grad_batches=1)
+    run_checkpoint_test(tmpdir, automatic_optimization=False, accumulate_grad_batches=1)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -675,15 +797,36 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
         assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
 
 
-def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
+def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    checkpoint_path = trainer.accelerator.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
+    trainer.accelerator.barrier()
+
     # carry out the check only on rank 0
-    if trainer.global_rank == 0:
-        saved_model = cls.load_from_checkpoint(checkpoint_path)
-        if model.dtype == torch.half:
-            saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
+    if trainer.is_global_zero:
+        single_ckpt_path = os.path.join(tmpdir, "single_model.pt")
+        convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
+        state_dict = torch.load(single_ckpt_path)
+
         model = model.cpu()
         # Assert model parameters are identical after loading
-        for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
-            assert torch.equal(orig_param, trained_model_param)
+        for orig_param, saved_model_param in zip(model.parameters(), state_dict.values()):
+            if model.dtype == torch.half:
+                # moved model to float32 for comparison with single fp32 saved weights
+                saved_model_param = saved_model_param.half()
+            assert torch.equal(orig_param, saved_model_param)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_no_schedulers(tmpdir):
+    """
+    Test to ensure ZeRO Stage 3 works with a parallel model and no schedulers.
+    """
+    model = ModelParallelBoringModelNoSchedulers()
+    trainer = Trainer(
+        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+    )
+    trainer.fit(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer)

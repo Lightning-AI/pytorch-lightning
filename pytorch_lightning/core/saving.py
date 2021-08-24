@@ -45,7 +45,7 @@ if _OMEGACONF_AVAILABLE:
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
-class ModelIO(object):
+class ModelIO:
     CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "hparams_type"
@@ -217,25 +217,6 @@ class ModelIO(object):
                 )
 
         return model
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Do something with the checkpoint.
-        Gives model a chance to load something before ``state_dict`` is restored.
-
-        Args:
-            checkpoint: A dictionary with variables from the checkpoint.
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Give the model a chance to add something to the checkpoint.
-        ``state_dict`` is already there.
-
-        Args:
-            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
-                Contents need to be pickleable.
-        """
 
     # -------------------------
     # OPTIONAL HOOKS

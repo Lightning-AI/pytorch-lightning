@@ -25,7 +25,7 @@ import time
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from weakref import proxy
 
 import numpy as np
@@ -194,6 +194,12 @@ class ModelCheckpoint(Callback):
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
+    .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
+
+        Read more: :ref:`Persisting Callback State`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -247,14 +253,23 @@ class ModelCheckpoint(Callback):
         self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval, period)
         self.__validate_init_configuration()
-        self._save_function = None
+
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(
+            monitor=self.monitor,
+            mode=self.mode,
+            every_n_train_steps=self._every_n_train_steps,
+            every_n_epochs=self._every_n_epochs,
+            train_time_interval=self._train_time_interval,
+            save_on_train_epoch_end=self._save_on_train_epoch_end,
+        )
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer)
-        self._save_function = trainer.save_checkpoint
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
@@ -334,9 +349,9 @@ class ModelCheckpoint(Callback):
             rank_zero_info("Saving latest checkpoint...")
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
-        trainer.train_loop.global_step -= 1
+        trainer.fit_loop.global_step -= 1
         self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.train_loop.global_step += 1
+        trainer.fit_loop.global_step += 1
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
@@ -355,18 +370,12 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer", unused: Optional["pl.LightningModule"] = None) -> None:
+    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """
         Performs the main logic around saving a checkpoint. This method runs on all ranks.
         It is the responsibility of `trainer.save_checkpoint` to correctly handle the behaviour in distributed training,
         i.e., saving only on rank 0 for data parallel use cases.
         """
-        if unused is not None:
-            rank_zero_deprecation(
-                "`ModelCheckpoint.save_checkpoint` signature has changed in v1.3. The `pl_module` parameter"
-                " has been removed. Support for the old signature will be removed in v1.5"
-            )
-
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
@@ -507,25 +516,9 @@ class ModelCheckpoint(Callback):
         )
         self._period = value
 
-    @property
-    def save_function(self) -> Optional[Callable]:
-        rank_zero_deprecation(
-            "Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `trainer.save_checkpoint` instead."
-        )
-        return self._save_function
-
-    @save_function.setter
-    def save_function(self, value: Optional[Callable]) -> None:
-        rank_zero_deprecation(
-            "Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `trainer.save_checkpoint` instead."
-        )
-        self._save_function = value
-
     def _del_model(self, trainer: "pl.Trainer", filepath: str) -> None:
         if trainer.should_rank_save_checkpoint and self._fs.exists(filepath):
-            self._fs.rm(filepath)
+            self._fs.rm(filepath, recursive=True)
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, trainer: "pl.Trainer", filepath: str) -> None:

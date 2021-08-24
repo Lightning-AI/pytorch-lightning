@@ -114,6 +114,7 @@ class QuantizationAwareTraining(Callback):
                     def custom_trigger_last(trainer):
                         return trainer.current_epoch == (trainer.max_epochs - 1)
 
+
                     QuantizationAwareTraining(collect_quantization=custom_trigger_last)
 
         modules_to_fuse: allows you fuse a few layers together as shown in

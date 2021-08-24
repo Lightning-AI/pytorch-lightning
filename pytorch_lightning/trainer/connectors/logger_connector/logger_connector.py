@@ -17,11 +17,10 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import DeviceType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
@@ -103,9 +102,8 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        if self.trainer.is_global_zero:
-            self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-            self.trainer.logger.save()
+        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+        self.trainer.logger.save()
 
         self._logged_metrics.update(scalar_metrics)
 
@@ -226,9 +224,14 @@ class LoggerConnector:
 
     def _log_gpus_metrics(self):
         for key, mem in self.gpus_metrics.items():
-            gpu_id = int(key.split("/")[0].split(":")[1])
-            if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
-                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
+            if self.log_gpu_memory == "min_max":
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
+            else:
+                gpu_id = int(key.split("/")[0].split(":")[1])
+                if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                    self.trainer.lightning_module.log(
+                        key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
+                    )
 
     """
     Utilities and properties
@@ -241,9 +244,9 @@ class LoggerConnector:
         self._epoch_end_reached = False
 
     def epoch_end_reached(self):
-        self.trainer.logger_connector._epoch_end_reached = True
-        self.trainer.logger_connector._batch_idx = None
-        self.trainer.logger_connector._split_idx = None
+        self._epoch_end_reached = True
+        self._batch_idx = None
+        self._split_idx = None
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached

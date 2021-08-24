@@ -56,7 +56,7 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
 
     @classmethod
     def apply(cls, module, name, amount):
-        return super(TestPruningMethod, cls).apply(module, name, amount=amount)
+        return super().apply(module, name, amount=amount)
 
 
 def train_with_pruning_callback(
@@ -131,7 +131,7 @@ def test_pruning_misconfiguration():
     with pytest.raises(MisconfigurationException, match=r"chocolate isn't in \('weight', 'bias'\)"):
         ModelPruning(pruning_fn="l1_unstructured", parameter_names=["chocolate"])
     with pytest.raises(MisconfigurationException, match=r"expected to be a str in \["):
-        ModelPruning(pruning_fn={})  # noqa
+        ModelPruning(pruning_fn={})
     with pytest.raises(MisconfigurationException, match="should be provided"):
         ModelPruning(pruning_fn="random_structured")
     with pytest.raises(MisconfigurationException, match=r"must be any of \(0, 1, 2\)"):

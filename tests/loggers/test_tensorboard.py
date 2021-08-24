@@ -12,22 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import operator
 import os
 from argparse import Namespace
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities.imports import _compare_version
 from tests.helpers import BoringModel
 
 
+@pytest.mark.skipif(
+    _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.6.0"
+)
 def test_tensorboard_hparams_reload(tmpdir):
+    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
     class CustomModel(BoringModel):
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
@@ -172,6 +179,8 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
+        "tensor": torch.empty(2, 2, 2),
+        "array": np.empty([2, 2, 2]),
     }
     logger.log_hyperparams(hparams)
 
@@ -187,6 +196,8 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
+        "tensor": torch.empty(2, 2, 2),
+        "array": np.empty([2, 2, 2]),
     }
     metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)

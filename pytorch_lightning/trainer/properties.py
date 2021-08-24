@@ -69,6 +69,11 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
+
+    # .validate() and .test() set this when they load a checkpoint
+    validated_ckpt_path: Optional[str] = None
+    tested_ckpt_path: Optional[str] = None
+    predicted_ckpt_path: Optional[str] = None
     """
     Accelerator properties
     """
@@ -301,8 +306,8 @@ class TrainerProperties(ABC):
             rank_zero_warn(
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
                 f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
-                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
-                f" in `LightingModule`.",
+                " If this is undesired, change the name or override `get_progress_bar_dict()`"
+                " in `LightingModule`.",
                 UserWarning,
             )
         return {**standard_metrics, **pbar_metrics}
@@ -613,6 +618,15 @@ class TrainerProperties(ABC):
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+
+    @property
+    def _ckpt_path(self) -> Optional[str]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validated_ckpt_path
+        if self.state.fn == TrainerFn.TESTING:
+            return self.tested_ckpt_path
+        if self.state.fn == TrainerFn.PREDICTING:
+            return self.predicted_ckpt_path
 
     """
     Logging properties

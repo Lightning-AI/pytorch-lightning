@@ -60,8 +60,8 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
     from pytorch_lightning.plugins import DDPPlugin
 
-    class CustomDDPPlugin(DDPPlugin):
 
+    class CustomDDPPlugin(DDPPlugin):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,

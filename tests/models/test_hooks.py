@@ -128,14 +128,14 @@ def test_apply_batch_transfer_handler(model_getter_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
@@ -143,7 +143,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
             return batch
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -213,16 +213,22 @@ def get_members(cls):
 
 class HookedCallback(Callback):
     def __init__(self, called):
-        def call(hook, *args, **kwargs):
+        def call(hook, fn, *args, **kwargs):
+            out = fn(*args, **kwargs)
             d = {"name": f"Callback.{hook}"}
             if args:
                 d["args"] = args
             if kwargs:
                 d["kwargs"] = kwargs
             called.append(d)
+            return out
 
         for h in get_members(Callback):
-            setattr(self, h, partial(call, h))
+            attr = getattr(self, h)
+            setattr(self, h, partial(call, h, attr))
+
+    def on_save_checkpoint(*args, **kwargs):
+        return {"foo": True}
 
 
 class HookedModel(BoringModel):
@@ -534,11 +540,11 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="train", args=(True,)),
         dict(name="on_validation_model_train"),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
-        dict(name="Callback.on_train_epoch_end", args=(trainer, model, [dict(loss=ANY)] * train_batches)),
+        dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_train_epoch_end`
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
+        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_epoch_end", args=(trainer, model)),
         dict(name="on_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
@@ -555,7 +561,12 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=1, limit_val_batches=0, progress_bar_refresh_rate=0, weights_summary=None
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_val_batches=0,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+        callbacks=[HookedCallback([])],
     )
     trainer.fit(model)
     best_model_path = trainer.checkpoint_callback.best_model_path
@@ -611,6 +622,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
                 },
             ),
         ),
+        dict(name="Callback.on_load_checkpoint", args=(trainer, model, {"foo": True})),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
         dict(name="configure_optimizers"),
@@ -635,10 +647,10 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         # TODO: wrong current epoch after reload
         *model._train_batch(trainer, model, train_batches, current_epoch=1),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
-        dict(name="Callback.on_train_epoch_end", args=(trainer, model, [dict(loss=ANY)] * train_batches)),
+        dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
-        dict(name="on_train_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
+        dict(name="on_train_epoch_end"),
         dict(name="Callback.on_epoch_end", args=(trainer, model)),
         dict(name="on_epoch_end"),
         dict(name="Callback.on_train_end", args=(trainer, model)),
@@ -796,7 +808,7 @@ def test_hooks_with_different_argument_names(tmpdir):
 
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    trainer.test(ckpt_path=None)
+    trainer.test(model)
 
     preds = trainer.predict(model)
     assert len(preds) == 2

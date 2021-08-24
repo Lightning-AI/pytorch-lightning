@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
@@ -32,6 +33,7 @@ from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import (
     _HYDRA_AVAILABLE,
@@ -43,7 +45,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
-    rank_zero_info,
+    init_ddp_connection,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -75,14 +77,19 @@ class DDPPlugin(ParallelPlugin):
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+        )
         self.interactive_ddp_procs = []
         if num_nodes is not None:
             rank_zero_deprecation(
@@ -99,7 +106,6 @@ class DDPPlugin(ParallelPlugin):
         self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
-        self._has_spawned_children = False
         self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -167,9 +173,7 @@ class DDPPlugin(ParallelPlugin):
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
-        assert self.local_rank == 0
         self._check_can_spawn_children()
-        self._has_spawned_children = True
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
@@ -178,9 +182,6 @@ class DDPPlugin(ParallelPlugin):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # create a temporary directory used to synchronize processes on deadlock.
-        os.environ["PL_DDP_SYNC_TMPDIR"] = self._sync_dir = tempfile.mkdtemp()
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -249,17 +250,18 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection()
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
 
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
 
     def _check_can_spawn_children(self):
-        if self._has_spawned_children:
+        if self.local_rank != 0:
             raise RuntimeError(
-                "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+                "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
+                " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
+                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
@@ -311,25 +313,6 @@ class DDPPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if torch.distributed.is_available() and not torch.distributed.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch.distributed.init_process_group(
-                self.torch_distributed_backend, rank=global_rank, world_size=world_size
-            )
-
-            # on rank=0 let everyone know training is starting
-            rank_zero_info(
-                f"{'-' * 100}\n"
-                f"distributed_backend={self.torch_distributed_backend}\n"
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
-                f"{'-' * 100}\n"
-            )
 
     def pre_dispatch(self):
         # move the model to the correct device
@@ -410,8 +393,18 @@ class DDPPlugin(ParallelPlugin):
     def _share_information_to_prevent_deadlock(self):
         self._share_pids()
 
-        # remove `PL_DDP_SYNC_TMPDIR` from os.environ
-        self._sync_dir = os.environ.pop("PL_DDP_SYNC_TMPDIR", None)
+        # there should be a unique sync_dir per nodes.
+        if self.local_rank == 0:
+            # create a temporary directory used to synchronize processes on deadlock.
+            self._sync_dir = tempfile.mkdtemp()
+
+        sync_dirs = []
+        global_node_rank_zero = 0
+        for _ in range(self.num_nodes):
+            sync_dirs.append(self.broadcast(self._sync_dir, global_node_rank_zero))
+            global_node_rank_zero += self.world_size // self.num_nodes
+
+        self._sync_dir = sync_dirs[self.node_rank]
 
     def _share_pids(self):
         """
@@ -428,6 +421,11 @@ class DDPPlugin(ParallelPlugin):
 
         sync_dir = self._sync_dir
 
+        # The cluster may be configured to periodically purge the `/tmp`
+        # directory, in which case `sync_dir` may not exist anymore at this
+        # point. Idempotently create it to ensure its existence.
+        Path(sync_dir).mkdir(parents=True, exist_ok=True)
+
         # save a file locally.
         torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
 
@@ -436,11 +434,11 @@ class DDPPlugin(ParallelPlugin):
 
         # return if all processes wrote a file in the `sync_dir`.
         # todo (tchaton) Add support for non-shared file-system which will fail.
-        if len(os.listdir(sync_dir)) == self.world_size:
+        if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
         for pid in self._pids:
             if pid != os.getpid():
                 os.kill(pid, signal.SIGKILL)
-            shutil.rmtree(sync_dir)
-            raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+        shutil.rmtree(sync_dir)
+        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")

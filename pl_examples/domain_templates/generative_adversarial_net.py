@@ -25,7 +25,7 @@ from argparse import ArgumentParser, Namespace
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F  # noqa
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from pl_examples import cli_lightning_logo

@@ -24,7 +24,7 @@ def test_progress_getattr_setattr():
     assert p.completed is None
     # can't read non-existing attr
     with pytest.raises(AttributeError, match="object has no attribute 'non_existing_attr'"):
-        p.non_existing_attr  # noqa
+        p.non_existing_attr
     # can set new attr
     p.non_existing_attr = 10
     # can't write unused attr

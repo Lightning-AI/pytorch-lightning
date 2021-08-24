@@ -63,18 +63,18 @@ class FitLoop(Loop):
 
     @property
     def total_batch_idx(self) -> int:
-        """Returns the total number of batches already run (across all epochs)"""
+        """Returns the current batch index (across epochs)"""
         return self.epoch_loop.total_batch_idx
 
     @property
     def batch_idx(self) -> int:
-        """Returns the number of batches already run within this epoch"""
-        return self.epoch_loop.batch_progress.current.ready - 1
+        """Returns the current batch index (within this epoch)"""
+        return self.epoch_loop.batch_idx
 
     @property
     def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt"""
-        return self.epoch_loop.split_idx
+        return self.epoch_loop.batch_loop.split_idx
 
     @property
     def min_steps(self) -> int:
@@ -192,12 +192,13 @@ class FitLoop(Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
+        dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader)
+        dataloader_iter = iter(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.epoch_loop.run(train_dataloader)
+            epoch_output = self.epoch_loop.run(dataloader_iter)
 
             if epoch_output is None:
                 return
@@ -216,7 +217,7 @@ class FitLoop(Loop):
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook"""
-        # NOTE: the iteration_count/current_epoch is already incremented
+        # NOTE: the current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.
         # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
@@ -225,21 +226,12 @@ class FitLoop(Loop):
         # hook
         self.trainer.call_hook("on_train_end")
 
-        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
-        # It might be related to xla tensors blocked when moving the cpu
-        # kill loggers
-        if self.trainer.logger is not None:
-            self.trainer.logger.finalize("success")
-
-        # summarize profile results
-        self.trainer.profiler.describe()
-
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated"""
-        return self.epoch_loop.batch_loop.should_accumulate()
+        return self.epoch_loop._should_accumulate()
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

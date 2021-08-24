@@ -22,6 +22,7 @@ import pytest
 import torch.distributed
 import torch.multiprocessing as mp
 
+from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from tests import _PATH_DATASETS
 
 
@@ -68,7 +69,7 @@ def pytest_pyfunc_call(pyfuncitem):
     if pyfuncitem.get_closest_marker("spawn"):
         testfunction = pyfuncitem.obj
         funcargs = pyfuncitem.funcargs
-        testargs = tuple([funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames])
+        testargs = tuple(funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames)
 
         mp.spawn(wraps, (testfunction, testargs))
         return True
@@ -106,3 +107,27 @@ def tmpdir_server(tmpdir):
         server_thread.start()
         yield server.server_address
         server.shutdown()
+
+
+@pytest.fixture
+def single_process_pg():
+    """
+    Initialize the default process group with only the current process for
+    testing purposes. The process group is destroyed when the with block is
+    exited.
+    """
+    if torch.distributed.is_initialized():
+        raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")
+
+    orig_environ = os.environ.copy()
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(find_free_network_port())
+    os.environ["RANK"] = "0"
+    os.environ["WORLD_SIZE"] = "1"
+    torch.distributed.init_process_group("gloo")
+    try:
+        yield
+    finally:
+        torch.distributed.destroy_process_group()
+        os.environ.clear()
+        os.environ.update(orig_environ)

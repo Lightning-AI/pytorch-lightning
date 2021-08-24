@@ -14,19 +14,14 @@
 
 from abc import ABC
 from copy import deepcopy
-from inspect import signature
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -36,20 +31,20 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     lightning_module: "pl.LightningModule"
 
-    def on_before_accelerator_backend_setup(self, model: "pl.LightningModule") -> None:
+    def on_before_accelerator_backend_setup(self) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.on_before_accelerator_backend_setup(self, model)
+            callback.on_before_accelerator_backend_setup(self, self.lightning_module)
 
-    def configure_sharded_model(self, model: "pl.LightningModule") -> None:
+    def on_configure_sharded_model(self) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.on_configure_sharded_model(self, model)
+            callback.on_configure_sharded_model(self, self.lightning_module)
 
-    def setup(self, model: "pl.LightningModule", stage: Optional[str]) -> None:
+    def setup(self, stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.setup(self, model, stage=stage)
+            callback.setup(self, self.lightning_module, stage=stage)
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
@@ -91,22 +86,10 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``train`` epoch
-        """
+    def on_train_epoch_end(self):
+        """Called when the epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                warning_cache.deprecation(
-                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
-                    " `outputs` parameter has been removed."
-                    " Support for the old signature will be removed in v1.5"
-                )
-                callback.on_train_epoch_end(self, self.lightning_module, outputs)
-            else:
-                callback.on_train_epoch_end(self, self.lightning_module)
+            callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
@@ -253,40 +236,21 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
-    @staticmethod
-    def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
-        parameters = list(signature(fn).parameters)
-        return len(parameters) == 2 and parameters[0] != "args"
-
-    @staticmethod
-    def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
-        parameters = list(signature(fn).parameters)
-        return len(parameters) == 1 and parameters[0] != "args"
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
-            if self.__is_old_signature_on_save_checkpoint(callback.on_save_checkpoint):
-                rank_zero_deprecation(
-                    "`Callback.on_save_checkpoint` signature has changed in v1.3."
-                    " A `checkpoint` parameter has been added."
-                    " Support for the old signature will be removed in v1.5"
-                )
-                state = callback.on_save_checkpoint(self, self.lightning_module)  # noqa: parameter-unfilled
-            else:
-                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[type(callback)] = state
+                callback_states[callback.state_key] = state
         return callback_states
 
-    def on_load_checkpoint(self, checkpoint):
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
-
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        callback_states = checkpoint.get("callbacks")
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -303,18 +267,10 @@ class TrainerCallbackHookMixin(ABC):
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(type(callback))
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
-                    rank_zero_deprecation(
-                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
-                        " `trainer` and `pl_module` parameters have been added."
-                        " Support for the old signature will be removed in v1.5"
-                    )
-                    callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
-                else:
-                    callback.on_load_checkpoint(self, self.lightning_module, state)
+                callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_before_backward(self, loss: torch.Tensor) -> None:
         """Called before ``loss.backward()``."""
