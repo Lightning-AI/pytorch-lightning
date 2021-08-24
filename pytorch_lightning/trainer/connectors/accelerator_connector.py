@@ -548,7 +548,7 @@ class AcceleratorConnector:
 
     def _validate_precision_type(self) -> None:
         """
-        Ensures that the set precision type by the user is valid.
+        Ensures that the set precision type passed by the user is valid.
         """
         valid_types = (16, 32, 64, "bf16")
         if self.precision not in valid_types:
