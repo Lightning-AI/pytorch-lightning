@@ -19,13 +19,17 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, __version__
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel
 
 
 class Run:
     _short_id = "foo"
+
+    def __setitem__(self, key, value):
+        # just pass assignment of INTEGRATION_VERSION_KEY
+        pass
 
 
 @pytest.fixture
@@ -50,7 +54,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(logger._run_instance, created_run)
         self.assertEqual(logger.name, "NeptuneLogger")
         self.assertEqual(logger.version, created_run._short_id)
-        self.assertEqual(neptune.init.call_count, 2)
+        self.assertEqual(neptune.init.call_count, 2)  # one call was made during test
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):
@@ -170,9 +174,12 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_hyperparams(params)
 
             # then
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
-            run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
+            run_instance_mock.__setitem__.assert_has_calls([
+                call(f"source_code/integrations/pytorch-lightning", __version__),
+                call(hyperparams_key, params),
+            ])
 
     def test_log_metrics(self, neptune):
         metrics = {
@@ -194,10 +201,12 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_metrics(metrics)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 0)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
             run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
+            run_instance_mock.__setitem__.assert_called_once_with(
+                f"source_code/integrations/pytorch-lightning", __version__)
             run_attr_mock.log.assert_has_calls([call(42), call(555)])
 
     def test_log_model_summary(self, neptune):
@@ -218,9 +227,12 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_model_summary(model)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
-            run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
+            run_instance_mock.__setitem__.assert_has_calls([
+                call(f"source_code/integrations/pytorch-lightning", __version__),
+                call(model_summary_key, file_from_content_mock),
+            ])
 
     def test_after_save_checkpoint(self, neptune):
         test_variants = [
@@ -248,11 +260,13 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.after_save_checkpoint(cb_mock)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
+            self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 3)
             self.assertEqual(run_attr_mock.upload.call_count, 3)
-            run_instance_mock.__setitem__.assert_called_once_with(
-                f"{model_key_prefix}/best_model_path", "path/to/models/best_model")
+            run_instance_mock.__setitem__.assert_has_calls([
+                call(f"source_code/integrations/pytorch-lightning", __version__),
+                call(f"{model_key_prefix}/best_model_path", "path/to/models/best_model"),
+            ])
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
