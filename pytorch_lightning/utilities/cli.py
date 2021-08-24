@@ -187,7 +187,9 @@ class SaveConfigCallback(Callback):
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
             get_filesystem(log_dir).makedirs(log_dir, exist_ok=True)
-            self.parser.save(self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile)
+            self.parser.save(
+                self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
+            )
 
     def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
         # `ArgumentParser` is un-pickleable. Drop it
@@ -376,7 +378,11 @@ class LightningCLI:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
-                self.parser, self.config, self.save_config_filename, overwrite=self.save_config_overwrite, multifile=self.save_config_multifile
+                self.parser,
+                self.config,
+                self.save_config_filename,
+                overwrite=self.save_config_overwrite,
+                multifile=self.save_config_multifile,
             )
             config["callbacks"].append(config_callback)
         return self.trainer_class(**config)
