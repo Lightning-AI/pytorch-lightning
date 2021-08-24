@@ -18,6 +18,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loops.closure import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
@@ -260,6 +261,8 @@ def test_train_step_no_return(tmpdir):
 
     trainer = Trainer(**trainer_args)
 
+    Closure.warning_cache.clear()
+
     with pytest.warns(UserWarning, match=r"training_step returned None.*"):
         trainer.fit(model)
 
@@ -269,6 +272,8 @@ def test_train_step_no_return(tmpdir):
     model = TestModel()
     model.automatic_optimization = False
     trainer = Trainer(**trainer_args)
+
+    Closure.warning_cache.clear()
 
     with no_warning_call(UserWarning, match=r"training_step returned None.*"):
         trainer.fit(model)
