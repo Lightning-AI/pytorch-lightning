@@ -242,7 +242,7 @@ class LightningCLI:
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
-            parser_kwargs: Additional arguments to instantiate each LightningArgumentParser.
+            parser_kwargs: Additional arguments to instantiate each ``LightningArgumentParser``.
             subclass_mode_model: Whether model can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
