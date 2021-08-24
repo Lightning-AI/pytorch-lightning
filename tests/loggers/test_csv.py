@@ -17,9 +17,11 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.saving import load_hparams_from_yaml
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
+from tests.helpers import BoringModel
 
 
 def test_file_logger_automatic_versioning(tmpdir):
@@ -102,6 +104,15 @@ def test_file_logger_log_hyperparams(tmpdir):
     path_yaml = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
     params = load_hparams_from_yaml(path_yaml)
     assert all(n in params for n in hparams)
+
+
+def test_fit_csv_logger(tmpdir):
+    model = BoringModel()
+    logger = CSVLogger(save_dir=tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=10, logger=logger, log_every_n_steps=1)
+    trainer.fit(model)
+    metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    assert os.path.isfile(metrics_file)
 
 
 def test_flush_n_steps(tmpdir):
