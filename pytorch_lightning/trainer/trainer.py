@@ -77,6 +77,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
@@ -137,7 +138,7 @@ class Trainer(
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
-        precision: int = 32,
+        precision: Union[int, str] = 32,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -151,7 +152,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
+        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
@@ -243,6 +244,10 @@ class Trainer(
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
 
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+
             process_position: orders the progress bar when running multiple models on same machine.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
@@ -255,8 +260,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
-                TPUs.
+            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+                Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
@@ -924,6 +929,8 @@ class Trainer(
             )
             batch_loop = IteratorBatchProcessor(self, model)
             self.fit_loop.epoch_loop.connect(batch_loop)
+            # FIXME: Move this logic to data_connector after removing `IteratorBatchProcessor`
+            self.data_connector.data_fetcher = DataLoaderIterDataFetcher()
 
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams

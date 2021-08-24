@@ -24,8 +24,8 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """Mixed Precision for Sharded Training"""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, precision: Union[int, str] = 16) -> None:
+        super().__init__(precision)
         self.scaler = ShardedGradScaler()
 
     def clip_grad_by_norm(
