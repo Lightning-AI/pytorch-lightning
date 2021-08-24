@@ -131,12 +131,10 @@ class ConfigValidator:
                 " or switch to automatic optimization."
             )
 
-    def __check_training_step_requires_dataloader_iter(self, model: "pl.LightningModule") -> bool:
+    def __check_training_step_requires_dataloader_iter(self, model: "pl.LightningModule"):
         """Check if the current `training_step` is requesting `dataloader_iter`."""
         training_step_fx = getattr(model, "training_step")
-        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
-
-        if contains_dataloader_iter:
+        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
 
             if is_overridden("on_train_batch_start", model):
                 raise MisconfigurationException(
@@ -155,5 +153,3 @@ class ConfigValidator:
                     "The model taking a `dataloader_iter` argument in your `training_step` "
                     "is incompatible with `truncated_bptt_steps > 0`."
                 )
-
-        return contains_dataloader_iter
