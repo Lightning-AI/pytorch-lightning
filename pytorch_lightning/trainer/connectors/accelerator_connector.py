@@ -149,7 +149,6 @@ class AcceleratorConnector:
         self.plugins = plugins
 
         self._validate_accelerator_and_devices()
-        self._validate_precision_type(self.precision)
 
         self._warn_if_devices_flag_ignored()
 
@@ -549,16 +548,6 @@ class AcceleratorConnector:
         )
         return TorchElasticEnvironment.is_using_torchelastic()
 
-    @staticmethod
-    def _validate_precision_type(precision: Union[int, str]) -> None:
-        """
-        Ensures that the set precision type passed by the user is valid.
-        """
-        if not PrecisionType.supported_type(precision):
-            raise MisconfigurationException(
-                f"Precision {precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
-            )
-
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
@@ -614,7 +603,9 @@ class AcceleratorConnector:
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError(f"We only support precision: {PrecisionType.supported_types()}")
+        raise MisconfigurationException(
+            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+        )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (

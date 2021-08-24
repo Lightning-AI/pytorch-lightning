@@ -58,9 +58,9 @@ class PrecisionType(LightningEnum):
     True
     """
 
-    HALF = 16
-    FLOAT = 32
-    FULL = 64
+    HALF = "16"
+    FLOAT = "32"
+    FULL = "64"
     BFLOAT = "bf16"
 
     @staticmethod
