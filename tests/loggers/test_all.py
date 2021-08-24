@@ -162,13 +162,26 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
-def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
+@pytest.mark.parametrize(
+    "logger_class",
+    [
+        CometLogger,
+        CSVLogger,
+        MLFlowLogger,
+        # NeptuneLogger,
+        TensorBoardLogger,
+        TestTubeLogger,
+        WandbLogger,
+    ],
+)
+def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch, logger_class):
     """Test the combinations of save_dir, weights_save_path and default_root_dir."""
 
-    _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
-
-    with mock.patch("pytorch_lightning.loggers.comet.comet_ml"), mock.patch(
-        "pytorch_lightning.loggers.comet.CometOfflineExperiment"
+    pl_logs = "pytorch_lightning.loggers"
+    with mock.patch(pl_logs + ".comet.comet_ml"), mock.patch(pl_logs + ".comet.CometOfflineExperiment"), mock.patch(
+        pl_logs + ".mlflow.mlflow"
+    ), mock.patch(pl_logs + ".mlflow.MlflowClient"), mock.patch(pl_logs + ".test_tube.Experiment"), mock.patch(
+        pl_logs + ".wandb.wandb"
     ):
         _patch_comet_atexit(monkeypatch)
         _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
@@ -200,7 +213,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
             return "name"
 
     model = BoringModel()
-    trainer_args = dict(default_root_dir=tmpdir, max_steps=1)
+    trainer_args = dict(default_root_dir=tmpdir, max_steps=3)
 
     # no weights_save_path given
     save_dir = tmpdir / "logs"
