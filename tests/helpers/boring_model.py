@@ -14,7 +14,9 @@
 from typing import Optional
 
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
+from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule
 
@@ -87,23 +89,26 @@ class BoringModel(LightningModule):
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
+        self.train_acc = Accuracy()
+        self.val_acc = Accuracy()
 
     def forward(self, x):
-        return self.layer(x)
+        return F.softmax(self.layer(x))
 
-    def loss(self, batch, prediction):
+    def loss(self, pred):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+        return torch.nn.functional.binary_cross_entropy(pred, torch.ones_like(pred))
 
-    def step(self, x):
-        x = self(x)
-        out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
-        return out
+    # def step(self, x):
+    #     x = self(x)
+    #     out = torch.nn.functional.mse_loss(x, torch.ones_like(prediction))
+    #     return out
 
     def training_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
+        y_pred = self(batch)
+        loss = self.loss(y_pred)
         self.log("train_loss", loss)
+        self.log("train_acc", self.train_acc(y_pred, torch.tensor([1])))
         return {"loss": loss}
 
     def training_step_end(self, training_step_outputs):
@@ -113,17 +118,18 @@ class BoringModel(LightningModule):
         torch.stack([x["loss"] for x in outputs]).mean()
 
     def validation_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
+        y_pred = self(batch)
+        loss = self.loss(y_pred)
         self.log("val_loss", loss)
+        self.log("val_acc", self.val_acc(y_pred, torch.tensor([1])))
         return {"x": loss}
 
     def validation_epoch_end(self, outputs) -> None:
         torch.stack([x["x"] for x in outputs]).mean()
 
     def test_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
+        y_pred = self(batch)
+        loss = self.loss(y_pred)
         self.log("test_loss", loss)
         return {"y": loss}
 
