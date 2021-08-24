@@ -207,7 +207,9 @@ def test_cpu_amp_precision_throws_error(tmpdir):
 
 
 @RunIf(
-    pytest.mark.skipif(_TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available."), min_gpus=1, amp_native=True
+    pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available."),
+    min_gpus=1,
+    amp_native=True,
 )
 def test_cpu_amp_precision_16_throws_error(tmpdir):
     """
