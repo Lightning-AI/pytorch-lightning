@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Iterator, Optional
+from typing import Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
