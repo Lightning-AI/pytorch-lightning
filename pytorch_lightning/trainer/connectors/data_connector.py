@@ -11,22 +11,47 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+from functools import partial
 from typing import Callable, Iterable, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, InterBatchParallelDataFetcher
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(
+        self,
+        trainer: "pl.Trainer",
+        multiple_trainloader_mode: str = "max_size_cycle",
+        train_data_fetcher: Optional[AbstractDataFetcher] = None,
+        validate_data_fetcher: Optional[AbstractDataFetcher] = None,
+        test_data_fetcher: Optional[AbstractDataFetcher] = None,
+    ):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-        self.data_fetcher: AbstractDataFetcher = DataFetcher()
+
+        self.train_data_fetcher = train_data_fetcher
+        self.validate_data_fetcher = validate_data_fetcher
+        self.test_data_fetcher = test_data_fetcher
+        self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
+
+    @property
+    def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
+        if self.trainer.sanity_checking:
+            return self.sanity_check_data_fetcher
+        return self.test_data_fetcher if self.trainer.testing else self.validate_data_fetcher
 
     def on_trainer_init(
         self,
@@ -66,15 +91,42 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def get_profiled_train_dataloader(self, train_dataloader) -> Iterable:
-        # FIXME: Temporary hack
-        if isinstance(self.data_fetcher, InterBatchParallelDataFetcher):
-            self.data_fetcher.setup(train_dataloader, batch_to_device=self.trainer.accelerator.batch_to_device)
-        else:
-            self.data_fetcher.setup(train_dataloader)
-        prefetcher_iter = iter(self.data_fetcher)
-        profiled_dl = self.trainer.profiler.profile_iterable(enumerate(prefetcher_iter), "get_train_batch")
-        return profiled_dl
+    def _check_training_step_requires_dataloader_iter(self) -> bool:
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
+        return contains_dataloader_iter
+
+    def _select_data_fetcher(self) -> AbstractDataFetcher:
+        if self.trainer.sanity_checking:
+            return DataFetcher()
+
+        if self.trainer.training and self._check_training_step_requires_dataloader_iter():
+            rank_zero_warn(
+                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+                "this signature is experimental and the behavior is subject to change."
+            )
+            return DataLoaderIterDataFetcher()
+        elif self.trainer.training and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+            # note: this is an experimental feature
+            if not self.trainer.training_type_plugin.on_gpu:
+                raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+            return InterBatchParallelDataFetcher()
+
+        return DataFetcher()
+
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+        stage: str = self.trainer.state.stage.value
+        data_fetcher = setattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
+        data_fetcher.setup(
+            dataloader,
+            stage=stage,
+            batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
+            profiler=self.trainer.profiler,
+        )
+        setattr(self, f"{stage}_data_fetcher", data_fetcher)
+        if isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            return data_fetcher
+        return enumerate(data_fetcher)
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
