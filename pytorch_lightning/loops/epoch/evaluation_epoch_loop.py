@@ -72,7 +72,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
 
-        self.dataloader_iter = _prepare_dataloader_iter(dataloader_iter, self.batch_progress.current.ready + 1)
+        self.dataloader_iter = _prepare_dataloader_iter(dataloader_iter, self.batch_progress.current.ready)
 
     def advance(
         self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
