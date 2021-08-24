@@ -23,6 +23,7 @@ import io
 import math
 import os
 import sys
+from io import TextIOWrapper
 from typing import Optional, Union
 
 # check if ipywidgets is installed before importing tqdm.auto
@@ -46,30 +47,20 @@ class tqdm(_tqdm):
         self.using_text_io_wrapper = False
         super().__init__(*args, **kwargs)
 
-        self.using_text_io_wrapper = hasattr(self, "fp") and isinstance(self.fp, io.TextIOWrapper)
+        self.using_text_io_wrapper = hasattr(self, "fp") and isinstance(self.fp, TextIOWrapper)
 
     def display(self, msg=None, pos=None):
-        if self.using_text_io_wrapper:
-            if self.n != self.total:
-                msg = " " + self.__repr__()
-                super().display(msg=msg, pos=0)
-            else:
-                super().display()
-                with open(self.fp.name) as fr:
-                    lines = fr.readlines()
-                    lines = [
-                        line
-                        for line in lines
-                        if (not line.startswith(" ") and line != "\n" and "0it " not in line and "-1it " not in line)
-                    ]
-                    self.fp.seek(0)
-                    self.fp.truncate()
-                    for line in lines:
-                        line = line.replace("[A", "")
-                        self.fp.write(line)
-        else:
-            msg = self.__repr__()
-            super().display(msg=msg, pos=0)
+        msg = self.__repr__()
+
+        if self.using_text_io_wrapper and self.n != self.total:
+            # add an additional space at the beginning of each line
+            msg = " " + msg
+
+        super().display(msg=msg, pos=0)
+
+        if self.using_text_io_wrapper and self.n == self.total:
+            # read logs, skip lines starting with white space, and re-write logs.
+            self._remove_spaced_lines()
 
     @staticmethod
     def format_num(n) -> str:
@@ -86,6 +77,20 @@ class tqdm(_tqdm):
                 n += "."
             n += "0" * (_PAD_SIZE - len(n))
         return n
+
+    def _remove_spaced_lines(self):
+        with open(self.fp.name) as fr:
+            lines = fr.readlines()
+            lines = [
+                line
+                for line in lines
+                if (not line.startswith(" ") and line != "\n" and "0it " not in line and "-1it " not in line)
+            ]
+            self.fp.seek(0)
+            self.fp.truncate()
+            for line in lines:
+                line = line.replace("[A", "")
+                self.fp.write(line)
 
 
 class ProgressBarBase(Callback):
@@ -302,7 +307,7 @@ class ProgressBar(ProgressBarBase):
 
     """
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0, file=sys.stdout):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0, file: TextIOWrapper = sys.stdout):
         super().__init__()
         self._refresh_rate = refresh_rate
         self._process_position = process_position

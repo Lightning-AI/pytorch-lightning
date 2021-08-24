@@ -561,10 +561,7 @@ def _test_progress_bar_max_val_check_interval(
 
 
 def test_progress_bar_redirect(tmpdir):
-
-    """
-    This test ensures the log saved to a file are being trimmed.
-    """
+    """This test ensures the log saved to a file are being trimmed."""
 
     seed_everything(42)
 
@@ -577,7 +574,7 @@ def test_progress_bar_redirect(tmpdir):
     log_file = tmpdir / "tmp.log"
 
     with open(log_file, "w") as fw:
-        trainer = Trainer(max_epochs=4, callbacks=ProgressBar(file=fw))
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=4, callbacks=ProgressBar(file=fw))
         trainer.fit(LoggingModel())
 
     with open(log_file) as fr:
