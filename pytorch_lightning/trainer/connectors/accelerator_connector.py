@@ -546,7 +546,18 @@ class AcceleratorConnector:
         )
         return TorchElasticEnvironment.is_using_torchelastic()
 
+    def _validate_precision_type(self) -> None:
+        """
+        Ensures that the set precision type by the user is valid.
+        """
+        valid_types = (16, 32, 64, "bf16")
+        if self.precision not in valid_types:
+            raise MisconfigurationException(
+                f"Precision {self.precision} is invalid. Allowed precision values: {valid_types}"
+            )
+
     def select_precision_plugin(self) -> PrecisionPlugin:
+        self._validate_precision_type()
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
 
