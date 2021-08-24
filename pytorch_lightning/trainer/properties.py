@@ -299,7 +299,7 @@ class TrainerProperties(ABC):
         ref_model = self.lightning_module
         ref_model = cast(pl.LightningModule, ref_model)
 
-        standard_metrics = ref_model.get_progress_bar_dict()
+        standard_metrics = self.progress_bar_callback.get_progress_bar_dict(ref_model)
         pbar_metrics = self.progress_bar_metrics
         duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:

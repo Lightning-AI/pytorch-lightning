@@ -1076,7 +1076,7 @@ class Trainer(
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
+                self.on_keyboacrd_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
         except BaseException:

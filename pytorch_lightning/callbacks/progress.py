@@ -383,7 +383,7 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
-    def get_progress_bar_dict(self, pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+    def get_progress_bar_dict(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
         r"""
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -407,7 +407,7 @@ class ProgressBar(ProgressBarBase):
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.fit_loop.running_loss.mean()
+        running_train_loss = trainer.fit_loop.running_loss.mean()
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
@@ -419,10 +419,10 @@ class ProgressBar(ProgressBarBase):
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if pl_module.truncated_bptt_steps > 0:
-            tqdm_dict["split_idx"] = self.trainer.fit_loop.split_idx
+            tqdm_dict["split_idx"] = trainer.fit_loop.split_idx
 
-        if self.trainer.logger is not None and self.trainer.logger.version is not None:
-            version = self.trainer.logger.version
+        if trainer.logger is not None and trainer.logger.version is not None:
+            version = trainer.logger.version
             # show last 4 places of long version strings
             version = version[-4:] if isinstance(version, str) else version
             tqdm_dict["v_num"] = version
