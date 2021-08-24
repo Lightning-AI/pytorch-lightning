@@ -27,6 +27,7 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
+    CPUNativeMixedPrecisionPlugin,
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedPlugin,
@@ -64,6 +65,7 @@ from pytorch_lightning.utilities import (
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
     _TPU_AVAILABLE,
     AMPType,
     device_parser,
@@ -566,9 +568,13 @@ class AcceleratorConnector:
 
             if self.amp_type == AMPType.NATIVE:
                 if self.use_cpu:
-                    raise MisconfigurationException(
-                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                    )
+                    if _TORCH_GREATER_EQUAL_1_10:
+                        return CPUNativeMixedPrecisionPlugin(self.precision)
+                    else:
+                        raise MisconfigurationException(
+                            "You have asked for native AMP on CPU, but AMP is only available on GPU for PyTorch 1.9 "
+                            "and lower. To use native AMP on CPU, install PyTorch 1.10 or later."
+                        )
                 if not _NATIVE_AMP_AVAILABLE:
                     msg = (
                         "You have asked for native AMP but your PyTorch version does not support it."

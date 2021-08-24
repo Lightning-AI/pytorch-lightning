@@ -19,8 +19,13 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    CPUNativeMixedPrecisionPlugin,
+    NativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -189,4 +194,31 @@ def test_amp_precision_16_bfloat_throws_error(tmpdir):
             default_root_dir=tmpdir,
             precision="bf16",
             gpus=1,
+        )
+
+
+@RunIf(amp_native=True, max_torch="1.9")
+def test_cpu_amp_precision_throws_error(tmpdir):
+    with pytest.raises(
+        MisconfigurationException,
+        match="To use CPU native amp you must install torch greater or equal to 1.10.",
+    ):
+        CPUNativeMixedPrecisionPlugin()
+
+
+@RunIf(
+    pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_10, reason="Torch 1.10 is not available."), min_gpus=1, amp_native=True
+)
+def test_cpu_amp_precision_16_throws_error(tmpdir):
+    """
+    Throw error when using 16 as Native CPU AMP only supports bfloat16.
+    """
+
+    with pytest.raises(
+        MisconfigurationException,
+        match="CPU native amp only supports bfloat16. Please pass precision=bf16 to the Trainer.",
+    ):
+        Trainer(
+            default_root_dir=tmpdir,
+            precision=16,
         )
