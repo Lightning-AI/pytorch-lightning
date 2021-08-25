@@ -16,7 +16,7 @@ import io
 import math
 import os
 import sys
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
