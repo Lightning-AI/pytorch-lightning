@@ -16,8 +16,8 @@ import os
 import re
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Dict, List, Optional, Union
-import numpy as np
 
+import numpy as np
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
