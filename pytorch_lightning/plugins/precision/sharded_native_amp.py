@@ -24,9 +24,10 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """Mixed Precision for Sharded Training"""
 
-    def __init__(self, precision: Union[int, str] = 16) -> None:
-        super().__init__(precision)
-        self.scaler = ShardedGradScaler()
+    def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
+        super().__init__(precision, use_cpu=use_cpu)
+        if not self.use_cpu:
+            self.scaler = ShardedGradScaler()
 
     def clip_grad_by_norm(
         self, optimizer: "OSS", clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
