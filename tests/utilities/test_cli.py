@@ -28,11 +28,13 @@ import torch
 import yaml
 from packaging import version
 
+import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
+    _Registry,
     DATAMODULE_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
@@ -705,6 +707,33 @@ def test_lightning_cli_disabled_run(run):
     assert isinstance(cli.model, LightningModule)
 
 
+def test_registry():
+
+    registry = _Registry()
+    registry.register_package(pl.callbacks, pl.callbacks.Callback)
+
+    expected = [
+        "BackboneFinetuning",
+        "BaseFinetuning",
+        "BasePredictionWriter",
+        "EarlyStopping",
+        "GPUStatsMonitor",
+        "GradientAccumulationScheduler",
+        "LambdaCallback",
+        "LearningRateMonitor",
+        "ModelCheckpoint",
+        "ModelPruning",
+        "ProgressBar",
+        "ProgressBarBase",
+        "QuantizationAwareTraining",
+        "RichProgressBar",
+        "StochasticWeightAveraging",
+        "Timer",
+        "XLAStatsMonitor",
+    ]
+    assert registry.available_objects() == expected
+
+
 def test_custom_model_datamodule(tmpdir):
     """
     Test that registered callbacks can be used with LightningCLI.
@@ -722,6 +751,8 @@ def test_custom_model_datamodule(tmpdir):
     @DATAMODULE_REGISTRY
     class CustomDataModule(BoringDataModule):
         pass
+
+    assert MODEL_REGISTRY.available_objects() == ["BoringModel", "TestModel", "TestModel1"]
 
     with pytest.raises(
         MisconfigurationException,
