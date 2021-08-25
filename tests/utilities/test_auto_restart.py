@@ -939,7 +939,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1):
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
 def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, multiple_trainloader_mode):
-    """Test that the Trainer can resume from a (doubly) failed run in the case of several types of datasets."""
+    """Test that the Trainer can resume from a failed run in the case of several types of datasets."""
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=3,
@@ -959,18 +959,15 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
     checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     assert os.path.exists(checkpoint_path)
 
-    # Resume after 1st failure and simulate 2nd failure
+    # Resume after failure
     trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
-    resumed_batches_0 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=8)
-    assert len(resumed_batches_0) == 3  # TODO: why is this not 4?
-
-    all_batches_resumed = torch.stack(complete_batches + resumed_batches_0)
-    assert len(all_batches_resumed) == 7
-    assert torch.equal(all_batches[:7], all_batches_resumed)  # TODO: why is this not 8?
-
-    # Resume after 2nd failure
     resumed_batches_1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
-    assert len(resumed_batches_1) == 2  # TODO: why is this 2 and not 1?
+    assert len(resumed_batches_1) == 5
 
-    all_batches_resumed = torch.stack(complete_batches + resumed_batches_0 + resumed_batches_1)
+    all_batches_resumed = torch.stack(complete_batches + resumed_batches_1)
+    assert len(all_batches_resumed) == 9
+
+    for x, y in zip(all_batches, all_batches_resumed):
+        print(x, y, torch.equal(x, y))
+
     assert torch.equal(all_batches, all_batches_resumed)
