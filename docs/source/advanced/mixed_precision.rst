@@ -16,6 +16,8 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
 
     In some cases it is important to remain in FP32 for numerical stability, so keep this in mind when using mixed precision.
 
+    For example when running scatter operations during the forward (such as torchpoint3d) computation must remain in FP32.
+
 FP16 Mixed Precision
 --------------------
 
