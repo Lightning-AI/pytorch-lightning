@@ -11,16 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import operator
 from abc import ABC
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
 
+import pytorch_lightning
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.imports import _compare_version
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -255,12 +257,13 @@ class TrainerCallbackHookMixin(ABC):
         if callback_states is None:
             return
 
-        current_callbacks_type = {cb.state_id for cb in self.callbacks}
-        saved_callbacks_type = set(callback_states.keys())
-        difference = saved_callbacks_type.difference(current_callbacks_type)
+        is_legacy_ckpt = operator.lt(checkpoint["pytorch-lightning_version"], "1.5")
+        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
+        saved_callbacks_keys = set(callback_states.keys())
+        difference = saved_callbacks_keys.difference(current_callbacks_keys)
         if difference:
             rank_zero_warn(
-                "Be aware that when using ``resume_from_checkpoint``,"
+                "Be aware that when using `resume_from_checkpoint`,"
                 " callbacks used to create the checkpoint need to be provided."
                 f" Please, add the following callbacks: {list(difference)}.",
                 UserWarning,
