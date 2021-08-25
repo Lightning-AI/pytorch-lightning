@@ -13,8 +13,9 @@
 # limitations under the License.
 import inspect
 import os
+import sys
 from argparse import Namespace
-from types import MethodType
+from types import MethodType, ModuleType
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Type, Union
 
 from torch.optim import Optimizer
@@ -32,6 +33,49 @@ if _JSONARGPARSE_AVAILABLE:
     set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
+
+
+class _Registry(dict):
+    def __call__(
+        self,
+        cls: Type,
+        key: Optional[str] = None,
+        override: bool = False,
+    ) -> "Optional[Type]":
+        """
+        Registers a class mapped to a name.
+        Args:
+            cls: the class to be mapped.
+            key: the name that identifies the provided class.
+        """
+        if key is None:
+            key = cls.__name__
+        elif not isinstance(key, str):
+            raise TypeError(f"`key` must be a str, found {key}")
+
+        if key in self and not override:
+            raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
+
+        self[key] = cls
+        return cls
+
+    def register_package(self, module: ModuleType, base_cls: Type) -> None:
+        """This function is an utility to register all classes from a module."""
+        for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
+            if issubclass(cls, base_cls) and cls != base_cls:
+                self(cls=cls)
+
+    def available_objects(self) -> List[str]:
+        """Returns a list of registered objects"""
+        return list(self.keys())
+
+    def __str__(self) -> str:
+        objects = ", ".join(self.keys())
+        return f"Registered objects: {objects}"
+
+
+MODEL_REGISTRY = _Registry()
+DATAMODULE_REGISTRY = _Registry()
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -197,7 +241,7 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: Union[Type[LightningModule], Callable[..., LightningModule]],
+        model_class: Optional[Union[Type[LightningModule], Callable[..., LightningModule]]] = None,
         datamodule_class: Optional[Union[Type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
         save_config_filename: str = "config.yaml",
@@ -275,6 +319,7 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({"description": description, "env_prefix": env_prefix, "default_env": env_parse})
+        self.validate_model_datamodule()
         self.setup_parser(**parser_kwargs)
         self.link_optimizers_and_lr_schedulers()
         self.parse_arguments(self.parser)
@@ -452,6 +497,13 @@ class LightningCLI:
     def after_fit(self) -> None:
         """Implement to run some code after fit has finished"""
 
+    def validate_model_datamodule(self) -> None:
+        if not self.model_class:
+            handle_argv_on_token_and_registry(self, "model", MODEL_REGISTRY, should_raise=True)
+
+        if not self.datamodule_class:
+            handle_argv_on_token_and_registry(self, "datamodule", DATAMODULE_REGISTRY)
+
 
 def _global_add_class_path(class_type: Type, init_args: Dict[str, Any]) -> Dict[str, Any]:
     return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args}
@@ -481,3 +533,40 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
     module = __import__(class_module, fromlist=[class_name])
     args_class = getattr(module, class_name)
     return args_class(*args, **kwargs)
+
+
+def _find_matching_class(token: str, registry: _Registry) -> Tuple[bool, str, str]:
+    """Find the class matching the pattern `--{pattern}={class_name}` within provided `sys.argv`."""
+    found_class_name = None
+    found_separator = None
+    token_in = False
+    for v in sys.argv:
+        separator = "=" if "=" in v else " "
+        for class_name in registry:
+            if token in v:
+                token_in = True
+            if f"--{token}{separator}{class_name}" in v:
+                found_class_name = class_name
+                found_separator = separator
+    return token_in, found_class_name, found_separator
+
+
+def _display_error_message(token: str, registry: _Registry) -> str:
+    """Display the error message using the provided registry"""
+    msg = f"The LightningCLI expects you to provide the following argument format: --{token}=MODEL_CLASS. \n"
+    msg += "The current options are: \n"
+    for class_name in registry.available_objects():
+        msg += f"    - {class_name} \n"
+    return msg
+
+
+def handle_argv_on_token_and_registry(
+    lightning_cli: LightningCLI, token: str, registry: _Registry, should_raise: bool = False
+) -> None:
+    """Find the registered LightningModule, DataModule is not present."""
+    token_in, found_class_name, found_separator = _find_matching_class(token, registry)
+    if token_in or should_raise:
+        if not found_class_name:
+            raise MisconfigurationException(_display_error_message(token, registry))
+        setattr(lightning_cli, f"{token}_class", registry[found_class_name])
+        sys.argv = [v for v in sys.argv if v != f"--{token}{found_separator}{found_class_name}"]
