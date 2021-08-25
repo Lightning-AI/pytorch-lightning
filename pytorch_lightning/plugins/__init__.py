@@ -1,3 +1,7 @@
+from pathlib import Path
+from typing import Union
+
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
@@ -29,6 +33,9 @@ from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
+PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment]
+PLUGIN_INPUT = Union[PLUGIN, str]
+
 __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
@@ -54,12 +61,9 @@ __all__ = [
     "TPUSpawnPlugin",
     "TrainingTypePlugin",
     "ParallelPlugin",
-    "Plugin",
     "DDPShardedPlugin",
     "DDPSpawnShardedPlugin",
 ]
-
-from pathlib import Path
 
 FILE_ROOT = Path(__file__).parent
 TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.plugins.training_type"

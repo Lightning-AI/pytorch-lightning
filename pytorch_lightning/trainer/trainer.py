@@ -32,8 +32,7 @@ from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, PrecisionPlugin, TrainingTypePlugin
-from pytorch_lightning.plugins.environments import ClusterEnvironment
+from pytorch_lightning.plugins import DDPSpawnPlugin, PLUGIN_INPUT
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -151,15 +150,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
-        plugins: Optional[
-            Union[
-                List[Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment, str]],
-                TrainingTypePlugin,
-                PrecisionPlugin,
-                ClusterEnvironment,
-                str,
-            ]
-        ] = None,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
         distributed_backend: Optional[str] = None,
