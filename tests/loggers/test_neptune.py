@@ -70,35 +70,25 @@ class TestNeptuneLogger(unittest.TestCase):
     def test_online_with_wrong_kwargs(self, neptune):
         """Tests combinations of kwargs together with `run` kwarg
         which makes some of other parameters unavailable in init"""
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             NeptuneLogger(run="some string")
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             NeptuneLogger(run=Run(), project="redundant project")
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             NeptuneLogger(run=Run(), api_key="redundant api key")
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             NeptuneLogger(run=Run(), name="redundant api name")
 
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             NeptuneLogger(run=Run(), foo="random **kwarg")
 
         # this should work
         NeptuneLogger(run=Run())
         NeptuneLogger(project="foo")
         NeptuneLogger(foo="bar")
-
-    def test_neptune_additional_methods(self, neptune):
-        logger = NeptuneLogger(api_key="test", project="project")
-
-        run_mock = MagicMock()
-        neptune.init.return_value = run_mock
-
-        logger.experiment["key1"].log(torch.ones(1))
-        run_mock.__getitem__.assert_called_once_with("key1")
-        run_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
     @staticmethod
     def _get_logger_with_mocks(**kwargs):
@@ -111,6 +101,13 @@ class TestNeptuneLogger(unittest.TestCase):
 
         return logger, run_instance_mock, run_attr_mock
 
+    def test_neptune_additional_methods(self, neptune):
+        logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
+
+        logger.experiment["key1"].log(torch.ones(1))
+        run_instance_mock.__getitem__.assert_called_once_with("key1")
+        run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
+
     def _fit_and_test(self, logger, model):
         trainer = Trainer(default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger)
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
@@ -122,7 +119,7 @@ class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_leave_open_experiment_after_fit(self, neptune):
         """Verify that neptune experiment was NOT closed after training"""
         # given
-        logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(api_key="test", project="project")
+        logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
         # when
         self._fit_and_test(
@@ -141,7 +138,7 @@ class TestNeptuneLogger(unittest.TestCase):
             def validation_epoch_end(self, outputs):
                 self.log("some/key", 42)
         # and
-        logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(api_key="test", project="project")
+        logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
         # when
         self._fit_and_test(
@@ -167,7 +164,7 @@ class TestNeptuneLogger(unittest.TestCase):
         ]
         for prefix, hyperparams_key in test_variants:
             # given:
-            logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(
+            logger, run_instance_mock, _ = self._get_logger_with_mocks(
                 api_key="test", project="project", **prefix)
 
             # when: log hyperparams
@@ -177,7 +174,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_has_calls([
-                call(f"source_code/integrations/pytorch-lightning", __version__),
+                call("source_code/integrations/pytorch-lightning", __version__),
                 call(hyperparams_key, params),
             ])
 
@@ -206,7 +203,7 @@ class TestNeptuneLogger(unittest.TestCase):
             run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
             run_instance_mock.__setitem__.assert_called_once_with(
-                f"source_code/integrations/pytorch-lightning", __version__)
+                "source_code/integrations/pytorch-lightning", __version__)
             run_attr_mock.log.assert_has_calls([call(42), call(555)])
 
     def test_log_model_summary(self, neptune):
@@ -219,7 +216,7 @@ class TestNeptuneLogger(unittest.TestCase):
 
         for prefix, model_summary_key in test_variants:
             # given:
-            logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(
+            logger, run_instance_mock, _ = self._get_logger_with_mocks(
                 api_key="test", project="project", **prefix)
             file_from_content_mock = neptune.types.File.from_content()
 
@@ -230,7 +227,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__setitem__.call_count, 2)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_has_calls([
-                call(f"source_code/integrations/pytorch-lightning", __version__),
+                call("source_code/integrations/pytorch-lightning", __version__),
                 call(model_summary_key, file_from_content_mock),
             ])
 
@@ -264,7 +261,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 3)
             self.assertEqual(run_attr_mock.upload.call_count, 3)
             run_instance_mock.__setitem__.assert_has_calls([
-                call(f"source_code/integrations/pytorch-lightning", __version__),
+                call("source_code/integrations/pytorch-lightning", __version__),
                 call(f"{model_key_prefix}/best_model_path", "path/to/models/best_model"),
             ])
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
@@ -281,7 +278,7 @@ class TestNeptuneLogger(unittest.TestCase):
         logger = NeptuneLogger(api_key="test", project="project")
 
         # expect
-        assert logger.save_dir == os.path.join(os.getcwd(), ".neptune")
+        self.assertEqual(logger.save_dir, os.path.join(os.getcwd(), ".neptune"))
 
 
 class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
@@ -344,7 +341,7 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
 
         # expect:
         for expected_model_name, *key_and_path in test_input_data:
-            assert NeptuneLogger._get_full_model_name(*key_and_path) == expected_model_name
+            self.assertEqual(NeptuneLogger._get_full_model_name(*key_and_path), expected_model_name)
 
     def test__get_full_model_names_from_exp_structure(self):
         # given:
@@ -370,4 +367,4 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
         }
 
         # expect:
-        assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
+        self.assertEqual(NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar"), expected_keys)
