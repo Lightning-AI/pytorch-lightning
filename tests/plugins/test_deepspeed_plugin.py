@@ -470,6 +470,7 @@ class ModelParallelClassificationModel(LightningModule):
         super().__init__()
         self.lr = lr
         self.num_blocks = num_blocks
+        self.prepare_data_per_node = True
 
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()

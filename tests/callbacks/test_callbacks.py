@@ -109,7 +109,7 @@ class OldStatefulCallback(Callback):
         self.state = state
 
     @property
-    def state_id(self):
+    def state_key(self):
         return type(self)
 
     def on_save_checkpoint(self, *args):
@@ -120,7 +120,7 @@ class OldStatefulCallback(Callback):
 
 
 def test_resume_callback_state_saved_by_type(tmpdir):
-    """Test that a legacy checkpoint that didn't use a state identifier before can still be loaded."""
+    """Test that a legacy checkpoint that didn't use a state key before can still be loaded."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])

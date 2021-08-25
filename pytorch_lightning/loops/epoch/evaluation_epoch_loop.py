@@ -19,6 +19,7 @@ from deprecate import void
 from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -37,6 +38,7 @@ class EvaluationEpochLoop(Loop):
         self._num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
         self.batch_progress = Progress()
+        self.dataloader_iter: Optional[Iterator] = None
 
     @property
     def done(self) -> bool:
@@ -66,9 +68,11 @@ class EvaluationEpochLoop(Loop):
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter, dataloader_idx)
+        void(dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
+
+        self.dataloader_iter = _prepare_dataloader_iter(dataloader_iter, self.batch_progress.current.ready)
 
     def advance(
         self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
@@ -84,15 +88,16 @@ class EvaluationEpochLoop(Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        void(dl_max_batches, num_dataloaders)
+        void(dataloader_iter, dl_max_batches, num_dataloaders)
 
-        batch_idx, (batch, _) = next(dataloader_iter)
+        batch_idx, (batch, _) = next(self.dataloader_iter)
 
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("evaluation_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        if not self.trainer.data_connector.evaluation_data_fetcher.store_on_device:
+            with self.trainer.profiler.profile("evaluation_batch_to_device"):
+                batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 

@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -98,15 +97,15 @@ class EvaluationLoop(DataLoaderLoop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
-        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        data_fetcher = DataFetcher()
-        data_fetcher.setup(dataloader)
-        dataloader_iter = enumerate(data_fetcher)
-        dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
-        )
+        dataloader_idx: int = self.current_dataloader_idx
+        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader, dataloader_idx=dataloader_idx)
+        dataloader_iter = iter(dataloader)
+
+        dl_max_batches = self._max_batches[dataloader_idx]
+
+        dl_outputs = self.epoch_loop.run(dataloader_iter, dataloader_idx, dl_max_batches, self.num_dataloaders)
 
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
@@ -179,11 +178,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode"""
-        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
-            model_ref.on_test_model_eval()
+            self.trainer.call_hook("on_test_model_eval")
         else:
-            model_ref.on_validation_model_eval()
+            self.trainer.call_hook("on_validation_model_eval")
 
     def on_evaluation_model_train(self) -> None:
         """Sets model to train mode"""

@@ -18,7 +18,7 @@ import traceback
 import warnings
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -28,7 +28,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loops import IteratorBatchProcessor, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -81,7 +81,6 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 log = logging.getLogger(__name__)
@@ -122,7 +121,7 @@ class Trainer(
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
-        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+        accumulate_grad_batches: Union[int, Dict[int, int]] = 1,
         max_epochs: Optional[int] = None,
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
@@ -137,7 +136,7 @@ class Trainer(
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
-        precision: int = 32,
+        precision: Union[int, str] = 32,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -151,7 +150,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: bool = True,
+        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
         amp_backend: str = "native",
         amp_level: str = "O2",
@@ -243,6 +242,10 @@ class Trainer(
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
 
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+
             process_position: orders the progress bar when running multiple models on same machine.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
@@ -255,8 +258,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
-                TPUs.
+            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+                Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
@@ -486,6 +489,34 @@ class Trainer(
 
         self.num_predict_batches = []
 
+    def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
+        r"""
+        Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
+        as all errors should funnel through them
+
+        Args:
+            trainer_fn: one of (fit, validate, test, predict)
+            *args: positional arguments to be passed to the `trainer_fn`
+            **kwargs: keyword arguments to be passed to `trainer_fn`
+        """
+        try:
+            return trainer_fn(*args, **kwargs)
+        except KeyboardInterrupt:
+            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state.status = TrainerStatus.INTERRUPTED
+                self.on_keyboard_interrupt()
+        except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            raise
+
     def fit(
         self,
         model: "pl.LightningModule",
@@ -508,18 +539,27 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        Trainer._log_api_event("fit")
-
-        self.state.fn = TrainerFn.FITTING
-        self.state.status = TrainerStatus.RUNNING
-        self.training = True
-
         if train_dataloader is not None:
             rank_zero_deprecation(
                 "`trainer.fit(train_dataloader)` is deprecated in v1.4 and will be removed in v1.6."
                 " Use `trainer.fit(train_dataloaders)` instead. HINT: added 's'"
             )
             train_dataloaders = train_dataloader
+        self._call_and_handle_interrupt(self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule)
+
+    def _fit_impl(
+        self,
+        model: "pl.LightningModule",
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> None:
+        Trainer._log_api_event("fit")
+
+        self.state.fn = TrainerFn.FITTING
+        self.state.status = TrainerStatus.RUNNING
+        self.training = True
+
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
             datamodule = train_dataloaders
@@ -572,6 +612,22 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
+        if val_dataloaders is not None:
+            rank_zero_deprecation(
+                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.validate(dataloaders)` instead."
+            )
+            dataloaders = val_dataloaders
+        return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+
+    def _validate_impl(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> _EVALUATE_OUTPUT:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -582,12 +638,6 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
 
-        if val_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.validate(val_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.validate(dataloaders)` instead."
-            )
-            dataloaders = val_dataloaders
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
@@ -651,6 +701,22 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
+        if test_dataloaders is not None:
+            rank_zero_deprecation(
+                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
+                " Use `trainer.test(dataloaders)` instead."
+            )
+            dataloaders = test_dataloaders
+        return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+
+    def _test_impl(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        ckpt_path: Optional[str] = None,
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ) -> _EVALUATE_OUTPUT:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -661,12 +727,6 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
 
-        if test_dataloaders is not None:
-            rank_zero_deprecation(
-                "`trainer.test(test_dataloaders)` is deprecated in v1.4 and will be removed in v1.6."
-                " Use `trainer.test(dataloaders)` instead."
-            )
-            dataloaders = test_dataloaders
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
@@ -728,7 +788,18 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
+        return self._call_and_handle_interrupt(
+            self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
+        )
 
+    def _predict_impl(
+        self,
+        model: Optional["pl.LightningModule"] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+        return_predictions: Optional[bool] = None,
+        ckpt_path: Optional[str] = None,
+    ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -847,16 +918,6 @@ class Trainer(
         rank_zero_info(f"Loading model weights from checkpoint at {self._ckpt_path}")
         self.checkpoint_connector.restore_model_weights(self._ckpt_path)
 
-    def _maybe_switch_to_iterator_batch_processor(self, model: "pl.LightningModule") -> None:
-        training_step_fx = getattr(model, "training_step")
-        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-            log.warning(
-                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-                "this signature is experimental and the behavior may subject to change."
-            )
-            batch_loop = IteratorBatchProcessor(self, model)
-            self.fit_loop.epoch_loop.connect(batch_loop)
-
     def _run(self, model: "pl.LightningModule") -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
@@ -864,9 +925,6 @@ class Trainer(
 
         self.config_validator.verify_loop_configurations(model)
         self.config_validator.check_progress_bar(model)
-
-        if self.training:
-            self._maybe_switch_to_iterator_batch_processor(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)
@@ -1003,6 +1061,7 @@ class Trainer(
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
+        self.data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
 
@@ -1036,20 +1095,14 @@ class Trainer(
         # --------------------------
         # Pre-train
         # --------------------------
-        # on pretrain routine start
-        ref_model = self.lightning_module
-
-        self.on_pretrain_routine_start()
-        ref_model.on_pretrain_routine_start()
+        self.call_hook("on_pretrain_routine_start")
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             max_depth = ModelSummary.MODES[self.weights_summary]
-            summarize(ref_model, max_depth=max_depth)
+            summarize(self.lightning_module, max_depth=max_depth)
 
-        # on pretrain routine end
-        self.on_pretrain_routine_end()
-        ref_model.on_pretrain_routine_end()
+        self.call_hook("on_pretrain_routine_end")
 
     def _run_train(self) -> None:
         self._pre_training_routine()
@@ -1068,29 +1121,8 @@ class Trainer(
 
         self.reset_train_val_dataloaders(model)
 
-        try:
-            # reset trainer on this loop and all child loops in case user connected a custom loop
-            self.fit_loop.trainer = self
-            self.fit_loop.run()
-        except KeyboardInterrupt:
-            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self.on_keyboard_interrupt()
-                # same treatment as below
-                self.accelerator.on_train_end()
-        except BaseException:
-            self.state.status = TrainerStatus.INTERRUPTED
-            if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
-                self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-            # give accelerators a chance to finish
-            self.accelerator.on_train_end()
-            self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
-            raise
+        self.fit_loop.trainer = self
+        self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -1133,8 +1165,7 @@ class Trainer(
             stage = self.state.stage
             self.sanity_checking = True
 
-            # hook and callback
-            self.on_sanity_check_start()
+            self.call_hook("on_sanity_check_start")
 
             # reload dataloaders
             self._evaluation_loop.reload_evaluation_dataloaders()
@@ -1143,7 +1174,7 @@ class Trainer(
             with torch.no_grad():
                 self._evaluation_loop.run()
 
-            self.on_sanity_check_end()
+            self.call_hook("on_sanity_check_end")
 
             # reset validation metrics
             self.logger_connector.reset()
@@ -1199,8 +1230,7 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
-        self.setup(stage=fn)
-        self.lightning_module.setup(stage=fn)
+        self.call_hook("setup", stage=fn)
 
         self.accelerator.barrier("post_setup")
 
@@ -1213,8 +1243,8 @@ class Trainer(
         model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
-                model.configure_sharded_model()
-                self.on_configure_sharded_model()
+                self.call_hook("configure_sharded_model")
+                self.call_hook("on_configure_sharded_model")
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
@@ -1226,8 +1256,7 @@ class Trainer(
 
         self.data_connector.detach_data(self.lightning_module)
 
-        self.teardown(stage=fn)
-        self.lightning_module.teardown(stage=fn)
+        self.call_hook("teardown", stage=fn)
 
         self.lightning_module._current_fx_name = None
         self.lightning_module._current_dataloader_idx = None
@@ -1242,28 +1271,30 @@ class Trainer(
         # summarize profile results
         self.profiler.describe()
 
-    def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        if self.lightning_module:
-            prev_fx_name = self.lightning_module._current_fx_name
-            self.lightning_module._current_fx_name = hook_name
+    def call_hook(
+        self, hook_name: str, *args: Any, pl_module: Optional["pl.LightningModule"] = None, **kwargs: Any
+    ) -> Any:
+        pl_module = self.lightning_module or pl_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.profiler.profile(hook_name):
 
             # first call trainer hook
-            if hasattr(self, hook_name):
-                trainer_hook = getattr(self, hook_name)
-                trainer_hook(*args, **kwargs)
+            callback_fx = getattr(self, hook_name, None)
+            if callable(callback_fx):
+                callback_fx(*args, **kwargs)
 
             # next call hook in lightningModule
             output = None
-            model_ref = self.lightning_module
-            if is_overridden(hook_name, model_ref):
-                hook_fx = getattr(model_ref, hook_name)
-                output = hook_fx(*args, **kwargs)
+            model_fx = getattr(pl_module, hook_name, None)
+            if callable(model_fx):
+                output = model_fx(*args, **kwargs)
 
             # call the accelerator hook
-            if hasattr(self.accelerator, hook_name):
+            if hook_name not in ("setup", "teardown") and hasattr(self.accelerator, hook_name):
                 accelerator_hook = getattr(self.accelerator, hook_name)
                 accelerator_output = accelerator_hook(*args, **kwargs)
                 # Rely on the accelerator output if lightningModule hook returns nothing
@@ -1271,9 +1302,9 @@ class Trainer(
                 # todo: move this data parallel logic into the data parallel plugin
                 output = accelerator_output if output is None else output
 
-        if self.lightning_module:
+        if pl_module:
             # restore current_fx when nested context
-            self.lightning_module._current_fx_name = prev_fx_name
+            pl_module._current_fx_name = prev_fx_name
 
         return output
 
