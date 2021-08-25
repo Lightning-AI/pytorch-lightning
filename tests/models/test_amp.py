@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -29,11 +30,18 @@ from tests.helpers.runif import RunIf
 
 class AMPTestModel(BoringModel):
     def _step(self, batch, batch_idx):
-        assert torch.is_autocast_enabled()
+        self._assert_autocast_enabled()
         output = self(batch)
-        assert output.dtype == torch.float16
+        bfloat16 = self.trainer.precision_plugin.is_bfloat16
+        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
         loss = self.loss(batch, output)
         return loss
+
+    def loss(self, batch, prediction):
+        # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
+        if self.trainer.precision_plugin.use_cpu:
+            prediction = prediction.float()
+        return super().loss(batch, prediction)
 
     def training_step(self, batch, batch_idx):
         output = self._step(batch, batch_idx)
@@ -48,69 +56,85 @@ class AMPTestModel(BoringModel):
         return {"y": output}
 
     def predict(self, batch, batch_idx, dataloader_idx=None):
-        assert torch.is_autocast_enabled()
+        self._assert_autocast_enabled()
         output = self(batch)
-        assert output.dtype == torch.float16
+        bfloat16 = self.trainer.precision_plugin.is_bfloat16
+        assert output.dtype == torch.float16 if not bfloat16 else torch.bfloat16
         return output
 
+    def _assert_autocast_enabled(self):
+        if self.trainer.precision_plugin.use_cpu:
+            assert torch.is_autocast_cpu_enabled()
+        else:
+            assert torch.is_autocast_enabled()
 
-@pytest.mark.skip(reason="dp + amp not supported currently")  # TODO
-@RunIf(min_gpus=1)
-def test_amp_single_gpu_dp(tmpdir):
-    """Make sure DP/DDP + AMP work."""
+
+@pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="CPU AMP not available")
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        None,
+        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
+        "ddp_spawn",
+    ],
+)
+@pytest.mark.parametrize(
+    "precision",
+    [
+        pytest.param(16, marks=pytest.mark.skip("CPU precision 16 is not supported in PyTorch yet.")),  # TODO
+        "bf16",
+    ],
+)
+@pytest.mark.parametrize("num_processes", [1, 2])
+def test_amp_cpus(tmpdir, accelerator, precision, num_processes):
+    """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, accelerator="dp", precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir, num_processes=num_processes, max_epochs=1, accelerator=accelerator, precision=precision
+    )
 
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-
-@RunIf(min_gpus=1)
-def test_amp_single_gpu_ddp_spawn(tmpdir):
-    """Make sure DP/DDP + AMP work."""
-    tutils.reset_seed()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, accelerator="ddp_spawn", precision=16)
-
-    model = AMPTestModel()
-    # tutils.run_model_test(trainer_options, model)
-    trainer.fit(model)
-    trainer.test(model)
-    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-
-@pytest.mark.skip(reason="dp + amp not supported currently")  # TODO
-@RunIf(min_gpus=1)
-def test_amp_multi_gpu_dp(tmpdir):
-    """Make sure DP/DDP + AMP work."""
-    tutils.reset_seed()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, accelerator="dp", precision=16)
-
-    model = AMPTestModel()
-    # tutils.run_model_test(trainer_options, model)
-    trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(min_gpus=2)
-def test_amp_multi_gpu_ddp_spawn(tmpdir):
-    """Make sure DP/DDP + AMP work."""
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        None,
+        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported currently")),  # TODO
+        "ddp_spawn",
+    ],
+)
+@pytest.mark.parametrize(
+    "precision",
+    [
+        16,
+        pytest.param(
+            "bf16",
+            marks=pytest.mark.skipif(not _TORCH_BFLOAT_AVAILABLE, reason="torch.bfloat16 not available"),
+        ),
+    ],
+)
+@pytest.mark.parametrize("gpus", [1, 2])
+def test_amp_gpus(tmpdir, accelerator, precision, gpus):
+    """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, accelerator="ddp_spawn", precision=16)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=gpus, accelerator=accelerator, precision=precision)
 
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
+
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 

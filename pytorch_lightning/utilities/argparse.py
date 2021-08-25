@@ -253,6 +253,10 @@ def add_argparse_args(
         if arg == "track_grad_norm":
             use_type = float
 
+        # hack for precision
+        if arg == "precision":
+            use_type = _precision_allowed_type
+
         parser.add_argument(
             f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
         )
@@ -302,3 +306,16 @@ def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
     if "." in str(x):
         return float(x)
     return int(x)
+
+
+def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
+    """
+    >>> _precision_allowed_type("32")
+    32
+    >>> _precision_allowed_type("bf16")
+    'bf16'
+    """
+    try:
+        return int(x)
+    except ValueError:
+        return x

@@ -11,5 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Progress Bars
+=============
 
-from pytorch_lightning.loops.processors.iterator_batch_processor import IteratorBatchProcessor  # noqa: F401
+Use or override one of the progress bar callbacks.
+
+"""
+from pytorch_lightning.callbacks.progress.base import ProgressBarBase  # noqa: F401
+from pytorch_lightning.callbacks.progress.progress import ProgressBar, tqdm  # noqa: F401
+from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBar  # noqa: F401

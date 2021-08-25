@@ -91,21 +91,18 @@ class DataConnector:
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
-    def _check_training_step_requires_dataloader_iter(self) -> bool:
-        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        contains_dataloader_iter = is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True)
-        return contains_dataloader_iter
-
     def _select_data_fetcher(self) -> AbstractDataFetcher:
         if self.trainer.sanity_checking:
             return DataFetcher()
 
-        if self.trainer.training and self._check_training_step_requires_dataloader_iter():
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        if self.trainer.training and is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
             rank_zero_warn(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
                 "this signature is experimental and the behavior is subject to change."
             )
             return DataLoaderIterDataFetcher()
+
         elif self.trainer.training and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
             # note: this is an experimental feature
             if not self.trainer.training_type_plugin.on_gpu:
@@ -124,9 +121,7 @@ class DataConnector:
             profiler=self.trainer.profiler,
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
-        if isinstance(data_fetcher, DataLoaderIterDataFetcher):
-            return data_fetcher
-        return enumerate(data_fetcher)
+        return data_fetcher
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
@@ -250,6 +245,16 @@ class DataConnector:
             if isinstance(loader, _PatchDataLoader):
                 loader.unpatch(model)
 
+    def teardown(self) -> None:
+        if self.train_data_fetcher:
+            self.train_data_fetcher.teardown()
+        if self.validate_data_fetcher:
+            self.validate_data_fetcher.teardown()
+        if self.test_data_fetcher:
+            self.test_data_fetcher.teardown()
+        if self.sanity_check_data_fetcher:
+            self.sanity_check_data_fetcher.teardown()
+
 
 class _PatchDataLoader:
     r"""
@@ -267,7 +272,7 @@ class _PatchDataLoader:
         # exists which shows dataloader methods have been overwritten.
         # so, we hack it by using the string representation
         self.patch_loader_code = str(self.__call__.__code__)
-        self.old_loader: Optional[Callable] = None
+        self._old_loader: Optional[Callable] = None
         self.stage = stage
 
     def __call__(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
