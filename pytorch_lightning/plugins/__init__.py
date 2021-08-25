@@ -1,4 +1,3 @@
-from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
