@@ -18,7 +18,7 @@ from unittest.mock import call, Mock
 import pytest
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
@@ -166,5 +166,5 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         callbacks=[callback1, callback0],  # all callbacks here, order switched
         resume_from_checkpoint=ckpt_path,
     )
-    with no_warning_call(UserWarning, match=escape(f"Please add the following callbacks:")):
+    with no_warning_call(UserWarning, match="Please add the following callbacks:"):
         trainer.fit(model)

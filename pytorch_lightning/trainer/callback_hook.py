@@ -18,11 +18,9 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
 
-import pytorch_lightning
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
