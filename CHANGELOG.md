@@ -205,6 +205,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `InterBatchProcessor` in favor of `DataLoaderIterDataFetcher` ([#9052](https://github.com/PyTorchLightning/pytorch-lightning/pull/9052))
 
 
+- Removed `block_backward_sync` from `ParallelPlugin` and added to `DDPPlugin` and `DDPSpawnPlugin` ([#9101](https://github.com/PyTorchLightning/pytorch-lightning/pull/9101))
+
+
 ### Fixed
 
 - Fixed save/load/resume from checkpoint for DeepSpeed Plugin (

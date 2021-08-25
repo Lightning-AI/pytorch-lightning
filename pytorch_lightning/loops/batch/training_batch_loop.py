@@ -31,7 +31,7 @@ from pytorch_lightning.loops.utilities import (
     _process_training_step_output,
     check_finite_loss,
 )
-from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
@@ -430,9 +430,10 @@ class TrainingBatchLoop(Loop):
         Returns:
             context manager with sync behaviour off
         """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and (
-            self.trainer.lightning_module.automatic_optimization or should_block_sync
-        ):
+        if (
+            isinstance(self.trainer.training_type_plugin, DDPPlugin)
+            or isinstance(self.trainer.training_type_plugin, DDPPlugin)
+        ) and (self.trainer.lightning_module.automatic_optimization or should_block_sync):
             with self.trainer.training_type_plugin.block_backward_sync():
                 yield None
         else:

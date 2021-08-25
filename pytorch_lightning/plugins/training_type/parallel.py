@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
 from typing import Any, List, Optional
 
 import torch
@@ -120,19 +119,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             LightningModule with batchnorm layers synchronized between process groups
         """
         return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-    @contextmanager
-    def block_backward_sync(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(self.model, DistributedDataParallel):
-            with self.model.no_sync():
-                yield None
-        else:
-            yield None
 
     def teardown(self) -> None:
         # Un-reference the wrapper if any was used.

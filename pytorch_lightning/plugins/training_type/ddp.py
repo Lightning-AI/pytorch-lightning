@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
@@ -442,3 +443,16 @@ class DDPPlugin(ParallelPlugin):
                 os.kill(pid, signal.SIGKILL)
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+
+    @contextmanager
+    def block_backward_sync(self):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, DistributedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
+            yield None
