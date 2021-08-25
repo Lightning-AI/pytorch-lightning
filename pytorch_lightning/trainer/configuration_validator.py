@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -101,7 +101,8 @@ class ConfigValidator:
         if is_overridden("get_progress_bar_dict", model):
             rank_zero_deprecation(
                 "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
-                "Please use the `trainer.progress_bar_callback.get_progress_bar_dict` instead.")
+                "Please use the `trainer.progress_bar_callback.get_progress_bar_dict` instead."
+            )
 
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
         loader_name = f"{stage}_dataloader"
