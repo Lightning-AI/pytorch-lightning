@@ -16,6 +16,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.precision.tpu_bfloat import TPUHalfPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
+from pytorch_lightning.plugins.training_type.ddp_fork import DDPForkPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
@@ -38,6 +39,7 @@ __all__ = [
     "DDP2Plugin",
     "DDPPlugin",
     "DDPSpawnPlugin",
+    "DDPForkPlugin",
     "DDPFullyShardedPlugin",
     "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",

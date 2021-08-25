@@ -29,6 +29,7 @@ from pytorch_lightning.plugins import (
     CheckpointIO,
     DataParallelPlugin,
     DDP2Plugin,
+    DDPForkPlugin,
     DDPFullyShardedPlugin,
     DDPPlugin,
     DDPShardedPlugin,
@@ -620,6 +621,7 @@ class AcceleratorConnector:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
+            use_ddp_fork = self._distrib_type == DistributedType.DDP_FORK
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = use_ddp_spawn and self.use_cpu
             use_tpu_spawn = self.use_tpu and self._distrib_type == DistributedType.TPU_SPAWN
@@ -645,6 +647,8 @@ class AcceleratorConnector:
                 or use_ddp_cpu_kubeflow
             ):
                 ddp_plugin_cls = DDPPlugin
+            elif use_ddp_fork:
+                ddp_plugin_cls = DDPForkPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
             elif use_ddp_fully_sharded:
