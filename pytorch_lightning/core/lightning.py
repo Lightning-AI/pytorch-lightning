@@ -1717,7 +1717,7 @@ class LightningModule(
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
         Note: This method was deprecated in v1.5 and will be removed in v1.7.
-        Please use the `ProgressBar.get_progress_bar_dict` callback instead.
+        Please use the `trainer.progress_bar_callback.get_progress_bar_dict` instead.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1734,7 +1734,7 @@ class LightningModule(
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        return []
+        return self.trainer.progress_bar_callback.get_progress_bar_dict(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:

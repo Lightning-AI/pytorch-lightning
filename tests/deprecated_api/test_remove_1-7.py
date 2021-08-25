@@ -97,8 +97,10 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
         overfit_batches=5,
     )
     test_model = TestModel()
-    trainer.fit(test_model)
     with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
-        standard_metrics = test_model.get_progress_bar_dict()
+        trainer.fit(test_model)
+    standard_metrics = test_model.get_progress_bar_dict()
     assert "loss" in standard_metrics.keys()
     assert "v_num" not in standard_metrics.keys()
+    with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
+        _ = trainer.progress_bar_dict

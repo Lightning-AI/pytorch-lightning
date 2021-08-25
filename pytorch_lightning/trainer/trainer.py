@@ -863,6 +863,7 @@ class Trainer(
             parsing.clean_namespace(model.hparams)
 
         self.config_validator.verify_loop_configurations(model)
+        self.config_validator.check_progress_bar(model)
 
         if self.training:
             self._maybe_switch_to_iterator_batch_processor(model)

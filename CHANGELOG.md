@@ -102,7 +102,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `LightningModule.get_progress_bar_dict` ([#8985](https://github.com/PyTorchLightning/pytorch-lightning/pull/8985))
 
 
--
+- Deprecated `Trainer.progress_bar_dict` ([#8985](https://github.com/PyTorchLightning/pytorch-lightning/pull/8985))
 
 
 -
