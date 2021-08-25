@@ -215,6 +215,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
 
+    # TODO(@daniellepintz): add trainer as an argument in v1.7
     def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
@@ -222,6 +223,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._results = self.mp_queue.get()
         # get the `callback_metrics` and set it to the trainer
         # only in case the user does not override it.
+        # TODO(@daniellepintz): update line to `self.get_from_queue(trainer, self.mp_queue)` in v1.7
         self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children
@@ -309,6 +311,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
+            # TODO(@daniellepintz): update line to `self.add_to_queue(trainer, self.mp_queue)` in v1.7
             self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def __recover_child_process_weights(self, best_path, last_path):
@@ -388,7 +391,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             find_unused_parameters=False,
         )
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
         """
         Appends the :attr:`trainer.callback_metrics` dictionary to the given queue.
         To avoid issues with memory sharing, we cast the data to numpy.
@@ -397,11 +400,11 @@ class DDPSpawnPlugin(ParallelPlugin):
             queue: the instance of the queue to append the data.
         """
         callback_metrics: dict = apply_to_collection(
-            self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+            trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
         )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
 
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
         """
         Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue.
         To preserve consistency, we cast back the data to ``torch.Tensor``.
@@ -411,6 +414,4 @@ class DDPSpawnPlugin(ParallelPlugin):
         """
         # NOTE: `add_to_queue` needs to be called before
         callback_metrics: dict = queue.get()
-        self.trainer.callback_metrics.update(
-            apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x))
-        )
+        trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))

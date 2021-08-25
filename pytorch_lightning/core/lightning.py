@@ -1954,7 +1954,7 @@ class LightningModule(
             `pytorch_lightning.plugins.training_type.ddp_spawn.add_to_queue`
             and will be removed in v1.7.
         """
-        self.trainer.training_type_plugin.add_to_queue(queue)
+        self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
         """
@@ -1969,7 +1969,7 @@ class LightningModule(
             `pytorch_lightning.plugins.training_type.ddp_spawn.get_from_queue`
             and will be removed in v1.7.
         """
-        self.trainer.training_type_plugin.get_from_queue(queue)
+        self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:

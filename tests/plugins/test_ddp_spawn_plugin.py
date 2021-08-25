@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -73,7 +74,8 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-
-    trainer.fit(model, datamodule=dm)
+    # TODO(@daniellepintz): delete pytest.deprecated_call in v1.7
+    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
+        trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
