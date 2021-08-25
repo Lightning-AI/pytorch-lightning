@@ -35,13 +35,15 @@ Since computation happens in FP16, there is a chance of numerical instability. T
 BFloat16 Mixed Precision
 ------------------------
 
+.. warning::
+
+    BFloat16 requires PyTorch 1.10 or later. BFloat16 is also experimental and may not provide large speedups or memory improvements, but offer better numerical stability.
+
+    Do note for GPUs, largest benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
+
 BFloat16 Mixed precision is similar to FP16 mixed precision, however we maintain more of the "dynamic range" that FP32 has to offer. This means we are able to improve numerical stability, compared to FP16 mixed precision. For more information see `this TPU performance blog post <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.
 
 Since BFloat16 is more stable than FP16 during training, we do not need to worry about any gradient scaling or nan gradient values that comes with using FP16 mixed precision.
-
-.. note::
-
-    BFloat16 requires PyTorch 1.10 or later.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
