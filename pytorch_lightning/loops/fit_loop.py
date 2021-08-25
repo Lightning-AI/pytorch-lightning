@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator, Optional, Any
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -41,7 +41,7 @@ class FitLoop(Loop):
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
         # caches the loaded dataloader state until dataloader objects are available
-        self._dataloader_state_dict: Dict = {}
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def current_epoch(self) -> int:
