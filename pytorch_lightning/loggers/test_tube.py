@@ -103,7 +103,7 @@ class TestTubeLogger(LightningLoggerBase):
     ):
         rank_zero_deprecation(
             "The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7. We recommend switching to the"
-            " `pytorch_lightning.loggers.TensorBoardLogger` for an alternative."
+            " `pytorch_lightning.loggers.TensorBoardLogger` as an alternative."
         )
         if Experiment is None:
             raise ImportError(
