@@ -219,15 +219,33 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        '''
+        Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+        '''
         return self._save_dir
 
     @property
     def name(self) -> Optional[str]:
+        '''
+        Gets the name of the experiment.
+
+        Returns:
+            The name of the experiment if the experiment exists else the name.
+        '''
         # don't create an experiment if we don't have one
         return self._experiment.project_name() if self._experiment else self._name
 
     @property
     def version(self) -> Optional[str]:
+        '''
+        Gets the id of the experiment.
+
+        Returns:
+            The id of the experiment if the experiment exists else the id.
+        '''
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
