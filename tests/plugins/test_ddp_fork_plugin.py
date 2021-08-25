@@ -24,7 +24,7 @@ from tests.helpers.runif import RunIf
 def test_ddp_fork_plugin_shared_data(tmpdir):
     class ValidateSharedDataCallback(Callback):
         def __init__(self, dataset):
-            self.data_reference = dataset.data_ptr()
+            self.data_reference = dataset.data.data_ptr()
 
         def on_train_start(self, trainer, pl_module):
             assert trainer.train_dataloder.dataset.data.data_ptr() == self.data_reference
@@ -37,7 +37,7 @@ def test_ddp_fork_plugin_shared_data(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir, accelerator="ddp_fork", gpus=2, callbacks=ValidateSharedDataCallback(dataset)
     )
-    trainer.fit(model, train_dataloder=dataloader)
+    trainer.fit(model, train_dataloader=dataloader)
 
 
 @RunIf(min_gpus=2)
