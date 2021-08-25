@@ -21,7 +21,6 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import CPUNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TORCH_BFLOAT_AVAILABLE, _TORCH_CPU_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -40,7 +39,7 @@ class AMPTestModel(BoringModel):
 
     def loss(self, batch, prediction):
         # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
-        if isinstance(self.trainer.precision_plugin, CPUNativeMixedPrecisionPlugin):
+        if self.trainer.precision_plugin.use_cpu:
             prediction = prediction.float()
         return super().loss(batch, prediction)
 
@@ -64,7 +63,7 @@ class AMPTestModel(BoringModel):
         return output
 
     def _assert_autocast_enabled(self):
-        if isinstance(self.trainer.precision_plugin, CPUNativeMixedPrecisionPlugin):
+        if self.trainer.precision_plugin.use_cpu:
             assert torch.is_autocast_cpu_enabled()
         else:
             assert torch.is_autocast_enabled()

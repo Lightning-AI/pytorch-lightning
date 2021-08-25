@@ -27,7 +27,6 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
-    CPUNativeMixedPrecisionPlugin,
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedPlugin,
@@ -568,9 +567,6 @@ class AcceleratorConnector:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
-                if self.use_cpu:
-                    return CPUNativeMixedPrecisionPlugin(self.precision)
-
                 if not _NATIVE_AMP_AVAILABLE:
                     msg = (
                         "You have asked for native AMP but your PyTorch version does not support it."
@@ -585,10 +581,10 @@ class AcceleratorConnector:
                 else:
                     log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
                     if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin(self.precision)
+                        return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
                     if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin(self.precision)
-                    return NativeMixedPrecisionPlugin(self.precision)
+                        return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                    return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:

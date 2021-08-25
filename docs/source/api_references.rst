@@ -103,7 +103,6 @@ Precision Plugins
     :template: classtemplate.rst
 
     PrecisionPlugin
-    CPUNativeMixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin

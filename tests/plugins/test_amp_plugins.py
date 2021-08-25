@@ -19,11 +19,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import (
-    ApexMixedPrecisionPlugin,
-    CPUNativeMixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-)
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_CPU_AMP_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -203,7 +199,25 @@ def test_cpu_amp_precision_throws_error(tmpdir):
         MisconfigurationException,
         match="To use native AMP on CPU, install PyTorch 1.10 or later.",
     ):
-        CPUNativeMixedPrecisionPlugin()
+        NativeMixedPrecisionPlugin(use_cpu=True)
+
+
+@pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")
+@RunIf(
+    min_gpus=1,
+    amp_native=True,
+)
+def test_cpu_amp_precision_context_manager(tmpdir):
+    """
+    Test to ensure that the context manager correctly is set to CPU + bfloat16, and a scaler isn't set.
+    """
+
+    plugin = NativeMixedPrecisionPlugin(precision="bf16", use_cpu=True)
+    assert plugin.use_cpu
+    assert not hasattr(plugin, "scaler")
+    context_manager = plugin.autocast_context_manager()
+    assert isinstance(context_manager, torch.cpu.amp.autocast)
+    assert context_manager.fast_dtype == torch.bfloat16
 
 
 @pytest.mark.skipif(not _TORCH_CPU_AMP_AVAILABLE, reason="Torch CPU AMP is not available.")
@@ -218,7 +232,7 @@ def test_cpu_amp_precision_16_throws_error(tmpdir):
 
     with pytest.raises(
         MisconfigurationException,
-        match="CPU native amp only supports bfloat16. Please pass precision=bf16 to the Trainer.",
+        match="CPU native amp only supports bfloat16. Please pass precision='bf16' to the Trainer.",
     ):
         Trainer(
             default_root_dir=tmpdir,

@@ -6,7 +6,6 @@ from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.cpu_native_amp import CPUNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
@@ -35,7 +34,6 @@ __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
     "ApexMixedPrecisionPlugin",
-    "CPUNativeMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",
     "DDPPlugin",
