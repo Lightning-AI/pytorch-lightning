@@ -186,7 +186,7 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 
 -----------
 
-.. _amp:
+.. _speed_amp:
 
 *********************************
 Mixed precision (16-bit) training

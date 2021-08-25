@@ -3,12 +3,14 @@
     from pytorch_lightning import Trainer
 
 
-.. _mixed_precision:
+.. _amp:
 
 Mixed Precision Training
 ========================
 
 Mixed precision combines the use of both FP32 and lower bit floating points (such as FP16) to reduce memory footprint during model training, resulting in improved performance.
+
+Lightning offers mixed precision training for GPUs, CPUs and TPUs.
 
 .. note::
 
@@ -18,6 +20,7 @@ FP16 Mixed Precision
 --------------------
 
 .. testcode::
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     Trainer(gpus=1, precision=16)
 
@@ -33,6 +36,7 @@ Since BFloat16 is more stable than FP16 during training, we do not need to worry
     BFloat16 requires PyTorch 1.10 or later.
 
 .. testcode::
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     Trainer(gpus=1, precision="bf16")
 
