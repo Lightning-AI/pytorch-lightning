@@ -10,7 +10,7 @@ Mixed Precision Training
 
 Mixed precision combines the use of both FP32 and lower bit floating points (such as FP16) to reduce memory footprint during model training, resulting in improved performance.
 
-Lightning offers mixed precision training for GPUs, CPUs and TPUs.
+Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
 
 .. note::
 
