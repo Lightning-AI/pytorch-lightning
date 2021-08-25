@@ -82,6 +82,13 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = LightningDataModule(dims=(1, 1, 1))
 
 
+def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
+    ):
+        _ = Trainer(prepare_data_per_node=False)
+
+
 def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
     with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
         _ = Trainer(stochastic_weight_avg=True)

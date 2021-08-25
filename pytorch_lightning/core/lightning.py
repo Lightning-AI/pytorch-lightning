@@ -31,13 +31,12 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 
-from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_SHARDED_TENSOR_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -57,7 +56,6 @@ class LightningModule(
     ABC,
     DeviceDtypeModuleMixin,
     HyperparametersMixin,
-    GradInformation,
     ModelIO,
     ModelHooks,
     DataHooks,
@@ -114,6 +112,8 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
+
+        self._register_sharded_tensor_state_dict_hooks_if_available()
 
         # deprecated, will be removed in 1.6
         self._loaded_optimizer_states_dict = {}
@@ -404,9 +404,22 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+        if self.trainer is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
+                " This is most likely because the model hasn't been passed to the `Trainer`"
+            )
         results = self.trainer._results
-        assert results is not None
-        assert self._current_fx_name is not None
+        if results is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                " yet. This is most likely because you are trying to log in a `predict` hook,"
+                " but it doesn't support logging"
+            )
+        if self._current_fx_name is None:
+            raise MisconfigurationException(
+                "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
+            )
         FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
@@ -442,6 +455,15 @@ class LightningModule(
                     f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
                     f" of {list(self._metric_attributes.values())}"
                 )
+
+        if (
+            self.trainer.training
+            and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
+            and batch_size is None
+        ):
+            raise MisconfigurationException(
+                "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
+            )
 
         results.log(
             self._current_fx_name,
@@ -1974,3 +1996,16 @@ class LightningModule(
             state.pop("test_dataloader", None)
             state.pop("predict_dataloader", None)
         return state
+
+    def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
+        """
+        Adds ShardedTensor state dict hooks if ShardedTensors are supported. These hooks ensure that
+        ShardedTensors are included when saving, and are loaded the LightningModule correctly.
+        """
+        if not _TORCH_SHARDED_TENSOR_AVAILABLE:
+            return
+
+        from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+
+        self._register_state_dict_hook(state_dict_hook)
+        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)

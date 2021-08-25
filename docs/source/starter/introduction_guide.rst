@@ -303,7 +303,7 @@ An alternative to using a DataModule is to defer initialization of the models mo
             tokenize()
 
         def setup(self, stage: Optional[str] = None):
-            # step is either 'fit', 'validate', 'test', or 'predict'. 90% of the time not relevant
+            # stage is either 'fit', 'validate', 'test', or 'predict'. 90% of the time not relevant
             data = load_data()
             num_classes = data.classes
             self.l1 = nn.Linear(..., num_classes)
