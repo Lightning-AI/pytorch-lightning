@@ -16,11 +16,10 @@ import io
 import math
 import os
 import sys
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-from typing import Dict, Optional, Union
 
 if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
@@ -28,7 +27,6 @@ else:
     from tqdm import tqdm as _tqdm
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 
 _PAD_SIZE = 5
