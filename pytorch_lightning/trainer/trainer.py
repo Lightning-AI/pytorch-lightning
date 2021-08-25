@@ -1379,4 +1379,9 @@ class Trainer(
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
+        # CheckpointConnector.dump_checkpoint will bump the counters, but we counteract it here since we failed
+        # and have not actually completed the epoch/step.
+        # TODO: remove when FitLoop and TrainingEpochLoop do no longer depend on these counters for done() condition
+        self.fit_loop.global_step -= 1
+        self.fit_loop.current_epoch -= 1
         self.save_checkpoint(file_path)
