@@ -1480,12 +1480,12 @@ def test_request_dataloader(tmpdir):
             self.on_val_batch_start_called = False
 
         def train_dataloader(self) -> TRAIN_DATALOADERS:
-            loader = DataLoader(RandomDataset(32, 64))
+            loader = super().train_dataloader()
             self.train_dataloader_called = True
             return DataLoaderWrapper(loader)
 
         def val_dataloader(self) -> EVAL_DATALOADERS:
-            loader = DataLoader(RandomDataset(32, 64))
+            loader = super().val_dataloader()
             self.val_dataloader_called = True
             return DataLoaderWrapper(loader)
 

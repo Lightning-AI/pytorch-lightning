@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
@@ -679,6 +679,34 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+
+    def on_train_dataloader(self) -> None:
+        """Called before requesting the train dataloader."""
+        rank_zero_deprecation(
+            "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use `train_dataloader()` directly. "
+        )
+
+    def on_val_dataloader(self) -> None:
+        """Called before requesting the val dataloader."""
+        rank_zero_deprecation(
+            "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use ``val_dataloader()`` directly. "
+        )
+
+    def on_test_dataloader(self) -> None:
+        """Called before requesting the test dataloader."""
+        rank_zero_deprecation(
+            "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use ``test_dataloader()`` directly. "
+        )
+
+    def on_predict_dataloader(self) -> None:
+        """Called before requesting the predict dataloader."""
+        rank_zero_deprecation(
+            "Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+            " Please use ``predict_dataloader()`` directly. "
+        )
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
