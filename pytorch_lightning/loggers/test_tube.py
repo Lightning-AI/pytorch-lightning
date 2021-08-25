@@ -197,10 +197,22 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        '''
+        Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+        '''
         return self._save_dir
 
     @property
     def name(self) -> str:
+        '''
+        Gets the experiment name.
+
+        Returns:
+             The experiment name if the experiment exists, else the name specified in the constructor.
+        '''
         if self._experiment is None:
             return self._name
 
@@ -208,6 +220,12 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def version(self) -> int:
+        '''
+        Gets the experiment version.
+
+        Returns:
+             The experiment version if the experiment exists, else the next version.
+        '''
         if self._experiment is None:
             return self._version
 
