@@ -549,3 +549,13 @@ def test_inconsistent_reload_dataloaders_every_n_epochs(tmpdir):
         trainer.model = model
         trainer.datamodule = dm
         trainer.fit(model, datamodule=dm)
+
+
+def test_inconsistent_prepare_data_per_node(tmpdir):
+    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
+        model = BoringModel()
+        dm = BoringDataModule()
+        trainer = Trainer(prepare_data_per_node=False)
+        trainer.model = model
+        trainer.datamodule = dm
+        trainer.data_connector.prepare_data()
