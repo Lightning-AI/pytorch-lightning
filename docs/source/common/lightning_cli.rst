@@ -80,7 +80,7 @@ LightningCLI
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
 class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
-lightning as :code:`pytorch-lightning[extra]` or install the package :code:`jsonargparse[signatures]`.
+Lightning as :code:`pytorch-lightning[extra]` or install the package :code:`jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
 :code:`*_dataloader` methods, a :code:`trainer.py` tool can be as simple as:
@@ -254,7 +254,8 @@ As explained before, :code:`config1.yaml` is parsed first and then :code:`config
 settings are defined in both files, then the ones in :code:`config2.yaml` will be used. Settings in :code:`config1.yaml`
 that are not in :code:`config2.yaml` are be kept. The same happens for :code:`config3.yaml`.
 
-The configuration files before the subcommand can contain custom configuration for multiple of them, for example:
+The configuration files before the subcommand (``test`` in this case) can contain custom configuration for multiple of
+them, for example:
 
 .. code-block:: bash
 
@@ -268,7 +269,7 @@ The configuration files before the subcommand can contain custom configuration f
             limit_test_batches: 10
 
 
-whereas the configuration files after the subcommand would be:
+whereas the configuration files passed after the subcommand would be:
 
 .. code-block:: bash
 

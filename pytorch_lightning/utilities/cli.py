@@ -302,8 +302,8 @@ class LightningCLI:
     ) -> None:
         """Initialize and setup the parser, subcommands, and arguments."""
         self.parser = self.init_parser(**main_kwargs)
-        self._subcommand_method_arguments: Dict[str, List[str]] = {}
         if add_subcommands:
+            self._subcommand_method_arguments: Dict[str, List[str]] = {}
             self._add_subcommands(self.parser, **subparser_kwargs)
         else:
             self._add_arguments(self.parser)
@@ -359,10 +359,11 @@ class LightningCLI:
         trainer_class = (
             self.trainer_class if isinstance(self.trainer_class, type) else class_from_function(self.trainer_class)
         )
-
+        # register all subcommand in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
             subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
             fn = getattr(trainer_class, subcommand)
+            # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
@@ -370,8 +371,7 @@ class LightningCLI:
         parser = self.init_parser(**kwargs)
         self._add_arguments(parser)
         # subcommand arguments
-        subcommands = self.subcommands()
-        skip = subcommands[subcommand]
+        skip = self.subcommands()[subcommand]
         added = parser.add_method_arguments(klass, subcommand, skip=skip)
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
@@ -430,6 +430,7 @@ class LightningCLI:
         if subcommand is None:
             optimizers_and_lr_schedulers = self.parser.optimizers_and_lr_schedulers
         else:
+            # get the `optimizer_and_lr_schedulers` attribute from the subcommand parser for the subcommand requested
             action_subcommands = [a for a in self.parser._actions if isinstance(a, _ActionSubCommands)][0]
             subcommand_parser = action_subcommands._name_parser_map[subcommand]
             optimizers_and_lr_schedulers = subcommand_parser.optimizers_and_lr_schedulers
