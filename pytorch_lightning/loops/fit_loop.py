@@ -199,12 +199,11 @@ class FitLoop(Loop):
     def advance(self) -> None:
         """Runs one whole epoch."""
         dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader)
-        dataloader_iter = iter(dataloader)
+        data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.epoch_loop.run(dataloader_iter)
+            epoch_output = self.epoch_loop.run(data_fetcher)
 
             if epoch_output is None:
                 return
