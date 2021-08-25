@@ -33,7 +33,7 @@ from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
-PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment]
+PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
