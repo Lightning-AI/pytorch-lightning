@@ -46,13 +46,14 @@ BFloat16 Mixed precision is similar to FP16 mixed precision, however we maintain
 Since BFloat16 is more stable than FP16 during training, we do not need to worry about any gradient scaling or nan gradient values that comes with using FP16 mixed precision.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: not _TORCH_BFLOAT_AVAILABLE
 
     Trainer(gpus=1, precision="bf16")
 
 It is also possible to use BFloat16 Mixed Precision on the CPU, relying on MKLDNN under the hood.
 
 .. testcode::
+    :skipif: not _TORCH_CPU_AMP_AVAILABLE
 
     Trainer(precision="bf16")
 
