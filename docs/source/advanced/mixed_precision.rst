@@ -39,7 +39,9 @@ BFloat16 Mixed Precision
 
 .. warning::
 
-    BFloat16 requires PyTorch 1.10 or later. BFloat16 is also experimental and may not provide large speedups or memory improvements, but offer better numerical stability.
+    BFloat16 requires PyTorch 1.10 or later. Currently this requires installing `PyTorch Nightly <https://pytorch.org/get-started/locally/>`__.
+
+    BFloat16 is also experimental and may not provide large speedups or memory improvements, but offer better numerical stability.
 
     Do note for GPUs, largest benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
 
@@ -64,7 +66,7 @@ NVIDIA APEX Mixed Precision
 
 .. warning::
 
-    NVIDIA APEX has been deprecated in favour of native mixed precision. It is suggested to use the above native mixed precision rather than APEX unless you know what you're doing.
+    We strongly recommend to use the above native mixed precision rather than NVIDIA APEX unless you require more finer control.
 
 `NVIDIA APEX <https://github.com/NVIDIA/apex>`__ offers some additional flexibility in setting mixed precision. This can be useful for when wanting to try out different precision configurations, such as keeping most of your weights in FP16 as well as running computation in FP16.
 
