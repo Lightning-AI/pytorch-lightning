@@ -373,9 +373,31 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Attributes:
+            prepare_data_per_node:
+                If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+            reload_dataloaders_every_n_epochs:
+                Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: 0
+            reload_train_dataloader_every_n_epochs:
+                Set to a non-negative integer to reload train_dataloader every n epochs.
+                Default: 0
+            reload_val_dataloader_every_n_epochs:
+                Set to a non-negative integer to reload val_dataloader every n epochs.
+                Default: 0
+
+        """
         super().__init__()
         self.reload_dataloaders_every_n_epochs: int = 0
+        # Both `reload_train_dataloader_every_n_epochs` and `reload_val_dataloader_every_n_epochs` are initialized by
+        # `reload_dataloaders_every_n_epochs`.
+        # After the deprecation of `reload_dataloaders_every_n_epochs`, the following initialization should be replaced
+        # by default zero.
+        self.reload_train_dataloader_every_n_epochs: int = self.reload_dataloaders_every_n_epochs
+        self.reload_val_dataloader_every_n_epochs: int = self.reload_dataloaders_every_n_epochs
 
     def prepare_data(self) -> None:
         """
