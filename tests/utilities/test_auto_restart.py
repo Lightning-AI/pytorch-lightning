@@ -961,13 +961,10 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
 
     # Resume after failure
     trainer_kwargs.update(resume_from_checkpoint=checkpoint_path)
-    resumed_batches_1 = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
-    assert len(resumed_batches_1) == 5
+    resumed_batches = _run_training(trainer_kwargs, dataset_classes, fail_on_step=-1)
+    assert len(resumed_batches) == 5
 
-    all_batches_resumed = torch.stack(complete_batches + resumed_batches_1)
+    # the resumed batches should match the batches of the successful training
+    all_batches_resumed = torch.stack(complete_batches + resumed_batches)
     assert len(all_batches_resumed) == 9
-
-    for x, y in zip(all_batches, all_batches_resumed):
-        print(x, y, torch.equal(x, y))
-
     assert torch.equal(all_batches, all_batches_resumed)
