@@ -19,6 +19,14 @@ Lightning offers mixed precision training for GPUs, CPUs and TPUs.
 FP16 Mixed Precision
 --------------------
 
+In most cases, mixed precision uses FP16. Supported torch operations are automatically run in FP16, saving memory and improving throughput on GPU and TPU accelerators.
+
+Since computation happens in FP16, there is a chance of numerical instability. This is handled internally by a dynamic grad scaler which skips steps that are invalid, and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
+
+.. note::
+
+    When using TPUs, setting ``precision=16`` will enable bfloat16 which is the only supported precision type on TPUs.
+
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
@@ -45,3 +53,24 @@ It is also possible to use BFloat16 Mixed Precision on the CPU, relying on MKLDN
 .. testcode::
 
     Trainer(precision="bf16")
+
+NVIDIA APEX Mixed Precision
+---------------------------
+
+.. warning::
+
+    NVIDIA APEX has been deprecated in favour of native mixed precision. It is suggested to use the above native mixed precision rather than APEX unless you know what you're doing.
+
+`NVIDIA APEX <https://github.com/NVIDIA/apex>`__ offers some additional flexibility in setting mixed precision. This can be useful for when wanting to try out different precision configurations, such as keeping most of your weights in FP16 as well as running computation in FP16.
+
+.. testcode::
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+
+    Trainer(gpus=1, amp_backend="apex")
+
+Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the trainer.
+
+.. testcode::
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+
+    Trainer(gpus=1, amp_backend="apex", amp_level="O2")
