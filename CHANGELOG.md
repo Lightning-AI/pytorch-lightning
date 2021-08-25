@@ -93,6 +93,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added validate logic for precision ([#9080](https://github.com/PyTorchLightning/pytorch-lightning/pull/9080))
 
 
+- Add support for CPU AMP autocast ([#9084](https://github.com/PyTorchLightning/pytorch-lightning/pull/9084))
+
+
 ### Changed
 
 - Rename `pytorch_lightning.loggers.neptune.NeptuneLogger` to `pytorch_lightning.loggers.neptune_legacy.NeptuneLegacyLogger` ([#6867](https://github.com/PyTorchLightning/pytorch-lightning/pull/6867))
