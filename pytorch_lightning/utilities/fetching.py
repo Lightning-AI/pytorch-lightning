@@ -390,7 +390,6 @@ class StepFuncDataLoaderIter:
     def __next__(self) -> Any:
         try:
             data = next(self.iterator)
-            # FIXME: Link this to `batch_idx`.
             self.data_fetcher.fetched += 1
             return data
         except StopIteration:

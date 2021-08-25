@@ -19,7 +19,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _TORCH_GREATER_EQUAL_1_10, AMPType
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _TORCH_BFLOAT_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -46,7 +46,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
         if precision == "bf16":
-            if not _TORCH_GREATER_EQUAL_1_10:
+            if not _TORCH_BFLOAT_AVAILABLE:
                 raise MisconfigurationException(
                     "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
                 )
