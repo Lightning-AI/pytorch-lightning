@@ -265,7 +265,7 @@ class TrainerCallbackHookMixin(ABC):
             rank_zero_warn(
                 "Be aware that when using `resume_from_checkpoint`,"
                 " callbacks used to create the checkpoint need to be provided."
-                f" Please, add the following callbacks: {list(difference)}.",
+                f" Please add the following callbacks: {list(difference)}.",
                 UserWarning,
             )
 
