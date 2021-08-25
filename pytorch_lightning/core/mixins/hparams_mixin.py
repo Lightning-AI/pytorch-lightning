@@ -15,7 +15,7 @@ import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import MutableMapping Optional, Sequence, Union
+from typing import MutableMapping, Optional, Sequence, Union
 
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import AttributeDict
