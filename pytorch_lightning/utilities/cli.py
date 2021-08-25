@@ -359,7 +359,7 @@ class LightningCLI:
         trainer_class = (
             self.trainer_class if isinstance(self.trainer_class, type) else class_from_function(self.trainer_class)
         )
-        # register all subcommand in separate subcommand parsers under the main parser
+        # register all subcommands in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
             subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
             fn = getattr(trainer_class, subcommand)
