@@ -209,13 +209,14 @@ def save_hyperparameters(
         if not args[0]:
             # args[0] is an empty container
             return
-        else:
-            if isinstance(args[0], Namespace):
-                hp = args[0]
-            elif isinstance(args[0], dict):
-                hp = Namespace(**args[0])
+        elif isinstance(args[0], Namespace):
+            hp = args[0]
             obj._hparams_name = "hparams"
-            # omegaconf?
+        elif isinstance(args[0], dict):
+            hp = Namespace(**args[0])
+            obj._hparams_name = "hparams"
+        # todo: omegaconf?
+        # todo: non-container single arg?
     else:
         if not frame:
             current_frame = inspect.currentframe()
