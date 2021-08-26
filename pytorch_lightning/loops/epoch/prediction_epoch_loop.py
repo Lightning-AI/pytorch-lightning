@@ -141,7 +141,7 @@ class PredictionEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         if self.should_store_predictions:
-            self.predictions.append(move_data_to_device(predictions, "cpu"))
+            self.predictions.append(move_data_to_device(predictions, torch.device("cpu")))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
         """
