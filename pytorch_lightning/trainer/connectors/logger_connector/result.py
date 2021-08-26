@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import lru_cache, partial, wraps
@@ -18,7 +19,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
-import inspect
+
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
@@ -59,11 +60,7 @@ class _Sync:
         kwargs = dict(group=self.group)
         if "reduce_op" in inspect.signature(self.fn).parameters:
             kwargs["reduce_op"] = self.op
-        return (
-            partial(self.fn, **kwargs)
-            if self.should and not self.rank_zero_only
-            else self.no_op
-        )
+        return partial(self.fn, **kwargs) if self.should and not self.rank_zero_only else self.no_op
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:
