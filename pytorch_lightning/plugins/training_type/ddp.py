@@ -29,6 +29,7 @@ import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -326,7 +327,7 @@ class DDPPlugin(ParallelPlugin):
         # share ddp pids to all processes
         self._share_information_to_prevent_deadlock()
 
-    def post_dispatch(self) -> None:
+    def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:

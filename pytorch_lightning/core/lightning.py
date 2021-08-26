@@ -1960,6 +1960,9 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue to append the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
         callback_metrics: dict = apply_to_collection(
             self.trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
@@ -1973,6 +1976,9 @@ class LightningModule(
 
         Args:
             queue: the instance of the queue from where to get the data.
+
+        .. deprecated:: v1.5
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
         # NOTE: `add_to_queue` needs to be called before
         callback_metrics: dict = queue.get()

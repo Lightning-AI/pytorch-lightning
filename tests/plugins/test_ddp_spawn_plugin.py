@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPSpawnPlugin
@@ -62,8 +63,9 @@ def test_ddp_cpu():
 
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctely when training for DDPSpawnPlugin."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
+    """Tests if device is set correctly when training for DDPSpawnPlugin."""
+    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert trainer.training_type_plugin.on_gpu
@@ -76,4 +78,5 @@ def test_ddp_spawn_extra_parameters(tmpdir):
 
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
+    # TODO(@daniellepintz) remove assert in v1.7
     assert model.test_val == "test_val"

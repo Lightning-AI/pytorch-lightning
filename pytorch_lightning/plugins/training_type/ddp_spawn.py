@@ -213,13 +213,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
 
-    def post_dispatch(self):
+    def post_dispatch(self, trainer: "pl.Trainer"):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+        trainer.callback_metrics = self.mp_queue.get()
         # get the `callback_metrics` and set it to the trainer
         # only in case the user does not override it.
+
+        # TODO(@daniellepintz): remove in v1.7
         self.lightning_module.get_from_queue(self.mp_queue)
 
         # recover the weights of the processes trained in the children
@@ -286,6 +289,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
+            self.mp_queue.put(trainer.callback_metrics)
+            # TODO(@daniellepintz): remove in v1.7
             self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
     def __recover_child_process_weights(self, best_path, last_path):

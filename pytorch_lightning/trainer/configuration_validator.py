@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -43,6 +43,7 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
+        self._check_add_get_queue(model)
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -153,3 +154,20 @@ class ConfigValidator:
                     "The model taking a `dataloader_iter` argument in your `training_step` "
                     "is incompatible with `truncated_bptt_steps > 0`."
                 )
+
+    def _check_add_get_queue(self, model: "pl.LightningModule"):
+        r"""
+        Checks if add_to_queue or get_from_queue is overriden and sends a deprecation warning.
+
+        Args:
+            model: The lightning module
+
+        """
+        if is_overridden("add_to_queue", model):
+            rank_zero_deprecation(
+                "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7."
+            )
+        if is_overridden("get_from_queue", model):
+            rank_zero_deprecation(
+                "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7."
+            )
