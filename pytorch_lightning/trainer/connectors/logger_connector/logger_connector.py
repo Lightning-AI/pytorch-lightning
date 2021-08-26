@@ -24,7 +24,7 @@ from pytorch_lightning.utilities import DeviceType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
-from pytorch_lightning.utilities.warning import rank_zero_deprecation
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class LoggerConnector:
