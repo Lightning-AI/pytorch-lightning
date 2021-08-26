@@ -165,7 +165,7 @@ class CSVLogger(LightningLoggerBase):
         Get the save directory.
 
         Returns:
-            The save directory.
+            The path to the save directory.
         """
         return self._save_dir
 
