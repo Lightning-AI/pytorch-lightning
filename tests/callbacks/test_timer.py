@@ -42,6 +42,10 @@ def test_trainer_flag(caplog):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
+    trainer = Trainer(max_time=dict(seconds=1337))
+    assert trainer.max_epochs is None
+    assert trainer.max_steps is None
+
 
 @pytest.mark.parametrize(
     "duration,expected",
