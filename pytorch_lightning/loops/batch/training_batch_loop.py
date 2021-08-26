@@ -181,11 +181,7 @@ class TrainingBatchLoop(Loop):
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens, result)
 
         # when the training type plugin handles accumulation, we want to always call the optimizer step
-        ttp_handles_accumulation = self.trainer.training_type_plugin.accumulate_grad_batches is not None
-
-        if not ttp_handles_accumulation and self.trainer.fit_loop.should_accumulate():
-            # For gradient accumulation
-
+        if not self.trainer.accelerator.handles_accumulate_grad_batches and self.trainer.fit_loop.should_accumulate():
             # -------------------
             # calculate loss (train step + train step end)
             # -------------------

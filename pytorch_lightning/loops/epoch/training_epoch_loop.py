@@ -268,8 +268,7 @@ class TrainingEpochLoop(loops.Loop):
 
     def _accumulated_batches_reached(self) -> bool:
         """Determine if accumulation will be finished by the end of the current batch."""
-        agb = self.trainer.accelerator.accumulate_grad_batches or self.trainer.accumulate_grad_batches
-        return self.batch_progress.current.ready % agb == 0
+        return self.batch_progress.current.ready % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
         """Checks if we are in the last batch or if there are more batches to follow.

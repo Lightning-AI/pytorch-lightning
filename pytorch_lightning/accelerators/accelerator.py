@@ -477,14 +477,9 @@ class Accelerator:
         return self.training_type_plugin.restore_checkpoint_after_pre_dispatch
 
     @property
-    def accumulate_grad_batches(self) -> Optional[int]:
-        """
-        Some training type plugins handle gradient accumulation internally and can modify the ``Trainer`` value.
-
-        Returns:
-            An ``int`` with the gradient accumulation value, ``None`` otherwise.
-        """
-        return self.training_type_plugin.accumulate_grad_batches
+    def handles_accumulate_grad_batches(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return self.training_type_plugin.handles_accumulate_grad_batches
 
     def on_train_epoch_end(self) -> None:
         """Hook to do something on the end of an training epoch."""

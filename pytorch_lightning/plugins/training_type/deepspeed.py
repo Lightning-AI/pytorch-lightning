@@ -380,7 +380,12 @@ class DeepSpeedPlugin(DDPPlugin):
         self.barrier()
 
     def init_deepspeed(self):
-        self._handle_gradient_accumulation_steps()
+        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+        if not isinstance(accumulate_grad_batches, int):
+            raise MisconfigurationException(
+                "DeepSpeed currently only supports `Trainer.accumulate_grad_batches` being an integer."
+                f" Received {accumulate_grad_batches}"
+            )
 
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
@@ -533,27 +538,9 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model.step(**kwargs)
 
     @property
-    def accumulate_grad_batches(self) -> int:
-        return self._original_accumulate_grad_batches
-
-    def _handle_gradient_accumulation_steps(self):
-        """
-        This functions overrides the ``trainer.accumulation_scheduler`` attribute
-        to act as ``accumulate_grad_batches=1``.
-
-        ``optimizer_step`` will be called on every batch, and DeepSpeed will handle grad accumulation internally.
-        """
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-        if not isinstance(accumulate_grad_batches, int):
-            raise MisconfigurationException(
-                "DeepSpeed currently only supports `Trainer.accumulate_grad_batches` being an integer."
-                f" Received {accumulate_grad_batches}"
-            )
-        # save the original value which will be used to update the global step progress
-        self._original_accumulate_grad_batches = accumulate_grad_batches
-        if accumulate_grad_batches > 1:
-            # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+    def handles_accumulate_grad_batches(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
 
     def _format_config(self):
         if self.config is None:

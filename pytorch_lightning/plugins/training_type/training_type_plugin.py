@@ -250,14 +250,9 @@ class TrainingTypePlugin(Plugin, ABC):
         return True
 
     @property
-    def accumulate_grad_batches(self) -> Optional[int]:
-        """
-        Some training type plugins handle gradient accumulation internally and can modify the ``Trainer`` value.
-
-        Returns:
-            An ``int`` with the gradient accumulation value, ``None`` otherwise.
-        """
-        return None
+    def handles_accumulate_grad_batches(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return False
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
