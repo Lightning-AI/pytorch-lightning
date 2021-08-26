@@ -170,14 +170,12 @@ def apply_to_collections(
         The resulting collection
 
     Raises:
-        ValueError:
-            If both data inputs are ``None``.
         AssertionError:
             If sequence collections have different data sizes.
     """
     if data1 is None:
         if data2 is None:
-            raise ValueError("You passed `apply_to_collections(None, None)`")
+            return
         # in case they were passed reversed
         data1, data2 = data2, None
 
