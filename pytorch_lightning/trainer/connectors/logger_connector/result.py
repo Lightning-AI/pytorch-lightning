@@ -59,6 +59,9 @@ class _Sync:
 
         self.fn_call = partial(self.fn, **kwargs) if self.fn and self.should and not self.rank_zero_only else self.no_op
 
+        if not self.fn:
+            self.fn = self.no_op
+
     @property
     def __call__(self) -> Any:
         return self.fn_call
