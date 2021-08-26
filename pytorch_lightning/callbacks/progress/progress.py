@@ -212,23 +212,7 @@ class ProgressBar(ProgressBarBase):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> Dict[str, Union[int, str]]:
         r"""
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self, model):
-                # don't show the version number
-                items = super().get_progress_bar_dict(model)
-                items.pop("v_num", None)
-                return items
+        Combines progress bar metrics collected from the trainer with standard metrics from get_progress_bar_dict
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
@@ -327,7 +311,7 @@ class ProgressBar(ProgressBarBase):
         total_batches = convert_inf(total_batches)
         if self._should_update(self.train_batch_idx, total_batches):
             self._update_bar(self.main_progress_bar)
-            self.main_progress_bar.set_postfix(self.get_progress_bar_dict(trainer, pl_module))
+            self.main_progress_bar.set_postfix(self.get_progress_bar_metrics(trainer, pl_module))
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
@@ -347,7 +331,7 @@ class ProgressBar(ProgressBarBase):
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
         if self.main_progress_bar is not None:
-            self.main_progress_bar.set_postfix(self.get_progress_bar_dict(trainer, pl_module))
+            self.main_progress_bar.set_postfix(self.get_progress_bar_metrics(trainer, pl_module))
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
