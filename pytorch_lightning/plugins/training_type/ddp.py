@@ -29,17 +29,21 @@ import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
+    _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
+    _TORCH_GREATER_EQUAL_1_10,
     rank_zero_deprecation,
     rank_zero_warn,
 )
@@ -53,11 +57,19 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+
+if _FAIRSCALE_AVAILABLE:
+    from fairscale.optim import OSS
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
+if _TORCH_GREATER_EQUAL_1_10:
+    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+    import torch.distributed.algorithms.model_averaging.averagers as averagers
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +95,7 @@ class DDPPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
+        model_averaging_period: Optional[int] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -110,6 +123,7 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self.set_world_ranks()
@@ -301,6 +315,51 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
+
+            # Post-localSDG is only available after 1.9,
+            # and `torch.distributed.optim` package currently is not available on Windows.
+            if (
+                _TORCH_GREATER_EQUAL_1_10
+                and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
+                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            ):
+                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+
+    def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
+        optimizers = self.lightning_module.trainer.optimizers
+        if self._model_averaging_period is None:
+            raise ValueError(
+                "Post-localSGD algorithm is used, " "but model averaging period is not provided to DDP plugin."
+            )
+        averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
+        for x, optimizer in enumerate(optimizers):
+            if isinstance(optimizer, LightningOptimizer):
+                optimizer = optimizer._optimizer
+
+            if (
+                isinstance(optimizer, DistributedOptimizer)
+                or isinstance(optimizer, ZeroRedundancyOptimizer)
+                or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
+            ):
+                raise ValueError(
+                    f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
+                )
+
+            if isinstance(optimizer, PostLocalSGDOptimizer):
+                continue
+
+            optim_class = type(optimizer)
+            post_localSGD_optimizer = PostLocalSGDOptimizer(
+                params=optimizer.param_groups,
+                optimizer_class=optim_class,
+                averager=averager,
+                **optimizer.defaults,
+            )
+            optimizers[x] = post_localSGD_optimizer
+            del optimizer
+        trainer = self.lightning_module.trainer
+        trainer.optimizers = optimizers
+        trainer.convert_to_lightning_optimizers()
 
     def configure_ddp(self):
         self.pre_configure_ddp()
