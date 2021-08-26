@@ -233,7 +233,7 @@ class WandbLogger(LightningLoggerBase):
         Gets the name of the experiment.
 
         Returns:
-            The name of the experiment if the experiment exists else the name.
+            The name of the experiment if the experiment exists else the name given to the constructor.
         """
         # don't create an experiment if we don't have one
         return self._experiment.project_name() if self._experiment else self._name
@@ -244,7 +244,7 @@ class WandbLogger(LightningLoggerBase):
         Gets the id of the experiment.
 
         Returns:
-            The id of the experiment if the experiment exists else the id.
+            The id of the experiment if the experiment exists else the id given to the constructor.
         """
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
