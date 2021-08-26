@@ -46,11 +46,6 @@ def test_trainer_flag(caplog):
     trainer = Trainer(max_time=dict(seconds=seconds))
     assert trainer.max_epochs is None
     assert trainer.max_steps is None
-    t0 = time.time()
-    trainer.fit(BoringModel())
-    t1 = time.time()
-    time_elasped = t1 - t0
-    assert abs(time_elasped - seconds) < 0.15
 
 
 @pytest.mark.parametrize(
