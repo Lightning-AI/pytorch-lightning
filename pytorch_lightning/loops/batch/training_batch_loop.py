@@ -190,7 +190,6 @@ class TrainingBatchLoop(Loop):
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
                 closure()
-                result = closure.result
 
         # ------------------------------
         # BACKWARD PASS
@@ -199,7 +198,6 @@ class TrainingBatchLoop(Loop):
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
-                result = closure.result
             else:
                 closure()
 
@@ -337,6 +335,7 @@ class TrainingBatchLoop(Loop):
                 return
 
         closure_loss = None
+        loss = None
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
