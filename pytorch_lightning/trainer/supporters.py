@@ -409,11 +409,9 @@ class CombinedLoader:
             return
 
         def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
+            dataloader_to_iter_on = dataloader
             if isinstance(dataloader, CycleIterator):
-                dataloader_to_iter_on = dataloader
                 dataloader = dataloader_to_iter_on.loader
-            else:
-                dataloader_to_iter_on = dataloader
 
             dataset = dataloader.dataset
 
