@@ -209,7 +209,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
-                return self.meta.reduce_fx(value)
+                if value.dim() > 0:
+                    value = self.meta.reduce_fx(value)
+                return value
         return self.value.compute()
 
     def reset(self) -> None:
