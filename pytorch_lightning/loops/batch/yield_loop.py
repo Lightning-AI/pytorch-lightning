@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 from typing import Any, Generator, Optional
 
 from torch import Tensor
@@ -53,10 +54,7 @@ class YieldLoop(TrainingBatchLoop):
                 self.batch_outputs[opt_idx].append(result.result_collection)
 
     def _make_step_fn(self, split_batch, batch_idx, opt_idx, hiddens):
-        def step_fn():
-            return self._training_step(self._training_step_generator)
-
-        return step_fn
+        return partial(self._training_step, self._training_step_generator)
 
     def _get_training_step_generator(
         self, split_batch: Any, batch_idx: int, opt_idx: int, hiddens: Tensor
