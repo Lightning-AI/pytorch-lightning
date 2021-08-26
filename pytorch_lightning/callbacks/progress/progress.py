@@ -25,9 +25,9 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm as _tqdm
 
-from pytorch_lightning.utilities import rank_zero_warn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
+from pytorch_lightning.utilities import rank_zero_warn
 
 _PAD_SIZE = 5
 
