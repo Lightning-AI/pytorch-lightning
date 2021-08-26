@@ -268,7 +268,7 @@ class NeptuneLogger(LightningLoggerBase):
     @property
     def save_dir(self) -> Optional[str]:
         """
-        Gets the save diectory of the experiment which in this case is None.
+        Gets the save diectory of the experiment which in this case is ``None`` because Neptune does not save locally.
 
         Returns:
             None
