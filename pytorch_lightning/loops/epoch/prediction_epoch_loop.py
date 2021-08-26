@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+import torch
 from deprecate import void
 
 from pytorch_lightning.loops.base import Loop
