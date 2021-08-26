@@ -170,15 +170,17 @@ def apply_to_collections(
         The resulting collection
 
     Raises:
+        ValueError:
+            If both data inputs are None
         AssertionError:
             If sequence collections have different data sizes.
     """
-    if data1 is None and data2 is not None:
+    if data1 is None:
+        if data2 is None:
+            raise ValueError("You passed `apply_to_collections(None, None)`")
         # in case they were passed reversed
         data1, data2 = data2, None
 
-    if data1 is None:
-        return
     elem_type = type(data1)
 
     if isinstance(data1, dtype) and data2 is not None and (wrong_dtype is None or not isinstance(data1, wrong_dtype)):
@@ -197,12 +199,10 @@ def apply_to_collections(
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
-        if isinstance(data1, tuple) or isinstance(data1, Sequence):
-            data_tupled: Union[Sequence[Any], Tuple[Any]] = data1
-        assert len(data_tupled) == len(data2), "Sequence collections have different sizes"
+        assert len(data1) == len(data2), "Sequence collections have different sizes"
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            for v1, v2 in zip(data_tupled, data2)
+            for v1, v2 in zip(data1, data2)
         ]
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
