@@ -14,4 +14,4 @@ In average for simple MNIST CNN classifier we are only about 0.06s slower per ep
    :width: 500
 
 
-Learn more about reproducible benchmarking from `PyTorch Randomness Section <https://pytorch.org/docs/stable/notes/randomness.html>_`.
+Learn more about reproducible benchmarking from the `PyTorch Reproducibility Guide <https://pytorch.org/docs/stable/notes/randomness.html>_`.
