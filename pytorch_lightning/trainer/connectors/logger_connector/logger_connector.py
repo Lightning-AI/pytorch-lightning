@@ -20,20 +20,29 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.utilities import DeviceType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
+from pytorch_lightning.utilities.warning import rank_zero_deprecation
 
 
 class LoggerConnector:
-    def __init__(self, trainer: "pl.Trainer") -> None:
+    def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
+        if log_gpu_memory is not None:
+            rank_zero_deprecation(
+                "Setting `log_gpu_memory` with the trainer flag is deprecated and will be removed in v1.7.0! "
+                "Please monitor GPU stats with the `GPUStatsMonitor` callback directly instead."
+            )
+        self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results = []
         self._val_log_step: int = 0
         self._test_log_step: int = 0
         self._progress_bar_metrics: Dict[str, float] = {}
         self._logged_metrics: Dict[str, _METRIC] = {}
         self._callback_metrics: Dict[str, _METRIC] = {}
+        self._gpus_metrics: Dict[str, str] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
@@ -208,6 +217,8 @@ class LoggerConnector:
         if self.trainer.fit_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
+        self._log_gpus_metrics()
+
         # when metrics should be logged
         assert not self._epoch_end_reached
         if self.should_update_logs or self.trainer.fast_dev_run:
@@ -220,6 +231,17 @@ class LoggerConnector:
 
         # reset result collection for next epoch
         self.trainer._results.reset(metrics=True)
+
+    def _log_gpus_metrics(self):
+        for key, mem in self.gpus_metrics.items():
+            if self.log_gpu_memory == "min_max":
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
+            else:
+                gpu_id = int(key.split("/")[0].split(":")[1])
+                if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                    self.trainer.lightning_module.log(
+                        key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
+                    )
 
     """
     Utilities and properties
@@ -275,6 +297,13 @@ class LoggerConnector:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
         return self.trainer._results.metrics(on_step)
+
+    @property
+    def gpus_metrics(self) -> Dict[str, str]:
+        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
+            self._gpus_metrics.update(mem_map)
+        return self._gpus_metrics
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:

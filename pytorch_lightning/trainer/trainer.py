@@ -236,6 +236,10 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
+                .. deprecated:: v1.5
+                    Deprecated in v1.5.0 and will be removed in v1.7.0
+                    Please use the ``GPUStatsMonitor`` callback directly instead.
+
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
@@ -365,7 +369,7 @@ class Trainer(
             amp_level,
             plugins,
         )
-        self.logger_connector = LoggerConnector(self)
+        self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
@@ -414,7 +418,6 @@ class Trainer(
             default_root_dir,
             weights_save_path,
             stochastic_weight_avg,
-            log_gpu_memory,
             max_time,
         )
 

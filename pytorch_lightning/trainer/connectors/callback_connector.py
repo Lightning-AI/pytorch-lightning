@@ -16,7 +16,6 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -35,7 +34,6 @@ class CallbackConnector:
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
         stochastic_weight_avg: bool,
-        log_gpu_memory: Optional[str],
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
         # init folder paths for checkpoint + weights save callbacks
@@ -61,9 +59,6 @@ class CallbackConnector:
 
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
-
-        # init gpu memory stats callback
-        self._configure_gpu_memory_callback(log_gpu_memory)
 
         # push all checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
@@ -118,11 +113,6 @@ class CallbackConnector:
             progress_bar_callback = None
 
         return progress_bar_callback
-
-    def _configure_gpu_memory_callback(self, log_gpu_memory: Optional[str]) -> None:
-        if log_gpu_memory and not any([c for c in self.trainer.callbacks if isinstance(c, GPUStatsMonitor)]):
-            gpu_stats_monitor = GPUStatsMonitor()
-            self.trainer.callbacks.append(gpu_stats_monitor)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:

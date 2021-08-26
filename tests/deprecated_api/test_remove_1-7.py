@@ -87,3 +87,10 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
     ):
         _ = Trainer(prepare_data_per_node=False)
+
+
+def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
+    with pytest.deprecated_call(
+        match="Setting `log_gpu_memory` with the trainer flag is deprecated and will be removed in v1.7.0!"
+    ):
+        _ = Trainer(log_gpu_memory="min_max")
