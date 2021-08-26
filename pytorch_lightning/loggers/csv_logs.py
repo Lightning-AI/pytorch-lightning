@@ -162,10 +162,10 @@ class CSVLogger(LightningLoggerBase):
     @property
     def save_dir(self) -> Optional[str]:
         """
-        Get the save directory.
+        The current directory where logs are saved.
 
         Returns:
-            The path to the save directory.
+            The path to current directory where logs are saved.
         """
         return self._save_dir
 
