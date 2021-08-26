@@ -21,7 +21,6 @@ order_by_type = "False"
 
 [tool.black]
 line-length = 120
-skip-magic-trailing-comma = true
 
 
 [tool.mypy]
@@ -35,6 +34,8 @@ warn_unused_ignores = "True"
 allow_redefinition = "True"
 # disable this rule as the Trainer attributes are defined in the connectors, not in its __init__
 disable_error_code = "attr-defined"
+# style choices
+warn_no_return = "False"
 
 # TODO: Fix typing for these modules
 [[tool.mypy.overrides]]
@@ -61,11 +62,18 @@ ignore_errors = "True"
 [[tool.mypy.overrides]]
 module = [
     "pytorch_lightning.callbacks.pruning",
+    "pytorch_lightning.loops.closure",
     "pytorch_lightning.trainer.evaluation_loop",
     "pytorch_lightning.trainer.connectors.logger_connector",
+    "pytorch_lightning.utilities.argparse",
     "pytorch_lightning.utilities.cli",
+    "pytorch_lightning.utilities.cloud_io",
+    "pytorch_lightning.utilities.debugging",
     "pytorch_lightning.utilities.device_dtype_mixin",
     "pytorch_lightning.utilities.device_parser",
+    "pytorch_lightning.utilities.distributed",
+    "pytorch_lightning.utilities.memory",
     "pytorch_lightning.utilities.parsing",
+    "pytorch_lightning.utilities.xla_device",
 ]
 ignore_errors = "False"

@@ -51,8 +51,13 @@ def test_wandb_logger_init(wandb):
     wandb.init.reset_mock()
     wandb.run = wandb.init()
     logger = WandbLogger()
+
     # verify default resume value
     assert logger._wandb_init["resume"] == "allow"
+
+    with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
+        _ = logger.experiment
+
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({"acc": 1.0, "trainer/global_step": 3})
@@ -69,8 +74,8 @@ def test_wandb_logger_init(wandb):
     )
 
     # watch a model
-    logger.watch("model", "log", 10)
-    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10)
+    logger.watch("model", "log", 10, False)
+    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id

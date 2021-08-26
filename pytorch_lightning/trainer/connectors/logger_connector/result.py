@@ -192,7 +192,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_sum_reduction:
                 self.value += value.mean() * batch_size
         else:
-            self.value = value  # noqa: attribute-defined-outside-init
+            self.value = value
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
@@ -251,13 +251,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        skip = ["update", "compute", "_update_signature"]
+        skip = ["update", "compute", "_update_signature", "_cache"]
         if not self.is_tensor and drop_value:
             # Avoid serializing ResultMetrics which are passed Metrics
             skip.append("value")
         d = {k: v for k, v in self.__dict__.items() if k not in skip}
         d["meta"] = d["meta"].__getstate__()
         d["_class"] = self.__class__.__name__
+        d["_is_synced"] = False  # don't consider the state as synced on reload
         return d
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
@@ -288,9 +289,12 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
+    def __init__(self, *args) -> None:
         super().__init__(*args)
-        self.meta = metadata
+
+    @property
+    def meta(self) -> _Metadata:
+        return list(self.values())[0].meta
 
     def __getstate__(self, drop_value: bool = False) -> dict:
         def getstate(item: ResultMetric) -> dict:
@@ -311,9 +315,6 @@ class ResultMetricCollection(dict):
 
         items = setstate(state["items"])
         self.update(items)
-
-        any_result_metric = next(iter(items.values()))
-        self.meta = any_result_metric.meta
 
     @classmethod
     def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "ResultMetricCollection":
@@ -377,9 +378,8 @@ class ResultCollection(dict):
 
     @minimize.setter
     def minimize(self, loss: Optional[torch.Tensor]) -> None:
-        if loss is not None:
-            if not isinstance(loss, torch.Tensor):
-                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
+        if loss is not None and not isinstance(loss, torch.Tensor):
+            raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
         self._minimize = loss
 
     @property
@@ -388,7 +388,8 @@ class ResultCollection(dict):
         Extras are any keys other than the loss returned by
         :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
         """
-        return self.get("_extra", {})
+        self.setdefault("_extra", {})
+        return self["_extra"]
 
     @extra.setter
     def extra(self, extra: Dict[str, Any]) -> None:
@@ -479,7 +480,7 @@ class ResultCollection(dict):
 
         value = apply_to_collection(value, (torch.Tensor, Metric), fn)
         if isinstance(value, dict):
-            value = ResultMetricCollection(value, metadata=meta)
+            value = ResultMetricCollection(value)
         self[key] = value
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
@@ -590,7 +591,6 @@ class ResultCollection(dict):
 
     def to(self, *args, **kwargs) -> "ResultCollection":
         """Move all data to the given device."""
-
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
         if self.minimize is not None:
@@ -604,8 +604,27 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
+    def sync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor:
+                result_metric.sync()
+
+    def unsync(self) -> None:
+        for result_metric in self.result_metrics:
+            if result_metric.is_tensor and result_metric._is_synced:
+                result_metric.unsync()
+
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})"
+        # sample output: `ResultCollection(minimize=1.23, {})`
+        minimize = f"minimize={self.minimize}, " if self.minimize is not None else ""
+        # remove empty values
+        self_str = str({k: v for k, v in self.items() if v})
+        return f"{self.__class__.__name__}({minimize}{self_str})"
+
+    def __repr__(self):
+        # sample output: `{True, cpu, minimize=tensor(1.23 grad_fn=<SumBackward0>), {'_extra': {}}}`
+        minimize = f"minimize={repr(self.minimize)}, " if self.minimize is not None else ""
+        return f"{{{self.training}, {repr(self.device)}, " + minimize + f"{super().__repr__()}}}"
 
     def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()

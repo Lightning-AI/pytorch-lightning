@@ -49,6 +49,29 @@ class AMPType(LightningEnum):
     NATIVE = "native"
 
 
+class PrecisionType(LightningEnum):
+    """Type of precision used.
+
+    >>> PrecisionType.HALF == 16
+    True
+    >>> PrecisionType.HALF in (16, "16")
+    True
+    """
+
+    HALF = "16"
+    FLOAT = "32"
+    FULL = "64"
+    BFLOAT = "bf16"
+
+    @staticmethod
+    def supported_type(precision: Union[str, int]) -> bool:
+        return any(x == precision for x in PrecisionType)
+
+    @staticmethod
+    def supported_types() -> List[str]:
+        return [x.value for x in PrecisionType]
+
+
 class DistributedType(LightningEnum):
     """Define type of ditributed computing.
 
@@ -121,8 +144,6 @@ class GradClipAlgorithmType(LightningEnum):
 
 
 class AutoRestartBatchKeys(LightningEnum):
-    """
-    Defines special dictionary keys used to track sampler progress with multiple workers.
-    """
+    """Defines special dictionary keys used to track captured dataset state with multiple workers."""
 
-    PL_SAMPLERS = "__pl_samplers"
+    PL_RESTART_META = "__pl_restart_meta"

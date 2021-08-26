@@ -186,7 +186,7 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 
 -----------
 
-.. _amp:
+.. _speed_amp:
 
 *********************************
 Mixed precision (16-bit) training
@@ -210,7 +210,7 @@ Mixed precision (16-bit) training
 
 Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
-Lightning offers mixed precision or 16-bit training for GPUs and TPUs.
+Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
 
 
 .. testcode::
@@ -450,7 +450,7 @@ Set Grads to None
 In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
 
 For a more detailed explanation of pros / cons of this technique,
-read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.
 
 .. testcode::
 

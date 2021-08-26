@@ -29,9 +29,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 _WANDB_AVAILABLE = _module_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
@@ -113,13 +111,12 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
-        sync_step: Optional[bool] = None,
         **kwargs,
     ):
         if wandb is None:
             raise ImportError(
-                "You want to use `wandb` logger which is not installed yet,"  # pragma: no-cover
-                " install it with `pip install wandb`."
+                "You want to use `wandb` logger which is not installed yet,"
+                " install it with `pip install wandb`."  # pragma: no-cover
             )
 
         if offline and log_model:
@@ -130,16 +127,10 @@ class WandbLogger(LightningLoggerBase):
             )
 
         if log_model and not _WANDB_GREATER_EQUAL_0_10_22:
-            warning_cache.warn(
+            rank_zero_warn(
                 f"Providing log_model={log_model} requires wandb version >= 0.10.22"
                 " for logging associated model metadata.\n"
                 "Hint: Upgrade with `pip install --ugrade wandb`."
-            )
-
-        if sync_step is not None:
-            warning_cache.deprecation(
-                "`WandbLogger(sync_step=(True|False))` is deprecated in v1.2.1 and will be removed in v1.5."
-                " Metrics are now logged separately and automatically synchronized."
             )
 
         super().__init__()
@@ -190,7 +181,14 @@ class WandbLogger(LightningLoggerBase):
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
-            self._experiment = wandb.init(**self._wandb_init) if wandb.run is None else wandb.run
+            if wandb.run is None:
+                self._experiment = wandb.init(**self._wandb_init)
+            else:
+                rank_zero_warn(
+                    "There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse"
+                    " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
+                )
+                self._experiment = wandb.run
 
         # define default x-axis (for latest wandb versions)
         if getattr(self._experiment, "define_metric", None):
@@ -199,8 +197,8 @@ class WandbLogger(LightningLoggerBase):
 
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100):
-        self.experiment.watch(model, log=log, log_freq=log_freq)
+    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):
+        self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:

@@ -20,7 +20,6 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -56,11 +55,6 @@ class EvaluationLoop(DataLoaderLoop):
         if self.trainer.testing:
             return self.trainer.test_dataloaders
         return self.trainer.val_dataloaders
-
-    @property
-    def predictions(self):
-        """Returns the predictions from all dataloaders"""
-        return self.epoch_loop.predictions
 
     def connect(self, epoch_loop: EvaluationEpochLoop):
         """Connect the evaluation epoch loop with this loop."""
@@ -103,13 +97,14 @@ class EvaluationLoop(DataLoaderLoop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
-        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        dataloader_iter = enumerate(dataloader)
-        dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
-        )
+        dataloader_idx: int = self.current_dataloader_idx
+        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader, dataloader_idx=dataloader_idx)
+
+        dl_max_batches = self._max_batches[dataloader_idx]
+
+        dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
 
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
@@ -142,9 +137,6 @@ class EvaluationLoop(DataLoaderLoop):
         # hook
         self.on_evaluation_end()
 
-        # save predictions to disk
-        self.epoch_loop.predictions.to_disk()
-
         # enable train mode again
         self.on_evaluation_model_train()
 
@@ -166,11 +158,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary"""
-        model = self.trainer.lightning_module
         if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
+            self.trainer.reset_test_dataloader()
         elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
-            self.trainer.reset_val_dataloader(model)
+            self.trainer.reset_val_dataloader()
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks"""
@@ -186,11 +177,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode"""
-        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
-            model_ref.on_test_model_eval()
+            self.trainer.call_hook("on_test_model_eval")
         else:
-            model_ref.on_validation_model_eval()
+            self.trainer.call_hook("on_validation_model_eval")
 
     def on_evaluation_model_train(self) -> None:
         """Sets model to train mode"""
@@ -206,10 +196,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.call_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer.call_hook("on_validation_end", *args, **kwargs)
-
-        if self.trainer.state.fn != TrainerFn.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
 
         # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)

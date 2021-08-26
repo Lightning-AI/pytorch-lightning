@@ -19,9 +19,9 @@ from deprecate import void
 from torch import Tensor
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.loops.utilities import _prepare_dataloader_iter
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -34,12 +34,12 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.predictions: Optional[PredictionCollection] = None
         self.dataloader: Optional[Iterator] = None
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
         self.outputs: List[STEP_OUTPUT] = []
         self.batch_progress = Progress()
+        self.dataloader_iter: Optional[Iterator] = None
 
     @property
     def done(self) -> bool:
@@ -51,7 +51,6 @@ class EvaluationEpochLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
-        self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self._dl_max_batches = None
         self._num_dataloaders = None
         self.outputs = []
@@ -60,22 +59,24 @@ class EvaluationEpochLoop(Loop):
             self.batch_progress.current.reset()
 
     def on_run_start(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
+        self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary
 
         Args:
-            dataloader_iter: iterator over the dataloader
+            data_fetcher: the current data_fetcher wrapping the dataloader
             dataloader_idx: index of the current dataloader
             dl_max_batches: maximum number of batches the dataloader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter, dataloader_idx)
+        void(dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
 
+        self.dataloader_iter = _prepare_dataloader_iter(data_fetcher, self.batch_progress.current.ready)
+
     def advance(
-        self, dataloader_iter: Iterator, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
+        self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
@@ -88,15 +89,16 @@ class EvaluationEpochLoop(Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        void(dl_max_batches, num_dataloaders)
+        void(data_fetcher, dl_max_batches, num_dataloaders)
 
-        batch_idx, batch = next(dataloader_iter)
+        batch_idx, (batch, _) = next(self.dataloader_iter)
 
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("evaluation_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        if not self.trainer.data_connector.evaluation_data_fetcher.store_on_device:
+            with self.trainer.profiler.profile("evaluation_batch_to_device"):
+                batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
@@ -112,7 +114,7 @@ class EvaluationEpochLoop(Loop):
 
         self.batch_progress.increment_processed()
 
-        # hook + store predictions
+        # track loss history
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
@@ -198,22 +200,6 @@ class EvaluationEpochLoop(Loop):
 
         self.trainer.logger_connector.on_batch_end()
 
-        # store predicitons if do_write_predictions and track eval loss history
-        self.store_predictions(output, batch_idx, dataloader_idx)
-
-    def store_predictions(self, output: Optional[STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
-        """Stores the predictions in the prediction collection (only if running in test mode)
-
-        Args:
-            output: the outputs of the current step
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
-        """
-        # Add step predictions to prediction collection to write later
-        if output is not None and self.predictions is not None:
-            if isinstance(output, ResultCollection) and self.trainer.testing:
-                self.predictions.add(output.pop("predictions", None))
-
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
@@ -240,16 +226,10 @@ class EvaluationEpochLoop(Loop):
         return step_kwargs
 
     def _track_output_for_epoch_end(
-        self,
-        outputs: List[Union[ResultCollection, Dict, Tensor]],
-        output: Optional[Union[ResultCollection, Dict, Tensor]],
-    ) -> List[Union[ResultCollection, Dict, Tensor]]:
+        self, outputs: List[STEP_OUTPUT], output: Optional[STEP_OUTPUT]
+    ) -> List[STEP_OUTPUT]:
         if output is not None:
-            if isinstance(output, ResultCollection):
-                output = output.detach()
-                if self.trainer.move_metrics_to_cpu:
-                    output = output.cpu()
-            elif isinstance(output, dict):
+            if isinstance(output, dict):
                 output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
             elif isinstance(output, Tensor) and output.is_cuda and self.trainer.move_metrics_to_cpu:
                 output = output.cpu()

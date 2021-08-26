@@ -15,7 +15,7 @@ import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import Optional, Sequence, Union
+from typing import MutableMapping, Optional, Sequence, Union
 
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import AttributeDict
@@ -104,7 +104,7 @@ class HyperparametersMixin:
             frame = inspect.currentframe().f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
-    def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
+    def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
         hp = self._to_hparams_dict(hp)
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -113,7 +113,7 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[dict, Namespace, str]):
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]):
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):

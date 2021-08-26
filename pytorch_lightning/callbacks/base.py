@@ -34,19 +34,29 @@ class Callback(abc.ABC):
     """
 
     @property
-    def state_id(self) -> str:
+    def state_key(self) -> str:
         """
         Identifier for the state of the callback. Used to store and retrieve a callback's state from the
-        checkpoint dictionary by ``checkpoint["callbacks"][state_id]``. Implementations of a callback need to
-        provide a unique state id if 1) the callback has state and 2) it is desired to maintain the state of
+        checkpoint dictionary by ``checkpoint["callbacks"][state_key]``. Implementations of a callback need to
+        provide a unique state key if 1) the callback has state and 2) it is desired to maintain the state of
         multiple instances of that callback.
         """
         return self.__class__.__qualname__
 
     @property
-    def _legacy_state_id(self) -> Type["Callback"]:
-        """State identifier for checkpoints saved prior to version 1.5.0."""
+    def _legacy_state_key(self) -> Type["Callback"]:
+        """State key for checkpoints saved prior to version 1.5.0."""
         return type(self)
+
+    def _generate_state_key(self, **kwargs: Any) -> str:
+        """
+        Formats a set of key-value pairs into a state key string with the callback class name prefixed.
+        Useful for defining a :attr:`state_key`.
+
+        Args:
+            **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
+        """
+        return f"{self.__class__.__qualname__}{repr(kwargs)}"
 
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before configure sharded model"""

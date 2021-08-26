@@ -42,6 +42,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -613,3 +614,25 @@ def test_devices_with_cpu_only_supports_integer():
 
     with pytest.raises(MisconfigurationException, match="The flag `devices` only supports integer"):
         Trainer(accelerator="cpu", devices="1,3")
+
+
+@pytest.mark.parametrize("training_type", ["ddp2", "dp"])
+def test_unsupported_distrib_types_on_cpu(training_type):
+
+    with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting the distributed type to `ddp`."):
+        trainer = Trainer(accelerator=training_type, num_processes=2)
+
+    assert trainer._distrib_type == DistributedType.DDP
+
+
+def test_accelerator_ddp_for_cpu(tmpdir):
+    trainer = Trainer(accelerator="ddp", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+
+
+@pytest.mark.parametrize("precision", [1, 12, "invalid"])
+def test_validate_precision_type(tmpdir, precision):
+
+    with pytest.raises(MisconfigurationException, match=f"Precision {precision} is invalid"):
+        Trainer(precision=precision)

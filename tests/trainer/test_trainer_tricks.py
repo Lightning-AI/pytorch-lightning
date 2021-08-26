@@ -15,6 +15,7 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import RunningStage
 from tests.base import EvalModelTemplate
 
 
@@ -107,12 +108,12 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # run tests for both val and test
     # ------------------------------------------------------
-    for split in ["val", "test"]:
+    for split in (RunningStage.VALIDATING, RunningStage.TESTING):
 
         # ------------------------------------------------------
         # test overfit_batches as percent
         # ------------------------------------------------------
-        loader_num_batches, dataloaders = Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, split)
+        loader_num_batches, dataloaders = Trainer(overfit_batches=0.11)._reset_eval_dataloader(split, model=model)
         assert loader_num_batches[0] == num_train_samples
 
         # make sure we turned off shuffle for the user
@@ -126,23 +127,23 @@ def test_overfit_batch_limits(tmpdir):
         # ------------------------------------------------------
         # test overfit_batches as int
         # ------------------------------------------------------
-        loader_num_batches, dataloaders = Trainer(overfit_batches=1)._reset_eval_dataloader(model, split)
+        loader_num_batches, dataloaders = Trainer(overfit_batches=1)._reset_eval_dataloader(split, model=model)
         assert loader_num_batches[0] == 1
-        loader_num_batches, dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(model, split)
+        loader_num_batches, dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(split, model=model)
         assert loader_num_batches[0] == 5
 
         # ------------------------------------------------------
         # test limit_xxx_batches as percent AND int
         # ------------------------------------------------------
-        if split == "val":
-            loader_num_batches, dataloaders = Trainer(limit_val_batches=0.1)._reset_eval_dataloader(model, split)
+        if split == RunningStage.VALIDATING:
+            loader_num_batches, dataloaders = Trainer(limit_val_batches=0.1)._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == int(0.1 * len(val_loader))
 
-            loader_num_batches, dataloaders = Trainer(limit_val_batches=10)._reset_eval_dataloader(model, split)
+            loader_num_batches, dataloaders = Trainer(limit_val_batches=10)._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == 10
         else:
-            loader_num_batches, dataloaders = Trainer(limit_test_batches=0.1)._reset_eval_dataloader(model, split)
+            loader_num_batches, dataloaders = Trainer(limit_test_batches=0.1)._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == int(0.1 * len(test_loader))
 
-            loader_num_batches, dataloaders = Trainer(limit_test_batches=10)._reset_eval_dataloader(model, split)
+            loader_num_batches, dataloaders = Trainer(limit_test_batches=10)._reset_eval_dataloader(split, model=model)
             assert loader_num_batches[0] == 10

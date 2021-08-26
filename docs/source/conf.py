@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
 try:
-    from helpers import HelperCLI  # noqa: E401 E402
+    from helpers import HelperCLI
 except Exception:
     raise ModuleNotFoundError("To build the code, please run: `git submodule update --init --recursive`")
 
@@ -370,6 +370,8 @@ from pytorch_lightning.utilities import (
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
+    _TORCH_BFLOAT_AVAILABLE,
+    _TORCH_CPU_AMP_AVAILABLE,
     _module_available,
 )
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")

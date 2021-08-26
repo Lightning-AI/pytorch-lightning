@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
+    CheckpointIO,
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedPlugin,
@@ -72,6 +73,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
@@ -134,6 +136,7 @@ class AcceleratorConnector:
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
+        self._checkpoint_io: Optional[CheckpointIO] = None
 
         plugins = plugins if plugins is not None else []
 
@@ -146,6 +149,7 @@ class AcceleratorConnector:
         self.plugins = plugins
 
         self._validate_accelerator_and_devices()
+
         self._warn_if_devices_flag_ignored()
 
         self.select_accelerator_type()
@@ -274,6 +278,7 @@ class AcceleratorConnector:
     def handle_given_plugins(self) -> None:
 
         training_type = None
+        checkpoint = None
         precision = None
         cluster_environment = None
 
@@ -299,18 +304,25 @@ class AcceleratorConnector:
 
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 training type plugin: {type(plug).__name__}"
+                        "You can only specify one training type plugin."
+                        f" Available: {type(training_type).__name__}, given: {type(plug).__name__}"
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
                     precision = plug
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 precision plugin: {type(plug).__name__}"
+                        "You can only specify one precision plugin."
+                        f" Available: {type(precision).__name__}, given: {type(plug).__name__}"
                     )
-
+            elif isinstance(plug, CheckpointIO):
+                if checkpoint is None:
+                    checkpoint = plug
+                else:
+                    raise MisconfigurationException(
+                        "You can only specify one checkpoint plugin."
+                        f" Available: {type(checkpoint).__name__}, given: {type(plug).__name__}"
+                    )
             elif isinstance(plug, ClusterEnvironment):
                 if cluster_environment is None:
                     cluster_environment = plug
@@ -325,6 +337,7 @@ class AcceleratorConnector:
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
+        self._checkpoint_io = checkpoint
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
@@ -341,6 +354,9 @@ class AcceleratorConnector:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        # attach checkpoint plugin to the training type plugin
+        if self._checkpoint_io is not None:
+            self._training_type_plugin.checkpoint_io = self._checkpoint_io
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
@@ -546,15 +562,11 @@ class AcceleratorConnector:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision == 16:
+        if self.precision in (16, "bf16"):
             if self.use_tpu:
                 return TPUHalfPrecisionPlugin()
 
             if self.amp_type == AMPType.NATIVE:
-                if self.use_cpu:
-                    raise MisconfigurationException(
-                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                    )
                 if not _NATIVE_AMP_AVAILABLE:
                     msg = (
                         "You have asked for native AMP but your PyTorch version does not support it."
@@ -567,12 +579,12 @@ class AcceleratorConnector:
                     else:
                         raise MisconfigurationException(msg)
                 else:
-                    log.info("Using native 16bit precision.")
+                    log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
                     if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin()
+                        return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
                     if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin()
-                    return NativeMixedPrecisionPlugin()
+                        return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+                    return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
             if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
@@ -582,13 +594,14 @@ class AcceleratorConnector:
                     )
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP,"
-                        " please using native AMP for 16-bit precision."
+                        "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
                     )
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError("We only support precisions 64, 32 and 16!")
+        raise MisconfigurationException(
+            f"Precision {self.precision} is invalid. Allowed precision values: {PrecisionType.supported_types()}"
+        )
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
@@ -607,7 +620,7 @@ class AcceleratorConnector:
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
-            use_ddp_cpu_spawn = self.use_ddp and self.use_cpu
+            use_ddp_cpu_spawn = use_ddp_spawn and self.use_cpu
             use_tpu_spawn = self.use_tpu and self._distrib_type == DistributedType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
@@ -738,14 +751,16 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.num_gpus == 0 and (self.num_nodes > 1 or self.num_processes > 1):
+            elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._distrib_type = DistributedType.DDP
+            elif self.num_gpus == 0 and self.num_processes > 1:
+                self.distributed_backend = DistributedType.DDP_SPAWN
             elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
                 )
-                self.distributed_backend = "ddp_spawn"
+                self.distributed_backend = DistributedType.DDP_SPAWN
 
         # special case with DDP on CPUs
         if self.distributed_backend == DistributedType.DDP_CPU:
@@ -779,12 +794,13 @@ class AcceleratorConnector:
         _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
         if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _use_cpu:
-            rank_zero_warn(
-                "You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`."
-            )
-            # todo: in some cases it yield in comparison None and int
+
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
-                self._distrib_type = DistributedType.DDP
+                if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
+                    rank_zero_warn(
+                        f"{self._distrib_type} is not supported on CPUs, hence setting the distributed type to `ddp`."
+                    )
+                    self._distrib_type = DistributedType.DDP
             else:
                 rank_zero_warn("You are running on single node with no parallelization, so distributed has no effect.")
                 self._distrib_type = None
@@ -857,7 +873,7 @@ class AcceleratorConnector:
     @staticmethod
     def has_horovodrun() -> bool:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+        return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,

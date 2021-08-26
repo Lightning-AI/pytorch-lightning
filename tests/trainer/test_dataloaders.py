@@ -326,8 +326,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
         (RandomIterableDataset(32, 128), 0),
         (RandomIterableDataset(32, 128), 10),
         (RandomIterableDatasetWithLen(32, 128), 0),
-        # TODO: enable this after #6671 is merged
-        # (RandomIterableDatasetWithLen(32, 128), 10),
+        (RandomIterableDatasetWithLen(32, 128), 10),
     ],
 )
 def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
@@ -682,7 +681,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers',
+        match=f'The dataloader, {stage}_dataloader{" 0" if stage != "train" else ""}, does not have many workers',
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
@@ -721,7 +720,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers',
+        match=f'The dataloader, {stage}_dataloader{" 0" if stage != "train" else ""}, does not have many workers',
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
@@ -1322,6 +1321,7 @@ def test_dataloaders_reset_and_attach(tmpdir):
     Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset and dataloaders before
     attaching the new one.
     """
+    # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_2 = DataLoader(dataset=RandomDataset(32, 64))
@@ -1331,33 +1331,33 @@ def test_dataloaders_reset_and_attach(tmpdir):
 
     # 1st fit
     trainer.fit(model, train_dataloaders=dataloader_0, val_dataloaders=dataloader_1)
-    assert trainer.train_dataloader.loaders is dataloader_0
-    assert trainer.val_dataloaders[0] is dataloader_1
+    assert trainer.train_dataloader.loaders.dataset is dataloader_0.dataset
+    assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
     # 2nd fit
     trainer.fit(model, train_dataloaders=dataloader_2, val_dataloaders=dataloader_3)
-    assert trainer.train_dataloader.loaders is dataloader_2
-    assert trainer.val_dataloaders[0] is dataloader_3
+    assert trainer.train_dataloader.loaders.dataset is dataloader_2.dataset
+    assert trainer.val_dataloaders[0].dataset is dataloader_3.dataset
 
     # 1st validate
     trainer.validate(model, dataloaders=dataloader_0)
-    assert trainer.val_dataloaders[0] is dataloader_0
+    assert trainer.val_dataloaders[0].dataset is dataloader_0.dataset
     # 2nd validate
     trainer.validate(model, dataloaders=dataloader_1)
-    assert trainer.val_dataloaders[0] is dataloader_1
+    assert trainer.val_dataloaders[0].dataset is dataloader_1.dataset
 
     # 1st test
     trainer.test(model, dataloaders=dataloader_0)
-    assert trainer.test_dataloaders[0] is dataloader_0
+    assert trainer.test_dataloaders[0].dataset is dataloader_0.dataset
     # 2nd test
     trainer.test(model, dataloaders=dataloader_1)
-    assert trainer.test_dataloaders[0] is dataloader_1
+    assert trainer.test_dataloaders[0].dataset is dataloader_1.dataset
 
     # 1st predict
     trainer.predict(model, dataloaders=dataloader_0)
-    assert trainer.predict_dataloaders[0] is dataloader_0
+    assert trainer.predict_dataloaders[0].dataset is dataloader_0.dataset
     # 2nd predict
     trainer.predict(model, dataloaders=dataloader_1)
-    assert trainer.predict_dataloaders[0] is dataloader_1
+    assert trainer.predict_dataloaders[0].dataset is dataloader_1.dataset
 
 
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
@@ -1456,9 +1456,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
 
 def test_request_dataloader(tmpdir):
-    """
-    This test asserts dataloader can be modified and properly set to the trainer.
-    """
+    """This test asserts dataloader can be modified and properly set to the trainer."""
 
     class DataLoaderWrapper:
         def __init__(self, loader):

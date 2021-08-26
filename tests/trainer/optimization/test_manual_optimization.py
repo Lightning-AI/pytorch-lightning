@@ -419,7 +419,7 @@ def test_multiple_optimizers_step(tmpdir):
 
         called = False
 
-        def on_after_backward(self):
+        def on_before_optimizer_step(self, *args):
             self.called = True
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
@@ -577,7 +577,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx  # noqa E225
+                    retain_graph = num_backward != backward_idx
                     self.manual_backward(loss_1, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
@@ -634,7 +634,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx  # noqa E225
+                    retain_graph = num_backward != backward_idx
                     self.manual_backward(loss_1, retain_graph=retain_graph)
 
             opt.step(closure=optimizer_closure)

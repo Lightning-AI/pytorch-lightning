@@ -37,6 +37,37 @@ PyTorch Lightning Documentation
    common/trainer
 
 .. toctree::
+   :maxdepth: 1
+   :name: Common Use Cases
+   :caption: Common Use Cases
+
+   clouds/cloud_training
+   clouds/cluster
+   common/child_modules
+   common/debugging
+   common/early_stopping
+   common/hyperparameters
+   common/production_inference
+   advanced/ipu
+   common/lightning_cli
+   advanced/lr_finder
+   common/loggers
+   advanced/multi_gpu
+   advanced/advanced_gpu
+   advanced/mixed_precision
+   common/weights_loading
+   advanced/checkpoint_io
+   common/optimizers
+   advanced/profiler
+   advanced/sequences
+   common/single_gpu
+   advanced/training_tricks
+   advanced/pruning_quantization
+   advanced/transfer_learning
+   advanced/tpu
+   common/test_set
+
+.. toctree::
    :maxdepth: 2
    :name: docs
    :caption: Optional extensions
@@ -98,35 +129,6 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Common Use Cases
-   :caption: Common Use Cases
-
-   clouds/cloud_training
-   clouds/cluster
-   common/child_modules
-   common/debugging
-   common/early_stopping
-   common/hyperparameters
-   common/production_inference
-   advanced/ipu
-   common/lightning_cli
-   advanced/lr_finder
-   common/loggers
-   advanced/multi_gpu
-   advanced/advanced_gpu
-   common/weights_loading
-   common/optimizers
-   advanced/profiler
-   advanced/sequences
-   common/single_gpu
-   advanced/training_tricks
-   advanced/pruning_quantization
-   advanced/transfer_learning
-   advanced/tpu
-   common/test_set
-
-.. toctree::
-   :maxdepth: 1
    :name: Partner Domain Frameworks
    :caption: Partner Domain Frameworks
 
@@ -141,7 +143,7 @@ PyTorch Lightning Documentation
    generated/CODE_OF_CONDUCT.md
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
-   governance.md
+   governance
    generated/CHANGELOG.md
 
 Indices and tables

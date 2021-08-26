@@ -63,12 +63,12 @@ class FitLoop(Loop):
 
     @property
     def total_batch_idx(self) -> int:
-        """Returns the total number of batches already run (across all epochs)"""
+        """Returns the current batch index (across epochs)"""
         return self.epoch_loop.total_batch_idx
 
     @property
     def batch_idx(self) -> int:
-        """Returns the number of batches already run within this epoch"""
+        """Returns the current batch index (within this epoch)"""
         return self.epoch_loop.batch_idx
 
     @property
@@ -192,12 +192,12 @@ class FitLoop(Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
+        dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
+        data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.epoch_loop.run(train_dataloader)
+            epoch_output = self.epoch_loop.run(data_fetcher)
 
             if epoch_output is None:
                 return
@@ -224,15 +224,6 @@ class FitLoop(Loop):
 
         # hook
         self.trainer.call_hook("on_train_end")
-
-        # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
-        # It might be related to xla tensors blocked when moving the cpu
-        # kill loggers
-        if self.trainer.logger is not None:
-            self.trainer.logger.finalize("success")
-
-        # summarize profile results
-        self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()

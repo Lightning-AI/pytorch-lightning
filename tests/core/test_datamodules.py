@@ -23,6 +23,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -34,8 +35,6 @@ from tests.helpers.utils import reset_seed
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-
-    model = BoringModel()
     dm = BoringDataModule()
     trainer = Trainer()
     trainer.datamodule = dm
@@ -43,15 +42,12 @@ def test_can_prepare_data(local_rank, node_rank):
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-    trainer.prepare_data_per_node = True
-
     dm.random_full = None
     dm._has_prepared_data = False
     local_rank.return_value = 0
     assert trainer.local_rank == 0
-    assert trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is not None
 
     # local rank = 1   (False)
@@ -59,21 +55,19 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     local_rank.return_value = 1
     assert trainer.local_rank == 1
-    assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     dm.random_full = None
     dm._has_prepared_data = False
-    trainer.prepare_data_per_node = False
+    dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
-    assert trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is not None
 
     # global rank = 1   (False)
@@ -81,39 +75,35 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     node_rank.return_value = 1
     local_rank.return_value = 0
-    assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     node_rank.return_value = 0
     local_rank.return_value = 1
-    assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     # 2 dm
     # prepar per node = True
     # local rank = 0 (True)
-    trainer.prepare_data_per_node = True
+    dm.prepare_data_per_node = True
     local_rank.return_value = 0
 
-    # is_overridden prepare data = True
-    # has been called
-    # False
-    dm._has_prepared_data = True
-    assert not trainer.data_connector.can_prepare_data()
+    with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
+        # is_overridden prepare data = True
+        # has been called
+        # False
+        dm._has_prepared_data = True
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_not_called()
 
-    # has not been called
-    # True
-    dm._has_prepared_data = False
-    assert trainer.data_connector.can_prepare_data()
-
-    # is_overridden prepare data = False
-    # True
-    dm.prepare_data = None
-    assert trainer.data_connector.can_prepare_data()
+        # has not been called
+        # True
+        dm._has_prepared_data = False
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_called_once()
 
 
 def test_hooks_no_recursion_error():
@@ -391,14 +381,14 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
@@ -406,7 +396,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
             return batch
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -541,3 +531,13 @@ class DataModuleWithHparams(LightningDataModule):
 def test_simple_hyperparameters_saving():
     data = DataModuleWithHparams(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
+
+
+def test_inconsistent_prepare_data_per_node(tmpdir):
+    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
+        model = BoringModel()
+        dm = BoringDataModule()
+        trainer = Trainer(prepare_data_per_node=False)
+        trainer.model = model
+        trainer.datamodule = dm
+        trainer.data_connector.prepare_data()

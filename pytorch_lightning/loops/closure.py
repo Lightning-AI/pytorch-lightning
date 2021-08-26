@@ -1,26 +1,44 @@
-from abc import abstractmethod, ABC
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Callable, Any
+from typing import Any, Callable, Optional
 
 from torch import Tensor
 
-from pytorch_lightning.profiler import BaseProfiler
+from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
 @dataclass
 class ClosureResult:
+    """A container to hold the result of a :class:`AbstractClosure` call.
+
+    Attributes:
+        closure_loss: The loss with a graph attached.
+        loss: A detached copy of the closure loss.
+        result_collection: A collection of results returned by the closure.
+    """
+
     closure_loss: Optional[Tensor]
+    loss: Optional[Tensor]
     result_collection: Optional[ResultCollection]
 
-    @property
-    def loss(self) -> Optional[Tensor]:
-        if self.closure_loss is not None:
-            return self.closure_loss.detach().clone()
 
-
-class Closure(ABC):
+class AbstractClosure(ABC):
     """
     Abstract base class for optimizer closures in Lightning.
 
@@ -34,15 +52,17 @@ class Closure(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        self._result = None
+        self._result: Optional[ClosureResult] = None
 
-    @property
-    def result(self) -> ClosureResult:
-        """The cached result from the last time the closure was called."""
-        return self._result
+    def get_result(self) -> Optional[ClosureResult]:
+        """The cached result from the last time the closure was called. Once accessed, the internal reference
+        gets reset and the consumer will have to hold on to the reference as long as necessary."""
+        result = self._result
+        self._result = None  # free memory
+        return result
 
     @abstractmethod
-    def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
+    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
         """Implements the behavior of the closure once it is getting called."""
         pass
 
@@ -52,12 +72,12 @@ class Closure(ABC):
             return self._result.loss
 
 
-class LightningClosure(Closure):
+class Closure(AbstractClosure):
     """
-    An implementation of a :class:`Closure` for optimization in Lightning that combines three elementary
+    An implementation of a :class:`AbstractClosure` for optimization in Lightning that combines three elementary
     closures into one: ``training_step``, ``backward`` and ``zero_grad``.
 
-    The LightningClosure gets created by the training loop(s) and is then passed to the
+    The Closure gets created by the training loop(s) and is then passed to the
     :meth:`torch.optim.Optimizer.step` method. An optimizer is responsible for calling the closure and optionally
     do something with the output.
 
@@ -72,12 +92,12 @@ class LightningClosure(Closure):
 
     Example:
 
-        closure = LightningClosure()
+        closure = Closure()
         optimizer = torch.optim.Adam(...)
         optimizer.step(closure)
     """
 
-    warning_cache: Optional[WarningCache] = None
+    warning_cache = WarningCache()
 
     def __init__(
         self,
@@ -90,24 +110,22 @@ class LightningClosure(Closure):
         self._step_fn = step_fn
         self._backward_fn = backward_fn
         self._zero_grad_fn = zero_grad_fn
-        self._profiler = profiler
-        if self.warning_cache is None:
-            self.warning_cache = WarningCache()
+        self._profiler = PassThroughProfiler() if profiler is None else profiler
 
-    def closure(self, *args, **kwargs) -> ClosureResult:
+    def closure(self, *args: Any, **kwargs: Any) -> Optional[ClosureResult]:
         with self._profiler.profile("training_step_and_backward"):
-            output = self._step_fn()
-            output = ClosureResult(**output) if output else None
+            step_output = self._step_fn()
+            step_output = ClosureResult(**step_output) if step_output else None
 
-            if output is None:
+            if step_output is None:
                 self.warning_cache.warn("training_step returned None. If this was on purpose, ignore this warning...")
 
             if self._zero_grad_fn is not None:
                 with self._profiler.profile("zero_grad"):
                     self._zero_grad_fn()
 
-            if self._backward_fn is not None and output is not None:
+            if self._backward_fn is not None and step_output is not None and step_output.closure_loss is not None:
                 with self._profiler.profile("backward"):
-                    output.closure_loss = self._backward_fn(output.closure_loss)
+                    step_output.closure_loss = self._backward_fn(step_output.closure_loss)
 
-        return output
+        return step_output
