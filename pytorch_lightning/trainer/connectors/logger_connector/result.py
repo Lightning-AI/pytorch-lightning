@@ -56,15 +56,12 @@ class _Sync:
             kwargs = dict(group=self.group)
             if "reduce_op" in inspect.signature(self.fn).parameters:
                 kwargs["reduce_op"] = self.op
-        self.fn = (
-            partial(self.fn, **kwargs)
-            if self.fn is not None and self.should and not self.rank_zero_only
-            else self.no_op
-        )
+
+        self.fn_call = partial(self.fn, **kwargs) if self.fn and self.should and not self.rank_zero_only else self.no_op
 
     @property
     def __call__(self) -> Any:
-        return self.fn
+        return self.fn_call
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:
@@ -471,6 +468,7 @@ class ResultCollection(dict):
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
+            print(meta, self[key].meta)
             raise MisconfigurationException(
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
