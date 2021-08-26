@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Optional
+from typing import Dict, Generator, Optional
 
 import torch
 
@@ -102,13 +102,16 @@ class DDPShardedPlugin(DDPPlugin):
         pass
 
     @contextmanager
-    def block_backward_sync(self):
+    def block_backward_sync(self) -> Generator:
         """
         Blocks ddp sync gradients behaviour on backwards pass.
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        with self.model.no_sync():
+        if isinstance(self.model, ShardedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
             yield None
 
     def post_training_step(self):
