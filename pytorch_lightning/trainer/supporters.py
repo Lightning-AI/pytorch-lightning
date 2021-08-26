@@ -452,12 +452,16 @@ class CombinedLoader:
                 it.state = state
             return it
 
+        # create an un-existing token, so it doesn't activate for something else than an iterator.
+        class DataLoaderDict(dict):
+            pass
+
         # apply the `create_loader_iters` on the collection of `DataLoader / Iterator`.
         # each `Iterator` was created from the `DataLoader`.
         iterator._loader_iters = apply_to_collections(
             self.loaders,
             self._loaders_iter_state_dict,
-            (Iterable, Dict),
+            (Iterable, DataLoaderDict),
             create_loader_iters,
             wrong_dtype=(Sequence, Mapping),
         )
