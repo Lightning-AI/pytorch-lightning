@@ -13,12 +13,12 @@
 # limitations under the License.
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
-from functools import partial, wraps
+from functools import lru_cache, partial, wraps
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
-
+import inspect
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
@@ -56,8 +56,11 @@ class _Sync:
 
     @property
     def __call__(self) -> Any:
+        kwargs = dict(group=self.group)
+        if "reduce_op" in inspect.signature(self.fn).parameters:
+            kwargs["reduce_op"] = self.op
         return (
-            partial(self.fn, reduce_op=self.op, group=self.group)
+            partial(self.fn, **kwargs)
             if self.should and not self.rank_zero_only
             else self.no_op
         )
@@ -124,7 +127,7 @@ class _Metadata:
 
     @property
     def is_mean_reduction(self) -> bool:
-        return self.reduce_fx is torch.mean
+        return self.reduce_fx is (torch.mean)
 
     @property
     def is_sum_reduction(self) -> bool:
@@ -181,7 +184,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self._forward_cache = value
             # performance: no need to accumulate on values only logged on_step
             if self.meta.on_step and not self.meta.on_epoch:
-                self.value = self.meta.sync(value)
+                value = self.meta.sync(value)
+                if self.meta.is_max_reduction or self.meta.is_min_reduction:
+                    value = self.meta.reduce_fx(value)
+                self._forward_cache = self.value = value
                 return
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
@@ -202,7 +208,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
-                return value
+                return self.meta.reduce_fx(value)
         return self.value.compute()
 
     def reset(self) -> None:
@@ -561,6 +567,8 @@ class ResultCollection(dict):
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
                 metrics[MetricSource.PBAR][forked_name] = metrics_to_scalars(value)
+
+        print(metrics)
 
         return metrics
 

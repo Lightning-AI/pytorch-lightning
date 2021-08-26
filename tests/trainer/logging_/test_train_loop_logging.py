@@ -18,7 +18,7 @@ Test logging in the training loop
 import collections
 import itertools
 from re import escape
-
+import os
 import numpy as np
 import pytest
 import torch
@@ -365,15 +365,24 @@ class LoggingSyncDistModel(BoringModel):
         self.fake_result = fake_result
     
     def training_step(self, batch, batch_idx):
-        self.log("foo", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-        self.log("foo_2", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-        self.log("foo_3", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
-        self.log("foo_4", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        value = self.fake_result + self.trainer.global_rank
+        self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo_2", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo_3", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
+        self.log("foo_4", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
+        self.log("foo_5", batch_idx + self.trainer.global_rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max")
+
+        self.log("foo_6", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_8", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_9", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_10", batch_idx, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
         self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("bar_3", batch_idx + self.trainer.global_rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
         return super().validation_step(batch, batch_idx)
 
 
@@ -391,22 +400,32 @@ def test_logging_sync_dist_true(tmpdir, gpus):
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
+        limit_train_batches=3,
+        limit_val_batches=3,
         weights_summary=None,
         gpus=gpus,
     )
     trainer.fit(model)
 
     num_devices = 1 if gpus is None else gpus
+    use_multiple_devices = num_devices > 1
+    total = fake_result * num_devices + 1
 
-    assert trainer.callback_metrics["foo"] == fake_result * num_devices
+    assert trainer.callback_metrics["foo"] == total if use_multiple_devices else fake_result
     assert trainer.callback_metrics["foo_2"] == 2 * num_devices
     assert trainer.callback_metrics["foo_3"] == 2
-    assert trainer.callback_metrics["foo_4"] == fake_result
+    assert trainer.callback_metrics["foo_4"] == total / num_devices if use_multiple_devices else 1
+    assert trainer.callback_metrics["foo_5"] == fake_result * 2 + 1 if use_multiple_devices else fake_result * 2
+
+    assert trainer.callback_metrics["foo_6"] == fake_result * 3 * 2 + 3 if use_multiple_devices else fake_result * 3 * 2
+    assert trainer.callback_metrics["foo_7"] == 2 * num_devices * 3
+    assert trainer.callback_metrics["foo_8"] == 2
+    assert trainer.callback_metrics["foo_9"] == (fake_result * 2 + 1) / num_devices if use_multiple_devices else fake_result
+    assert trainer.callback_metrics["foo_10"] == 2
     
-    assert trainer.callback_metrics["bar"] == fake_result * num_devices
+    assert trainer.callback_metrics["bar"] == fake_result * 3 * num_devices
     assert trainer.callback_metrics["bar_2"] == fake_result
+    assert trainer.callback_metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
 @RunIf(min_gpus=2, special=True)
