@@ -204,19 +204,20 @@ def save_hyperparameters(
     obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
-
-    if len(args) == 1 and not isinstance(args, str):
-        if not args[0]:
-            # args[0] is an empty container
-            return
-        elif isinstance(args[0], Namespace):
-            hp = args[0]
-            obj._hparams_name = "hparams"
-        elif isinstance(args[0], dict):
-            hp = Namespace(**args[0])
-            obj._hparams_name = "hparams"
+    # empty container
+    if len(args) == 1 and not isinstance(args, str) and not args[0]:
+        return
+    # container
+    elif len(args) == 1 and isinstance(args[0], (Namespace, dict)):
         # todo: omegaconf?
-        # todo: non-container single arg?
+        hp = args[0]
+        if isinstance(args[0], dict):
+            hp = Namespace(**args[0])
+        obj._hparams_name = "hparams"
+        obj._set_hparams(hp)
+        obj._hparams_initial = copy.deepcopy(obj._hparams)
+        return
+    # everything else
     else:
         if not frame:
             current_frame = inspect.currentframe()
