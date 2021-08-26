@@ -23,6 +23,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -34,8 +35,6 @@ from tests.helpers.utils import reset_seed
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-
-    model = BoringModel()
     dm = BoringDataModule()
     trainer = Trainer()
     trainer.datamodule = dm
@@ -43,15 +42,12 @@ def test_can_prepare_data(local_rank, node_rank):
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-    trainer.prepare_data_per_node = True
-
     dm.random_full = None
     dm._has_prepared_data = False
     local_rank.return_value = 0
     assert trainer.local_rank == 0
-    assert trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is not None
 
     # local rank = 1   (False)
@@ -59,21 +55,19 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     local_rank.return_value = 1
     assert trainer.local_rank == 1
-    assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     dm.random_full = None
     dm._has_prepared_data = False
-    trainer.prepare_data_per_node = False
+    dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
-    assert trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is not None
 
     # global rank = 1   (False)
@@ -81,46 +75,41 @@ def test_can_prepare_data(local_rank, node_rank):
     dm._has_prepared_data = False
     node_rank.return_value = 1
     local_rank.return_value = 0
-    assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     node_rank.return_value = 0
     local_rank.return_value = 1
-    assert not trainer.data_connector.can_prepare_data()
 
-    trainer.data_connector.prepare_data(model)
+    trainer.data_connector.prepare_data()
     assert dm.random_full is None
 
     # 2 dm
     # prepar per node = True
     # local rank = 0 (True)
-    trainer.prepare_data_per_node = True
+    dm.prepare_data_per_node = True
     local_rank.return_value = 0
 
-    # is_overridden prepare data = True
-    # has been called
-    # False
-    dm._has_prepared_data = True
-    assert not trainer.data_connector.can_prepare_data()
+    with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
+        # is_overridden prepare data = True
+        # has been called
+        # False
+        dm._has_prepared_data = True
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_not_called()
 
-    # has not been called
-    # True
-    dm._has_prepared_data = False
-    assert trainer.data_connector.can_prepare_data()
-
-    # is_overridden prepare data = False
-    # True
-    dm.prepare_data = None
-    assert trainer.data_connector.can_prepare_data()
+        # has not been called
+        # True
+        dm._has_prepared_data = False
+        trainer.data_connector.prepare_data()
+        dm_mock.assert_called_once()
 
 
 def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
-
         def setup(self, *args, **kwargs):
             pass
 
@@ -142,8 +131,8 @@ def test_helper_boringdatamodule():
 def test_helper_boringdatamodule_with_verbose_setup():
     dm = BoringDataModule()
     dm.prepare_data()
-    dm.setup('fit')
-    dm.setup('test')
+    dm.setup("fit")
+    dm.setup("test")
 
 
 def test_data_hooks_called():
@@ -205,49 +194,49 @@ def test_data_hooks_called_verbose(use_kwarg):
     assert not dm.has_teardown_validate
     assert not dm.has_teardown_predict
 
-    dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
+    dm.setup(stage="fit") if use_kwarg else dm.setup("fit")
     assert dm.has_setup_fit
     assert not dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
-    dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
+    dm.setup(stage="validate") if use_kwarg else dm.setup("validate")
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
-    dm.setup(stage='test') if use_kwarg else dm.setup('test')
+    dm.setup(stage="test") if use_kwarg else dm.setup("test")
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert dm.has_setup_test
     assert not dm.has_setup_predict
 
-    dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
+    dm.setup(stage="predict") if use_kwarg else dm.setup("predict")
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert dm.has_setup_test
     assert dm.has_setup_predict
 
-    dm.teardown(stage='fit') if use_kwarg else dm.teardown('fit')
+    dm.teardown(stage="fit") if use_kwarg else dm.teardown("fit")
     assert dm.has_teardown_fit
     assert not dm.has_teardown_validate
     assert not dm.has_teardown_test
     assert not dm.has_teardown_predict
 
-    dm.teardown(stage='validate') if use_kwarg else dm.teardown('validate')
+    dm.teardown(stage="validate") if use_kwarg else dm.teardown("validate")
     assert dm.has_teardown_fit
     assert dm.has_teardown_validate
     assert not dm.has_teardown_test
     assert not dm.has_teardown_predict
 
-    dm.teardown(stage='test') if use_kwarg else dm.teardown('test')
+    dm.teardown(stage="test") if use_kwarg else dm.teardown("test")
     assert dm.has_teardown_fit
     assert dm.has_teardown_validate
     assert dm.has_teardown_test
     assert not dm.has_teardown_predict
 
-    dm.teardown(stage='predict') if use_kwarg else dm.teardown('predict')
+    dm.teardown(stage="predict") if use_kwarg else dm.teardown("predict")
     assert dm.has_teardown_fit
     assert dm.has_teardown_validate
     assert dm.has_teardown_test
@@ -257,14 +246,14 @@ def test_data_hooks_called_verbose(use_kwarg):
 def test_dm_add_argparse_args(tmpdir):
     parser = ArgumentParser()
     parser = BoringDataModule.add_argparse_args(parser)
-    args = parser.parse_args(['--data_dir', str(tmpdir)])
+    args = parser.parse_args(["--data_dir", str(tmpdir)])
     assert args.data_dir == str(tmpdir)
 
 
 def test_dm_init_from_argparse_args(tmpdir):
     parser = ArgumentParser()
     parser = BoringDataModule.add_argparse_args(parser)
-    args = parser.parse_args(['--data_dir', str(tmpdir)])
+    args = parser.parse_args(["--data_dir", str(tmpdir)])
     dm = BoringDataModule.from_argparse_args(args)
     dm.prepare_data()
     dm.setup()
@@ -289,16 +278,12 @@ def test_train_loop_only(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None)
 
     # fit model
     trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.callback_metrics['train_loss'] < 1.0
+    assert trainer.callback_metrics["train_loss"] < 1.0
 
 
 def test_train_val_loop_only(tmpdir):
@@ -311,29 +296,22 @@ def test_train_val_loop_only(tmpdir):
     model.validation_step_end = None
     model.validation_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None)
 
     # fit model
     trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.callback_metrics['train_loss'] < 1.0
+    assert trainer.callback_metrics["train_loss"] < 1.0
 
 
 def test_dm_checkpoint_save(tmpdir):
-
     class CustomBoringModel(BoringModel):
-
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
-            self.log('early_stop_on', out['x'])
+            self.log("early_stop_on", out["x"])
             return out
 
     class CustomBoringDataModule(BoringDataModule):
-
         def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
             checkpoint[self.__class__.__name__] = self.__class__.__name__
 
@@ -350,7 +328,7 @@ def test_dm_checkpoint_save(tmpdir):
         limit_train_batches=2,
         limit_val_batches=1,
         weights_summary=None,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on')],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on")],
     )
 
     # fit model
@@ -368,12 +346,7 @@ def test_full_loop(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-        deterministic=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, weights_summary=None, deterministic=True)
 
     # fit model
     trainer.fit(model, dm)
@@ -383,21 +356,20 @@ def test_full_loop(tmpdir):
     # validate
     result = trainer.validate(model, dm)
     assert dm.trainer is not None
-    assert result[0]['val_acc'] > 0.7
+    assert result[0]["val_acc"] > 0.7
 
     # test
     result = trainer.test(model, dm)
     assert dm.trainer is not None
-    assert result[0]['test_acc'] > 0.6
+    assert result[0]["test_acc"] > 0.6
 
 
 @RunIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
-    expected_device = torch.device('cuda', 0)
+    expected_device = torch.device("cuda", 0)
 
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -409,14 +381,14 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
@@ -424,7 +396,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
             return batch
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx is None
+            assert dataloader_idx == 0
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -439,7 +411,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
-    if is_overridden('transfer_batch_to_device', dm):
+    if is_overridden("transfer_batch_to_device", dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
     model.on_before_batch_transfer = dm.on_before_batch_transfer
@@ -463,7 +435,6 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     """
 
     class CustomBoringDataModule(BoringDataModule):
-
         def __init__(self):
             super().__init__()
             self._epochs_called_for = []
@@ -483,17 +454,11 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        limit_train_batches=2,
-        reload_dataloaders_every_n_epochs=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
     trainer.fit(model, dm)
 
 
 class DummyDS(torch.utils.data.Dataset):
-
     def __getitem__(self, index):
         return 1
 
@@ -502,7 +467,6 @@ class DummyDS(torch.utils.data.Dataset):
 
 
 class DummyIDS(torch.utils.data.IterableDataset):
-
     def __iter__(self):
         yield 1
 
@@ -523,10 +487,12 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
-        dl_mock.assert_has_calls([
-            call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
-            call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
-        ])
+        dl_mock.assert_has_calls(
+            [
+                call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+                call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+            ]
+        )
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
@@ -546,16 +512,17 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.val_dataloader()
         dm.test_dataloader()
-        dl_mock.assert_has_calls([
-            call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-            call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-            call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-            call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
-        ])
+        dl_mock.assert_has_calls(
+            [
+                call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+                call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+                call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+                call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            ]
+        )
 
 
 class DataModuleWithHparams(LightningDataModule):
-
     def __init__(self, arg0, arg1, kwarg0=None):
         super().__init__()
         self.save_hyperparameters()
@@ -564,3 +531,13 @@ class DataModuleWithHparams(LightningDataModule):
 def test_simple_hyperparameters_saving():
     data = DataModuleWithHparams(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
+
+
+def test_inconsistent_prepare_data_per_node(tmpdir):
+    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
+        model = BoringModel()
+        dm = BoringDataModule()
+        trainer = Trainer(prepare_data_per_node=False)
+        trainer.model = model
+        trainer.datamodule = dm
+        trainer.data_connector.prepare_data()

@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Callable
-from typing import Any
+from typing import Any, Callable
 
 from torch.optim import Optimizer
 
@@ -22,9 +21,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class IPUAccelerator(Accelerator):
-    """ Accelerator for IPUs. """
+    """Accelerator for IPUs."""
 
-    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:

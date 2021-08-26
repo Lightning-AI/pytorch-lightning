@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, List, Optional, Union
+from typing import Dict, Union
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.utilities import GradClipAlgorithmType, rank_zero_deprecation
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainingTricksConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -28,8 +27,7 @@ class TrainingTricksConnector:
         gradient_clip_val: float,
         gradient_clip_algorithm: str,
         track_grad_norm: Union[int, float, str],
-        accumulate_grad_batches: Union[int, Dict[int, int], List[list]],
-        truncated_bptt_steps: Optional[int],
+        accumulate_grad_batches: Union[int, Dict[int, int]],
         terminate_on_nan: bool,
     ):
 
@@ -42,7 +40,7 @@ class TrainingTricksConnector:
         self.trainer.gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
 
         # gradient norm tracking
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != "inf":
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.trainer.track_grad_norm = float(track_grad_norm)
 
@@ -50,14 +48,7 @@ class TrainingTricksConnector:
         self.trainer.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
-        if truncated_bptt_steps is not None and truncated_bptt_steps > 0:
-            rank_zero_deprecation(
-                "Trainer.truncated_bptt_steps is deprecated in v1.3 and will be removed in v1.5."
-                " Set truncated_bptt_steps directly on the LightningModule instead."
-            )
-        self.trainer.truncated_bptt_steps = truncated_bptt_steps
-
-    def configure_accumulated_gradients(self, accumulate_grad_batches):
+    def configure_accumulated_gradients(self, accumulate_grad_batches: Union[int, Dict[int, int]]) -> None:
         if isinstance(accumulate_grad_batches, dict):
             self.trainer.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         elif isinstance(accumulate_grad_batches, int):

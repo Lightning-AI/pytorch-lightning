@@ -22,6 +22,7 @@ import pytest
 import torch.distributed
 import torch.multiprocessing as mp
 
+from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from tests import _PATH_DATASETS
 
 
@@ -32,8 +33,9 @@ def datadir():
 
 @pytest.fixture(scope="function", autouse=True)
 def preserve_global_rank_variable():
-    """ Ensures that the rank_zero_only.rank global variable gets reset in each test. """
+    """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
     from pytorch_lightning.utilities.distributed import rank_zero_only
+
     rank = getattr(rank_zero_only, "rank", None)
     yield
     if rank is not None:
@@ -42,7 +44,7 @@ def preserve_global_rank_variable():
 
 @pytest.fixture(scope="function", autouse=True)
 def restore_env_variables():
-    """ Ensures that environment variables set during the test do not leak out. """
+    """Ensures that environment variables set during the test do not leak out."""
     env_backup = os.environ.copy()
     yield
     # restore environment as it was before running the test
@@ -52,7 +54,7 @@ def restore_env_variables():
 
 @pytest.fixture(scope="function", autouse=True)
 def teardown_process_group():
-    """ Ensures that the distributed process group gets closed before the next test runs. """
+    """Ensures that the distributed process group gets closed before the next test runs."""
     yield
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         torch.distributed.destroy_process_group()
@@ -67,7 +69,7 @@ def pytest_pyfunc_call(pyfuncitem):
     if pyfuncitem.get_closest_marker("spawn"):
         testfunction = pyfuncitem.obj
         funcargs = pyfuncitem.funcargs
-        testargs = tuple([funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames])
+        testargs = tuple(funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames)
 
         mp.spawn(wraps, (testfunction, testargs))
         return True
@@ -83,7 +85,6 @@ def tmpdir_server(tmpdir):
         # so we have to hack it like this
 
         class Handler(SimpleHTTPRequestHandler):
-
             def translate_path(self, path):
                 # get the path from cwd
                 path = super().translate_path(path)
@@ -99,10 +100,34 @@ def tmpdir_server(tmpdir):
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
 
-    with ThreadingHTTPServer(('localhost', 0), Handler) as server:
+    with ThreadingHTTPServer(("localhost", 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         # Exit the server thread when the main thread terminates
         server_thread.daemon = True
         server_thread.start()
         yield server.server_address
         server.shutdown()
+
+
+@pytest.fixture
+def single_process_pg():
+    """
+    Initialize the default process group with only the current process for
+    testing purposes. The process group is destroyed when the with block is
+    exited.
+    """
+    if torch.distributed.is_initialized():
+        raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")
+
+    orig_environ = os.environ.copy()
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(find_free_network_port())
+    os.environ["RANK"] = "0"
+    os.environ["WORLD_SIZE"] = "1"
+    torch.distributed.init_process_group("gloo")
+    try:
+        yield
+    finally:
+        torch.distributed.destroy_process_group()
+        os.environ.clear()
+        os.environ.update(orig_environ)

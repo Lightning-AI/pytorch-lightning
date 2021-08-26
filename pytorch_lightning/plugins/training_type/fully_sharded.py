@@ -18,9 +18,9 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -33,7 +33,6 @@ log: logging.Logger = logging.getLogger(__name__)
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
-
     def __init__(
         self,
         cpu_offload: bool = False,
@@ -46,7 +45,8 @@ class DDPFullyShardedPlugin(DDPPlugin):
         min_num_params: int = 1e8,
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
     ):
         """
         Plugin for Fully Sharded Data Parallel provided by FairScale.
@@ -98,6 +98,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -146,9 +147,11 @@ class DDPFullyShardedPlugin(DDPPlugin):
         ):
             yield
 
-    def connect(self, model: Module) -> None:
-        super().connect(model)
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+    def setup_environment(self) -> None:
+        super().setup_environment()
+        model_call_configure_sharded_model_hook = getattr(
+            self.lightning_module, "call_configure_sharded_model_hook", False
+        )
         if not model_call_configure_sharded_model_hook:
             # if model has not called configure sharded model, we reset
             # the training type plugin's call_configure_sharded_model_hook
@@ -185,17 +188,20 @@ class DDPFullyShardedPlugin(DDPPlugin):
     def load_model_state(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
         checkpoint = {}
         rank_zero_info(
-            f"FullyShardedDataParallel has {self.num_processes} processes. Serializing model
-            state restoration to avoid CPU OOMs."
+            f"FullyShardedDataParallel has {self.num_processes} processes. Serializing model "
+            "state restoration to avoid CPU OOMs."
         )
+        # Each rank will load the current checkpoint from `checkpoint_path`
+        # and load the weights while the others are waiting for this operation to complete
+        # with a barrier.
         for current_worker in range(self.num_processes):
             if self.local_rank == current_worker:
                 checkpoint = self.load_checkpoint_file(checkpoint_path)
                 self.on_load_checkpoint(checkpoint)
                 self.load_model_state_dict(checkpoint.pop("state_dict"))
                 log.info(
-                    f"Rank {self.global_rank}: done loading model states from {checkpoint_path},
-                    deleted state_dict from checkpoint."
+                    f"Rank {self.global_rank}: done loading model states from {checkpoint_path}, "
+                    "deleted state_dict from checkpoint."
                 )
             self.barrier()
         return checkpoint
@@ -221,9 +227,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
-            "fsdp",
-            cls,
-            description="Fully sharded training with checkpointing the full state dict.",
+            "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

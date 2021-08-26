@@ -17,7 +17,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -65,7 +65,7 @@ class BaseProfiler(AbstractProfiler):
         if output_filename is not None:
             rank_zero_deprecation(
                 "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
-                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5",
+                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5"
             )
             filepath = Path(output_filename)
             self.dirpath = filepath.parent
@@ -78,7 +78,7 @@ class BaseProfiler(AbstractProfiler):
         self._stage: Optional[str] = None
 
     @contextmanager
-    def profile(self, action_name: str) -> None:
+    def profile(self, action_name: str) -> Generator:
         """
         Yields a context manager to encapsulate the scope of a profiled action.
 
@@ -96,7 +96,7 @@ class BaseProfiler(AbstractProfiler):
         finally:
             self.stop(action_name)
 
-    def profile_iterable(self, iterable, action_name: str) -> None:
+    def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
         iterator = iter(iterable)
         while True:
             try:
@@ -164,10 +164,7 @@ class BaseProfiler(AbstractProfiler):
         return os.linesep.join(output)
 
     def setup(
-        self,
-        stage: Optional[str] = None,
-        local_rank: Optional[int] = None,
-        log_dir: Optional[str] = None,
+        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
     ) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage

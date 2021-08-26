@@ -234,7 +234,7 @@ class ModelHooks:
         Called in the training loop at the very beginning of the epoch.
         """
 
-    def on_train_epoch_end(self, unused: Optional = None) -> None:
+    def on_train_epoch_end(self) -> None:
         """
         Called in the training loop at the very end of the epoch.
 
@@ -372,6 +372,16 @@ class ModelHooks:
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
+    def __init__(self) -> None:
+        """
+        Attributes:
+            prepare_data_per_node:
+                If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+        """
+        super().__init__()
+        self.prepare_data_per_node: bool = True
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -405,12 +415,16 @@ class DataHooks:
             # call on GLOBAL_RANK=0 (great for shared file systems)
             Trainer(prepare_data_per_node=False)
 
+        Note:
+            Setting ``prepare_data_per_node`` with the trainer flag is deprecated and will be removed in v1.7.0.
+            Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+
         This is called before requesting the dataloaders:
 
         .. code-block:: python
 
             model.prepare_data()
-                if ddp/tpu: init()
+            initialize_distributed()
             model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()

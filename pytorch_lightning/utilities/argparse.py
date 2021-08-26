@@ -13,14 +13,27 @@
 # limitations under the License.
 import inspect
 import os
+from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
 
-def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
+class ParseArgparserDataType(ABC):
+    def __init__(self, *_: Any, **__: Any) -> None:
+        pass
+
+    @classmethod
+    def parse_argparser(cls, args: "ArgumentParser") -> Any:
+        pass
+
+
+def from_argparse_args(
+    cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
+) -> ParseArgparserDataType:
     """Create an instance from CLI arguments.
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
@@ -52,7 +65,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -77,7 +90,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     return Namespace(**modified_args)
 
 
-def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Example:
@@ -95,9 +108,9 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
 
     env_args = {}
     for arg_name, _, _ in cls_arg_defaults:
-        env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
+        env = template % {"cls_name": cls.__name__.upper(), "cls_argument": arg_name.upper()}
         val = os.environ.get(env)
-        if not (val is None or val == ''):
+        if not (val is None or val == ""):
             # todo: specify the possible exception
             with suppress(Exception):
                 # converting to native types like int/float/bool
@@ -106,7 +119,7 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
@@ -127,14 +140,14 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:
-            arg_types = (arg_type, )
+            arg_types = (arg_type,)
 
         name_type_default.append((arg, arg_types, arg_default))
 
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls):
+def _get_abbrev_qualified_cls_name(cls: Any) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
@@ -144,11 +157,8 @@ def _get_abbrev_qualified_cls_name(cls):
 
 
 def add_argparse_args(
-    cls,
-    parent_parser: ArgumentParser,
-    *,
-    use_argument_group=True,
-) -> ArgumentParser:
+    cls: Type["pl.Trainer"], parent_parser: ArgumentParser, *, use_argument_group: bool = True
+) -> Union[_ArgumentGroup, ArgumentParser]:
     r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
@@ -192,14 +202,11 @@ def add_argparse_args(
         raise RuntimeError("Please only pass an ArgumentParser instance.")
     if use_argument_group:
         group_name = _get_abbrev_qualified_cls_name(cls)
-        parser = parent_parser.add_argument_group(group_name)
+        parser: Union[_ArgumentGroup, ArgumentParser] = parent_parser.add_argument_group(group_name)
     else:
-        parser = ArgumentParser(
-            parents=[parent_parser],
-            add_help=False,
-        )
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
-    ignore_arg_names = ['self', 'args', 'kwargs']
+    ignore_arg_names = ["self", "args", "kwargs"]
     if hasattr(cls, "get_deprecated_arg_names"):
         ignore_arg_names += cls.get_deprecated_arg_names()
 
@@ -215,16 +222,16 @@ def add_argparse_args(
     args_help = _parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
 
     for arg, arg_types, arg_default in args_and_types:
-        arg_types = [at for at in allowed_types if at in arg_types]
+        arg_types = tuple(at for at in allowed_types if at in arg_types)
         if not arg_types:
             # skip argument with not supported type
             continue
-        arg_kwargs = {}
+        arg_kwargs: Dict[str, Any] = {}
         if bool in arg_types:
             arg_kwargs.update(nargs="?", const=True)
             # if the only arg type is bool
             if len(arg_types) == 1:
-                use_type = str_to_bool
+                use_type: Callable[[str], Union[bool, int, float, str]] = str_to_bool
             elif int in arg_types:
                 use_type = str_to_bool_or_int
             elif str in arg_types:
@@ -235,7 +242,7 @@ def add_argparse_args(
         else:
             use_type = arg_types[0]
 
-        if arg == 'gpus' or arg == 'tpu_cores':
+        if arg == "gpus" or arg == "tpu_cores":
             use_type = _gpus_allowed_type
 
         # hack for types in (int, float)
@@ -243,16 +250,15 @@ def add_argparse_args(
             use_type = _int_or_float_type
 
         # hack for track_grad_norm
-        if arg == 'track_grad_norm':
+        if arg == "track_grad_norm":
             use_type = float
 
+        # hack for precision
+        if arg == "precision":
+            use_type = _precision_allowed_type
+
         parser.add_argument(
-            f'--{arg}',
-            dest=arg,
-            default=arg_default,
-            type=use_type,
-            help=args_help.get(arg),
-            **arg_kwargs,
+            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
         )
 
     if use_argument_group:
@@ -262,41 +268,54 @@ def add_argparse_args(
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     arg_block_indent = None
-    current_arg = None
+    current_arg = ""
     parsed = {}
     for line in docstring.split("\n"):
         stripped = line.lstrip()
         if not stripped:
             continue
         line_indent = len(line) - len(stripped)
-        if stripped.startswith(('Args:', 'Arguments:', 'Parameters:')):
+        if stripped.startswith(("Args:", "Arguments:", "Parameters:")):
             arg_block_indent = line_indent + 4
         elif arg_block_indent is None:
             continue
         elif line_indent < arg_block_indent:
             break
         elif line_indent == arg_block_indent:
-            current_arg, arg_description = stripped.split(':', maxsplit=1)
+            current_arg, arg_description = stripped.split(":", maxsplit=1)
             parsed[current_arg] = arg_description.lstrip()
         elif line_indent > arg_block_indent:
-            parsed[current_arg] += f' {stripped}'
+            parsed[current_arg] += f" {stripped}"
     return parsed
 
 
-def _gpus_allowed_type(x) -> Union[int, str]:
-    if ',' in x:
+def _gpus_allowed_type(x: str) -> Union[int, str]:
+    if "," in x:
         return str(x)
     return int(x)
 
 
-def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
+def _gpus_arg_default(x: str) -> Union[int, str]:  # pragma: no-cover
     # unused, but here for backward compatibility with old checkpoints that need to be able to
     # unpickle the function from the checkpoint, as it was not filtered out in versions < 1.2.8
     # see: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
     pass
 
 
-def _int_or_float_type(x) -> Union[int, float]:
-    if '.' in str(x):
+def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
+    if "." in str(x):
         return float(x)
     return int(x)
+
+
+def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
+    """
+    >>> _precision_allowed_type("32")
+    32
+    >>> _precision_allowed_type("bf16")
+    'bf16'
+    """
+    try:
+        return int(x)
+    except ValueError:
+        return x

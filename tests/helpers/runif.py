@@ -28,12 +28,14 @@ from pytorch_lightning.utilities import (
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
 
 try:
     from horovod.common.util import nccl_built
+
     nccl_built()
 except (ImportError, ModuleNotFoundError, AttributeError):
     _HOROVOD_NCCL_AVAILABLE = False
@@ -70,7 +72,8 @@ class RunIf:
         fairscale: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
-        **kwargs
+        rich: bool = False,
+        **kwargs,
     ):
         """
         Args:
@@ -86,11 +89,12 @@ class RunIf:
             ipu: if IPU is available
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
-            skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
+            skip_windows: skip test for Windows platform (typically for some limited torch functionality)
             special: running in special mode, outside pytest suit
             fairscale: if `fairscale` module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
+            rich: if `rich` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -116,7 +120,7 @@ class RunIf:
             reasons.append(f"python>={min_python}")
 
         if quantization:
-            _miss_default = 'fbgemm' not in torch.backends.quantized.supported_engines
+            _miss_default = "fbgemm" not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
 
@@ -149,8 +153,8 @@ class RunIf:
             reasons.append("Horovod with NCCL")
 
         if special:
-            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0')
-            conditions.append(env_flag != '1')
+            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0")
+            conditions.append(env_flag != "1")
             reasons.append("Special execution")
 
         if fairscale:
@@ -165,12 +169,13 @@ class RunIf:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
 
+        if rich:
+            conditions.append(not _RICH_AVAILABLE)
+            reasons.append("Rich")
+
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
-            *args,
-            condition=any(conditions),
-            reason=f"Requires: [{' + '.join(reasons)}]",
-            **kwargs,
+            *args, condition=any(conditions), reason=f"Requires: [{' + '.join(reasons)}]", **kwargs
         )
 
 

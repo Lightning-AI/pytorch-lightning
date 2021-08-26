@@ -69,6 +69,11 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
     state: TrainerState
+
+    # .validate() and .test() set this when they load a checkpoint
+    validated_ckpt_path: Optional[str] = None
+    tested_ckpt_path: Optional[str] = None
+    predicted_ckpt_path: Optional[str] = None
     """
     Accelerator properties
     """
@@ -154,7 +159,7 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.parallel_device_ids
 
     @property
-    def lightning_module(self) -> 'pl.LightningModule':
+    def lightning_module(self) -> "pl.LightningModule":
         return self.accelerator.lightning_module
 
     @property
@@ -251,7 +256,7 @@ class TrainerProperties(ABC):
 
     @property
     def slurm_job_id(self) -> Optional[int]:
-        job_id = os.environ.get('SLURM_JOB_ID')
+        job_id = os.environ.get("SLURM_JOB_ID")
         if job_id:
             try:
                 job_id = int(job_id)
@@ -259,7 +264,7 @@ class TrainerProperties(ABC):
                 job_id = None
 
         # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = os.environ.get('SLURM_JOB_NAME') == 'bash'
+        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
         if in_slurm_interactive_mode:
             job_id = None
         return job_id
@@ -278,7 +283,10 @@ class TrainerProperties(ABC):
     @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2
+            DistributedType.DP,
+            DistributedType.DDP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.DDP2,
         )
 
     @property
@@ -287,7 +295,7 @@ class TrainerProperties(ABC):
 
     @property
     def progress_bar_dict(self) -> dict:
-        """ Read-only for progress bar metrics. """
+        """Read-only for progress bar metrics."""
         ref_model = self.lightning_module
         ref_model = cast(pl.LightningModule, ref_model)
 
@@ -298,20 +306,21 @@ class TrainerProperties(ABC):
             rank_zero_warn(
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
                 f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
-                f" If this is undesired, change the name or override `get_progress_bar_dict()`"
-                f" in `LightingModule`.", UserWarning
+                " If this is undesired, change the name or override `get_progress_bar_dict()`"
+                " in `LightingModule`.",
+                UserWarning,
             )
         return {**standard_metrics, **pbar_metrics}
 
     @property
     def _should_reload_dl_epoch(self) -> bool:
-        """ Check if dataloader should be reloaded in the current epoch. """
+        """Check if dataloader should be reloaded in the current epoch."""
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and (not self.current_epoch % n_epochs)
 
     @property
     def disable_validation(self) -> bool:
-        """ Check if validation is disabled during training. """
+        """Check if validation is disabled during training."""
         rank_zero_deprecation(
             "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
             " Use `not trainer.enable_validation` instead."
@@ -320,9 +329,9 @@ class TrainerProperties(ABC):
 
     @property
     def enable_validation(self) -> bool:
-        """ Check if we should run validation during training. """
+        """Check if we should run validation during training."""
         model_ref = self.lightning_module
-        val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
+        val_loop_enabled = is_overridden("validation_step", model_ref) and self.limit_val_batches > 0
         return val_loop_enabled
 
     @property
@@ -408,12 +417,12 @@ class TrainerProperties(ABC):
         """Returns a list with deprecated Trainer arguments."""
         depr_arg_names = []
         for name, val in cls.__dict__.items():
-            if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
+            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
                 depr_arg_names.extend(val)
         return depr_arg_names
 
     @classmethod
-    def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
+    def from_argparse_args(cls: Type["_T"], args: Union[Namespace, ArgumentParser], **kwargs) -> "_T":
         return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
@@ -539,7 +548,7 @@ class TrainerProperties(ABC):
         return self.fit_loop.epoch_loop.is_last_batch
 
     @property
-    def fit_loop(self):
+    def fit_loop(self) -> FitLoop:
         return self._fit_loop
 
     @fit_loop.setter
@@ -552,7 +561,7 @@ class TrainerProperties(ABC):
         self._fit_loop = loop
 
     @property
-    def validate_loop(self):
+    def validate_loop(self) -> EvaluationLoop:
         return self._validate_loop
 
     @validate_loop.setter
@@ -566,7 +575,7 @@ class TrainerProperties(ABC):
         self._validate_loop = loop
 
     @property
-    def test_loop(self):
+    def test_loop(self) -> EvaluationLoop:
         return self._test_loop
 
     @test_loop.setter
@@ -579,7 +588,7 @@ class TrainerProperties(ABC):
         self._test_loop = loop
 
     @property
-    def predict_loop(self):
+    def predict_loop(self) -> PredictionLoop:
         return self._predict_loop
 
     @predict_loop.setter
@@ -609,6 +618,15 @@ class TrainerProperties(ABC):
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+
+    @property
+    def _ckpt_path(self) -> Optional[str]:
+        if self.state.fn == TrainerFn.VALIDATING:
+            return self.validated_ckpt_path
+        if self.state.fn == TrainerFn.TESTING:
+            return self.tested_ckpt_path
+        if self.state.fn == TrainerFn.PREDICTING:
+            return self.predicted_ckpt_path
 
     """
     Logging properties
@@ -647,4 +665,4 @@ class TrainerProperties(ABC):
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
-_T = TypeVar('_T', bound=TrainerProperties)
+_T = TypeVar("_T", bound=TrainerProperties)

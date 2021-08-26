@@ -31,26 +31,26 @@ class FxValidator:
         on_fit_end=None,
         on_sanity_check_start=None,
         on_sanity_check_end=None,
-        on_train_start=dict(on_step=(False, ), on_epoch=(True, )),
+        on_train_start=dict(on_step=(False,), on_epoch=(True,)),
         on_train_end=None,
-        on_validation_start=dict(on_step=(False, ), on_epoch=(True, )),
+        on_validation_start=dict(on_step=(False,), on_epoch=(True,)),
         on_validation_end=None,
-        on_test_start=dict(on_step=(False, ), on_epoch=(True, )),
+        on_test_start=dict(on_step=(False,), on_epoch=(True,)),
         on_test_end=None,
         on_predict_start=None,
         on_predict_end=None,
         on_pretrain_routine_start=None,
         on_pretrain_routine_end=None,
-        on_train_epoch_start=dict(on_step=(False, True), on_epoch=(True, )),
-        on_train_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        on_validation_epoch_start=dict(on_step=(False, True), on_epoch=(True, )),
-        on_validation_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        on_test_epoch_start=dict(on_step=(False, True), on_epoch=(True, )),
-        on_test_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
+        on_train_epoch_start=dict(on_step=(False, True), on_epoch=(True,)),
+        on_train_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
+        on_validation_epoch_start=dict(on_step=(False, True), on_epoch=(True,)),
+        on_validation_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
+        on_test_epoch_start=dict(on_step=(False, True), on_epoch=(True,)),
+        on_test_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
         on_predict_epoch_start=None,
         on_predict_epoch_end=None,
-        on_epoch_start=dict(on_step=(False, True), on_epoch=(True, )),
-        on_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
+        on_epoch_start=dict(on_step=(False, True), on_epoch=(True,)),
+        on_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
         on_batch_start=dict(on_step=(False, True), on_epoch=(False, True)),
         on_batch_end=dict(on_step=(False, True), on_epoch=(False, True)),
         on_train_batch_start=dict(on_step=(False, True), on_epoch=(False, True)),
@@ -74,15 +74,20 @@ class FxValidator:
         training_step_end=dict(on_step=(False, True), on_epoch=(False, True)),
         validation_step_end=dict(on_step=(False, True), on_epoch=(False, True)),
         test_step_end=dict(on_step=(False, True), on_epoch=(False, True)),
-        training_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        validation_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        test_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        on_before_batch_transfer=None,
-        transfer_batch_to_device=None,
-        on_after_batch_transfer=None,
-        backward=None,
-        optimizer_step=None,
-        # TODO(@carmocca): some {step,epoch}_{start,end} are missing
+        training_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
+        validation_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
+        test_epoch_end=dict(on_step=(False,), on_epoch=(True,)),
+        configure_optimizers=None,
+        on_train_dataloader=None,
+        train_dataloader=None,
+        on_val_dataloader=None,
+        val_dataloader=None,
+        on_test_dataloader=None,
+        test_dataloader=None,
+        prepare_data=None,
+        configure_callbacks=None,
+        on_validation_model_eval=None,
+        on_test_model_eval=None,
     )
 
     @classmethod
@@ -90,12 +95,12 @@ class FxValidator:
         """Check if the given function name is allowed to log"""
         if fx_name not in cls.functions:
             raise RuntimeError(
-                f'You are trying to `self.log()` inside `{fx_name}` but it is not implemented.'
-                ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
+                f"Logging inside `{fx_name}` is not implemented."
+                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
             )
         allowed = cls.functions[fx_name]
         if allowed is None:
-            raise MisconfigurationException(f"{fx_name} function doesn't support logging using `self.log()`")
+            raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`")
 
         m = "You can't `self.log({}={})` inside `{}`, must be one of {}"
         if on_step not in allowed["on_step"]:

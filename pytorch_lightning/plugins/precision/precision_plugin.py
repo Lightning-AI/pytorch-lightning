@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, List, Optional, Tuple, Union
+import contextlib
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -20,17 +21,17 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin(Plugin, CheckpointHooks):
+class PrecisionPlugin(CheckpointHooks):
     """
     Base class for all plugins handling the precision-specific parts of the training.
     The class attribute precision must be overwritten in child classes.
     The default value reflects fp32 training.
     """
+
     precision: Union[str, int] = 32
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
@@ -39,23 +40,15 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         Maybe different in other precision plugins.
         """
         for group in optimizer.param_groups:
-            for p in group["params"]:
-                yield p
+            yield from group["params"]
 
     def connect(
-        self,
-        model: Module,
-        optimizers: List[Optimizer],
-        lr_schedulers: List[Any],
+        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
-    def pre_backward(
-        self,
-        model: 'pl.LightningModule',
-        closure_loss: Tensor,
-    ) -> Tensor:
+    def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
         """Run before precision plugin executes backward
 
         Args:
@@ -67,7 +60,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
 
     def backward(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         closure_loss: Tensor,
         optimizer: Optional[Optimizer],
         *args: Any,
@@ -86,11 +79,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         else:
             closure_loss.backward(*args, **kwargs)
 
-    def post_backward(
-        self,
-        model: 'pl.LightningModule',
-        closure_loss: Tensor,
-    ) -> Tensor:
+    def post_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
         """Run after precision plugin executes backward
 
         Args:
@@ -104,7 +93,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
 
     def pre_optimizer_step(
         self,
-        model: 'pl.LightningModule',
+        model: "pl.LightningModule",
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
@@ -122,7 +111,7 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        model: Optional[Module] = None
+        model: Optional[Module] = None,
     ) -> None:
         """Clips the gradients"""
         if clip_val is None:
@@ -147,3 +136,32 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         """Clip gradients by norm"""
         parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
+
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something when ``Accelerator.dispatch()`` gets called."""
+
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""
+
+    @contextlib.contextmanager
+    def train_step_context(self) -> Generator:
+        """A contextmanager for the training step"""
+        yield
+
+    @contextlib.contextmanager
+    def val_step_context(self) -> Generator:
+        """A contextmanager for the validation step"""
+        yield
+
+    @contextlib.contextmanager
+    def test_step_context(self) -> Generator:
+        """A contextmanager for the test step"""
+        yield
+
+    @contextlib.contextmanager
+    def predict_step_context(self) -> Generator:
+        """A contextmanager for the predict step"""
+        yield

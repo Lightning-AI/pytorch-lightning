@@ -68,27 +68,39 @@ _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
+_TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_BOLTS_AVAILABLE = _module_available('pl_bolts')
-_DEEPSPEED_AVAILABLE = _module_available('deepspeed')
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available('fairscale.nn')
+_BOLTS_AVAILABLE = _module_available("pl_bolts")
+_DEEPSPEED_AVAILABLE = _module_available("deepspeed")
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
-_GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.group')
+_GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
-_POPTORCH_AVAILABLE = _module_available('poptorch')
-_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
+_POPTORCH_AVAILABLE = _module_available("poptorch")
+_RICH_AVAILABLE = _module_available("rich")
+_TORCH_CPU_AMP_AVAILABLE = _compare_version(
+    "torch", operator.ge, "1.10.0dev20210501"
+)  # todo: swap to 1.10.0 once released
+_TORCH_BFLOAT_AVAILABLE = _compare_version(
+    "torch", operator.ge, "1.10.0.dev20210820"
+)  # todo: swap to 1.10.0 once released
+_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
+_TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version(
+    "torch", operator.ge, "1.10.0.dev20210809"
+)  # todo: swap to 1.10.0 once released
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
-_TORCHVISION_AVAILABLE = _module_available('torchvision')
+_TORCHVISION_AVAILABLE = _module_available("torchvision")
 _TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.3.0")
 _TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
-_XLA_AVAILABLE = _module_available("torch_xla")
+_XLA_AVAILABLE: bool = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
@@ -96,14 +108,12 @@ _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if _POPTORCH_AVAILABLE:
     import poptorch
+
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
 
 
-def _fault_tolerant_enabled() -> bool:
-    """
-    EXPERIMENTAL
-    the `reset` function from `_MultiProcessingDataLoaderIter` was introduced in PyTorch 1.7 but we need to mock it.
-    """
-    return _TORCH_GREATER_EQUAL_1_7 and bool(os.getenv("PL_FAULT_TOLERANT_TRAINING", False))
+# experimental feature within PyTorch Lightning.
+def _fault_tolerant_training() -> bool:
+    return _TORCH_GREATER_EQUAL_1_7 and int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
