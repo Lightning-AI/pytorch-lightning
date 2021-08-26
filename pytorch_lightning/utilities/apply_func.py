@@ -171,7 +171,7 @@ def apply_to_collections(
 
     Raises:
         ValueError:
-            If both data inputs are None
+            If both data inputs are ``None``.
         AssertionError:
             If sequence collections have different data sizes.
     """
