@@ -304,6 +304,7 @@ class CometLogger(LightningLoggerBase):
             2. experiment key.
             3. "COMET_EXPERIMENT_KEY" environment variable.
             4. future experiment key.
+            
             If none are present generates a new guid.
         """
         # Don't create an experiment if we don't have one
