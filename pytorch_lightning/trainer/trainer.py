@@ -365,7 +365,7 @@ class Trainer(
             amp_level,
             plugins,
         )
-        self.logger_connector = LoggerConnector(self, log_gpu_memory)
+        self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
@@ -414,6 +414,7 @@ class Trainer(
             default_root_dir,
             weights_save_path,
             stochastic_weight_avg,
+            log_gpu_memory,
             max_time,
         )
 
