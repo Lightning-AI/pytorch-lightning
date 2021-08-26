@@ -429,10 +429,3 @@ grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' -
 
 The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
 your code.
-
-______________________________________________________________________
-
-## Licence
-
-Please observe the Apache 2.0 license that is listed in this repository.
-In addition, the Lightning framework is Patent Pending.
