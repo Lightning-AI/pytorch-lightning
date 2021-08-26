@@ -257,8 +257,7 @@ class TrainerCallbackHookMixin(ABC):
 
         is_legacy_ckpt = operator.lt(checkpoint["pytorch-lightning_version"], "1.5")
         current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
-        saved_callbacks_keys = set(callback_states.keys())
-        difference = saved_callbacks_keys.difference(current_callbacks_keys)
+        difference = callback_states.keys() - current_callbacks_keys
         if difference:
             rank_zero_warn(
                 "Be aware that when using `resume_from_checkpoint`,"
