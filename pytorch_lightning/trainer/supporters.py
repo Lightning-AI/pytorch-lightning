@@ -404,6 +404,8 @@ class CombinedLoader:
             return
 
         def create_loader_iters(dataloader: DataLoader, state_dict: Dict) -> Iterator:
+            """Function used to reload the iterator state before once the workers are created."""
+
             dataloader_to_iter_on = dataloader
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
