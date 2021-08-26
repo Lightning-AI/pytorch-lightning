@@ -23,6 +23,10 @@ class Yield:
 
 
 class YieldLoop(TrainingBatchLoop):
+    def __init__(self):
+        super().__init__()
+        self._training_step_generator: Generator = ...
+
     def connect(self, **kwargs: "Loop") -> None:
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
@@ -61,9 +65,6 @@ class YieldLoop(TrainingBatchLoop):
     ) -> Generator:
         step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
         generator = self.trainer.accelerator.training_step(step_kwargs)
-
-        # self.trainer.accelerator.post_training_step()
-
         return generator
 
     def _training_step(self, training_step_generator) -> Optional[AttributeDict]:
