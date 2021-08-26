@@ -4,6 +4,7 @@ from typing import Any, Generator, Optional
 from torch import Tensor
 
 from pytorch_lightning.loops import Loop, TrainingBatchLoop
+from pytorch_lightning.loops.utilities import _check_training_step_output, _process_training_step_output
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -34,9 +35,8 @@ class YieldLoop(TrainingBatchLoop):
         assert inspect.isgeneratorfunction(self.trainer.lightning_module.training_step)
         assert self.trainer.lightning_module.automatic_optimization
 
-    def advance(self, batch, batch_idx, dataloader_idx):
+    def advance(self, batch, batch_idx):
         split_idx, split_batch = self._remaining_splits.pop(0)
-        self.batch_idx = batch_idx
         self.split_idx = split_idx
 
         # let logger connector extract current batch size
@@ -81,15 +81,17 @@ class YieldLoop(TrainingBatchLoop):
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            self._check_training_step_output(training_step_output)
+            _check_training_step_output(model_ref, training_step_output)
 
-            result_collection = self._process_training_step_output(training_step_output)
+            result_collection, self._hiddens = _process_training_step_output(self.trainer, training_step_output)
             if result_collection is None:
                 return
 
         closure_loss = None
+        loss = None
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
             # the loss will get scaled for amp. avoid any modifications to it
-        return AttributeDict(closure_loss=closure_loss, result_collection=result_collection)
+            loss = closure_loss.detach().clone()
+        return AttributeDict(closure_loss=closure_loss, loss=loss, result_collection=result_collection)
