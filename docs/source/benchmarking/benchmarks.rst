@@ -12,3 +12,6 @@ In average for simple MNIST CNN classifier we are only about 0.06s slower per ep
 .. figure:: ../_static/images/benchmarks/figure-parity-times.png
    :alt: Speed parity to vanilla PT, created on 2020-12-16
    :width: 500
+
+
+Learn more about reproducible benchmarking from `PyTorch Randomness Section <https://pytorch.org/docs/stable/notes/randomness.html>_`.
