@@ -359,37 +359,54 @@ def test_log_works_in_train_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-@pytest.mark.parametrize("gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1))])
+class LoggingSyncDistModel(BoringModel):
+    def __init__(self, fake_result):
+        super().__init__()
+        self.fake_result = fake_result
+    
+    def training_step(self, batch, batch_idx):
+        self.log("foo", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_2", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_3", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_4", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        return super().validation_step(batch, batch_idx)
+
+
+@pytest.mark.parametrize("gpus", [
+    None,
+    pytest.param(1, marks=RunIf(min_gpus=1)),
+    pytest.param(2, marks=RunIf(min_gpus=2))
+])
 def test_logging_sync_dist_true(tmpdir, gpus):
     """
     Tests to ensure that the sync_dist flag works (should just return the original value)
     """
     fake_result = 1
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            self.log("foo", fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            self.log("foo_2", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            self.log("bar", fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            return super().validation_step(batch, batch_idx)
-
-    model = TestModel()
+    model = LoggingSyncDistModel(fake_result)
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
-        max_epochs=2,
         weights_summary=None,
         gpus=gpus,
     )
     trainer.fit(model)
 
-    assert trainer.logged_metrics["foo"] == fake_result
-    assert trainer.logged_metrics["foo_2"] == 2
-    assert trainer.logged_metrics["bar"] == fake_result
+    num_devices = 1 if gpus is None else gpus
+
+    assert trainer.callback_metrics["foo"] == fake_result * num_devices
+    assert trainer.callback_metrics["foo_2"] == 2 * num_devices
+    assert trainer.callback_metrics["foo_3"] == 2
+    assert trainer.callback_metrics["foo_4"] == fake_result
+    
+    assert trainer.callback_metrics["bar"] == fake_result * num_devices
+    assert trainer.callback_metrics["bar_2"] == fake_result
 
 
 @RunIf(min_gpus=2, special=True)
