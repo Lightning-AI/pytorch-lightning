@@ -120,7 +120,7 @@ class Accelerator:
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
-        self.training_type_plugin.post_dispatch(trainer)
+        self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
 
     @property

@@ -213,12 +213,14 @@ class DDPSpawnPlugin(ParallelPlugin):
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
 
-    def post_dispatch(self, trainer: "pl.Trainer"):
+    # TODO(@daniellepintz): add trainer argument in v1.7
+    def post_dispatch(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
-        trainer.callback_metrics = self.mp_queue.get()
+        # TODO(@daniellepintz): add `trainer.callback_metrics = self.mp_queue.get()` in v1.7
+
         # get the `callback_metrics` and set it to the trainer
         # only in case the user does not override it.
 
@@ -289,7 +291,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
             self.mp_queue.put(results)
-            self.mp_queue.put(trainer.callback_metrics)
+            # TODO(@daniellepintz): add `self.mp_queue.put(trainer.callback_metrics)` in v1.7
+
             # TODO(@daniellepintz): remove in v1.7
             self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 

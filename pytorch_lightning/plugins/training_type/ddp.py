@@ -327,7 +327,7 @@ class DDPPlugin(ParallelPlugin):
         # share ddp pids to all processes
         self._share_information_to_prevent_deadlock()
 
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
+    def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
