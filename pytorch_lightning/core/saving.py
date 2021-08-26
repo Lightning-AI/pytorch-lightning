@@ -142,7 +142,7 @@ class ModelIO:
             hparams["on_gpu"] = False
 
             # overwrite hparams by the given file
-            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(hparams)
 
         # for past checkpoint need to add the new key
         if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
