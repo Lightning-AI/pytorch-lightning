@@ -186,6 +186,15 @@ class DDPFullyShardedPlugin(DDPPlugin):
         return super().lightning_module_state_dict()
 
     def load_model_state(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
+        """
+        Use for each rank to reload the model weights.
+
+        Args:
+            checkpoint_path: Path to the current checkpoint.
+
+        Returns:
+            checkpoint: Current checkpoint
+        """
         checkpoint = {}
         rank_zero_info(
             f"FullyShardedDataParallel has {self.num_processes} processes. Serializing model "
