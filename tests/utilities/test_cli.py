@@ -615,7 +615,7 @@ def test_lightning_cli_optimizer(tmpdir, run):
         "BoringModel.configure_optimizers` will be overridden by "
         "`MyLightningCLI.add_configure_optimizers_method_to_model`"
     )
-    argv = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=True"] if run else []
+    argv = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1"] if run else []
     with mock.patch("sys.argv", ["any.py"] + argv), pytest.warns(UserWarning, match=match):
         cli = MyLightningCLI(BoringModel, run=run)
 
@@ -639,7 +639,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     cli_args = [
         "fit",
         f"--trainer.default_root_dir={tmpdir}",
-        "--trainer.fast_dev_run=True",
+        "--trainer.fast_dev_run=1",
         "--lr_scheduler.gamma=0.8",
     ]
 
