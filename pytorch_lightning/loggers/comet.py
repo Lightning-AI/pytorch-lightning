@@ -299,7 +299,8 @@ class CometLogger(LightningLoggerBase):
         Gets the version.
 
         Returns:
-            The first one of the following that is set in the following order:
+            The first one of the following that is set in the following order
+
             1. experiment id.
             2. experiment key.
             3. "COMET_EXPERIMENT_KEY" environment variable.
