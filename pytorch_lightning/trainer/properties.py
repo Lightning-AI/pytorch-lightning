@@ -302,7 +302,10 @@ class TrainerProperties(ABC):
             "`trainer.progress_bar_dict` is deprecated in v1.5 and will be removed in v1.7."
             " Use `ProgressBar.get_progress_bar_metrics` instead."
         )
-        return self.progress_bar_callback.get_progress_bar_metrics(self, ref_model)
+        progress_bar_callback = getattr(self, "progress_bar_callback", None)
+        if progress_bar_callback:
+            return self.progress_bar_callback.get_progress_bar_metrics(self, ref_model)
+        return self.progress_bar_metrics
 
     @property
     def _should_reload_dl_epoch(self) -> bool:
