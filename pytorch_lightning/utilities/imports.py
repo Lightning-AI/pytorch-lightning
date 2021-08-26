@@ -70,7 +70,6 @@ _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 
-
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available("pl_bolts")
 _DEEPSPEED_AVAILABLE = _module_available("deepspeed")
@@ -87,6 +86,9 @@ _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cu
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich")
+_TORCH_CPU_AMP_AVAILABLE = _compare_version(
+    "torch", operator.ge, "1.10.0dev20210501"
+)  # todo: swap to 1.10.0 once released
 _TORCH_BFLOAT_AVAILABLE = _compare_version(
     "torch", operator.ge, "1.10.0.dev20210820"
 )  # todo: swap to 1.10.0 once released
