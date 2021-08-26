@@ -924,7 +924,6 @@ class Trainer(
             parsing.clean_namespace(model.hparams)
 
         self.config_validator.verify_loop_configurations(model)
-        self.config_validator.check_progress_bar(model)
 
         # attach model log function to callback
         self.callback_connector.attach_model_logging_functions(model)

@@ -20,12 +20,12 @@ from typing import Optional, Union, Dict
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-
 if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm as _tqdm
 else:
     from tqdm import tqdm as _tqdm
 
+from pytorch_lightning.utilities import rank_zero_warn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 
@@ -208,7 +208,7 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
-    def get_progress_bar_dict(
+    def get_progress_bar_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> Dict[str, Union[int, str]]:
         r"""
@@ -225,6 +225,45 @@ class ProgressBar(ProgressBarBase):
         .. code-block:: python
 
             def get_progress_bar_dict(self, model):
+                # don't show the version number
+                items = super().get_progress_bar_dict(model)
+                items.pop("v_num", None)
+                return items
+
+        Return:
+            Dictionary with the items to be displayed in the progress bar.
+        """
+        standard_metrics = self.get_progress_bar_dict(trainer, pl_module)
+        pbar_metrics = trainer.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
+        if duplicates:
+            rank_zero_warn(
+                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
+                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
+                " If this is undesired, change the name or override `get_progress_bar_dict()`"
+                " in `LightingModule`.",
+                UserWarning,
+            )
+
+        return {**standard_metrics, **pbar_metrics}
+
+    def get_progress_bar_dict(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> Dict[str, Union[int, str]]:
+        r"""
+        Implement this to override the default items displayed in the progress bar.
+        By default it includes the average loss value, split index of BPTT (if used)
+        and the version of the experiment when using a logger.
+
+        .. code-block::
+
+            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
+
+        Here is an example how to override the defaults:
+
+        .. code-block:: python
+
+            def get_progress_bar_dict(self, trainer, model):
                 # don't show the version number
                 items = super().get_progress_bar_dict(model)
                 items.pop("v_num", None)

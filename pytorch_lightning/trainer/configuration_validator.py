@@ -43,6 +43,8 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
+        # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
+        self._check_progress_bar(model)
 
     def __verify_train_loop_configuration(self, model: "pl.LightningModule") -> None:
         # -----------------------------------
@@ -90,7 +92,7 @@ class ConfigValidator:
                 "(rather, they are called on every optimization step)."
             )
 
-    def check_progress_bar(self, model: "pl.LightningModule") -> None:
+    def _check_progress_bar(self, model: "pl.LightningModule") -> None:
         r"""
         Checks if get_progress_bar_dict is overriden and sends a deprecation warning.
 
@@ -101,7 +103,7 @@ class ConfigValidator:
         if is_overridden("get_progress_bar_dict", model):
             rank_zero_deprecation(
                 "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
-                "Please use the `trainer.progress_bar_callback.get_progress_bar_dict` instead."
+                "Please use the `ProgressBar.get_progress_bar_dict` instead."
             )
 
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
