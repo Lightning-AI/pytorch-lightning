@@ -17,8 +17,9 @@ Test logging in the training loop
 
 import collections
 import itertools
-from re import escape
 import os
+from re import escape
+
 import numpy as np
 import pytest
 import torch
@@ -363,14 +364,16 @@ class LoggingSyncDistModel(BoringModel):
     def __init__(self, fake_result):
         super().__init__()
         self.fake_result = fake_result
-    
+
     def training_step(self, batch, batch_idx):
         value = self.fake_result + self.trainer.global_rank
         self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
         self.log("foo_2", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
         self.log("foo_3", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
         self.log("foo_4", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
-        self.log("foo_5", batch_idx + self.trainer.global_rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max")
+        self.log(
+            "foo_5", batch_idx + self.trainer.global_rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max"
+        )
 
         self.log("foo_6", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
@@ -382,15 +385,15 @@ class LoggingSyncDistModel(BoringModel):
     def validation_step(self, batch, batch_idx):
         self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
-        self.log("bar_3", batch_idx + self.trainer.global_rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        self.log(
+            "bar_3", batch_idx + self.trainer.global_rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max"
+        )
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("gpus", [
-    None,
-    pytest.param(1, marks=RunIf(min_gpus=1)),
-    pytest.param(2, marks=RunIf(min_gpus=2))
-])
+@pytest.mark.parametrize(
+    "gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1)), pytest.param(2, marks=RunIf(min_gpus=2))]
+)
 def test_logging_sync_dist_true(tmpdir, gpus):
     """
     Tests to ensure that the sync_dist flag works (should just return the original value)
@@ -420,9 +423,13 @@ def test_logging_sync_dist_true(tmpdir, gpus):
     assert trainer.callback_metrics["foo_6"] == fake_result * 3 * 2 + 3 if use_multiple_devices else fake_result * 3 * 2
     assert trainer.callback_metrics["foo_7"] == 2 * num_devices * 3
     assert trainer.callback_metrics["foo_8"] == 2
-    assert trainer.callback_metrics["foo_9"] == (fake_result * 2 + 1) / num_devices if use_multiple_devices else fake_result
+    assert (
+        trainer.callback_metrics["foo_9"] == (fake_result * 2 + 1) / num_devices
+        if use_multiple_devices
+        else fake_result
+    )
     assert trainer.callback_metrics["foo_10"] == 2
-    
+
     assert trainer.callback_metrics["bar"] == fake_result * 3 * num_devices
     assert trainer.callback_metrics["bar_2"] == fake_result
     assert trainer.callback_metrics["bar_3"] == 2 + int(use_multiple_devices)
