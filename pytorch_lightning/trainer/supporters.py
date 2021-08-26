@@ -313,11 +313,6 @@ class CombinedDataset:
         return self._calc_num_data(self.datasets, self.mode)
 
 
-class DataLoaderDict(Dict):
-    # behaves exactly like a dict, this is used to simplify apply_to_collection.
-    pass
-
-
 class CombinedLoader:
     """
     Combines different dataloaders and allows sampling in parallel.
@@ -376,8 +371,8 @@ class CombinedLoader:
             iterator = dataloader._loader_iter
         state = getattr(iterator, "state", None) if has_completed else getattr(iterator, "previous_state", None)
         if state:
-            return DataLoaderDict(**asdict(state))
-        return DataLoaderDict()
+            return asdict(state)
+        return {}
 
     def state_dict(self, has_completed: bool = False) -> Dict:
         """
@@ -389,7 +384,7 @@ class CombinedLoader:
                 current state gets returned, otherwise the previously cached state.
         """
         if not _fault_tolerant_training() or self._iterator is None:
-            return DataLoaderDict()
+            return {}
 
         return apply_to_collections(
             self.loaders,
@@ -408,7 +403,7 @@ class CombinedLoader:
         if not self._loaders_iter_state_dict:
             return
 
-        def create_loader_iters(dataloader: DataLoader, state_dict: DataLoaderDict):
+        def create_loader_iters(dataloader: DataLoader, state_dict: Dict) -> Iterator:
             dataloader_to_iter_on = dataloader
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
@@ -462,7 +457,7 @@ class CombinedLoader:
         iterator._loader_iters = apply_to_collections(
             self.loaders,
             self._loaders_iter_state_dict,
-            (Iterable, DataLoaderDict),
+            (Iterable, Dict),
             create_loader_iters,
             wrong_dtype=(Sequence, Mapping),
         )
