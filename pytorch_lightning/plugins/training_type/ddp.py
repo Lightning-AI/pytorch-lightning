@@ -95,7 +95,7 @@ class DDPPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        model_averaging_period: Optional[int] = 16,
+        model_averaging_period: Optional[int] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -332,7 +332,7 @@ class DDPPlugin(ParallelPlugin):
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, "
-                "but model averaging period is not provided to DDP plugin. Set this period as 16."
+                "but model averaging period is not provided to DDP plugin."
             )
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
