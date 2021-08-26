@@ -14,7 +14,7 @@
 import inspect
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
-from functools import lru_cache, partial, wraps
+from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
@@ -52,15 +52,19 @@ class _Sync:
     group: Optional[Any] = None
 
     def __post_init__(self) -> None:
-        if self.fn is None:
-            self.fn = self.no_op
+        if self.fn:
+            kwargs = dict(group=self.group)
+            if "reduce_op" in inspect.signature(self.fn).parameters:
+                kwargs["reduce_op"] = self.op
+        self.fn = (
+            partial(self.fn, **kwargs)
+            if self.fn is not None and self.should and not self.rank_zero_only
+            else self.no_op
+        )
 
     @property
     def __call__(self) -> Any:
-        kwargs = dict(group=self.group)
-        if "reduce_op" in inspect.signature(self.fn).parameters:
-            kwargs["reduce_op"] = self.op
-        return partial(self.fn, **kwargs) if self.should and not self.rank_zero_only else self.no_op
+        return self.fn
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:

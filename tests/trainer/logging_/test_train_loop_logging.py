@@ -17,7 +17,6 @@ Test logging in the training loop
 
 import collections
 import itertools
-import os
 from re import escape
 
 import numpy as np
