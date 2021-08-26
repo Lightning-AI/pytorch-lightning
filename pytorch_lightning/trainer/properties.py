@@ -300,7 +300,7 @@ class TrainerProperties(ABC):
         ref_model = cast(pl.LightningModule, ref_model)
         rank_zero_deprecation(
             "`trainer.progress_bar_dict` is deprecated in v1.5 and will be removed in v1.7."
-            " Use `ProgressBar.get_progress_bar_dict` instead."
+            " Use `ProgressBar.get_progress_bar_metrics` instead."
         )
         return self.progress_bar_callback.get_progress_bar_metrics(self, ref_model)
 
