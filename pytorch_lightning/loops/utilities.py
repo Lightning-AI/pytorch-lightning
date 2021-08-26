@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterator, Mapping, Optional, Tuple
+from typing import Any, Iterator, Mapping, Optional, Tuple
 
 import torch
 
@@ -65,7 +65,7 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
 
 def _process_training_step_output(
     trainer: "pl.Trainer", training_step_output: STEP_OUTPUT
-) -> Tuple[Optional[ResultCollection], Optional[torch.Tensor]]:
+) -> Tuple[Optional[ResultCollection], Optional[Any]]:
     """Adds the :param:`training_step_output` to the trainer's results
 
     Args:
