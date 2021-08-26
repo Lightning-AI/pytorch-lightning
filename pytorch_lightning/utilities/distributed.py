@@ -21,6 +21,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
@@ -283,12 +284,14 @@ def register_ddp_comm_hook(
 
     .. warning ::
         DDP communication wrapper needs pytorch version at least 1.9.0
+        Post-localSGD hook needs pytorch version at least 1.9.0
 
     Example:
 
         from torch.distributed.algorithms.ddp_comm_hooks import (
             default_hooks as default,
             powerSGD_hook as powerSGD,
+            post_localSGD_hook as post_localSGD,
         )
 
         # fp16_compress_hook for compress gradients
@@ -306,6 +309,18 @@ def register_ddp_comm_hook(
                 start_powerSGD_iter=5000,
             ),
             ddp_comm_hook=powerSGD.powerSGD_hook,
+        )
+
+        # post_localSGD_hook
+        subgroup, _ = torch.distributed.new_subgroups()
+        register_comm_hook(
+            model=ddp_model,
+            state=post_localSGD.PostLocalSGDState(
+                process_group=None,
+                subgroup=subgroup,
+                start_localSGD_iter=1_000,
+            ),
+            ddp_comm_hook=post_localSGD.post_localSGD_hook,
         )
 
         # fp16_compress_wrapper combined with other communication hook
@@ -345,3 +360,40 @@ def register_ddp_comm_hook(
 
 def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
+
+
+def init_ddp_connection(
+    cluster_environment: "pl.plugins.environments.ClusterEnvironment",
+    torch_distributed_backend: str,
+    global_rank: Optional[int] = None,
+    world_size: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    """
+    Utility function to initialize DDP connection by setting env variables
+    and initiliazing the distributed process group.
+
+    Args:
+        cluster_environment: ``ClusterEnvironment`` instance
+        torch_distributed_backend: backend to use (includes `nccl` and `gloo`)
+        global_rank: rank of the current process
+        world_size: number of processes in the group
+        kwargs: kwargs for ``init_process_group``
+    """
+    global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
+    world_size = world_size if world_size is not None else cluster_environment.world_size()
+    os.environ["MASTER_ADDR"] = cluster_environment.master_address()
+    os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
+    if torch.distributed.is_available() and not torch.distributed.is_initialized():
+        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+        torch.distributed.init_process_group(
+            torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs
+        )
+
+        # on rank=0 let everyone know training is starting
+        rank_zero_info(
+            f"{'-' * 100}\n"
+            f"distributed_backend={torch_distributed_backend}\n"
+            f"All DDP processes registered. Starting ddp with {world_size} processes\n"
+            f"{'-' * 100}\n"
+        )

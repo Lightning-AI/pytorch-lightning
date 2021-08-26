@@ -186,7 +186,7 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
+        with self.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def post_training_step(self) -> None:
@@ -204,7 +204,7 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
+        with self.precision_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -219,7 +219,7 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
+        with self.precision_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
@@ -234,7 +234,7 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
         """
-        with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
+        with self.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
@@ -371,9 +371,6 @@ class Accelerator:
         """
         return self.training_type_plugin.lightning_module_state_dict()
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
-        return self.training_type_plugin.on_save(checkpoint)
-
     def barrier(self, name: Optional[str] = None) -> None:
         self.training_type_plugin.barrier(name=name)
 
@@ -478,10 +475,6 @@ class Accelerator:
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
-
-    def on_train_epoch_end(self) -> None:
-        """Hook to do something on the end of an training epoch."""
-        pass
 
     def on_train_start(self) -> None:
         """Called when train begins."""

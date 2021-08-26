@@ -199,7 +199,11 @@ class LoggerConnector:
     """
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
-        self.trainer._results.extract_batch_size(split_batch)
+        # when the user request `dataloader_iter`, we can't track the batch_size
+        # and this is left to user responsibility.
+        if isinstance(split_batch, pl.utilities.fetching.DataLoaderIterDataFetcher):
+            self.trainer._results.extract_batch_size(split_batch)
+
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
@@ -224,9 +228,14 @@ class LoggerConnector:
 
     def _log_gpus_metrics(self):
         for key, mem in self.gpus_metrics.items():
-            gpu_id = int(key.split("/")[0].split(":")[1])
-            if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
-                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False)
+            if self.log_gpu_memory == "min_max":
+                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
+            else:
+                gpu_id = int(key.split("/")[0].split(":")[1])
+                if gpu_id in self.trainer.accelerator_connector.parallel_device_ids:
+                    self.trainer.lightning_module.log(
+                        key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
+                    )
 
     """
     Utilities and properties
