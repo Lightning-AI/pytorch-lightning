@@ -277,10 +277,10 @@ class MyLightningCLI(LightningCLI):
             }
         )
 
-    def instantiate_trainer(self):
-        finetuning_callback = MilestonesFinetuning(**self.config_init["finetuning"])
+    def instantiate_trainer(self, *args):
+        finetuning_callback = MilestonesFinetuning(**self._get(self.config_init, "finetuning"))
         self.trainer_defaults["callbacks"] = [finetuning_callback]
-        super().instantiate_trainer()
+        return super().instantiate_trainer(*args)
 
 
 def cli_main():
