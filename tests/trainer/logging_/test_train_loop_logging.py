@@ -413,25 +413,20 @@ def test_logging_sync_dist_true(tmpdir, gpus):
     use_multiple_devices = num_devices > 1
     total = fake_result * num_devices + 1
 
-    assert trainer.callback_metrics["foo"] == total if use_multiple_devices else fake_result
-    assert trainer.callback_metrics["foo_2"] == 2 * num_devices
-    assert trainer.callback_metrics["foo_3"] == 2
-    assert trainer.callback_metrics["foo_4"] == total / num_devices if use_multiple_devices else 1
-    assert trainer.callback_metrics["foo_5"] == fake_result * 2 + 1 if use_multiple_devices else fake_result * 2
-
-    assert trainer.callback_metrics["foo_6"] == fake_result * 3 * 2 + 3 if use_multiple_devices else fake_result * 3 * 2
-    assert trainer.callback_metrics["foo_7"] == 2 * num_devices * 3
-    assert trainer.callback_metrics["foo_8"] == 2
-    assert (
-        trainer.callback_metrics["foo_9"] == (fake_result * 2 + 1) / num_devices
-        if use_multiple_devices
-        else fake_result
-    )
-    assert trainer.callback_metrics["foo_10"] == 2
-
-    assert trainer.callback_metrics["bar"] == fake_result * 3 * num_devices
-    assert trainer.callback_metrics["bar_2"] == fake_result
-    assert trainer.callback_metrics["bar_3"] == 2 + int(use_multiple_devices)
+    metrics = trainer.callback_metrics
+    assert metrics["foo"] == total if use_multiple_devices else fake_result
+    assert metrics["foo_2"] == 2 * num_devices
+    assert metrics["foo_3"] == 2
+    assert metrics["foo_4"] == total / num_devices if use_multiple_devices else 1
+    assert metrics["foo_5"] == fake_result * 2 + 1 if use_multiple_devices else fake_result * 2
+    assert metrics["foo_6"] == fake_result * 3 * 2 + 3 if use_multiple_devices else fake_result * 3 * 2
+    assert metrics["foo_7"] == 2 * num_devices * 3
+    assert metrics["foo_8"] == 2
+    assert metrics["foo_9"] == (fake_result * 2 + 1) / num_devices if use_multiple_devices else fake_result
+    assert metrics["foo_10"] == 2
+    assert metrics["bar"] == fake_result * 3 * num_devices
+    assert metrics["bar_2"] == fake_result
+    assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
 @RunIf(min_gpus=2, special=True)
