@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from typing import Any, Dict, Union
-from unittest.mock import Mock
 
 import pytest
 import torch
@@ -10,20 +9,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.plugins import SingleDevicePlugin
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
-from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
-
-
-def test_unsupported_precision_plugins():
-    """Test error messages are raised for unsupported precision plugins with CPU."""
-    trainer = Mock()
-    accelerator = CPUAccelerator(
-        training_type_plugin=SingleDevicePlugin(torch.device("cpu")), precision_plugin=MixedPrecisionPlugin()
-    )
-    with pytest.raises(MisconfigurationException, match=r"AMP \+ CPU is not supported"):
-        accelerator.setup(trainer=trainer)
 
 
 @pytest.mark.parametrize("delay_dispatch", [True, False])

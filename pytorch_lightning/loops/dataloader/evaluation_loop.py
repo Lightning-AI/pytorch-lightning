@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterator, List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -98,17 +98,13 @@ class EvaluationLoop(DataLoaderLoop):
         """Performs evaluation on one single dataloader"""
         void(*args, **kwargs)
 
+        dataloader_idx: int = self.current_dataloader_idx
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        dataloader = self.trainer.data_connector.get_profiled_dataloader(
-            dataloader, dataloader_idx=self.current_dataloader_idx
-        )
-        dataloader_iter = iter(dataloader)
+        dataloader = self.trainer.data_connector.get_profiled_dataloader(dataloader, dataloader_idx=dataloader_idx)
 
-        dl_max_batches = self._max_batches[self.current_dataloader_idx]
+        dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
-        )
+        dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
 
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
