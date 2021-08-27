@@ -16,7 +16,7 @@ import io
 import math
 import os
 import sys
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -25,9 +25,7 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm as _tqdm
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities import rank_zero_warn
 
 _PAD_SIZE = 5
 
@@ -207,77 +205,6 @@ class ProgressBar(ProgressBarBase):
             file=sys.stdout,
         )
         return bar
-
-    def get_progress_bar_metrics(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> Dict[str, Union[int, str]]:
-        r"""
-        Combines progress bar metrics collected from the trainer with standard metrics from get_progress_bar_dict
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        standard_metrics = self.get_progress_bar_dict(trainer, pl_module)
-        pbar_metrics = trainer.progress_bar_metrics
-        duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
-        if duplicates:
-            rank_zero_warn(
-                f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
-                f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
-                " If this is undesired, change the name or override `get_progress_bar_dict()`"
-                " in `LightingModule`.",
-                UserWarning,
-            )
-
-        return {**standard_metrics, **pbar_metrics}
-
-    def get_progress_bar_dict(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> Dict[str, Union[int, str]]:
-        r"""
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self, trainer, model):
-                # don't show the version number
-                items = super().get_progress_bar_dict(model)
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        # call .item() only once but store elements without graphs
-        running_train_loss = trainer.fit_loop.running_loss.mean()
-        avg_training_loss = None
-        if running_train_loss is not None:
-            avg_training_loss = running_train_loss.cpu().item()
-        elif pl_module.automatic_optimization:
-            avg_training_loss = float("NaN")
-
-        tqdm_dict = {}
-        if avg_training_loss is not None:
-            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
-
-        if pl_module.truncated_bptt_steps > 0:
-            tqdm_dict["split_idx"] = trainer.fit_loop.split_idx
-
-        if trainer.logger is not None and trainer.logger.version is not None:
-            version = trainer.logger.version
-            # show last 4 places of long version strings
-            version = version[-4:] if isinstance(version, str) else version
-            tqdm_dict["v_num"] = version
-
-        return tqdm_dict
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)

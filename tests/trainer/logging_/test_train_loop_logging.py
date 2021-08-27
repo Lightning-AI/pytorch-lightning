@@ -327,7 +327,7 @@ def test_log_works_in_train_callback(tmpdir):
     trainer.fit(model)
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
-    assert trainer.progress_bar_dict["train_loss"] == model.seen_losses[-1]
+    assert trainer.progress_bar_callback.get_progress_bar_metrics(trainer, model)["train_loss"] == model.seen_losses[-1]
     assert trainer.callback_metrics["train_loss"] == model.seen_losses[-1]
 
     assert cb.call_counter == {
@@ -428,7 +428,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics["bar"] == 2
 
 
-def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
+def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
@@ -441,8 +441,13 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
             self.on_train_epoch_end_called = True
 
         def on_epoch_end(self):
-            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
-            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
+            progress_bar_callback = getattr(self, "progress_bar_callback", None)
+            if progress_bar_callback:
+                metrics = self.progress_bar_callback.get_progress_bar_metrics(self.trainer, self)
+            else:
+                metrics = self.trainer.progress_bar_metrics
+            assert metrics["foo"] == self.current_epoch
+            assert metrics["foo_2"] == self.current_epoch
             self.on_epoch_end_called = True
 
     trainer = Trainer(

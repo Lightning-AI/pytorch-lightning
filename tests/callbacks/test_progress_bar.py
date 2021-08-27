@@ -560,10 +560,10 @@ def _test_progress_bar_max_val_check_interval(
         assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
 
 
-def test_get_progress_bar_dict_callback(tmpdir):
+def test_get_progress_bar_metrics(tmpdir):
     class TestProgressBar(ProgressBar):
-        def get_progress_bar_dict(self, trainer, model):
-            items = super().get_progress_bar_dict(trainer, model)
+        def get_progress_bar_metrics(self, trainer, model):
+            items = super().get_progress_bar_metrics(trainer, model)
             items.pop("v_num", None)
             return items
 
@@ -575,8 +575,9 @@ def test_get_progress_bar_dict_callback(tmpdir):
         overfit_batches=5,
     )
     model = BoringModel()
+    trainer.fit(model)
     model.truncated_bptt_steps = 2
-    standard_metrics = trainer.progress_bar_callback.get_progress_bar_dict(trainer, model)
+    standard_metrics = trainer.progress_bar_callback.get_progress_bar_metrics(trainer, model)
     assert "loss" in standard_metrics.keys()
     assert "split_idx" in standard_metrics.keys()
     assert "v_num" not in standard_metrics.keys()

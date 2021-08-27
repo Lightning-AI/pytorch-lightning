@@ -47,6 +47,7 @@ from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.callbacks.progress import base as progress_base
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -1739,8 +1740,8 @@ class LightningModule(
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `ProgressBar.get_progress_bar_dict`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 in favor of
+            `pytorch_lightning.callbacks.progress.base.get_progress_bar_dict` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1763,7 +1764,7 @@ class LightningModule(
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        return self.trainer.progress_bar_callback.get_progress_bar_dict(self.trainer, self)
+        return progress_base.get_progress_bar_dict(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:

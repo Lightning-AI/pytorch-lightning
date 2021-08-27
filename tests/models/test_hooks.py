@@ -66,7 +66,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmpdir, overfit_batches=2)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    metrics = trainer.progress_bar_dict
+    metrics = trainer.progress_bar_callback.get_progress_bar_metrics(trainer, model)
 
     # metrics added in training step should be unchanged by epoch end method
     assert metrics["step_metric"] == -1
