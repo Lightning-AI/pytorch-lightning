@@ -21,7 +21,6 @@ from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -253,14 +252,6 @@ class FitLoop(Loop):
             n_epochs = lightning_module.reload_train_dataloader_every_n_epochs
         if datamodule is not None:
             n_epochs = datamodule.reload_train_dataloader_every_n_epochs
-        if trainer_n_epochs is not None and n_epochs != trainer_n_epochs:
-            raise MisconfigurationException(
-                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
-                f"`Trainer(reload_dataloaders_every_n_epochs={trainer_n_epochs}.)`"
-                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
-                " Move `reload_dataloaders_every_n_epochs` setting to"
-                " DataModule or LightningModule property."
-            )
         if n_epochs is None:
             n_epochs = trainer_n_epochs if trainer_n_epochs is not None else 0
 

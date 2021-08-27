@@ -109,6 +109,26 @@ class ConfigValidator:
                 "(rather, they are called on every optimization step)."
             )
 
+        # ---------------------------------------------------------
+        # verify `reload_dataloaders_every_n_epochs` value setting
+        # ---------------------------------------------------------
+        lightning_module = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
+        trainer_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        n_epochs = None
+        if lightning_module is not None:
+            n_epochs = lightning_module.reload_train_dataloader_every_n_epochs
+        if datamodule is not None:
+            n_epochs = datamodule.reload_train_dataloader_every_n_epochs
+        if trainer_n_epochs is not None and n_epochs != trainer_n_epochs:
+            raise MisconfigurationException(
+                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
+                f"`Trainer(reload_dataloaders_every_n_epochs={trainer_n_epochs}.)`"
+                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
+                " Move `reload_dataloaders_every_n_epochs` setting to"
+                " DataModule or LightningModule property."
+            )
+
     def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
         loader_name = f"{stage}_dataloader"
         step_name = "validation_step" if stage == "val" else "test_step"
@@ -121,23 +141,24 @@ class ConfigValidator:
         if has_step and not has_loader:
             rank_zero_warn(f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop")
 
-        # ----------------------------------------------
-        # verify model does not have
-        # - on_val_dataloader
-        # - on_test_dataloader
-        # ----------------------------------------------
-        has_on_val_dataloader = is_overridden("on_val_dataloader", model)
-        if has_on_val_dataloader:
-            rank_zero_deprecation(
-                "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `val_dataloader()` directly."
-            )
-
-        has_on_test_dataloader = is_overridden("on_test_dataloader", model)
-        if has_on_test_dataloader:
-            rank_zero_deprecation(
-                "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `test_dataloader()` directly."
+        # ---------------------------------------------------------
+        # verify `reload_dataloaders_every_n_epochs` value setting
+        # ---------------------------------------------------------
+        lightning_module = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
+        trainer_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        n_epochs = None
+        if lightning_module is not None:
+            n_epochs = lightning_module.reload_val_dataloader_every_n_epochs
+        if datamodule is not None:
+            n_epochs = datamodule.reload_val_dataloader_every_n_epochs
+        if trainer_n_epochs is not None and n_epochs != trainer_n_epochs:
+            raise MisconfigurationException(
+                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
+                f"`Trainer(reload_dataloaders_every_n_epochs={trainer_n_epochs}.)`"
+                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
+                " Move `reload_dataloaders_every_n_epochs` setting to"
+                " DataModule or LightningModule property."
             )
 
     def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
