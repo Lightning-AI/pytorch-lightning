@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Mapping, Optional, Tuple
+from typing import Any, Iterator, Mapping, Optional, Tuple
 
 import torch
 
@@ -20,6 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -64,7 +65,7 @@ def _check_training_step_output(model: "pl.LightningModule", training_step_outpu
 
 def _process_training_step_output(
     trainer: "pl.Trainer", training_step_output: STEP_OUTPUT
-) -> Tuple[Optional[ResultCollection], Optional[torch.Tensor]]:
+) -> Tuple[Optional[ResultCollection], Optional[Any]]:
     """Adds the :param:`training_step_output` to the trainer's results
 
     Args:
@@ -102,3 +103,13 @@ def _process_training_step_output(
     if trainer.move_metrics_to_cpu:
         results.cpu()
     return results, hiddens
+
+
+def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
+    """Attach the dataloader"""
+    if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+        # restore iteration
+        dataloader_iter = enumerate(data_fetcher, batch_idx)
+    else:
+        dataloader_iter = iter(data_fetcher)
+    return dataloader_iter

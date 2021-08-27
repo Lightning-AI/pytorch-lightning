@@ -54,6 +54,7 @@ PyTorch Lightning Documentation
    common/loggers
    advanced/multi_gpu
    advanced/advanced_gpu
+   advanced/mixed_precision
    common/weights_loading
    advanced/checkpoint_io
    common/optimizers
