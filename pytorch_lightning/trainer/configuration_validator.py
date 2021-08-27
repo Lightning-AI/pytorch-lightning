@@ -120,12 +120,12 @@ class ConfigValidator:
             n_epochs = lightning_module.reload_train_dataloader_every_n_epochs
         if datamodule is not None:
             n_epochs = datamodule.reload_train_dataloader_every_n_epochs
-        if trainer_n_epochs is not None and n_epochs != trainer_n_epochs:
+        if trainer_n_epochs is not None and n_epochs is not None and n_epochs != trainer_n_epochs:
             raise MisconfigurationException(
-                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
+                "Inconsistent settings found for `reload_train_dataloader_every_n_epochs` Value was set with "
                 f"`Trainer(reload_dataloaders_every_n_epochs={trainer_n_epochs}.)`"
-                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
-                " Move `reload_dataloaders_every_n_epochs` setting to"
+                f" and `reload_train_dataloader_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
+                " Move `reload_train_dataloader_every_n_epochs` setting to"
                 " DataModule or LightningModule property."
             )
 
@@ -152,12 +152,12 @@ class ConfigValidator:
             n_epochs = lightning_module.reload_val_dataloader_every_n_epochs
         if datamodule is not None:
             n_epochs = datamodule.reload_val_dataloader_every_n_epochs
-        if trainer_n_epochs is not None and n_epochs != trainer_n_epochs:
+        if trainer_n_epochs is not None and n_epochs is not None and n_epochs != trainer_n_epochs:
             raise MisconfigurationException(
-                "Inconsistent settings found for `reload_dataloaders_every_n_epochs` Value was set with "
+                "Inconsistent settings found for `reload_val_dataloader_every_n_epochs` Value was set with "
                 f"`Trainer(reload_dataloaders_every_n_epochs={trainer_n_epochs}.)`"
-                f" and `reload_dataloaders_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
-                " Move `reload_dataloaders_every_n_epochs` setting to"
+                f" and `reload_val_dataloader_every_n_epochs ={n_epochs}` in DataModule or LightningModule property."
+                " Move `reload_val_dataloader_every_n_epochs` setting to"
                 " DataModule or LightningModule property."
             )
 

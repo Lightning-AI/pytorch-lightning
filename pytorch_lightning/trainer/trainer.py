@@ -290,11 +290,6 @@ class Trainer(
                     Please set ``reload_dataloaders_every_n_epochs`` in `LightningDataModule` or `LightningModule`
                     directly instead.
 
-                .. deprecated:: v1.5
-                    this flag in Trainer is deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``reload_dataloaders_every_n_epochs`` in `LightningDataModule` or `LightningModule`
-                    directly instead.
-
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
                 .. deprecated:: v1.4

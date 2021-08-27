@@ -456,6 +456,8 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
     dm.reload_dataloaders_every_n_epochs = 2
+    dm.reload_train_dataloader_every_n_epochs = 2
+    dm.reload_val_dataloader_every_n_epochs = 2
     trainer.fit(model, dm)
 
 
@@ -541,7 +543,7 @@ def test_simple_hyperparameters_saving():
 
 def test_inconsistent_reload_dataloaders_every_n_epochs(tmpdir):
     with pytest.raises(
-        MisconfigurationException, match="Inconsistent settings found for `reload_dataloaders_every_n_epochs`"
+        MisconfigurationException, match="Inconsistent settings found for `reload_train_dataloader_every_n_epochs`"
     ):
         model = BoringModel()
         dm = BoringDataModule()
