@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from distutils.version import LooseVersion
+from types import ModuleType
 
 import pytorch_lightning.utilities.argparse
 
@@ -38,6 +40,8 @@ class pl_legacy_patch:
 
         1. ``pytorch_lightning.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
            version 1.2.8. See: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
+        2. ``pytorch_lightning.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
+           but still needs to be available for import for legacy checkpoints.
 
     Example:
 
@@ -46,9 +50,16 @@ class pl_legacy_patch:
     """
 
     def __enter__(self):
-        setattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default", lambda x: x)
+        # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
+        legacy_argparse_module = ModuleType("pytorch_lightning.utilities.argparse_utils")
+        sys.modules["pytorch_lightning.utilities.argparse_utils"] = legacy_argparse_module
+
+        # `_gpus_arg_default` used to be imported from these locations
+        legacy_argparse_module._gpus_arg_default = lambda x: x
+        pytorch_lightning.utilities.argparse._gpus_arg_default = lambda x: x
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
             delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
+        del sys.modules["pytorch_lightning.utilities.argparse_utils"]
