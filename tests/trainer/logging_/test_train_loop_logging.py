@@ -359,37 +359,74 @@ def test_log_works_in_train_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-@pytest.mark.parametrize("gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1))])
+class LoggingSyncDistModel(BoringModel):
+    def __init__(self, fake_result):
+        super().__init__()
+        self.fake_result = fake_result
+
+    @property
+    def rank(self) -> int:
+        return self.trainer.global_rank
+
+    def training_step(self, batch, batch_idx):
+        value = self.fake_result + self.rank
+        self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo_2", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo_3", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
+        self.log("foo_4", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
+        self.log("foo_5", batch_idx + self.rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max")
+
+        self.log("foo_6", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("foo_8", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_9", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_10", batch_idx, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("bar_3", batch_idx + self.rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        return super().validation_step(batch, batch_idx)
+
+
+@pytest.mark.parametrize(
+    "gpus", [None, pytest.param(1, marks=RunIf(min_gpus=1)), pytest.param(2, marks=RunIf(min_gpus=2))]
+)
 def test_logging_sync_dist_true(tmpdir, gpus):
     """
     Tests to ensure that the sync_dist flag works (should just return the original value)
     """
     fake_result = 1
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            self.log("foo", fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            self.log("foo_2", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            self.log("bar", fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-            return super().validation_step(batch, batch_idx)
-
-    model = TestModel()
+    model = LoggingSyncDistModel(fake_result)
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
         weights_summary=None,
         gpus=gpus,
     )
     trainer.fit(model)
 
-    assert trainer.logged_metrics["foo"] == fake_result
-    assert trainer.logged_metrics["foo_2"] == 2
-    assert trainer.logged_metrics["bar"] == fake_result
+    num_devices = 1 if gpus is None else gpus
+    use_multiple_devices = num_devices > 1
+    total = fake_result * num_devices + 1
+
+    metrics = trainer.callback_metrics
+    assert metrics["foo"] == total if use_multiple_devices else fake_result
+    assert metrics["foo_2"] == 2 * num_devices
+    assert metrics["foo_3"] == 2
+    assert metrics["foo_4"] == total / num_devices if use_multiple_devices else 1
+    assert metrics["foo_5"] == fake_result * 2 + 1 if use_multiple_devices else fake_result * 2
+    assert metrics["foo_6"] == fake_result * 3 * 2 + 3 if use_multiple_devices else fake_result * 3 * 2
+    assert metrics["foo_7"] == 2 * num_devices * 3
+    assert metrics["foo_8"] == 2
+    assert metrics["foo_9"] == (fake_result * 2 + 1) / num_devices if use_multiple_devices else fake_result
+    assert metrics["foo_10"] == 2
+    assert metrics["bar"] == fake_result * 3 * num_devices
+    assert metrics["bar_2"] == fake_result
+    assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
 @RunIf(min_gpus=2, special=True)
