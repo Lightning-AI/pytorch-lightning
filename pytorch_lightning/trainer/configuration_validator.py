@@ -120,6 +120,7 @@ class ConfigValidator:
             rank_zero_warn(f"you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop")
         if has_step and not has_loader:
             rank_zero_warn(f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop")
+
         # ----------------------------------------------
         # verify model does not have
         # - on_val_dataloader

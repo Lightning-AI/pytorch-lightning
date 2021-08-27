@@ -689,7 +689,7 @@ class DataHooks:
         """
         rank_zero_deprecation(
             "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-            " Please use `train_dataloader()` directly. "
+            " Please use `train_dataloader()` directly."
         )
 
     def on_val_dataloader(self) -> None:
@@ -701,7 +701,7 @@ class DataHooks:
         """
         rank_zero_deprecation(
             "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-            " Please use ``val_dataloader()`` directly. "
+            " Please use `val_dataloader()` directly."
         )
 
     def on_test_dataloader(self) -> None:
@@ -713,7 +713,7 @@ class DataHooks:
         """
         rank_zero_deprecation(
             "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-            " Please use ``test_dataloader()`` directly. "
+            " Please use `test_dataloader()` directly."
         )
 
     def on_predict_dataloader(self) -> None:
@@ -725,7 +725,7 @@ class DataHooks:
         """
         rank_zero_deprecation(
             "Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-            " Please use ``predict_dataloader()`` directly. "
+            " Please use `predict_dataloader()` directly."
         )
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:

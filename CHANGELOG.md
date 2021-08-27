@@ -157,7 +157,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated the `TestTubeLogger` ([#9065](https://github.com/PyTorchLightning/pytorch-lightning/pull/9065))
 
-- Deprecated `on_{train/val/test/predict}_trainer()` from `DataHooks` [#9098](https://github.com/PyTorchLightning/pytorch-lightning/pull/9098)
+- Deprecated `on_{train/val/test/predict}_trainer()` from `LightningModule` and `LightningDataModule` [#9098](https://github.com/PyTorchLightning/pytorch-lightning/pull/9098)
 
 -
 
