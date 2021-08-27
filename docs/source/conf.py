@@ -107,6 +107,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
+    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
