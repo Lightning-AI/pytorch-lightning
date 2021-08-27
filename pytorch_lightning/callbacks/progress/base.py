@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import Dict, Union
 
-from pytorch_lightning.callbacks import Callback
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 
 
