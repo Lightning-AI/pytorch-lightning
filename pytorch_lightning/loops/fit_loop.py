@@ -265,3 +265,13 @@ class FitLoop(Loop):
             n_epochs = trainer_n_epochs if trainer_n_epochs is not None else 0
 
         return n_epochs and (not current_epoch % n_epochs)
+
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        # FIXME(@tchaton) Should pass has_completed=True when iterator is exhausted ?
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        # cache the dataloader state dict until the dataloader objects are available
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
