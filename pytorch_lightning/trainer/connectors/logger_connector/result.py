@@ -63,7 +63,7 @@ class _Sync:
     def _generate_sync_fn(self):
         """Used to compute the syncing function and cache it."""
         if self.fn and self.should and not self.rank_zero_only:
-            # save the function as `_fn` as the meta are being re-created 
+            # save the function as `_fn` as the meta are being re-created
             # and the object references need to match.
             self._fn = partial(self.fn, reduce_op=self.op, group=self.group)
 
