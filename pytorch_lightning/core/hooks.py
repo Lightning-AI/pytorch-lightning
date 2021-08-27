@@ -18,7 +18,8 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
