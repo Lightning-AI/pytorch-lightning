@@ -45,22 +45,33 @@ class MetricSource(LightningEnum):
 @dataclass
 class _Sync:
     fn: Optional[Callable] = None
-    should: bool = False
+    _should: bool = False
     rank_zero_only: bool = False
     op: Optional[str] = None
     group: Optional[Any] = None
 
     def __post_init__(self) -> None:
-        if self.fn is None:
-            self.fn = self.no_op
+        self._generate_sync_fn()
+
+    @property
+    def should(self) -> bool:
+        return self._should
+
+    @should.setter
+    def should(self, should: bool) -> None:
+        self._should = should
+        # `self._fn` needs to be re-generated.
+        self._generate_sync_fn()
+
+    def _generate_sync_fn(self) -> None:
+        """Used to compute the syncing function and cache it."""
+        fn = self.no_op if self.fn is None or not self.should or self.rank_zero_only else self.fn
+        # save the function as `_fn` as the meta are being re-created and the object references need to match.
+        self._fn = partial(fn, reduce_op=self.op, group=self.group)
 
     @property
     def __call__(self) -> Any:
-        return (
-            partial(self.fn, reduce_op=self.op, group=self.group)
-            if self.should and not self.rank_zero_only
-            else self.no_op
-        )
+        return self._fn
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:
@@ -75,31 +86,28 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    _reduce_fx: Callable = torch.mean
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
 
-    @property
-    def reduce_fx(self) -> Callable:
-        return self._reduce_fx
+    def __post_init__(self) -> None:
+        self._parse_reduce_fx()
 
-    @reduce_fx.setter
-    def reduce_fx(self, reduce_fx: Union[str, Callable]) -> None:
+    def _parse_reduce_fx(self) -> None:
         error = (
             "Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported."
             " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
-            f" Found: {reduce_fx}"
+            f" Found: {self.reduce_fx}"
         )
-        self._reduce_fx = reduce_fx
-        if isinstance(reduce_fx, str):
-            reduce_fx = reduce_fx.lower()
+        if isinstance(self.reduce_fx, str):
+            reduce_fx = self.reduce_fx.lower()
             if reduce_fx == "avg":
                 reduce_fx = "mean"
             if reduce_fx not in ("min", "max", "mean", "sum"):
                 raise MisconfigurationException(error)
-            self._reduce_fx = getattr(torch, reduce_fx)
+            self.reduce_fx = getattr(torch, reduce_fx)
         elif self.is_custom_reduction:
             raise MisconfigurationException(error)
 
@@ -178,11 +186,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
-            self._forward_cache = value
             # performance: no need to accumulate on values only logged on_step
             if self.meta.on_step and not self.meta.on_epoch:
-                self.value = self.meta.sync(value)
+                self._forward_cache = self.value = self.meta.sync(value)
                 return
+            self._forward_cache = value
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
@@ -201,8 +209,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
-            elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
-                return value
+            return value
         return self.value.compute()
 
     def reset(self) -> None:
@@ -449,12 +456,12 @@ class ResultCollection(dict):
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.reduce_fx = reduce_fx
-        meta.sync = _Sync(should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
 
         # register logged value if it doesn't exist
         if key not in self:
@@ -680,6 +687,8 @@ class ResultCollection(dict):
 
         if not metrics:
             return
+
+        # iterate through result metrics and re-attached Metric references on reload.
         result_metrics = self.result_metrics
         for metric_attribute, metric in metrics.items():
             for result_metric in result_metrics:
