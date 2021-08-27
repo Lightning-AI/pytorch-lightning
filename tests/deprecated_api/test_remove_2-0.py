@@ -11,5 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Test deprecated functionality which will be removed in v1.4.0"""
 
-from pytorch_lightning.loops.processors.iterator_batch_processor import IteratorBatchProcessor  # noqa: F401
+import pytest
+
+from tests.deprecated_api import _soft_unimport_module
+
+
+def test_v2_0_0_deprecated_imports():
+    _soft_unimport_module("pytorch_lightning.utilities.argparse_utils")
+    with pytest.deprecated_call(match="will be removed in v2.0"):
+        from pytorch_lightning.utilities.argparse_utils import _gpus_arg_default  # noqa: F401

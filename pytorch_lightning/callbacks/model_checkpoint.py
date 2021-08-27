@@ -194,6 +194,12 @@ class ModelCheckpoint(Callback):
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
+    .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
+
+        Read more: :ref:`Persisting Callback State`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -248,15 +254,26 @@ class ModelCheckpoint(Callback):
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval, period)
         self.__validate_init_configuration()
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """
-        When pretrain routine starts we build the ckpt dir on the fly
-        """
-        self.__resolve_ckpt_dir(trainer)
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(
+            monitor=self.monitor,
+            mode=self.mode,
+            every_n_train_steps=self._every_n_train_steps,
+            every_n_epochs=self._every_n_epochs,
+            train_time_interval=self._train_time_interval,
+            save_on_train_epoch_end=self._save_on_train_epoch_end,
+        )
+
+    def on_init_end(self, trainer: "pl.Trainer") -> None:
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to save checkpoint after
             # validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0
+
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """When pretrain routine starts we build the ckpt dir on the fly."""
+        self.__resolve_ckpt_dir(trainer)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()

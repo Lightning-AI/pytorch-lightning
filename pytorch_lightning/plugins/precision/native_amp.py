@@ -19,7 +19,12 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _TORCH_GREATER_EQUAL_1_10, AMPType
+from pytorch_lightning.utilities import (
+    _NATIVE_AMP_AVAILABLE,
+    _TORCH_BFLOAT_AVAILABLE,
+    _TORCH_CPU_AMP_AVAILABLE,
+    AMPType,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -31,7 +36,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         precision: Whether to use torch.float16 (16) or torch.bfloat16 (bf16).
     """
 
-    def __init__(self, precision: Union[int, str] = 16) -> None:
+    def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
         super().__init__()
 
         if not _NATIVE_AMP_AVAILABLE:
@@ -39,6 +44,14 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 "You have asked for native AMP but your PyTorch version does not support it."
                 " Consider upgrading with `pip install torch>=1.6`."
             )
+
+        if use_cpu and not _TORCH_CPU_AMP_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for native AMP on CPU, but AMP is only available on GPU for PyTorch 1.9 "
+                "and lower. To use native AMP on CPU, install PyTorch 1.10 or later."
+            )
+
+        self.use_cpu = use_cpu
         self._fast_dtype = self._select_precision_dtype(precision)
         self.backend = AMPType.NATIVE
         if not self.is_bfloat16:
@@ -46,11 +59,15 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def _select_precision_dtype(self, precision: Union[int, str] = 16) -> torch.dtype:
         if precision == "bf16":
-            if not _TORCH_GREATER_EQUAL_1_10:
+            if not _TORCH_BFLOAT_AVAILABLE:
                 raise MisconfigurationException(
                     "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
                 )
             return torch.bfloat16
+        elif self.use_cpu:
+            raise MisconfigurationException(
+                "CPU native amp only supports bfloat16. Please pass precision='bf16' to the Trainer."
+            )
         return torch.float16
 
     @property
@@ -91,6 +108,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return False
 
     def autocast_context_manager(self) -> torch.cuda.amp.autocast:
+        if self.use_cpu:
+            return torch.cpu.amp.autocast(fast_dtype=self._fast_dtype)
         if self.is_bfloat16:
             return torch.cuda.amp.autocast(fast_dtype=self._fast_dtype)
         return torch.cuda.amp.autocast()

@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from abc import ABC
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
+from packaging.version import Version
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -242,7 +242,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_id] = state
+                callback_states[callback.state_key] = state
         return callback_states
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -255,19 +255,19 @@ class TrainerCallbackHookMixin(ABC):
         if callback_states is None:
             return
 
-        current_callbacks_type = {type(cb) for cb in self.callbacks}
-        saved_callbacks_type = set(callback_states.keys())
-        difference = saved_callbacks_type.difference(current_callbacks_type)
+        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
+        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
+        difference = callback_states.keys() - current_callbacks_keys
         if difference:
             rank_zero_warn(
-                "Be aware that when using ``resume_from_checkpoint``, "
-                "callbacks used to create the checkpoint need to be provided. "
-                f"Please, add the following callbacks: {list(difference)}. ",
+                "Be aware that when using `resume_from_checkpoint`,"
+                " callbacks used to create the checkpoint need to be provided."
+                f" Please add the following callbacks: {list(difference)}.",
                 UserWarning,
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(callback.state_id, callback_states.get(callback._legacy_state_id))
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
                 callback.on_load_checkpoint(self, self.lightning_module, state)
