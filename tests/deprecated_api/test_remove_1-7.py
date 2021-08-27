@@ -92,7 +92,6 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
-<<<<<<< HEAD
 @RunIf(min_gpus=2)
 def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     """Tests if device is set correctly when training for DDPSpawnPlugin."""
@@ -101,9 +100,9 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         _ = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
-=======
+
+        
 @mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
         _ = TestTubeLogger(tmpdir)
->>>>>>> 045c879e08455683584167713c5f7e3d389afa66
