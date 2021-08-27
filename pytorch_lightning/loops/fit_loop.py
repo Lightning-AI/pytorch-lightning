@@ -132,8 +132,8 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps not in [None, -1] and self.global_step >= self.max_steps
-        stop_epochs = self.max_epochs not in [None, -1] and self.current_epoch >= self.max_epochs
+        stop_steps = self.max_steps not in (None, -1) and self.global_step >= self.max_steps
+        stop_epochs = self.max_epochs not in (None, -1) and self.current_epoch >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:
