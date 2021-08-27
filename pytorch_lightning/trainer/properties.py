@@ -630,15 +630,25 @@ class TrainerProperties(ABC):
 
     @property
     def should_stop(self) -> bool:
-        # FIXME: deprecate, ask users to access it themselves
+        rank_zero_deprecation(
+            "Accessing `trainer.should_stop` is deprecated. You can find this attribute in the loop instance"
+            " you want to check. For example, `trainer.fit_loop.should_stop`"
+        )
         return self._active_loop.should_stop
 
     @should_stop.setter
     def should_stop(self, should_stop: bool) -> None:
-        # FIXME: deprecate this setter, ask users to call `.stop()` manually
+        rank_zero_deprecation(
+            "Setting `trainer.should_stop` is deprecated in v1.5 and will be removed in v1.7. Please use"
+            " `trainer.stop()` or `trainer.a_loop.stop()` instead"
+        )
         if should_stop:
-            self._active_loop.stop()
+            self.stop()
+        # in case `False` was passed
         self._active_loop.should_stop = should_stop
+
+    def stop(self) -> None:
+        self._active_loop.stop()
 
     """
     Logging properties
