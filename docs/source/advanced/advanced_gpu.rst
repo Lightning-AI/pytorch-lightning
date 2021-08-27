@@ -546,7 +546,7 @@ This saves memory when training larger models, however requires using a checkpoi
         def forward(self, x):
             # Use the DeepSpeed checkpointing function instead of calling the module directly
             # checkpointing self.layer_h means the activations are deleted after use,
-            # and re-calculated during the backwards pass
+            # and re-calculated during the backward passes
             x = torch.utils.checkpoint.checkpoint(self.block_1, x)
             return self.block_2(x)
 
