@@ -501,18 +501,29 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == 3 * 2 * num_train_samples
 
     # if max_steps is 0 and max_epochs is negative, use max_steps
-    trainer_kwargs["max_epochs"] = -5
+    trainer_kwargs["max_epochs"] = -1
     trainer_kwargs["max_steps"] = 0
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.global_step == 0
+    assert trainer.done is True
 
-    # allow specifying max_epochs < 0 and max_steps = None
+    # allow specifying max_epochs < 0 and max_steps = None. This should immediately stop
     trainer_kwargs["max_epochs"] = -100
     trainer_kwargs["max_steps"] = None
     trainer = Trainer(**trainer_kwargs)
+
+    assert trainer.done is True
+
+    # Make sure various combinations work to disable automatic stopping
+    for x, y in [(-1, None), (None, -1), (None, None)]:
+        trainer_kwargs["max_epochs"] = x
+        trainer_kwargs["max_steps"] = y
+        trainer = Trainer(**trainer_kwargs)
+
+        assert trainer.max_epochs == x
+        assert trainer.max_steps == y
+        assert trainer.max_time is None
+        assert trainer.done is False
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):

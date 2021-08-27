@@ -47,6 +47,13 @@ def test_trainer_flag(caplog):
     assert trainer.max_epochs is None
     assert trainer.max_steps is None
 
+    # Make sure max_time still honored even if max_epochs == -1
+    trainer = Trainer(max_time=dict(seconds=10), max_epochs=-1)
+    with pytest.raises(SystemExit):
+        trainer.fit(TestModel())
+    timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
+    assert timer._duration == 10
+
 
 @pytest.mark.parametrize(
     "duration,expected",
