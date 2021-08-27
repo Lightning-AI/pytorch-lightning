@@ -97,4 +97,4 @@ def test_v1_7_0_test_tube_logger(_, tmpdir):
         _ = TestTubeLogger(tmpdir)
 
 
-# FIXME: add deprecations for should_stop
+# FIXME: add deprecation test for should_stop setter

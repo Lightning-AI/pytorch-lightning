@@ -630,10 +630,6 @@ class TrainerProperties(ABC):
 
     @property
     def should_stop(self) -> bool:
-        rank_zero_deprecation(
-            "Accessing `trainer.should_stop` is deprecated. You can find this attribute in the loop instance"
-            " you want to check. For example, `trainer.fit_loop.should_stop`"
-        )
         return self._active_loop.should_stop
 
     @should_stop.setter
