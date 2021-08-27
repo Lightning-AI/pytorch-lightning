@@ -21,7 +21,6 @@ from subprocess import TimeoutExpired
 from unittest import mock
 
 import pytest
-import torch
 
 from pytorch_lightning.utilities.imports import _module_available
 from tests.helpers.runif import RunIf
@@ -60,19 +59,19 @@ def run(tmpdir, import_cli, cli_args):
     return std, err
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
 def test_examples_dp_simple_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.simple_image_classifier", cli_args)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
 def test_examples_dp_backbone_image_classifier(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.backbone_image_classifier", cli_args)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("cli_args", [ARGS_DP, ARGS_DP + ARGS_AMP])
 def test_examples_dp_autoencoder(tmpdir, cli_args):
     run(tmpdir, "pl_examples.basic_examples.autoencoder", cli_args)
@@ -94,7 +93,7 @@ def test_examples_cpu_autoencoder(tmpdir, cli_args):
 
 
 @pytest.mark.skipif(not _DALI_AVAILABLE, reason="Nvidia DALI required")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @pytest.mark.skipif(platform.system() != "Linux", reason="Only applies to Linux platform.")
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
 def test_examples_mnist_dali(tmpdir, cli_args):
