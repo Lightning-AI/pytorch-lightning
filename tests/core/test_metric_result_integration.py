@@ -449,6 +449,7 @@ def result_collection_reload(**kwargs):
         def on_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
                 total = sum(range(5)) * num_processes
+                print(self.results["training_step.tracking"].meta)
                 metrics = self.results.metrics(on_step=False)
                 assert self.results["training_step.tracking"].value == total
                 assert metrics[MetricSource.CALLBACK]["tracking"] == self.dummy_metric.compute() == 2

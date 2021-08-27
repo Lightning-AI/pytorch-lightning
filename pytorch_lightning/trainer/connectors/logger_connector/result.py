@@ -45,6 +45,7 @@ class MetricSource(LightningEnum):
 
 @dataclass
 class _Sync:
+    
     fn: Optional[Callable] = None
     should: bool = False
     rank_zero_only: bool = False
@@ -52,8 +53,20 @@ class _Sync:
     group: Optional[Any] = None
 
     def __post_init__(self) -> None:
+        self._generate_sync_fn()
+
+    def set_should(self, should: bool) -> None:
+        self.should = should
+        # when should changes, the `sync fn` need to be re-generated. 
+        self._generate_sync_fn()
+
+    def _generate_sync_fn(self):
+        """Used to compute the syncing function and cache it."""
         if self.fn is None:
             self.fn = self.no_op
+
+        # save the function as `_fn` as the meta are being re-created 
+        # and the object references need to match.
         if self.should and not self.rank_zero_only:
             kwargs = {"group": self.group}
             if "reduce_op" in inspect.signature(self.fn).parameters:
@@ -61,6 +74,7 @@ class _Sync:
             self._fn = partial(self.fn, **kwargs)
         else:
             self._fn = self.no_op
+
     @property
     def __call__(self) -> Any:
         return self._fn
@@ -508,9 +522,9 @@ class ResultCollection(dict):
             if not result_metric._computed:
                 # always reduce on epoch end
                 should = result_metric.meta.sync.should
-                result_metric.meta.sync.should = True
+                result_metric.meta.sync.set_should(True)
                 result_metric.compute()
-                result_metric.meta.sync.should = should
+                result_metric.meta.sync.set_should(should)
             cache = result_metric._computed
         if cache is not None and not result_metric.meta.enable_graph:
             return cache.detach()
@@ -688,6 +702,8 @@ class ResultCollection(dict):
 
         if not metrics:
             return
+        
+        # iterate through result metrics and re-attached Metric references on reload.
         result_metrics = self.result_metrics
         for metric_attribute, metric in metrics.items():
             for result_metric in result_metrics:
