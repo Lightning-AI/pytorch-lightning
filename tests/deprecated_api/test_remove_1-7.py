@@ -106,4 +106,4 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
         _ = TestTubeLogger(tmpdir)
->>>>>>> 045c879e08455683584167713c5f7e3d389afa66
+>>>>>>> 0o45c879e08455683584167713c5f7e3d389afa66
