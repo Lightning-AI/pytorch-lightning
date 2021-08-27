@@ -109,7 +109,7 @@ class InternalDebugger:
 
     @enabled_only
     def track_train_loss_history(self, batch_idx: int, loss: torch.Tensor) -> None:
-        loss_dict = {"batch_idx": batch_idx, "epoch": self.trainer.current_epoch, "loss": loss.detach()}
+        loss_dict = {"batch_idx": batch_idx, "epoch": self.trainer.current_epoch, "loss": loss.detach().clone()}
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
