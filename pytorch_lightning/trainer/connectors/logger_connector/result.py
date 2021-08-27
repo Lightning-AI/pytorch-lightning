@@ -61,6 +61,7 @@ class _Sync:
             self._fn = partial(self.fn, **kwargs)
         else:
             self._fn = self.no_op
+
     @property
     def __call__(self) -> Any:
         return self._fn
