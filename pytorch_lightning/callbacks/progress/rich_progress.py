@@ -64,7 +64,13 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
             _text = ""
-            for k, v in self.get_progress_bar_metrics().items():
+            # TODO(@daniellepintz): make this code cleaner
+            progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
+            if progress_bar_callback:
+                metrics = self.progress_bar_callback.get_progress_bar_metrics(self.trainer, self)
+            else:
+                metrics = self._trainer.progress_bar_metrics
+            for k, v in metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             text = Text.from_markup(_text, style=None, justify="left")
             return text
