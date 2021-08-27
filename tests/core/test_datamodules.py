@@ -538,8 +538,6 @@ def test_simple_hyperparameters_saving():
 def test_define_as_dataclass():
     """
     Test datamodule for initialization as Python dataclass.
-    Since the super().__init__() method must be called, there requires to be a
-    __post_init__ method implemented in the inheriting class.
     """
 
     class RandomDataset(torch.utils.data.Dataset):
@@ -554,7 +552,7 @@ def test_define_as_dataclass():
             return self.len
 
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-    class BoringDataModule(LightningDataModule):
+    class BoringDataModule1(LightningDataModule):
         def __init__(self, batch_size):
             super().__init__()
             self.batch_size = batch_size
@@ -564,12 +562,12 @@ def test_define_as_dataclass():
 
     # assets for the different dunder methods added by dataclass, when __init__ is impelmented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule(batch_size=32)
-    assert hasattr(BoringDataModule, "__repr__")
-    assert BoringDataModule(batch_size=32) == BoringDataModule(batch_size=32)
+    assert BoringDataModule1(batch_size=32)
+    assert hasattr(BoringDataModule1, "__repr__")
+    assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
 
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-    class BoringDataModule(LightningDataModule):
+    class BoringDataModule2(LightningDataModule):
 
         batch_size: int = 2
 
@@ -578,9 +576,9 @@ def test_define_as_dataclass():
 
     # assets for the different dunder methods added by dataclass, when __post_init__ is impelmented, i.e.
     # __init__, __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule(batch_size=32)
-    assert hasattr(BoringDataModule, "__repr__")
-    assert BoringDataModule(batch_size=32) == BoringDataModule(batch_size=32)
+    assert BoringDataModule2(batch_size=32)
+    assert hasattr(BoringDataModule2, "__repr__")
+    assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
 
     class BoringModel(LightningModule):
         def __init__(self):
@@ -606,7 +604,7 @@ def test_define_as_dataclass():
         max_epochs=1,
         weights_summary=None,
     )
-    trainer.fit(BoringModel(), datamodule=BoringDataModule(batch_size=32))
+    trainer.fit(BoringModel(), datamodule=BoringDataModule2(batch_size=32))
 
     # checks if the trainer can finish one loop
     assert trainer.state.finished, f"Training failed with {trainer.state}"
