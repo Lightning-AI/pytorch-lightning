@@ -501,3 +501,13 @@ class DDPPlugin(ParallelPlugin):
                 os.kill(pid, signal.SIGKILL)
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+
+    def teardown(self) -> None:
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
+
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()
