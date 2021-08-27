@@ -62,22 +62,14 @@ class _Sync:
 
     def _generate_sync_fn(self):
         """Used to compute the syncing function and cache it."""
-        if self.fn is None:
-            self.fn = self.no_op
-
-        # save the function as `_fn` as the meta are being re-created 
-        # and the object references need to match.
-        if self.should and not self.rank_zero_only:
-            kwargs = {"group": self.group}
-            if "reduce_op" in inspect.signature(self.fn).parameters:
-                kwargs["reduce_op"] = self.op
-            self._fn = partial(self.fn, **kwargs)
-        else:
-            self._fn = self.no_op
+        if self.fn and self.should and not self.rank_zero_only:
+            # save the function as `_fn` as the meta are being re-created 
+            # and the object references need to match.
+            self._fn = partial(self.fn, reduce_op=self.op, group=self.group)
 
     @property
     def __call__(self) -> Any:
-        return self._fn
+        return getattr(self, "_fn", self.no_op)
 
     @staticmethod
     def no_op(value: Any, *_, **__) -> Any:
