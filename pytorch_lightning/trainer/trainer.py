@@ -380,8 +380,8 @@ class Trainer(
         self.tuner = Tuner(self)
 
         fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None) else min_epochs),
-            max_epochs=(1000 if (max_epochs is None and max_steps is None) else max_epochs),
+            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
+            max_epochs=(1000 if (max_epochs is None and max_steps is None and max_time is None) else max_epochs),
         )
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
