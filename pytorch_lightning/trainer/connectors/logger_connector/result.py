@@ -45,9 +45,8 @@ class MetricSource(LightningEnum):
 
 @dataclass
 class _Sync:
-    
     fn: Optional[Callable] = None
-    should: bool = False
+    _should: bool = False
     rank_zero_only: bool = False
     op: Optional[str] = None
     group: Optional[Any] = None
@@ -55,9 +54,14 @@ class _Sync:
     def __post_init__(self) -> None:
         self._generate_sync_fn()
 
-    def set_should(self, should: bool) -> None:
-        self.should = should
-        # when should changes, the `sync fn` need to be re-generated. 
+    @property
+    def should(self) -> bool:
+        return self._should
+
+    @should.setter
+    def should(self, should: bool) -> None:
+        self._should = should
+        # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
 
     def _generate_sync_fn(self):
@@ -65,7 +69,7 @@ class _Sync:
         if self.fn is None:
             self.fn = self.no_op
 
-        # save the function as `_fn` as the meta are being re-created 
+        # save the function as `_fn` as the meta are being re-created
         # and the object references need to match.
         if self.should and not self.rank_zero_only:
             kwargs = {"group": self.group}
@@ -92,31 +96,28 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    _reduce_fx: Callable = torch.mean
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
 
-    @property
-    def reduce_fx(self) -> Callable:
-        return self._reduce_fx
+    def __post_init__(self) -> None:
+        self._parse_reduce_fx()
 
-    @reduce_fx.setter
-    def reduce_fx(self, reduce_fx: Union[str, Callable]) -> None:
+    def _parse_reduce_fx(self) -> None:
         error = (
             "Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported."
             " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
-            f" Found: {reduce_fx}"
+            f" Found: {self.reduce_fx}"
         )
-        self._reduce_fx = reduce_fx
-        if isinstance(reduce_fx, str):
-            reduce_fx = reduce_fx.lower()
+        if isinstance(self.reduce_fx, str):
+            reduce_fx = self.reduce_fx.lower()
             if reduce_fx == "avg":
                 reduce_fx = "mean"
             if reduce_fx not in ("min", "max", "mean", "sum"):
                 raise MisconfigurationException(error)
-            self._reduce_fx = getattr(torch, reduce_fx)
+            self.reduce_fx = getattr(torch, reduce_fx)
         elif self.is_custom_reduction:
             raise MisconfigurationException(error)
 
@@ -141,7 +142,7 @@ class _Metadata:
 
     @property
     def is_mean_reduction(self) -> bool:
-        return self.reduce_fx is (torch.mean)
+        return self.reduce_fx is torch.mean
 
     @property
     def is_sum_reduction(self) -> bool:
@@ -465,12 +466,12 @@ class ResultCollection(dict):
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
-        meta.reduce_fx = reduce_fx
-        meta.sync = _Sync(should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
+        meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, group=sync_dist_group, rank_zero_only=rank_zero_only)
 
         # register logged value if it doesn't exist
         if key not in self:
@@ -516,9 +517,9 @@ class ResultCollection(dict):
             if not result_metric._computed:
                 # always reduce on epoch end
                 should = result_metric.meta.sync.should
-                result_metric.meta.sync.set_should(True)
+                result_metric.meta.sync.should = True
                 result_metric.compute()
-                result_metric.meta.sync.set_should(should)
+                result_metric.meta.sync.should = should
             cache = result_metric._computed
         if cache is not None and not result_metric.meta.enable_graph:
             return cache.detach()
@@ -696,8 +697,8 @@ class ResultCollection(dict):
 
         if not metrics:
             return
-        
-        # iterate through result metrics and re-attached Metric references on reload.
+
+        # iterate through result metrics and re-attached Metric references on reload.
         result_metrics = self.result_metrics
         for metric_attribute, metric in metrics.items():
             for result_metric in result_metrics:
