@@ -84,14 +84,14 @@ class ConfigValidator:
         if has_on_train_dataloader:
             rank_zero_deprecation(
                 "Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `train_dataloader()` directly. "
+                " Please use `train_dataloader()` directly."
             )
 
         has_on_val_dataloader = is_overridden("on_val_dataloader", model)
         if has_on_val_dataloader:
             rank_zero_deprecation(
                 "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `val_dataloader()` directly. "
+                " Please use `val_dataloader()` directly."
             )
 
         trainer = self.trainer
@@ -130,14 +130,14 @@ class ConfigValidator:
         if has_on_val_dataloader:
             rank_zero_deprecation(
                 "Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `val_dataloader()` directly. "
+                " Please use `val_dataloader()` directly."
             )
 
         has_on_test_dataloader = is_overridden("on_test_dataloader", model)
         if has_on_test_dataloader:
             rank_zero_deprecation(
                 "Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `test_dataloader()` directly. "
+                " Please use `test_dataloader()` directly."
             )
 
     def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
@@ -152,7 +152,7 @@ class ConfigValidator:
         if has_on_predict_dataloader:
             rank_zero_deprecation(
                 "Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
-                " Please use `predict_dataloader()` directly. "
+                " Please use `predict_dataloader()` directly."
             )
 
     def __verify_dp_batch_transfer_support(self, model: "pl.LightningModule") -> None:

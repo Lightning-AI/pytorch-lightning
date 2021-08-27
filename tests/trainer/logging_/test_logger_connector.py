@@ -265,7 +265,7 @@ def test_fx_validator_integration(tmpdir):
     not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_test_dataloader": "You can't",
+            "on_predict_dataloader": "ResultCollection` is not registered yet",
             "predict_dataloader": "ResultCollection` is not registered yet",
             "on_predict_model_eval": "ResultCollection` is not registered yet",
             "on_predict_start": "ResultCollection` is not registered yet",
