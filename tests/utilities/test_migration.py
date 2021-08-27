@@ -21,6 +21,7 @@ def test_patch_legacy_argparse_utils():
     with pl_legacy_patch():
         from pytorch_lightning.utilities import argparse_utils
 
+        assert callable(argparse_utils._gpus_arg_default)
         assert "pytorch_lightning.utilities.argparse_utils" in sys.modules
 
     assert "pytorch_lightning.utilities.argparse_utils" not in sys.modules
