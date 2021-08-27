@@ -12,25 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
-from distutils.version import LooseVersion
 from types import ModuleType
 
 import pytorch_lightning.utilities.argparse
-
-
-def get_version(checkpoint: dict) -> str:
-    """Get the version of a Lightning checkpoint."""
-    return checkpoint["pytorch-lightning_version"]
-
-
-def set_version(checkpoint: dict, version: str):
-    """Set the version of a Lightning checkpoint."""
-    checkpoint["pytorch-lightning_version"] = version
-
-
-def should_upgrade(checkpoint: dict, target: str) -> bool:
-    """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
-    return LooseVersion(get_version(checkpoint)) < LooseVersion(target)
 
 
 class pl_legacy_patch:

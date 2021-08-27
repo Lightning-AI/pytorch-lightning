@@ -24,8 +24,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.migration.base import pl_legacy_patch
-from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -63,7 +64,6 @@ class CheckpointConnector:
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
         with pl_legacy_patch():
             self._loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
-            migrate_checkpoint(self._loaded_checkpoint)
 
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
@@ -148,7 +148,6 @@ class CheckpointConnector:
         if checkpoint_path is not None:
             with pl_legacy_patch():
                 checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
-                migrate_checkpoint(checkpoint)
 
         self.trainer.lightning_module.on_load_checkpoint(checkpoint)
         self.trainer.training_type_plugin.load_model_state_dict(checkpoint)
@@ -173,6 +172,13 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
+        if any(key in self._loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
+            raise ValueError(
+                "The checkpoint you're attempting to load follows an"
+                " outdated schema. You can upgrade to the current schema by running"
+                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
+                " where `model.ckpt` is your checkpoint file."
+            )
         self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
