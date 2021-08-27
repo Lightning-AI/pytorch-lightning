@@ -19,6 +19,7 @@ import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
+from enum import Enum
 from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
@@ -381,6 +382,8 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     # drop paramaters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
+            if isinstance(v, Enum):
+                v = deepcopy(v.name)
             yaml.dump(v)
         except TypeError:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
