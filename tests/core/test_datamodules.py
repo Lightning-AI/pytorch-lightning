@@ -538,7 +538,8 @@ def test_simple_hyperparameters_saving():
 def test_define_as_dataclass():
     """
     Test datamodule for initialization as Python dataclass.
-    Since the super().__init__() method must be called, there requires to be a __post_init__ method implemented in the inheriting class.
+    Since the super().__init__() method must be called, there requires to be a
+    __post_init__ method implemented in the inheriting class.
     """
 
     class RandomDataset(torch.utils.data.Dataset):
