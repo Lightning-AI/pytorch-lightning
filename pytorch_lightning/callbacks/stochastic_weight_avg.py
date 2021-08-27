@@ -216,7 +216,7 @@ class StochasticWeightAveraging(Callback):
             # performing only one pass over the train data-loader to compute activation statistics
             # Therefore, we will virtually increase `num_training_batches` by 1 and skip backward.
             trainer.num_training_batches += 1
-            trainer.fit_loop._skip_backward = True
+            trainer.fit_loop.epoch_loop._skip_backward = True
             self._accumulate_grad_batches = trainer.accumulate_grad_batches
 
             trainer.accumulate_grad_batches = trainer.num_training_batches
