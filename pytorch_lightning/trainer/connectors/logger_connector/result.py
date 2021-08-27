@@ -45,7 +45,7 @@ class MetricSource(LightningEnum):
 
 @dataclass
 class _Sync:
-    
+
     fn: Optional[Callable] = None
     should: bool = False
     rank_zero_only: bool = False
@@ -57,7 +57,7 @@ class _Sync:
 
     def set_should(self, should: bool) -> None:
         self.should = should
-        # when should changes, the `sync fn` need to be re-generated. 
+        # when should changes, the `sync fn` need to be re-generated.
         self._generate_sync_fn()
 
     def _generate_sync_fn(self):
@@ -65,7 +65,7 @@ class _Sync:
         if self.fn is None:
             self.fn = self.no_op
 
-        # save the function as `_fn` as the meta are being re-created 
+        # save the function as `_fn` as the meta are being re-created
         # and the object references need to match.
         if self.should and not self.rank_zero_only:
             kwargs = {"group": self.group}
@@ -702,8 +702,8 @@ class ResultCollection(dict):
 
         if not metrics:
             return
-        
-        # iterate through result metrics and re-attached Metric references on reload.
+
+        # iterate through result metrics and re-attached Metric references on reload.
         result_metrics = self.result_metrics
         for metric_attribute, metric in metrics.items():
             for result_metric in result_metrics:
