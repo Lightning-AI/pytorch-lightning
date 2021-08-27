@@ -22,10 +22,8 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning.utilities.imports import _module_available
+from pl_examples import _DALI_AVAILABLE
 from tests.helpers.runif import RunIf
-
-_DALI_AVAILABLE = _module_available("nvidia.dali")
 
 ARGS_DEFAULT = (
     "--trainer.default_root_dir %(tmpdir)s "
