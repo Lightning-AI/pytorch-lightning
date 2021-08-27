@@ -500,30 +500,49 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == 3 * 2 * num_train_samples
 
-    # if max_steps is 0 and max_epochs is negative, use max_steps
-    trainer_kwargs["max_epochs"] = -1
-    trainer_kwargs["max_steps"] = 0
-    trainer = Trainer(**trainer_kwargs)
+@pytest.mark.parametrize(
+    "max_epochs,max_steps,incorrect_variable,incorrect_value",
+    [
+        (-100, None, "max_epochs", -100),
+        (1.5, None, "max_epochs", 1.5),
+        (1, -2, "max_steps", -2),
+        (1, 0.5, "max_steps", -2),
+    ],
+)
+def test_trainer_max_steps_and_epochs_validation(
+    max_epochs, max_steps, incorrect_variable, incorrect_value
+):
+    """Don't allow max_epochs or max_steps to be less than -1 or a float"""
+    with pytest.raises(
+        MisconfigurationException,
+        match=f"`{incorrect_variable}` must be a positive integer or -1. You passed in {incorrect_value}",
+    ):
+        trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
-    assert trainer.done is True
 
-    # allow specifying max_epochs < 0 and max_steps = None. This should immediately stop
-    trainer_kwargs["max_epochs"] = -100
-    trainer_kwargs["max_steps"] = None
-    trainer = Trainer(**trainer_kwargs)
+@pytest.mark.parametrize(
+    "max_epochs,max_steps,is_done",
+    [
+        (None, None, False),
+        (-1, None, False),
+        (None, -1, False),
+        (5, -1, False),
+        (-1, 10, False),
+        (None, 0, True),
+        (0, None, True),
+        (-1, 0, True),
+        (0, -1, True),
+    ],
+)
+def test_trainer_max_steps_and_epochs_fit_loop_done(
+    max_epochs, max_steps, is_done
+):
+    trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
-    assert trainer.done is True
-
-    # Make sure various combinations work to disable automatic stopping
-    for x, y in [(-1, None), (None, -1), (None, None)]:
-        trainer_kwargs["max_epochs"] = x
-        trainer_kwargs["max_steps"] = y
-        trainer = Trainer(**trainer_kwargs)
-
-        assert trainer.max_epochs == x
-        assert trainer.max_steps == y
-        assert trainer.max_time is None
-        assert trainer.done is False
+    assert trainer.max_epochs == max_epochs
+    assert trainer.max_steps == max_steps
+    assert trainer.max_time is None
+    assert trainer.fit_loop.done is is_done
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
