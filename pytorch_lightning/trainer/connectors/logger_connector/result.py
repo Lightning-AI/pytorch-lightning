@@ -140,7 +140,7 @@ class _Metadata:
 
     @property
     def is_mean_reduction(self) -> bool:
-        return self.reduce_fx is (torch.mean)
+        return self.reduce_fx is torch.mean
 
     @property
     def is_sum_reduction(self) -> bool:

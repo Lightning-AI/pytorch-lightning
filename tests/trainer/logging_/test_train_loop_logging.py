@@ -364,15 +364,17 @@ class LoggingSyncDistModel(BoringModel):
         super().__init__()
         self.fake_result = fake_result
 
+    @property
+    def rank(self) -> int:
+        return self.trainer.global_rank
+
     def training_step(self, batch, batch_idx):
-        value = self.fake_result + self.trainer.global_rank
+        value = self.fake_result + self.rank
         self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
         self.log("foo_2", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
         self.log("foo_3", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
         self.log("foo_4", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
-        self.log(
-            "foo_5", batch_idx + self.trainer.global_rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max"
-        )
+        self.log("foo_5", batch_idx + self.rank, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="max")
 
         self.log("foo_6", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
@@ -384,9 +386,7 @@ class LoggingSyncDistModel(BoringModel):
     def validation_step(self, batch, batch_idx):
         self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
-        self.log(
-            "bar_3", batch_idx + self.trainer.global_rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max"
-        )
+        self.log("bar_3", batch_idx + self.rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
         return super().validation_step(batch, batch_idx)
 
 
