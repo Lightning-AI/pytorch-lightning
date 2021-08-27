@@ -500,6 +500,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == 3 * 2 * num_train_samples
 
+
 @pytest.mark.parametrize(
     "max_epochs,max_steps,incorrect_variable,incorrect_value",
     [
@@ -509,9 +510,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
         (1, 0.5, "max_steps", -2),
     ],
 )
-def test_trainer_max_steps_and_epochs_validation(
-    max_epochs, max_steps, incorrect_variable, incorrect_value
-):
+def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable, incorrect_value):
     """Don't allow max_epochs or max_steps to be less than -1 or a float"""
     with pytest.raises(
         MisconfigurationException,
@@ -534,9 +533,7 @@ def test_trainer_max_steps_and_epochs_validation(
         (0, -1, True),
     ],
 )
-def test_trainer_max_steps_and_epochs_fit_loop_done(
-    max_epochs, max_steps, is_done
-):
+def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done):
     trainer = Trainer(max_epochs=max_epochs, max_steps=max_steps)
 
     assert trainer.max_epochs == max_epochs
