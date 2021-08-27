@@ -135,7 +135,7 @@ class EarlyStopping(Callback):
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to check after
             # validation instead of on train epoch end
-            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0
+            self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
