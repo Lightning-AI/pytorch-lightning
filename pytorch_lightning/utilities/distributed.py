@@ -179,10 +179,14 @@ def sync_ddp(
     if group is None:
         group = torch.distributed.group.WORLD
 
-    op = reduce_op if isinstance(reduce_op, ReduceOp) else ReduceOp.SUM
-
-    if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-        divide_by_world_size = True
+    if isinstance(reduce_op, str):
+        if reduce_op.lower() in ("avg", "mean"):
+            op = ReduceOp.SUM
+            divide_by_world_size = True
+        else:
+            op = getattr(ReduceOp, reduce_op.upper())
+    else:
+        op = reduce_op
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
