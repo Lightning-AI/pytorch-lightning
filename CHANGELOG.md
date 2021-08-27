@@ -141,7 +141,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `Trainer.request_dataloader` now takes a `RunningStage` enum instance ([#8858](https://github.com/PyTorchLightning/pytorch-lightning/pull/8858))
 
 
-- Changed `rank_zero_warn` to `NotImplementedError` in `DataHooks.{train, val, test, predict}_dataloader` ([#9161](https://github.com/PyTorchLightning/pytorch-lightning/pull/9161))
+- Changed `rank_zero_warn` to `NotImplementedError` in the `{train, val, test, predict}_dataloader` hooks that `Lightning(Data)Module` uses ([#9161](https://github.com/PyTorchLightning/pytorch-lightning/pull/9161))
 
 ### Deprecated
 
