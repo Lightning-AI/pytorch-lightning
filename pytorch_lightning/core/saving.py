@@ -29,6 +29,7 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, ran
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 log = logging.getLogger(__name__)
@@ -125,10 +126,11 @@ class ModelIO:
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        with pl_legacy_patch():
+            if map_location is not None:
+                checkpoint = pl_load(checkpoint_path, map_location=map_location)
+            else:
+                checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         if hparams_file is not None:
             extension = hparams_file.split(".")[-1]
