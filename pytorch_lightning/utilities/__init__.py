@@ -45,6 +45,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_BFLOAT_AVAILABLE,
+    _TORCH_CPU_AMP_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
