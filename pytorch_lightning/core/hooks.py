@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
@@ -540,7 +540,7 @@ class DataHooks:
                 return {'mnist': mnist_loader, 'cifar': cifar_loader}
 
         """
-        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
