@@ -190,7 +190,7 @@ class CheckpointConnector:
         self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
+        if self.trainer.max_epochs not in (None, -1) and self.trainer.current_epoch > self.trainer.max_epochs:
             raise MisconfigurationException(
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
