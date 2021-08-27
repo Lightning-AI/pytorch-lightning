@@ -295,7 +295,7 @@ def _gpus_allowed_type(x: str) -> Union[int, str]:
     return int(x)
 
 
-def _int_or_float_type(x) -> Union[int, float]:
+def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
     if "." in str(x):
         return float(x)
     return int(x)
