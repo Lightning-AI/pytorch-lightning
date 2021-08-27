@@ -101,7 +101,7 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         _ = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
-        
+
 @mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
