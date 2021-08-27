@@ -18,6 +18,7 @@ import inspect
 import logging
 import numbers
 import os
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 import tempfile
 from abc import ABC
 from contextlib import contextmanager
@@ -409,7 +410,7 @@ class LightningModule(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
                 " This is most likely because the model hasn't been passed to the `Trainer`"
             )
-        results = self.trainer._results
+        results: Optional[ResultCollection] = self.trainer._results
         if results is None:
             raise MisconfigurationException(
                 "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
@@ -465,11 +466,6 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
-        if reduce_fx in ("max", "min"):
-            sync_dist_fn = self.trainer.training_type_plugin.all_gather
-        else:
-            sync_dist_fn = self.trainer.training_type_plugin.reduce or sync_ddp
-
         results.log(
             self._current_fx_name,
             name,
@@ -483,7 +479,7 @@ class LightningModule(
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
             sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=sync_dist_fn,
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,

@@ -195,14 +195,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
-            self._forward_cache = value
             # performance: no need to accumulate on values only logged on_step
             if self.meta.on_step and not self.meta.on_epoch:
-                value = self.meta.sync(value)
-                if self.meta.is_max_reduction or self.meta.is_min_reduction:
-                    value = self.meta.reduce_fx(value)
-                self._forward_cache = self.value = value
+                self._forward_cache = self.value = self.meta.sync(value)
                 return
+            self._forward_cache = value
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
@@ -221,10 +218,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
-            elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
-                if value.dim() > 0:
-                    value = self.meta.reduce_fx(value)
-                return value
+            return value
         return self.value.compute()
 
     def reset(self) -> None:
