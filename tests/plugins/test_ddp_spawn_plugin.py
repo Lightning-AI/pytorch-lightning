@@ -64,8 +64,7 @@ def test_ddp_cpu():
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
     """Tests if device is set correctly when training for DDPSpawnPlugin."""
-    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp_spawn")
 
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert trainer.training_type_plugin.on_gpu
