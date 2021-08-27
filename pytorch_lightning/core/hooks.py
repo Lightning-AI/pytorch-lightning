@@ -391,6 +391,7 @@ class DataHooks:
 
         """
         super().__init__()
+        self.prepare_data_per_node: bool = True
         self.reload_dataloaders_every_n_epochs: int = 0
         # Both `reload_train_dataloader_every_n_epochs` and `reload_val_dataloader_every_n_epochs` are initialized by
         # `reload_dataloaders_every_n_epochs`.
