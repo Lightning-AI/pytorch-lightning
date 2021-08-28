@@ -873,6 +873,52 @@ def test_trainer_interrupted_flag(tmpdir):
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
 
 
+def test_on_exception_hook(tmpdir):
+    """Test the on_exception callback hook."""
+
+    model = EvalModelTemplate()
+
+    class InterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            raise KeyboardInterrupt
+
+        def on_test_start(self, trainer, pl_module):
+            raise MisconfigurationException
+
+    class HandleInterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+            self.exception = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            self.exception = exception
+
+    interrupt_callback = InterruptCallback()
+    handle_interrupt_callback = HandleInterruptCallback()
+
+    trainer = Trainer(
+        callbacks=[interrupt_callback, handle_interrupt_callback],
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    assert not trainer.interrupted
+    assert handle_interrupt_callback.exception is None
+    trainer.fit(model)
+    assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
+    with pytest.raises(MisconfigurationException):
+        trainer.test(model)
+    assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
+
+
 @pytest.mark.parametrize(
     "precision",
     [32, pytest.param(16, marks=RunIf(min_gpus=1, amp_native=True))],

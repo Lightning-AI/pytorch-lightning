@@ -236,6 +236,11 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the training is interrupted by any exception."""
+        for callback in self.callbacks:
+            callback.on_exception(self, self.lightning_module, exception)
+
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}

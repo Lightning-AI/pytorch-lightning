@@ -500,13 +500,15 @@ class Trainer(
         """
         try:
             return trainer_fn(*args, **kwargs)
-        except KeyboardInterrupt:
+        # TODO(@daniellepintz): treat KeyboardInterrupt as BaseException (delete the code below)
+        except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
-        except BaseException:
+                self.on_exception(exception)
+        except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
                 # try syncing remaing processes, kill otherwise
@@ -514,7 +516,9 @@ class Trainer(
             self._on_exception()
             # reset bookkeeping
             self.state.stage = None
+            self.on_exception(exception)
             raise
+
 
     def fit(
         self,

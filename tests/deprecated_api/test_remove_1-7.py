@@ -21,6 +21,7 @@ from pytorch_lightning.loggers import TestTubeLogger
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
+from pytorch_lightning import Callback
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -116,3 +117,26 @@ def test_v1_7_0_deprecated_on_train_dataloader(tmpdir):
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
         _ = TestTubeLogger(tmpdir)
+
+
+def test_v1_7_0_on_interrupt(tmpdir):
+    class HandleInterruptCallback(Callback):
+        def on_keyboard_interrupt(self, trainer, pl_module):
+            self.log("keyboard interrupt")
+
+    model = BoringModel()
+    handle_interrupt_callback = HandleInterruptCallback()
+
+    trainer = Trainer(
+        callbacks=[handle_interrupt_callback],
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7"
+    ):
+        trainer.fit(model)

@@ -267,6 +267,10 @@ class Callback(abc.ABC):
         """Called when the training is interrupted by ``KeyboardInterrupt``."""
         pass
 
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+        """Called when the training is interrupted by any exception."""
+        pass
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> dict:
