@@ -497,7 +497,7 @@ class LightningCLI:
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
         return parser
-    
+
     @staticmethod
     def _contains_from_registry(pattern: str, registry: _Registry) -> bool:
         # FIXME: remove me after https://github.com/omni-us/jsonargparse/issues/83
