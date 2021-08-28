@@ -91,6 +91,27 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
+def test_v1_7_0_deprecated_on_train_dataloader(tmpdir):
+
+    model = BoringModel()
+    with pytest.deprecated_call(
+        match="Method `on_train_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        model.on_train_dataloader()
+    with pytest.deprecated_call(
+        match="Method `on_val_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        model.on_val_dataloader()
+    with pytest.deprecated_call(
+        match="Method `on_test_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        model.on_test_dataloader()
+    with pytest.deprecated_call(
+        match="Method `on_predict_dataloader` in DataHooks is deprecated and will be removed in v1.7.0."
+    ):
+        model.on_predict_dataloader()
+
+
 @mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
 def test_v1_7_0_test_tube_logger(_, tmpdir):
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
