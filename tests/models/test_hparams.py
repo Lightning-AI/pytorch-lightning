@@ -786,10 +786,12 @@ def test_load_checkpoint_update_hparams(tmpdir):
     """
     Check that old hparams are updated when new hparams_file is provided
     """
+
     class TestModel(BoringModel):
         def __init__(self, x=None, y=None):
             super().__init__()
             self.save_hyperparameters()
+
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, filename="{epoch:02d}")
     trainer = Trainer(
         max_epochs=1,
@@ -806,8 +808,8 @@ def test_load_checkpoint_update_hparams(tmpdir):
     assert os.path.exists(hparams_path)
     assert model.hparams.x == 5
     assert model.hparams.y is None
-    with open(hparams_path, 'w') as f:
-        yaml.dump({'y': 10}, f)
+    with open(hparams_path, "w") as f:
+        yaml.dump({"y": 10}, f)
     # Make sure that even though x isn't saved in new hparams_file,
     # the model can still be loaded using the x value saved
     # in the checkpoint.
