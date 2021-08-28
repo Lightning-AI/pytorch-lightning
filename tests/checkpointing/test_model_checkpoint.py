@@ -1265,21 +1265,24 @@ def test_load_checkpoint_update_hparams(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         callbacks=[model_checkpoint],
-        logger=False,
+        logger=TensorBoardLogger(save_dir=tmpdir),
         weights_summary=None,
         progress_bar_refresh_rate=0,
     )
     model = TestModel(5, 6)
     trainer.fit(model)
 
-    assert os.listdir(tmpdir) == ["epoch=00.ckpt", "hparams.yaml"]
+    ckpt_path = os.path.join(tmpdir, "epoch=00.ckpt")
+    hparams_path = os.path.join(tmpdir, "default", "version_0", "hparams.yaml")
+    assert os.path.exists(ckpt_path)
+    assert os.path.exists(hparams_path)
 
     # Make sure that even though y isn't saved in hparams_file,
     # the model can still be loaded using the y value saved
     # in the checkpoint.
     model = TestModel.load_from_checkpoint(
-        checkpoint_path=os.path.join(tmpdir, "epoch=00.ckpt"),
-        hparams_file=os.path.join(tmpdir, "hparams.yaml"),
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
     )
 
     assert model.x == 5
