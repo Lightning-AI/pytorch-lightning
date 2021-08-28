@@ -148,7 +148,7 @@ class Trainer(
         reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
-        terminate_on_nan: bool = False,
+        terminate_on_nan: Optional[bool] = None,
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
@@ -306,6 +306,8 @@ class Trainer(
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+                Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in
+                the v1.7 release. Please use trainer argument `detect_anomaly` instead.
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
 
@@ -434,6 +436,11 @@ class Trainer(
             reload_dataloaders_every_epoch,
             prepare_data_per_node,
         )
+
+        if terminate_on_nan is not None:
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
+            )
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
