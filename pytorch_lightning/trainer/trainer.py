@@ -269,7 +269,7 @@ class Trainer(
                 If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
 
             max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
-                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable automatic stopping, 
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable automatic stopping,
                 you can set ``max_steps = -1`` and set ``max_epochs`` as ``None`` or ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
