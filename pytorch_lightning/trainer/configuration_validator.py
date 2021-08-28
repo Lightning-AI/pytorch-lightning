@@ -90,13 +90,17 @@ class ConfigValidator:
                 "(rather, they are called on every optimization step)."
             )
 
-        # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
-        if trainer.max_epochs < -1 or isinstance(trainer.max_epochs, float):
+         # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
+        if trainer.max_epochs and (
+            trainer.max_epochs < -1 or isinstance(trainer.max_epochs, float)
+        ):
             raise MisconfigurationException(
                 f"`max_epochs` must be a positive integer or -1. You passed in {trainer.max_epochs}."
             )
 
-        if trainer.max_steps < -1 or isinstance(trainer.max_steps, float):
+        if trainer.max_steps and (
+            trainer.max_steps < -1 or isinstance(trainer.max_steps, float)
+        ):
             raise MisconfigurationException(
                 f"`max_steps` must be a positive integer or -1. You passed in {trainer.max_steps}."
             )
