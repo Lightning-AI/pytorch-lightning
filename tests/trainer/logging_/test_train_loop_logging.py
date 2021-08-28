@@ -17,7 +17,6 @@ Test logging in the training loop
 
 import collections
 import itertools
-from pytorch_lightning.core.lightning import LightningModule
 from re import escape
 
 import numpy as np
@@ -25,9 +24,9 @@ import pytest
 import torch
 from torchmetrics import Accuracy
 
-from pytorch_lightning.callbacks import ProgressBar
 from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
