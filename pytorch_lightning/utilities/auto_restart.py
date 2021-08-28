@@ -548,7 +548,7 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
-    data_fecher: "pl.utilities.fetching.DataFetcher",
+    data_fetcher: "pl.utilities.fetching.DataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
@@ -588,7 +588,7 @@ def patch_dataloader_iterator(
                         num_batches_fetched=num_batches_fetched,
                     )
                 ]
-            data_fecher._store_dataloader_iter_state(it, state)
+            data_fetcher._store_dataloader_iter_state(it, state)
             return batch
 
         return wrapper
