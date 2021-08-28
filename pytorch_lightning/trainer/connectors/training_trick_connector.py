@@ -29,9 +29,11 @@ class TrainingTricksConnector:
         track_grad_norm: Union[int, float, str],
         accumulate_grad_batches: Union[int, Dict[int, int]],
         terminate_on_nan: bool,
+        detect_anomaly: bool,
     ):
 
         self.trainer.terminate_on_nan = terminate_on_nan
+        self.trainer.detect_anomaly = detect_anomaly
 
         # gradient clipping
         if gradient_clip_algorithm not in list(GradClipAlgorithmType):

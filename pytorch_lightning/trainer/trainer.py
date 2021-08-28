@@ -149,6 +149,7 @@ class Trainer(
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
+        detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[List[Union[Plugin, ClusterEnvironment, str]], Plugin, ClusterEnvironment, str]] = None,
@@ -306,6 +307,8 @@ class Trainer(
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
+            detect_anomaly: Enable anomaly detection for the autograd engine.
+
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
             ipus: How many IPUs to train on.
@@ -439,6 +442,7 @@ class Trainer(
             track_grad_norm,
             accumulate_grad_batches,
             terminate_on_nan,
+            detect_anomaly,
         )
         self._setup_on_init(num_sanity_val_steps)
 
@@ -1121,7 +1125,11 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         self.fit_loop.trainer = self
-        self.fit_loop.run()
+        if self.detect_anomaly:
+            with torch.autograd.detect_anomaly():
+                self.fit_loop.run()
+        else:
+            self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:

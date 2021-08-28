@@ -834,6 +834,21 @@ def test_nan_params_detection(tmpdir):
     assert not torch.isfinite(params).all()
 
 
+def test_detect_anomaly_nan(tmpdir):
+    class CurrentModel(BoringModel):
+        def forward(self, x):
+            x /= 0
+            return self.layer(x)
+
+    model = CurrentModel()
+    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
+    with pytest.warns(
+        UserWarning, match=r".*Error detected in MseLossBackward. Traceback of forward call that caused the error.*"
+    ):
+        with pytest.raises(RuntimeError, match=r".*returned nan values in its 0th output..*"):
+            trainer.fit(model)
+
+
 def test_trainer_interrupted_flag(tmpdir):
     """Test the flag denoting that a user interrupted training."""
 
