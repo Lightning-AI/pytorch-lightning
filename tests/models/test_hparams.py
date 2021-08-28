@@ -22,6 +22,7 @@ from unittest import mock
 import cloudpickle
 import pytest
 import torch
+import yaml
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import Container, OmegaConf
 from torch.utils.data import DataLoader
@@ -30,6 +31,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -778,3 +780,40 @@ def test_colliding_hparams(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
+
+
+def test_load_checkpoint_update_hparams(tmpdir):
+    """
+    Check that old hparams are updated when new hparams_file is provided
+    """
+    class TestModel(BoringModel):
+        def __init__(self, x=None, y=None):
+            super().__init__()
+            self.save_hyperparameters()
+    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, filename="{epoch:02d}")
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[model_checkpoint],
+        logger=TensorBoardLogger(save_dir=tmpdir),
+    )
+    model = TestModel(5)
+    trainer.fit(model)
+    ckpt_path = os.path.join(tmpdir, "epoch=00.ckpt")
+    hparams_path = os.path.join(tmpdir, "default", "version_0", "hparams.yaml")
+    assert os.path.exists(hparams_path)
+    assert model.hparams.x == 5
+    assert model.hparams.y is None
+    with open(hparams_path, 'w') as f:
+        yaml.dump({'y': 10}, f)
+    # Make sure that even though x isn't saved in new hparams_file,
+    # the model can still be loaded using the x value saved
+    # in the checkpoint.
+    model = TestModel.load_from_checkpoint(
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+    )
+    assert model.hparams.x == 5
+    assert model.hparams.y == 10
