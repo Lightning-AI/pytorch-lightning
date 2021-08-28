@@ -183,6 +183,46 @@ def test_mlflow_logger_dirs_creation(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_log_model(client, mlflow, tmpdir):
+    """Test that the logger creates the folders and files in the right place."""
+
+    mlflow.run = None
+    model = BoringModel()
+
+    # test log_model=True
+    logger = MLFlowLogger(experiment_name="exp-id-1", run_name="run-name-1", log_model=True)
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    # Checkpoint log
+    client.return_value.log_artifact.assert_called_once()
+    # Metadata and aliases log
+    client.return_value.log_artifacts.assert_called_once()
+
+    # test log_model='all'
+    client.return_value.log_artifact.reset_mock()
+    client.return_value.log_artifacts.reset_mock()
+    logger = MLFlowLogger(experiment_name="exp-id-1", run_name="run-name-1", log_model="all")
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    # Checkpoint log
+    assert client.return_value.log_artifact.call_count == 2
+    # Metadata and aliases log
+    assert client.return_value.log_artifacts.call_count == 2
+
+    # test log_model=False
+    client.return_value.log_artifact.reset_mock()
+    client.return_value.log_artifacts.reset_mock()
+    logger = MLFlowLogger(experiment_name="exp-id-1", run_name="run-name-1", log_model=False)
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    # Checkpoint log
+    assert not client.return_value.log_artifact.called
+    # Metadata and aliases log
+    assert not client.return_value.log_artifacts.called
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
     """
     Test that the logger experiment_id retrieved only once.
