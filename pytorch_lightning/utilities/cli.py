@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import sys
 from argparse import Namespace
 from dataclasses import dataclass, field
-from types import MethodType
+from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
@@ -47,7 +48,7 @@ class _Registry(dict):
         cls: Type,
         key: Optional[str] = None,
         override: bool = False,
-    ) -> "Optional[Type]":
+    ) -> None:
         """
         Registers a class mapped to a name.
 
@@ -62,9 +63,7 @@ class _Registry(dict):
 
         if key in self and not override:
             raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
-
         self[key] = cls
-        return cls
 
     def register_package(self, module: ModuleType, base_cls: Type) -> None:
         """This function is an utility to register all classes from a module."""
@@ -73,8 +72,12 @@ class _Registry(dict):
                 self(cls=cls)
 
     def available_objects(self) -> List[str]:
-        """Returns a list of registered objects"""
+        """Returns the keys of the registered objects"""
         return list(self.keys())
+
+    def registered_values(self) -> Tuple[Type, ...]:
+        """Returns the values of the registered objects"""
+        return tuple(self.values())
 
     def __str__(self) -> str:
         objects = ", ".join(self.keys())
@@ -378,14 +381,6 @@ class LightningCLI:
         main_kwargs.update(kwargs)
         return main_kwargs, {}
 
-    @property
-    def registered_optimizers(self) -> Tuple[Type[Optimizer], ...]:
-        return tuple(OPTIMIZER_REGISTRY.values())
-
-    @property
-    def registered_lr_schedulers(self) -> Tuple[LRSchedulerType, ...]:
-        return tuple(LR_SCHEDULER_REGISTRY.values())
-
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         return LightningArgumentParser(**kwargs)
@@ -506,15 +501,15 @@ class LightningCLI:
     @staticmethod
     def link_optimizers_and_lr_schedulers(parser: LightningArgumentParser) -> None:
         """Creates argument links for optimizers and learning rate schedulers that specified a ``link_to``."""
-        self._sanitize_argv(list(parser.optimizers_and_lr_schedulers))
+        LightningCLI._sanitize_argv(list(parser.optimizers_and_lr_schedulers))
 
-        if self._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
+        if LightningCLI._contains_from_registry("optimizer", OPTIMIZER_REGISTRY):
             if "optimizer" not in parser.groups:
-                parser.add_optimizer_args(self.registered_optimizers)
+                parser.add_optimizer_args(OPTIMIZER_REGISTRY.registered_values())
 
-        if self._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
-            if "lr_scheduler" not in self.parser.groups:
-                self.parser.add_lr_scheduler_args(self.registered_lr_schedulers)
+        if LightningCLI._contains_from_registry("lr_scheduler", LR_SCHEDULER_REGISTRY):
+            if "lr_scheduler" not in parser.groups:
+                parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.registered_values())
 
         for key, (class_type, link_to) in parser.optimizers_and_lr_schedulers.items():
             if link_to == "AUTOMATIC":
