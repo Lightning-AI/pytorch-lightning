@@ -124,6 +124,19 @@ class FitLoop(Loop):
             return self.epoch_loop.val_loop._results
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
+    @staticmethod
+    def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
+        """Checks whether the max_value is enabled. This can
+        be used for checking whether max_epochs or max_steps is enabled.
+
+        Args:
+            max_value (Optional[int]): the value to check
+
+        Returns:
+            bool: whether the limit for this value should be enabled
+        """
+        return max_value not in [None, -1]
+
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop.
@@ -132,8 +145,8 @@ class FitLoop(Loop):
         or if the maximum number of steps or epochs is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps not in (None, -1) and self.global_step >= self.max_steps
-        stop_epochs = self.max_epochs not in (None, -1) and self.current_epoch >= self.max_epochs
+        stop_steps = FitLoop._is_max_limit_enabled(self.max_steps) and self.global_step >= self.max_steps
+        stop_epochs = FitLoop._is_max_limit_enabled(self.max_epochs) and self.current_epoch >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:

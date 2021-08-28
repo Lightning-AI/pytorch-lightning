@@ -21,6 +21,7 @@ import torch
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -190,7 +191,7 @@ class CheckpointConnector:
         self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.max_epochs not in (None, -1) and self.trainer.current_epoch > self.trainer.max_epochs:
+        if FitLoop._is_max_limit_enabled(self.max_epochs) and self.trainer.current_epoch > self.trainer.max_epochs:
             raise MisconfigurationException(
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
