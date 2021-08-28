@@ -93,10 +93,8 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[],
         progress_bar_refresh_rate=None,
-        max_epochs=1,
-        overfit_batches=5,
+        fast_dev_run=True,
     )
     test_model = TestModel()
     with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):

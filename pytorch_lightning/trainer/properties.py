@@ -302,8 +302,7 @@ class TrainerProperties(ABC):
         )
         ref_model = self.lightning_module
         ref_model = cast(pl.LightningModule, ref_model)
-        progress_bar_callback = getattr(self, "progress_bar_callback", None)
-        if progress_bar_callback:
+        if self.progress_bar_callback:
             return self.progress_bar_callback.get_metrics(self, ref_model)
         return self.progress_bar_metrics
 

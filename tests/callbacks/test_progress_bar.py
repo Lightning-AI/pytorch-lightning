@@ -572,9 +572,7 @@ def test_get_progress_bar_metrics(tmpdir: str):
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[progress_bar],
-        progress_bar_refresh_rate=None,
-        max_epochs=1,
-        overfit_batches=5,
+        fast_dev_run=True,
     )
     model = BoringModel()
     trainer.fit(model)

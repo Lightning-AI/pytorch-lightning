@@ -117,7 +117,6 @@ class ConfigValidator:
 
         Args:
             model: The model to check the get_progress_bar_dict method.
-
         """
         if is_overridden("get_progress_bar_dict", model):
             rank_zero_deprecation(
