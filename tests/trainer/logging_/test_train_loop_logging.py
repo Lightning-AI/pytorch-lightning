@@ -17,6 +17,7 @@ Test logging in the training loop
 
 import collections
 import itertools
+from pytorch_lightning.core.lightning import LightningModule
 from re import escape
 
 import numpy as np
@@ -24,6 +25,7 @@ import pytest
 import torch
 from torchmetrics import Accuracy
 
+from pytorch_lightning.callbacks import ProgressBar
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -327,7 +329,7 @@ def test_log_works_in_train_callback(tmpdir):
     trainer.fit(model)
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
-    assert trainer.progress_bar_callback.get_progress_bar_metrics(trainer, model)["train_loss"] == model.seen_losses[-1]
+    assert trainer.progress_bar_callback.get_metrics(trainer, model)["train_loss"] == model.seen_losses[-1]
     assert trainer.callback_metrics["train_loss"] == model.seen_losses[-1]
 
     assert cb.call_counter == {
@@ -465,7 +467,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics["bar"] == 2
 
 
-def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir):
+def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
@@ -477,25 +479,29 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir):
             )
             self.on_train_epoch_end_called = True
 
-        def on_epoch_end(self):
-            progress_bar_callback = getattr(self, "progress_bar_callback", None)
-            if progress_bar_callback:
-                metrics = self.progress_bar_callback.get_progress_bar_metrics(self.trainer, self)
-            else:
-                metrics = self.trainer.progress_bar_metrics
-            assert metrics["foo"] == self.current_epoch
-            assert metrics["foo_2"] == self.current_epoch
-            self.on_epoch_end_called = True
+    class TestProgressBar(ProgressBar):
+        def get_metrics(self, trainer: Trainer, model: LightningModule):
+            items = super().get_metrics(trainer, model)
+            items.pop("v_num", None)
+            return items
 
+        def on_epoch_end(self, trainer: Trainer, model: LightningModule):
+            metrics = self.get_metrics(trainer, model)
+            assert metrics["foo"] == self.trainer.current_epoch
+            assert metrics["foo_2"] == self.trainer.current_epoch
+            model.on_epoch_end_called = True
+
+    progress_bar = TestProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
+        callbacks=[progress_bar],
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=0,
         checkpoint_callback=False,
         logger=False,
         weights_summary=None,
-        progress_bar_refresh_rate=0,
+        progress_bar_refresh_rate=1,
     )
     model = TestModel()
     trainer.fit(model)

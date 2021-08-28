@@ -67,7 +67,7 @@ if _RICH_AVAILABLE:
             # TODO(@daniellepintz): make this code cleaner
             progress_bar_callback = getattr(self._trainer, "progress_bar_callback", None)
             if progress_bar_callback:
-                metrics = self.progress_bar_callback.get_progress_bar_metrics(self.trainer, self)
+                metrics = self.progress_bar_callback.get_metrics(self.trainer, self)
             else:
                 metrics = self._trainer.progress_bar_metrics
             for k, v in metrics.items():

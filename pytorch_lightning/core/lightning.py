@@ -1741,7 +1741,7 @@ class LightningModule(
         r"""
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_progress_bar_dict` and will be removed in v1.7.
+            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1764,7 +1764,7 @@ class LightningModule(
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        return progress_base.get_progress_bar_dict(self.trainer, self)
+        return progress_base.get_standard_metrics(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:

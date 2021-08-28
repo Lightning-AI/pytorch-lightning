@@ -184,20 +184,18 @@ class ProgressBarBase(Callback):
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._predict_batch_idx += 1
 
-    def get_progress_bar_metrics(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> Dict[str, Union[int, str]]:
+    def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
         r"""
-        Combines progress bar metrics collected from the trainer with standard metrics from get_progress_bar_dict.
+        Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
         Implement this to override the items displayed in the progress bar.
 
         Here is an example of how to override the defaults:
 
         .. code-block:: python
 
-        def get_progress_bar_metrics(self, trainer, model):
+        def get_metrics(self, trainer, model):
             # don't show the version number
-            items = super().get_progress_bar_metrics(trainer, model)
+            items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
             return items
 
@@ -211,25 +209,24 @@ class ProgressBarBase(Callback):
             rank_zero_warn(
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
                 f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
-                " If this is undesired, change the name or override `get_progress_bar_dict()`"
-                " in `LightingModule`.",
+                " If this is undesired, change the name or override `get_metrics()` in the progress bar callback.",
                 UserWarning,
             )
 
         return {**standard_metrics, **pbar_metrics}
 
 
-def get_progress_bar_dict(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
     r"""
-    Returns the default items displayed in the progress bar, including the average loss value, split index of BPTT
-    (if used) and the version of the experiment when using a logger.
+    Returns several standard metrics displayed in the progress bar, including the average loss value,
+    split index of BPTT (if used) and the version of the experiment when using a logger.
 
     .. code-block::
 
         Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
 
     Return:
-        Dictionary with the items to be displayed in the progress bar.
+        Dictionary with the standard metrics to be displayed in the progress bar.
     """
     # call .item() only once but store elements without graphs
     running_train_loss = trainer.fit_loop.running_loss.mean()
