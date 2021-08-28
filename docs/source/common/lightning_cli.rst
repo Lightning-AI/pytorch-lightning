@@ -4,13 +4,18 @@
     import torch
     from unittest import mock
     from typing import List
+    import pytorch_lightning as pl
     from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
-    from pytorch_lightning.utilities.cli import LightningCLI
 
-    cli_fit = LightningCLI.fit
-    LightningCLI.fit = lambda *_, **__: None
-    trainer_fit = Trainer.fit
-    Trainer.fit = lambda *_, **__: None
+
+    class NoFitTrainer(Trainer):
+        def fit(self, *_, **__):
+            pass
+
+
+    class LightningCLI(pl.utilities.cli.LightningCLI):
+        def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
+            super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
 
     class MyModel(LightningModule):
@@ -48,8 +53,6 @@
 
 .. testcleanup:: *
 
-    LightningCLI.fit = cli_fit
-    Trainer.fit = trainer_fit
     mock_argv.stop()
 
 
@@ -57,8 +60,8 @@ Lightning CLI and config files
 ------------------------------
 
 Another source of boilerplate code that Lightning can help to reduce is in the implementation of command line tools.
-Furthermore, it provides a standardized way to configure trainings using a single file that includes settings for
-:class:`~pytorch_lightning.trainer.trainer.Trainer` and user extended
+Furthermore, it provides a standardized way to configure experiments using a single file that includes settings for
+:class:`~pytorch_lightning.trainer.trainer.Trainer` as well as the user extended
 :class:`~pytorch_lightning.core.lightning.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes. The full configuration is automatically saved
 in the log directory. This has the benefit of greatly simplifying the reproducibility of experiments.
@@ -77,14 +80,12 @@ LightningCLI
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
 class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
-lightning with the :code:`all` extras require or install the package :code:`jsonargparse[signatures]`.
+Lightning as :code:`pytorch-lightning[extra]` or install the package :code:`jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
 :code:`*_dataloader` methods, a :code:`trainer.py` tool can be as simple as:
 
 .. testcode::
-
-    from pytorch_lightning.utilities.cli import LightningCLI
 
     cli = LightningCLI(MyModel)
 
@@ -95,31 +96,29 @@ practice to create a configuration file and provide this to the tool. A way to d
 .. code-block:: bash
 
     # Dump default configuration to have as reference
-    python trainer.py --print_config > default_config.yaml
-    # Create config including only options to modify
+    python trainer.py fit --print_config > config.yaml
+    # Modify the config to your liking - you can remove all default arguments
     nano config.yaml
-    # Run training using created configuration
-    python trainer.py --config config.yaml
+    # Fit your model using the configuration
+    python trainer.py fit --config config.yaml
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
 finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the model,
 (:code:`cli.model`).
 
-After multiple trainings with different configurations, each run will have in its respective log directory a
+After multiple experiments with different configurations, each one will have in its respective log directory a
 :code:`config.yaml` file. This file can be used for reference to know in detail all the settings that were used for each
-particular run, and also could be used to trivially reproduce a training, e.g.:
+particular experiment, and also could be used to trivially reproduce a training, e.g.:
 
 .. code-block:: bash
 
-    python trainer.py --config lightning_logs/version_7/config.yaml
+    python trainer.py fit --config lightning_logs/version_7/config.yaml
 
 If a separate :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class is required, the trainer tool just
 needs a small modification as follows:
 
 .. testcode::
-
-    from pytorch_lightning.utilities.cli import LightningCLI
 
     cli = LightningCLI(MyModel, MyDataModule)
 
@@ -144,42 +143,38 @@ With this model class, the help of the trainer tool would look as follows:
 
 .. code-block:: bash
 
-    $ python trainer.py --help
-    usage: trainer.py [-h] [--print_config] [--config CONFIG]
-                      [--trainer.logger LOGGER]
-                      ...
-
-    pytorch-lightning trainer command line tool
+    $ python trainer.py fit --help
+    usage: trainer.py [-h] [--config CONFIG] [--print_config [={comments,skip_null}+]] ...
 
     optional arguments:
-      -h, --help            show this help message and exit
-      --print_config        print configuration and exit
+      -h, --help            Show this help message and exit.
       --config CONFIG       Path to a configuration file in json or yaml format.
-                            (default: null)
+      --print_config [={comments,skip_null}+]
+                            Print configuration and exit.
+      --seed_everything SEED_EVERYTHING
+                            Set to an int to run seed_everything with this value before classes instantiation
+                            (type: Optional[int], default: null)
 
     Customize every aspect of training via flags:
       ...
       --trainer.max_epochs MAX_EPOCHS
-                            Stop training once this number of epochs is reached.
-                            (type: int, default: 1000)
+                            Stop training once this number of epochs is reached. (type: Optional[int], default: null)
       --trainer.min_epochs MIN_EPOCHS
-                            Force training for at least these many epochs (type: int,
-                            default: 1)
+                            Force training for at least these many epochs (type: Optional[int], default: null)
       ...
 
     Example encoder-decoder model:
       --model.encoder_layers ENCODER_LAYERS
                             Number of layers for the encoder (type: int, default: 12)
       --model.decoder_layers DECODER_LAYERS
-                            Number of layers for each decoder block (type: List[int],
-                            default: [2, 4])
+                            Number of layers for each decoder block (type: List[int], default: [2, 4])
 
 The default configuration that option :code:`--print_config` gives is in yaml format and for the example above would
 look as follows:
 
 .. code-block:: bash
 
-    $ python trainer.py --print_config
+    $ python trainer.py fit --print_config
     model:
       decoder_layers:
       - 2
@@ -194,6 +189,36 @@ look as follows:
 
 Note that there is a section for each class (model and trainer) including all the init parameters of the class. This
 grouping is also used in the formatting of the help shown previously.
+
+
+Changing subcommands
+^^^^^^^^^^^^^^^^^^^^
+
+The CLI supports running any trainer function from command line by changing the subcommand provided:
+
+.. code-block:: bash
+
+    $ python trainer.py --help
+    usage: trainer.py [-h] [--config CONFIG] [--print_config [={comments,skip_null}+]] {fit,validate,test,predict,tune} ...
+
+    pytorch-lightning trainer command line tool
+
+    optional arguments:
+      -h, --help            Show this help message and exit.
+      --config CONFIG       Path to a configuration file in json or yaml format.
+      --print_config [={comments,skip_null}+]
+                            Print configuration and exit.
+
+    subcommands:
+      For more details of each subcommand add it as argument followed by --help.
+
+      {fit,validate,test,predict,tune}
+        fit                 Runs the full optimization routine.
+        validate            Perform one evaluation epoch over the validation set.
+        test                Perform one evaluation epoch over the test set.
+        predict             Run inference on your data.
+        tune                Runs routines to tune hyperparameters before training.
+    $ python trainer.py test --trainer.limit_test_batches=10 [...]
 
 
 Use of command line arguments
@@ -217,29 +242,56 @@ config, for example:
 
 .. code-block:: bash
 
-    $ python trainer.py --config experiment_defaults.yaml --trainer.max_epochs 100
+    $ python trainer.py fit --config experiment_defaults.yaml --trainer.max_epochs 100
 
 Another common pattern could be having multiple config files:
 
 .. code-block:: bash
 
-    $ python trainer.py --config config1.yaml --config config2.yaml [...]
+    $ python trainer.py --config config1.yaml --config config2.yaml test --config config3.yaml [...]
 
 As explained before, :code:`config1.yaml` is parsed first and then :code:`config2.yaml`. Therefore, if individual
 settings are defined in both files, then the ones in :code:`config2.yaml` will be used. Settings in :code:`config1.yaml`
-that are not in :code:`config2.yaml` are be kept.
+that are not in :code:`config2.yaml` are be kept. The same happens for :code:`config3.yaml`.
+
+The configuration files before the subcommand (``test`` in this case) can contain custom configuration for multiple of
+them, for example:
+
+.. code-block:: bash
+
+    $ cat config1.yaml
+    fit:
+        trainer:
+            limit_train_batches: 100
+            max_epochs: 10
+    test:
+        trainer:
+            limit_test_batches: 10
+
+
+whereas the configuration files passed after the subcommand would be:
+
+.. code-block:: bash
+
+    $ cat config3.yaml
+    trainer:
+        limit_train_batches: 100
+        max_epochs: 10
+    # the argument passed to `trainer.test(ckpt_path=...)`
+    ckpt_path: "a/path/to/a/checkpoint"
+
 
 Groups of options can also be given as independent config files:
 
 .. code-block:: bash
 
-    $ python trainer.py --trainer trainer.yaml --model model.yaml --data data.yaml [...]
+    $ python trainer.py fit --trainer trainer.yaml --model model.yaml --data data.yaml [...]
 
 When running experiments in clusters it could be desired to use a config which needs to be accessed from a remote
 location. :class:`~pytorch_lightning.utilities.cli.LightningCLI` comes with `fsspec
-<https://filesystem-spec.readthedocs.io/en/stable/>`_ support which allows reading from many types of remote file
-systems. One example is if you have installed the `gcsfs <https://gcsfs.readthedocs.io/en/stable/>`_ then a config could
-be stored in an S3 bucket and accessed as:
+<https://filesystem-spec.readthedocs.io/en/stable/>`_ support which allows reading and writing from many types of remote
+file systems. One example is if you have installed the `gcsfs <https://gcsfs.readthedocs.io/en/stable/>`_ then a config
+could be stored in an S3 bucket and accessed as:
 
 .. code-block:: bash
 
@@ -250,7 +302,7 @@ a path to a file, for example:
 
 .. code-block:: bash
 
-    $ python trainer.py --trainer "$TRAINER_CONFIG" --model "$MODEL_CONFIG" [...]
+    $ python trainer.py fit --trainer "$TRAINER_CONFIG" --model "$MODEL_CONFIG" [...]
 
 An alternative for environment variables could be to instantiate the CLI with :code:`env_parse=True`. In this case the
 help shows the names of the environment variables for all options. A global config would be given in :code:`PL_CONFIG`
@@ -264,6 +316,12 @@ file. Loading a defaults file :code:`my_cli_defaults.yaml` in the current workin
 
     cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]})
 
+or if you want defaults per subcommand:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"fit": {"default_config_files": ["my_fit_defaults.yaml"]}})
+
 To load a file in the user's home directory would be just changing to :code:`~/.my_cli_defaults.yaml`. Note that this
 setting is given through :code:`parser_kwargs`. More parameters are supported. For details see the `ArgumentParser API
 <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_ documentation.
@@ -273,7 +331,8 @@ Instantiation only mode
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically
-call ``trainer.fit(...)`` internally so you don't have to do it. To avoid this, you can set the following argument:
+call the trainer function associated to the subcommand provided so you don't have to do it.
+To avoid this, you can set the following argument:
 
 .. testcode::
 
@@ -281,7 +340,7 @@ call ``trainer.fit(...)`` internally so you don't have to do it. To avoid this, 
     # you'll have to call fit yourself:
     cli.trainer.fit(cli.model)
 
-
+In this mode, there are subcommands added to the parser.
 This can be useful to implement custom logic without having to subclass the CLI, but still using the CLI's instantiation
 and argument parsing capabilities.
 
@@ -376,8 +435,6 @@ specified by an import path and init arguments. For example, with a tool impleme
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-
     cli = LightningCLI(MyModelBaseClass, MyDataModuleBaseClass, subclass_mode_model=True, subclass_mode_data=True)
 
 A possible config file could be as follows:
@@ -417,8 +474,8 @@ module and data module.
 
     .. code-block:: bash
 
-        $ python trainer.py --model.help mycode.mymodels.MyModel
-        $ python trainer.py --model mycode.mymodels.MyModel --print_config
+        $ python trainer.py fit --model.help mycode.mymodels.MyModel
+        $ python trainer.py fit --model mycode.mymodels.MyModel --print_config
 
 
 Models with multiple submodules
@@ -481,14 +538,11 @@ The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
 :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
 more arguments. After parsing, the configuration is stored in the :code:`config` attribute of the class instance. The
 :class:`~pytorch_lightning.utilities.cli.LightningCLI` class also has two methods that can be used to run code before
-and after :code:`trainer.fit` is executed: :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_fit` and
-:meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`. A realistic example for these would be to send an email
-before and after the execution of fit. The code would be something like:
+and after the trainer runs: :code:`before_<subcommand>` and :code:`after_<subcommand>`.
+A realistic example for these would be to send an email before and after the execution.
+The code for the :code:`fit` subcommand would be something like:
 
 .. testcode::
-
-    from pytorch_lightning.utilities.cli import LightningCLI
-
 
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -505,7 +559,7 @@ before and after the execution of fit. The code would be something like:
 
 Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
 has the same structure as the yaml format described previously. This means for instance that the parameters used for
-instantiating the trainer class can be found in :code:`self.config['trainer']`.
+instantiating the trainer class can be found in :code:`self.config['fit']['trainer']`.
 
 .. tip::
 
@@ -524,7 +578,6 @@ This can be implemented as follows:
 .. testcode::
 
     from pytorch_lightning.callbacks import EarlyStopping
-    from pytorch_lightning.utilities.cli import LightningCLI
 
 
     class MyLightningCLI(LightningCLI):
@@ -620,9 +673,6 @@ like shown below, the :code:`batch_size` only has to be provided in the :code:`d
 
 .. testcode::
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-
-
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
@@ -634,7 +684,7 @@ The linking of arguments is observed in the help of the tool, which for this exa
 
 .. code-block:: bash
 
-    $ python trainer.py --help
+    $ python trainer.py fit --help
       ...
         --data.batch_size BATCH_SIZE
                               Number of samples in a batch (type: int, default: 8)
@@ -648,9 +698,6 @@ the number of classes to instantiate its fully connected layer (for a classifica
 available until the data module has been instantiated. The code below illustrates how to address this.
 
 .. testcode::
-
-    from pytorch_lightning.utilities.cli import LightningCLI
-
 
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -749,7 +796,6 @@ classes. The following code snippet shows how to implement it:
 .. testcode::
 
     import torch
-    from pytorch_lightning.utilities.cli import LightningCLI
 
 
     class MyLightningCLI(LightningCLI):
@@ -779,14 +825,14 @@ And any of these arguments could be passed directly through command line. For ex
 
 .. code-block:: bash
 
-    $ python train.py --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
+    $ python trainer.py fit --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
 
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
 example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
 
 .. testcode::
 
-    from pytorch_lightning.utilities.cli import instantiate_class, LightningCLI
+    from pytorch_lightning.utilities.cli import instantiate_class
 
 
     class MyModel(LightningModule):

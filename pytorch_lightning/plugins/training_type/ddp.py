@@ -29,23 +29,27 @@ import torch
 import torch.distributed
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
+    _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
+    _TORCH_GREATER_EQUAL_1_10,
     rank_zero_deprecation,
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import (
     distributed_available,
-    rank_zero_info,
+    init_ddp_connection,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -53,11 +57,19 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+
+if _FAIRSCALE_AVAILABLE:
+    from fairscale.optim import OSS
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
+if _TORCH_GREATER_EQUAL_1_10:
+    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+    import torch.distributed.algorithms.model_averaging.averagers as averagers
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +95,7 @@ class DDPPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
+        model_averaging_period: Optional[int] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -106,11 +119,11 @@ class DDPPlugin(ParallelPlugin):
         self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
-        self._has_spawned_children = False
         self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self.set_world_ranks()
@@ -174,9 +187,7 @@ class DDPPlugin(ParallelPlugin):
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
-        assert self.local_rank == 0
         self._check_can_spawn_children()
-        self._has_spawned_children = True
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
@@ -253,17 +264,18 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection()
+        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
 
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
 
     def _check_can_spawn_children(self):
-        if self._has_spawned_children:
+        if self.local_rank != 0:
             raise RuntimeError(
-                "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+                "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
+                " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
+                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
@@ -304,6 +316,51 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
+            # Post-localSDG is only available after 1.9,
+            # and `torch.distributed.optim` package currently is not available on Windows.
+            if (
+                _TORCH_GREATER_EQUAL_1_10
+                and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
+                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            ):
+                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+
+    def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
+        optimizers = self.lightning_module.trainer.optimizers
+        if self._model_averaging_period is None:
+            raise ValueError(
+                "Post-localSGD algorithm is used, " "but model averaging period is not provided to DDP plugin."
+            )
+        averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
+        for x, optimizer in enumerate(optimizers):
+            if isinstance(optimizer, LightningOptimizer):
+                optimizer = optimizer._optimizer
+
+            if (
+                isinstance(optimizer, DistributedOptimizer)
+                or isinstance(optimizer, ZeroRedundancyOptimizer)
+                or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
+            ):
+                raise ValueError(
+                    f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
+                )
+
+            if isinstance(optimizer, PostLocalSGDOptimizer):
+                continue
+
+            optim_class = type(optimizer)
+            post_localSGD_optimizer = PostLocalSGDOptimizer(
+                params=optimizer.param_groups,
+                optimizer_class=optim_class,
+                averager=averager,
+                **optimizer.defaults,
+            )
+            optimizers[x] = post_localSGD_optimizer
+            del optimizer
+        trainer = self.lightning_module.trainer
+        trainer.optimizers = optimizers
+        trainer.convert_to_lightning_optimizers()
+
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
@@ -315,25 +372,6 @@ class DDPPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
-        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        if torch.distributed.is_available() and not torch.distributed.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            torch.distributed.init_process_group(
-                self.torch_distributed_backend, rank=global_rank, world_size=world_size
-            )
-
-            # on rank=0 let everyone know training is starting
-            rank_zero_info(
-                f"{'-' * 100}\n"
-                f"distributed_backend={self.torch_distributed_backend}\n"
-                f"All DDP processes registered. Starting ddp with {self.world_size} processes\n"
-                f"{'-' * 100}\n"
-            )
 
     def pre_dispatch(self):
         # move the model to the correct device
@@ -463,3 +501,13 @@ class DDPPlugin(ParallelPlugin):
                 os.kill(pid, signal.SIGKILL)
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+
+    def teardown(self) -> None:
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
+
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()

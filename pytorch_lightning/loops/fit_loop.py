@@ -14,7 +14,7 @@
 
 import logging
 from contextlib import suppress
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -40,6 +40,8 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop: Optional[TrainingEpochLoop] = None
         self.epoch_progress = Progress()
+        # caches the loaded dataloader state until dataloader objects are available
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def current_epoch(self) -> int:
@@ -175,6 +177,10 @@ class FitLoop(Loop):
         if self.current_epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
+        if self._dataloader_state_dict:
+            self.trainer.train_dataloader.load_state_dict(self._dataloader_state_dict)
+            self._dataloader_state_dict = {}
+
         # TODO: specify the possible exception
         with suppress(Exception):
             # set seed for distributed sampler (enables shuffling for each epoch)
@@ -192,12 +198,12 @@ class FitLoop(Loop):
 
     def advance(self) -> None:
         """Runs one whole epoch."""
-        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-        train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
+        dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
+        data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.epoch_loop.run(train_dataloader)
+            epoch_output = self.epoch_loop.run(data_fetcher)
 
             if epoch_output is None:
                 return
@@ -234,3 +240,13 @@ class FitLoop(Loop):
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()
+
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        # FIXME(@tchaton) Should pass has_completed=True when iterator is exhausted ?
+        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(has_completed=False)
+        return state_dict
+
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        # cache the dataloader state dict until the dataloader objects are available
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})

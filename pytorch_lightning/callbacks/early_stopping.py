@@ -75,6 +75,13 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
+
+    .. tip:: Saving and restoring multiple early stopping callbacks at the same time is supported under variation in the
+        following arguments:
+
+        *monitor, mode*
+
+        Read more: :ref:`Persisting Callback State`
     """
     mode_dict = {"min": torch.lt, "max": torch.gt}
 
@@ -120,6 +127,10 @@ class EarlyStopping(Callback):
             )
         self.monitor = monitor or "early_stop_on"
 
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(monitor=self.monitor, mode=self.mode)
+
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch, we try to check after
@@ -159,7 +170,9 @@ class EarlyStopping(Callback):
             "patience": self.patience,
         }
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
+    ) -> None:
         self.wait_count = callback_state["wait_count"]
         self.stopped_epoch = callback_state["stopped_epoch"]
         self.best_score = callback_state["best_score"]
