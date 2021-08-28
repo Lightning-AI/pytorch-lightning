@@ -1248,3 +1248,39 @@ def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
     with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
         Trainer(checkpoint_callback=mc)
+
+
+def test_load_checkpoint_update_hparams(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self, x, y):
+            super().__init__()
+            self.x = x
+            self.save_hyperparameters()
+            self.y = y
+
+    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, filename="{epoch:02d}")
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    model = TestModel(5, 6)
+    trainer.fit(model)
+
+    assert os.listdir(tmpdir) == ["epoch=00.ckpt", "hparams.yaml"]
+
+    # Make sure that even though y isn't saved in hparams_file,
+    # the model can still be loaded using the y value saved
+    # in the checkpoint.
+    model = TestModel.load_from_checkpoint(
+        checkpoint_path=os.path.join(tmpdir, "epoch=00.ckpt"),
+        hparams_file=os.path.join(tmpdir, "hparams.yaml"),
+    )
+
+    assert model.x == 5
+    assert model.y == 6
