@@ -27,10 +27,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.closure import Closure, ClosureResult
-from pytorch_lightning.loops.utilities import (
-    _check_training_step_output,
-    _process_training_step_output,
-)
+from pytorch_lightning.loops.utilities import _check_training_step_output, _process_training_step_output
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
