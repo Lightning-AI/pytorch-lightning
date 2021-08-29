@@ -42,17 +42,14 @@ def test_trainer_flag(caplog):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
-    seconds = 1
-    trainer = Trainer(max_time=dict(seconds=seconds))
-    assert trainer.max_epochs is None
-    assert trainer.max_steps is None
-
     # Make sure max_time still honored even if max_epochs == -1
     trainer = Trainer(max_time=dict(seconds=1), max_epochs=-1)
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1
+    assert trainer.max_epochs is None
+    assert trainer.max_steps is None
 
 
 @pytest.mark.parametrize(
