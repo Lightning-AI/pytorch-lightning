@@ -341,7 +341,7 @@ class MLFlowLogger(LightningLoggerBase):
             print(artifact_path)
 
             # Log the checkpoint
-            self.experiment.log_artifact(self._run_id, p, f"{artifact_path}")
+            self.experiment.log_artifact(self._run_id, p, artifact_path)
 
             # Create a temporary directory to log on mlflow
             with tempfile.TemporaryDirectory() as tmp_dir:
