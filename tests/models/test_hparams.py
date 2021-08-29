@@ -26,7 +26,6 @@ import torch
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import Container, OmegaConf
 from omegaconf.dictconfig import DictConfig
-
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
@@ -484,16 +483,20 @@ def test_hparams_save_yaml(tmpdir):
         option1name = "option1val"
         option2name = "option2val"
         option3name = "option3val"
+
     hparams = dict(
-        batch_size=32, learning_rate=0.001, data_root="./any/path/here", nested=dict(any_num=123, anystr="abcd"),
-        switch= Options.option3name
+        batch_size=32,
+        learning_rate=0.001,
+        data_root="./any/path/here",
+        nested=dict(any_num=123, anystr="abcd"),
+        switch=Options.option3name,
     )
     path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
 
     def compare(loadedParams, defaultParams: dict):
         assert isinstance(loadedParams, (dict, DictConfig))
         assert loadedParams.keys() == defaultParams.keys()
-        for k,v in defaultParams.items():
+        for k, v in defaultParams.items():
             if isinstance(v, Enum):
                 assert v.name == loadedParams[k]
             else:
@@ -506,7 +509,7 @@ def test_hparams_save_yaml(tmpdir):
     compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
-    compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False),hparams)
+    compare(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
     compare(load_hparams_from_yaml(path_yaml), hparams)
