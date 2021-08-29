@@ -907,6 +907,9 @@ Stop training once this number of epochs is reached
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
 
+If both ``max_epochs`` and ``max_steps`` aren't specified, ``max_epochs`` will default to ``1000``.
+To disable this default, you can set one (or both) of ``max_epochs`` or ``max_steps`` to be ``-1``.
+
 min_epochs
 ^^^^^^^^^^
 
@@ -946,6 +949,10 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
+
+If ``max_steps`` is not specified, ``max_epochs`` will be used instead (and ``max_epochs`` defaults to
+``1000`` if ``max_epochs`` is not specified). To disable this default, you can set one (or both) of ``max_steps`` or
+``max_epochs`` to be ``-1``.
 
 min_steps
 ^^^^^^^^^

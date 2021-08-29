@@ -261,16 +261,15 @@ class Trainer(
                 Can be used on CPU, GPU or TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
-                If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
-                To disable automatic stopping, you can set ``max_epochs = -1`` and set ``max_steps`` as ``None``
-                or ``-1``. Note that if the the ``max_time`` limit is specified, it will still be observed.
+                If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
+                To disable this default, set ``max_epochs = -1``.
 
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
-                If both min_epochs and min_steps are not specified, defaults to ``min_epochs`` = 1.
+                If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
             max_steps: Stop training after this number of steps. Disabled by default (None). If ``max_steps = None``
-                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable automatic stopping,
-                you can set ``max_steps = -1`` and set ``max_epochs`` as ``None`` or ``-1``.
+                and ``max_epochs = None``, will default to ``max_epochs = 1000``. To disable this default, set
+                ``max_steps`` to ``-1``.
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
