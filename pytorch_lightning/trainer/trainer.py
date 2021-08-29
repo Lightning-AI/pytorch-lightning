@@ -306,8 +306,10 @@ class Trainer(
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
-                Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in
-                the v1.7 release. Please use trainer argument `detect_anomaly` instead.
+
+                .. deprecated:: v1.5
+                    `Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in
+                    the v1.7 release. Please use trainer argument `detect_anomaly` instead.`
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
 
@@ -436,11 +438,6 @@ class Trainer(
             reload_dataloaders_every_epoch,
             prepare_data_per_node,
         )
-
-        if terminate_on_nan is not None:
-            rank_zero_deprecation(
-                "Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
-            )
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(

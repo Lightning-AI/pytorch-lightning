@@ -87,3 +87,10 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
     ):
         _ = Trainer(prepare_data_per_node=False)
+
+
+def test_v1_7_0_trainer_terminate_on_nan(tmpdir):
+    with pytest.deprecated_call(
+        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
+    ):
+        _ = Trainer(terminate_on_nan=True)

@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class TrainingTricksConnector:
@@ -28,11 +29,20 @@ class TrainingTricksConnector:
         gradient_clip_algorithm: str,
         track_grad_norm: Union[int, float, str],
         accumulate_grad_batches: Union[int, Dict[int, int]],
-        terminate_on_nan: bool,
+        terminate_on_nan: Optional[bool],
         detect_anomaly: bool,
     ):
 
-        self.trainer.terminate_on_nan = terminate_on_nan
+        if terminate_on_nan is None:
+            self.trainer.terminate_on_nan = detect_anomaly
+        else:
+            # emit a deprecation warning
+            rank_zero_deprecation(
+                "Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release."
+                "Please use trainer argument `detect_anomaly` instead."
+            )
+            self.trainer.terminate_on_nan = terminate_on_nan
+
         self.trainer.detect_anomaly = detect_anomaly
 
         # gradient clipping

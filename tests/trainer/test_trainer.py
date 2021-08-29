@@ -803,10 +803,7 @@ def test_nan_loss_detection(tmpdir):
     model = CurrentModel()
 
     # fit model
-    with pytest.deprecated_call(
-        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
@@ -826,10 +823,7 @@ def test_nan_params_detection(tmpdir):
                 torch.nn.init.constant_(self.layer.bias, math.nan)
 
     model = CurrentModel()
-    with pytest.deprecated_call(
-        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 release and will be removed in the v1.7 release. Please use trainer argument `detect_anomaly` instead."
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
