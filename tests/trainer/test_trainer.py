@@ -816,7 +816,8 @@ def test_nan_loss_detection(backward_mock, tmpdir):
         assert torch.isfinite(param).all()
 
 
-def test_nan_params_detection(tmpdir):
+@mock.patch("torch.Tensor.backward")
+def test_nan_params_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
         test_batch_nan = 3
 
@@ -831,6 +832,7 @@ def test_nan_params_detection(tmpdir):
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_nan
+        assert backward_mock.call_count == model.test_batch_nan + 1
 
     # after aborting the training loop, model still has nan-valued params
     params = torch.cat([param.view(-1) for param in model.parameters()])
