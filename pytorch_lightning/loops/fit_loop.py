@@ -130,7 +130,7 @@ class FitLoop(Loop):
         be used for checking whether max_epochs or max_steps is enabled.
 
         Args:
-            max_value (Optional[int]): the value to check
+            max_value: the value to check
 
         Returns:
             bool: whether the limit for this value should be enabled
