@@ -21,20 +21,17 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-def check_finite_loss(model: "pl.LightningModule", loss: torch.Tensor) -> None:
-    """Checks for finite parameters and loss values.
+def check_finite_loss(loss: torch.Tensor) -> None:
+    """Checks for finite loss value.
 
     Args:
-        model: a reference to the ``LightningModule``
         loss: the loss value to check to be finite
     """
-    if not torch.isfinite(loss).all():
+    if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
-    detect_nan_parameters(model)
 
 
 def _check_training_step_output(model: "pl.LightningModule", training_step_output: STEP_OUTPUT) -> None:
@@ -99,6 +96,9 @@ def _process_training_step_output(
 
     # map to results under the hood
     results.minimize = loss
+
+    if trainer.terminate_on_nan:
+        check_finite_loss(loss)
 
     if trainer.move_metrics_to_cpu:
         results.cpu()

@@ -20,6 +20,7 @@ import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
+from unittest import mock
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
@@ -787,7 +788,8 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-def test_nan_loss_detection(tmpdir):
+@mock.patch("torch.Tensor.backward")
+def test_nan_loss_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):
         test_batch_inf = 3
 
@@ -808,6 +810,7 @@ def test_nan_loss_detection(tmpdir):
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_inf
+        assert backward_mock.call_count == model.test_batch_inf
 
     for param in model.parameters():
         assert torch.isfinite(param).all()
