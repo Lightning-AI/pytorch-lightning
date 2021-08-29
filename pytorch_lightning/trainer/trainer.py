@@ -519,7 +519,6 @@ class Trainer(
             self.on_exception(exception)
             raise
 
-
     def fit(
         self,
         model: "pl.LightningModule",
