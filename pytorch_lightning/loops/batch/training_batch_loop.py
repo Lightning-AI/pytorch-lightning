@@ -269,14 +269,7 @@ class TrainingBatchLoop(Loop):
             if result_collection is None:
                 return
 
-        closure_loss = None
-        loss = None
-        if self.trainer.lightning_module.automatic_optimization:
-            # accumulate loss. if accumulate_grad_batches==1, no effect
-            closure_loss = result_collection.minimize / self.trainer.accumulate_grad_batches
-            # the loss will get scaled for amp. avoid any modifications to it
-            loss = closure_loss.detach().clone()
-        return AttributeDict(closure_loss=closure_loss, loss=loss, result_collection=result_collection)
+        return AttributeDict(closure_loss=None, loss=None, result_collection=result_collection)
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.
