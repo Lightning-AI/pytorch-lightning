@@ -1860,11 +1860,27 @@ class TrainerStagesErrorsModel(BoringModel):
 def test_error_handling_all_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesErrorsModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
-    with pytest.raises(Exception, match=r"Error during train"), patch("pytorch_lightning.Trainer._on_exception"):
+
+    with pytest.raises(Exception, match=r"Error during train"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.fit(model)
-    with pytest.raises(Exception, match=r"Error during validation"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during validation"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.validate(model)
-    with pytest.raises(Exception, match=r"Error during test"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during test"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.test(model)
-    with pytest.raises(Exception, match=r"Error during predict"), patch("pytorch_lightning.Trainer._on_exception"):
+    exception_hook.assert_called()
+
+    with pytest.raises(Exception, match=r"Error during predict"), patch(
+        "pytorch_lightning.Trainer._on_exception"
+    ) as exception_hook:
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
+    exception_hook.assert_called()
